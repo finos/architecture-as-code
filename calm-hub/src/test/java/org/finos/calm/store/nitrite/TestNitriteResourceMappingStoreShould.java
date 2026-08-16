@@ -13,6 +13,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,6 +22,7 @@ import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -43,7 +45,8 @@ public class TestNitriteResourceMappingStoreShould {
     private static final String NAMESPACE = "finos";
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         when(mockDb.getCollection(anyString())).thenReturn(mockCollection);
         store = new NitriteResourceMappingStore(mockDb, mockNamespaceStore);
     }
@@ -90,6 +93,37 @@ public class TestNitriteResourceMappingStoreShould {
                 () -> store.createMapping(NAMESPACE, "api-gateway", ResourceType.PATTERN, 1));
     }
 
+    @Test
+    void allow_creating_mapping_with_same_custom_id_as_a_different_resource_type() throws DuplicateMappingException, NamespaceNotFoundException {
+        // Regression guard for #2970: the duplicate check must be scoped by resourceType, so a
+        // pattern and an architecture can both be named "repo" in the same namespace.
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        ResourceMapping pattern = store.createMapping(NAMESPACE, "repo", ResourceType.PATTERN, 1);
+        ResourceMapping architecture = store.createMapping(NAMESPACE, "repo", ResourceType.ARCHITECTURE, 1);
+
+        assertThat(pattern.getResourceType(), is(ResourceType.PATTERN));
+        assertThat(architecture.getResourceType(), is(ResourceType.ARCHITECTURE));
+        verify(mockCollection, times(2)).insert(any(Document.class));
+    }
+
+    @Test
+    void scope_duplicate_check_filter_by_resource_type_on_create() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        ArgumentCaptor<Filter> filterCaptor = ArgumentCaptor.forClass(Filter.class);
+        when(mockCollection.find(filterCaptor.capture())).thenReturn(cursor);
+
+        assertDoesNotThrow(() -> store.createMapping(NAMESPACE, "repo", ResourceType.ARCHITECTURE, 1));
+
+        assertThat(filterCaptor.getValue().toString(), containsString("resourceType"));
+        assertThat(filterCaptor.getValue().toString(), containsString("ARCHITECTURE"));
+    }
+
     // --- getMapping ---
 
     @Test
@@ -106,7 +140,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(cursor.firstOrNull()).thenReturn(doc);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        ResourceMapping result = store.getMapping(NAMESPACE, "api-gateway");
+        ResourceMapping result = store.getMapping(NAMESPACE, ResourceType.PATTERN, "api-gateway");
 
         assertThat(result.getNamespace(), is(NAMESPACE));
         assertThat(result.getCustomId(), is("api-gateway"));
@@ -122,7 +156,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.getMapping(NAMESPACE, "nonexistent"));
+                () -> store.getMapping(NAMESPACE, ResourceType.PATTERN, "nonexistent"));
     }
 
     @Test
@@ -130,7 +164,30 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.getMapping("invalid", "test"));
+                () -> store.getMapping("invalid", ResourceType.PATTERN, "test"));
+    }
+
+    @Test
+    void scope_get_mapping_query_by_resource_type() throws MappingNotFoundException, NamespaceNotFoundException {
+        // Regression guard for #2970: a customId lookup must be scoped by resourceType, or a
+        // pattern and an architecture sharing a customId (e.g. "repo") collide.
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document doc = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("customId", "repo")
+                .put("resourceType", "ARCHITECTURE")
+                .put("numericId", 1);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(doc);
+        ArgumentCaptor<Filter> filterCaptor = ArgumentCaptor.forClass(Filter.class);
+        when(mockCollection.find(filterCaptor.capture())).thenReturn(cursor);
+
+        store.getMapping(NAMESPACE, ResourceType.ARCHITECTURE, "repo");
+
+        assertThat(filterCaptor.getValue().toString(), containsString("resourceType"));
+        assertThat(filterCaptor.getValue().toString(), containsString("ARCHITECTURE"));
     }
 
     // --- listMappings ---
@@ -288,7 +345,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(cursor.firstOrNull()).thenReturn(existing);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        store.updateMappingNumericId(NAMESPACE, "api-gateway", 99);
+        store.updateMappingNumericId(NAMESPACE, ResourceType.PATTERN, "api-gateway", 99);
 
         verify(mockCollection).update(any(Document.class));
     }
@@ -298,7 +355,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.updateMappingNumericId("invalid", "test", 1));
+                () -> store.updateMappingNumericId("invalid", ResourceType.PATTERN, "test", 1));
     }
 
     @Test
@@ -310,7 +367,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.updateMappingNumericId(NAMESPACE, "nonexistent", 1));
+                () -> store.updateMappingNumericId(NAMESPACE, ResourceType.PATTERN, "nonexistent", 1));
     }
 
     // --- deleteMapping ---
@@ -329,7 +386,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(cursor.firstOrNull()).thenReturn(existing);
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
-        store.deleteMapping(NAMESPACE, "api-gateway");
+        store.deleteMapping(NAMESPACE, ResourceType.PATTERN, "api-gateway");
 
         verify(mockCollection).remove(existing);
     }
@@ -339,7 +396,7 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.deleteMapping("invalid", "test"));
+                () -> store.deleteMapping("invalid", ResourceType.PATTERN, "test"));
     }
 
     @Test
@@ -351,6 +408,6 @@ public class TestNitriteResourceMappingStoreShould {
         when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
 
         assertThrows(MappingNotFoundException.class,
-                () -> store.deleteMapping(NAMESPACE, "nonexistent"));
+                () -> store.deleteMapping(NAMESPACE, ResourceType.PATTERN, "nonexistent"));
     }
 }

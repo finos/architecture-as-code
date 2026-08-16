@@ -52,11 +52,11 @@ final class LocationSegmentParser {
             case USER_ACCESS -> new LocationIds(lastSegment(segments), null);
             // .../decorators/{id}
             case DECORATOR -> new LocationIds(lastSegment(segments), null);
-            // Layout PUT always returns 204 with no Location header, so this case is
+            // Layout PUT always returns 204 with no Location header, so these two cases are
             // unreachable at runtime — parse() short-circuits on a null/blank locationPath
-            // before reaching this switch. It exists only because the switch is exhaustive
-            // over AuditEntityType and LAYOUT must be handled to compile.
-            case LAYOUT -> new LocationIds(null, null);
+            // before reaching this switch. They exist only because the switch is exhaustive
+            // over AuditEntityType and LAYOUT/PATTERN_LAYOUT must be handled to compile.
+            case LAYOUT, PATTERN_LAYOUT -> new LocationIds(null, null);
         };
     }
 

@@ -10,9 +10,9 @@ export function idsAreUnique(input: unknown, _: unknown, context: RulesetFunctio
         return [];
     }
     // get uniqueIds of all nodes
-    const nodeIdMatches = JSONPath({path: '$.nodes[*].unique-id', json: context.document.data as object, resultType: 'all'});
-    const relationshipIdMatches = JSONPath({path: '$.relationships[*].unique-id', json: context.document.data as object, resultType: 'all'});
-    const interfaceIdMatches = JSONPath({path: '$.nodes[*].interfaces[*].unique-id', json: context.document.data as object, resultType: 'all'});
+    const nodeIdMatches = JSONPath({ path: '$.nodes[*].unique-id', json: context.document.data as object, resultType: 'all' });
+    const relationshipIdMatches = JSONPath({ path: '$.relationships[*].unique-id', json: context.document.data as object, resultType: 'all' });
+    const interfaceIdMatches = JSONPath({ path: '$.nodes[*].interfaces[*].unique-id', json: context.document.data as object, resultType: 'all' });
 
     const seenIds = new Set();
 

@@ -63,13 +63,13 @@ public class MongoFlowStore implements FlowStore {
 
     @Override
     public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -128,7 +128,6 @@ public class MongoFlowStore implements FlowStore {
         return flow;
     }
 
-
     /**
      * Applies the name and description that came with a version write, ignoring either that
      * is blank, and only after the version write succeeds.
@@ -138,14 +137,8 @@ public class MongoFlowStore implements FlowStore {
                 flow.getName(), flow.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireFlow(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        requireNamespace(flow.getNamespace());
+        namespaceStore.requireNamespace(flow.getNamespace());
         if (!documentStore.headerExists(flow.getNamespace(), flow.getId())) {
             throw new FlowNotFoundException();
         }

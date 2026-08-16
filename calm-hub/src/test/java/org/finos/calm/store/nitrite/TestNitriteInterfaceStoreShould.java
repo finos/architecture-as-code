@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for the header/version shape. Document mechanics are covered by
@@ -65,7 +66,8 @@ public class TestNitriteInterfaceStoreShould {
     private static final String VALID_JSON = "{\"test\": \"test\"}";
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         headerCollection = mock(NitriteCollection.class);
         versionCollection = mock(NitriteCollection.class);
 

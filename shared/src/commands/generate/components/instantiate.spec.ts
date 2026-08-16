@@ -1,4 +1,4 @@
-import {describe, it, expect, vi, beforeEach, Mock} from 'vitest';
+import { describe, it, expect, vi, beforeEach, Mock } from 'vitest';
 import * as fs from 'fs';
 import { instantiate } from './instantiate'; // replace with actual relative path
 import { CalmChoice, selectChoices } from './options';
@@ -235,7 +235,7 @@ describe('instantiate', () => {
                             },
                             required: ['key']
                         },
-                        { const: [ 'nested-array' ]},
+                        { const: [ 'nested-array' ] },
                     ]
                 }
             }

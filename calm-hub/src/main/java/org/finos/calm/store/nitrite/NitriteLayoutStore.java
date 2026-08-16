@@ -9,6 +9,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.dizitart.no2.filters.Filter;
 import org.finos.calm.config.StandaloneQualifier;
+import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.LayoutStore;
 import org.slf4j.Logger;
@@ -47,6 +48,13 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * shape does not remove the need for the lock, only its cost: the critical section used to
  * serialize a full-namespace read-modify-write of a growing array; it is now a small find plus a
  * single-document insert or update.
+ *
+ * <h2>Existence check</h2>
+ * {@link #upsertLayout} rejects a write against an architecture id with no header document, by
+ * querying the {@code architectures} collection directly rather than delegating to
+ * {@code ArchitectureStore#architectureExists} — that method does its own
+ * {@code requireNamespace} call, and calling it from here would mean two namespace-existence
+ * round trips per save instead of one.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -58,29 +66,38 @@ public class NitriteLayoutStore implements LayoutStore {
     private static final String NAMESPACE_FIELD = "namespace";
     private static final String ARCHITECTURE_ID_FIELD = "architectureId";
     private static final String LAYOUT_FIELD = "layout";
+    // Mirrors NitriteArchitectureStore's HEADER_COLLECTION/ID_FIELD — see the class javadoc
+    // for why this queries the collection directly instead of going through that store.
+    private static final String ARCHITECTURE_HEADER_COLLECTION = "architectures";
 
     private final NitriteCollection layoutCollection;
+    private final NitriteCollection architectureHeaderCollection;
     private final NitriteNamespaceStore namespaceStore;
     private final Lock lock = new ReentrantLock();
 
     @Inject
     public NitriteLayoutStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore) {
         this.layoutCollection = db.getCollection(COLLECTION_NAME);
+        this.architectureHeaderCollection = db.getCollection(ARCHITECTURE_HEADER_COLLECTION);
         this.namespaceStore = namespaceStore;
         LOG.info("NitriteLayoutStore initialized with collection: {}", COLLECTION_NAME);
     }
 
     @Override
     public Optional<String> getLayout(String namespace, int architectureId) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         Document document = fetchLayoutDocument(namespace, architectureId);
         return document == null ? Optional.empty() : Optional.ofNullable(document.get(LAYOUT_FIELD, String.class));
     }
 
     @Override
-    public void upsertLayout(String namespace, int architectureId, String layoutJson) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+    public void upsertLayout(String namespace, int architectureId, String layoutJson)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!architectureHeaderExists(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
         validateLayoutJson(layoutJson);
 
         lock.lock();
@@ -103,7 +120,7 @@ public class NitriteLayoutStore implements LayoutStore {
 
     @Override
     public List<Integer> getArchitectureIdsWithLayoutForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Not using DocumentCursor#project here: Nitrite applies a projection in memory after
         // reading the full document from the store, so it saves nothing at the I/O layer and
@@ -135,15 +152,13 @@ public class NitriteLayoutStore implements LayoutStore {
         }
     }
 
+    private boolean architectureHeaderExists(String namespace, int architectureId) {
+        Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(ARCHITECTURE_ID_FIELD).eq(architectureId));
+        return architectureHeaderCollection.find(filter).firstOrNull() != null;
+    }
+
     private Document fetchLayoutDocument(String namespace, int architectureId) {
         Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(ARCHITECTURE_ID_FIELD).eq(architectureId));
         return layoutCollection.find(filter).firstOrNull();
-    }
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
     }
 }

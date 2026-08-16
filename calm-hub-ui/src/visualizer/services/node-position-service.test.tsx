@@ -3,6 +3,7 @@ import type { Node } from 'reactflow';
 import {
     applyPositions,
     applyStoredPositions,
+    buildViewportKey,
     clearStoredNodePositions,
     loadStoredNodePositions,
     saveNodePositions,
@@ -68,6 +69,55 @@ describe('node-position-service', () => {
         it('returns null for valid JSON that is not an array', () => {
             storage.setItem(`${STORAGE_PREFIX}${key}`, '{"id":"node-1"}');
             expect(loadStoredNodePositions(key, storage)).toBeNull();
+        });
+
+        it('falls back to the pre-calmType-qualified key and migrates it forward', () => {
+            const legacyKey = 'finos/42';
+            const newKey = 'finos/Architectures/42';
+            saveNodePositions(legacyKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
+            // Migrated: readable directly under the new key next time, and the
+            // legacy entry is gone so it can't resurface for a different diagram.
+            expect(storage.getItem(`${STORAGE_PREFIX}${newKey}`)).not.toBeNull();
+            expect(storage.getItem(`${STORAGE_PREFIX}${legacyKey}`)).toBeNull();
+        });
+
+        it('does not fall back when the current key already has stored positions', () => {
+            const legacyKey = 'finos/42';
+            const newKey = 'finos/Architectures/42';
+            saveNodePositions(legacyKey, [{ id: 'legacy-node', position: { x: 1, y: 1 }, data: {} }], storage);
+            saveNodePositions(newKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
+            // Untouched: the legacy entry belongs to whichever other diagram (if
+            // any) still needs it — only an empty current key triggers migration.
+            expect(storage.getItem(`${STORAGE_PREFIX}${legacyKey}`)).not.toBeNull();
+        });
+
+        it('does not attempt a fallback for a key that has no legacy shape', () => {
+            // A dropped file's key (undefined) never reaches here; a 2-segment key
+            // like the pre-existing `key` fixture already IS the legacy shape.
+            expect(loadStoredNodePositions(key, storage)).toBeNull();
+            expect(storage.length).toBe(0);
+        });
+    });
+
+    describe('buildViewportKey', () => {
+        it('joins namespace, calmType and id with a slash', () => {
+            expect(buildViewportKey('finos', 'Architectures', 42)).toBe('finos/Architectures/42');
+        });
+
+        it('accepts a string id, matching a resolved slug id', () => {
+            expect(buildViewportKey('finos', 'Patterns', '7')).toBe('finos/Patterns/7');
+        });
+
+        it('round-trips through legacyStorageKeyFor\'s three-segment recognition', () => {
+            const legacyKey = 'finos/42';
+            const newKey = buildViewportKey('finos', 'Architectures', 42);
+            saveNodePositions(legacyKey, nodes, storage);
+
+            expect(loadStoredNodePositions(newKey, storage)).toEqual(storedPositions);
         });
     });
 

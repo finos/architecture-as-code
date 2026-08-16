@@ -34,14 +34,15 @@ export interface DrawerProps {
     onItemSelect?: (item: SelectedItem) => void;
     decorators?: Decorator[];
     /**
-     * Overrides Drawer's own `${data.name}/${data.id}` viewport key computation.
-     * Used by DiagramSection to key the graph off a slug's *resolved numeric*
-     * architecture id instead of the raw slug, so the same architecture reached
-     * via a slug route and a numeric route share one localStorage scratch entry
-     * and one server layout call. Three states:
+     * Overrides Drawer's own `${data.name}/${data.calmType}/${data.id}` viewport
+     * key computation. Used by DiagramSection to key the graph off a slug's
+     * *resolved numeric* architecture id instead of the raw slug, so the same
+     * architecture reached via a slug route and a numeric route share one
+     * localStorage scratch entry and one server layout call. Three states:
      *  - a string: the resolved key to use.
-     *  - `undefined`: no opinion — Drawer falls back to its own `${data.name}/${data.id}`
-     *    computation. This is the state while a slug is still resolving (never `null`
+     *  - `undefined`: no opinion — Drawer falls back to its own
+     *    `${data.name}/${data.calmType}/${data.id}` computation. This is the
+     *    state while a slug is still resolving (never `null`
      *    then — see `useDefaultLayout`), and always the state for patterns and dropped
      *    files, which never receive an override.
      *  - `null`: an explicit "there is no stable key" — a slug that finished resolving

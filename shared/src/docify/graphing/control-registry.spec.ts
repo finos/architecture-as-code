@@ -1,8 +1,8 @@
 import { ControlRegistry } from './control-registry';
 import { CalmCore, Architecture, CalmNode, CalmRelationship, CalmFlow, CalmControls } from '@finos/calm-models/model';
-import { CalmControlsSchema} from '@finos/calm-models/types';
+import { CalmControlsSchema } from '@finos/calm-models/types';
 import { InMemoryResolver } from '../../resolver/calm-reference-resolver';
-import {DereferencingVisitor} from '../../model-visitor/dereference-visitor';
+import { DereferencingVisitor } from '../../model-visitor/dereference-visitor';
 
 describe('ControlRegistry', () => {
     let controlRegistry: ControlRegistry;

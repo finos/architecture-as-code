@@ -90,7 +90,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         List<NamespaceAdrSummary> summaries = new ArrayList<>();
         for (NamespaceResourceSummary header : documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED)) {
@@ -101,7 +101,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.countHeaders(namespace);
     }
 
@@ -138,7 +138,7 @@ public class MongoAdrStore implements AdrStore {
 
     @Override
     public AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException {
-        requireNamespace(adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
 
         Document content = toContent(adrMeta);
 
@@ -245,7 +245,6 @@ public class MongoAdrStore implements AdrStore {
                 .build();
     }
 
-
     /**
      * Writes a new revision, rejecting one that already exists.
      *
@@ -296,14 +295,8 @@ public class MongoAdrStore implements AdrStore {
         }
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException {
-        requireNamespace(adrMeta.getNamespace());
+        namespaceStore.requireNamespace(adrMeta.getNamespace());
         if (!documentStore.headerExists(adrMeta.getNamespace(), adrMeta.getId())) {
             throw new AdrNotFoundException();
         }

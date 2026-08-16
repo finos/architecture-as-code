@@ -51,10 +51,10 @@ describe('interfaceIdExistsOnNode', () => {
                             prefixItems: [
                                 {
                                     properties: {
-                                        'unique-id': {const: 'node1'},
+                                        'unique-id': { const: 'node1' },
                                         'interfaces': {
                                             prefixItems: [
-                                                {properties: {'unique-id': {const: 'intf1'}}} // will match this interface
+                                                { properties: { 'unique-id': { const: 'intf1' } } } // will match this interface
                                             ]
                                         }
                                     }
@@ -80,7 +80,7 @@ describe('interfaceIdExistsOnNode', () => {
                             prefixItems: [
                                 {
                                     properties: {
-                                        'unique-id': {const: 'node1'}
+                                        'unique-id': { const: 'node1' }
                                     }
                                 }
                             ]
@@ -106,10 +106,10 @@ describe('interfaceIdExistsOnNode', () => {
                             prefixItems: [
                                 {
                                     properties: {
-                                        'unique-id': {const: 'node1'},
+                                        'unique-id': { const: 'node1' },
                                         'interfaces': {
                                             prefixItems: [
-                                                {properties: {'unique-id': {const: 'intf1'}}} // will match this interface
+                                                { properties: { 'unique-id': { const: 'intf1' } } } // will match this interface
                                             ]
                                         }
                                     }
@@ -202,10 +202,10 @@ describe('interfaceIdExistsOnNode', () => {
                             prefixItems: [
                                 {
                                     properties: {
-                                        'unique-id': {const: 'node1'},
+                                        'unique-id': { const: 'node1' },
                                         'interfaces': {
                                             prefixItems: [
-                                                {properties: {'unique-id': {const: 'intf1'}}}
+                                                { properties: { 'unique-id': { const: 'intf1' } } }
                                             ]
                                         }
                                     }

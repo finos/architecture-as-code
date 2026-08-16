@@ -208,7 +208,7 @@ public class MappingControllerResource {
         }
         ResourceMapping existing;
         try {
-            existing = service.getMapping(canonical.namespace(), canonical.name());
+            existing = service.getMapping(canonical.namespace(), canonical.resourceType(), canonical.name());
         } catch (MappingNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(canonical.name())).build();
@@ -312,7 +312,7 @@ public class MappingControllerResource {
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
         }
         try {
-            ResourceMapping mapping = service.getMapping(namespace, name);
+            ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
             List<String> sortedVersions = versions.stream()
                     .sorted(Comparator.comparing(Semver::tryParse))
@@ -361,7 +361,7 @@ public class MappingControllerResource {
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)).build();
         }
         try {
-            ResourceMapping mapping = service.getMapping(namespace, name);
+            ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             String json = service.getResourceJsonForVersion(mapping, version);
             String rewrittenJson = documentParser.rewriteId(json, namespace, type, name, version);
             return Response.ok(rewrittenJson).build();

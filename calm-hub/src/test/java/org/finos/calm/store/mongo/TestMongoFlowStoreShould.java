@@ -44,6 +44,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for the header/version shape. Document mechanics are covered by
@@ -78,7 +79,8 @@ public class TestMongoFlowStoreShould {
     private static final String VALID_JSON = "{\"test\": \"test\"}";
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         headerCollection = Mockito.mock(DocumentMongoCollection.class);
         versionCollection = Mockito.mock(DocumentMongoCollection.class);
 

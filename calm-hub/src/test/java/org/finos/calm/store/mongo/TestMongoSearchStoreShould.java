@@ -168,15 +168,16 @@ class TestMongoSearchStoreShould {
 
     @Test
     void search_controls_by_domain_not_namespace() {
-        Document controlEntry = new Document("controlId", 1)
+        // Control's header shape (ADR 0007) stores the domain in the "namespace" field,
+        // matching every other type's header/version collection.
+        Document controlHeader = new Document("namespace", "api-threats")
+                .append("controlId", 1)
                 .append("name", "API Rate Limiting")
                 .append("description", "Rate limit control");
-        Document domainDoc = new Document("domain", "api-threats")
-                .append("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         GroupedSearchResults results = searchStore.search("rate");
 
@@ -357,15 +358,14 @@ class TestMongoSearchStoreShould {
      */
     @Test
     void return_controls_regardless_of_readable_namespaces() {
-        Document controlEntry = new Document("controlId", 1)
+        Document controlHeader = new Document("namespace", "api-threats")
+                .append("controlId", 1)
                 .append("name", "API Rate Limiting")
                 .append("description", "Rate limit control");
-        Document domainDoc = new Document("domain", "api-threats")
-                .append("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
 

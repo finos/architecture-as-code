@@ -6,6 +6,11 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
     { ignores: ['dist', 'node_modules', '**/*.vsix'] },
     {
+        rules: {
+            'object-curly-spacing': ['error', 'always'],
+        },
+    },
+    {
         // Webview (React) sources — browser environment.
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
         files: ['src/webview/**/*.{ts,tsx}'],

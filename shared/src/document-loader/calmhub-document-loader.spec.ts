@@ -57,10 +57,34 @@ describe('calmhub-document-loader', () => {
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
     });
 
-    it('throws an error when the protocol is not calm:', async () => {
-        const calmHubUrl = 'https://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
+    it('throws an error when the protocol is not http/https/calm', async () => {
+        const calmHubUrl = 'ftp://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
 
         await expect(calmHubDocumentLoader.loadMissingDocument(calmHubUrl, 'schema')).rejects.toThrow();
+    });
+
+    it('does not claim an http(s) URL whose origin is not this CalmHub instance, so other loaders can try it', async () => {
+        const externalUrl = 'https://not.calmhub.com/schemas/2025-03/meta/nonexistent.json';
+
+        const promise = calmHubDocumentLoader.loadMissingDocument(externalUrl, 'schema');
+        await expect(promise).rejects.toThrow('only loads http(s) documents from the configured CALMHub origin');
+        // Recoverable: a DocumentLoadError with recoverable: true, so MultiStrategyDocumentLoader falls through.
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ recoverable: true });
+    });
+
+    it('rejects a calmHubUrl that is not a parseable absolute URL', () => {
+        expect(() => new CalmHubDocumentLoader('not-a-url', false, undefined, ax))
+            .toThrow('Invalid CalmHub URL');
+    });
+
+    it('loads an http(s) URL whose origin matches this CalmHub instance', async () => {
+        const hubUrl = `${calmHubBaseUrl}/schemas/2025-03/meta/core.json`;
+        const document = await calmHubDocumentLoader.loadMissingDocument(hubUrl, 'schema');
+        expect(document).toEqual({
+            '$id': 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json',
+            'value': 'test'
+        });
     });
 
     it('rejects paths containing directory traversal segments', async () => {

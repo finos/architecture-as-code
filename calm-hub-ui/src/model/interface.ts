@@ -5,6 +5,7 @@ export interface InterfaceDetail {
     id: number;
     name: string;
     description: string;
+    customId?: string;
 }
 
 /**

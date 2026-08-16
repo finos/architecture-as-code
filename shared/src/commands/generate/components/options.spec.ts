@@ -26,7 +26,7 @@ const applicationYtoZ: CalmChoice = {
     relationships: ['application-y-to-z']
 };
 
-function buildPatternChoice({description, nodes, relationships}: CalmChoice) {
+function buildPatternChoice({ description, nodes, relationships }: CalmChoice) {
     return {
         'properties': {
             'description': {

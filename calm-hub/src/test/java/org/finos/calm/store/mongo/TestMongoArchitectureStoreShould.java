@@ -43,6 +43,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for the header/version shape. The document mechanics themselves are
@@ -77,7 +78,8 @@ public class TestMongoArchitectureStoreShould {
     private static final String VALID_JSON = "{\"test\": \"test\"}";
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         headerCollection = Mockito.mock(DocumentMongoCollection.class);
         versionCollection = Mockito.mock(DocumentMongoCollection.class);
 
@@ -167,29 +169,6 @@ public class TestMongoArchitectureStoreShould {
 
         assertThat(store.getArchitecturesForNamespace(NAMESPACE), contains(
                 new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
-    }
-
-    // --- architectureExists ---
-
-    @Test
-    void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
-        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> store.architectureExists(NAMESPACE, ARCHITECTURE_ID));
-    }
-
-    @Test
-    void return_true_when_the_architecture_header_exists() throws NamespaceNotFoundException {
-        architectureExists();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(true));
-    }
-
-    @Test
-    void return_false_when_the_architecture_header_is_absent() throws NamespaceNotFoundException {
-        architectureDoesNotExist();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(false));
     }
 
     // --- createArchitectureForNamespace ---

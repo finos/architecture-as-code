@@ -654,17 +654,48 @@ describe('DiagramSection', () => {
             expect(userAccessMock.canWriteNamespace).toHaveBeenCalledWith('arch-namespace');
         });
 
-        it('never shows layout actions for patterns, even with a write grant', async () => {
+        it('shows "Save as default layout" for a pattern once a write grant resolves', async () => {
+            // Numeric id, so this doesn't depend on fetchMappings resolving a slug match —
+            // that path is already covered by the architecture slug tests below.
             userAccessMock.canWriteNamespace.mockReturnValue(true);
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={{ ...patternData, id: '99' }} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByLabelText('Save as default layout')).toBeInTheDocument());
+            expect(userAccessMock.canWriteNamespace).toHaveBeenCalledWith('pattern-namespace');
+        });
+
+        it('shows "Reset to default layout" for patterns regardless of write access, disabled with no scratch layout', async () => {
             render(
                 <MemoryRouter>
                     <DiagramSection data={patternData} />
                 </MemoryRouter>
             );
 
-            await screen.findByTestId('drawer');
-            expect(screen.queryByLabelText('Save as default layout')).not.toBeInTheDocument();
-            expect(screen.queryByLabelText('Reset to default layout')).not.toBeInTheDocument();
+            const resetButton = await screen.findByLabelText('Reset to default layout');
+            expect(resetButton).toBeDisabled();
+        });
+
+        it('shows "Save as default layout" for a pattern on mobile too', async () => {
+            // The mobile view-options menu used to hand-copy the desktop gating condition
+            // instead of reusing showLayoutActions — exactly the kind of drift that would
+            // leave patterns supported on desktop but not mobile.
+            const restore = mockMobileViewport();
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={{ ...patternData, id: '99' }} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            expect(await screen.findByLabelText('Save as default layout')).toBeInTheDocument();
+            expect(screen.getByLabelText('Reset to default layout')).toBeInTheDocument();
+            restore();
         });
 
         it('shows "Reset to default layout" for architectures regardless of write access, disabled with no scratch layout', async () => {
@@ -686,7 +717,7 @@ describe('DiagramSection', () => {
             );
 
             // Let the slug -> numeric id resolution settle so viewportKey is set
-            // ('arch-namespace/42', per fetchMappings above).
+            // ('arch-namespace/Architectures/42', per fetchMappings above).
             await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
             const resetButton = await screen.findByLabelText('Reset to default layout');
             expect(resetButton).toBeDisabled();
@@ -695,7 +726,7 @@ describe('DiagramSection', () => {
             // localStorage first, then report the positions upward via
             // onPositionsChange (a ref-only write in DiagramSection prior to the
             // fix -- no re-render, so the button stayed stuck disabled).
-            saveNodePositions('arch-namespace/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
+            saveNodePositions('arch-namespace/Architectures/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
             const user = userEvent.setup();
             await user.click(screen.getByText('simulate-drag-report'));
 
@@ -712,7 +743,7 @@ describe('DiagramSection', () => {
             await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
             const resetButton = await screen.findByLabelText('Reset to default layout');
 
-            saveNodePositions('arch-namespace/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
+            saveNodePositions('arch-namespace/Architectures/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
             const user = userEvent.setup();
             await user.click(screen.getByText('simulate-drag-report'));
             await waitFor(() => expect(resetButton).toBeEnabled());

@@ -64,14 +64,14 @@ public class NitriteStandardStore implements StandardStore {
 
     @Override
     public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED);
     }
 
     @Override
     public Standard createStandardForNamespace(CreateStandardRequest createStandardRequest, String namespace) throws NamespaceNotFoundException {
         Standard createdStandard = new Standard(createStandardRequest);
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         validateStandardJson(createStandardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
@@ -104,7 +104,7 @@ public class NitriteStandardStore implements StandardStore {
 
     @Override
     public Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         validateStandardJson(standardRequest.getStandardJson());
         requireStandardExists(namespace, standardId);
 
@@ -142,14 +142,6 @@ public class NitriteStandardStore implements StandardStore {
         }
     }
 
-
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            LOG.warn("Namespace '{}' not found", namespace);
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireStandardExists(String namespace, Integer standardId) throws StandardNotFoundException {
         if (!documentStore.headerExists(namespace, standardId)) {
             LOG.warn("Standard with ID {} not found in namespace '{}'", standardId, namespace);
@@ -158,7 +150,7 @@ public class NitriteStandardStore implements StandardStore {
     }
 
     private void requireStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         requireStandardExists(namespace, standardId);
     }
 }

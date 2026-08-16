@@ -34,15 +34,18 @@ describe('useDefaultLayout', () => {
         vi.clearAllMocks();
     });
 
-    describe('non-architectures', () => {
-        it('never fetches and resolves to no default immediately', async () => {
-            const { result } = renderHook(() => useDefaultLayout(namespace, 'test-pattern', 'Patterns'));
-            expect(result.current.defaultLayout).toBeNull();
-            expect(result.current.viewportKey).toBeUndefined();
-            expect(result.current.canSave).toBe(false);
-            expect(calmServiceMock.fetchMappings).not.toHaveBeenCalled();
-            expect(layoutServiceMock.getDefaultLayout).not.toHaveBeenCalled();
-        });
+    describe('unsupported types', () => {
+        it.each(['Flows', 'ADRs', 'Standards'])(
+            'never fetches and resolves to no default immediately for calmType %s',
+            async (calmType) => {
+                const { result } = renderHook(() => useDefaultLayout(namespace, 'test-id', calmType));
+                expect(result.current.defaultLayout).toBeNull();
+                expect(result.current.viewportKey).toBeUndefined();
+                expect(result.current.canSave).toBe(false);
+                expect(calmServiceMock.fetchMappings).not.toHaveBeenCalled();
+                expect(layoutServiceMock.getDefaultLayout).not.toHaveBeenCalled();
+            }
+        );
     });
 
     describe('numeric id', () => {
@@ -62,7 +65,7 @@ describe('useDefaultLayout', () => {
             expect(result.current.defaultLayout).toBeUndefined(); // loading
             await waitFor(() => expect(result.current.defaultLayout).not.toBeUndefined());
 
-            expect(result.current.viewportKey).toBe('finos/5');
+            expect(result.current.viewportKey).toBe('finos/Architectures/5');
             expect(result.current.defaultLayout).toEqual([{ id: 'node-a', position: { x: 10, y: 20 } }]);
             expect(result.current.canSave).toBe(true);
         });
@@ -83,9 +86,9 @@ describe('useDefaultLayout', () => {
 
             const { result } = renderHook(() => useDefaultLayout(namespace, 'my-arch', 'Architectures'));
 
-            await waitFor(() => expect(result.current.viewportKey).toBe('finos/42'));
+            await waitFor(() => expect(result.current.viewportKey).toBe('finos/Architectures/42'));
             expect(calmServiceMock.fetchMappings).toHaveBeenCalledWith(namespace, 'Architectures');
-            expect(layoutServiceMock.getDefaultLayout).toHaveBeenCalledWith(namespace, 42);
+            expect(layoutServiceMock.getDefaultLayout).toHaveBeenCalledWith(namespace, 42, 'architectures');
             expect(result.current.canSave).toBe(true);
         });
 
@@ -103,8 +106,8 @@ describe('useDefaultLayout', () => {
             const viaSlug = renderHook(() => useDefaultLayout(namespace, 'my-arch', 'Architectures'));
             const viaNumeric = renderHook(() => useDefaultLayout(namespace, '42', 'Architectures'));
 
-            await waitFor(() => expect(viaSlug.result.current.viewportKey).toBe('finos/42'));
-            expect(viaNumeric.result.current.viewportKey).toBe('finos/42');
+            await waitFor(() => expect(viaSlug.result.current.viewportKey).toBe('finos/Architectures/42'));
+            expect(viaNumeric.result.current.viewportKey).toBe('finos/Architectures/42');
             expect(viaSlug.result.current.viewportKey).toBe(viaNumeric.result.current.viewportKey);
         });
 
@@ -168,8 +171,8 @@ describe('useDefaultLayout', () => {
             const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures'));
             await waitFor(() => expect(result.current.defaultLayout).toBeNull());
 
-            saveNodePositions('finos/5', [{ id: 'node-a', position: { x: 1, y: 2 }, data: {} }] as never);
-            expect(loadStoredNodePositions('finos/5')).not.toBeNull();
+            saveNodePositions('finos/Architectures/5', [{ id: 'node-a', position: { x: 1, y: 2 }, data: {} }] as never);
+            expect(loadStoredNodePositions('finos/Architectures/5')).not.toBeNull();
 
             const positions = [{ id: 'node-a', position: { x: 1, y: 2 } }];
             await act(async () => {
@@ -182,13 +185,14 @@ describe('useDefaultLayout', () => {
                 expect.objectContaining({
                     for: '/api/calm/namespaces/finos/architectures/5',
                     pins: [{ 'unique-id': 'node-a', position: { x: 1, y: 2 } }],
-                })
+                }),
+                'architectures'
             );
             expect(result.current.defaultLayout).toEqual(positions);
             expect(result.current.layoutEpoch).toBe(1);
             expect(result.current.saving).toBe(false);
             expect(result.current.saveError).toBeNull();
-            expect(loadStoredNodePositions('finos/5')).toBeNull();
+            expect(loadStoredNodePositions('finos/Architectures/5')).toBeNull();
         });
 
         it('surfaces an error and leaves state otherwise unchanged on failure', async () => {
@@ -225,17 +229,94 @@ describe('useDefaultLayout', () => {
             layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
 
             const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures'));
-            await waitFor(() => expect(result.current.viewportKey).toBe('finos/5'));
+            await waitFor(() => expect(result.current.viewportKey).toBe('finos/Architectures/5'));
 
-            saveNodePositions('finos/5', [{ id: 'node-a', position: { x: 1, y: 2 }, data: {} }] as never);
-            expect(loadStoredNodePositions('finos/5')).not.toBeNull();
+            saveNodePositions('finos/Architectures/5', [{ id: 'node-a', position: { x: 1, y: 2 }, data: {} }] as never);
+            expect(loadStoredNodePositions('finos/Architectures/5')).not.toBeNull();
 
             act(() => {
                 result.current.reset();
             });
 
             expect(result.current.layoutEpoch).toBe(1);
-            expect(loadStoredNodePositions('finos/5')).toBeNull();
+            expect(loadStoredNodePositions('finos/Architectures/5')).toBeNull();
+        });
+
+        it('does not touch a same-numbered pattern\'s scratch entry (collision regression)', async () => {
+            // Architecture ids and pattern ids come from independent counters, so an
+            // Architecture 5 and a Pattern 5 can coexist in the same namespace. Before
+            // the calmType qualifier was added to the key, resetting one would have
+            // cleared the other's scratch-position entry too.
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures'));
+            await waitFor(() => expect(result.current.viewportKey).toBe('finos/Architectures/5'));
+
+            const patternKey = 'finos/Patterns/5';
+            saveNodePositions(patternKey, [{ id: 'node-a', position: { x: 9, y: 9 }, data: {} }] as never);
+            expect(loadStoredNodePositions(patternKey)).not.toBeNull();
+
+            act(() => {
+                result.current.reset();
+            });
+
+            expect(loadStoredNodePositions(patternKey)).not.toBeNull();
+        });
+    });
+
+    describe('patterns', () => {
+        it('resolves the viewportKey for a numeric pattern id and fetches its layout', async () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+
+            const { result } = renderHook(() => useDefaultLayout(namespace, '9', 'Patterns'));
+
+            await waitFor(() => expect(result.current.viewportKey).toBe('finos/Patterns/9'));
+            expect(calmServiceMock.fetchMappings).not.toHaveBeenCalled();
+            expect(layoutServiceMock.getDefaultLayout).toHaveBeenCalledWith(namespace, 9, 'patterns');
+            expect(result.current.canSave).toBe(true);
+        });
+
+        it('resolves a slug pattern id via fetchMappings(namespace, Patterns)', async () => {
+            // Asserts the actual argument passed, not just that the mock was called — a
+            // hardcoded 'Architectures' here would silently resolve patterns against the
+            // wrong mapping list.
+            calmServiceMock.fetchMappings.mockResolvedValue([
+                { namespace, customId: 'my-pattern', resourceType: 'Patterns', numericId: 9 },
+            ]);
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+
+            const { result } = renderHook(() => useDefaultLayout(namespace, 'my-pattern', 'Patterns'));
+
+            await waitFor(() => expect(result.current.viewportKey).toBe('finos/Patterns/9'));
+            expect(calmServiceMock.fetchMappings).toHaveBeenCalledWith(namespace, 'Patterns');
+            expect(result.current.canSave).toBe(true);
+        });
+
+        it('save emits a /patterns/ for-target and PUTs via the patterns urlType', async () => {
+            // The most likely bug to slip through: a stale hardcoded '/architectures/'
+            // segment here would 400 against the backend's for-mismatch check on every
+            // pattern save.
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+            layoutServiceMock.saveDefaultLayout.mockResolvedValue(undefined);
+
+            const { result } = renderHook(() => useDefaultLayout(namespace, '9', 'Patterns'));
+            await waitFor(() => expect(result.current.defaultLayout).toBeNull());
+
+            const positions = [{ id: 'node-a', position: { x: 1, y: 2 } }];
+            await act(async () => {
+                await result.current.save(positions);
+            });
+
+            expect(layoutServiceMock.saveDefaultLayout).toHaveBeenCalledWith(
+                namespace,
+                9,
+                expect.objectContaining({
+                    for: '/api/calm/namespaces/finos/patterns/9',
+                    pins: [{ 'unique-id': 'node-a', position: { x: 1, y: 2 } }],
+                }),
+                'patterns'
+            );
+            expect(result.current.defaultLayout).toEqual(positions);
         });
     });
 });

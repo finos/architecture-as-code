@@ -37,6 +37,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
 /**
  * Store-level tests for the header/version shape. Document mechanics are covered by
@@ -69,7 +70,8 @@ public class TestNitriteArchitectureStoreShould {
     private static final String ARCHITECTURE_DESCRIPTION = "architecture description";
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
         headerCollection = mock(NitriteCollection.class);
         versionCollection = mock(NitriteCollection.class);
 
@@ -156,29 +158,6 @@ public class TestNitriteArchitectureStoreShould {
         // Nitrite has no server-side skip/limit, so the window is applied after materialising.
         assertThat(store.getArchitecturesForNamespace(NAMESPACE, new PageRequest(1, 1)), contains(
                 new NamespaceResourceSummary("Second", "", 2, 1)));
-    }
-
-    // --- architectureExists ---
-
-    @Test
-    public void throw_a_namespace_exception_when_checking_existence_for_a_missing_namespace() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> store.architectureExists(NAMESPACE, ARCHITECTURE_ID));
-    }
-
-    @Test
-    public void return_true_when_the_architecture_header_exists() throws NamespaceNotFoundException {
-        architectureExists();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(true));
-    }
-
-    @Test
-    public void return_false_when_the_architecture_header_is_absent() throws NamespaceNotFoundException {
-        architectureDoesNotExist();
-
-        assertThat(store.architectureExists(NAMESPACE, ARCHITECTURE_ID), is(false));
     }
 
     // --- createArchitectureForNamespace ---

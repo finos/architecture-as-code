@@ -69,12 +69,8 @@ jobs:
             - name: Install workspace
               run: npm ci
 
-            - name: Package VS Code Extension
-              run: npm run package:vscode
-
             - name: Determine pre-release flag
               id: prerelease
-              if: github.event.inputs.publish_to_marketplace == 'true'
               working-directory: ./calm-plugins/vscode
               run: |
                   case "${{ github.event.inputs.pre_release }}" in
@@ -93,6 +89,12 @@ jobs:
                       fi
                       ;;
                   esac
+
+            - name: Package VS Code Extension
+              run: |
+                  npm run build:shared
+                  npm run build --workspace calm-plugins/vscode
+                  (cd calm-plugins/vscode && npx @vscode/vsce package ${{ steps.prerelease.outputs.flag }} --no-dependencies)
 
             - name: Publish to VS Code Marketplace
               if: github.event.inputs.publish_to_marketplace == 'true'

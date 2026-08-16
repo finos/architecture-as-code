@@ -129,15 +129,16 @@ class TestNitriteSearchStoreShould {
 
     @Test
     void search_controls_by_domain() {
-        Document controlEntry = Document.createDocument("controlId", 1)
+        // Control's header shape (ADR 0007) stores the domain in the "namespace" field,
+        // matching every other type's header/version collection.
+        Document controlHeader = Document.createDocument("namespace", "api-threats")
+                .put("controlId", 1)
                 .put("name", "API Rate Limiting")
                 .put("description", "Rate limit control");
-        Document domainDoc = Document.createDocument("domain", "api-threats")
-                .put("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         GroupedSearchResults results = searchStore.search("rate");
 
@@ -358,15 +359,14 @@ class TestNitriteSearchStoreShould {
      */
     @Test
     void return_controls_regardless_of_readable_namespaces() {
-        Document controlEntry = Document.createDocument("controlId", 1)
+        Document controlHeader = Document.createDocument("namespace", "api-threats")
+                .put("controlId", 1)
                 .put("name", "API Rate Limiting")
                 .put("description", "Rate limit control");
-        Document domainDoc = Document.createDocument("domain", "api-threats")
-                .put("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         // The user has no namespace grants but controls must still be returned
         // because they are domain-scoped.

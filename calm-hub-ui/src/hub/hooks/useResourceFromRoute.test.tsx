@@ -94,6 +94,21 @@ describe('useResourceFromRoute', () => {
         });
     });
 
+    it('loads an interface via onInterfaceLoad when the slug matches', async () => {
+        fetchInterfacesForNamespace.mockResolvedValue([
+            { id: 7, name: 'My Interface', description: 'desc', customId: 'my-interface' },
+        ]);
+        renderAt('/traderx/interfaces/my-interface/detail');
+        await waitFor(() => {
+            expect(callbacks.onInterfaceLoad).toHaveBeenCalledWith({
+                namespace: 'traderx',
+                interfaceId: 7,
+                interfaceName: 'My Interface',
+                interfaceDescription: 'desc',
+            });
+        });
+    });
+
     it('loads a control via onControlLoad when the id matches', async () => {
         fetchControlsForDomain.mockResolvedValue([{ id: 5, name: 'Encryption', description: 'desc' }]);
         renderAt('/security/controls/5/detail');

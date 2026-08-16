@@ -7,7 +7,7 @@ import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-cor
 export function nodeHasRelationship(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     const nodeName = input;
 
-    const relationshipLabels = JSONPath({path: '$.relationships[*].relationship-type..*@string()', json: context.document.data as object});
+    const relationshipLabels = JSONPath({ path: '$.relationships[*].relationship-type..*@string()', json: context.document.data as object });
     const results: IFunctionResult[] = [];
     if (!relationshipLabels) {
         return [{

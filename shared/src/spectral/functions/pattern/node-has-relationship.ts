@@ -7,7 +7,7 @@ import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-cor
 export default (input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] => {
     const nodeId = input;
 
-    const referencedNodeIds = JSONPath({path: '$..relationship-type..*@string()', json: context.document.data as object});
+    const referencedNodeIds = JSONPath({ path: '$..relationship-type..*@string()', json: context.document.data as object });
 
     const results: IFunctionResult[] = [];
     if (!referencedNodeIds) {
