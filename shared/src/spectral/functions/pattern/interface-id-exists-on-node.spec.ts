@@ -139,10 +139,10 @@ describe('interfaceIdExistsOnNode', () => {
                                 oneOf: [
                                     {
                                         properties: {
-                                            'unique-id': {const: 'cache'},
+                                            'unique-id': { const: 'cache' },
                                             'interfaces': {
                                                 prefixItems: [
-                                                    {properties: {'unique-id': {const: 'cache-intf'}}}
+                                                    { properties: { 'unique-id': { const: 'cache-intf' } } }
                                                 ]
                                             }
                                         }
@@ -170,10 +170,10 @@ describe('interfaceIdExistsOnNode', () => {
                                 oneOf: [
                                     {
                                         properties: {
-                                            'unique-id': {const: 'cache'},
+                                            'unique-id': { const: 'cache' },
                                             'interfaces': {
                                                 prefixItems: [
-                                                    {properties: {'unique-id': {const: 'cache-intf'}}}
+                                                    { properties: { 'unique-id': { const: 'cache-intf' } } }
                                                 ]
                                             }
                                         }

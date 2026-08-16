@@ -128,12 +128,12 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'webapp'}}}
+                                { 'properties': { 'unique-id': { 'const': 'webapp' } } }
                             ],
                             items: {
                                 oneOf: [
-                                    {'properties': {'unique-id': {'const': 'cache'}}},
-                                    {'properties': {'unique-id': {'const': 'cache'}}}
+                                    { 'properties': { 'unique-id': { 'const': 'cache' } } },
+                                    { 'properties': { 'unique-id': { 'const': 'cache' } } }
                                 ]
                             }
                         }
@@ -156,8 +156,8 @@ describe('idsAreUnique', () => {
                         relationships: {
                             items: {
                                 oneOf: [
-                                    {'properties': {'unique-id': {'const': 'edge'}}},
-                                    {'properties': {'unique-id': {'const': 'edge'}}}
+                                    { 'properties': { 'unique-id': { 'const': 'edge' } } },
+                                    { 'properties': { 'unique-id': { 'const': 'edge' } } }
                                 ]
                             }
                         }
@@ -179,11 +179,11 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'webapp'}}}
+                                { 'properties': { 'unique-id': { 'const': 'webapp' } } }
                             ],
                             items: {
                                 oneOf: [
-                                    {'properties': {'unique-id': {'const': 'webapp'}}}
+                                    { 'properties': { 'unique-id': { 'const': 'webapp' } } }
                                 ]
                             }
                         }
@@ -206,13 +206,13 @@ describe('idsAreUnique', () => {
                         nodes: {
                             items: {
                                 anyOf: [
-                                    {'properties': {
-                                        'unique-id': {'const': 'cache'},
-                                        'interfaces': {prefixItems: [{'properties': {'unique-id': {'const': 'intf1'}}}]}}
+                                    { 'properties': {
+                                        'unique-id': { 'const': 'cache' },
+                                        'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'intf1' } } }] } }
                                     },
-                                    {'properties': {
-                                        'unique-id': {'const': 'queue'},
-                                        'interfaces': {prefixItems: [{'properties': {'unique-id': {'const': 'intf1'}}}]}}
+                                    { 'properties': {
+                                        'unique-id': { 'const': 'queue' },
+                                        'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'intf1' } } }] } }
                                     }
                                 ]
                             }
