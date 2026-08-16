@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ public class TestStandardResourceShould {
 
     @InjectMock
     StandardStore mockStandardStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 

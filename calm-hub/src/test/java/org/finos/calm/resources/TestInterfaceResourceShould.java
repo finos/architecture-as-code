@@ -7,6 +7,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
+import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
 import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
@@ -15,6 +17,7 @@ import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +34,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -41,6 +45,9 @@ public class TestInterfaceResourceShould {
 
     @InjectMock
     InterfaceStore mockInterfaceStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -93,6 +100,29 @@ public class TestInterfaceResourceShould {
                 .body("values[1].description", equalTo("HTTP URL Interface"));
 
         verify(mockInterfaceStore).getInterfacesForNamespace("valid");
+    }
+
+    @Test
+    void include_the_custom_id_on_interface_summaries_that_have_a_mapping() throws Exception {
+        when(mockInterfaceStore.getInterfacesForNamespace("valid"))
+                .thenReturn(List.of(this.tcpInterfaceSummary, this.httpInterfaceSummary));
+        when(mockResourceMappingStore.listMappingsByNumericIds("valid", ResourceType.INTERFACE, List.of(1, 2)))
+                .thenReturn(List.of(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("valid")
+                        .setCustomId("tcp-port")
+                        .setResourceType(ResourceType.INTERFACE)
+                        .setNumericId(1)
+                        .build()));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/valid/interfaces")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(1))
+                .body("values[0].customId", equalTo("tcp-port"))
+                .body("values[1].id", equalTo(2))
+                .body("values[1].customId", nullValue());
     }
 
     @Test
