@@ -1,7 +1,7 @@
 import { CalmControl, CalmControlDetail } from './control.js';
 import { CalmControls } from './control';
-import {CalmControlsSchema} from '../types/control-types';
-import {Resolvable} from './resolvable';
+import { CalmControlsSchema } from '../types/control-types';
+import { Resolvable } from './resolvable';
 
 describe('CalmControls', () => {
     const controlsSchema:CalmControlsSchema = {

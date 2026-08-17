@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { Node, Edge, NodeChange } from 'reactflow';
 import { reflowContainersToFitChildren } from '../utils/layoutUtils.js';
-import { saveNodePositions } from '../../../services/node-position-service.js';
+import { saveNodePositions, toStoredPositions, type StoredNodePosition } from '../../../services/node-position-service.js';
 
 interface UseGraphInteractionsOptions {
     setNodes: React.Dispatch<React.SetStateAction<Node[]>>;
@@ -14,6 +14,8 @@ interface UseGraphInteractionsOptions {
     // Key (namespace/id) under which to persist the layout on drag-end; when
     // absent, layout changes are not persisted.
     persistKey?: string;
+    /** Reports the post-reflow positions upward at drag-end (see ArchitectureGraph). */
+    onPositionsChange?: (positions: StoredNodePosition[]) => void;
 }
 
 export function useGraphInteractions({
@@ -23,6 +25,7 @@ export function useGraphInteractions({
     onEdgeClick,
     groupNodeTypes,
     persistKey,
+    onPositionsChange,
 }: UseGraphInteractionsOptions) {
     const isGroupType = useCallback(
         (type: string | undefined) => type != null && groupNodeTypes.includes(type),
@@ -53,11 +56,15 @@ export function useGraphInteractions({
                     // latest state; the write is idempotent so StrictMode's
                     // double-invoke is harmless.
                     if (dragEnded && persistKey) saveNodePositions(persistKey, reflowed);
+                    // Report at drag-end only (not every position change during
+                    // the drag) so "Save as default layout" always reflects the
+                    // latest settled arrangement without re-rendering on every frame.
+                    if (dragEnded) onPositionsChange?.(toStoredPositions(reflowed));
                     return reflowed;
                 });
             }
         },
-        [onNodesChangeBase, setNodes, persistKey]
+        [onNodesChangeBase, setNodes, persistKey, onPositionsChange]
     );
 
     const handleNodeClick = useCallback(

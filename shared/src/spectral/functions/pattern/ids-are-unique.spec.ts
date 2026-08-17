@@ -23,17 +23,17 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {
-                                    'unique-id': {'const': 'node1'},
-                                    'interfaces': {prefixItems: [{'properties': {'unique-id': {'const': 'intf1'}}}]}}
+                                { 'properties': {
+                                    'unique-id': { 'const': 'node1' },
+                                    'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'intf1' } } }] } }
                                 },
-                                {'properties': {'unique-id': {'const': 'node2'}}}
+                                { 'properties': { 'unique-id': { 'const': 'node2' } } }
                             ]
                         },
                         relationships: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'rel1'}}},
-                                {'properties': {'unique-id': {'const': 'rel2'}}}
+                                { 'properties': { 'unique-id': { 'const': 'rel1' } } },
+                                { 'properties': { 'unique-id': { 'const': 'rel2' } } }
                             ]
                         }
                     }
@@ -53,8 +53,8 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'node1'}}},
-                                {'properties': {'unique-id': {'const': 'node1'}}}
+                                { 'properties': { 'unique-id': { 'const': 'node1' } } },
+                                { 'properties': { 'unique-id': { 'const': 'node1' } } }
                             ]
                         }
                     }
@@ -75,8 +75,8 @@ describe('idsAreUnique', () => {
                     properties: {
                         relationships: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'rel1'}}},
-                                {'properties': {'unique-id': {'const': 'rel1'}}}
+                                { 'properties': { 'unique-id': { 'const': 'rel1' } } },
+                                { 'properties': { 'unique-id': { 'const': 'rel1' } } }
                             ]
                         }
                     }
@@ -98,13 +98,13 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {
-                                    'unique-id': {'const': 'node1'},
-                                    'interfaces': {prefixItems: [{'properties': {'unique-id': {'const': 'intf1'}}}]}}
+                                { 'properties': {
+                                    'unique-id': { 'const': 'node1' },
+                                    'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'intf1' } } }] } }
                                 },
-                                {'properties': {
-                                    'unique-id': {'const': 'node2'},
-                                    'interfaces': {prefixItems: [{'properties': {'unique-id': {'const': 'intf1'}}}]}}
+                                { 'properties': {
+                                    'unique-id': { 'const': 'node2' },
+                                    'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'intf1' } } }] } }
                                 }
                             ]
                         }
@@ -128,14 +128,14 @@ describe('idsAreUnique', () => {
                     properties: {
                         nodes: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'node1'}}},
-                                {'properties': {'unique-id': {'const': 'node2'}}}
+                                { 'properties': { 'unique-id': { 'const': 'node1' } } },
+                                { 'properties': { 'unique-id': { 'const': 'node2' } } }
                             ]
                         },
                         relationships: {
                             prefixItems: [
-                                {'properties': {'unique-id': {'const': 'node1'}}},
-                                {'properties': {'unique-id': {'const': 'rel2'}}}
+                                { 'properties': { 'unique-id': { 'const': 'node1' } } },
+                                { 'properties': { 'unique-id': { 'const': 'rel2' } } }
                             ]
                         }
                     }

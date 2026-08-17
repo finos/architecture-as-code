@@ -1,8 +1,8 @@
 import { CalmFlowSchema, CalmFlowTransitionSchema } from '../types';
 import { CalmAdaptable } from './adaptable.js';
-import {CalmFlowCanonicalModel, CalmFlowTransitionCanonicalModel} from '../canonical/template-models.js';
-import {CalmControls} from './control.js';
-import {CalmMetadata} from './metadata.js';
+import { CalmFlowCanonicalModel, CalmFlowTransitionCanonicalModel } from '../canonical/template-models.js';
+import { CalmControls } from './control.js';
+import { CalmMetadata } from './metadata.js';
 
 export type CalmFlowDirection = 'source-to-destination' | 'destination-to-source';
 

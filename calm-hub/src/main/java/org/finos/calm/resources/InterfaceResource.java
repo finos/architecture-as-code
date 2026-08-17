@@ -11,6 +11,7 @@ import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.CalmInterface;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
@@ -18,6 +19,7 @@ import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.InterfaceStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,12 +34,14 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 public class InterfaceResource {
 
     private final InterfaceStore interfaceStore;
+    private final CustomIdEnrichmentService customIds;
 
     private final Logger logger = LoggerFactory.getLogger(InterfaceResource.class);
 
     @Inject
-    public InterfaceResource(InterfaceStore interfaceStore) {
+    public InterfaceResource(InterfaceStore interfaceStore, CustomIdEnrichmentService customIds) {
         this.interfaceStore = interfaceStore;
+        this.customIds = customIds;
     }
 
     @GET
@@ -48,7 +52,8 @@ public class InterfaceResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(interfaceStore.getInterfacesForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.INTERFACE,
+                    interfaceStore.getInterfacesForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving interfaces", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

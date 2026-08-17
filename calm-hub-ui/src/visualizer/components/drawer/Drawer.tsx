@@ -6,6 +6,7 @@ import { PatternVisualizer } from '../reactflow/PatternVisualizer.js';
 import { MetadataPanel } from '../reactflow/MetadataPanel.js';
 import { toSidebarNodeData, toSidebarEdgeData } from '../reactflow/utils/patternClickHandlers.js';
 import { CalmService } from '../../../service/calm-service.js';
+import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
 import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
@@ -28,7 +29,15 @@ function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
 
-export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: DrawerProps) {
+export function Drawer({
+    data,
+    onItemSelect,
+    decorators: decoratorsProp,
+    viewportKeyOverride,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: DrawerProps) {
     const calmService = useMemo(() => new CalmService(), []);
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
@@ -72,8 +81,34 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
     });
 
     // Identifies the diagram (ignoring version) so its viewport can be remembered
-    // across version/moment switches and refreshes. A dropped file has no identity.
-    const viewportKey = !fileInstance && data ? `${data.name}/${data.id}` : undefined;
+    // across version/moment switches and refreshes. A dropped file has no identity,
+    // so it must never resolve to `viewportKeyOverride` (DiagramSection's resolved
+    // namespace/numeric-architectureId for the *currently loaded* architecture) —
+    // otherwise dragging a node on a dropped file would write scratch positions,
+    // and "Save as default layout" would write server positions, under the loaded
+    // architecture's key using the dropped file's unrelated layout.
+    // `viewportKeyOverride` takes precedence when present and no file is dropped,
+    // so scratch storage and the server layout share one key regardless of whether
+    // this architecture was reached via a slug or numeric route. An explicit `null`
+    // override (a slug that finished resolving with no match) suppresses the
+    // fallback rather than triggering it — falling back to the slug here would
+    // reintroduce exactly the key split the override exists to close.
+    // The calmType component guards against a second, independent collision:
+    // architecture ids and pattern ids are allocated from separate counters, so
+    // an Architecture 7 and a Pattern 7 can coexist in the same namespace —
+    // without it they'd share one scratch-position entry and one viewport entry.
+    const computedViewportKey = !fileInstance && data ? buildViewportKey(data.name, data.calmType, data.id) : undefined;
+    const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
+
+    // `defaultLayout`/`layoutEpoch` must collapse alongside `viewportKey` for the same
+    // reason: they describe the currently-*loaded* resource's saved server layout, not
+    // whatever was just dropped. Without this, dragging in a locally-edited copy of the
+    // same file would re-apply the loaded resource's saved positions (matched by node id)
+    // onto the dropped file's freshly-parsed nodes instead of a fresh auto-layout — the
+    // graph's `awaitingDefaultLayout` gate only reads these two props, it doesn't know
+    // about `fileInstance`.
+    const effectiveDefaultLayout = fileInstance ? undefined : defaultLayout;
+    const effectiveLayoutEpoch = fileInstance ? undefined : layoutEpoch;
 
     useEffect(() => {
         const source = fileInstance ?? data?.data;
@@ -250,6 +285,12 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onEdgeClick={handlePatternEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={effectiveDefaultLayout}
+                                layoutEpoch={effectiveLayoutEpoch}
+                                // See ReactFlowVisualizer's onPositionsChange below: never
+                                // reported for a dropped file, which has no stable identity
+                                // to save a shared default layout against.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : calmInstance ? (
                             <ReactFlowVisualizer
@@ -258,6 +299,18 @@ export function Drawer({ data, onItemSelect, decorators: decoratorsProp }: Drawe
                                 onEdgeClick={handleEdgeClick}
                                 onBackgroundClick={closeSidebar}
                                 viewportKey={viewportKey}
+                                defaultLayout={effectiveDefaultLayout}
+                                layoutEpoch={effectiveLayoutEpoch}
+                                // Never reported for a dropped file: `onPositionsChange`
+                                // ultimately feeds DiagramSection's "Save as default
+                                // layout", which is scoped to the *loaded architecture*
+                                // (via `viewportKeyOverride`/`defaultLayoutState`, not
+                                // this component's local `fileInstance` state). Passing
+                                // it through unconditionally would let a locally-dropped
+                                // file's on-screen positions be saved as the shared
+                                // default layout for the architecture actually being
+                                // viewed.
+                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : null}
                     </div>

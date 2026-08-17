@@ -7,6 +7,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.mongo.MongoTimelineStore;
 import org.finos.calm.store.nitrite.NitriteTimelineStore;
+import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for TimelineStore implementations.
@@ -20,10 +21,10 @@ public class TimelineStoreProducer {
     String databaseMode;
 
     @Inject
-    MongoTimelineStore mongoTimelineStore;
+    Instance<MongoTimelineStore> mongoTimelineStore;
 
     @Inject
-    NitriteTimelineStore standaloneTimelineStore;
+    Instance<NitriteTimelineStore> standaloneTimelineStore;
 
     /**
      * Produces the appropriate TimelineStore implementation based on the configured database mode.
@@ -34,9 +35,9 @@ public class TimelineStoreProducer {
     @ApplicationScoped
     public TimelineStore produceTimelineStore() {
         if ("standalone".equals(databaseMode)) {
-            return standaloneTimelineStore;
+            return standaloneTimelineStore.get();
         } else {
-            return mongoTimelineStore;
+            return mongoTimelineStore.get();
         }
     }
 }

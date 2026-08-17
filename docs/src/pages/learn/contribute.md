@@ -90,8 +90,8 @@ Do not share credentials or confidential information with AI tools unless you
 are authorized to do so. By opening a PR, you remain responsible for the full
 change, including any AI-assisted portions.
 
-For full guidance, see the repository contributor policy:
-[Responsible Use of AI Coding Assistants](https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
+For full guidance, see the project-wide contributor policy:
+[Responsible Use of AI Coding Assistants](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
 
 ## 6. Open your pull request
 

@@ -6,10 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -27,22 +24,33 @@ import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PageRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
+/**
+ * Store-level tests for the header/version shape. The document mechanics themselves are
+ * covered by {@code TestMongoVersionDocumentStoreShould} — what matters here is the glue
+ * this class owns: which domain exception each missing thing produces, and the ordering
+ * between a version write and the header details that accompany it.
+ */
 @QuarkusTest
 public class TestMongoArchitectureStoreShould {
 
@@ -55,533 +63,383 @@ public class TestMongoArchitectureStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoCollection<Document> architectureCollection;
-    private MongoArchitectureStore mongoArchitectureStore;
-    private final String NAMESPACE = "finos";
-
-    private final String validJson = "{\"test\": \"test\"}";
-
-    @BeforeEach
-    void setup() {
-        architectureCollection = Mockito.mock(DocumentMongoCollection.class);
-
-        when(mongoDatabase.getCollection("architectures")).thenReturn(architectureCollection);
-        mongoArchitectureStore = new MongoArchitectureStore(mongoDatabase, counterStore, namespaceStore);
-    }
-
-    @Test
-    void get_architectures_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("architectures", Document.class))
-                .thenReturn(new ArrayList<>());
-
-        assertThat(mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_architectures_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        assertThat(mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_architecture_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitecturesForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void get_architecture_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        Map<String, Object> archDetailMap1 = new HashMap<>();
-        archDetailMap1.put("architectureId", 1001);
-        archDetailMap1.put("name", "Arch One");
-        archDetailMap1.put("description", "First architecture");
-        archDetailMap1.put("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
-        Document doc1 = new Document(archDetailMap1);
-
-        Map<String, Object> archDetailMap2 = new HashMap<>();
-        archDetailMap2.put("architectureId", 1002);
-        archDetailMap2.put("name", "Arch Two");
-        archDetailMap2.put("description", "Second architecture");
-        archDetailMap2.put("versions", new Document("1-0-0", new Document()));
-        Document doc2 = new Document(archDetailMap2);
-
-        when(documentMock.getList("architectures", Document.class))
-                .thenReturn(Arrays.asList(doc1, doc2));
-
-        List<NamespaceResourceSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
-
-        assertThat(architectures.size(), is(2));
-        assertThat(architectures.get(0).getName(), is("Arch One"));
-        assertThat(architectures.get(0).getDescription(), is("First architecture"));
-        assertThat(architectures.get(0).getId(), is(1001));
-        assertThat(architectures.get(0).getVersionCount(), is(2));
-        assertThat(architectures.get(1).getName(), is("Arch Two"));
-        assertThat(architectures.get(1).getDescription(), is("Second architecture"));
-        assertThat(architectures.get(1).getId(), is(1002));
-        assertThat(architectures.get(1).getVersionCount(), is(1));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_architectures_for_namespace_applies_slice_projection_when_limit_provided() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any())).thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("architectures", Document.class)).thenReturn(new ArrayList<>());
-
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, 6));
-
-        // The limit/offset is pushed down to Mongo as a $slice projection on the architectures array,
-        // rather than being sliced in memory after loading the whole namespace document.
-        verify(findIterable).projection(eq(Projections.slice("architectures", 6, 3)));
-    }
-
-    @Test
-    void get_architectures_for_namespace_does_not_project_when_no_limit_provided() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, PageRequest.UNPAGED);
-
-        // No limit → full list → no $slice projection (unchanged behaviour).
-        verify(findIterable, times(0)).projection(any());
-    }
-
-    @Test
-    void get_architectures_for_namespace_defaults_offset_to_zero_when_only_limit_provided() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any())).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, null));
-
-        verify(findIterable).projection(eq(Projections.slice("architectures", 0, 3)));
-    }
-
-    @Test
-    void get_architectures_for_namespace_clamps_a_negative_offset_to_zero() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any())).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE, new PageRequest(3, -5));
-
-        // A negative offset is clamped to 0 rather than passed to $slice, which Mongo would otherwise
-        // interpret as "count from the end" — matching the in-memory Nitrite path.
-        verify(findIterable).projection(eq(Projections.slice("architectures", 0, 3)));
-    }
-
-    @Test
-    void get_architecture_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        // Legacy document without name or description
-        Document legacyDoc = new Document("architectureId", 42);
-
-        when(documentMock.getList("architectures", Document.class))
-                .thenReturn(List.of(legacyDoc));
-
-        List<NamespaceResourceSummary> architectures = mongoArchitectureStore.getArchitecturesForNamespace(NAMESPACE);
-
-        assertThat(architectures.size(), is(1));
-        assertThat(architectures.get(0).getName(), is("Architecture 42"));
-        assertThat(architectures.get(0).getDescription(), is(""));
-        assertThat(architectures.get(0).getId(), is(42));
-        // Legacy document carries no versions sub-document → count guards to 0.
-        assertThat(architectures.get(0).getVersionCount(), is(0));
-    }
-
-    private FindIterable<Document> setupInvalidArchitecture() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
-    }
-
-    private void mockSetupArchitectureDocumentWithVersions() {
-        Document mainDocument = setupArchitectureVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    @Test
-    void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_an_architecture() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(namespace).build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.createArchitectureForNamespace(architecture));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(42);
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setArchitecture("Invalid JSON")
-                .build();
-
-        assertThrows(JsonParseException.class,
-                () -> mongoArchitectureStore.createArchitectureForNamespace(architecture));
-    }
-
-    @Test
-    void return_created_architecture_when_parameters_are_valid() throws NamespaceNotFoundException {
-        String validNamespace = NAMESPACE;
-        int sequenceNumber = 42;
-        String validName = "test-name";
-        String validDescription = "test description";
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(sequenceNumber);
-
-        Architecture architectureToCreate = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
-                .setName(validName)
-                .setDescription(validDescription)
-                .setNamespace(validNamespace)
-                .build();
-
-        Architecture architecture = mongoArchitectureStore.createArchitectureForNamespace(architectureToCreate);
-
-        Architecture expectedArchitecture = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
-                .setNamespace(validNamespace)
-                .setName(validName)
-                .setDescription(validDescription)
-                .setVersion("1.0.0")
-                .setId(sequenceNumber)
-                .build();
-
-        assertThat(architecture, is(expectedArchitecture));
-        Document expectedDoc = new Document("architectureId", architecture.getId())
-                .append("name", validName)
-                .append("description", validDescription)
-                .append("versions", new Document("1-0-0", Document.parse(architecture.getArchitectureJson())));
-
-        verify(architectureCollection).updateOne(
-                eq(Filters.eq("namespace", validNamespace)),
-                eq(Updates.push("architectures", expectedDoc)),
-                any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(42);
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
-                .thenReturn(null);
-
-        Architecture architectureToCreate = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
-                .setNamespace(NAMESPACE)
-                .build();
-
-        mongoArchitectureStore.createArchitectureForNamespace(architectureToCreate);
-
-        verify(architectureCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_when_creating_an_architecture() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(42);
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
-
-        Architecture architectureToCreate = new Architecture.ArchitectureBuilder().setArchitecture(validJson)
-                .setNamespace(NAMESPACE)
-                .build();
-
-        assertThrows(MongoWriteException.class,
-                () -> mongoArchitectureStore.createArchitectureForNamespace(architectureToCreate));
-    }
-
-    @Test
-    void get_architecture_version_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace("does-not-exist").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureVersions(architecture));
-
-        verify(namespaceStore).namespaceExists(architecture.getNamespace());
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoArchitectureStore store;
+
+    private static final String NAMESPACE = "finos";
+    private static final int ARCHITECTURE_ID = 42;
+    private static final String VALID_JSON = "{\"test\": \"test\"}";
+
+    @BeforeEach
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
+        headerCollection = Mockito.mock(DocumentMongoCollection.class);
+        versionCollection = Mockito.mock(DocumentMongoCollection.class);
+
+        when(mongoDatabase.getCollection("architectures")).thenReturn(headerCollection);
+        when(mongoDatabase.getCollection("architectureVersions")).thenReturn(versionCollection);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+
+        store = new MongoArchitectureStore(mongoDatabase, counterStore, namespaceStore);
+    }
+
+    private FindIterable<Document> stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+        return iterable;
+    }
+
+    /** The architecture exists: its header is found, and the count write is acknowledged. */
+    private void architectureExists() {
+        stubFind(headerCollection, List.of(new Document("architectureId", ARCHITECTURE_ID)));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private void architectureDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static Architecture architecture(String version) {
+        return new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(ARCHITECTURE_ID)
+                .setVersion(version)
+                .setName("architecture-name")
+                .setDescription("architecture-description")
+                .setArchitecture(VALID_JSON)
+                .build();
+    }
+
+    // --- getArchitecturesForNamespace ---
+
     @Test
-    void get_architecture_version_for_invalid_pattern_throws_exception() {
-        FindIterable<Document> findIterable = setupInvalidArchitecture();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).build();
+    void throw_a_namespace_exception_when_listing_architectures_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
-        assertThrows(ArchitectureNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureVersions(architecture));
-
-        verify(architectureCollection).find(new Document("namespace", architecture.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("architectures")));
+        assertThrows(NamespaceNotFoundException.class, () -> store.getArchitecturesForNamespace(NAMESPACE));
     }
 
     @Test
-    void throw_architecture_not_found_when_versions_document_is_missing_on_get_versions() {
-        Document architectureWithNoVersions = new Document("namespace", NAMESPACE)
-                .append("architectures", List.of(new Document("architectureId", 42)));
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(architectureWithNoVersions);
+    void return_an_empty_list_when_a_namespace_has_no_architectures() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).build();
-
-        assertThrows(ArchitectureNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureVersions(architecture));
+        assertThat(store.getArchitecturesForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    void throw_architecture_version_not_found_when_versions_document_is_missing_on_get_for_version() {
-        Document architectureWithNoVersions = new Document("namespace", NAMESPACE)
-                .append("architectures", List.of(new Document("architectureId", 42)));
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(architectureCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(architectureWithNoVersions);
+    void return_a_summary_per_header_document() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(
+                new Document("architectureId", 1).append("name", "First").append("description", "d1")
+                        .append("versionCount", 2),
+                new Document("architectureId", 2).append("name", "Second").append("description", "d2")
+                        .append("versionCount", 0)));
 
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).setVersion("1.0.0").build();
+        // versionCount now comes off the header rather than being counted from a loaded
+        // versions map — including 0, which the old shape could not represent at all.
+        assertThat(store.getArchitecturesForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("First", "d1", 1, 2),
+                new NamespaceResourceSummary("Second", "d2", 2, 0)));
+    }
+
+    @Test
+    void fall_back_to_a_generated_name_for_headers_missing_one() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(new Document("architectureId", 7)));
+
+        assertThat(store.getArchitecturesForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
+    }
+
+    // --- createArchitectureForNamespace ---
+
+    @Test
+    void throw_a_namespace_exception_when_creating_an_architecture_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+    }
+
+    @Test
+    void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
+        Architecture invalid = new Architecture.ArchitectureBuilder()
+                .setNamespace(NAMESPACE).setArchitecture("{invalid json}").build();
+
+        assertThrows(JsonParseException.class, () -> store.createArchitectureForNamespace(invalid));
+
+        // Parsing first means a malformed payload can't burn a sequence value or leave a
+        // header behind with no version to go with it.
+        verify(counterStore, never()).getNextArchitectureSequenceValue();
+        verify(headerCollection, never()).insertOne(any(Document.class));
+    }
+
+    @Test
+    void create_a_header_and_an_initial_version() throws NamespaceNotFoundException {
+        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        Architecture created = store.createArchitectureForNamespace(architecture(null));
+
+        assertThat(created.getId(), is(99));
+        assertThat(created.getDotVersion(), is("1.0.0"));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().getInteger("architectureId"), is(99));
+        assertThat(headerCaptor.getValue().getInteger("versionCount"), is(0));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // The old shape pushed the architecture and its first version in one document
+        // write, so a failure left nothing behind. Without compensating, a >16MB payload
+        // strands a header that no endpoint can delete, showing up in listings and search
+        // with versionCount 0 forever.
+        assertThrows(StorageWriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void fail_rather_than_report_success_when_the_initial_version_already_exists() {
+        when(counterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        // A version document already present for an id the counter just issued is a storage
+        // inconsistency, not a normal "already exists". Returning the caller's payload with
+        // a 201 would report success for content that was never stored.
+        assertThrows(StorageWriteException.class,
+                () -> store.createArchitectureForNamespace(architecture(null)));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- getArchitectureVersions ---
+
+    @Test
+    void throw_a_namespace_exception_when_listing_versions_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getArchitectureVersions(architecture(null)));
+    }
+
+    @Test
+    void throw_an_architecture_exception_when_listing_versions_for_a_missing_architecture() {
+        architectureDoesNotExist();
+
+        assertThrows(ArchitectureNotFoundException.class, () -> store.getArchitectureVersions(architecture(null)));
+    }
+
+    @Test
+    void list_versions_in_semantic_order() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        stubFind(headerCollection, List.of(new Document("architectureId", ARCHITECTURE_ID)));
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0"),
+                new Document("version", "1.0.0")));
+
+        assertThat(store.getArchitectureVersions(architecture(null)), contains("1.0.0", "1.9.0", "1.10.0"));
+    }
+
+    @Test
+    void return_no_versions_rather_than_not_found_for_an_architecture_with_none() throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        stubFind(headerCollection, List.of(new Document("architectureId", ARCHITECTURE_ID)));
+        stubFind(versionCollection, List.of());
+
+        // New under this shape (ADR 0003): the header proves the architecture exists, so an
+        // empty version list is an answer rather than evidence of a missing architecture.
+        // The old shape conflated the two because it had nowhere else to look.
+        assertThat(store.getArchitectureVersions(architecture(null)), is(empty()));
+    }
+
+    // --- getArchitectureForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_getting_a_version_from_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getArchitectureForVersion(architecture("1.0.0")));
+    }
+
+    @Test
+    void throw_an_architecture_exception_when_getting_a_version_of_a_missing_architecture() {
+        architectureDoesNotExist();
+
+        assertThrows(ArchitectureNotFoundException.class, () -> store.getArchitectureForVersion(architecture("1.0.0")));
+    }
+
+    @Test
+    void throw_a_version_exception_when_the_version_is_not_stored() {
+        stubFind(headerCollection, List.of(new Document("architectureId", ARCHITECTURE_ID)));
+        stubFind(versionCollection, List.of());
 
         assertThrows(ArchitectureVersionNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureForVersion(architecture));
+                () -> store.getArchitectureForVersion(architecture("9.0.0")));
     }
 
     @Test
-    void get_architecture_versions_for_valid_architecture_returns_list_of_versions() throws ArchitectureNotFoundException, NamespaceNotFoundException {
-        mockSetupArchitectureDocumentWithVersions();
+    void return_the_content_of_a_stored_version() throws Exception {
+        stubFind(headerCollection, List.of(new Document("architectureId", ARCHITECTURE_ID)));
+        stubFind(versionCollection, List.of(new Document("content", new Document("test", "test"))));
 
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).setId(42).build();
-        List<String> architectureVersions = mongoArchitectureStore.getArchitectureVersions(architecture);
-
-        assertThat(architectureVersions, is(List.of("1.0.0")));
+        assertThat(store.getArchitectureForVersion(architecture("1.0.0")), containsString("\"test\""));
     }
 
+    // --- createArchitectureForVersion ---
+
     @Test
-    void throw_an_exception_for_an_invalid_namespace_when_retrieving_architecture_for_version() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace("does-not-exist").build();
+    void throw_a_namespace_exception_when_creating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureVersions(architecture));
-
-        verify(namespaceStore).namespaceExists(architecture.getNamespace());
+                () -> store.createArchitectureForVersion(architecture("1.0.1")));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_architecture_when_retrieving_architecture_for_version() {
-        FindIterable<Document> findIterable = setupInvalidArchitecture();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE).build();
+    void throw_an_architecture_exception_when_creating_a_version_for_a_missing_architecture() {
+        architectureDoesNotExist();
 
         assertThrows(ArchitectureNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureForVersion(architecture));
-
-        verify(architectureCollection).find(new Document("namespace", architecture.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("architectures")));
+                () -> store.createArchitectureForVersion(architecture("1.0.1")));
     }
 
     @Test
-    void return_an_architecture_for_a_given_version() throws ArchitectureNotFoundException, ArchitectureVersionNotFoundException, NamespaceNotFoundException {
-        mockSetupArchitectureDocumentWithVersions();
-
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").build();
-
-        String architectureForVersion = mongoArchitectureStore.getArchitectureForVersion(architecture);
-        assertThat(architectureForVersion, is(validJson));
-    }
-
-
-    private Document setupArchitectureVersionDocument() {
-        //Set up an architecture document with 2 architectures in (one with a valid version)
-        Map<String, Document> versionMap = new HashMap<>();
-        versionMap.put("1-0-0", Document.parse(validJson));
-        Document targetStoredArchitecture = new Document("architectureId", 42)
-                .append("versions", new Document(versionMap));
-
-        Document paddingArchitecture = new Document("architectureId", 0);
-
-        return new Document("namespace", NAMESPACE)
-                .append("architectures", Arrays.asList(paddingArchitecture, targetStoredArchitecture));
-    }
-
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
-    }
-
-    @Test
-    void throw_an_exception_when_architecture_for_given_version_does_not_exist() {
-        mockSetupArchitectureDocumentWithVersions();
-
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
-
-        assertThrows(ArchitectureVersionNotFoundException.class,
-                () -> mongoArchitectureStore.getArchitectureForVersion(architecture));
-    }
-
-    @Test
-    void throw_an_exception_when_create_or_update_architecture_for_version_with_a_namespace_that_doesnt_exists() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.createArchitectureForVersion(architecture));
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
-
-        verify(namespaceStore, times(2)).namespaceExists(architecture.getNamespace());
-    }
-
-    @Test
-    void throw_an_exception_when_create_on_a_version_that_exists() {
-        mockSetupArchitectureDocumentWithVersions();
-
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
-
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").setArchitecture(validJson).build();
+    void throw_a_version_exists_exception_when_the_version_is_already_stored() {
+        architectureExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
         assertThrows(ArchitectureVersionExistsException.class,
-                () -> mongoArchitectureStore.createArchitectureForVersion(architecture));
+                () -> store.createArchitectureForVersion(architecture("1.0.1")));
     }
 
     @Test
-    void throw_an_architecture_not_found_exception_when_creating_or_updating_a_version_for_a_missing_architecture() {
-        mockSetupArchitectureDocumentWithVersions();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
-                .setArchitecture(validJson).build();
+    void not_rename_the_architecture_when_the_version_already_exists() {
+        architectureExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
-        assertThrows(ArchitectureNotFoundException.class,
-                () -> mongoArchitectureStore.createArchitectureForVersion(architecture));
-        assertThrows(ArchitectureNotFoundException.class,
-                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+        assertThrows(ArchitectureVersionExistsException.class,
+                () -> store.createArchitectureForVersion(architecture("1.0.1")));
 
-        // The entity-existence pre-check catches the missing architecture before any write is
-        // attempted, so no update is ever sent to Mongo (either overload).
-        verify(architectureCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(architectureCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class));
+        // The old shape set name/description in the same conditional update that wrote the
+        // content, so a rejected create changed nothing. Splitting the two writes makes it
+        // possible to rename on a request that then 409s — this pins that we don't.
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
-        mockSetupArchitectureDocumentWithVersions();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setArchitecture(validJson).build();
+    void write_the_version_and_then_the_header_details() throws Exception {
+        architectureExists();
 
-        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+        store.createArchitectureForVersion(architecture("1.0.1"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.1"));
+        // Two header writes: the versionCount increment and the name/description update.
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    // --- updateArchitectureForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateArchitectureForVersion(architecture("1.0.1")));
+    }
+
+    @Test
+    void throw_an_architecture_exception_when_updating_a_version_for_a_missing_architecture() {
+        architectureDoesNotExist();
+
+        assertThrows(ArchitectureNotFoundException.class,
+                () -> store.updateArchitectureForVersion(architecture("1.0.1")));
+    }
+
+    @Test
+    void force_write_a_version_on_update() throws Exception {
+        architectureExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.updateArchitectureForVersion(architecture("1.0.1"));
+
+        verify(versionCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        // Replacing an existing version doesn't move the count, so the only header write
+        // here is the name/description update.
+        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void report_capacity_exceeded_when_a_version_write_hits_the_document_size_limit() {
+        architectureExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+                () -> store.updateArchitectureForVersion(architecture("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
-        mockSetupArchitectureDocumentWithVersions();
-        Architecture architecture = new Architecture.ArchitectureBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setArchitecture(validJson).build();
-
-        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+    void report_a_plain_write_failure_for_other_version_write_errors() {
+        architectureExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10107, "not master"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoArchitectureStore.updateArchitectureForVersion(architecture));
+                () -> store.updateArchitectureForVersion(architecture("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(false));
     }
 
     @Test
-    void accept_the_creation_or_update_of_a_valid_version() throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionExistsException {
-        mockSetupArchitectureDocumentWithVersions();
+    void page_the_summary_window_at_the_database() throws NamespaceNotFoundException {
+        FindIterable<Document> iterable = stubFind(headerCollection, List.of());
 
-        when(architectureCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+        store.getArchitecturesForNamespace(NAMESPACE, new PageRequest(2, 1)); // limit 2, offset 1
 
-        Architecture architecture = new Architecture.ArchitectureBuilder()
-                .setNamespace(NAMESPACE)
-                .setId(42)
-                .setName("architecture-name")
-                .setDescription("architecture-description")
-                .setVersion("1.0.1")
-                .setArchitecture(validJson).build();
-
-        mongoArchitectureStore.updateArchitectureForVersion(architecture);
-        mongoArchitectureStore.createArchitectureForVersion(architecture);
-
-        verify(architectureCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(architectureCollection).updateOne(any(Bson.class), any(Bson.class));
+        // No $slice projection any more — headers are one document per architecture, so
+        // paging is ordinary skip/limit rather than slicing into an array field.
+        verify(iterable).skip(1);
+        verify(iterable).limit(2);
     }
 }

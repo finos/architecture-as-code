@@ -45,8 +45,9 @@ public class TestNitriteUserAccessStoreShould {
     private NitriteUserAccessStore userAccessStore;
 
     @BeforeEach
-    public void setup() {
+    public void setup() throws NamespaceNotFoundException {
         when(mockDb.getCollection("userAccess")).thenReturn(mockCollection);
+        lenient().doCallRealMethod().when(mockNamespaceStore).requireNamespace(any());
         userAccessStore = new NitriteUserAccessStore(mockDb, mockNamespaceStore, mockCounterStore);
     }
 
@@ -383,6 +384,24 @@ public class TestNitriteUserAccessStoreShould {
         List<UserAccess> result = userAccessStore.getUserAccessForNamespace("GLOBAL");
 
         assertThat(result, hasSize(0));
+        verify(mockNamespaceStore, never()).namespaceExists("GLOBAL");
+    }
+
+    @Test
+    public void getUserAccessForNamespaceAndId_succeedsForGlobalWithoutNamespaceExistenceCheck() throws Exception {
+        Document mockDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(mockDoc);
+
+        when(mockDoc.get("username", String.class)).thenReturn("alice");
+        when(mockDoc.get("namespace", String.class)).thenReturn("GLOBAL");
+        when(mockDoc.get("domain", String.class)).thenReturn(null);
+        when(mockDoc.get("permission", String.class)).thenReturn("admin");
+        when(mockDoc.get("userAccessId", Integer.class)).thenReturn(303);
+
+        UserAccess result = userAccessStore.getUserAccessForNamespaceAndId("GLOBAL", 303);
+
+        assertThat(result.getNamespace(), is("GLOBAL"));
         verify(mockNamespaceStore, never()).namespaceExists("GLOBAL");
     }
 

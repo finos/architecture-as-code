@@ -19,6 +19,11 @@ const config = [
       '.planning/**',
     ],
   },
+  {
+    rules: {
+      'object-curly-spacing': ['error', 'always'],
+    },
+  },
   ...compat.extends('next/core-web-vitals'),
 ];
 

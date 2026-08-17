@@ -378,6 +378,14 @@ export default function Hub() {
         <AdrRenderer adrDetails={adrData} />
     ) : isDiagramView ? (
         <DiagramSection
+            // Forces a full remount on navigating between diagrams (not just a
+            // data-prop update), so DiagramSection's own transient state —
+            // notably `latestPositionsRef`, which "Save as default layout" reads
+            // from — never carries over from the previously-viewed diagram.
+            // Without this, a fast navigation to a new architecture could let
+            // "Save as default layout" persist the previous architecture's
+            // on-screen positions under the new architecture's key.
+            key={`${data.calmType}:${data.name}:${data.id}`}
             data={data}
             onItemSelect={handleItemSelect}
             hasDetailsPanel={!!selectedItem}

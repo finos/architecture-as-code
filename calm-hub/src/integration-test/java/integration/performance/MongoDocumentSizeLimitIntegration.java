@@ -9,6 +9,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
+import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,25 +23,60 @@ import static integration.MongoSetup.namespaceSetup;
 import static integration.performance.ConcurrencyTestHelper.extractIdsFromLocations;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Regression test for issue #2884: a MongoDB write that fails because the namespace's
- * one-document-per-namespace shape has exceeded the 16MB BSON document limit must surface as
- * an honest {@code 413} (via {@link org.finos.calm.domain.exception.StorageWriteException}),
- * not the misleading {@code 404} the store used to throw for any {@code MongoWriteException}.
+ * What issue #2884 set out to remove: MongoDB's 16MB per-document ceiling, reachable because
+ * every version's full content accumulated in one document per namespace.
  *
- * <p>Grows a single architecture's version history against a real MongoDB instance until a
- * write is rejected for exceeding the document size limit, then asserts the response is 413.
+ * <p>Asserted against a real MongoDB with ~2MB versions — roughly 24MB of history written to
+ * a single architecture without any write failing. Under the old shape that was impossible
+ * by construction; each version is now its own document, bounded by its own size.</p>
+ *
+ * <h2>The 413 half of this test has retired</h2>
+ * It asserted the opposite property — that a type still accumulating history into one
+ * document eventually fails, and that the failure surfaces as an honest {@code 413} via
+ * {@link org.finos.calm.domain.exception.StorageWriteException} rather than the misleading
+ * {@code 404} the stores once threw for any {@code MongoWriteException}. It moved to a
+ * still-unmigrated type on each round — Architecture, Pattern, Flow, Standard, Timeline —
+ * and ran out of homes: every namespace-scoped versioned type now uses the header/version
+ * shape, so nothing reachable through these endpoints can hit the ceiling any more.
+ *
+ * <p>Control is the one resource that keeps the old shape permanently (ADR 0004), but it is
+ * domain-scoped with a different path and envelope, so hosting the assertion there would
+ * have meant rewriting it to test a resource this redesign deliberately excludes. Retired
+ * instead. {@code MongoWriteFailures} still classifies {@code BSONObjectTooLarge}, and its
+ * unit tests still cover that mapping — what is gone is the end-to-end route to provoking
+ * it.</p>
  */
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
 public class MongoDocumentSizeLimitIntegration {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-    // Comfortably above the ~12-15 versions expected to be needed to cross the 16MB ceiling
-    // with ~2MB versions, without letting a stuck test run indefinitely.
-    private static final int MAX_VERSION_ATTEMPTS = 20;
+
+
+    /**
+     * Enough ~2MB versions to total roughly 24MB — well past the 16MB ceiling the old shape
+     * hits, so writing them all is only possible because history is no longer accumulated
+     * into one document.
+     */
+    private static final int VERSIONS_BEYOND_OLD_CEILING = 12;
+
+    /** Roughly 2MB, large enough to cross the ceiling in a handful of writes. */
+    private static final String LARGE_CONTENT = "A".repeat(2_000_000);
+
+    /**
+     * Runs against its own namespace rather than {@code finos}, because it cannot clean up
+     * after itself: it leaves roughly 24MB of version documents behind, which would otherwise
+     * turn up in any later listing of {@code finos} architectures.
+     *
+     * <p>This mattered more while the 413 half still existed — that one wedged the shared
+     * {@code flows} document past the ceiling and left it there, so every later flow write in
+     * the namespace failed with 413 rather than 201, masked only by the order failsafe
+     * happened to run these classes in. Isolation is cheap enough to keep now that the
+     * surviving test's leftovers are merely noisy rather than destructive.</p>
+     */
+    private static final String NAMESPACE = "size-limit";
 
     @BeforeEach
     public void setup() {
@@ -52,56 +88,63 @@ public class MongoDocumentSizeLimitIntegration {
             namespaceSetup(database);
             domainSetup(database);
             counterSetup(database);
+
+            // namespaceSetup only seeds when the collection is empty, so the dedicated
+            // namespace has to be inserted on its own terms.
+            if (database.getCollection("namespaces").countDocuments(new Document("name", NAMESPACE)) == 0) {
+                database.getCollection("namespaces").insertOne(
+                        new Document("name", NAMESPACE).append("description", "document size limit test namespace"));
+            }
         }
     }
 
-    @Test
-    void return_413_when_a_version_write_exceeds_the_document_size_limit() throws Exception {
-        Response createResponse = given()
+    private static String largeBody(String jsonField, String name) throws Exception {
+        return OBJECT_MAPPER.writeValueAsString(Map.of(
+                "name", name,
+                "description", "for document size limit test",
+                jsonField, OBJECT_MAPPER.writeValueAsString(Map.of("data", LARGE_CONTENT))));
+    }
+
+    private static int createResource(String path, String jsonField, String name) throws Exception {
+        Response response = given()
                 .contentType(ContentType.JSON)
                 .body(OBJECT_MAPPER.writeValueAsString(Map.of(
-                        "name", "size-limit-test-architecture",
+                        "name", name,
                         "description", "for document size limit test",
-                        "architectureJson", "{\"v\":\"1.0.0\"}"
-                )))
-                .when().post("/api/calm/namespaces/finos/architectures")
+                        jsonField, "{\"v\":\"1.0.0\"}")))
+                .when().post("/api/calm/namespaces/" + NAMESPACE + "/" + path)
                 .thenReturn();
-        assertEquals(201, createResponse.getStatusCode());
+        assertEquals(201, response.getStatusCode());
+        return extractIdsFromLocations(List.of(response), path + "/(\\d+)").get(0);
+    }
 
-        List<Integer> architectureIds = extractIdsFromLocations(List.of(createResponse), "architectures/(\\d+)");
-        int architectureId = architectureIds.get(0);
+    private static Response putVersion(String path, int id, int major, String body) {
+        return given()
+                .contentType(ContentType.JSON)
+                .body(body)
+                .when().put("/api/calm/namespaces/" + NAMESPACE + "/" + path + "/" + id + "/versions/" + major + ".0.0")
+                .thenReturn();
+    }
 
-        // Roughly 2MB of content per version; large enough to cross the 16MB document ceiling
-        // in a handful of writes without either request individually tripping an unrelated
-        // HTTP body-size limit.
-        String largeArchitectureJson = OBJECT_MAPPER.writeValueAsString(Map.of("data", "A".repeat(2_000_000)));
 
-        // The request body is identical on every iteration (only the path's version differs),
-        // so serialize it once rather than re-serializing the ~2MB payload each time.
-        String requestBody = OBJECT_MAPPER.writeValueAsString(Map.of(
-                "name", "size-limit-test-architecture",
-                "description", "for document size limit test",
-                "architectureJson", largeArchitectureJson
-        ));
+    @Test
+    void keep_accepting_architecture_versions_well_past_the_old_document_ceiling() throws Exception {
+        int architectureId = createResource("architectures", "architectureJson", "size-limit-test-architecture");
+        String requestBody = largeBody("architectureJson", "size-limit-test-architecture");
 
-        Response lastResponse = null;
-        int version = 2;
-        for (; version < MAX_VERSION_ATTEMPTS; version++) {
-            lastResponse = given()
-                    .contentType(ContentType.JSON)
-                    .body(requestBody)
-                    .when().put("/api/calm/namespaces/finos/architectures/" + architectureId + "/versions/" + version + ".0.0")
-                    .thenReturn();
-
-            if (lastResponse.getStatusCode() != 201) {
-                break;
-            }
+        for (int version = 2; version < VERSIONS_BEYOND_OLD_CEILING + 2; version++) {
+            Response response = putVersion("architectures", architectureId, version, requestBody);
+            assertEquals(201, response.getStatusCode(),
+                    "Version " + version + ".0.0 was rejected with " + response.getStatusCode()
+                            + ". Under the header/version shape each version is its own document, so total "
+                            + "history size should no longer be able to fail a write. body="
+                            + response.getBody().asString());
         }
 
-        assertTrue(version < MAX_VERSION_ATTEMPTS,
-                "Expected a write to fail with document-too-large before " + MAX_VERSION_ATTEMPTS + " versions were written");
-        assertEquals(413, lastResponse.getStatusCode(),
-                "Expected 413 (capacity exceeded) once the document exceeds MongoDB's 16MB limit, got: "
-                        + lastResponse.getStatusCode() + " body=" + lastResponse.getBody().asString());
+        // Roughly 24MB of history, against a 16MB per-document limit — proof the accumulated
+        // total is no longer what any single write is measured against.
+        assertEquals(VERSIONS_BEYOND_OLD_CEILING + 1,
+                given().when().get("/api/calm/namespaces/" + NAMESPACE + "/architectures/" + architectureId + "/versions")
+                        .then().statusCode(200).extract().jsonPath().getList("values").size());
     }
 }

@@ -1,60 +1,25 @@
 # Contributing to architecture-as-code
 
-architecture-as-code is [Apache 2.0 licensed](LICENSE) and accepts contributions via git pull requests.  Each commit must include a DCO line in the git commit message:
+architecture-as-code is [Apache 2.0 licensed](../LICENSE) and accepts contributions via git pull requests.
 
-`Signed-off-by: GitHub User Name <your.email@example.com>`
+Contribution guidance lives in two places:
 
-This sign-off means you agree the commit satisfies the
-[Developer Certificate of Origin (DCO).](https://developercertificate.org/)
+## Project-wide
 
-## Contributing Issues
+The FINOS Architecture as Code project (also known as CALM) spans several repositories, and its contribution guidelines apply to all of them. They are maintained in the governance repository, [finos/calm-governance](https://github.com/finos/calm-governance):
 
-### Prerequisites
+| Document | Covers |
+|---|---|
+| [CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md) | DCO sign-off, raising issues, pull request etiquette, commit and PR message style, and the responsible use of AI coding assistants |
+| [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) | Roles, contribution rules, Maintainer voting, and how Maintainers are added and removed |
+| [MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) | The project-wide Maintainer roster and the Lead Maintainer |
+| [CODE_OF_CONDUCT.md](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md) | The Code of Conduct all participants are subject to |
 
-* [ ] Have you [searched for duplicates](https://github.com/finos/architecture-as-code/issues?utf8=%E2%9C%93&q=)?  A simple search for exception error messages or a summary of the unexpected behaviour should suffice.
-* [ ] Are you running the latest version?
-* [ ] Are you sure this is a bug or missing capability?
+## Specific to this repository
 
-### Raising an Issue
-* Create your issue [here](https://github.com/finos/architecture-as-code/issues/new).
-* New issues contain two templates in the description: bug report and enhancement request. Please pick the most appropriate for your issue, **then delete the other**.
-  * Please also tag the new issue with either "Bug" or "Enhancement".
-* Please use [Markdown formatting](https://help.github.com/categories/writing-on-github/)
-liberally to assist in readability.
-  * [Code fences](https://help.github.com/articles/creating-and-highlighting-code-blocks/) for exception stack traces and log entries, for example, massively improve readability.
+[CONTRIBUTING.md](../CONTRIBUTING.md) at the repository root covers what is particular to this monorepo — the Conventional Commits types and scopes we enforce, the semantic-release process, and the checks to run before you commit.
 
-## Contributing Pull Requests (Code & Docs)
-To make review of PRs easier, please:
-
- * Please make sure your PRs will merge cleanly - PRs that don't are unlikely to be accepted.
- * For code contributions, follow the existing code layout.
- * For documentation contributions, follow the general structure, language, and tone of the [existing docs](https://github.com/finos/architecture-as-code/wiki).
- * Keep commits small and cohesive - if you have multiple contributions, please submit them as independent commits (and ideally as independent PRs too).
- * Reference issues if your PR has anything to do with an issue (even if it doesn't address it).
- * Minimise non-functional changes (e.g. whitespace).
- * Ensure all new files include a header comment block containing the [Apache License v2.0 and your copyright information](http://www.apache.org/licenses/LICENSE-2.0#apply).
- * If necessary (e.g. due to 3rd party dependency licensing requirements), update the [NOTICE file](https://github.com/finos/architecture-as-code/blob/master/NOTICE) with any new attribution or other notices
-
-### Responsible Use of AI Coding Assistants
-
-AI coding assistants are welcome, but their output must be treated as draft input.
-Before submitting a PR, contributors must understand and be able to explain all
-changes, validate behavior with the project's required checks, and review the
-full diff for correctness, security, privacy, licensing, and dependency impact.
-
-Do not share credentials, confidential information, or private data with AI
-services unless authorized. Contributors remain responsible for the entire
-submission, including any AI-assisted portions.
-
-For full guidance, see [CONTRIBUTING.md](../CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
-
-
-### Commit and PR Messages
-
-* **Reference issues, wiki pages, and pull requests liberally!**
-* Use the present tense ("Add feature" not "Added feature")
-* Use the imperative mood ("Move button left..." not "Moves button left...")
-* Limit the first line to 72 characters or less
+Issues and pull requests for the code, documentation and schema in this repository belong here. Governance matters — including changes to the Maintainer roster — belong in [finos/calm-governance](https://github.com/finos/calm-governance/issues).
 
 ## Style guide
 

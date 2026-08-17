@@ -50,7 +50,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'} // will match this interface
+                                { 'unique-id': 'intf1' } // will match this interface
                             ]
                         }
                     ]
@@ -67,7 +67,7 @@ describe('interfaceIdExistsOnNode', () => {
         const context = {
             document: {
                 data: {
-                    nodes: [{'unique-id': 'node1'}]
+                    nodes: [{ 'unique-id': 'node1' }]
                 }
             },
             path: ['/relationships/0/connects/destination']
@@ -87,7 +87,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]
@@ -111,7 +111,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]
@@ -132,7 +132,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]
@@ -156,7 +156,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]
@@ -179,7 +179,7 @@ describe('interfaceIdExistsOnNode', () => {
                         {
                             'unique-id': 'node1',
                             'interfaces': [
-                                {'unique-id': 'intf1'}
+                                { 'unique-id': 'intf1' }
                             ]
                         }
                     ]

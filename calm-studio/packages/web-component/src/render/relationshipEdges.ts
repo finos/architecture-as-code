@@ -26,7 +26,7 @@ export interface DiagramEdge {
 }
 
 /** True when `rel` uses the legacy flat CalmStudio shape (never valid CALM). */
-function isFlatRelationship(
+export function isFlatRelationship(
   rel: CalmRelationship
 ): rel is CalmRelationship & { source: string; destination: string } {
   const raw = rel as unknown as Record<string, unknown>;

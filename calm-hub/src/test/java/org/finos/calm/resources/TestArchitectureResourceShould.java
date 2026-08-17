@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.TimelineStore;
 import org.junit.jupiter.api.Test;
@@ -46,6 +47,9 @@ public class TestArchitectureResourceShould {
     private static final String TEST_DESCRIPTION = "test description";
     @InjectMock
     ArchitectureStore mockArchitectureStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     @InjectMock
     TimelineStore mockTimelineStore;

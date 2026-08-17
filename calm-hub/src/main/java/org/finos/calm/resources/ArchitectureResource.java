@@ -21,6 +21,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -29,6 +30,7 @@ import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.ArchitectureTimelineService;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.ArchitectureStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,6 +55,7 @@ public class ArchitectureResource {
 
     private final ArchitectureStore store;
     private final ArchitectureTimelineService timelineService;
+    private final CustomIdEnrichmentService customIds;
 
     private final Logger logger = LoggerFactory.getLogger(ArchitectureResource.class);
 
@@ -60,9 +63,11 @@ public class ArchitectureResource {
     Boolean allowPutOperations;
 
     @Inject
-    public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService) {
+    public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService,
+                                CustomIdEnrichmentService customIds) {
         this.store = store;
         this.timelineService = timelineService;
+        this.customIds = customIds;
     }
 
     /**
@@ -86,7 +91,8 @@ public class ArchitectureResource {
             @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getArchitecturesForNamespace(namespace, page.toPageRequest()))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.ARCHITECTURE,
+                    store.getArchitecturesForNamespace(namespace, page.toPageRequest())))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

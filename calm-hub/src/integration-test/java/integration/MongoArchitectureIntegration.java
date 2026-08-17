@@ -42,9 +42,9 @@ public class MongoArchitectureIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
                 database.createCollection("architectures");
-                database.getCollection("architectures").insertOne(
-                        new Document("namespace", "finos").append("architectures", new ArrayList<>())
-                );
+                // Collection only — no per-namespace document. That priming belonged to the old
+                // one-document-per-namespace shape; under the header/version shape it has no id
+                // field, so the header reader surfaces it as a resource named "<Type> null".
             }
 
             counterSetup(database);

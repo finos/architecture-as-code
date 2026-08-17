@@ -11,13 +11,11 @@ import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.util.SearchTextMatcher;
-import org.finos.calm.store.util.TypeSafeNitriteDocument;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import io.quarkus.arc.lookup.LookupIfProperty;
@@ -27,9 +25,10 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <p>
  * Searches across 7 resource collections by matching the query (case-insensitive)
  * against the {@code name} and {@code description} fields of each resource entry.
- * For ADRs, the {@code title} field of the latest revision is searched.
- * Controls are scoped by domain rather than namespace, so they bypass the
- * readable-namespaces filter.
+ * ADR's header carries a denormalized copy of the latest revision's title (see
+ * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so it reads the
+ * same as every other type. Controls are scoped by domain rather than namespace, so they
+ * bypass the readable-namespaces filter.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "standalone")
 @ApplicationScoped
@@ -63,123 +62,104 @@ public class NitriteSearchStore implements SearchStore {
         String lowerQuery = query.toLowerCase();
 
         return new GroupedSearchResults(
-                searchNamespacedCollection(architectureCollection, "architectures", "architectureId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(patternCollection, "patterns", "patternId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(flowCollection, "flows", "flowId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(standardCollection, "standards", "standardId", lowerQuery, readableNamespaces),
-                searchNamespacedCollection(interfaceCollection, "interfaces", "interfaceId", lowerQuery, readableNamespaces),
-                searchControlCollection(lowerQuery),
+                searchHeaderCollection(architectureCollection, "architectureId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(patternCollection, "patternId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(flowCollection, "flowId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(standardCollection, "standardId", lowerQuery, readableNamespaces),
+                searchHeaderCollection(interfaceCollection, "interfaceId", lowerQuery, readableNamespaces),
+                // Optional.empty() bypasses the readable-namespaces filter — controls are
+                // scoped by domain, not namespace (ADR 0007).
+                searchHeaderCollection(controlCollection, "controlId", lowerQuery, Optional.empty()),
                 searchAdrCollection(lowerQuery, readableNamespaces)
         );
     }
 
-    private List<SearchResult> searchNamespacedCollection(NitriteCollection collection,
-                                                          String arrayField,
-                                                          String idField,
-                                                          String lowerQuery,
-                                                          Optional<Set<String>> readableNamespaces) {
+    /**
+     * Searches a collection in the header/version shape, where each document <em>is</em> one
+     * resource rather than a namespace-wide array of them. The array-shaped path this once
+     * sat beside was retired when Interface, the last of the namespaced types, migrated —
+     * see {@code MongoSearchStore.searchHeaderCollection} for the silent failure mode it
+     * guarded against, which is worth remembering rather than the method itself.
+     */
+    private List<SearchResult> searchHeaderCollection(NitriteCollection collection,
+                                                      String idField,
+                                                      String lowerQuery,
+                                                      Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : collection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
+        for (Document header : collection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.get("namespace", String.class);
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> entries = wrapper.getList(arrayField);
-            if (entries == null) {
+            Integer id = header.get(idField, Integer.class);
+            if (id == null) {
+                // Same reason the ADR branch below skips these: SearchResult takes a
+                // primitive id, so a header missing its id field unboxes to a
+                // NullPointerException thrown out of search() — which builds every type's
+                // results eagerly, so one malformed document fails the whole request rather
+                // than one resource type. A resource with no id is not addressable anyway.
+                //
+                // Deliberately unlike the namespace listing, which renders the same malformed
+                // header as "<Type> null" rather than hiding it (see
+                // NitriteVersionDocumentStore.listSummariesPaged). The two differ because the
+                // outputs differ: a search hit is a link the caller is expected to follow, so
+                // one that cannot be addressed is worse than absent, whereas a listing row is
+                // informational and showing it is how an operator learns the bad header is
+                // there. Dropping it from both would hide the problem entirely.
                 continue;
             }
-            for (Document entry : entries) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = entry.get("name", String.class);
-                String description = entry.get("description", String.class);
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            namespace,
-                            entry.get(idField, Integer.class),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
+            String name = header.get("name", String.class);
+            String description = header.get("description", String.class);
+            if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
+                results.add(new SearchResult(
+                        namespace,
+                        id,
+                        SearchTextMatcher.nullToEmpty(name),
+                        SearchTextMatcher.nullToEmpty(description)
+                ));
             }
         }
 
         return results;
     }
 
-    private List<SearchResult> searchControlCollection(String lowerQuery) {
-        List<SearchResult> results = new ArrayList<>();
 
-        for (Document domainDoc : controlCollection.find()) {
-            String domain = domainDoc.get("domain", String.class);
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(domainDoc, Document.class);
-            List<Document> controls = wrapper.getList("controls");
-            if (controls == null) {
-                continue;
-            }
-            for (Document control : controls) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                String name = control.get("name", String.class);
-                String description = control.get("description", String.class);
-                if (SearchTextMatcher.containsIgnoreCase(name, lowerQuery) || SearchTextMatcher.containsIgnoreCase(description, lowerQuery)) {
-                    results.add(new SearchResult(
-                            domain,
-                            control.get("controlId", Integer.class),
-                            SearchTextMatcher.nullToEmpty(name),
-                            SearchTextMatcher.nullToEmpty(description)
-                    ));
-                }
-            }
-        }
-
-        return results;
-    }
-
-    @SuppressWarnings("unchecked")
+    /**
+     * ADR's header carries a denormalized copy of the latest revision's title (written by
+     * {@code NitriteAdrStore} on every version write — see
+     * {@code calm-hub/decisions/0006-denormalize-adr-title-onto-header.md}), so this reads
+     * exactly like {@link #searchHeaderCollection} rather than resolving the version
+     * collection per header. The {@code "ADR " + adrId} fallback only fires for a header
+     * that predates both the write-path change and its one-time migration backfill.
+     */
     private List<SearchResult> searchAdrCollection(String lowerQuery, Optional<Set<String>> readableNamespaces) {
         List<SearchResult> results = new ArrayList<>();
 
-        for (Document namespaceDoc : adrCollection.find()) {
-            String namespace = namespaceDoc.get("namespace", String.class);
+        for (Document header : adrCollection.find()) {
+            if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
+                return results;
+            }
+            String namespace = header.get("namespace", String.class);
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
                 continue;
             }
-            TypeSafeNitriteDocument<Document> wrapper = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
-            List<Document> adrs = wrapper.getList("adrs");
-            if (adrs == null) {
+            Integer adrId = header.get("adrId", Integer.class);
+            if (adrId == null) {
+                // SearchResult takes a primitive id, so a header missing its id field would
+                // unbox to a NullPointerException. An ADR with no id is not addressable.
                 continue;
             }
-            for (Document adr : adrs) {
-                if (results.size() >= SearchStore.MAX_RESULTS_PER_TYPE) {
-                    return results;
-                }
-                Integer adrId = adr.get("adrId", Integer.class);
-                String title = "ADR " + adrId;
+            String title = header.get("name", String.class);
+            if (title == null || title.isBlank()) {
+                title = "ADR " + adrId;
+            }
 
-                Map<String, Object> revisions = (Map<String, Object>) adr.get("revisions");
-                if (revisions != null && !revisions.isEmpty()) {
-                    int latestRevision = revisions.keySet().stream()
-                            .map(Integer::parseInt)
-                            .mapToInt(i -> i)
-                            .max()
-                            .getAsInt();
-                    Object revObj = revisions.get(String.valueOf(latestRevision));
-                    if (revObj instanceof Document revisionDoc) {
-                        String docTitle = revisionDoc.get("title", String.class);
-                        if (docTitle != null) {
-                            title = docTitle;
-                        }
-                    }
-                }
-
-                if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
-                    results.add(new SearchResult(namespace, adrId, title, ""));
-                }
+            if (SearchTextMatcher.containsIgnoreCase(title, lowerQuery)) {
+                results.add(new SearchResult(namespace, adrId, title, ""));
             }
         }
 

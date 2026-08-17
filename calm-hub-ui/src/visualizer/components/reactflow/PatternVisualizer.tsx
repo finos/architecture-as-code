@@ -1,4 +1,5 @@
 import { PatternGraph } from './PatternGraph.js';
+import type { StoredNodePosition } from '../../services/node-position-service.js';
 
 export interface PatternVisualizerProps {
     patternData: Record<string, unknown>;
@@ -7,6 +8,11 @@ export interface PatternVisualizerProps {
     onBackgroundClick?: () => void;
     /** Identifies the diagram (namespace/id) so its viewport can be remembered. */
     viewportKey?: string;
+    /** Server-stored default layout for a pattern. undefined = loading, null = none stored. */
+    defaultLayout?: StoredNodePosition[] | null;
+    /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
+    layoutEpoch?: number;
+    onPositionsChange?: (positions: StoredNodePosition[]) => void;
 }
 
 export function PatternVisualizer({
@@ -15,6 +21,9 @@ export function PatternVisualizer({
     onEdgeClick,
     onBackgroundClick,
     viewportKey,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
 }: PatternVisualizerProps) {
     const handleBackgroundClick = (event: React.MouseEvent) => {
         if ((event.target as HTMLElement).classList.contains('react-flow__pane')) {
@@ -39,6 +48,9 @@ export function PatternVisualizer({
                 onNodeClick={onNodeClick}
                 onEdgeClick={onEdgeClick}
                 viewportKey={viewportKey}
+                defaultLayout={defaultLayout}
+                layoutEpoch={layoutEpoch}
+                onPositionsChange={onPositionsChange}
             />
         </div>
     );

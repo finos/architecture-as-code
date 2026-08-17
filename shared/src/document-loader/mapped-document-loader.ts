@@ -1,4 +1,5 @@
-import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
+import { DocumentLoader, DocumentLoadError } from './document-loader';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 import { initLogger, Logger } from '../logger';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';

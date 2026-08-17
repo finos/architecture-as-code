@@ -9,9 +9,21 @@ export interface CalmSvgBundle {
   size: { width: number; height: number };
 }
 
-const SVG_SIZE_RE = /<svg[^>]*\bwidth="(\d+(?:\.\d+)?)"[^>]*\bheight="(\d+(?:\.\d+)?)"/;
+const SVG_WIDTH_RE = /\bwidth="(\d+(?:\.\d+)?)"/;
+const SVG_HEIGHT_RE = /\bheight="(\d+(?:\.\d+)?)"/;
 
 const FALLBACK_SIZE = { width: 800, height: 480 };
+
+/** Read width/height from the SVG root's open tag, or null if either is absent. */
+function extractSvgSize(svg: string): { width: number; height: number } | null {
+  const open = svg.indexOf('<svg');
+  if (open === -1) return null;
+  const close = svg.indexOf('>', open);
+  const tag = svg.slice(open, close === -1 ? undefined : close);
+  const width = SVG_WIDTH_RE.exec(tag);
+  const height = SVG_HEIGHT_RE.exec(tag);
+  return width && height ? { width: Number(width[1]), height: Number(height[1]) } : null;
+}
 
 /**
  * Render a CALM architecture to light + dark SVG strings at build time,
@@ -22,9 +34,6 @@ export async function prerenderCalmSvg(architecture: unknown): Promise<CalmSvgBu
     renderELKDiagram(architecture, { theme: 'light' }),
     renderELKDiagram(architecture, { theme: 'dark' }),
   ]);
-  const match = SVG_SIZE_RE.exec(light);
-  const size = match
-    ? { width: Number(match[1]), height: Number(match[2]) }
-    : FALLBACK_SIZE;
+  const size = extractSvgSize(light) ?? FALLBACK_SIZE;
   return { svg: { light, dark }, size };
 }

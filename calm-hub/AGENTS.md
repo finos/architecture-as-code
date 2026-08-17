@@ -23,11 +23,13 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ../mvnw clean package                    # Full build
 ../mvnw -P integration verify            # Include integration tests
 ../mvnw test                              # Unit tests only
+../mvnw -Pserver-only clean package       # Backend only — skips the Node/npm frontend stage
 
 # Development Mode (Hot Reload)
 # NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
 ../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
 ../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit
+../mvnw quarkus:dev -Pstandalone,server-only         # Standalone + no frontend build — profiles compose
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
 # Docker
@@ -593,7 +595,30 @@ trail in this iteration — read it via direct DB access or ops tooling.
 - `src/main/resources/application-no-auth.properties` - No-auth profile (local testing only, no IdP)
 - `src/main/resources/application-secure.properties` - Secure (OIDC/Keycloak) profile config
 - `src/main/resources/application-proxy-auth.properties` - Proxy-auth profile config (proxy-injected `Remote-User` header)
+
+**Do not add a second `application.properties` under `src/test/resources`.** One
+used to exist and, depending on the machine, either it or the main file won
+wholesale rather than merging per-property — so tests silently lost either the
+audit-disable settings (writing to whatever MongoDB the developer had running) or
+the auth and security-header settings (7 failures that passed in isolation). All
+test-only configuration lives in the `%test.` block of
+`src/main/resources/application.properties`; add new test settings there.
+
+**When you add a `SchemaMigrationStep`, update `mongo/init-mongo.js` in the same change.**
+That script seeds a fresh database directly in the current storage shape and pins
+`LATEST_SCHEMA_VERSION`, so `SchemaMigrationRunner` skips every step on first startup.
+Two consequences: the seed data must already be in the shape your new step produces, and
+because step 0 is skipped along with the rest, the script creates the whole index
+inventory itself — a duplicate of `MongoIndexInitializationStep` that has to be kept in
+step. Miss the version bump and the seeded stack runs migrations it does not need; miss
+the index list and duplicate-prevention silently disappears. See
+[ADR 0001](decisions/0001-versioned-artefact-storage.md).
+
 - `PERMISSIONS.md` - Per-namespace permission model reference
+- `decisions/` - Architecture Decision Records for calm-hub's own backend
+  design (not the CALM ADR resource type). See `decisions/README.md` for
+  the format; check each ADR's `Status` field before assuming it describes
+  current behaviour rather than a proposed/pending design.
 
 ## Dependencies on Other Packages
 
@@ -618,6 +643,10 @@ CALM Hub is largely independent - it's a standalone REST API server.
    field into a `Response` entity or log message triggers CodeQL `java/xss`. `@Pattern` validation
    is not a barrier — wrap the value in `STRICT_SANITIZATION_POLICY.sanitize(...)`. See
    [Preventing Cross-Site Scripting (XSS) in Responses](#preventing-cross-site-scripting-xss-in-responses).
+7. **`-Pserver-only` does not build or refresh the bundled UI**: it skips the Node/npm frontend
+   stage entirely (see [README.md](./README.md#skipping-the-frontend-build)). A fresh clone built
+   with this profile ships no UI at all; never use it for a release, Docker image, or CI build
+   that needs to serve the UI.
 
 ## Known Issues
 

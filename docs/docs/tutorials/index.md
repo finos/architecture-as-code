@@ -77,7 +77,7 @@ Before you begin, make sure you have:
 - **Git** installed
 - **Node.js** (20+) and npm installed
 - **VSCode** editor (version 1.96+)
-- **GitHub Copilot** access (optional but recommended, requires VSCode 1.106+)
+- **GitHub Copilot** access (optional but recommended, requires VSCode 1.107+)
 
 ### Getting Started
 
