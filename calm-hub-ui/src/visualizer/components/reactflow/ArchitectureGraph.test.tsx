@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
-import { saveNodePositions } from '../../services/node-position-service.js';
+import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -248,7 +248,7 @@ describe('ArchitectureGraph', () => {
             return nodes?.find((n) => n.id === id)?.position;
         }
 
-        it('applies the default layout over local scratch when both exist', () => {
+        it('applies local scratch over the default layout when both exist', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             render(
@@ -259,7 +259,7 @@ describe('ArchitectureGraph', () => {
                 />
             );
 
-            expect(nodePosition('node-1')).toEqual({ x: 999, y: 999 });
+            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
         });
 
         it('applies the server default when no local scratch is stored', () => {
@@ -295,7 +295,7 @@ describe('ArchitectureGraph', () => {
             expect(screen.getByTestId('react-flow')).toBeInTheDocument();
         });
 
-        it('falls back to scratch when no default layout is provided, then applies default on epoch bump', () => {
+        it('falls back to scratch when no default layout is provided, then applies default on epoch bump after scratch is cleared', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             const { rerender } = render(
@@ -308,7 +308,8 @@ describe('ArchitectureGraph', () => {
             );
             expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
 
-            // A default layout arrives (e.g. source switch) and epoch bumps.
+            // Simulate save/reset: scratch is cleared before the epoch bumps.
+            clearStoredNodePositions(key);
             rerender(
                 <ArchitectureGraph
                     jsonData={mockCalmData}

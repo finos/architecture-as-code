@@ -128,7 +128,7 @@ export function PatternGraph({
         // server-saved) wins over stale localStorage scratch. Scratch only
         // applies when there is no default.
         const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
-        const effectivePositions = defaultLayout ?? localPositions ?? null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
         const positionedNodes = applyPositions(parsedNodes, effectivePositions);
 
         setNodes(positionedNodes);

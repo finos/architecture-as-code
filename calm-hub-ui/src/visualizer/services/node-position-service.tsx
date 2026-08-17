@@ -158,7 +158,7 @@ export function applyPositions(nodes: Node[], positions: StoredNodePosition[] | 
     // positions (not from the node's own pre-existing width/height). This ensures
     // position-only restores (legacy data, localStorage scratch) still reflow.
     const containerIds = new Set(
-        merged.filter((n) => n.type === 'group').map((n) => n.id)
+        merged.filter((n) => n.parentId).map((n) => n.parentId!)
     );
     const allContainersDimensioned = containerIds.size === 0 ||
         [...containerIds].every((id) => {

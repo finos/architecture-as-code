@@ -179,7 +179,7 @@ export function ArchitectureGraph({
         // applies when there is no default — i.e. a fresh architecture with
         // neither a document _layout nor a server-saved layout.
         const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
-        const effectivePositions = defaultLayout ?? localPositions ?? null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
         const positionedNodes = applyPositions(parsedNodes, effectivePositions);
 
         setNodes(positionedNodes);

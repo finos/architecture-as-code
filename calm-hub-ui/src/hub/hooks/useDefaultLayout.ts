@@ -223,6 +223,8 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
                 await layoutService.saveDefaultLayout(namespace, resolvedId, layout, urlType);
                 if (viewportKey) clearStoredNodePositions(viewportKey);
                 setDefaultLayout(positions);
+                setLayoutSourceState('server');
+                savePreferredSource(viewportKey, 'server');
                 setLayoutEpoch((epoch) => epoch + 1);
             } catch (err) {
                 setSaveError(err instanceof Error ? err.message : 'Failed to save default layout');
