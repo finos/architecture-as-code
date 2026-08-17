@@ -6,6 +6,7 @@ import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -14,6 +15,7 @@ import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,11 +30,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
 public class StandardResource {
 
     private final StandardStore standardStore;
+    private final CustomIdEnrichmentService customIds;
 
     private final Logger logger = LoggerFactory.getLogger(StandardResource.class);
 
-    public StandardResource(StandardStore standardStore) {
+    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds) {
         this.standardStore = standardStore;
+        this.customIds = customIds;
     }
 
     @GET
@@ -43,7 +47,8 @@ public class StandardResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(standardStore.getStandardsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.STANDARD,
+                    standardStore.getStandardsForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving architectures", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
