@@ -1,6 +1,6 @@
 import { SchemaDirectory } from '../schema-directory.js';
-import { CalmDocumentType } from '../document-loader/document-loader.js';
 import { CalmReferenceResolver } from './calm-reference-resolver.js';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**
  * A {@link CalmReferenceResolver} that resolves references by loading raw documents through a

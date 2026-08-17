@@ -5,6 +5,8 @@
 // See: https://docusaurus.io/docs/api/docusaurus-config
 
 import {themes as prismThemes} from 'prism-react-renderer';
+import remarkSectionCallouts from './src/plugins/remark-section-callouts.js';
+import calmRemark from '@finos/calm-docusaurus-plugin/remark';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -39,6 +41,21 @@ const config = {
         }
     },
 
+    headTags: [
+        {
+            tagName: 'link',
+            attributes: {rel: 'preconnect', href: 'https://fonts.googleapis.com'},
+        },
+        {
+            tagName: 'link',
+            attributes: {rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: 'anonymous'},
+        },
+    ],
+
+    stylesheets: [
+        'https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap',
+    ],
+
     presets: [
         [
             'classic',
@@ -47,26 +64,20 @@ const config = {
                 docs: {
                     routeBasePath: '/',
                     sidebarPath: './sidebars.js',
+                    // Runs before Docusaurus' own heading/TOC plugins so the
+                    // headings it replaces with callouts never reach the page
+                    // TOC. Deliberately not applied to the 'talks' plugin.
+                    beforeDefaultRemarkPlugins: [remarkSectionCallouts, calmRemark],
                 },
                 blog: false,
                 theme: {
-                    customCss: './src/css/custom.css',
+                    customCss: ['./src/css/custom.css', './src/css/doc-pages.css'],
                 },
             }),
         ],
     ],
 
-    plugins: [
-        [
-            '@docusaurus/plugin-content-docs',
-            {
-                id: 'talks',
-                path: 'talks',
-                routeBasePath: 'talks',
-                sidebarPath: require.resolve('./talksSidebar.js'),
-            },
-        ],
-    ],
+    plugins: ['@finos/calm-docusaurus-plugin'],
 
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -78,24 +89,50 @@ const config = {
                 logo: {
                     alt: 'CALM Logo',
                     src: 'img/2025_CALM_Icon.svg',
+                    // Same white variant CALM Hub uses in its dark mode — the
+                    // navy element of the standard icon vanishes on a dark base.
+                    srcDark: 'img/2025_CALM_Icon_WHT.svg',
                 },
                 items: [
                     {
-                        type: 'docSidebar',
-                        sidebarId: 'learningSidebar',
-                        label: '📚 Learning',
+                        to: '/learn',
+                        label: 'Learn',
                         position: 'left',
+                        activeBaseRegex: '/(learn|tutorials)(/|$)',
                     },
                     {
-                        to: '/talks/',
-                        label: '🎤 Talks',
+                        to: '/reference',
+                        label: 'Reference',
                         position: 'left',
-                        activeBaseRegex: `/talks/`,
+                        activeBaseRegex: '/(reference|core-concepts|introduction)(/|$)',
+                    },
+                    {
+                        to: '/tools',
+                        label: 'Tools',
+                        position: 'left',
+                        activeBaseRegex: '/(tools|working-with-calm|calm-hub)(/|$)',
+                    },
+                    {
+                        to: '/community',
+                        label: 'Community',
+                        position: 'left',
+                        activeBaseRegex: '/(community|talks)(/|$)',
+                    },
+                    {
+                        href: 'https://hub.calm.finos.org/',
+                        label: 'CALM Hub',
+                        position: 'right',
                     },
                     {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
                         position: 'right',
+                    },
+                    {
+                        to: '/learn',
+                        label: 'Get started',
+                        position: 'right',
+                        className: 'calm-navbar-cta',
                     },
                 ],
             },
@@ -107,7 +144,11 @@ const config = {
                         items: [
                             {
                                 label: 'Schema',
-                                href: 'http://github.com/finos/architecture-as-code/blob/master/calm/',
+                                href: 'https://github.com/finos/architecture-as-code/tree/main/calm/',
+                            },
+                            {
+                                label: 'CALM Hub',
+                                href: 'https://hub.calm.finos.org/',
                             },
                         ],
                     },
@@ -126,6 +167,14 @@ const config = {
                                 label: 'Bug Report',
                                 href: 'https://github.com/finos/architecture-as-code/issues/new?assignees=&labels=&projects=&template=Bug_report.md',
                             },
+                            {
+                                label: 'Talks',
+                                to: '/talks/',
+                            },
+                            {
+                                label: 'Contribute',
+                                to: '/learn/contribute',
+                            },
                         ],
                     },
                     {
@@ -138,7 +187,7 @@ const config = {
                         ],
                     },
                 ],
-                copyright: `Copyright © ${new Date().getFullYear()} DevOps Automation - FINOS`,
+                copyright: `Copyright © ${new Date().getFullYear()} Architecture as Code - FINOS`,
             },
             prism: {
                 theme: prismThemes.github,

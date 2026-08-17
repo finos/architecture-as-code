@@ -9,9 +9,9 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
         return [];
     }
     // get uniqueIds of all nodes
-    const nodeIdMatches = JSONPath({path: '$.properties.nodes.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all'});
-    const relationshipIdMatches = JSONPath({path: '$.properties.relationships.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all'});
-    const interfaceIdMatches = JSONPath({path: '$.properties.nodes.prefixItems[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all'});
+    const nodeIdMatches = JSONPath({ path: '$.properties.nodes.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all' });
+    const relationshipIdMatches = JSONPath({ path: '$.properties.relationships.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all' });
+    const interfaceIdMatches = JSONPath({ path: '$.properties.nodes.prefixItems[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: context.document.data as object, resultType: 'all' });
 
     const seenIds = new Set();
 

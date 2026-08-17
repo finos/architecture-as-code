@@ -1,10 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { authStore, AuthErrorStatus } from './auth-store.js';
 
+function subscribeToAuthStore(onStoreChange: () => void): () => void {
+    return authStore.subscribe(() => onStoreChange());
+}
+
+function getAuthErrorSnapshot(): AuthErrorStatus {
+    return authStore.getAuthError();
+}
+
 export function useAuthError(): AuthErrorStatus {
-    const [status, setStatus] = useState<AuthErrorStatus>(authStore.getAuthError());
-    useEffect(() => {
-        return authStore.subscribe(setStatus);
-    }, []);
-    return status;
+    return useSyncExternalStore(subscribeToAuthStore, getAuthErrorSnapshot);
 }

@@ -1,4 +1,4 @@
-import axios, { Axios, AxiosError } from 'axios';
+import axios, { Axios } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
 import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
@@ -128,8 +128,7 @@ export class CalmHubClient {
         const endpoint = 'GET /api/calm/namespaces';
         try {
             const response = await this.ax.get('/api/calm/namespaces');
-            const values: HubNamespaceSummary[] = response.data?.values ?? [];
-            return values;
+            return this.extractValues<HubNamespaceSummary>(response.data, endpoint);
         } catch (err) {
             throw this.wrapError(err, endpoint);
         }
@@ -160,7 +159,7 @@ export class CalmHubClient {
         const endpoint = '/calm/domains';
         try {
             const response = await this.ax.get(endpoint);
-            const names: string[] = response.data?.values ?? [];
+            const names = this.extractValues<string>(response.data, `GET ${endpoint}`);
             return names.map(name => ({ name }));
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
@@ -178,7 +177,7 @@ export class CalmHubClient {
         const endpoint = `/calm/domains/${domain}/controls`;
         try {
             const response = await this.ax.get(endpoint);
-            return (response.data?.values ?? []) as HubControlSummary[];
+            return this.extractValues<HubControlSummary>(response.data, `GET ${endpoint}`);
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
@@ -194,7 +193,7 @@ export class CalmHubClient {
         const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations`;
         try {
             const response = await this.ax.get(endpoint);
-            return (response.data?.values ?? []) as HubControlSummary[];
+            return this.extractValues<HubControlSummary>(response.data, `GET ${endpoint}`);
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
@@ -209,9 +208,9 @@ export class CalmHubClient {
         const endpoint = `/calm/domains/${domain}/controls/${controlName}/requirement/versions`;
         try {
             const response = await this.ax.get(endpoint);
-            return (response.data?.values ?? []) as string[];
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
         } catch (err) {
-            if (err instanceof AxiosError && err.status === 404) {
+            if (axios.isAxiosError(err) && err.status === 404) {
                 return [];
             }
             throw this.wrapError(err, `GET ${endpoint}`);
@@ -262,9 +261,9 @@ export class CalmHubClient {
         const endpoint = `/calm/domains/${domain}/controls/${controlName}/configurations/${configName}/versions`;
         try {
             const response = await this.ax.get(endpoint);
-            return (response.data?.values ?? []) as string[];
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
         } catch (err) {
-            if (err instanceof AxiosError && err.status === 404) {
+            if (axios.isAxiosError(err) && err.status === 404) {
                 return [];
             }
             throw this.wrapError(err, `GET ${endpoint}`);
@@ -313,7 +312,8 @@ export class CalmHubClient {
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mappings response: ${JSON.stringify(response.data)}`);
-            return (response.data?.values ?? []).map((item: { customId: string }) => item.customId);
+            const items = this.extractValues<{ customId: string }>(response.data, `GET ${endpoint}`);
+            return items.map(item => item.customId);
         } catch (err) {
             throw this.wrapError(err, `GET ${endpoint}`);
         }
@@ -361,12 +361,10 @@ export class CalmHubClient {
         try {
             const response = await this.ax.get(endpoint);
             this.logger.debug(`Received mapped resource versions response: ${JSON.stringify(response.data)}`);
-            return (response.data?.values ?? []) as string[];
+            return this.extractValues<string>(response.data, `GET ${endpoint}`);
         } catch (err) {
-            if (err instanceof AxiosError) {
-                if (err.status === 404) {
-                    return [];
-                }
+            if (axios.isAxiosError(err) && err.status === 404) {
+                return [];
             }
             throw this.wrapError(err, `GET ${endpoint}`);
         }
@@ -396,6 +394,30 @@ export class CalmHubClient {
         }
     }
     
+    /**
+     * Extracts the `values` array from a Hub list-response body, treating an object with no
+     * `values` key (or a genuinely absent body) as a legitimately empty list. Anything else -
+     * a string, `null`, an array, or another non-object - is rejected rather than silently
+     * swallowed, since a 200 response that doesn't look like Hub JSON is more likely an auth
+     * gateway/proxy returning a login page for a failed/expired credential than an actual
+     * empty result.
+     * @param data Response body.
+     * @param endpoint Endpoint label for error context.
+     * @returns The extracted values array, or [] when absent.
+     */
+    private extractValues<T>(data: unknown, endpoint: string): T[] {
+        if (data === undefined) {
+            return [];
+        }
+        if (data === null || typeof data !== 'object' || Array.isArray(data)) {
+            const bodyHint = typeof data === 'string'
+                ? ' - received a string body, which may indicate an auth gateway returned a login page instead of a valid response'
+                : ` - received a ${data === null ? 'null' : typeof data} body`;
+            throw new HubClientError(0, `Unexpected response body from CALM Hub: expected an object with a "values" array${bodyHint}`, endpoint);
+        }
+        return (data as { values?: T[] }).values ?? [];
+    }
+
     /**
      * Converts unknown errors into HubClientError with endpoint context.
      * @param err Unknown thrown value.

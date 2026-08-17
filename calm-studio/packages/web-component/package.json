@@ -9,10 +9,14 @@
     ".": {
       "import": "./dist/calm-diagram.es.js",
       "require": "./dist/calm-diagram.iife.js"
+    },
+    "./render": {
+      "import": "./dist/render.es.js",
+      "require": "./dist/render.cjs"
     }
   },
   "scripts": {
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.config.iife.ts && vite build --config vite.config.render-es.ts && vite build --config vite.config.render-cjs.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

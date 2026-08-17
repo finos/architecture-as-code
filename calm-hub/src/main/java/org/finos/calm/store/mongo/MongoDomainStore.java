@@ -23,11 +23,10 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  *
  * <h2>Concurrency strategy</h2>
  * Identical to {@link MongoNamespaceStore}: a unique index on {@code domains.name}
- * (created by {@link MongoIndexInitializer}) enforces uniqueness at the database level.
+ * (created by {@code MongoIndexInitializationStep}) enforces uniqueness at the database level.
  * Concurrent duplicate inserts are caught as {@link ErrorCategory#DUPLICATE_KEY} errors
  * and translated into {@link DomainAlreadyExistsException}.
  *
- * @see MongoIndexInitializer
  * @see org.finos.calm.store.nitrite.NitriteDomainStore NitriteDomainStore for the standalone
  *      ReentrantLock-based approach
  */

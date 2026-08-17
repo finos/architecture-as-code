@@ -133,7 +133,7 @@ public class CountsService {
                 sizeOrZero(() -> patternStore.getPatternsForNamespace(namespace)),
                 sizeOrZero(() -> flowStore.getFlowsForNamespace(namespace)),
                 sizeOrZero(() -> standardStore.getStandardsForNamespace(namespace)),
-                sizeOrZero(() -> adrStore.getAdrsForNamespace(namespace)),
+                countOrZero(() -> adrStore.countAdrsForNamespace(namespace)),
                 sizeOrZero(() -> interfaceStore.getInterfacesForNamespace(namespace))
         );
     }
@@ -184,10 +184,35 @@ public class CountsService {
         return value;
     }
 
+    /**
+     * Counts a resource type directly, with the same failure policy as {@link #sizeOrZero}.
+     *
+     * <p>Used for ADR alone. Every other type's summary is built from its header, so sizing
+     * the list a store already returns costs nothing extra; an ADR summary carries the
+     * latest revision's title and status, so building the list to call {@code size()} on it
+     * read and parsed every ADR's content — for a number that discards all of it. This
+     * endpoint runs that per namespace, so the waste multiplied across the whole hub.</p>
+     */
+    private int countOrZero(NamespaceCountSupplier supplier) {
+        try {
+            return supplier.get();
+        } catch (NamespaceNotFoundException e) {
+            return 0;
+        } catch (RuntimeException e) {
+            logger.warn("Failed to count a resource type while aggregating counts; treating as 0", e);
+            return 0;
+        }
+    }
+
     /** Supplier of a namespace-scoped store list that may report the namespace as missing. */
     @FunctionalInterface
     private interface NamespaceListSupplier {
         List<?> get() throws NamespaceNotFoundException;
+    }
+
+    @FunctionalInterface
+    private interface NamespaceCountSupplier {
+        int get() throws NamespaceNotFoundException;
     }
 
     /** A cached value with an absolute expiry timestamp (epoch millis). */

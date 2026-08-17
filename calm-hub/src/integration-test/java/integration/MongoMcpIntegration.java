@@ -158,9 +158,9 @@ public class MongoMcpIntegration {
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("architectures")) {
                 database.createCollection("architectures");
-                database.getCollection("architectures").insertOne(
-                        new Document("namespace", "finos").append("architectures", new ArrayList<>())
-                );
+                // Collection only — no per-namespace document. That priming belonged to the old
+                // one-document-per-namespace shape; under the header/version shape it has no id
+                // field, so the header reader surfaces it as a resource named "<Type> null".
             }
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("decorators")) {
@@ -170,24 +170,16 @@ public class MongoMcpIntegration {
                 );
             }
 
+            // flows and timelines are header collections now, so they need no priming — and a
+            // primed per-namespace document is harmful, carrying no id and so surfacing as a
+            // phantom "Flow null" / "Timeline null" row in every listing for that namespace.
+            // decorators above keeps the old shape by ADR 0004, so its priming stays.
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("flows")) {
                 database.createCollection("flows");
-                database.getCollection("flows").insertOne(
-                        new Document("namespace", "finos").append("flows", new ArrayList<>())
-                );
             }
 
             if (!database.listCollectionNames().into(new ArrayList<>()).contains("timelines")) {
                 database.createCollection("timelines");
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "finos").append("timelines", new ArrayList<>())
-                );
-            }
-
-            if (database.getCollection("timelines").countDocuments(new Document("namespace", "mcp-integration")) == 0) {
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "mcp-integration").append("timelines", new ArrayList<>())
-                );
             }
 
             MongoSetup.counterSetup(database);

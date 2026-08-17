@@ -93,7 +93,11 @@ export function useResourceFromRoute({
                 .fetchInterfacesForNamespace(namespace)
                 .then((interfaces) => {
                     if (cancelled) return;
-                    const match = interfaces.find((i) => i.id === Number(params.id));
+                    // Interfaces are deep-linked both by numeric id and by customId (the namespace
+                    // browse page prefers the customId when one exists), so match either.
+                    const match = interfaces.find(
+                        (i) => i.id === Number(params.id) || i.customId === params.id
+                    );
                     if (match) {
                         onInterfaceLoadRef.current({
                             namespace,

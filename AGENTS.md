@@ -41,7 +41,7 @@ architecture-as-code/
 │   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
-├── advent-of-calm/            # Educational content (24-day challenge)
+├── examples/                  # Example CALM documents — source of truth for the CALM Hub seed scripts
 ├── experimental/              # Experimental features
 ├── template-bundles/          # Reusable Handlebars template bundles
 ├── conferences/               # Conference/workshop material
@@ -73,7 +73,6 @@ architecture-as-code/
 
 **Documentation**:
 - Docusaurus for main docs (and for CALMGuard's `calmguard-docs`)
-- Astro for advent-of-calm website
 
 ## Node Version Requirements
 
@@ -175,7 +174,6 @@ For detailed guidance on specific packages, see:
 - **[shared/AGENTS.md](shared/AGENTS.md)** - Shared TypeScript utilities consumed across packages
 - **[calm-studio/AGENTS.md](calm-studio/AGENTS.md)** - CalmStudio visual editor, CALM 1.2 rules, nested workspaces
 - **[calm-guard/AGENTS.md](calm-guard/AGENTS.md)** - CALMGuard compliance platform, agents/skills
-- **[advent-of-calm/AGENTS.md](advent-of-calm/AGENTS.md)** - Educational content, day format, testing
 
 ### When to Use Package-Specific Guides
 
@@ -227,12 +225,6 @@ calm --version             # Test CLI
 npm run watch --workspace cli                  # Watch CLI
 npm run watch --workspace calm-plugins/vscode  # Watch VSCode extension
 npm run watch --workspace calm-widgets         # Watch widgets
-
-# Advent of CALM website
-cd advent-of-calm/website
-npm install                # First time setup
-npm run dev                # Dev server with hot reload
-npm run build              # Production build
 ```
 
 ## Build Order Dependencies
@@ -275,14 +267,6 @@ cd calm-hub/local-dev
 docker-compose up          # Start MongoDB
 cd ..
 ../mvnw quarkus:dev        # Start backend
-```
-
-### Working on Advent of CALM
-```bash
-cd advent-of-calm
-vim day-10.md              # Edit content
-cd website
-npm run dev                # Test in browser
 ```
 
 ## Testing
@@ -435,7 +419,6 @@ Before considering any code change ready:
 ## Documentation
 
 - **User Docs**: https://calm.finos.org
-- **Advent of CALM**: https://calm.finos.org/advent/
 - **API Docs**: Generated from code (Swagger for calm-hub)
 
 ## Contributing

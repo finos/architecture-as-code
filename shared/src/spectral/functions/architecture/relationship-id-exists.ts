@@ -10,7 +10,7 @@ export function relationshipIdExists(input: unknown, _: unknown, context: Rulese
     }
 
     // get uniqueIds of all relationships
-    const names = JSONPath({path: '$.relationships[*].unique-id', json: context.document.data as object});
+    const names = JSONPath({ path: '$.relationships[*].unique-id', json: context.document.data as object });
     const results: IFunctionResult[] = [];
 
     if (!names.includes(input)) {

@@ -16,9 +16,8 @@ export default defineConfig({
   build: {
     lib: {
       entry: 'src/index.ts',
-      name: 'CalmDiagram',
-      formats: ['es', 'iife'],
-      fileName: (format) => `calm-diagram.${format}.js`,
+      formats: ['es'],
+      fileName: () => 'calm-diagram.es.js',
     },
     // Bundle everything — zero-dependency CDN use
     rollupOptions: {},

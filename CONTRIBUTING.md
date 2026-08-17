@@ -2,6 +2,16 @@
 
 Thank you for your interest in contributing to the Architecture as Code project! This guide will help you understand our development workflow and contribution standards.
 
+> **Project-wide guidance lives in [finos/calm-governance](https://github.com/finos/calm-governance).**
+> The Architecture as Code project (also known as CALM) spans several repositories. Its
+> [governance policies](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md),
+> [contribution guidelines](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md)
+> (DCO sign-off, raising issues, pull request etiquette, and the responsible use of AI coding
+> assistants), [Code of Conduct](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md)
+> and [Maintainer roster](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md)
+> apply to every repository in the project and are maintained there. This document covers what is
+> specific to *this* repository: our commit conventions and release process.
+
 ## 🚀 Why We Use Semantic Release
 
 We use [Semantic Release](https://semantic-release.gitbook.io/) to automate our release process for the **CLI module**, with plans to expand to other modules in the future. This ensures:
@@ -108,6 +118,23 @@ For complete details on our commit message rules, see our [`commitlint.config.js
 - Run tests to make sure nothing is broken
 - Update documentation if you're adding new features
 - Consider the appropriate scope for your changes
+
+### Import Formatting
+
+Use spaces inside named-import braces. ESLint enforces this consistently across
+the TypeScript workspaces:
+
+```typescript
+import { CalmWidget } from './types';
+```
+
+## Responsible Use of AI Coding Assistants
+
+AI coding assistants are welcome, but their output must be treated as draft input. Before submitting a PR, contributors must understand and be able to explain all changes, validate behaviour with the project's required checks, and review the full diff for correctness, security, privacy, licensing, and dependency impact.
+
+Do not share credentials, confidential information, or private data with AI services unless authorized. Contributors remain responsible for the entire submission, including any AI-assisted portions.
+
+The full policy is project-wide and is maintained in [calm-governance/CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
 
 ## 🚫 What Not to Do
 

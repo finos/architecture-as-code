@@ -5,6 +5,320 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.56.0] - 2026-08-17
+
+## [1.56.0](https://github.com/finos/architecture-as-code/compare/cli-v1.55.0...cli-v1.56.0) (2026-08-17)
+
+### feat
+
+* **calm-hub:** expose customId on resources and use in UI when present (#2991) ([](https://github.com/finos/architecture-as-code/commit/9296b2314a2925f6ee2e5c750f774a20bd626f80)), closes [#2991](https://github.com/finos/architecture-as-code/issues/2991)
+* **calm-hub:** migrate Control storage to the header/version shape (#2962) ([](https://github.com/finos/architecture-as-code/commit/97eb5d8aa044a495594704ff43def7fabe7773db)), closes [#2962](https://github.com/finos/architecture-as-code/issues/2962)
+
+### fix
+
+* **cli:** fix smoke tests ([](https://github.com/finos/architecture-as-code/commit/b1fb966522dec068ee8e95530e04bd68fda5bf5e))
+* **shared:** defensive changes per adversarial validation ([](https://github.com/finos/architecture-as-code/commit/bd0f339c7b6190ccb0d5517453bb5873b4ec8544))
+* **shared:** stop CalmHubDocumentLoader claiming http(s) URLs that are not scoped to the configured instance ([](https://github.com/finos/architecture-as-code/commit/4da07e87caf8f2a40f5daf113fa6caf8344e0500))
+* **shared:** stop CalmHubDocumentLoader claiming http(s) URLs that aren't CalmHub's ([](https://github.com/finos/architecture-as-code/commit/0873ab9f02afe713ef3aa34ba55a3b75184e86e3)), closes [#2612](https://github.com/finos/architecture-as-code/issues/2612)
+
+## [1.55.0] - 2026-08-12
+
+## [1.55.0](https://github.com/finos/architecture-as-code/compare/cli-v1.54.0...cli-v1.55.0) (2026-08-12)
+
+### feat
+
+* **calm-hub:** add layout persistence support for patterns (#2969) ([](https://github.com/finos/architecture-as-code/commit/effbcd4f52c7623f9454142eabdfdb66948097fa)), closes [#2969](https://github.com/finos/architecture-as-code/issues/2969) [#2971](https://github.com/finos/architecture-as-code/issues/2971)
+
+### fix
+
+* **calm-hub:** apply GLOBAL_ACCESS guard to getUserAccessForNamespaceAndId ([](https://github.com/finos/architecture-as-code/commit/7f78f21b77338a9ac83d901f2418d905805fb56e))
+* **calm-hub:** apply GLOBAL_ACCESS guard to getUserAccessForNamespaceAndId ([](https://github.com/finos/architecture-as-code/commit/3e0402a1a473e2aa7b3dba6290d62dcd508381e5))
+* **calm-hub:** bump LATEST_SCHEMA_VERSION for the new resource-mapping index step ([](https://github.com/finos/architecture-as-code/commit/9170317d72c41fcec493541f675c7c8fae5939d1))
+* **calm-hub:** migrate UserAccessStore namespace checks to requireNamespace ([](https://github.com/finos/architecture-as-code/commit/bf40d7d428eb96f92bb35479aa070a020e1115ed))
+* **calm-hub:** migrate UserAccessStore namespace checks to requireNamespace ([](https://github.com/finos/architecture-as-code/commit/dceaec5073a20b9c9ff731a6fa60a44820f27c7d)), closes [#2959](https://github.com/finos/architecture-as-code/issues/2959)
+* **calm-hub:** scope resource mapping identity by resource type ([](https://github.com/finos/architecture-as-code/commit/5bbbe626621d48e459716ec7a4c683254711ce57))
+* **calm-hub:** scope resource mapping identity by resource type ([](https://github.com/finos/architecture-as-code/commit/bde86bc8871df8faf48c4581f254f485683d803a))
+* **calm-hub:** stop editing the merged MongoIndexInitializationStep ([](https://github.com/finos/architecture-as-code/commit/a9b9bfd23ec4360acf15d595ff02bfc1261a2683))
+
+### refactor
+
+* **calm-hub:** centralize mapping-conflict 409 responses ([](https://github.com/finos/architecture-as-code/commit/ac41f32f2942c6630100e7f835809739e12daac1))
+
+### test
+
+* **calm-hub:** assert exact repo count in cross-type mapping list tests ([](https://github.com/finos/architecture-as-code/commit/048f1317e0ed75e9b0649efbada2ec5dec22ebdf)), closes [#2970](https://github.com/finos/architecture-as-code/issues/2970)
+
+## [1.54.0] - 2026-08-10
+
+## [1.54.0](https://github.com/finos/architecture-as-code/compare/cli-v1.53.0...cli-v1.54.0) (2026-08-10)
+
+* Merge branch 'main' into feat/issue-2869-calm-vs-code-plugin-updates ([](https://github.com/finos/architecture-as-code/commit/38d6fc9be7d1cf34c9221825bc048901dc3d7344))
+* Merge pull request #2942 from jpgough-ms/default-layout-persistence ([](https://github.com/finos/architecture-as-code/commit/0fefdc3031a8e70e0cfe31e8e754b7b6a5d1ccfa))
+* Potential fix for pull request finding ([](https://github.com/finos/architecture-as-code/commit/d7615727fb6f5d37df59c7338ced348839176f23))
+
+### chore
+
+* **deps:** bump hono from 4.12.33 to 4.13.1 in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/68a5adb9b174788205f19e54d9fe2aa137ef7855))
+* **deps:** bump hono in the npm_and_yarn group across 1 directory ([](https://github.com/finos/architecture-as-code/commit/db537b6658883ab9b5fa9b6848f58138ddda346e))
+* **deps:** bump mermaid in the npm_and_yarn group across 1 directory (#2956) ([](https://github.com/finos/architecture-as-code/commit/e288ea26f322812fb49897aab0afb6d9ba451331)), closes [#2956](https://github.com/finos/architecture-as-code/issues/2956)
+* **deps:** patch 2 npm security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/c5b16aed0640a21b61afd171af22fb98f9e39bbd))
+* **deps:** patch npm security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/1058057dcee782d0cd09b3a13dfeb2b8824a49fa))
+* **deps:** update actions/setup-java digest to cf277c6 ([](https://github.com/finos/architecture-as-code/commit/1a5c248f31d54e8859dc7d7d2c65a2d3d60e4272))
+* **deps:** update actions/setup-java digest to cf277c6 ([](https://github.com/finos/architecture-as-code/commit/685cf6546f90c1ea04d0091f8dda81e7362b9e67))
+* **deps:** update dtolnay/rust-toolchain digest to 4360b52 ([](https://github.com/finos/architecture-as-code/commit/544c08e20e8684dadf720d0177d4f78583b16cce))
+* **deps:** update dtolnay/rust-toolchain digest to 4360b52 ([](https://github.com/finos/architecture-as-code/commit/7ab881370d2273cf3aa42ae6f427726ae1acf809))
+* **deps:** update semgrep/semgrep docker digest to bdf7013 ([](https://github.com/finos/architecture-as-code/commit/7287f8b893fc0676f7d787acadcad37efd107d38))
+* **deps:** update semgrep/semgrep docker digest to bdf7013 ([](https://github.com/finos/architecture-as-code/commit/d29f7cd8884abc0a5899abdcc07698c8cfcffde2))
+* **deps:** update step-security/harden-runner digest to b09bb98 ([](https://github.com/finos/architecture-as-code/commit/0bf345286cbab1b869abef60c53b9e41e47f99c0))
+* **deps:** update step-security/harden-runner digest to b09bb98 ([](https://github.com/finos/architecture-as-code/commit/3354f5ecccbe6c9dcab3d2acc44c9421b097b0f4))
+* enforce spacing inside braces ([](https://github.com/finos/architecture-as-code/commit/eeaf93c904c5d0f764f9965e33e0d9aff2d35d8a))
+* enforce spacing inside braces ([](https://github.com/finos/architecture-as-code/commit/920c985284596408d0ca2a35a879c259fc4b011c))
+
+### docs
+
+* add Flows page to Core Concepts ([](https://github.com/finos/architecture-as-code/commit/62f02ccd7cd4369db0a8e9711596b912638cc1e0))
+* add Flows page to Core Concepts ([](https://github.com/finos/architecture-as-code/commit/a152cef91a1c21389629fccb7d28e9e31c520af5))
+* **docs:** document flow-specific spectral validation rules ([](https://github.com/finos/architecture-as-code/commit/2f71e406268b9fb166e62599bfd2fe72ec9050cb))
+* **docs:** document flow-specific spectral validation rules ([](https://github.com/finos/architecture-as-code/commit/f0e62d7be976ced99f11269f53ce8b936de690b0))
+* **docs:** fix sidebar position sequence ([](https://github.com/finos/architecture-as-code/commit/ff2ae8413643a049e150aa231765d046e4697403))
+
+### feat
+
+* add shared default layout persistence for CALM Hub architecture diagrams ([](https://github.com/finos/architecture-as-code/commit/b9f465a66b086a3d2dcfa15b17d74342df7aecbd))
+* **calm-hub:** add -Pserver-only Maven profile to skip the frontend build ([](https://github.com/finos/architecture-as-code/commit/698844a661e59f343f6e0cc95f2c221700e66a6c))
+* **calm-hub:** add -Pserver-only Maven profile to skip the frontend build ([](https://github.com/finos/architecture-as-code/commit/07280df13b5ebfd262caafefd76adbb00aee620b)), closes [#2943](https://github.com/finos/architecture-as-code/issues/2943)
+* **calm-hub:** add the layout index migration for the flat storage shape ([](https://github.com/finos/architecture-as-code/commit/a4217576a5ca3eec8796312f6c4925d49ddde336))
+* **calm-hub:** flatten layout storage to one document per architecture ([](https://github.com/finos/architecture-as-code/commit/8c41a6252f52a2c6cd5ec9c306636932ec97a7f5))
+* **calm-hub:** reject a layout save for an architecture that does not exist ([](https://github.com/finos/architecture-as-code/commit/483fc89512484477c525d98f75779863f57ac8ef))
+* **calm-hub:** versioned artefact storage redesign — remaining five types (#2884) (#2935) ([](https://github.com/finos/architecture-as-code/commit/dab1a5cdac264291534f879292e6fd7049d9722c)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884) [#2935](https://github.com/finos/architecture-as-code/issues/2935) [#2935](https://github.com/finos/architecture-as-code/issues/2935) [#2934](https://github.com/finos/architecture-as-code/issues/2934) [#2934](https://github.com/finos/architecture-as-code/issues/2934) [#2934](https://github.com/finos/architecture-as-code/issues/2934) [#2946](https://github.com/finos/architecture-as-code/issues/2946) [#2947](https://github.com/finos/architecture-as-code/issues/2947)
+* **calm-hub:** wire the architecture-existence check into LayoutResource ([](https://github.com/finos/architecture-as-code/commit/f2b96f9d0eadae48f571ebc02b8e605499f3ab6d))
+* **vscode:** #2869 plugin updates ([](https://github.com/finos/architecture-as-code/commit/56b6111a8ac15e304cf2094511b3baf21d363c8a)), closes [#2869](https://github.com/finos/architecture-as-code/issues/2869)
+* **vscode:** add pre-release toggle to publish workflow (#2957) ([](https://github.com/finos/architecture-as-code/commit/c0695eee0664346aedd12291037faca61d8f541c)), closes [#2957](https://github.com/finos/architecture-as-code/issues/2957)
+* **vscode:** Build Fixes from Leigh Fingold ([](https://github.com/finos/architecture-as-code/commit/3d23457fd10d20fa1c40d6c9515f865900bfd359))
+* **vscode:** CALM VS Code Plugin updates ([](https://github.com/finos/architecture-as-code/commit/cdf5b63179b3ec333352dab4ceb13608d464273d))
+* **vscode:** Merge main ([](https://github.com/finos/architecture-as-code/commit/73289e8169117c4cbb44c686a33092bbc93c8400))
+* **vscode:** plugin version 0.9.0 with pre release ([](https://github.com/finos/architecture-as-code/commit/493e2f7d5532077b2683c7f3ab1a70a04b9554c6))
+
+### fix
+
+* address second round of layout review feedback ([](https://github.com/finos/architecture-as-code/commit/1638fcd4df815010547796d518c2a5b174fc6749))
+* **calm-ai:** update Copilot tool names ([](https://github.com/finos/architecture-as-code/commit/65e1f95a980cf009a8d83f8131c5587c753f8888))
+* **calm-ai:** update Copilot tool names ([](https://github.com/finos/architecture-as-code/commit/4d0b47ced2eafe0f38066bac4e7cfa570c24b927))
+* **calm-hub-ui:** give layout save failures a user-readable message ([](https://github.com/finos/architecture-as-code/commit/6927142aa95eb90313fa3cd265f7818e505e0a93))
+* **calm-hub-ui:** keep the viewport across a default-layout save ([](https://github.com/finos/architecture-as-code/commit/c9d96e37267b9f327102c375e7e511cea53edf5a))
+* **calm-hub-ui:** stop a new onPositionsChange identity re-running the parse effect ([](https://github.com/finos/architecture-as-code/commit/b6c9e35fa297f19ea5cf393d6a5085fcf76361a1))
+* **calm-hub-ui:** stop the graph keying scratch storage off an unresolved slug ([](https://github.com/finos/architecture-as-code/commit/801b9e46a1c687821850a58bc6c42a2908533bef))
+* **calm-hub-ui:** surface layout save errors inline on desktop and mobile ([](https://github.com/finos/architecture-as-code/commit/0e0306b99c578d29679c593742eedf47cd7f57d2))
+* **calm-hub:** close cross-architecture layout-save and lost-write bugs ([](https://github.com/finos/architecture-as-code/commit/270ce0c6c7f2e89034cd34de72ae59097ebac0a4))
+* **calm-hub:** denormalize ADR title onto the header to fix N+1 search cost (#2958) ([](https://github.com/finos/architecture-as-code/commit/318c20734fd32d780b5a5838096755947b6ffee9)), closes [#2958](https://github.com/finos/architecture-as-code/issues/2958) [#2946](https://github.com/finos/architecture-as-code/issues/2946) [#2958](https://github.com/finos/architecture-as-code/issues/2958)
+* **calm-hub:** map document-too-large on layout overwrite to a 413 ([](https://github.com/finos/architecture-as-code/commit/4c831132cc8d253ca76589d1a7f8dc72b900af7e))
+* **calm-hub:** stop treating the layout shape as a CALM schema ([](https://github.com/finos/architecture-as-code/commit/f0677cf6a1cb059f9339b729297fbbf594842846))
+* **cli:** properly configure auth for workspace commands ([](https://github.com/finos/architecture-as-code/commit/2ab561c46421d9561ac15927695c3cc571e65ad2))
+* **cli:** properly configure auth for workspace commands ([](https://github.com/finos/architecture-as-code/commit/6322dfc8f377102be63f911d53556d24b92a95b8))
+* **cli:** remove strange function signature tweak ([](https://github.com/finos/architecture-as-code/commit/c74bc9441a142293e415a97d52ed547a6055d078))
+* **vscode:** apply pre-release flag when packaging, not just publishing ([](https://github.com/finos/architecture-as-code/commit/0536da0c41ff17b8107c6c698bfc5a1db1212771))
+* **vscode:** apply pre-release flag when packaging, not just publishing ([](https://github.com/finos/architecture-as-code/commit/5c44bc456550bc96068d6238e55924919f8e2fb5))
+
+### refactor
+
+* **calm-hub-ui:** drop the unused deleteDefaultLayout method ([](https://github.com/finos/architecture-as-code/commit/150d9b61abbd4bda4516db8ec8ccfdf69fc7f1d4))
+* **calm-hub-ui:** memoise the useDefaultLayout result ([](https://github.com/finos/architecture-as-code/commit/d36bc32523b70986c648ca3aea24f6fbc64715c0))
+* **calm-hub:** consolidate requireNamespace into NamespaceStore default method ([](https://github.com/finos/architecture-as-code/commit/497f93444a1e05118119493fb163db3989101640))
+* **calm-hub:** consolidate requireNamespace into shared NamespaceGuard ([](https://github.com/finos/architecture-as-code/commit/d46b01543611113a212942a433da7d740c68397d))
+* **calm-hub:** fold Decorator/ResourceMapping stores into requireNamespace ([](https://github.com/finos/architecture-as-code/commit/22f564bf46a6f7d2b49b1261d876e018cfebdb2f)), closes [#2947](https://github.com/finos/architecture-as-code/issues/2947)
+* **calm-hub:** move requireNamespace onto NamespaceStore as a default method ([](https://github.com/finos/architecture-as-code/commit/406e2c33c710e88e0260a4a1fde9484385b978a4)), closes [NamespaceStore#requireNamespace](https://github.com/finos/NamespaceStore/issues/requireNamespace)
+
+### test
+
+* **calm-hub:** drop should_log_initialization_message and the lenient() it required ([](https://github.com/finos/architecture-as-code/commit/ec93d5d99dad9b12a641ff664245900165155768))
+* **calm-hub:** explain lenient() stub in TestNitriteDecoratorStoreShould ([](https://github.com/finos/architecture-as-code/commit/bb4fae41312e37b6d5e53fb911ec03ac6da1a230))
+* **calm-hub:** update layout integration tests for the flat shape ([](https://github.com/finos/architecture-as-code/commit/75319077f3ba4e8b2662404111d25ed6ebcfe247))
+
+## [1.53.0] - 2026-08-05
+
+## [1.53.0](https://github.com/finos/architecture-as-code/compare/cli-v1.52.0...cli-v1.53.0) (2026-08-05)
+
+* Merge branch 'main' into refactor/calm-document-types ([](https://github.com/finos/architecture-as-code/commit/e98fe10c0b2483424ce48e3bd7e534c3d9da4564))
+
+### docs
+
+* **calm-hub:** record createFirstVersion in ADR 0003 ([](https://github.com/finos/architecture-as-code/commit/9f49474f2ac7a42e348dc71134fc8582daeead5b))
+
+### feat
+
+* **calm-hub:** carry Pattern through the search, seed and test-fixture changes ([](https://github.com/finos/architecture-as-code/commit/735599289f5138fa4a310104f0b74e35f7d6ac75)), closes [#2923](https://github.com/finos/architecture-as-code/issues/2923)
+* **calm-hub:** port the Pattern stores onto the version helpers ([](https://github.com/finos/architecture-as-code/commit/58e8b39555e8f6a0b2d12f9260fd11dc3493d891))
+* **calm-hub:** prepare the version helpers for Pattern, and stream the Nitrite split ([](https://github.com/finos/architecture-as-code/commit/e82b8fb613ecd33bd0ee557eb205cdba4dc66e44)), closes [#2](https://github.com/finos/architecture-as-code/issues/2) [#2923](https://github.com/finos/architecture-as-code/issues/2923)
+* **calm-hub:** share the version-split migration and add the Pattern steps ([](https://github.com/finos/architecture-as-code/commit/c533e711f7480170e603b6fded6dedba75b15c00))
+* **calm-hub:** versioned artefact storage redesign — Pattern (#2884) ([](https://github.com/finos/architecture-as-code/commit/6363a6b90d64c5d3c1074cd8c46346efda8073f5)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884)
+
+### fix
+
+* **calm-hub:** report unreadable version content as not found, not a 500 ([](https://github.com/finos/architecture-as-code/commit/8d867a1d7b53106f3360d60e39eafb03eeb67c6e))
+* **calm-hub:** restore the pattern indexes dropped by the integration reset ([](https://github.com/finos/architecture-as-code/commit/f9d4cfc087c2f57c9f32f5b0feea9c5d252f6db9))
+* **calm-hub:** stop one malformed header failing a whole Nitrite listing ([](https://github.com/finos/architecture-as-code/commit/a432d16afe849c8f2061f2130c62c4fb8533e95a))
+
+### refactor
+
+* **calm-hub:** own the first-version write in the version document stores ([](https://github.com/finos/architecture-as-code/commit/7762fd9857728db508a4e7ecedc2b70b2fb6a4a7))
+* **calm-models:** centralize document types ([](https://github.com/finos/architecture-as-code/commit/184d448dadb48cacf00e8a220032b958e70e91c2))
+* **calm-models:** centralize document types ([](https://github.com/finos/architecture-as-code/commit/1fffd0490898f1462058457b1aaedd573dffacce))
+* **shared:** import document types from calm-models ([](https://github.com/finos/architecture-as-code/commit/02f742d4fa692b0617fe096d976cd357c01518a1))
+
+### style
+
+* **calm-hub:** indent the comment left misaligned by a bulk edit ([](https://github.com/finos/architecture-as-code/commit/64e705c026809568d12ac087c7e1427f20964965)), closes [#2934](https://github.com/finos/architecture-as-code/issues/2934)
+
+### test
+
+* **calm-hub:** close the namespace and compensation gaps in the pattern tests ([](https://github.com/finos/architecture-as-code/commit/72a3a2f7a35884d3f700af9fc8ea653743327ce8))
+* **calm-hub:** isolate the document-size-limit tests in their own namespace ([](https://github.com/finos/architecture-as-code/commit/3526cd4fa9602e7a667435a3f36e5b21075c2f54))
+
+## [1.52.0] - 2026-08-03
+
+## [1.52.0](https://github.com/finos/architecture-as-code/compare/cli-v1.51.0...cli-v1.52.0) (2026-08-03)
+
+### chore
+
+* **deps:** bump @modelcontextprotocol/sdk to 1.30.0 for hono v2 compatibility ([](https://github.com/finos/architecture-as-code/commit/82485cc3667de25f6b7c0678ad046a5c76157f92))
+* **deps:** patch npm brace-expansion DoS across all resolved major lines ([](https://github.com/finos/architecture-as-code/commit/7c06bf40b43ff6478eeff11c63b21aacdc492154))
+* **deps:** patch npm brace-expansion DoS vulnerability ([](https://github.com/finos/architecture-as-code/commit/0852651a4aba311f156e9c28fabb645d9f3a7273))
+* **deps:** patch npm security vulnerability in @hono/node-server ([](https://github.com/finos/architecture-as-code/commit/3beb3f89b23be88766d3f8152c20d7bb9d479da4))
+* **deps:** patch npm security vulnerability in @hono/node-server ([](https://github.com/finos/architecture-as-code/commit/d6607e6aa0ed827f5cb0a6ff34961eb4504663ed))
+* **deps:** update actions/setup-java digest ([](https://github.com/finos/architecture-as-code/commit/c13250905affc17e48091d68b99deb1959feffcd))
+* **deps:** update actions/setup-java digest ([](https://github.com/finos/architecture-as-code/commit/c4f0d89bf3ee093c601c063a8d84815c647baa8f))
+* **deps:** update dtolnay/rust-toolchain digest to 4cda84d ([](https://github.com/finos/architecture-as-code/commit/3eafb699310fdc6ba74a268f36bf9ca497abca72))
+* **deps:** update dtolnay/rust-toolchain digest to 4cda84d ([](https://github.com/finos/architecture-as-code/commit/9994878a91607d64cccc6fccb302079dd918b113))
+
+### docs
+
+* **calm-hub:** add ADRs for the versioned artifact storage redesign ([](https://github.com/finos/architecture-as-code/commit/6ce53c062a4d6b41e901a68194988a4a2d77d0ea)), closes [#2856](https://github.com/finos/architecture-as-code/issues/2856)
+* **calm-hub:** ADRs for versioned artifact storage redesign (#2884) ([](https://github.com/finos/architecture-as-code/commit/ffcd80c20be76c3973d18774ef811aa45f40c4cd)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884)
+* **calm-hub:** correct the migration description in ADR 0001 ([](https://github.com/finos/architecture-as-code/commit/d2be887063b06c2d42bf8d708f88e46f9317650e))
+* **calm-hub:** correct the Nitrite seed-script claim in ADR 0001 ([](https://github.com/finos/architecture-as-code/commit/6a3563bc18659f74c43a3a60c665d82ea592f579))
+* **calm-hub:** correct VersionKeySelector and Nitrite uniqueness in ADRs 0002/0003 ([](https://github.com/finos/architecture-as-code/commit/66d1213f3f04a565de3b6aa1e9666690ff2bd046))
+* **calm-hub:** give ADR 0003 a real reason for composition over inheritance ([](https://github.com/finos/architecture-as-code/commit/e55243b86c0d2656260787aedc4a97bf1235c11c))
+* **calm-hub:** mark ADRs 0001-0003 as Accepted ([](https://github.com/finos/architecture-as-code/commit/b73bf8fdc60e19dc501264f0245e30860bbb8b39)), closes [#2907](https://github.com/finos/architecture-as-code/issues/2907)
+* **calm-hub:** point test-config comments at the %test. block ([](https://github.com/finos/architecture-as-code/commit/9b4e02cffc6149ef14f5031018d9e19649f38eeb))
+* **calm-hub:** point test-config comments at the %test. block ([](https://github.com/finos/architecture-as-code/commit/d034340a364e794602632ee6b0c2de566cb5db28)), closes [#2910](https://github.com/finos/architecture-as-code/issues/2910)
+* **calm-hub:** use British spelling "artefact" consistently in ADRs ([](https://github.com/finos/architecture-as-code/commit/16e455b49ed5d2d5f08353890d28b46170c28f3e))
+* embed live CALM architecture diagram via @finos/calm-docusaurus-plugin (#2909) ([](https://github.com/finos/architecture-as-code/commit/4dbb561e39d3dbce5372d6f43a2e563a11024192)), closes [#2909](https://github.com/finos/architecture-as-code/issues/2909) [#2909](https://github.com/finos/architecture-as-code/issues/2909)
+* replace migrated governance documents with pointers ([](https://github.com/finos/architecture-as-code/commit/948489651bc0353a5459a08b7fe6e38cf8f89c2e)), closes [finos/calm-governance#2](https://github.com/finos/calm-governance/issues/2) [finos/calm-governance#1](https://github.com/finos/calm-governance/issues/1) [#responsible-use-of-ai-coding-assistants](https://github.com/finos/architecture-as-code/issues/responsible-use-of-ai-coding-assistants)
+* replace migrated governance documents with pointers to calm-governance ([](https://github.com/finos/architecture-as-code/commit/588d3dcc6bf9d17823d9c0f6f2915acc7767fd8d))
+
+### feat
+
+* **calm-hub:** add header/version document store helpers ([](https://github.com/finos/architecture-as-code/commit/109e57d5d1407ba4cd482a9dc6bc191884bb86dc)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884)
+* **calm-hub:** header/version document store helpers (#2884, phase 1) ([](https://github.com/finos/architecture-as-code/commit/71b10b31fcf222df2e45a72cdd584dff7fd02d13)), closes [#2884](https://github.com/finos/architecture-as-code/issues/2884)
+* **calm-hub:** seed FluxNova example architectures into read-only hub (#2914) ([](https://github.com/finos/architecture-as-code/commit/bf701c3e3122fdac54c615eaf4d3d0438249cdd9)), closes [#2914](https://github.com/finos/architecture-as-code/issues/2914) [#2913](https://github.com/finos/architecture-as-code/issues/2913)
+* **calm-suite:** render composed-of and deployed-in as nested containers (#2900) ([](https://github.com/finos/architecture-as-code/commit/c7f3773322792d6a952124e3c59a038fae8bf675)), closes [#2900](https://github.com/finos/architecture-as-code/issues/2900) [#2900](https://github.com/finos/architecture-as-code/issues/2900)
+
+### fix
+
+* **calm-hub:** make version ordering null- and separator-tolerant ([](https://github.com/finos/architecture-as-code/commit/45688370d54370cb0e1aa90d70ab964f1cb9e90e))
+* **calm-hub:** make versionCount maintenance best-effort in both helpers ([](https://github.com/finos/architecture-as-code/commit/303272c6db64eca143d30002fca4bee7b9895e4b))
+* **calm-hub:** repoint workshop decorator and ADR links at architecture 2 ([](https://github.com/finos/architecture-as-code/commit/6df3266f59fdc29549386f1edae5390a4e69e4d2))
+* **calm-hub:** repoint workshop decorator and ADR links at architecture 2 ([](https://github.com/finos/architecture-as-code/commit/87fcb57b695e7d74cac1ad0b17d58a6d32d2c41d)), closes [#2914](https://github.com/finos/architecture-as-code/issues/2914)
+* **calm-hub:** stop profile-prefixing the build-time jacoco properties ([](https://github.com/finos/architecture-as-code/commit/32f3ba66f7d75bc14e7be7d5c8d939306220e41d)), closes [#2910](https://github.com/finos/architecture-as-code/issues/2910)
+* **calm-hub:** stop test config shadowing the main application.properties ([](https://github.com/finos/architecture-as-code/commit/036edf032593aea4ade1c420ffc3620b2a200760))
+* **calm-hub:** stop test config shadowing the main application.properties ([](https://github.com/finos/architecture-as-code/commit/088c381a6d142725d6987db2da90e021d118e186))
+* resolve open CodeQL code scanning alerts (75-79) (#2919) ([](https://github.com/finos/architecture-as-code/commit/25be3b5210c47348876417b8a23172665bd68b4c)), closes [#2919](https://github.com/finos/architecture-as-code/issues/2919)
+
+## [1.51.0] - 2026-07-29
+
+## [1.51.0](https://github.com/finos/architecture-as-code/compare/cli-v1.50.1...cli-v1.51.0) (2026-07-29)
+
+### chore
+
+* **calm-hub-ui:** remove dead postcss resolutions pin (#2892) ([](https://github.com/finos/architecture-as-code/commit/9fd0131ae27a6b582a2ff7b2281bf52290bdbad6)), closes [#2892](https://github.com/finos/architecture-as-code/issues/2892) [#2890](https://github.com/finos/architecture-as-code/issues/2890)
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update ([](https://github.com/finos/architecture-as-code/commit/4f3e853b2397362d97b9e72df89c8c30d45fb006))
+* **deps:** bump the npm_and_yarn group across 1 directory with 1 update ([](https://github.com/finos/architecture-as-code/commit/9894323ce2d5d6a16ee859cef35438cd16453c47))
+* **deps:** patch npm security vulnerabilities — postcss and brace-expansion ([](https://github.com/finos/architecture-as-code/commit/2e82e2ad6596d2fe7bf12fb5d70cc1a70cb39962))
+* **deps:** patch npm security vulnerabilities — postcss and brace-expansion ([](https://github.com/finos/architecture-as-code/commit/ea89bd2a48756115c281facff7a9cf24d86449bd))
+
+### feat
+
+* **calm-hub-ui:** show a Keep CALM modal on 503 responses ([](https://github.com/finos/architecture-as-code/commit/21ff17b937b06a0b99c7e186fe4bbcf1cfc3373b))
+* **calm-hub-ui:** show a Keep CALM modal on 503 responses ([](https://github.com/finos/architecture-as-code/commit/85d4f9b8fa60c6d1d0a3b0ad7b3493309d0812c9))
+* **calm-hub:** add calm collection with startup schema migration runner ([](https://github.com/finos/architecture-as-code/commit/ce0cc21931ffb447069210535279d1e32fceea7d))
+* **calm-hub:** add calm collection with startup schema migration runner ([](https://github.com/finos/architecture-as-code/commit/d25d694c8ef23620ac0f930dac15fa2705cefc75))
+
+### fix
+
+* **calm-hub-ui:** make modal backdrop dismiss buttons explicit type=button ([](https://github.com/finos/architecture-as-code/commit/fbda400f6732bb4eace4b10d39ac9cb82c7c119a))
+* **calm-hub:** bound Mongo timeouts and skip the migration filter in tests ([](https://github.com/finos/architecture-as-code/commit/0e0e4bef9fc5a4238725d9f22fba88a9a8d6ff8f))
+* **calm-hub:** fail open on migration-lock check failures, fix stale doc ([](https://github.com/finos/architecture-as-code/commit/7c706ee83535b2965bfa505d273374769468b4b7))
+* **calm-hub:** map Mongo write failures honestly instead of a false 404 (#2885) ([](https://github.com/finos/architecture-as-code/commit/f3708bfd2c0e39e883754f57df8943a3350a29f6)), closes [#2885](https://github.com/finos/architecture-as-code/issues/2885) [#2884](https://github.com/finos/architecture-as-code/issues/2884) [#2885](https://github.com/finos/architecture-as-code/issues/2885) [#2885](https://github.com/finos/architecture-as-code/issues/2885)
+* **calm-hub:** resolve code-review findings in the schema migration runner ([](https://github.com/finos/architecture-as-code/commit/8b4f92cd4828cfb733165bbf19a8ac97074253e4))
+* **calm-hub:** stop silently losing MongoDB indexes on migration failure ([](https://github.com/finos/architecture-as-code/commit/26963b022e39908a6a20e786627c5552725e05c9))
+* **calm-hub:** treat a null lock holder as unlocked, clear acquiredAt on release ([](https://github.com/finos/architecture-as-code/commit/89bcc3056835d9245ebb6695581c67e2b87bf942))
+* **shared:** don't swallow malformed 200 bodies into [] in calm-hub-client ([](https://github.com/finos/architecture-as-code/commit/96cd5301dff9c3500dc47578eba4a347cf0473ef))
+* **shared:** don't swallow malformed 200 bodies into [] in calm-hub-client ([](https://github.com/finos/architecture-as-code/commit/4fa90ec24d682d7ca2d3c32242080a37a63c5242)), closes [#2861](https://github.com/finos/architecture-as-code/issues/2861)
+* **shared:** treat a null 200 body as malformed in extractValues ([](https://github.com/finos/architecture-as-code/commit/4ab40aa007e629c05f734d203a55be89eaa86656)), closes [#2861](https://github.com/finos/architecture-as-code/issues/2861)
+* **templates:** drop stale 'meeting' label from meeting issue template ([](https://github.com/finos/architecture-as-code/commit/6cc50668b3e1bcbd8962d27bbd8749c834bf9b41))
+* **templates:** drop stale 'meeting' label from office hours template ([](https://github.com/finos/architecture-as-code/commit/b3f5996bb105e640902097ab6aade106a6a8b716)), closes [#2851](https://github.com/finos/architecture-as-code/issues/2851)
+* **templates:** remove dead 'meeting' label from meeting issue templates ([](https://github.com/finos/architecture-as-code/commit/6873e3b1988bc8dfdd5c36803840016bff465c3e))
+
+### refactor
+
+* **calm-hub-ui:** migrate store hooks to useSyncExternalStore (#2902) ([](https://github.com/finos/architecture-as-code/commit/efdee7a673fb0c2d57d42f8ae64caddd2f37dc96)), closes [#2902](https://github.com/finos/architecture-as-code/issues/2902)
+* **calm-hub:** rename migration steps to match SchemaMigrationStep ([](https://github.com/finos/architecture-as-code/commit/c84e50d54dbec4cbf303f035a4c755bcf2ba0b6f))
+
+## [1.50.1] - 2026-07-27
+
+## [1.50.1](https://github.com/finos/architecture-as-code/compare/cli-v1.50.0...cli-v1.50.1) (2026-07-27)
+
+* Merge remote-tracking branch 'upstream/main' into docs/redesign-3-reading-ux ([](https://github.com/finos/architecture-as-code/commit/79f8f3a0dcedd5848f8cab387ac64f59471c50d8))
+
+### chore
+
+* **deps:** bump the npm_and_yarn group across 1 directory with 2 updates ([](https://github.com/finos/architecture-as-code/commit/835a06abaa5665344b66002721890d6fb3479b7c))
+* **deps:** bump the npm_and_yarn group across 1 directory with 2 updates ([](https://github.com/finos/architecture-as-code/commit/21641ce5a64f06f4ae1b17e8cb0ed968ce83f721))
+* **deps:** patch 14 npm security vulnerabilities (#2862) ([](https://github.com/finos/architecture-as-code/commit/36e615a87bfd9f7ce1e8910b73bc7f5be67f7993)), closes [#2862](https://github.com/finos/architecture-as-code/issues/2862)
+* **deps:** patch npm security vulnerabilities in vscode screenshots tool (#2872) ([](https://github.com/finos/architecture-as-code/commit/4d44d7de26ebe8b697e1b6d1c0c91b0e2152cdf6)), closes [#2872](https://github.com/finos/architecture-as-code/issues/2872)
+* **deps:** patch serde_with security vulnerability (cargo) (#2863) ([](https://github.com/finos/architecture-as-code/commit/1903eae6ad486bf7aacbb0439abdc56fa340e678)), closes [#2863](https://github.com/finos/architecture-as-code/issues/2863)
+* **deps:** pin dependencies ([](https://github.com/finos/architecture-as-code/commit/343aa4671c167300faa0741cce922019f74304fc))
+* **deps:** pin dependencies ([](https://github.com/finos/architecture-as-code/commit/b8d9dad39e06a4db98ea9a6eed1cf6bb12303c2d))
+* **deps:** update actions/checkout digest ([](https://github.com/finos/architecture-as-code/commit/b8727b99c364418c132365ac032440e56f8fd6ad))
+* **deps:** update actions/checkout digest ([](https://github.com/finos/architecture-as-code/commit/2c00e6df348dffcd32794b7e0ebaeaed893dedee))
+* **deps:** update actions/setup-node digest to 2499707 ([](https://github.com/finos/architecture-as-code/commit/83a0a4893f3918f0af46c3073a37f902522e1f6e))
+* **deps:** update actions/setup-node digest to 2499707 ([](https://github.com/finos/architecture-as-code/commit/f0bf3ef7a48a07bc6d2dadfa89872dbaf5e553a8))
+* **deps:** update aws-actions/configure-aws-credentials digest to e6de054 ([](https://github.com/finos/architecture-as-code/commit/f5783f991dd591db9cb5ceb15b82c16d71ca6e56))
+* **deps:** update aws-actions/configure-aws-credentials digest to e6de054 ([](https://github.com/finos/architecture-as-code/commit/beedb47757d78cf4a66d9845ad17861bb8b648d6))
+* remove advent-of-calm (#2870) ([](https://github.com/finos/architecture-as-code/commit/f93afb2e7b5b162b5cc1ea84977993e75aa345f3)), closes [#2870](https://github.com/finos/architecture-as-code/issues/2870) [finos/architecture-as-code#2851](https://github.com/finos/architecture-as-code/issues/2851) [#2017](https://github.com/finos/architecture-as-code/issues/2017)
+
+### docs
+
+* add homepage, Learn hub, role journeys and community landing ([](https://github.com/finos/architecture-as-code/commit/4aa926ec629e9eebab4e1a1ec21a983b236df03c)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* add Reference and Tools hub landings and a real hero diagram ([](https://github.com/finos/architecture-as-code/commit/54bae06de5e277259aadba9afc25bff33a6e9106)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* add scannable doc-page reading experience ([](https://github.com/finos/architecture-as-code/commit/08c8b56aabc7aaa0047721e9daa568573c504344)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* add third timeline moment for CalmStudio and CALM Server (#2882) ([](https://github.com/finos/architecture-as-code/commit/d95a3bbe6ff777d89d63481ca96a508e9575f7d8)), closes [#2882](https://github.com/finos/architecture-as-code/issues/2882)
+* address accessibility and navigation review findings ([](https://github.com/finos/architecture-as-code/commit/87cd9c40404b22699c83886623c32d5147d84cae)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* align role-card step counts and durations with the journeys ([](https://github.com/finos/architecture-as-code/commit/4df4062b85b6d542bd2ec13955bb28694eb2b86e))
+* **calm-ai:** warn agents against self-installing a browser for --export-diagrams ([](https://github.com/finos/architecture-as-code/commit/c43d43484995b8b6d4b57ad10b12c5634410f840))
+* **calm-ai:** warn agents against self-installing a browser for --export-diagrams ([](https://github.com/finos/architecture-as-code/commit/20bc3af5758f47e81bc3ea7e9af093756796906a))
+* homepage, Learn hub, role journeys and community landing (redesign 2/3) (#2875) ([](https://github.com/finos/architecture-as-code/commit/3fb7bd09217420bbe11b58f844ea6ba41ac0d106)), closes [#2875](https://github.com/finos/architecture-as-code/issues/2875) [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* honest read-time chips for component and stub pages ([](https://github.com/finos/architecture-as-code/commit/c44f38a09f500f645ded6e846e6a30d80e293321))
+* keep absorbed sub-headings out of the page TOC ([](https://github.com/finos/architecture-as-code/commit/ce4d35c6b3447db205524f0b0732ec79d749bc70))
+* link the FINOS-hosted CALM Hub throughout the site ([](https://github.com/finos/architecture-as-code/commit/311f7fe78fc5bc25b83fb495f168ebf5a217648e)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* modernize the footer Schema link to https and tree/main ([](https://github.com/finos/architecture-as-code/commit/e980e4c44311ad703c0737a3e2b29177a85e29f6))
+* point the edit chip at the GitHub editor URL ([](https://github.com/finos/architecture-as-code/commit/347b5a52665edde625286a4ce68a9c055a12c0f8))
+* preserve heading semantics and per-page edit links in callouts ([](https://github.com/finos/architecture-as-code/commit/609a2ebe05aa8e20fbad0ffdfead1f86bccf4e21)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* rebrand site to CALM blue and restructure navbar (redesign 1/3) (#2874) ([](https://github.com/finos/architecture-as-code/commit/23076a44d4421c635a84609ad8745724e0f3741d)), closes [#2874](https://github.com/finos/architecture-as-code/issues/2874) [#007dff](https://github.com/finos/architecture-as-code/issues/007dff) [#000063](https://github.com/finos/architecture-as-code/issues/000063) [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* redesign talks page as a media hub (redesign 4/4) (#2877) ([](https://github.com/finos/architecture-as-code/commit/4e60fb19deec5a7fbe2034f2d8c8ac0d88eaf20b)), closes [#2877](https://github.com/finos/architecture-as-code/issues/2877)
+* remove year from README copyright notice ([](https://github.com/finos/architecture-as-code/commit/dd1fbf84781a59545543bcac71cb0ad17488c0a6))
+* remove year from README copyright notice ([](https://github.com/finos/architecture-as-code/commit/59e60d29e7a93dd5ddfff27c0f356c6ec9029880))
+* rename the navbar Hub link to CALM Hub ([](https://github.com/finos/architecture-as-code/commit/10999ea1145985efe8359f084d6aba11b3ac8cd0))
+* scannable doc-page reading experience (redesign 3/3) ([](https://github.com/finos/architecture-as-code/commit/1ad01334646409123d6984363a83a57fddeda656))
+* surface the contributor guide and leader one-pager in navigation ([](https://github.com/finos/architecture-as-code/commit/b5113bc860ee6156edc0fdaa7b869c20523129da))
+* update maintainer details for @Thels ([](https://github.com/finos/architecture-as-code/commit/9e43afbe4cc1ddc853d011f56341bd41a182b374))
+* update maintainer details for @Thels ([](https://github.com/finos/architecture-as-code/commit/4a78ff353b6e3ad07ee328e290d29771e96760cb))
+* update stale docsSidebar comment for the new navbar ([](https://github.com/finos/architecture-as-code/commit/75b3a8e3f186f27c5799cb8da5cc6be9ff2e4330))
+
+### fix
+
+* **calm-widgets:** resolve node names instead of raw ids in related-nodes diagrams (#2883) ([](https://github.com/finos/architecture-as-code/commit/2dd9a5fa708a9108e908f39b0083107ccdd3b1cd)), closes [#2883](https://github.com/finos/architecture-as-code/issues/2883)
+
 ## [1.50.0] - 2026-07-22
 
 ## [1.50.0](https://github.com/finos/architecture-as-code/compare/cli-v1.49.0...cli-v1.50.0) (2026-07-22)

@@ -1,0 +1,247 @@
+/**
+ * Journey page template. The per-role accent arrives via the inline
+ * custom properties --accent-light / --accent-dark set on .root.
+ */
+
+.root {
+    --accent: var(--accent-light, #007dff);
+    /* Darkened derivatives so small text and white-on-accent solids meet
+       WCAG AA in light mode; dark mode uses the accent as-is. */
+    --accent-solid: color-mix(in srgb, var(--accent) 78%, #000);
+    --accent-text: color-mix(in srgb, var(--accent) 72%, #0b1020);
+}
+
+[data-theme='dark'] .root {
+    --accent: var(--accent-dark, var(--accent-light, #007dff));
+    --accent-solid: var(--accent);
+    --accent-text: var(--accent);
+}
+
+/* ---------- accent-tinted banner ---------- */
+.banner {
+    padding: 52px 0 40px;
+    background: linear-gradient(
+        180deg,
+        color-mix(in srgb, var(--accent) 8%, transparent),
+        transparent
+    );
+    border-bottom: 1px solid var(--calm-line);
+}
+
+.bannerHead {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 6px;
+}
+
+.iconTile {
+    width: 56px;
+    height: 56px;
+    border-radius: 15px;
+    background: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 26px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.iconTileSmall {
+    font-size: 20px;
+}
+
+.kicker {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+}
+
+.title {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--calm-heading-color);
+    letter-spacing: -0.02em;
+    margin: 2px 0 0;
+}
+
+.intro {
+    font-size: 17px;
+    color: var(--calm-slate);
+    max-width: 640px;
+    margin: 16px 0 0;
+}
+
+.ctaRow {
+    margin-top: 20px;
+}
+
+.ctaBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    padding: 11px 20px;
+    border-radius: 9px;
+    line-height: 1;
+    background: var(--accent-solid);
+    color: #fff;
+    box-shadow: 0 10px 22px -8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.ctaBtn:hover {
+    color: #fff;
+    text-decoration: none;
+    filter: brightness(0.94);
+}
+
+[data-theme='dark'] .ctaBtn {
+    color: #0b1020;
+}
+
+[data-theme='dark'] .ctaBtn:hover {
+    color: #0b1020;
+}
+
+/* ---------- step list ---------- */
+.pathSection {
+    max-width: 900px;
+    padding-top: 40px;
+    padding-bottom: 64px;
+}
+
+.pathHead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.pathEyebrow {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    margin: 0;
+}
+
+.stepCount {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: var(--calm-faint);
+}
+
+.step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    padding-bottom: 18px;
+}
+
+.stepNum {
+    flex-shrink: 0;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--accent-solid);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--ifm-font-family-monospace);
+    font-weight: 600;
+    font-size: 15px;
+    box-shadow: 0 4px 10px -3px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+
+[data-theme='dark'] .stepNum {
+    color: #0b1020;
+}
+
+.stepCard {
+    flex: 1;
+    background: var(--calm-surface);
+    border: 1px solid var(--calm-line);
+    border-left: 3px solid var(--accent);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.stepKicker {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-text);
+    margin-bottom: 6px;
+}
+
+.stepTitle {
+    font-family: var(--ifm-heading-font-family);
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0 0 5px;
+}
+
+.stepTitleLink {
+    color: var(--ifm-font-color-base);
+}
+
+.stepTitleLink:hover {
+    color: var(--accent);
+    text-decoration: none;
+}
+
+.stepDesc {
+    font-size: 14px;
+    color: var(--calm-muted);
+    margin: 0;
+}
+
+.stepDesc a {
+    color: var(--accent);
+    font-weight: 500;
+}
+
+/* ---------- outcome card ---------- */
+.outcome {
+    margin-top: 26px;
+    background: color-mix(in srgb, var(--accent) 6%, transparent);
+    border: 1px solid color-mix(in srgb, var(--accent) 25%, transparent);
+    border-radius: 14px;
+    padding: 22px;
+}
+
+.outcomeText {
+    font-size: 16px;
+    color: var(--ifm-font-color-base);
+    font-weight: 500;
+}
+
+.footBtns {
+    margin-top: 24px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+@media (max-width: 600px) {
+    .title {
+        font-size: 30px;
+    }
+
+    .step {
+        gap: 14px;
+    }
+}

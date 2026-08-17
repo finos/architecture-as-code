@@ -7,6 +7,7 @@ import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.PatternStore;
 import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
@@ -61,6 +62,8 @@ public class TestPatternResourcePutEnabledShould {
                 Arguments.of( new NamespaceNotFoundException(), 404),
                 Arguments.of( new PatternNotFoundException(), 404),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }

@@ -13,9 +13,9 @@
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {
-  // Default sidebar - shows when clicking CALM logo (introduction, core-concepts, working-with-calm)
+  // Default sidebar - reached via the Reference and Tools navbar items
+  // (introduction, core-concepts, working-with-calm)
   docsSidebar: [
-    'home',
     {
       type: 'category',
       label: 'Introduction',
@@ -36,6 +36,7 @@ const sidebars = {
         'core-concepts/interfaces',
         'core-concepts/controls',
         'core-concepts/standards',
+        'core-concepts/flows',
         'core-concepts/timelines',
         'core-concepts/decorators',
         'core-concepts/metadata',
@@ -65,6 +66,7 @@ const sidebars = {
         'working-with-calm/cli',
         'working-with-calm/validation-server',
         'working-with-calm/voice-mode',
+        'working-with-calm/visualizing-architectures',
       ],
     },
   ],

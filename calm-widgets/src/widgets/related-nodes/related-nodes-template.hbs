@@ -1,7 +1,7 @@
 ```mermaid
 graph TD;
 {{#if id}}
-{{{mermaidId id}}}[{{id}}]:::highlight;
+{{{mermaidId id}}}[{{{mermaidText (nodeLabel id @root.nodeNames)}}}]:::highlight;
 {{/if}}
 {{#each relatedRelationships}}
 {{#if (eq kind "interacts")}}

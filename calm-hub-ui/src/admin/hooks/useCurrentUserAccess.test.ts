@@ -154,4 +154,65 @@ describe('useCurrentUserAccess', () => {
             await waitFor(() => expect(result.current.canAdminNamespace('finos')).toBe(false));
         });
     });
+
+    describe('canWriteNamespace', () => {
+        it('returns false when user has no grants', async () => {
+            const svc = mockService([]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+
+        it('returns false when user has only read on the namespace', async () => {
+            const svc = mockService([namespaceGrant('finos', 'read')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+
+        it('returns true when user has write on the specific namespace', async () => {
+            const svc = mockService([namespaceGrant('finos', 'write')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(true));
+        });
+
+        // The trap: an admin grant must also satisfy WRITE, or admin-only users
+        // would lose access to write-gated UI like "Save as default layout".
+        it('returns true when user has admin (not just write) on the namespace', async () => {
+            const svc = mockService([namespaceGrant('finos', 'admin')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(true));
+        });
+
+        it('returns false when user has write on a different namespace', async () => {
+            const svc = mockService([namespaceGrant('payments', 'write')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+
+        it('returns true via an ancestor namespace write grant (OR across the chain)', async () => {
+            const svc = mockService([namespaceGrant('finos', 'write')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos.payments')).toBe(true));
+        });
+
+        it('does not treat a sibling namespace as an ancestor', async () => {
+            const svc = mockService([namespaceGrant('finosbank', 'write')]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+
+        it('returns true for any namespace when user is global admin', async () => {
+            const svc = mockService([globalAdminGrant]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => {
+                expect(result.current.canWriteNamespace('finos')).toBe(true);
+                expect(result.current.canWriteNamespace('anything')).toBe(true);
+            });
+        });
+
+        it('wildcard read grants do not confer namespace write', async () => {
+            const svc = mockService([wildcardReadGrant]);
+            const { result } = renderHook(() => useCurrentUserAccess(svc));
+            await waitFor(() => expect(result.current.canWriteNamespace('finos')).toBe(false));
+        });
+    });
 });

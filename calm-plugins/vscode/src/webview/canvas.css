@@ -1,0 +1,174 @@
+/* ═══════════════════════════════════════════════════════════════════════
+   Theme-aware custom properties — map VS Code's injected --vscode-* tokens
+   to semantic names. These auto-update when the user changes their VS Code theme.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+    --calm-bg: var(--vscode-editor-background, #1e1e1e);
+    --calm-bg-secondary: var(--vscode-sideBar-background, #252526);
+    --calm-bg-input: var(--vscode-input-background, #3c3c3c);
+    --calm-fg: var(--vscode-foreground, #cccccc);
+    --calm-fg-muted: var(--vscode-descriptionForeground, #888888);
+    --calm-border: var(--vscode-panel-border, #2d2d2d);
+    --calm-border-input: var(--vscode-input-border, #555555);
+    --calm-border-heavy: var(--vscode-widget-border, #444444);
+    --calm-focus: var(--vscode-focusBorder, #007fd4);
+    --calm-link: var(--vscode-textLink-foreground, #3794ff);
+    --calm-btn-bg: var(--vscode-button-background, #0e639c);
+    --calm-btn-fg: var(--vscode-button-foreground, #ffffff);
+    --calm-badge-bg: var(--vscode-badge-background, #0e639c);
+    --calm-badge-fg: var(--vscode-badge-foreground, #ffffff);
+    --calm-hover: var(--vscode-toolbar-hoverBackground, #3c3c3c);
+    --calm-overlay: rgba(0, 0, 0, 0.6);
+}
+
+/* Override ReactFlow's default node selection box (ugly blue border + handles) */
+.react-flow__node.selected {
+    outline: none !important;
+    box-shadow: none !important;
+}
+
+.react-flow__node.selected>div {
+    border-color: #6366f1 !important;
+    box-shadow: 0 0 0 1.5px #6366f1 !important;
+}
+
+/* Hide ReactFlow attribution */
+.react-flow__attribution {
+    display: none !important;
+}
+
+/* Minimap styling */
+.react-flow__minimap {
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+}
+
+/* Controls styling */
+.react-flow__controls {
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+/* Ensure custom edge interaction zone captures mouse events */
+.react-flow__edge-interaction {
+    pointer-events: stroke;
+}
+
+/* Make handles visible and interactive for wire drawing */
+.react-flow__handle {
+    width: 10px !important;
+    height: 10px !important;
+    border-radius: 50% !important;
+    background: #94a3b8 !important;
+    border: 1.5px solid #cbd5e1 !important;
+    opacity: 0.85;
+    transition: opacity 0.15s, transform 0.15s;
+}
+
+/* Enlarge the clickable target (without enlarging the visible dot) so wires are
+   easy to start and drop on the first try. */
+.react-flow__handle::before {
+    content: '';
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+}
+
+.react-flow__node:hover .react-flow__handle {
+    opacity: 1;
+    transform: scale(1.3);
+}
+
+.react-flow__handle:hover,
+.react-flow__handle.connectingfrom,
+.react-flow__handle.connectingto {
+    background: #60a5fa !important;
+    border-color: #3b82f6 !important;
+    opacity: 1;
+    transform: scale(1.5);
+}
+
+/* Connection line styling while dragging */
+.react-flow__connection-path {
+    stroke: #60a5fa;
+    stroke-width: 2;
+}
+
+/* Edge hover highlight via CSS (backup for non-custom edges) */
+.react-flow__edge:hover .react-flow__edge-path {
+    stroke: #60a5fa;
+    stroke-width: 2.5;
+}
+
+/* Toolbar: simple colored-text actions (matches the classic viewer toolbar) */
+.fid-toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--calm-fg);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.1s;
+}
+
+.fid-toolbar-btn:hover {
+    background: var(--calm-hover);
+}
+
+.fid-toolbar-btn--validate {
+    color: #4ec9b0;
+}
+
+.fid-toolbar-btn--apply {
+    color: #dcdcaa;
+}
+
+.fid-toolbar-btn--spec {
+    color: #c586c0;
+}
+
+.fid-toolbar-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--calm-border-heavy);
+    margin: 0 4px;
+}
+
+/* Properties panel resize grip — visible and highlights on hover */
+.fid-resize-handle {
+    width: 5px;
+    cursor: col-resize;
+    background: var(--calm-border);
+    flex-shrink: 0;
+    transition: background 0.15s;
+}
+
+.fid-resize-handle:hover {
+    background: #6366f1;
+}
+
+/* Overflow (⋮) dropdown menu items */
+.fid-menu-item {
+    display: block;
+    width: 100%;
+    text-align: left;
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--calm-fg);
+    font-size: 11px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.fid-menu-item:hover {
+    background: var(--calm-hover);
+}

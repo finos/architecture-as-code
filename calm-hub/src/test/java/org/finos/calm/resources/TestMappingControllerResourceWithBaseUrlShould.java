@@ -74,7 +74,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     void rewrite_id_with_versioned_url_on_get_version() throws Exception {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class)))
                 .thenReturn("{ \"$id\": \"old-id\", \"name\": \"original\" }");
 
@@ -89,7 +89,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     /** POST to /calm with a versioned $id of 1.0.0 matching the canonical URL creates the resource. */
     @Test
     void return_201_when_post_to_calm_with_versioned_id_matching_canonical_url() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("api-gateway")
@@ -145,7 +145,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
      */
     @Test
     void return_400_when_post_with_versioned_id_above_1_0_0_on_new_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\" }";
 
@@ -164,7 +164,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
      */
     @Test
     void return_201_when_post_with_versioned_id_of_1_0_0_on_new_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("api-gateway")
@@ -191,7 +191,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     /** Specific-version endpoint creates 1.0.0 on a brand-new resource. */
     @Test
     void return_201_when_specific_version_endpoint_creates_1_0_0_on_new_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("api-gateway")
@@ -216,7 +216,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
     /** Specific-version endpoint rejects a first version other than 1.0.0. */
     @Test
     void return_400_when_specific_version_endpoint_seeds_above_1_0_0() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\" }";
 
@@ -236,7 +236,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\", \"title\": \"API gateway pattern\" }";
@@ -259,7 +259,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "2.0.0"));
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\" }";
@@ -308,7 +308,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
      */
     @Test
     void post_strips_id_but_preserves_document_content() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("api-gateway")

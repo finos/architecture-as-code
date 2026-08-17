@@ -11,6 +11,7 @@ import org.finos.calm.domain.architecture.ArchitectureRequest;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.store.ArchitectureStore;
 import org.bson.json.JsonParseException;
 import org.junit.jupiter.api.Test;
@@ -72,6 +73,8 @@ public class TestArchitectureResourcePutEnabledShould {
                 Arguments.of(new NamespaceNotFoundException(), 404),
                 Arguments.of(new ArchitectureNotFoundException(), 404),
                 Arguments.of(new JsonParseException(), 400),
+                Arguments.of(StorageWriteException.capacityExceeded(new RuntimeException("too big")), 413),
+                Arguments.of(StorageWriteException.writeFailed(new RuntimeException("write failed")), 500),
                 Arguments.of(null, 201)
         );
     }

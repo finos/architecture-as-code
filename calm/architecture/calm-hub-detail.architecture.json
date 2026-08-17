@@ -1,0 +1,111 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "calm-hub-resources",
+            "node-type": "service",
+            "name": "REST Resources Layer",
+            "description": "JAX-RS resource classes under org.finos.calm.resources exposing namespace-scoped endpoints for architectures, patterns, controls, ADRs, decorators, domains, flows, interfaces, standards, timelines, search, and user access",
+            "development-language": "Java",
+            "interfaces": [
+                {
+                    "unique-id": "calm-hub-rest-api",
+                    "type": "api"
+                }
+            ]
+        },
+        {
+            "unique-id": "calm-hub-services",
+            "node-type": "service",
+            "name": "Services Layer",
+            "description": "Business logic under org.finos.calm.services that orchestrates store access on behalf of the REST resources layer",
+            "development-language": "Java"
+        },
+        {
+            "unique-id": "calm-hub-storage",
+            "node-type": "service",
+            "name": "Storage Layer",
+            "description": "Store abstraction under org.finos.calm.store, with CDI producers that select a MongoDB or NitriteDB implementation at runtime based on the calm.database.mode configuration property",
+            "development-language": "Java"
+        },
+        {
+            "unique-id": "mongodb",
+            "node-type": "database",
+            "name": "MongoDB",
+            "description": "Production storage backend, used when calm.database.mode is mongo (the default)",
+            "interfaces": [
+                {
+                    "unique-id": "mongodb-port",
+                    "type": "port-interface",
+                    "port": 27017
+                }
+            ]
+        },
+        {
+            "unique-id": "nitritedb",
+            "node-type": "database",
+            "name": "NitriteDB",
+            "description": "Embedded, file-based document database used in standalone and read-only deployment modes (calm.database.mode=standalone), avoiding the need for an external database"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "resources-to-services",
+            "description": "Delegates business logic for validated requests to",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-resources"
+                    },
+                    "destination": {
+                        "node": "calm-hub-services"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "services-to-storage",
+            "description": "Reads and writes CALM resources via",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-services"
+                    },
+                    "destination": {
+                        "node": "calm-hub-storage"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "storage-to-mongo",
+            "description": "Persists to, when calm.database.mode is mongo",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-storage"
+                    },
+                    "destination": {
+                        "node": "mongodb",
+                        "interfaces": ["mongodb-port"]
+                    }
+                }
+            },
+            "protocol": "TCP"
+        },
+        {
+            "unique-id": "storage-to-nitrite",
+            "description": "Persists to, when calm.database.mode is standalone, including read-only deployments using calm.readonly=true",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-hub-storage"
+                    },
+                    "destination": {
+                        "node": "nitritedb"
+                    }
+                }
+            }
+        }
+    ]
+}

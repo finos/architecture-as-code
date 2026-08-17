@@ -207,7 +207,7 @@ describe('ValidationRouter', () => {
 
         const response = await request(localApp)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}) });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }) });
 
         expect(response.status).toBe(500);
         expect(response.body.error).toContain('Failed to validate architecture');
@@ -267,7 +267,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
     test('should return 400 when pattern JSON is invalid', async () => {
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: 'not valid json {' });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: 'not valid json {' });
             
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
@@ -278,7 +278,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
     test('should return 400 when $id is missing from the pattern', async () => {
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: '{}' });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: '{}' });
             
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
@@ -289,7 +289,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
     test('should return 400 when $schema in architecture does not match $id in pattern', async () => {
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: JSON.stringify({ $id: 'https://example.com/different-schema' }) });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: JSON.stringify({ $id: 'https://example.com/different-schema' }) });
             
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
@@ -313,7 +313,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
 
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: JSON.stringify({ $id: 'https://example.com/schema' }) });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: JSON.stringify({ $id: 'https://example.com/schema' }) });
             
         expect(response.status).toBe(500);
         expect(response.body).toEqual({
@@ -380,7 +380,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
         const pattern = JSON.stringify({
             $id: 'example schema',
             type: 'object',
-            properties: { nodes: { type: 'array', minItems: 99} },
+            properties: { nodes: { type: 'array', minItems: 99 } },
             required: ['nodes']
         });
 
@@ -395,7 +395,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
     test('should return 400 when the parsed architecture is not an object', async () => {
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: 'null', pattern: JSON.stringify({ $id: 'https://example.com/schema'}) });
+            .send({ architecture: 'null', pattern: JSON.stringify({ $id: 'https://example.com/schema' }) });
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({
@@ -406,7 +406,7 @@ describe('ValidationRouter - /calm/validate with a pattern', () => {
     test('should return 400 when the parsed pattern is not an object', async () => {
         const response = await request(app)
             .post('/calm/validate')
-            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema'}), pattern: '42' });
+            .send({ architecture: JSON.stringify({ $schema: 'https://example.com/schema' }), pattern: '42' });
 
         expect(response.status).toBe(400);
         expect(response.body).toEqual({

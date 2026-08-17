@@ -289,19 +289,6 @@
           "command": "docusaurus start"
         }
       ]
-    },
-    {
-      "unique-id": "advent-of-calm-site",
-      "node-type": "webclient",
-      "name": "Advent of CALM Site",
-      "description": "Astro website for Advent of CALM educational content.",
-      "interfaces": [
-        {
-          "unique-id": "advent-astro",
-          "type": "http",
-          "command": "astro dev"
-        }
-      ]
     }
   ],
   "relationships": [
@@ -373,18 +360,6 @@
           "actor": "browser-user",
           "nodes": [
             "docs-site"
-          ]
-        }
-      }
-    },
-    {
-      "unique-id": "browser-user-to-advent-of-calm-site",
-      "description": "Browser users read the Advent of CALM Astro site.",
-      "relationship-type": {
-        "interacts": {
-          "actor": "browser-user",
-          "nodes": [
-            "advent-of-calm-site"
           ]
         }
       }

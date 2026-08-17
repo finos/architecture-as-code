@@ -68,11 +68,28 @@ We accept contributions via Pull Request, to make a contribution:
 1. Pick an issue you are interested in contributing to (or raise one yourself) and speak to the lead maintainers about what you plan to do either in the issue itself or come to a meetup. [Some issues](https://github.com/finos/architecture-as-code/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22) are suggested for first time contributors.
 2. Fork the repo (<https://github.com/finos/architecture-as-code/fork>)
 3. Create your feature branch (`git checkout -b feature/fooBar`)
-4. Read our [contribution guidelines](.github/CONTRIBUTING.md)
-   and [Community Code of Conduct](https://www.finos.org/code-of-conduct)
+4. Read this repository's [contribution guidelines](CONTRIBUTING.md), the project-wide
+   [contribution guidelines](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md)
+   and the [Community Code of Conduct](https://www.finos.org/code-of-conduct)
 5. Commit your changes (`git commit -am 'Add some fooBar'`)
 6. Push to the branch (`git push origin feature/fooBar`)
 7. Create a new Pull Request
+
+## Governance
+
+The project's governance policies, Maintainer roster and Code of Conduct are maintained in
+[finos/calm-governance](https://github.com/finos/calm-governance) and apply across every repository
+in the project.
+
+| Document | Covers |
+|---|---|
+| [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) | Roles, contribution rules, Maintainer voting, and how Maintainers are added and removed |
+| [MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) | The project-wide Maintainer roster and the Lead Maintainer |
+| [CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md) | Project-wide contribution guidelines |
+| [CODE_OF_CONDUCT.md](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md) | The Code of Conduct all participants are subject to |
+
+The maintainers of each subproject in this monorepo are listed in the [Projects](#projects) table
+above.
 
 ## GitHub actions
 
@@ -89,7 +106,7 @@ Currently we have three typescript packages - two of which are managed via `npm 
 
 ## License
 
-Copyright 2024 FINOS
+Copyright FINOS
 
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 

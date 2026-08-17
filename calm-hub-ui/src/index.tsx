@@ -6,6 +6,7 @@ import { isAuthServiceEnabled } from './authService.js';
 import App from './App.js';
 import { LogoutButton } from './components/logout-button/LogoutButton.js';
 import { AuthErrorModal } from './AuthModalError.js';
+import { MigrationErrorModal } from './MigrationModalError.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
@@ -22,5 +23,6 @@ root.render(
             <App />
         )}
         <AuthErrorModal />
+        <MigrationErrorModal />
     </React.StrictMode>
 );

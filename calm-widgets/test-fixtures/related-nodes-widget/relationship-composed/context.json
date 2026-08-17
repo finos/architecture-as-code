@@ -1,13 +1,13 @@
 {
   "nodes": [
-    { "unique-id": "ServiceA", "name": "ServiceA" },
-    { "unique-id": "ServiceB", "name": "ServiceB" },
-    { "unique-id": "SystemC", "name": "SystemC" }
+    { "unique-id": "svc-a", "name": "Service Alpha" },
+    { "unique-id": "svc-b", "name": "Service Beta" },
+    { "unique-id": "system-c", "name": "Backend System" }
   ],
   "relationships": [
     {
       "unique-id": "r1",
-      "relationship-type": { "composed-of": { "container": "SystemC", "nodes": ["ServiceA"] } }
+      "relationship-type": { "composed-of": { "container": "system-c", "nodes": ["svc-a"] } }
     }
   ]
 }

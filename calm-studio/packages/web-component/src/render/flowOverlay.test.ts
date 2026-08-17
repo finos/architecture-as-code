@@ -13,35 +13,35 @@ import type { CalmFlow, CalmArchitecture } from '@calmstudio/calm-core';
 const twoEdgeLayouts = new Map([
   [
     'rel-1',
-    {
+    [{
       id: 'rel-1',
       points: [
         { x: 10, y: 20 },
         { x: 100, y: 20 },
         { x: 200, y: 80 },
       ],
-    },
+    }],
   ],
   [
     'rel-2',
-    {
+    [{
       id: 'rel-2',
       points: [
         { x: 200, y: 80 },
         { x: 300, y: 80 },
       ],
-    },
+    }],
   ],
   [
     'rel-3',
-    {
+    [{
       id: 'rel-3',
       points: [
         { x: 300, y: 80 },
         { x: 350, y: 150 },
         { x: 400, y: 200 },
       ],
-    },
+    }],
   ],
 ]);
 
@@ -161,6 +161,50 @@ describe('renderFlowOverlay', () => {
     // Sequence numbers 1 and 2 should appear in badge text elements
     expect(svg).toContain('>1<');
     expect(svg).toContain('>2<');
+  });
+
+  it('animates along every fan-out edge of a multi-node relationship and renders one badge', () => {
+    const fanOutLayouts = new Map([
+      [
+        'rel-fan',
+        [
+          {
+            id: 'rel-fan__0',
+            points: [
+              { x: 0, y: 0 },
+              { x: 50, y: 50 },
+            ],
+          },
+          {
+            id: 'rel-fan__1',
+            points: [
+              { x: 0, y: 0 },
+              { x: 50, y: 100 },
+            ],
+          },
+        ],
+      ],
+    ]);
+    const fanFlow: CalmFlow = {
+      'unique-id': 'fan-flow',
+      name: 'Fan Flow',
+      description: 'Flow over a fan-out relationship',
+      transitions: [
+        {
+          'relationship-unique-id': 'rel-fan',
+          'sequence-number': 1,
+          summary: 'Actor interacts with both services',
+          direction: 'source-to-destination',
+        },
+      ],
+    };
+    const svg = renderFlowOverlay(fanFlow, fanOutLayouts);
+    const animCount = (svg.match(/<animateMotion/g) ?? []).length;
+    expect(animCount).toBe(2);
+    expect(svg).toContain('flow-path-rel-fan__0');
+    expect(svg).toContain('flow-path-rel-fan__1');
+    const badgeCount = (svg.match(/class="flow-badge"/g) ?? []).length;
+    expect(badgeCount).toBe(1);
   });
 
   it('Test 7: handles flow with 3+ transitions (multi-edge flow)', () => {

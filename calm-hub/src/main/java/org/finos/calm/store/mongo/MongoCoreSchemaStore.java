@@ -21,7 +21,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * MongoDB-backed implementation of {@link CoreSchemaStore}.
  *
  * <h2>Concurrency strategy — idempotent create</h2>
- * A unique index on {@code schemas.version} (created by {@link MongoIndexInitializer})
+ * A unique index on {@code schemas.version} (created by {@code MongoIndexInitializationStep})
  * prevents duplicate schema versions. Unlike the namespace and domain stores, this class
  * treats a {@code DUPLICATE_KEY} error as a <em>no-op</em> rather than an error:
  * if a schema version already exists, the insert is silently ignored. This makes
@@ -31,7 +31,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
  * <p>This is intentional because core schemas are typically loaded during application
  * bootstrap and may be re-applied on restart.
  *
- * @see MongoIndexInitializer
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped

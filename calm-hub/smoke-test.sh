@@ -20,7 +20,7 @@
 #
 # Readonly mode assertions (curated hosted-hub dataset):
 #   GET    /api/calm/namespaces                              -> 200  (reads work)
-#   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop"
+#   GET    /api/calm/namespaces                              body contains "finos.calm","finos.traderx","workshop","finos.fluxnova"
 #   GET    /api/calm/namespaces/finos.calm/standards         -> 200 + body contains "name"
 #   GET    /api/calm/namespaces/finos.calm/interfaces        -> 200 + body contains "name"
 #   GET    /api/calm/domains/counts                          -> 200 + body contains "controlCount","finos-ai-governance"
@@ -28,6 +28,8 @@
 #   GET    /api/calm/namespaces/workshop/patterns            -> 200 + body contains "Conference Signup Pattern"
 #   GET    /api/calm/namespaces/workshop/architectures       -> 200 + body contains "name","description"
 #   GET    /api/calm/namespaces/finos.traderx/architectures  -> 200 + body contains "name"
+#   GET    /api/calm/namespaces/finos.fluxnova/architectures -> 200 + body contains all six "FluxNova: *" names
+#   GET    /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 -> 200 (slug mapping)
 #   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   GET    /calm/search?q=conference                        -> 200 + body contains "architectures","Conference Signup Pattern"
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
@@ -108,6 +110,33 @@ assert_body_contains() {
     fi
 }
 
+# assert_body_contains_all METHOD PATH NEEDLE...
+# Single-fetch variant of assert + assert_body_contains: requests PATH once
+# (status and body in the same round-trip), asserts HTTP 200, then asserts the
+# body contains every NEEDLE. Use when checking many substrings of one response.
+assert_body_contains_all() {
+    local method="$1" path="$2"
+    shift 2
+    local response code body needle
+    response=$(curl -s -w '\n%{http_code}' -X "${method}" "${BASE_URL}${path}")
+    code=${response##*$'\n'}
+    body=${response%$'\n'*}
+    if [[ "${code}" == "200" ]]; then
+        echo "[smoke] OK   ${method} ${path} -> ${code}"
+    else
+        echo "[smoke] FAIL ${method} ${path} -> ${code} (expected 200)" >&2
+        exit 1
+    fi
+    for needle in "$@"; do
+        if [[ "${body}" == *"${needle}"* ]]; then
+            echo "[smoke] OK   ${method} ${path} body contains '${needle}'"
+        else
+            echo "[smoke] FAIL ${method} ${path} body missing '${needle}' -> ${body}" >&2
+            exit 1
+        fi
+    done
+}
+
 # ── Assertions ────────────────────────────────────────────────────────────────
 echo "[smoke] Running assertions (mode: ${MODE})..."
 
@@ -117,6 +146,7 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert_body_contains GET /api/calm/namespaces '"finos.calm"'
     assert_body_contains GET /api/calm/namespaces '"finos.traderx"'
     assert_body_contains GET /api/calm/namespaces '"workshop"'
+    assert_body_contains GET /api/calm/namespaces '"finos.fluxnova"'
 
     # finos.calm — deployment standard and interfaces must be present
     assert GET /api/calm/namespaces/finos.calm/standards 200
@@ -149,6 +179,19 @@ if [[ "${MODE}" == "readonly" ]]; then
     # finos.traderx — TraderX architecture must be present
     assert GET /api/calm/namespaces/finos.traderx/architectures 200
     assert_body_contains GET /api/calm/namespaces/finos.traderx/architectures '"name"'
+
+    # finos.fluxnova — all six FluxNova example architectures must be present
+    assert_body_contains_all GET /api/calm/namespaces/finos.fluxnova/architectures \
+        '"FluxNova: Platform"' \
+        '"FluxNova: Microservices Orchestration"' \
+        '"FluxNova: KYC Onboarding"' \
+        '"FluxNova: Post-Trade Settlement"' \
+        '"FluxNova: Flash Risk Management"' \
+        '"FluxNova: AI Agent Orchestration"'
+
+    # Slug mappings must be baked into the read-only image (the fluxnova seeds go
+    # through the name-based API): resolve one architecture by its customId.
+    assert GET /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 200
 
     # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
     # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).

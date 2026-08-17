@@ -29,6 +29,7 @@ public interface ArchitectureStore {
      * @return a (possibly paged) list of architecture summaries
      */
     List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException;
+
     Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException;
     List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException;
     String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException;

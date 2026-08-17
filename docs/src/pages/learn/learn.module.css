@@ -1,0 +1,37 @@
+/**
+ * Learn hub styles. Shared primitives come from
+ * src/components/shared.module.css.
+ */
+
+.bannerCtas {
+    margin-top: 22px;
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.startHere {
+    padding-bottom: 20px;
+}
+
+.journeysBand {
+    background: linear-gradient(180deg, var(--calm-bg-soft), var(--calm-bg-tint));
+    border-top: 1px solid var(--calm-line);
+    border-bottom: 1px solid var(--calm-line);
+}
+
+.levelCard {
+    border-top: 3px solid var(--accent, var(--ifm-color-primary));
+}
+
+.browseAll {
+    text-align: center;
+    margin-top: 26px;
+}
+
+.deepDives {
+    text-align: center;
+    margin: 26px 0 0;
+    font-size: 14px;
+    color: var(--calm-muted);
+}

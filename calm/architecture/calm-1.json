@@ -102,7 +102,7 @@
                     },
                     "destination": {
                         "node": "calm-hub",
-                        "interface": "calm-hub-rest-api"
+                        "interfaces": ["calm-hub-rest-api"]
                     }
                 }
             },
@@ -118,7 +118,7 @@
                     },
                     "destination": {
                         "node": "mongodb",
-                        "interface": "mongodb-port"
+                        "interfaces": ["mongodb-port"]
                     }
                 }
             },
@@ -134,7 +134,7 @@
                     },
                     "destination": {
                         "node": "calm-hub",
-                        "interface": "calm-hub-rest-api"
+                        "interfaces": ["calm-hub-rest-api"]
                     }
                 }
             },

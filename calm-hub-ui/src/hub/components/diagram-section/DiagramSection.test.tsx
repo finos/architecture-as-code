@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { DiagramSection } from './DiagramSection.js';
 import { beforeEach, describe, it, expect, vi } from 'vitest';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
+import { saveNodePositions } from '../../../visualizer/services/node-position-service.js';
+import type { Node } from 'reactflow';
 
 const calmServiceMock = {
     fetchDeploymentDecoratorsForArchitecture: vi.fn().mockResolvedValue([]),
@@ -15,6 +17,14 @@ const calmServiceMock = {
     fetchPatternSummaries: vi
         .fn()
         .mockResolvedValue([{ id: 1, name: 'Signup Pattern', description: '', customId: 'test-pattern' }]),
+    fetchMappings: vi
+        .fn()
+        .mockResolvedValue([{ namespace: 'arch-namespace', customId: 'test-arch', resourceType: 'Architectures', numericId: 42 }]),
+};
+
+const layoutServiceMock = {
+    getDefaultLayout: vi.fn().mockResolvedValue(null),
+    saveDefaultLayout: vi.fn().mockResolvedValue(undefined),
 };
 
 vi.mock('react-router-dom', async () => {
@@ -30,7 +40,25 @@ vi.mock('@monaco-editor/react', () => ({
 }));
 
 vi.mock('../../../visualizer/components/drawer/Drawer.js', () => ({
-    Drawer: ({ data }: { data: Data }) => <div data-testid="drawer">Drawer for {data.id}</div>
+    // Exposes a button that invokes onPositionsChange the same way the real
+    // graph does after every apply (initial parse AND drag-end), so tests can
+    // simulate a drag without pulling in the full ReactFlow tree.
+    Drawer: ({
+        data,
+        onPositionsChange,
+    }: {
+        data: Data;
+        onPositionsChange?: (positions: { id: string; position: { x: number; y: number } }[]) => void;
+    }) => (
+        <div data-testid="drawer">
+            Drawer for {data.id}
+            <button
+                onClick={() => onPositionsChange?.([{ id: 'node-1', position: { x: 1, y: 2 } }])}
+            >
+                simulate-drag-report
+            </button>
+        </div>
+    ),
 }));
 
 vi.mock('./compare/CompareView.js', () => ({
@@ -67,7 +95,20 @@ vi.mock('../../../service/calm-service.js', () => ({
         fetchArchitectureTimeline: calmServiceMock.fetchArchitectureTimeline,
         fetchArchitectureSummaries: calmServiceMock.fetchArchitectureSummaries,
         fetchPatternSummaries: calmServiceMock.fetchPatternSummaries,
+        fetchMappings: calmServiceMock.fetchMappings,
     }; }),
+}));
+
+vi.mock('../../../service/layout-service.js', () => ({
+    LayoutService: vi.fn().mockImplementation(function () { return {
+        getDefaultLayout: layoutServiceMock.getDefaultLayout,
+        saveDefaultLayout: layoutServiceMock.saveDefaultLayout,
+    }; }),
+}));
+
+const userAccessMock = { canWriteNamespace: vi.fn().mockReturnValue(false) };
+vi.mock('../../../admin/context/UserAccessContext.js', () => ({
+    useUserAccess: () => userAccessMock,
 }));
 
 const architectureData: Data & { calmType: 'Architectures' } = {
@@ -92,6 +133,7 @@ describe('DiagramSection', () => {
         calmServiceMock.fetchDeploymentDecoratorsForArchitecture.mockResolvedValue([]);
         calmServiceMock.fetchVersionsByCustomId.mockResolvedValue(['1.0.0', '2.0.0']);
         calmServiceMock.fetchArchitectureTimeline.mockRejectedValue(new Error('no timeline'));
+        userAccessMock.canWriteNamespace.mockReturnValue(false);
     });
 
     describe('with architecture data', () => {
@@ -582,6 +624,196 @@ describe('DiagramSection', () => {
             await user.click(screen.getByText('nav-2.0.0'));
             expect(screen.queryByTestId('compare-view')).not.toBeInTheDocument();
             expect(screen.getByTestId('drawer')).toBeInTheDocument();
+        });
+    });
+
+    describe('save/reset default layout', () => {
+        it('hides "Save as default layout" without a write grant', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await screen.findByTestId('drawer');
+            // Give the slug→numeric resolution (fetchMappings) a tick to settle.
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+
+            expect(screen.queryByLabelText('Save as default layout')).not.toBeInTheDocument();
+        });
+
+        it('shows "Save as default layout" once a write grant resolves', async () => {
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByLabelText('Save as default layout')).toBeInTheDocument());
+            expect(userAccessMock.canWriteNamespace).toHaveBeenCalledWith('arch-namespace');
+        });
+
+        it('shows "Save as default layout" for a pattern once a write grant resolves', async () => {
+            // Numeric id, so this doesn't depend on fetchMappings resolving a slug match —
+            // that path is already covered by the architecture slug tests below.
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={{ ...patternData, id: '99' }} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(screen.getByLabelText('Save as default layout')).toBeInTheDocument());
+            expect(userAccessMock.canWriteNamespace).toHaveBeenCalledWith('pattern-namespace');
+        });
+
+        it('shows "Reset to default layout" for patterns regardless of write access, disabled with no scratch layout', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+
+            const resetButton = await screen.findByLabelText('Reset to default layout');
+            expect(resetButton).toBeDisabled();
+        });
+
+        it('shows "Save as default layout" for a pattern on mobile too', async () => {
+            // The mobile view-options menu used to hand-copy the desktop gating condition
+            // instead of reusing showLayoutActions — exactly the kind of drift that would
+            // leave patterns supported on desktop but not mobile.
+            const restore = mockMobileViewport();
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={{ ...patternData, id: '99' }} />
+                </MemoryRouter>
+            );
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            expect(await screen.findByLabelText('Save as default layout')).toBeInTheDocument();
+            expect(screen.getByLabelText('Reset to default layout')).toBeInTheDocument();
+            restore();
+        });
+
+        it('shows "Reset to default layout" for architectures regardless of write access, disabled with no scratch layout', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            const resetButton = await screen.findByLabelText('Reset to default layout');
+            expect(resetButton).toBeDisabled();
+        });
+
+        it('enables "Reset to default layout" after a drag writes a scratch layout, even though the viewportKey/epoch did not change', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            // Let the slug -> numeric id resolution settle so viewportKey is set
+            // ('arch-namespace/Architectures/42', per fetchMappings above).
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            const resetButton = await screen.findByLabelText('Reset to default layout');
+            expect(resetButton).toBeDisabled();
+
+            // Mirror what useGraphInteractions does on drag-end: write to
+            // localStorage first, then report the positions upward via
+            // onPositionsChange (a ref-only write in DiagramSection prior to the
+            // fix -- no re-render, so the button stayed stuck disabled).
+            saveNodePositions('arch-namespace/Architectures/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
+            const user = userEvent.setup();
+            await user.click(screen.getByText('simulate-drag-report'));
+
+            await waitFor(() => expect(resetButton).toBeEnabled());
+        });
+
+        it('disables "Reset to default layout" again once reset is clicked', async () => {
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            const resetButton = await screen.findByLabelText('Reset to default layout');
+
+            saveNodePositions('arch-namespace/Architectures/42', [{ id: 'node-1', position: { x: 1, y: 2 }, data: {} }] as Node[]);
+            const user = userEvent.setup();
+            await user.click(screen.getByText('simulate-drag-report'));
+            await waitFor(() => expect(resetButton).toBeEnabled());
+
+            await user.click(resetButton);
+            await waitFor(() => expect(resetButton).toBeDisabled());
+        });
+
+        it('surfaces a save failure as an inline alert in the main pane on desktop', async () => {
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            layoutServiceMock.saveDefaultLayout.mockRejectedValueOnce(new Error('boom'));
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+            const saveButton = await screen.findByLabelText('Save as default layout');
+
+            await user.click(saveButton);
+
+            expect(await screen.findByRole('alert')).toHaveTextContent('boom');
+            // The old wrapper-title tooltip is gone — both buttons' own titles
+            // used to make it unreachable by hover, so it never worked.
+            expect(saveButton.parentElement).not.toHaveAttribute('title');
+        });
+
+        it('does not render an alert after a successful save', async () => {
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+            await user.click(await screen.findByLabelText('Save as default layout'));
+
+            await waitFor(() => expect(layoutServiceMock.saveDefaultLayout).toHaveBeenCalled());
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
+
+        it('surfaces a save failure as an inline alert on mobile even after the menu closes', async () => {
+            const restore = mockMobileViewport();
+            userAccessMock.canWriteNamespace.mockReturnValue(true);
+            layoutServiceMock.saveDefaultLayout.mockRejectedValueOnce(new Error('boom'));
+            const user = userEvent.setup();
+            render(
+                <MemoryRouter>
+                    <DiagramSection data={architectureData} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchMappings).toHaveBeenCalled());
+            await user.click(screen.getByText('simulate-drag-report'));
+
+            await user.click(screen.getByRole('button', { name: /view options/i }));
+            const saveButton = await screen.findByLabelText('Save as default layout');
+            await user.click(saveButton);
+
+            // The mobile handler closes the overlay before the async save settles —
+            // the alert must still surface once it does, in the main pane underneath.
+            await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+            expect(await screen.findByRole('alert')).toHaveTextContent('boom');
+            restore();
         });
     });
 });
