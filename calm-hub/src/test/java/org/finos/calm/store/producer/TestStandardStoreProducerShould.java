@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.github.GitHubStandardStore;
 import org.finos.calm.store.mongo.MongoStandardStore;
 import org.finos.calm.store.nitrite.NitriteStandardStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestStandardStoreProducerShould {
     @Mock
     Instance<NitriteStandardStore> nitriteStandardStoreInstance;
 
+    @Mock
+    GitHubStandardStore gitHubStandardStore;
+
+    @Mock
+    Instance<GitHubStandardStore> gitHubStandardStoreInstance;
+
     private StandardStoreProducer standardStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestStandardStoreProducerShould {
         standardStoreProducer.mongoStandardStore = mongoStandardStoreInstance;
         when(nitriteStandardStoreInstance.get()).thenReturn(nitriteStandardStore);
         standardStoreProducer.standaloneStandardStore = nitriteStandardStoreInstance;
+        when(gitHubStandardStoreInstance.get()).thenReturn(gitHubStandardStore);
+        standardStoreProducer.gitHubStandardStore = gitHubStandardStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestStandardStoreProducerShould {
 
     @Test
     void return_mongo_standard_store_when_database_mode_is_not_recognized() {
-        // Given
         standardStoreProducer.databaseMode = "unknown";
 
-        // When
         StandardStore result = standardStoreProducer.produceStandardStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoStandardStore)));
+    }
+
+    @Test
+    void return_github_standard_store_when_database_mode_is_github() {
+        standardStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        StandardStore result = standardStoreProducer.produceStandardStore();
+
+        assertThat(result, is(sameInstance(gitHubStandardStore)));
     }
 }

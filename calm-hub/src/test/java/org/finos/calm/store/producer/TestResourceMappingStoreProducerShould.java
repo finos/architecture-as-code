@@ -1,8 +1,10 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.mongo.MongoResourceMappingStore;
 import org.finos.calm.store.nitrite.NitriteResourceMappingStore;
+import org.finos.calm.store.noop.NoOpResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -33,6 +35,12 @@ public class TestResourceMappingStoreProducerShould {
     @Mock
     Instance<NitriteResourceMappingStore> nitriteResourceMappingStoreInstance;
 
+    @Mock
+    NoOpResourceMappingStore noOpResourceMappingStore;
+
+    @Mock
+    Instance<NoOpResourceMappingStore> noOpResourceMappingStoreInstance;
+
     private ResourceMappingStoreProducer producer;
 
     @BeforeEach
@@ -42,11 +50,13 @@ public class TestResourceMappingStoreProducerShould {
         producer.mongoResourceMappingStore = mongoResourceMappingStoreInstance;
         when(nitriteResourceMappingStoreInstance.get()).thenReturn(nitriteResourceMappingStore);
         producer.standaloneResourceMappingStore = nitriteResourceMappingStoreInstance;
+        when(noOpResourceMappingStoreInstance.get()).thenReturn(noOpResourceMappingStore);
+        producer.noOpResourceMappingStore = noOpResourceMappingStoreInstance;
     }
 
     @Test
     void return_mongo_store_when_database_mode_is_mongo() {
-        producer.databaseMode = "mongo";
+        producer.databaseMode = DatabaseMode.MONGO;
 
         ResourceMappingStore result = producer.produceResourceMappingStore();
 
@@ -55,7 +65,7 @@ public class TestResourceMappingStoreProducerShould {
 
     @Test
     void return_nitrite_store_when_database_mode_is_standalone() {
-        producer.databaseMode = "standalone";
+        producer.databaseMode = DatabaseMode.STANDALONE;
 
         ResourceMappingStore result = producer.produceResourceMappingStore();
 
@@ -69,5 +79,14 @@ public class TestResourceMappingStoreProducerShould {
         ResourceMappingStore result = producer.produceResourceMappingStore();
 
         assertThat(result, is(sameInstance(mongoResourceMappingStore)));
+    }
+
+    @Test
+    void return_noop_store_when_database_mode_is_github() {
+        producer.databaseMode = DatabaseMode.GITHUB;
+
+        ResourceMappingStore result = producer.produceResourceMappingStore();
+
+        assertThat(result, is(sameInstance(noOpResourceMappingStore)));
     }
 }

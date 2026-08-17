@@ -87,7 +87,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         [nodeSearchTerm, nodeTypeFilter, nodeTypes]
     );
     const calmService = useMemo(() => new CalmService(), []);
-    const defaultLayoutState = useDefaultLayout(data.name, data.id, data.calmType);
+    const defaultLayoutState = useDefaultLayout(data.name, data.id, data.calmType, data.data as Record<string, unknown> | undefined);
     // Destructured locals so handleSaveLayout/handleResetLayout below can depend
     // on exactly the (already useCallback-stable) functions they call, rather
     // than the whole result object — which still changes identity whenever
@@ -428,6 +428,26 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const showLayoutActions = !comparing && activeTab === 'diagram';
     const layoutActions = showLayoutActions && (
         <div className="flex items-center gap-1">
+            {defaultLayoutState.hasBothSources && (
+                <div className="join" role="group" aria-label="Layout source">
+                    <button
+                        type="button"
+                        className={`join-item btn btn-xs ${defaultLayoutState.layoutSource === 'document' || (defaultLayoutState.layoutSource === 'auto' && defaultLayoutState.documentLayout) ? 'btn-active' : ''}`}
+                        onClick={() => defaultLayoutState.setLayoutSource('document')}
+                        title="Use layout from document"
+                    >
+                        Document
+                    </button>
+                    <button
+                        type="button"
+                        className={`join-item btn btn-xs ${defaultLayoutState.layoutSource === 'server' || (defaultLayoutState.layoutSource === 'auto' && !defaultLayoutState.documentLayout) ? 'btn-active' : ''}`}
+                        onClick={() => defaultLayoutState.setLayoutSource('server')}
+                        title="Use saved layout from server"
+                    >
+                        Saved
+                    </button>
+                </div>
+            )}
             {canSaveLayout && (
                 <button
                     type="button"

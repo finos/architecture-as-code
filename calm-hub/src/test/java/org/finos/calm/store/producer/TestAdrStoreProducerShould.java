@@ -4,7 +4,9 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.sameInstance;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.AdrStore;
+import org.finos.calm.store.github.GitHubAdrStore;
 import org.finos.calm.store.mongo.MongoAdrStore;
 import org.finos.calm.store.nitrite.NitriteAdrStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,12 @@ public class TestAdrStoreProducerShould {
     @Mock
     Instance<NitriteAdrStore> nitriteAdrStoreInstance;
 
+    @Mock
+    GitHubAdrStore gitHubAdrStore;
+
+    @Mock
+    Instance<GitHubAdrStore> gitHubAdrStoreInstance;
+
     private AdrStoreProducer adrStoreProducer;
 
     @BeforeEach
@@ -43,6 +51,8 @@ public class TestAdrStoreProducerShould {
         adrStoreProducer.mongoAdrStore = mongoAdrStoreInstance;
         when(nitriteAdrStoreInstance.get()).thenReturn(nitriteAdrStore);
         adrStoreProducer.standaloneAdrStore = nitriteAdrStoreInstance;
+        when(gitHubAdrStoreInstance.get()).thenReturn(gitHubAdrStore);
+        adrStoreProducer.gitHubAdrStore = gitHubAdrStoreInstance;
     }
 
     @Test
@@ -71,13 +81,19 @@ public class TestAdrStoreProducerShould {
 
     @Test
     void return_mongo_adr_store_when_database_mode_is_not_recognized() {
-        // Given
         adrStoreProducer.databaseMode = "unknown";
 
-        // When
         AdrStore result = adrStoreProducer.produceAdrStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoAdrStore)));
+    }
+
+    @Test
+    void return_github_adr_store_when_database_mode_is_github() {
+        adrStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        AdrStore result = adrStoreProducer.produceAdrStore();
+
+        assertThat(result, is(sameInstance(gitHubAdrStore)));
     }
 }

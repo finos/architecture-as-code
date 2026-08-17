@@ -1,18 +1,16 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.DecoratorStore;
+import org.finos.calm.store.github.GitHubDecoratorStore;
 import org.finos.calm.store.mongo.MongoDecoratorStore;
 import org.finos.calm.store.nitrite.NitriteDecoratorStore;
-import jakarta.enterprise.inject.Instance;
 
-/**
- * Producer for DecoratorStore implementations.
- * Selects the appropriate implementation based on the configured database mode.
- */
 @ApplicationScoped
 public class DecoratorStoreProducer {
 
@@ -24,19 +22,20 @@ public class DecoratorStoreProducer {
     Instance<MongoDecoratorStore> mongoDecoratorStore;
 
     @Inject
-    Instance<NitriteDecoratorStore> nitriteDecoratorStore;
+    Instance<NitriteDecoratorStore> standaloneDecoratorStore;
 
-    /**
-     * Produces the appropriate DecoratorStore implementation based on the configured database mode.
-     *
-     * @return the DecoratorStore implementation
-     */
+    @Inject
+    Instance<GitHubDecoratorStore> gitHubDecoratorStore;
+
     @Produces
     @ApplicationScoped
     public DecoratorStore produceDecoratorStore() {
-        if ("standalone".equals(databaseMode)) {
-            return nitriteDecoratorStore.get();
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubDecoratorStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
+            return standaloneDecoratorStore.get();
+        } else {
+            return mongoDecoratorStore.get();
         }
-        return mongoDecoratorStore.get();
     }
 }

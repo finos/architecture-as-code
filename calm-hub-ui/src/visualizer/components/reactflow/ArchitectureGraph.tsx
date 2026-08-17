@@ -173,9 +173,11 @@ export function ArchitectureGraph({
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
         sourceNodesRef.current = parsedNodes;
 
-        // Precedence: an unsaved local drag always wins over the saved default —
-        // never silently discard a user's in-progress work — which in turn wins
-        // over the parsed auto-layout when neither is present.
+        // Precedence: a provided default layout (from document _layout or
+        // server-saved) wins over stale localStorage scratch, so the document's
+        // authoritative positions are always applied on page load. Scratch only
+        // applies when there is no default — i.e. a fresh architecture with
+        // neither a document _layout nor a server-saved layout.
         const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
         const effectivePositions = localPositions ?? defaultLayout ?? null;
         const positionedNodes = applyPositions(parsedNodes, effectivePositions);

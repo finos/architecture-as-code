@@ -184,7 +184,7 @@ describe('useDefaultLayout', () => {
                 5,
                 expect.objectContaining({
                     for: '/api/calm/namespaces/finos/architectures/5',
-                    pins: [{ 'unique-id': 'node-a', position: { x: 1, y: 2 } }],
+                    nodes: { 'node-a': { x: 1, y: 2 } },
                 }),
                 'architectures'
             );
@@ -312,11 +312,101 @@ describe('useDefaultLayout', () => {
                 9,
                 expect.objectContaining({
                     for: '/api/calm/namespaces/finos/patterns/9',
-                    pins: [{ 'unique-id': 'node-a', position: { x: 1, y: 2 } }],
+                    nodes: { 'node-a': { x: 1, y: 2 } },
                 }),
                 'patterns'
             );
             expect(result.current.defaultLayout).toEqual(positions);
+        });
+    });
+
+    describe('document layout (_layout in metadata)', () => {
+        it('extracts _layout from architecture metadata and exposes it as documentLayout', () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+            const archData = {
+                metadata: {
+                    _layout: {
+                        'node-a': { x: 10, y: 20, w: 100, h: 50 },
+                        'node-b': { x: 30, y: 40, w: 200, h: 80 },
+                    },
+                },
+            };
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures', archData));
+
+            expect(result.current.documentLayout).toEqual([
+                { id: 'node-a', position: { x: 10, y: 20 }, width: 100, height: 50 },
+                { id: 'node-b', position: { x: 30, y: 40 }, width: 200, height: 80 },
+            ]);
+        });
+
+        it('returns null documentLayout when metadata has no _layout', () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+            const archData = { metadata: { other: 'stuff' } };
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures', archData));
+
+            expect(result.current.documentLayout).toBeNull();
+        });
+
+        it('returns null documentLayout when no architectureData is passed', () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures'));
+
+            expect(result.current.documentLayout).toBeNull();
+        });
+
+        it('uses document layout as defaultLayout when layoutSource is auto and _layout exists', async () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue({
+                nodes: { 'node-a': { x: 999, y: 999 } },
+            });
+            const archData = {
+                metadata: {
+                    _layout: { 'node-a': { x: 10, y: 20, w: 100, h: 50 } },
+                },
+            };
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures', archData));
+
+            // Auto mode prefers document layout when available
+            expect(result.current.defaultLayout).toEqual([
+                { id: 'node-a', position: { x: 10, y: 20 }, width: 100, height: 50 },
+            ]);
+        });
+
+        it('reports hasBothSources when both _layout and server layout exist', async () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue({
+                nodes: { 'node-a': { x: 999, y: 999 } },
+            });
+            const archData = {
+                metadata: {
+                    _layout: { 'node-a': { x: 10, y: 20 } },
+                },
+            };
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures', archData));
+
+            await waitFor(() => expect(result.current.hasBothSources).toBe(true));
+        });
+
+        it('switches to server layout when setLayoutSource is called with server', async () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue({
+                nodes: { 'node-a': { x: 999, y: 888 } },
+            });
+            const archData = {
+                metadata: {
+                    _layout: { 'node-a': { x: 10, y: 20 } },
+                },
+            };
+            const { result } = renderHook(() => useDefaultLayout(namespace, '5', 'Architectures', archData));
+
+            await waitFor(() => expect(result.current.hasBothSources).toBe(true));
+
+            act(() => {
+                result.current.setLayoutSource('server');
+            });
+
+            await waitFor(() =>
+                expect(result.current.defaultLayout).toEqual([
+                    { id: 'node-a', position: { x: 999, y: 888 } },
+                ])
+            );
         });
     });
 });

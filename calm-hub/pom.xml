@@ -97,6 +97,36 @@
             <artifactId>owasp-java-html-sanitizer</artifactId>
             <version>20240325.1</version>
         </dependency>
+
+        <!-- Caffeine in-memory cache -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- JGit for GitHub clone/pull operations -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+            <version>7.2.0.202503040940-r</version>
+        </dependency>
+
+        <!-- Quarkus Scheduler for periodic sync -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
+        <!-- OpenTelemetry + Micrometer observability -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer-opentelemetry</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-oidc</artifactId>
@@ -301,6 +331,11 @@
                         <exclude>**/*ArchitectureRequest.*</exclude>
                         <exclude>**/config/**/*</exclude>
                         <exclude>**/domain/**/*</exclude>
+                        <!-- I/O-bound classes whose success paths require real infrastructure (integration test coverage) -->
+                        <exclude>**/store/github/util/GitHubRepoSync.*</exclude>
+                        <exclude>**/store/github/util/GitHubVersionService.*</exclude>
+                        <exclude>**/store/classpath/ClasspathCoreSchemaStore.*</exclude>
+                        <exclude>**/resources/GitHubLinkResource.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

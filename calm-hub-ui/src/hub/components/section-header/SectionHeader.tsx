@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { IoCopyOutline, IoCheckmarkOutline, IoLinkOutline } from 'react-icons/io5';
 import { BreadcrumbItem, isSlug } from '../../../model/calm.js';
 import { BreadcrumbTrail } from './BreadcrumbTrail.js';
@@ -45,11 +46,12 @@ export function SectionHeader({ icon, namespace, id, version, typeSegment, right
                 <h2 className="text-base sm:text-xl font-semibold flex flex-wrap items-center gap-x-2 gap-y-1 min-w-0">
                     {icon}
                     {breadcrumbs && <BreadcrumbTrail breadcrumbs={breadcrumbs} onBreadcrumbClick={onBreadcrumbClick} />}
-                    {namespace}
+                    <Link to={`/namespace/${encodeURIComponent(namespace)}`} className="text-accent hover:underline">{namespace}</Link>
                     {typeLabel && (
                         <>
                             {' '}
-                            <span className="text-base-content/40">/</span> {typeLabel}
+                            <span className="text-base-content/40">/</span>{' '}
+                            <Link to={`/namespace/${encodeURIComponent(namespace)}?type=${typeSegment}`} className="text-accent hover:underline">{typeLabel}</Link>
                         </>
                     )}{' '}
                     <span className="text-base-content/40">/</span>{' '}
