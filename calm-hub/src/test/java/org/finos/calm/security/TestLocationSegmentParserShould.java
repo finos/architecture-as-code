@@ -59,6 +59,15 @@ class TestLocationSegmentParserShould {
     }
 
     @Test
+    void parse_document_id_and_version_around_the_versions_anchor() {
+        LocationSegmentParser.LocationIds ids = LocationSegmentParser.parse(
+                AuditEntityType.DOCUMENT, "/api/calm/namespaces/finos/documents/pattern/5/versions/1.0.0");
+
+        assertThat(ids.entityId(), is("5"));
+        assertThat(ids.version(), is("1.0.0"));
+    }
+
+    @Test
     void parse_adr_around_the_revisions_anchor() {
         LocationSegmentParser.LocationIds ids = LocationSegmentParser.parse(
                 AuditEntityType.ADR, "/api/calm/namespaces/finos/adrs/9/revisions/1");

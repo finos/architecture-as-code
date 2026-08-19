@@ -67,6 +67,10 @@ public class MongoCounterStore {
         return nextValueForCounter("standardStoreCounter");
     }
 
+    public int getNextDocumentSequenceValue() {
+        return nextValueForCounter("documentStoreCounter");
+    }
+
     public int getNextUserAccessSequenceValue() {
         return nextValueForCounter("userAccessStoreCounter");
     }

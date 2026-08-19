@@ -15,6 +15,7 @@ import org.finos.calm.resources.AdrResource;
 import org.finos.calm.resources.ArchitectureResource;
 import org.finos.calm.resources.ControlResource;
 import org.finos.calm.resources.DecoratorResource;
+import org.finos.calm.resources.DocumentResource;
 import org.finos.calm.resources.DomainResource;
 import org.finos.calm.resources.DomainUserAccessResource;
 import org.finos.calm.resources.MappingControllerResource;
@@ -242,6 +243,42 @@ public class TestAuditRequestFilterShould {
         assertThat(entry.getAction(), is(AuditAction.CREATE));
         assertThat(entry.getEntityId(), is("7"));
         assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    @Test
+    void resolve_document_create_from_location() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DocumentResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        ContainerRequestContext requestContext = mockRequest("POST", pathParams);
+        ContainerResponseContext responseContext = mockResponse(201,
+                "/api/calm/namespaces/finos/documents/pattern/5/versions/1.0.0");
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.DOCUMENT));
+        assertThat(entry.getEntityId(), is("5"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    @Test
+    void resolve_document_version_write_from_path_parameters() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DocumentResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("id", "5");
+        pathParams.putSingle("version", "1.0.1");
+        ContainerRequestContext requestContext = mockRequest("POST", pathParams);
+        ContainerResponseContext responseContext = mockResponse(201, null);
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.DOCUMENT));
+        assertThat(entry.getEntityId(), is("5"));
+        assertThat(entry.getVersion(), is("1.0.1"));
+        assertThat(entry.getAction(), is(AuditAction.UPDATE));
     }
 
     @Test

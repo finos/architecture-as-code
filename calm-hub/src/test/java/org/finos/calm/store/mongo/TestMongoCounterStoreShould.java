@@ -203,4 +203,13 @@ public class TestMongoCounterStoreShould {
 
         assertThat(counterStore.getNextInterfaceSequenceValue(), equalTo(9));
     }
+
+    @Test
+    void return_the_next_value_in_sequence_for_documents() {
+        Document document = new Document("sequence_value", 12);
+        when(counterCollection.findOneAndUpdate(
+                argThat(arg -> arg instanceof Document && "documentStoreCounter".equals(((Document) arg).get("_id"))),
+                any(Document.class), any(FindOneAndUpdateOptions.class))).thenReturn(document);
+        assertThat(counterStore.getNextDocumentSequenceValue(), equalTo(12));
+    }
 }
