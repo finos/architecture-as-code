@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
 import { getEdgeParams } from './utils/floatingEdges.js';
-import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
+import { EdgeTooltip } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 
 export function FloatingEdge({
@@ -70,9 +70,6 @@ export function FloatingEdge({
     const mitigations = aigf?.mitigations || [];
     const risks = aigf?.risks || [];
 
-    const hasFlowInfo = flowTransitions.length > 0;
-    const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
-    const badgeStyle = getBadgeStyle(hasFlowInfo, hasAIGF);
 
     const edgeLabel = description || protocol || '';
 

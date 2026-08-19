@@ -15,6 +15,7 @@ import java.util.Optional;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,13 +49,13 @@ class TestGitHubRequestContextFilterShould {
     }
 
     private void mockCookie(String value) {
-        when(routingContext.request()).thenReturn(httpRequest);
-        when(httpRequest.getHeader("Cookie")).thenReturn("calm_gh_session=" + value);
+        lenient().when(routingContext.request()).thenReturn(httpRequest);
+        lenient().when(httpRequest.getHeader("Cookie")).thenReturn("calm_gh_session=" + value);
     }
 
     private void mockNoCookie() {
-        when(routingContext.request()).thenReturn(httpRequest);
-        when(httpRequest.getHeader("Cookie")).thenReturn(null);
+        lenient().when(routingContext.request()).thenReturn(httpRequest);
+        lenient().when(httpRequest.getHeader("Cookie")).thenReturn(null);
     }
 
     @Test
@@ -104,7 +105,7 @@ class TestGitHubRequestContextFilterShould {
     void return_not_linked_when_identity_is_anonymous() {
         mockCookie("encrypted-value");
         when(cookieService.isConfigured()).thenReturn(true);
-        when(identity.isAnonymous()).thenReturn(true);
+        lenient().when(identity.isAnonymous()).thenReturn(true);
 
         assertThat(context.isLinked(), is(false));
     }
@@ -113,12 +114,12 @@ class TestGitHubRequestContextFilterShould {
     void return_not_linked_when_decrypt_fails() {
         mockCookie("invalid-value");
         when(cookieService.isConfigured()).thenReturn(true);
-        when(identity.isAnonymous()).thenReturn(false);
-        when(identity.getAttribute("sub")).thenReturn("oidc-sub-123");
-        when(cookieService.decrypt("invalid-value", "oidc-sub-123")).thenReturn(Optional.empty());
-        when(identity.getPrincipal()).thenReturn(principal);
-        when(principal.getName()).thenReturn("user");
-        when(cookieService.decrypt("invalid-value", "user")).thenReturn(Optional.empty());
+        lenient().when(identity.isAnonymous()).thenReturn(false);
+        lenient().when(identity.getAttribute("sub")).thenReturn("oidc-sub-123");
+        lenient().when(cookieService.decrypt("invalid-value", "oidc-sub-123")).thenReturn(Optional.empty());
+        lenient().when(identity.getPrincipal()).thenReturn(principal);
+        lenient().when(principal.getName()).thenReturn("user");
+        lenient().when(cookieService.decrypt("invalid-value", "user")).thenReturn(Optional.empty());
 
         assertThat(context.isLinked(), is(false));
         assertThat(context.getToken().isPresent(), is(false));
