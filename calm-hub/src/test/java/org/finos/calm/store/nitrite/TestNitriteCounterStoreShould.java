@@ -15,6 +15,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 public class TestNitriteCounterStoreShould {
@@ -26,6 +27,7 @@ public class TestNitriteCounterStoreShould {
     private static final String TIMELINE_COUNTER = "timeline_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
     private static final String INTERFACE_COUNTER = "interface_counter";
+    private static final String DOCUMENT_COUNTER = "document_counter";
 
     @Mock
     private Nitrite mockDb;
@@ -161,6 +163,35 @@ public class TestNitriteCounterStoreShould {
         assertThat(result, is(8));
         verify(countersDoc).put(INTERFACE_COUNTER, 8);
         verify(mockCollection).update(countersDoc);
+    }
+
+    @Test
+    public void testGetNextDocumentSequenceValue() {
+        Document countersDoc = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(countersDoc);
+        when(countersDoc.get(DOCUMENT_COUNTER, Integer.class)).thenReturn(5);
+
+        assertThat(counterStore.getNextDocumentSequenceValue(), is(6));
+        verify(countersDoc).put(DOCUMENT_COUNTER, 6);
+        verify(mockCollection).update(countersDoc);
+    }
+
+    @Test
+    public void testInitializeDocumentCounter() {
+        DocumentCursor initializationCursor = mock(DocumentCursor.class);
+        Document initializedCounters = mock(Document.class);
+        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor, initializationCursor, mockCursor);
+        when(mockCursor.firstOrNull()).thenReturn(null, initializedCounters);
+        when(initializationCursor.firstOrNull()).thenReturn(null);
+        when(initializedCounters.get(DOCUMENT_COUNTER, Integer.class)).thenReturn(0);
+
+        assertThat(counterStore.getNextDocumentSequenceValue(), is(1));
+        ArgumentCaptor<Document> counters = ArgumentCaptor.forClass(Document.class);
+        verify(mockCollection).insert(counters.capture());
+        assertThat(counters.getValue().get(DOCUMENT_COUNTER, Integer.class), is(0));
+        verify(initializedCounters).put(DOCUMENT_COUNTER, 1);
+        verify(mockCollection).update(initializedCounters);
     }
 
     @Test

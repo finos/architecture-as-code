@@ -35,6 +35,7 @@ public class NitriteCounterStore {
     private static final String FLOW_COUNTER = "flow_counter";
     private static final String TIMELINE_COUNTER = "timeline_counter";
     private static final String STANDARD_COUNTER = "standard_counter";
+    private static final String DOCUMENT_COUNTER = "document_counter";
     private static final String USER_ACCESS_COUNTER = "user_access_counter";
     private static final String DECORATOR_COUNTER = "decorator_counter";
     private static final String CONTROL_COUNTER = "control_counter";
@@ -70,6 +71,7 @@ public class NitriteCounterStore {
                     .put(FLOW_COUNTER, 0)
                     .put(TIMELINE_COUNTER, 0)
                     .put(STANDARD_COUNTER, 0)
+                    .put(DOCUMENT_COUNTER, 0)
                     .put(USER_ACCESS_COUNTER, 0)
                     .put(DECORATOR_COUNTER, 0)
                     .put(CONTROL_COUNTER, 0)
@@ -133,6 +135,7 @@ public class NitriteCounterStore {
     public int getNextStandardSequenceValue() {
         return nextValueForCounter(STANDARD_COUNTER);
     }
+    public int getNextDocumentSequenceValue() { return nextValueForCounter(DOCUMENT_COUNTER); }
 
     /**
      * Get the next sequence value for user access store.

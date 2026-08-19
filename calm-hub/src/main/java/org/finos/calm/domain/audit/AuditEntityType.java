@@ -15,6 +15,7 @@ public enum AuditEntityType {
     FLOW,
     INTERFACE,
     STANDARD,
+    DOCUMENT,
     TIMELINE,
     USER_ACCESS,
     SCHEMA,

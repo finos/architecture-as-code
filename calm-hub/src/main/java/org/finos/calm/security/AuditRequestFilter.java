@@ -21,6 +21,7 @@ import org.finos.calm.resources.ArchitectureResource;
 import org.finos.calm.resources.ControlResource;
 import org.finos.calm.resources.CoreSchemaResource;
 import org.finos.calm.resources.DecoratorResource;
+import org.finos.calm.resources.DocumentResource;
 import org.finos.calm.resources.DomainResource;
 import org.finos.calm.resources.DomainUserAccessResource;
 import org.finos.calm.resources.FlowResource;
@@ -156,6 +157,7 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(FlowResource.class, AuditEntityType.FLOW),
             Map.entry(InterfaceResource.class, AuditEntityType.INTERFACE),
             Map.entry(StandardResource.class, AuditEntityType.STANDARD),
+            Map.entry(DocumentResource.class, AuditEntityType.DOCUMENT),
             Map.entry(TimelineResource.class, AuditEntityType.TIMELINE),
             Map.entry(AdrResource.class, AuditEntityType.ADR),
             Map.entry(DecoratorResource.class, AuditEntityType.DECORATOR),
@@ -173,6 +175,7 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             Map.entry(AuditEntityType.FLOW, "flowId"),
             Map.entry(AuditEntityType.INTERFACE, "interfaceId"),
             Map.entry(AuditEntityType.STANDARD, "standardId"),
+            Map.entry(AuditEntityType.DOCUMENT, "id"),
             Map.entry(AuditEntityType.TIMELINE, "timelineId"),
             Map.entry(AuditEntityType.ADR, "adrId"),
             Map.entry(AuditEntityType.DECORATOR, "id"),
