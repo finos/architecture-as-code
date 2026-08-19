@@ -13,6 +13,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
@@ -20,6 +21,7 @@ import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -39,6 +41,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX
 public class FlowResource {
 
     private final FlowStore store;
+    private final CustomIdEnrichmentService customIds;
 
     private final Logger logger = LoggerFactory.getLogger(FlowResource.class);
 
@@ -46,8 +49,9 @@ public class FlowResource {
     Boolean allowPutOperations;
 
     @Inject
-    public FlowResource(FlowStore store) {
+    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds) {
         this.store = store;
+        this.customIds = customIds;
     }
 
     @GET
@@ -62,7 +66,8 @@ public class FlowResource {
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getFlowsForNamespace(namespace))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.FLOW,
+                    store.getFlowsForNamespace(namespace)))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving flows", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

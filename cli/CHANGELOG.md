@@ -5,6 +5,22 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.56.0] - 2026-08-17
+
+## [1.56.0](https://github.com/finos/architecture-as-code/compare/cli-v1.55.0...cli-v1.56.0) (2026-08-17)
+
+### feat
+
+* **calm-hub:** expose customId on resources and use in UI when present (#2991) ([](https://github.com/finos/architecture-as-code/commit/9296b2314a2925f6ee2e5c750f774a20bd626f80)), closes [#2991](https://github.com/finos/architecture-as-code/issues/2991)
+* **calm-hub:** migrate Control storage to the header/version shape (#2962) ([](https://github.com/finos/architecture-as-code/commit/97eb5d8aa044a495594704ff43def7fabe7773db)), closes [#2962](https://github.com/finos/architecture-as-code/issues/2962)
+
+### fix
+
+* **cli:** fix smoke tests ([](https://github.com/finos/architecture-as-code/commit/b1fb966522dec068ee8e95530e04bd68fda5bf5e))
+* **shared:** defensive changes per adversarial validation ([](https://github.com/finos/architecture-as-code/commit/bd0f339c7b6190ccb0d5517453bb5873b4ec8544))
+* **shared:** stop CalmHubDocumentLoader claiming http(s) URLs that are not scoped to the configured instance ([](https://github.com/finos/architecture-as-code/commit/4da07e87caf8f2a40f5daf113fa6caf8344e0500))
+* **shared:** stop CalmHubDocumentLoader claiming http(s) URLs that aren't CalmHub's ([](https://github.com/finos/architecture-as-code/commit/0873ab9f02afe713ef3aa34ba55a3b75184e86e3)), closes [#2612](https://github.com/finos/architecture-as-code/issues/2612)
+
 ## [1.55.0] - 2026-08-12
 
 ## [1.55.0](https://github.com/finos/architecture-as-code/compare/cli-v1.54.0...cli-v1.55.0) (2026-08-12)
