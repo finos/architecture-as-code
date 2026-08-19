@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -47,12 +49,12 @@ public class GitHubDecoratorStore implements DecoratorStore {
 
     @Override
     public int createDecorator(String namespace, String decoratorJson) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     private void verifyNamespace(String namespace) throws NamespaceNotFoundException {

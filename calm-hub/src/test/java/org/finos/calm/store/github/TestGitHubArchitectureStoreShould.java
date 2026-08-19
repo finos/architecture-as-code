@@ -100,7 +100,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
-        int hashId = Math.abs("test-arch".hashCode());
+        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
         java.util.List<String> versions = store.getArchitectureVersions(arch);
 
@@ -129,7 +129,7 @@ class TestGitHubArchitectureStoreShould {
         when(mockVersionService.getFileVersions("finos/architecture-as-code", "architectures/test.json"))
                 .thenReturn(java.util.List.of("abc1234", "def5678"));
 
-        int hashId = Math.abs("test-arch".hashCode());
+        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
         java.util.List<String> versions = store.getArchitectureVersions(arch);
 
@@ -154,7 +154,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
-        int hashId = Math.abs("test-arch".hashCode());
+        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
 
         String content = store.getArchitectureForVersion(arch);
@@ -182,7 +182,7 @@ class TestGitHubArchitectureStoreShould {
         when(mockVersionService.getFileAtVersion("finos/repo", "architectures/test.json", "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
-        int hashId = Math.abs("test-arch".hashCode());
+        int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder()
                 .setNamespace("finos").setId(hashId).setVersion("abc1234").build();
         String content = store.getArchitectureForVersion(arch);

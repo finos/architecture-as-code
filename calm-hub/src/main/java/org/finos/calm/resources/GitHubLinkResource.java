@@ -1,5 +1,7 @@
 package org.finos.calm.resources;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.CookieParam;
@@ -17,7 +19,6 @@ import io.quarkus.security.identity.SecurityIdentity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -37,6 +38,7 @@ public class GitHubLinkResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubLinkResource.class);
     private static final String COOKIE_NAME = "calm_gh_session";
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     GitHubSessionCookieService cookieService;
@@ -59,6 +61,14 @@ public class GitHubLinkResource {
     @Inject
     @ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com")
     String githubBaseUrl;
+
+    @Inject
+    @ConfigProperty(name = "calm.github.api-url", defaultValue = "https://api.github.com")
+    String githubApiUrl;
+
+    @Inject
+    @ConfigProperty(name = "calm.github.cookie.secure", defaultValue = "true")
+    boolean cookieSecure;
 
     @GET
     @Path("/link")
@@ -131,7 +141,8 @@ public class GitHubLinkResource {
                     .path("/api/calm")
                     .maxAge(cookieService.getSessionTtlSeconds())
                     .httpOnly(true)
-                    .secure(false) // false for localhost testing; true in production
+                    .secure(cookieSecure)
+                    .sameSite(NewCookie.SameSite.LAX)
                     .build();
 
             return Response.temporaryRedirect(URI.create("/"))
@@ -149,7 +160,7 @@ public class GitHubLinkResource {
         try {
             HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
             HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create("https://api.github.com/user"))
+                    .uri(URI.create(githubApiUrl + "/user"))
                     .header("Authorization", "Bearer " + token)
                     .header("Accept", "application/json")
                     .GET()
@@ -163,13 +174,13 @@ public class GitHubLinkResource {
     }
 
     private String extractJsonField(String json, String field) {
-        String search = "\"" + field + "\":\"";
-        int start = json.indexOf(search);
-        if (start < 0) return null;
-        start += search.length();
-        int end = json.indexOf("\"", start);
-        if (end < 0) return null;
-        return json.substring(start, end);
+        try {
+            JsonNode node = MAPPER.readTree(json).get(field);
+            return node != null && node.isTextual() ? node.asText() : null;
+        } catch (Exception e) {
+            LOG.warn("Failed to parse GitHub response field {}", field);
+            return null;
+        }
     }
 
     @GET
@@ -201,7 +212,8 @@ public class GitHubLinkResource {
                 .path("/api/calm")
                 .maxAge(0)
                 .httpOnly(true)
-                .secure(true)
+                .secure(cookieSecure)
+                .sameSite(NewCookie.SameSite.LAX)
                 .build();
         return Response.ok(Map.of("linked", false))
                 .cookie(expiredCookie)

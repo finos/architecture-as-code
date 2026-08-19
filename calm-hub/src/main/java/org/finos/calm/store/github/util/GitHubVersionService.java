@@ -1,5 +1,7 @@
 package org.finos.calm.store.github.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -8,7 +10,6 @@ import org.finos.calm.cache.CalmCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -18,8 +19,6 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
  * Fetches file version history (commit SHAs) from the GitHub REST API.
@@ -30,7 +29,7 @@ import java.util.regex.Pattern;
 public class GitHubVersionService {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubVersionService.class);
-    private static final Pattern SHA_PATTERN = Pattern.compile("\"sha\"\\s*:\\s*\"([0-9a-f]{40})\"");
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     CalmCacheService cache;
@@ -124,9 +123,18 @@ public class GitHubVersionService {
 
     List<String> extractShas(String json) {
         List<String> shas = new ArrayList<>();
-        Matcher matcher = SHA_PATTERN.matcher(json);
-        while (matcher.find() && shas.size() < 10) {
-            shas.add(matcher.group(1).substring(0, 7));
+        try {
+            JsonNode commits = MAPPER.readTree(json);
+            if (commits.isArray()) {
+                for (JsonNode commit : commits) {
+                    JsonNode shaNode = commit.get("sha");
+                    if (shaNode != null && shaNode.isTextual() && shas.size() < 10) {
+                        shas.add(shaNode.asText().substring(0, 7));
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOG.warn("Failed to parse commits JSON: {}", e.getMessage());
         }
         return shas;
     }

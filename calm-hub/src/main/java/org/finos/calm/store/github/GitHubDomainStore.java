@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -44,7 +46,7 @@ public class GitHubDomainStore implements DomainStore {
 
     @Override
     public Domain createDomain(String name) throws DomainAlreadyExistsException {
-        throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+        throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
     }
 
     @Override
@@ -54,7 +56,7 @@ public class GitHubDomainStore implements DomainStore {
 
     @Override
     public void deleteDomain(String name) throws DomainNotFoundException {
-        throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+        throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
     }
 
     private String extractDomain(RegistryEntry entry) {

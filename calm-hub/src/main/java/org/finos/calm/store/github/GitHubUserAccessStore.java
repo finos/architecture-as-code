@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -63,42 +65,42 @@ public class GitHubUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(ADMIN_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId) throws NamespaceNotFoundException, UserAccessNotFoundException {
-        throw new UnsupportedOperationException(ADMIN_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public List<UserAccess> getUserAccessForDomain(String domain) {
-        throw new UnsupportedOperationException(ADMIN_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public UserAccess getUserAccessForDomainAndId(String domain, Integer userAccessId) throws UserAccessNotFoundException {
-        throw new UnsupportedOperationException(ADMIN_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public UserAccess createUserAccessForNamespace(UserAccess userAccess) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public UserAccess createUserAccessForDomain(UserAccess userAccess) {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public void deleteUserAccessForNamespace(String namespace, Integer userAccessId) throws NamespaceNotFoundException, UserAccessNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public void deleteUserAccessForDomain(String domain, Integer userAccessId) throws UserAccessNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override

@@ -3,6 +3,7 @@ package org.finos.calm.store.github;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
@@ -63,14 +64,14 @@ public class GitHubArchitectureStore implements ArchitectureStore {
                     if (repo != null && versionService != null) {
                         versionCount = versionService.getFileVersions(repo, e.filePath().toString()).size();
                     }
-                    return new NamespaceResourceSummary(e.name(), e.uniqueId(), Math.abs(e.uniqueId().hashCode()), versionCount);
+                    return new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), versionCount);
                 })
                 .toList();
     }
 
     @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
@@ -114,18 +115,18 @@ public class GitHubArchitectureStore implements ArchitectureStore {
 
     @Override
     public Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public Architecture updateArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     private RegistryEntry findEntryById(String namespace, int id) throws ArchitectureNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
         Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> Math.abs(e.uniqueId().hashCode()) == id)
+                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
                 .findFirst();
         if (found.isEmpty()) {
             throw new ArchitectureNotFoundException();

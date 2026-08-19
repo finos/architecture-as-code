@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -40,16 +42,16 @@ public class GitHubNamespaceStore implements NamespaceStore {
 
     @Override
     public void createNamespace(String name, String description) throws NamespaceAlreadyExistsException {
-        throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+        throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
     }
 
     @Override
     public void updateNamespaceDescription(String name, String description) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+        throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
     }
 
     @Override
     public void deleteNamespace(String name) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(UNSUPPORTED_MSG);
+        throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
     }
 }

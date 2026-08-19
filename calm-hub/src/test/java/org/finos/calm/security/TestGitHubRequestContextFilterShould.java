@@ -1,7 +1,6 @@
 package org.finos.calm.security;
 
 import io.quarkus.security.identity.SecurityIdentity;
-import io.vertx.core.http.Cookie;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,14 +48,13 @@ class TestGitHubRequestContextFilterShould {
     }
 
     private void mockCookie(String value) {
-        Cookie cookie = Cookie.cookie("calm_gh_session", value);
         when(routingContext.request()).thenReturn(httpRequest);
-        when(httpRequest.getCookie("calm_gh_session")).thenReturn(cookie);
+        when(httpRequest.getHeader("Cookie")).thenReturn("calm_gh_session=" + value);
     }
 
     private void mockNoCookie() {
         when(routingContext.request()).thenReturn(httpRequest);
-        when(httpRequest.getCookie("calm_gh_session")).thenReturn(null);
+        when(httpRequest.getHeader("Cookie")).thenReturn(null);
     }
 
     @Test

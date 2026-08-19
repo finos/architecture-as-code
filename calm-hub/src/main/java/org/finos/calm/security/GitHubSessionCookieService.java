@@ -27,7 +27,7 @@ public class GitHubSessionCookieService {
     private static final String ALGORITHM = "AES/GCM/NoPadding";
     private static final int GCM_TAG_LENGTH = 128;
     private static final int IV_LENGTH = 12;
-    private static final String FIELD_SEPARATOR = "";
+    private static final String FIELD_SEPARATOR = "\u001F";
 
     private final SecretKeySpec secretKey;
     private final int sessionTtlSeconds;

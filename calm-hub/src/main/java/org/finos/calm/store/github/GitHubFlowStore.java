@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -39,33 +41,33 @@ public class GitHubFlowStore implements FlowStore {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.FLOW);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), Math.abs(e.uniqueId().hashCode()), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
     }
 
     @Override
     public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public Flow updateFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     private void verifyNamespace(String namespace) throws NamespaceNotFoundException {

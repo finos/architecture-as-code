@@ -61,7 +61,7 @@ public class GitHubSearchStore implements SearchStore {
                         registryService.getSnapshot().getNamespaces().stream()
                                 .filter(ns -> registryService.getSnapshot().listAll(ns).contains(e))
                                 .findFirst().orElse(""),
-                        Math.abs(e.uniqueId().hashCode()),
+                        (e.uniqueId().hashCode() & 0x7FFFFFFF),
                         e.name(),
                         e.uniqueId()
                 ))

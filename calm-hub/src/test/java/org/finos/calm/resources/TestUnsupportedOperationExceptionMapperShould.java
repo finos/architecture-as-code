@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
@@ -15,7 +16,7 @@ class TestUnsupportedOperationExceptionMapperShould {
     @Test
     @SuppressWarnings("unchecked")
     void return_501_with_json_body() {
-        UnsupportedOperationException ex = new UnsupportedOperationException("Not available in GitHub mode");
+        GitHubWriteNotSupportedException ex = new GitHubWriteNotSupportedException("Not available in GitHub mode");
 
         Response response = mapper.toResponse(ex);
 
@@ -26,7 +27,7 @@ class TestUnsupportedOperationExceptionMapperShould {
 
     @Test
     void return_application_json_content_type() {
-        UnsupportedOperationException ex = new UnsupportedOperationException("test");
+        GitHubWriteNotSupportedException ex = new GitHubWriteNotSupportedException("test");
 
         Response response = mapper.toResponse(ex);
 

@@ -1,5 +1,7 @@
 package org.finos.calm.store.github.util;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import org.finos.calm.domain.exception.PendingWriteException;
@@ -46,7 +48,7 @@ public class GitHubForkPRService {
         // 5. POST /repos/{upstream}/pulls -> open cross-repo PR
 
         // Placeholder — will be implemented when GitHub OAuth token exchange is complete
-        throw new UnsupportedOperationException(
+        throw new GitHubWriteNotSupportedException(
                 "PR creation requires GitHub account linking. This will be enabled when the full OAuth flow is wired.");
     }
 }

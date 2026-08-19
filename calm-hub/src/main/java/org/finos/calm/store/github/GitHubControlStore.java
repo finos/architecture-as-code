@@ -1,5 +1,7 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
@@ -44,51 +46,51 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public ControlDetail createControlRequirement(CreateControlRequirement request, String domain) throws DomainNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public List<String> getRequirementVersions(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public void createRequirementForVersion(String domain, int controlId, String version, CreateControlRequirement request) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionExistsException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public int createControlConfiguration(CreateControlConfiguration request, String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
     @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
-        throw new UnsupportedOperationException(VERSION_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
     }
 
     @Override
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
-        throw new UnsupportedOperationException(WRITE_UNSUPPORTED);
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }

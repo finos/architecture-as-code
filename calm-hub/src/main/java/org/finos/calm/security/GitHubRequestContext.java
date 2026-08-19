@@ -55,7 +55,7 @@ public class GitHubRequestContext {
         }
         resolved = true;
 
-        if (!cookieService.isConfigured()) {
+        if (cookieService == null || !cookieService.isConfigured()) {
             return;
         }
 

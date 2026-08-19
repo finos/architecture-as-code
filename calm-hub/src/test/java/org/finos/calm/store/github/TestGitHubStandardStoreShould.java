@@ -112,7 +112,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
-        int hashId = Math.abs("std-1".hashCode());
+        int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
         java.util.List<String> versions = store.getStandardVersions("finos", hashId);
         assertThat(versions, hasSize(1));
         assertThat(versions.get(0), equalTo("latest"));
@@ -135,7 +135,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
-        int hashId = Math.abs("test-std".hashCode());
+        int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
         String content = store.getStandardForVersion("finos", hashId, "latest");
         assertThat(content, equalTo("{\"name\":\"Test Standard\"}"));
     }
@@ -158,7 +158,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
-        int hashId = Math.abs("policy".hashCode());
+        int hashId = ("policy".hashCode() & 0x7FFFFFFF);
         String content = store.getStandardForVersion("finos", hashId, "latest");
         assertThat(content, org.hamcrest.Matchers.startsWith("# Policy"));
     }
