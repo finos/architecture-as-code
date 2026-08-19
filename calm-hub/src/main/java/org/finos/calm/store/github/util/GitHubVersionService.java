@@ -42,6 +42,14 @@ public class GitHubVersionService {
     @ConfigProperty(name = "calm.github.service-token")
     Optional<String> serviceToken;
 
+    @Inject
+    @ConfigProperty(name = "calm.github.http.connect-timeout", defaultValue = "10")
+    int connectTimeoutSeconds;
+
+    @Inject
+    @ConfigProperty(name = "calm.github.http.request-timeout", defaultValue = "30")
+    int requestTimeoutSeconds;
+
     public List<String> getFileVersions(String repoFullName, String filePath) {
         String cacheKey = "versions:" + repoFullName + ":" + filePath;
         Optional<List> cached = cache.get(cacheKey, List.class);
@@ -53,9 +61,10 @@ public class GitHubVersionService {
 
         try {
             String url = apiUrl + "/repos/" + repoFullName + "/commits?path=" + filePath + "&per_page=10";
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
+            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).connectTimeout(Duration.ofSeconds(connectTimeoutSeconds)).build();
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(requestTimeoutSeconds))
                     .header("Accept", "application/json")
                     .GET();
 
@@ -94,9 +103,10 @@ public class GitHubVersionService {
 
         try {
             String url = apiUrl + "/repos/" + repoFullName + "/contents/" + filePath + "?ref=" + sha;
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
+            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).connectTimeout(Duration.ofSeconds(connectTimeoutSeconds)).build();
             HttpRequest.Builder requestBuilder = HttpRequest.newBuilder()
                     .uri(URI.create(url))
+                    .timeout(Duration.ofSeconds(requestTimeoutSeconds))
                     .header("Accept", "application/vnd.github.raw+json")
                     .GET();
 

@@ -13,6 +13,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Optional;
 
 /**
@@ -33,6 +34,14 @@ public class GitHubOAuthClient {
     @ConfigProperty(name = "calm.github.api-url", defaultValue = "https://api.github.com")
     String githubApiUrl;
 
+    @Inject
+    @ConfigProperty(name = "calm.github.http.connect-timeout", defaultValue = "10")
+    int connectTimeoutSeconds;
+
+    @Inject
+    @ConfigProperty(name = "calm.github.http.request-timeout", defaultValue = "30")
+    int requestTimeoutSeconds;
+
     public record TokenResponse(String accessToken, String error) {}
 
     public TokenResponse exchangeCode(String clientId, String clientSecret, String code) {
@@ -42,9 +51,10 @@ public class GitHubOAuthClient {
                     + "&client_secret=" + clientSecret
                     + "&code=" + code;
 
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
+            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).connectTimeout(Duration.ofSeconds(connectTimeoutSeconds)).build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(tokenUrl))
+                    .timeout(Duration.ofSeconds(requestTimeoutSeconds))
                     .header("Accept", "application/json")
                     .header("Content-Type", "application/x-www-form-urlencoded")
                     .POST(HttpRequest.BodyPublishers.ofString(body))
@@ -71,9 +81,10 @@ public class GitHubOAuthClient {
 
     public String fetchUsername(String token) {
         try {
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
+            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).connectTimeout(Duration.ofSeconds(connectTimeoutSeconds)).build();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(URI.create(githubApiUrl + "/user"))
+                    .timeout(Duration.ofSeconds(requestTimeoutSeconds))
                     .header("Authorization", "Bearer " + token)
                     .header("Accept", "application/json")
                     .GET()
