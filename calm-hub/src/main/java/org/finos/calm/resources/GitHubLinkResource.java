@@ -72,18 +72,25 @@ public class GitHubLinkResource {
 
     @GET
     @Path("/link")
-    public Response link(@QueryParam("user") String user) {
+    @Authenticated
+    public Response link() {
         if (githubClientId.isEmpty() || githubClientId.get().isBlank()) {
             return Response.status(501)
                     .entity(Map.of("error", "GitHub OAuth is not configured"))
                     .build();
         }
-        String state = user != null ? user : "unknown";
+        if (!cookieService.isConfigured()) {
+            return Response.status(501)
+                    .entity(Map.of("error", "Session key not configured"))
+                    .build();
+        }
+        String oidcSub = getOidcSub();
+        String state = cookieService.createOAuthState(oidcSub);
         String authorizeUrl = githubBaseUrl + "/login/oauth/authorize"
                 + "?client_id=" + githubClientId.get()
                 + "&scope=" + githubScope
                 + "&state=" + state;
-        return Response.temporaryRedirect(URI.create(authorizeUrl)).build();
+        return Response.ok(Map.of("authorizeUrl", authorizeUrl)).build();
     }
 
     @GET
@@ -97,6 +104,14 @@ public class GitHubLinkResource {
         if (githubClientId.isEmpty() || githubClientSecret.isEmpty()) {
             return Response.status(501)
                     .entity(Map.of("error", "GitHub OAuth client-id or client-secret not configured"))
+                    .build();
+        }
+
+        Optional<String> verifiedSub = cookieService.verifyOAuthState(state);
+        if (verifiedSub.isEmpty()) {
+            LOG.warn("Invalid or expired OAuth state in callback");
+            return Response.status(403)
+                    .entity(Map.of("error", "Invalid or expired OAuth state"))
                     .build();
         }
 
@@ -133,7 +148,7 @@ public class GitHubLinkResource {
             }
 
             String ghUsername = fetchGitHubUsername(ghToken);
-            String oidcSub = (state != null && !state.isBlank()) ? state : "unknown";
+            String oidcSub = verifiedSub.get();
 
             String cookieValue = cookieService.encrypt(ghToken, ghUsername, oidcSub);
             NewCookie sessionCookie = new NewCookie.Builder(COOKIE_NAME)

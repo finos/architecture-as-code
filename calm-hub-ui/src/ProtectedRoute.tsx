@@ -67,8 +67,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
                     setGithubLinked(true);
                 } else {
                     sessionStorage.setItem('calm_gh_link_attempted', 'true');
-                    const username = user.profile?.preferred_username || user.profile?.email || '';
-                    window.location.href = `/api/calm/github/link?user=${encodeURIComponent(username)}`;
+                    const linkResponse = await axios.get('/api/calm/github/link', {
+                        headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (linkResponse.data?.authorizeUrl) {
+                        window.location.href = linkResponse.data.authorizeUrl;
+                    }
                 }
             } catch {
                 setGithubLinked(true);

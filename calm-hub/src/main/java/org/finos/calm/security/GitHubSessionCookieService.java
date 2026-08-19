@@ -131,6 +131,76 @@ public class GitHubSessionCookieService {
         }
     }
 
+    public String createOAuthState(String oidcSub) {
+        if (secretKey == null) {
+            throw new IllegalStateException("Session key not configured (CALM_SESSION_KEY)");
+        }
+        try {
+            byte[] nonce = new byte[16];
+            secureRandom.nextBytes(nonce);
+            String nonceStr = Base64.getUrlEncoder().withoutPadding().encodeToString(nonce);
+            Instant exp = Instant.now().plusSeconds(300);
+            String payload = String.join(FIELD_SEPARATOR, "oauth-state", oidcSub, nonceStr, exp.toString());
+
+            byte[] iv = new byte[IV_LENGTH];
+            secureRandom.nextBytes(iv);
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
+
+            byte[] encrypted = cipher.doFinal(payload.getBytes(StandardCharsets.UTF_8));
+
+            byte[] combined = new byte[IV_LENGTH + encrypted.length];
+            System.arraycopy(iv, 0, combined, 0, IV_LENGTH);
+            System.arraycopy(encrypted, 0, combined, IV_LENGTH, encrypted.length);
+
+            return Base64.getUrlEncoder().withoutPadding().encodeToString(combined);
+        } catch (Exception e) {
+            LOG.error("Failed to create OAuth state", e);
+            throw new RuntimeException("State creation failed", e);
+        }
+    }
+
+    public Optional<String> verifyOAuthState(String state) {
+        if (secretKey == null || state == null || state.isBlank()) {
+            return Optional.empty();
+        }
+        try {
+            byte[] combined = Base64.getUrlDecoder().decode(state);
+            if (combined.length < IV_LENGTH) {
+                return Optional.empty();
+            }
+
+            byte[] iv = new byte[IV_LENGTH];
+            System.arraycopy(combined, 0, iv, 0, IV_LENGTH);
+            byte[] encrypted = new byte[combined.length - IV_LENGTH];
+            System.arraycopy(combined, IV_LENGTH, encrypted, 0, encrypted.length);
+
+            Cipher cipher = Cipher.getInstance(ALGORITHM);
+            cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
+
+            byte[] decrypted = cipher.doFinal(encrypted);
+            String payload = new String(decrypted, StandardCharsets.UTF_8);
+            String[] fields = payload.split(FIELD_SEPARATOR);
+
+            if (fields.length != 4 || !"oauth-state".equals(fields[0])) {
+                LOG.warn("Invalid OAuth state format");
+                return Optional.empty();
+            }
+
+            Instant exp = Instant.parse(fields[3]);
+            if (Instant.now().isAfter(exp)) {
+                LOG.warn("OAuth state expired");
+                return Optional.empty();
+            }
+
+            return Optional.of(fields[1]);
+        } catch (Exception e) {
+            LOG.warn("Failed to verify OAuth state: {}", e.getMessage());
+            return Optional.empty();
+        }
+    }
+
     public int getSessionTtlSeconds() {
         return sessionTtlSeconds;
     }

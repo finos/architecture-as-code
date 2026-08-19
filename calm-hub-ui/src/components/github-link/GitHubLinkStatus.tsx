@@ -45,12 +45,24 @@ export const GitHubLinkStatus: React.FC = () => {
         );
     }
 
+    const handleLink = async () => {
+        try {
+            const headers = await getAuthHeaders();
+            const response = await axios.get('/api/calm/github/link', { headers });
+            if (response.data?.authorizeUrl) {
+                window.location.href = response.data.authorizeUrl;
+            }
+        } catch (error) {
+            console.error('Failed to initiate GitHub link:', error);
+        }
+    };
+
     return (
-        <a
-            href="/api/calm/github/link"
+        <button
+            onClick={handleLink}
             className="btn btn-sm btn-outline btn-primary"
         >
             Link GitHub Account
-        </a>
+        </button>
     );
 };

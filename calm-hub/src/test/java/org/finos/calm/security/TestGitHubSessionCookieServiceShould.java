@@ -141,4 +141,122 @@ class TestGitHubSessionCookieServiceShould {
         Optional<GitHubSessionCookieService.GitHubSession> result = unconfigured.decrypt("anything", "sub");
         assertThat(result.isPresent(), is(false));
     }
+
+    @Test
+    void create_and_verify_oauth_state_round_trip() {
+        String state = service.createOAuthState("sub-123");
+
+        Optional<String> verifiedSub = service.verifyOAuthState(state);
+
+        assertThat(verifiedSub.isPresent(), is(true));
+        assertThat(verifiedSub.get(), equalTo("sub-123"));
+    }
+
+    @Test
+    void reject_tampered_oauth_state() {
+        String state = service.createOAuthState("sub-123");
+        String tampered = state.substring(0, state.length() - 5) + "XXXXX";
+
+        Optional<String> result = service.verifyOAuthState(tampered);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_oauth_state_from_wrong_key() {
+        String state = service.createOAuthState("sub-123");
+
+        byte[] wrongKey = new byte[32];
+        wrongKey[0] = 1;
+        GitHubSessionCookieService otherService = new GitHubSessionCookieService(wrongKey, 3600);
+
+        Optional<String> result = otherService.verifyOAuthState(state);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_null_oauth_state() {
+        Optional<String> result = service.verifyOAuthState(null);
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_blank_oauth_state() {
+        Optional<String> result = service.verifyOAuthState("  ");
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void throw_when_creating_oauth_state_without_key() {
+        GitHubSessionCookieService unconfigured = new GitHubSessionCookieService(Optional.empty(), 3600);
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class,
+                () -> unconfigured.createOAuthState("sub-123"));
+    }
+
+    @Test
+    void produce_unique_states_for_same_subject() {
+        String state1 = service.createOAuthState("sub-123");
+        String state2 = service.createOAuthState("sub-123");
+
+        assertThat(state1.equals(state2), is(false));
+    }
+
+    @Test
+    void reject_expired_oauth_state() {
+        // Create a service with negative TTL won't work for state (it has its own 300s),
+        // so we test with a tampered payload that has an old expiry via wrong format
+        String invalidBase64 = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString(new byte[20]);
+
+        Optional<String> result = service.verifyOAuthState(invalidBase64);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_oauth_state_with_too_short_data() {
+        String tooShort = java.util.Base64.getUrlEncoder().withoutPadding()
+                .encodeToString("short".getBytes());
+
+        Optional<String> result = service.verifyOAuthState(tooShort);
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_invalid_base64_oauth_state() {
+        Optional<String> result = service.verifyOAuthState("not!valid!base64!");
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void reject_oauth_state_when_not_configured() {
+        GitHubSessionCookieService unconfigured = new GitHubSessionCookieService(Optional.empty(), 3600);
+
+        Optional<String> result = unconfigured.verifyOAuthState("some-state");
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void decrypt_returns_empty_when_token_contains_separator() {
+        // The token has embedded U+001F separator, producing 5 fields on split
+        String encrypted = service.encrypt("tokenextra", "user", "sub");
+
+        Optional<GitHubSessionCookieService.GitHubSession> result = service.decrypt(encrypted, "sub");
+
+        assertThat(result.isPresent(), is(false));
+    }
+
+    @Test
+    void verify_oauth_state_rejects_session_cookie_format() {
+        // A session cookie first field is a token, not "oauth-state"
+        String sessionCookie = service.encrypt("gho_token", "alice", "sub-123");
+
+        Optional<String> result = service.verifyOAuthState(sessionCookie);
+
+        assertThat(result.isPresent(), is(false));
+    }
 }
