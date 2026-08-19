@@ -1,7 +1,5 @@
 package org.finos.calm.resources;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.security.Authenticated;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.CookieParam;
@@ -14,22 +12,19 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.NewCookie;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.security.GitHubOAuthClient;
 import org.finos.calm.security.GitHubSessionCookieService;
 import io.quarkus.security.identity.SecurityIdentity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.net.ProxySelector;
 import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.Map;
 import java.util.Optional;
 
 /**
  * GitHub OAuth account linking endpoints.
- * /link redirects to GitHub OAuth, /callback handles the return,
+ * /link returns the authorize URL (requires OIDC auth), /callback handles the return,
  * /status reports link state, /unlink clears the session.
  */
 @Path("/api/calm/github")
@@ -38,10 +33,12 @@ public class GitHubLinkResource {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubLinkResource.class);
     private static final String COOKIE_NAME = "calm_gh_session";
-    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     @Inject
     GitHubSessionCookieService cookieService;
+
+    @Inject
+    GitHubOAuthClient oauthClient;
 
     @Inject
     SecurityIdentity identity;
@@ -61,10 +58,6 @@ public class GitHubLinkResource {
     @Inject
     @ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com")
     String githubBaseUrl;
-
-    @Inject
-    @ConfigProperty(name = "calm.github.api-url", defaultValue = "https://api.github.com")
-    String githubApiUrl;
 
     @Inject
     @ConfigProperty(name = "calm.github.cookie.secure", defaultValue = "true")
@@ -115,87 +108,31 @@ public class GitHubLinkResource {
                     .build();
         }
 
-        try {
-            String tokenUrl = githubBaseUrl + "/login/oauth/access_token";
-            String body = "client_id=" + githubClientId.get()
-                    + "&client_secret=" + githubClientSecret.get()
-                    + "&code=" + code;
+        GitHubOAuthClient.TokenResponse tokenResponse =
+                oauthClient.exchangeCode(githubClientId.get(), githubClientSecret.get(), code);
 
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(tokenUrl))
-                    .header("Accept", "application/json")
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-
-            if (response.statusCode() != 200) {
-                LOG.error("GitHub token exchange failed with status {}: {}", response.statusCode(), response.body());
-                return Response.status(502)
-                        .entity(Map.of("error", "GitHub token exchange failed"))
-                        .build();
-            }
-
-            String responseBody = response.body();
-            String ghToken = extractJsonField(responseBody, "access_token");
-            if (ghToken == null || ghToken.isBlank()) {
-                LOG.error("No access_token in GitHub response: {}", responseBody);
-                return Response.status(502)
-                        .entity(Map.of("error", "No access token in GitHub response"))
-                        .build();
-            }
-
-            String ghUsername = fetchGitHubUsername(ghToken);
-            String oidcSub = verifiedSub.get();
-
-            String cookieValue = cookieService.encrypt(ghToken, ghUsername, oidcSub);
-            NewCookie sessionCookie = new NewCookie.Builder(COOKIE_NAME)
-                    .value(cookieValue)
-                    .path("/api/calm")
-                    .maxAge(cookieService.getSessionTtlSeconds())
-                    .httpOnly(true)
-                    .secure(cookieSecure)
-                    .sameSite(NewCookie.SameSite.LAX)
-                    .build();
-
-            return Response.temporaryRedirect(URI.create("/"))
-                    .cookie(sessionCookie)
-                    .build();
-        } catch (Exception e) {
-            LOG.error("GitHub OAuth callback failed", e);
-            return Response.status(500)
-                    .entity(Map.of("error", "GitHub OAuth callback failed: " + e.getMessage()))
+        if (tokenResponse.accessToken() == null) {
+            return Response.status(502)
+                    .entity(Map.of("error", tokenResponse.error()))
                     .build();
         }
-    }
 
-    private String fetchGitHubUsername(String token) {
-        try {
-            HttpClient client = HttpClient.newBuilder().proxy(ProxySelector.getDefault()).build();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(URI.create(githubApiUrl + "/user"))
-                    .header("Authorization", "Bearer " + token)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            return extractJsonField(response.body(), "login");
-        } catch (Exception e) {
-            LOG.warn("Could not fetch GitHub username: {}", e.getMessage());
-            return "unknown";
-        }
-    }
+        String ghUsername = oauthClient.fetchUsername(tokenResponse.accessToken());
+        String oidcSub = verifiedSub.get();
 
-    private String extractJsonField(String json, String field) {
-        try {
-            JsonNode node = MAPPER.readTree(json).get(field);
-            return node != null && node.isTextual() ? node.asText() : null;
-        } catch (Exception e) {
-            LOG.warn("Failed to parse GitHub response field {}", field);
-            return null;
-        }
+        String cookieValue = cookieService.encrypt(tokenResponse.accessToken(), ghUsername, oidcSub);
+        NewCookie sessionCookie = new NewCookie.Builder(COOKIE_NAME)
+                .value(cookieValue)
+                .path("/api/calm")
+                .maxAge(cookieService.getSessionTtlSeconds())
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite(NewCookie.SameSite.LAX)
+                .build();
+
+        return Response.temporaryRedirect(URI.create("/"))
+                .cookie(sessionCookie)
+                .build();
     }
 
     @GET

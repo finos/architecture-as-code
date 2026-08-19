@@ -335,7 +335,7 @@
                         <exclude>**/store/github/util/GitHubRepoSync.*</exclude>
                         <exclude>**/store/github/util/GitHubVersionService.*</exclude>
                         <exclude>**/store/classpath/ClasspathCoreSchemaStore.*</exclude>
-                        <exclude>**/resources/GitHubLinkResource.*</exclude>
+                        <exclude>**/security/GitHubOAuthClient.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

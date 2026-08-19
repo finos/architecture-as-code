@@ -28,14 +28,23 @@ export async function fetchAuthConfig(): Promise<AuthConfig> {
     if (cachedConfig) {
         return cachedConfig;
     }
-    try {
+    const attempt = async (): Promise<AuthConfig> => {
         const response = await axios.get<AuthConfig>('/api/calm/auth/config');
-        cachedConfig = response.data;
+        return response.data;
+    };
+    try {
+        cachedConfig = await attempt();
         return cachedConfig;
-    } catch (error) {
-        console.warn('Failed to fetch auth config, using defaults:', error);
-        cachedConfig = DEFAULT_CONFIG;
-        return cachedConfig;
+    } catch {
+        // Retry once after a short delay before giving up
+        try {
+            await new Promise((resolve) => setTimeout(resolve, 1000));
+            cachedConfig = await attempt();
+            return cachedConfig;
+        } catch (retryError) {
+            console.error('Failed to fetch auth config after retry:', retryError);
+            throw new Error('Unable to load authentication configuration');
+        }
     }
 }
 

@@ -58,7 +58,7 @@ public class GitHubArchitectureStore implements ArchitectureStore {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        return entries.parallelStream()
+        return entries.stream()
                 .map(e -> {
                     int versionCount = 0;
                     if (repo != null && versionService != null) {

@@ -12,6 +12,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -92,10 +93,8 @@ public class GitHubSessionCookieService {
                 return Optional.empty();
             }
 
-            byte[] iv = new byte[IV_LENGTH];
-            System.arraycopy(combined, 0, iv, 0, IV_LENGTH);
-            byte[] encrypted = new byte[combined.length - IV_LENGTH];
-            System.arraycopy(combined, IV_LENGTH, encrypted, 0, encrypted.length);
+            byte[] iv = Arrays.copyOfRange(combined, 0, IV_LENGTH);
+            byte[] encrypted = Arrays.copyOfRange(combined, IV_LENGTH, combined.length);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));
@@ -171,10 +170,8 @@ public class GitHubSessionCookieService {
                 return Optional.empty();
             }
 
-            byte[] iv = new byte[IV_LENGTH];
-            System.arraycopy(combined, 0, iv, 0, IV_LENGTH);
-            byte[] encrypted = new byte[combined.length - IV_LENGTH];
-            System.arraycopy(combined, IV_LENGTH, encrypted, 0, encrypted.length);
+            byte[] iv = Arrays.copyOfRange(combined, 0, IV_LENGTH);
+            byte[] encrypted = Arrays.copyOfRange(combined, IV_LENGTH, combined.length);
 
             Cipher cipher = Cipher.getInstance(ALGORITHM);
             cipher.init(Cipher.DECRYPT_MODE, secretKey, new GCMParameterSpec(GCM_TAG_LENGTH, iv));

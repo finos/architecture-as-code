@@ -31,15 +31,28 @@ describe('authConfig', () => {
             expect(result.databaseMode).toBe('github');
         });
 
-        it('should return defaults when fetch fails', async () => {
-            vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
+        it('should retry once and succeed on transient failure', async () => {
+            const mockConfig = {
+                oidc: { enabled: true, provider: 'generic-oidc' },
+                github: { enabled: false },
+                databaseMode: 'mongo',
+            };
+            vi.mocked(axios.get)
+                .mockRejectedValueOnce(new Error('Network error'))
+                .mockResolvedValueOnce({ data: mockConfig });
 
             const { fetchAuthConfig: fetch } = await import('./authConfig.js');
             const result = await fetch();
 
-            expect(result.oidc.enabled).toBe(false);
-            expect(result.github.enabled).toBe(false);
-            expect(result.databaseMode).toBe('mongo');
+            expect(result.oidc.enabled).toBe(true);
+        });
+
+        it('should throw when both attempts fail', async () => {
+            vi.mocked(axios.get).mockRejectedValue(new Error('Network error'));
+
+            const { fetchAuthConfig: fetch } = await import('./authConfig.js');
+
+            await expect(fetch()).rejects.toThrow('Unable to load authentication configuration');
         });
     });
 

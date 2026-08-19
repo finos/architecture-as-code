@@ -1,6 +1,7 @@
 package org.finos.calm.store.github.util;
 
 import io.quarkus.runtime.StartupEvent;
+import org.eclipse.microprofile.context.ManagedExecutor;
 import org.finos.calm.observability.GitHubMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
@@ -33,6 +35,9 @@ class TestGitHubStartupInitializerShould {
     @Mock
     private GitHubMetrics metrics;
 
+    @Mock
+    private ManagedExecutor executor;
+
     private GitHubStartupInitializer initializer;
 
     @BeforeEach
@@ -41,6 +46,14 @@ class TestGitHubStartupInitializerShould {
         initializer.cloneManager = cloneManager;
         initializer.registryService = registryService;
         initializer.metrics = metrics;
+        initializer.executor = executor;
+
+        // Make executor.runAsync execute the Runnable immediately (synchronously for testing)
+        when(executor.runAsync(any(Runnable.class))).thenAnswer(invocation -> {
+            Runnable task = invocation.getArgument(0);
+            task.run();
+            return CompletableFuture.completedFuture(null);
+        });
     }
 
     @Test
