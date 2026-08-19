@@ -29,6 +29,15 @@ public class GitHubRequestContext {
     private GitHubSessionCookieService.GitHubSession session;
     private boolean resolved;
 
+    GitHubRequestContext() {
+    }
+
+    GitHubRequestContext(GitHubSessionCookieService cookieService, SecurityIdentity identity, RoutingContext routingContext) {
+        this.cookieService = cookieService;
+        this.identity = identity;
+        this.routingContext = routingContext;
+    }
+
     public Optional<String> getToken() {
         resolve();
         return session != null ? Optional.of(session.ghToken()) : Optional.empty();

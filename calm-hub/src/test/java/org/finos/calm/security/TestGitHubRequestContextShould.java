@@ -23,8 +23,7 @@ class TestGitHubRequestContextShould {
 
     @BeforeEach
     void setup() {
-        context = new GitHubRequestContext();
-        context.cookieService = cookieService;
+        context = new GitHubRequestContext(cookieService, null, null);
     }
 
     @Test

@@ -42,10 +42,7 @@ class TestGitHubRequestContextFilterShould {
 
     @BeforeEach
     void setup() {
-        context = new GitHubRequestContext();
-        context.cookieService = cookieService;
-        context.identity = identity;
-        context.routingContext = routingContext;
+        context = new GitHubRequestContext(cookieService, identity, routingContext);
     }
 
     private void mockCookie(String value) {
