@@ -1,2 +1,3 @@
 package org.finos.calm.domain.exception;
-public class DocumentNotFoundException extends Exception { }
+
+public class DocumentNotFoundException extends Exception {}

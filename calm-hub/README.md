@@ -415,8 +415,7 @@ Known limitations, doesn't run integration tests.
 
 CALM Hub exposes namespace-scoped Markdown documents at
 `/api/calm/namespaces/{namespace}/documents/{documentType}`. Supported types are
-`pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`,
-and `adr`. Use `GET` to list documents, `POST` to create version `1.0.0`, and
+`knowledge` and `sad`. Use `GET` to list documents, `POST` to create version `1.0.0`, and
 `GET`/`POST` on `/{id}/versions` and `/{id}/versions/{version}` to list, read,
 and create immutable versions. Request Markdown must start with a YAML mapping
 frontmatter block delimited by complete `---` lines.
