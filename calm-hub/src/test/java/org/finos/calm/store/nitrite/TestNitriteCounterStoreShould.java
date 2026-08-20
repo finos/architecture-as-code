@@ -1,5 +1,10 @@
 package org.finos.calm.store.nitrite;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
@@ -8,14 +13,9 @@ import org.dizitart.no2.filters.Filter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import org.mockito.ArgumentCaptor;
 
 @ExtendWith(MockitoExtension.class)
 public class TestNitriteCounterStoreShould {
@@ -29,14 +29,11 @@ public class TestNitriteCounterStoreShould {
     private static final String INTERFACE_COUNTER = "interface_counter";
     private static final String DOCUMENT_COUNTER = "document_counter";
 
-    @Mock
-    private Nitrite mockDb;
+    @Mock private Nitrite mockDb;
 
-    @Mock
-    private NitriteCollection mockCollection;
+    @Mock private NitriteCollection mockCollection;
 
-    @Mock
-    private DocumentCursor mockCursor;
+    @Mock private DocumentCursor mockCursor;
 
     private NitriteCounterStore counterStore;
 
@@ -181,7 +178,8 @@ public class TestNitriteCounterStoreShould {
     public void testInitializeDocumentCounter() {
         DocumentCursor initializationCursor = mock(DocumentCursor.class);
         Document initializedCounters = mock(Document.class);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor, initializationCursor, mockCursor);
+        when(mockCollection.find(any(Filter.class)))
+                .thenReturn(mockCursor, initializationCursor, mockCursor);
         when(mockCursor.firstOrNull()).thenReturn(null, initializedCounters);
         when(initializationCursor.firstOrNull()).thenReturn(null);
         when(initializedCounters.get(DOCUMENT_COUNTER, Integer.class)).thenReturn(0);
@@ -200,24 +198,27 @@ public class TestNitriteCounterStoreShould {
         Document newCountersDoc = mock(Document.class);
         DocumentCursor mockCursor2 = mock(DocumentCursor.class);
         DocumentCursor mockCursor3 = mock(DocumentCursor.class);
-        
+
         when(mockCollection.find(any(Filter.class)))
-            .thenReturn(mockCursor)      // First call in nextValueForCounter
-            .thenReturn(mockCursor2)     // Second call in initializeCountersDocument  
-            .thenReturn(mockCursor3);    // Third call in nextValueForCounter after initialization
-            
-        when(mockCursor.firstOrNull()).thenReturn(null);      // First call returns null
-        when(mockCursor2.firstOrNull()).thenReturn(null);     // Second call in init also returns null
-        when(mockCursor3.firstOrNull()).thenReturn(newCountersDoc); // Third call returns the new document
-        
-        when(newCountersDoc.get(PATTERN_COUNTER, Integer.class)).thenReturn(null); // New document has no counter yet
+                .thenReturn(mockCursor) // First call in nextValueForCounter
+                .thenReturn(mockCursor2) // Second call in initializeCountersDocument
+                .thenReturn(mockCursor3); // Third call in nextValueForCounter after initialization
+
+        when(mockCursor.firstOrNull()).thenReturn(null); // First call returns null
+        when(mockCursor2.firstOrNull()).thenReturn(null); // Second call in init also returns null
+        when(mockCursor3.firstOrNull())
+                .thenReturn(newCountersDoc); // Third call returns the new document
+
+        when(newCountersDoc.get(PATTERN_COUNTER, Integer.class))
+                .thenReturn(null); // New document has no counter yet
 
         // Act
         int result = counterStore.getNextPatternSequenceValue();
 
         // Assert
         assertThat(result, is(1)); // Should return 1 for first counter
-        verify(mockCollection).insert(any(Document.class)); // Verify initialization document was inserted
+        verify(mockCollection)
+                .insert(any(Document.class)); // Verify initialization document was inserted
         verify(newCountersDoc).put(PATTERN_COUNTER, 1); // Verify the counter was set to 1
         verify(mockCollection).update(newCountersDoc); // Verify the document was updated
     }

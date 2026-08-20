@@ -1,15 +1,17 @@
 package integration;
 
+import static io.restassured.RestAssured.given;
+
+import static org.hamcrest.Matchers.*;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+
 import org.finos.calm.domain.documents.CreateDocumentRequest;
 import org.junit.jupiter.api.*;
 
 import java.net.URI;
 import java.util.Arrays;
-
-import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
 @TestProfile(NitriteIntegrationTestProfile.class)
@@ -27,51 +29,106 @@ class NitriteDocumentIntegration {
         return new CreateDocumentRequest(name, "Document description", markdown);
     }
 
-    @Test @Order(1)
+    @Test
+    @Order(1)
     void creates_a_document() {
-        String location = given().contentType("application/json").body(request("Nitrite document", MARKDOWN))
-                .post("/api/calm/namespaces/finos/documents/pattern").then().statusCode(201)
-                .header("Location", containsString("/documents/pattern/")).extract().header("Location");
+        String location =
+                given().contentType("application/json")
+                        .body(request("Nitrite document", MARKDOWN))
+                        .post("/api/calm/namespaces/finos/documents/knowledge")
+                        .then()
+                        .statusCode(201)
+                        .header("Location", containsString("/documents/knowledge/"))
+                        .extract()
+                        .header("Location");
         documentId = documentId(location);
     }
 
-    @Test @Order(2)
+    @Test
+    @Order(2)
     void lists_and_retrieves_the_initial_version_verbatim() {
-        given().get("/api/calm/namespaces/finos/documents/pattern").then().statusCode(200).body("values", contains(documentId));
-        given().get("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions")
-                .then().statusCode(200).body("values", contains("1.0.0"));
-        given().get("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/1.0.0")
-                .then().statusCode(200).contentType("application/json").body("documentMarkdown", equalTo(MARKDOWN));
+        given().get("/api/calm/namespaces/finos/documents/knowledge")
+                .then()
+                .statusCode(200)
+                .body("values", contains(documentId));
+        given().get("/api/calm/namespaces/finos/documents/knowledge/" + documentId + "/versions")
+                .then()
+                .statusCode(200)
+                .body("values", contains("1.0.0"));
+        given().get(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .contentType("application/json")
+                .body("documentMarkdown", equalTo(MARKDOWN));
     }
 
-    @Test @Order(3)
+    @Test
+    @Order(3)
     void creates_and_orders_immutable_versions() {
         String versionTwo = "---\ntitle: Nitrite Document v2\n---\n# Nitrite document v2";
-        given().contentType("application/json").body(request("Nitrite document v2", versionTwo))
-                .post("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/1.0.10")
-                .then().statusCode(201);
-        given().contentType("application/json").body(request("Nitrite document v2", versionTwo))
-                .post("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/1.0.2")
-                .then().statusCode(201);
-        given().contentType("application/json").body(request("Nitrite document v3", versionTwo))
-                .post("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/2147483648.0.0")
-                .then().statusCode(201);
-        given().get("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions")
-                .then().statusCode(200).body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
-        given().get("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/1.0.2")
-                .then().statusCode(200).body("documentMarkdown", equalTo(versionTwo));
+        given().contentType("application/json")
+                .body(request("Nitrite document v2", versionTwo))
+                .post(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/1.0.10")
+                .then()
+                .statusCode(201);
+        given().contentType("application/json")
+                .body(request("Nitrite document v2", versionTwo))
+                .post(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/1.0.2")
+                .then()
+                .statusCode(201);
+        given().contentType("application/json")
+                .body(request("Nitrite document v3", versionTwo))
+                .post(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/2147483648.0.0")
+                .then()
+                .statusCode(201);
+        given().get("/api/calm/namespaces/finos/documents/knowledge/" + documentId + "/versions")
+                .then()
+                .statusCode(200)
+                .body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
+        given().get(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/1.0.2")
+                .then()
+                .statusCode(200)
+                .body("documentMarkdown", equalTo(versionTwo));
     }
 
-    @Test @Order(4)
+    @Test
+    @Order(4)
     void rejects_a_duplicate_version() {
-        given().contentType("application/json").body(request("Duplicate", MARKDOWN))
-                .post("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/1.0.2")
-                .then().statusCode(409);
-        given().contentType("application/json").body(request("Compact duplicate", MARKDOWN))
-                .post("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions/100")
-                .then().statusCode(409);
-        given().get("/api/calm/namespaces/finos/documents/pattern/" + documentId + "/versions")
-                .then().statusCode(200).body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
+        given().contentType("application/json")
+                .body(request("Duplicate", MARKDOWN))
+                .post(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/1.0.2")
+                .then()
+                .statusCode(409);
+        given().contentType("application/json")
+                .body(request("Compact duplicate", MARKDOWN))
+                .post(
+                        "/api/calm/namespaces/finos/documents/knowledge/"
+                                + documentId
+                                + "/versions/100")
+                .then()
+                .statusCode(409);
+        given().get("/api/calm/namespaces/finos/documents/knowledge/" + documentId + "/versions")
+                .then()
+                .statusCode(200)
+                .body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
     }
 
     private static int documentId(String location) {

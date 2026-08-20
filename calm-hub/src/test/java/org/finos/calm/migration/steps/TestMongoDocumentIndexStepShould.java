@@ -1,8 +1,17 @@
 package org.finos.calm.migration.steps;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
+
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
+
 import org.bson.Document;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,20 +21,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
-
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 class TestMongoDocumentIndexStepShould {
 
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
-    }
+    private interface DocumentMongoCollection extends MongoCollection<Document> {}
 
     private MongoDatabase database;
     private MongoCollection<Document> documents;
@@ -61,7 +61,10 @@ class TestMongoDocumentIndexStepShould {
 
         step.apply();
 
-        verify(documents).createIndex(eq(new Document("namespace", 1).append("documentType", 1)), options.capture());
+        verify(documents)
+                .createIndex(
+                        eq(new Document("namespace", 1).append("documentType", 1)),
+                        options.capture());
         assertThat(options.getValue().isUnique(), is(true));
     }
 
@@ -71,7 +74,9 @@ class TestMongoDocumentIndexStepShould {
 
         unconfigured.createIndexes();
 
-        verify(documents).createIndex(eq(new Document("namespace", 1).append("documentType", 1)),
-                org.mockito.ArgumentMatchers.any());
+        verify(documents)
+                .createIndex(
+                        eq(new Document("namespace", 1).append("documentType", 1)),
+                        org.mockito.ArgumentMatchers.any());
     }
 }
