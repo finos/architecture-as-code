@@ -3,8 +3,11 @@ package org.finos.calm.migration.steps;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.IndexOptions;
+
 import io.quarkus.arc.lookup.LookupIfProperty;
+
 import jakarta.enterprise.context.ApplicationScoped;
+
 import org.bson.Document;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.migration.SchemaMigrationStep;
@@ -44,7 +47,8 @@ public class MongoDocumentIndexStep implements SchemaMigrationStep {
     /** Creates the document index for startup and integration-test setup. */
     public void createIndexes() {
         MongoCollection<Document> documents = database.getCollection("documents");
-        documents.createIndex(new Document("namespace", 1).append("documentType", 1),
+        documents.createIndex(
+                new Document("namespace", 1).append("documentType", 1),
                 new IndexOptions().unique(true));
         LOG.info("Ensured unique index on documents.(namespace, documentType)");
     }

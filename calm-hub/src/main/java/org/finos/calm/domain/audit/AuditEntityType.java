@@ -1,8 +1,6 @@
 package org.finos.calm.domain.audit;
 
-/**
- * The kind of entity an audited request mutated.
- */
+/** The kind of entity an audited request mutated. */
 public enum AuditEntityType {
     NAMESPACE,
     ARCHITECTURE,
