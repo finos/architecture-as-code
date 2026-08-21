@@ -575,6 +575,36 @@ export async function runListStandards(options: ListOptions): Promise<void> {
     return runListMappedResources(options, 'standards');
 }
 
+// ── push interface ────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a new interface or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushInterface(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'interfaces');
+}
+
+// ── pull interface ────────────────────────────────────────────────────────────
+
+/**
+ * Pulls an interface version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullInterface(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'interfaces');
+}
+
+// ── list interfaces ───────────────────────────────────────────────────────────
+
+/**
+ * Lists interfaces in a namespace.
+ * @param options Command options.
+ */
+export async function runListInterfaces(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'interfaces');
+}
+
 // ── create domain ───────────────────────────────────────────────────────────
 
 export interface CreateDomainOptions {
