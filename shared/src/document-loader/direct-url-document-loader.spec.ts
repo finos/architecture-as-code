@@ -197,13 +197,58 @@ describe('direct-url-document-loader', () => {
         expect(debugOutput).toContain('Starting Request:');
         expect(debugOutput).toContain('"method": "get"');
         expect(debugOutput).toContain(`"url": "${url}"`);
-        expect(debugOutput).toContain('"Authorization": "[REDACTED]"');
-        expect(debugOutput).toContain('"X-Api-Key": "[REDACTED]"');
-        expect(debugOutput).toContain('"X-Trace-Id": "trace-123"');
+        expect(debugOutput).toContain('"authHeadersPresent": true');
+        expect(debugOutput).toContain('"authHeaderNames": [');
+        expect(debugOutput).toContain('"Authorization"');
+        expect(debugOutput).toContain('"X-Api-Key"');
+        expect(debugOutput).toContain('"X-Trace-Id"');
+        expect(debugOutput).toContain('"headers": {');
+        expect(debugOutput).toContain('"Accept": "application/json, text/plain, */*"');
         expect(debugOutput).toContain('Response:');
         expect(debugOutput).toContain('"status": 200');
         expect(debugOutput).not.toContain('super-secret-token');
         expect(debugOutput).not.toContain('api-key-secret');
+        expect(debugOutput).not.toContain('trace-123');
+    });
+
+    it('never logs values for custom auth header names returned by the plugin', async () => {
+        const loggerModule = await import('../logger');
+        const mockLogger: Logger = {
+            log: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+        };
+        vi.spyOn(loggerModule, 'initLogger').mockReturnValue(mockLogger);
+
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/custom-auth-headers.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({
+                'Private-Token': 'private-token-secret',
+                'X-Client-Secret': 'client-secret-value',
+                'Api-Key': 'api-key-value',
+                'X-Amz-Security-Token': 'aws-session-token'
+            })
+        };
+        mock.onGet('/custom-auth-headers.json').reply(200, { '$id': url, 'title': 'schema' });
+
+        const debugLoader = new DirectUrlDocumentLoader(true, ax, [allowlistedHost], directUrlAuthPlugin);
+        await debugLoader.loadMissingDocument(url, 'schema');
+
+        const debugOutput = (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls
+            .map(([message]) => String(message))
+            .join('\n');
+
+        expect(debugOutput).toContain('"Private-Token"');
+        expect(debugOutput).toContain('"X-Client-Secret"');
+        expect(debugOutput).toContain('"Api-Key"');
+        expect(debugOutput).toContain('"X-Amz-Security-Token"');
+        expect(debugOutput).not.toContain('private-token-secret');
+        expect(debugOutput).not.toContain('client-secret-value');
+        expect(debugOutput).not.toContain('api-key-value');
+        expect(debugOutput).not.toContain('aws-session-token');
     });
 
     it('treats direct URL auth plugin runtime failures as fatal', async () => {

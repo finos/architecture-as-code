@@ -1,4 +1,4 @@
-import axios, { Axios } from 'axios';
+import axios, { Axios, AxiosRequestConfig } from 'axios';
 import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
@@ -7,15 +7,6 @@ import { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
-const REDACTED_HEADER_VALUE = '[REDACTED]';
-const SENSITIVE_HEADER_NAMES = new Set([
-    'authorization',
-    'cookie',
-    'set-cookie',
-    'proxy-authorization',
-    'x-api-key',
-    'x-auth-token',
-]);
 
 const PRIVATE_IPV4_PATTERNS = [
     /^127\./,
@@ -61,6 +52,12 @@ function toRequestPath(parsedUrl: URL): string {
     return `/${normalizedPath}`;
 }
 
+type LoggedHeaderValue = string | number | boolean | null | undefined | LoggedHeaderValue[];
+
+type DirectUrlDebugRequest = AxiosRequestConfig & {
+    __directUrlAuthHeaderNames?: string[];
+};
+
 function normalizeHeaderValue(value: unknown): string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined> {
     if (Array.isArray(value)) {
         return value.map(item => normalizeHeaderValue(item) as string | number | boolean | null | undefined);
@@ -77,7 +74,7 @@ function normalizeHeaderValue(value: unknown): string | number | boolean | null 
     return JSON.stringify(value);
 }
 
-function redactHeaders(headers: unknown): Record<string, ReturnType<typeof normalizeHeaderValue> | typeof REDACTED_HEADER_VALUE> {
+function collectSafeHeaders(headers: unknown, authHeaderNames: readonly string[]): Record<string, LoggedHeaderValue> {
     const candidate = typeof headers === 'object' && headers !== null && 'toJSON' in headers && typeof headers.toJSON === 'function'
         ? headers.toJSON()
         : headers;
@@ -85,11 +82,14 @@ function redactHeaders(headers: unknown): Record<string, ReturnType<typeof norma
         return {};
     }
 
+    const authHeaderNameSet = new Set(authHeaderNames.map(name => name.toLowerCase()));
     return Object.fromEntries(
-        Object.entries(candidate).map(([key, value]) => [
-            key,
-            SENSITIVE_HEADER_NAMES.has(key.toLowerCase()) ? REDACTED_HEADER_VALUE : normalizeHeaderValue(value),
-        ])
+        Object.entries(candidate)
+            .filter(([key]) => !authHeaderNameSet.has(key.toLowerCase()))
+            .map(([key, value]) => [
+                key,
+                normalizeHeaderValue(value) as LoggedHeaderValue,
+            ])
     );
 }
 
@@ -137,6 +137,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
     addAxiosDebug() {
         this.ax.interceptors.request.use(request => {
+            const authHeaderNames = [...((request as DirectUrlDebugRequest).__directUrlAuthHeaderNames ?? [])].sort();
             this.logger.debug(`Starting Request: ${JSON.stringify({
                 method: request.method,
                 url: resolveLoggedUrl(request.baseURL, request.url),
@@ -145,7 +146,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 timeout: request.timeout,
                 maxRedirects: request.maxRedirects,
                 allowAbsoluteUrls: request.allowAbsoluteUrls,
-                headers: redactHeaders(request.headers),
+                headers: collectSafeHeaders(request.headers, authHeaderNames),
+                authHeadersPresent: authHeaderNames.length > 0,
+                authHeaderNames,
             }, null, 2)}`);
             return request;
         });
@@ -241,9 +244,11 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             let authHeaders: Record<string, string> | undefined;
+            const authHeaderNames: string[] = [];
             if (this.directUrlAuthPlugin) {
                 try {
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
+                    authHeaderNames.push(...Object.keys(authHeaders));
                 } catch (error) {
                     throw new DocumentLoadError({
                         name: 'AUTHENTICATION_FAILED',
@@ -253,12 +258,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     });
                 }
             }
-            const response = await this.ax.get(requestPath, {
+            const requestConfig: DirectUrlDebugRequest = {
                 baseURL,
                 headers: authHeaders,
                 maxRedirects: 0,
-                allowAbsoluteUrls: false
-            });
+                allowAbsoluteUrls: false,
+                __directUrlAuthHeaderNames: authHeaderNames,
+            };
+            const response = await this.ax.get(requestPath, requestConfig);
             assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
