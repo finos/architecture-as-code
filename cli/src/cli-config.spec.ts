@@ -109,7 +109,7 @@ describe('cli-config', () => {
             '/home/user/.calm.json': JSON.stringify({
                 directUrlAuth: {
                     module: DIRECT_URL_JS_FIXTURE,
-                    options: { token: 'cfg-token' }
+                    configPath: '/configs/direct-url-auth.json'
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -119,17 +119,17 @@ describe('cli-config', () => {
         expect(config).toEqual({
             directUrlAuth: {
                 module: DIRECT_URL_JS_FIXTURE,
-                options: { token: 'cfg-token' }
+                configPath: '/configs/direct-url-auth.json'
             }
         });
     });
 
-    it('loads direct URL auth module from absolute path and passes constructor options', async () => {
+    it('loads direct URL auth module from absolute path and passes configPath to the constructor', async () => {
         vol.fromJSON({
             '/home/user/.calm.json': JSON.stringify({
                 directUrlAuth: {
                     module: DIRECT_URL_JS_FIXTURE,
-                    options: { token: 'cfg-token' }
+                    configPath: '/configs/direct-url-auth.json'
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -139,7 +139,7 @@ describe('cli-config', () => {
         const directUrlAuthPlugin = await loadDirectUrlAuthPlugin(config.directUrlAuth!, false);
         await expect(directUrlAuthPlugin.getAuthHeaders('https://schemas.example.com/core.json', undefined))
             .resolves.toEqual({
-                'Authorization': 'Bearer cfg-token',
+                'Authorization': 'Bearer /configs/direct-url-auth.json',
                 'X-Request-Body': undefined
             });
     });

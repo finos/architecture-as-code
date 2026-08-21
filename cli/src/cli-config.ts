@@ -7,7 +7,7 @@ import { pathToFileURL } from 'url';
 
 export interface DirectUrlAuthConfig {
     module: string
-    options?: Record<string, unknown>
+    configPath?: string
 }
 
 export interface CLIConfig {
@@ -125,6 +125,6 @@ export async function loadDirectUrlAuthPlugin(config: DirectUrlAuthConfig, debug
         debug,
         'direct URL auth module',
         '❌ Direct URL auth module class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
-        [config.options ?? {}]
+        [config.configPath]
     );
 }

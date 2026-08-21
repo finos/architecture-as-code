@@ -1626,7 +1626,7 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
-                options: { token: 'abc123' }
+                configPath: '/configs/direct-url-auth.json'
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1635,7 +1635,7 @@ describe('parseDocumentLoaderConfig', () => {
 
         expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
             module: '/fake/direct-url-auth.js',
-            options: { token: 'abc123' }
+            configPath: '/configs/direct-url-auth.json'
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
     });

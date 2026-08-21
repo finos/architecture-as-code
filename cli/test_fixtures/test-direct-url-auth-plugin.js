@@ -1,11 +1,11 @@
 export default class TestDirectUrlAuthPlugin {
-    constructor(options = {}) {
-        this.options = options;
+    constructor(configPath) {
+        this.configPath = configPath;
     }
 
     async getAuthHeaders(url, requestBody) {
         return {
-            'Authorization': `Bearer ${this.options.token ?? 'test-token'}`,
+            'Authorization': `Bearer ${this.configPath ?? 'test-token'}`,
             'X-Request-Body': JSON.stringify(requestBody)
         };
     }
