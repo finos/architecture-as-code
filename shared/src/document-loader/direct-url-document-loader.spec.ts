@@ -176,8 +176,61 @@ describe('direct-url-document-loader', () => {
 
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toMatchObject({ recoverable: false });
-        await expect(promise).rejects.toThrow('Failed to load document from URL');
+        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
+        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}: token exchange failed`);
         expect(mock.history.get).toHaveLength(0);
+    });
+
+    it('surfaces explicit auth errors for HTTP 401 responses', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/protected-401.json`;
+        mock.onGet('/protected-401.json').reply(401, { message: 'unauthorized' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost]);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED', recoverable: false });
+        await expect(promise).rejects.toThrow(`Direct URL request was not authorized for ${url} (HTTP 401)`);
+    });
+
+    it('surfaces explicit auth errors for HTTP 403 responses', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/protected-403.json`;
+        mock.onGet('/protected-403.json').reply(403, { message: 'forbidden' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost]);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED', recoverable: false });
+        await expect(promise).rejects.toThrow(`Direct URL request was not authorized for ${url} (HTTP 403)`);
+    });
+
+    it('keeps 404 responses on the generic direct URL failure path', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/missing.json`;
+        mock.onGet('/missing.json').reply(404, { message: 'not found' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost]);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ name: 'UNKNOWN', recoverable: false });
+        await expect(promise).rejects.toThrow(`Failed to load document from URL: ${url}`);
+    });
+
+    it('keeps network failures on the generic direct URL failure path', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/network-error.json`;
+        mock.onGet('/network-error.json').networkError();
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost]);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ name: 'UNKNOWN', recoverable: false });
+        await expect(promise).rejects.toThrow(`Failed to load document from URL: ${url}`);
     });
 
     it('throws DocumentLoadError for disallowed host', async () => {

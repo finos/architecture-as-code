@@ -52,6 +52,19 @@ function toRequestPath(parsedUrl: URL): string {
     return `/${normalizedPath}`;
 }
 
+function sanitizeErrorMessage(error: unknown): string | undefined {
+    if (!(error instanceof Error)) {
+        return undefined;
+    }
+
+    const firstLine = error.message.split('\n')[0]?.trim();
+    if (!firstLine) {
+        return undefined;
+    }
+
+    return firstLine.replace(/\s+/g, ' ');
+}
+
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
@@ -173,9 +186,22 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 });
             }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
-            const authHeaders = this.directUrlAuthPlugin
-                ? await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined)
-                : undefined;
+            let authHeaders: Record<string, string> | undefined;
+            if (this.directUrlAuthPlugin) {
+                try {
+                    authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
+                } catch (error) {
+                    const safeMessage = sanitizeErrorMessage(error);
+                    throw new DocumentLoadError({
+                        name: 'AUTHENTICATION_FAILED',
+                        message: safeMessage
+                            ? `Direct URL authentication failed for ${documentId}: ${safeMessage}`
+                            : `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
+                        cause: error instanceof Error ? error : undefined,
+                        recoverable: false
+                    });
+                }
+            }
             const response = await this.ax.get(requestPath, {
                 baseURL,
                 headers: authHeaders,
@@ -187,6 +213,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         } catch (error) {
             if (error instanceof DocumentLoadError) {
                 throw error;
+            }
+            if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+                throw new DocumentLoadError({
+                    name: 'AUTHENTICATION_FAILED',
+                    message: `Direct URL request was not authorized for ${documentId} (HTTP ${error.response.status}). Check direct URL auth configuration and remote credentials.`,
+                    cause: error,
+                    recoverable: false
+                });
             }
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
