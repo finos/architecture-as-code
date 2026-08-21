@@ -1648,8 +1648,13 @@ describe('parseDocumentLoaderConfig', () => {
             configPath: '/configs/direct-url-auth.json'
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
-        expect(mockLogger.info).toHaveBeenCalledWith(
-            'Loading direct URL auth module from config file: /fake/direct-url-auth.js (configPath: /configs/direct-url-auth.json)'
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: /configs/direct-url-auth.json'
         );
     });
 
@@ -1669,8 +1674,13 @@ describe('parseDocumentLoaderConfig', () => {
         const options = await parseDocLoaderConfigForTest({});
 
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
-        expect(mockLogger.info).toHaveBeenCalledWith(
-            'Loading direct URL auth module from config file: /fake/direct-url-auth.js (configPath: not specified)'
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: not specified'
         );
     });
 
