@@ -1,14 +1,20 @@
 import { readFile, writeFile } from 'fs/promises';
-import { initLogger, AuthPlugin } from '@finos/calm-shared';
+import { initLogger, AuthPlugin, DirectUrlAuthPlugin } from '@finos/calm-shared';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 
+export interface DirectUrlAuthConfig {
+    module: string
+    options?: Record<string, unknown>
+}
+
 export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
     authPluginPath?: string
+    directUrlAuth?: DirectUrlAuthConfig
 }
 
 export function getUserConfigLocation(): string {
@@ -52,6 +58,7 @@ export function mergeWithEnvVars(config: CLIConfig): CLIConfig {
         calmHubUrl: process.env.CALM_HUB_URL || config.calmHubUrl,
         allowedRemoteHosts: process.env.CALM_ALLOWED_REMOTE_HOSTS ? process.env.CALM_ALLOWED_REMOTE_HOSTS.split(',') : config.allowedRemoteHosts,
         authPluginPath: process.env.CALM_AUTH_PLUGIN_PATH || config.authPluginPath,
+        directUrlAuth: config.directUrlAuth,
     };
 }
 
@@ -62,35 +69,62 @@ export function resolveHomeDir(path: string): string {
     return path;
 }
 
-export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
-    const logger = initLogger(debug, 'auth-plugin');
+async function loadPluginClassInstance<T>(
+    filename: string,
+    debug: boolean,
+    logPrefix: string,
+    validationMessage: string,
+    constructorArgs: unknown[]
+): Promise<T> {
+    const logger = initLogger(debug, logPrefix);
 
     filename = resolveHomeDir(filename);
-    
+
     if (!existsSync(filename)) {
-        logger.error(`❌ Auth plugin file not found: ${filename}`);
-        throw new Error(`❌ Auth plugin file not found: ${filename}`);
+        logger.error(`❌ ${logPrefix} file not found: ${filename}`);
+        throw new Error(`❌ ${logPrefix} file not found: ${filename}`);
     }
     if (!filename.endsWith('.js')) {
-        logger.error(`❌ Auth plugin file must have a .js extension: ${filename}`);
-        throw new Error(`❌ Auth plugin file must have a .js extension: ${filename}`);
+        logger.error(`❌ ${logPrefix} file must have a .js extension: ${filename}`);
+        throw new Error(`❌ ${logPrefix} file must have a .js extension: ${filename}`);
     }
-    logger.info(`🔍 Loading auth plugin: ${filename}`);
+    logger.info(`🔍 Loading ${logPrefix}: ${filename}`);
 
     try {
         const url = pathToFileURL(filename).href;
         const mod = await import(/* @vite-ignore */ url);
-        const AuthPluginClass = mod.default;
-        if (typeof AuthPluginClass !== 'function') {
-            throw new Error('❌ Auth plugin must export a default class. Did you forget to export default?');
+        const PluginClass = mod.default;
+        if (typeof PluginClass !== 'function') {
+            throw new Error(`❌ ${logPrefix} must export a default class. Did you forget to export default?`);
         }
-        const instance = new AuthPluginClass() as AuthPlugin;
-        if (typeof instance.getAuthHeaders !== 'function') {
-            throw new Error('❌ Auth plugin class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>');
+        const instance = new PluginClass(...constructorArgs) as T;
+        const candidate = instance as { getAuthHeaders?: unknown };
+        if (typeof candidate.getAuthHeaders !== 'function') {
+            throw new Error(validationMessage);
         }
         return instance;
     } catch (error) {
-        logger.error(`❌ Error loading auth plugin: ${error}`);
-        throw new Error(`❌ Error loading auth plugin: ${error}`);
+        logger.error(`❌ Error loading ${logPrefix}: ${error}`);
+        throw new Error(`❌ Error loading ${logPrefix}: ${error}`);
     }
+}
+
+export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
+    return loadPluginClassInstance<AuthPlugin>(
+        filename,
+        debug,
+        'auth plugin',
+        '❌ Auth plugin class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
+        []
+    );
+}
+
+export async function loadDirectUrlAuthPlugin(config: DirectUrlAuthConfig, debug: boolean): Promise<DirectUrlAuthPlugin> {
+    return loadPluginClassInstance<DirectUrlAuthPlugin>(
+        config.module,
+        debug,
+        'direct URL auth module',
+        '❌ Direct URL auth module class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
+        [config.options ?? {}]
+    );
 }

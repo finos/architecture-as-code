@@ -6,7 +6,7 @@ import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { MultiStrategyDocumentLoader } from './multi-strategy-document-loader';
 import { MappedDocumentLoader } from './mapped-document-loader';
 import { WorkspaceDocumentLoader } from './workspace-document-loader';
-import { AuthPlugin } from '..';
+import { AuthPlugin, DirectUrlAuthPlugin } from '..';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
@@ -24,6 +24,7 @@ export interface DocumentLoader {
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
     authPlugin?: AuthPlugin;
+    directUrlAuthPlugin?: DirectUrlAuthPlugin;
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
@@ -70,7 +71,12 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
         docLoaderOpts.basePath ?? process.cwd()
     ));
 
-    loaders.push(new DirectUrlDocumentLoader(debug, undefined, docLoaderOpts.allowedRemoteHosts));
+    loaders.push(new DirectUrlDocumentLoader(
+        debug,
+        undefined,
+        docLoaderOpts.allowedRemoteHosts,
+        docLoaderOpts.directUrlAuthPlugin
+    ));
 
     return new MultiStrategyDocumentLoader(loaders, debug);
 }

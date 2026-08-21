@@ -15,6 +15,7 @@ Note that if they're set on the command line, e.g. `--calm-hub-url`, this will o
 | `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
 | `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
 | `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+| `directUrlAuth`      | None                        | Direct-URL authentication module config for protected remote document fetches. See [Direct URL authentication modules](#direct-url-authentication-modules). |
 
 Rather than hand-editing this file, use [`calm init-config`](#managing-the-config-file-with-init-config) to create or update it.
 
@@ -645,6 +646,30 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
   "authPluginPath": "~/plugins/auth-plugin.js"
 }
 ```
+
+## Direct URL authentication modules
+
+Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`.
+
+Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts a single `options` object and whose instances implement `getAuthHeaders(url, requestBody)`.
+
+The CLI instantiates the module once per process as `new DefaultExport(options ?? {})` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
+
+Example `~/.calm.json`:
+
+```json
+{
+  "directUrlAuth": {
+    "module": "~/plugins/direct-url-auth.js",
+    "options": {
+      "tokenUrl": "https://idp.example.com/oauth/token",
+      "clientId": "calm-direct-url"
+    }
+  }
+}
+```
+
+This flow does not replace `authPluginPath`: `authPluginPath` still applies only to CalmHub requests, and `directUrlAuth` applies only to direct `http(s)` fetches.
 
 ## CALM Hub
 

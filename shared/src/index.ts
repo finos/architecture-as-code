@@ -34,6 +34,7 @@ export { SchemaDirectory } from './schema-directory.js';
 export { initLogger } from './logger.js';
 export type { Logger } from './logger.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
+export { DirectUrlAuthPlugin } from './auth/direct-url-auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';

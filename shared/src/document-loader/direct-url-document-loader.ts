@@ -3,6 +3,7 @@ import { isIP } from 'net';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { Logger, initLogger } from '../logger';
+import { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
@@ -55,8 +56,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
     private readonly allowedRemoteHosts: Set<string>;
+    private readonly directUrlAuthPlugin?: DirectUrlAuthPlugin;
 
-    constructor(debug: boolean, axiosInstance?: Axios, allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS) {
+    constructor(
+        debug: boolean,
+        axiosInstance?: Axios,
+        allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS,
+        directUrlAuthPlugin?: DirectUrlAuthPlugin
+    ) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -68,6 +75,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
         this.allowedRemoteHosts = new Set(allowedRemoteHosts.map(host => normalizeHost(host)));
+        this.directUrlAuthPlugin = directUrlAuthPlugin;
         if (debug) {
             this.addAxiosDebug();
         }
@@ -165,8 +173,12 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 });
             }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
+            const authHeaders = this.directUrlAuthPlugin
+                ? await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined)
+                : undefined;
             const response = await this.ax.get(requestPath, {
                 baseURL,
+                headers: authHeaders,
                 maxRedirects: 0,
                 allowAbsoluteUrls: false
             });

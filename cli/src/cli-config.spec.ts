@@ -1,5 +1,5 @@
 import { fs, vol } from 'memfs';
-import { loadCliConfig, loadAuthPlugin } from './cli-config';
+import { loadCliConfig, loadAuthPlugin, loadDirectUrlAuthPlugin } from './cli-config';
 import { resolve } from 'path';
 import { homedir } from 'os';
 
@@ -28,6 +28,7 @@ const exampleConfig = {
 
 const FIXTURES_DIR = resolve(__dirname, '../test_fixtures');
 const JS_FIXTURE = resolve(FIXTURES_DIR, 'test-auth-plugin.js');
+const DIRECT_URL_JS_FIXTURE = resolve(FIXTURES_DIR, 'test-direct-url-auth-plugin.js');
 
 describe('cli-config', () => {
     beforeEach(() => {
@@ -50,14 +51,14 @@ describe('cli-config', () => {
 
     it('returns empty config when .calm.json does not exist', async () => {
         const config = await loadCliConfig();
-        expect(config).toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
+        expect(config).toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined, directUrlAuth: undefined });
     });
 
     it('returns empty config when .calm.json is invalid JSON', async () => {
         vol.fromJSON({
             '/home/user/.calm.json': 'invalid json'
         });
-        await expect(loadCliConfig()).resolves.toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined });
+        await expect(loadCliConfig()).resolves.toEqual({ calmHubUrl: undefined, allowedRemoteHosts: undefined, authPluginPath: undefined, directUrlAuth: undefined });
     });
 
     it('replaces homedir in auth plugin path', async () => {
@@ -102,6 +103,63 @@ describe('cli-config', () => {
         const authPlugin = await loadAuthPlugin(config!.authPluginPath!, false);
         expect(authPlugin.getAuthHeaders).toBeDefined();
     });
+
+    it('loads directUrlAuth from config', async () => {
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({
+                directUrlAuth: {
+                    module: DIRECT_URL_JS_FIXTURE,
+                    options: { token: 'cfg-token' }
+                }
+            }),
+            [DIRECT_URL_JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        expect(config).toEqual({
+            directUrlAuth: {
+                module: DIRECT_URL_JS_FIXTURE,
+                options: { token: 'cfg-token' }
+            }
+        });
+    });
+
+    it('loads direct URL auth module from absolute path and passes constructor options', async () => {
+        vol.fromJSON({
+            '/home/user/.calm.json': JSON.stringify({
+                directUrlAuth: {
+                    module: DIRECT_URL_JS_FIXTURE,
+                    options: { token: 'cfg-token' }
+                }
+            }),
+            [DIRECT_URL_JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        const directUrlAuthPlugin = await loadDirectUrlAuthPlugin(config.directUrlAuth!, false);
+        await expect(directUrlAuthPlugin.getAuthHeaders('https://schemas.example.com/core.json', undefined))
+            .resolves.toEqual({
+                'Authorization': 'Bearer cfg-token',
+                'X-Request-Body': undefined
+            });
+    });
+
+    it('loads direct URL auth module with tilde path', async () => {
+        vi.mocked(homedir).mockReturnValue(FIXTURES_DIR);
+
+        vol.fromJSON({
+            [resolve(FIXTURES_DIR, '.calm.json')]: JSON.stringify({
+                directUrlAuth: {
+                    module: '~/test-direct-url-auth-plugin.js'
+                }
+            }),
+            [DIRECT_URL_JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        const directUrlAuthPlugin = await loadDirectUrlAuthPlugin(config.directUrlAuth!, false);
+        expect(directUrlAuthPlugin.getAuthHeaders).toBeDefined();
+    });
     
     it('loads config props from environment variables', async () => {
         vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');
@@ -116,7 +174,8 @@ describe('cli-config', () => {
         expect(config).toEqual({
             calmHubUrl: 'https://env-var.com/calmhub',
             allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
-            authPluginPath: './env-auth-plugin.js'
+            authPluginPath: './env-auth-plugin.js',
+            directUrlAuth: undefined
         });
     });
     
@@ -129,7 +188,8 @@ describe('cli-config', () => {
         expect(config).toEqual({
             calmHubUrl: 'https://env-var.com/calmhub',
             allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
-            authPluginPath: './env-auth-plugin.js'
+            authPluginPath: './env-auth-plugin.js',
+            directUrlAuth: undefined
         });
     });
 
@@ -144,12 +204,30 @@ describe('cli-config', () => {
         await expect(loadAuthPlugin('/does-not-exist.js', false)).rejects.toThrow(/Auth plugin file not found/i);
     });
 
+    it('rejects a direct URL auth module path that does not end in .js', async () => {
+        const nonJsPath = resolve(FIXTURES_DIR, 'something.txt');
+        vol.fromJSON({ [nonJsPath]: '' });
+
+        await expect(loadDirectUrlAuthPlugin({ module: nonJsPath }, false)).rejects.toThrow(/must have a .js extension/i);
+    });
+
+    it('rejects when the direct URL auth module file does not exist', async () => {
+        await expect(loadDirectUrlAuthPlugin({ module: '/does-not-exist.js' }, false)).rejects.toThrow(/direct URL auth module file not found/i);
+    });
+
     it('wraps any error from the dynamic import in a friendly message', async () => {
         // empty .js file → import() returns no default export, triggering the "must export default class" branch
         const emptyJs = resolve(FIXTURES_DIR, 'empty-plugin.js');
         vol.fromJSON({ [emptyJs]: '' });
 
         await expect(loadAuthPlugin(emptyJs, false)).rejects.toThrow(/Error loading auth plugin/i);
+    });
+
+    it('wraps any error from the direct URL auth module import in a friendly message', async () => {
+        const emptyJs = resolve(FIXTURES_DIR, 'empty-direct-url-plugin.js');
+        vol.fromJSON({ [emptyJs]: '' });
+
+        await expect(loadDirectUrlAuthPlugin({ module: emptyJs }, false)).rejects.toThrow(/Error loading direct URL auth module/i);
     });
 
     it('overrides config file with config props from environment variables', async () => {
@@ -169,7 +247,8 @@ describe('cli-config', () => {
         expect(config).toEqual({
             calmHubUrl: 'https://env-var.com/calmhub',
             allowedRemoteHosts: ['env1.example.com', 'env2.example.com'],
-            authPluginPath: './env-auth-plugin.js'
+            authPluginPath: './env-auth-plugin.js',
+            directUrlAuth: undefined
         });
     });
 });

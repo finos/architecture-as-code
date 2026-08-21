@@ -143,6 +143,43 @@ describe('direct-url-document-loader', () => {
         expect(document).toEqual({ '$id': url });
     });
 
+    it('adds auth headers from the direct URL auth plugin for allowlisted hosts', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/protected.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({
+                'Authorization': 'Bearer test-token',
+                'X-Trace-Id': 'trace-123'
+            })
+        };
+        mock.onGet('/protected.json').reply(200, { '$id': url, 'title': 'schema' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        expect(document).toEqual({ '$id': url, 'title': 'schema' });
+        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
+        const lastRequest = mock.history.get[mock.history.get.length - 1];
+        expect(lastRequest.headers?.Authorization).toBe('Bearer test-token');
+        expect(lastRequest.headers?.['X-Trace-Id']).toBe('trace-123');
+    });
+
+    it('treats direct URL auth plugin runtime failures as fatal', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/protected.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockRejectedValue(new Error('token exchange failed'))
+        };
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ recoverable: false });
+        await expect(promise).rejects.toThrow('Failed to load document from URL');
+        expect(mock.history.get).toHaveLength(0);
+    });
+
     it('throws DocumentLoadError for disallowed host', async () => {
         await expect(directUrlDocumentLoader.loadMissingDocument('https://finos.org/doc.json', 'schema'))
             .rejects.toBeInstanceOf(DocumentLoadError);
@@ -178,6 +215,17 @@ describe('direct-url-document-loader', () => {
         const url = 'https://calm.finos.org/calm/../secret.json';
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('directory traversal');
+    });
+
+    it('does not call the direct URL auth plugin for unsafe URLs', async () => {
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn()
+        };
+        const loader = new DirectUrlDocumentLoader(false, ax, ['calm.finos.org'], directUrlAuthPlugin);
+        const url = 'https://calm.finos.org/core.json;evil';
+
+        await expect(loader.loadMissingDocument(url, 'schema')).rejects.toThrow('disallowed characters');
+        expect(directUrlAuthPlugin.getAuthHeaders).not.toHaveBeenCalled();
     });
 
     it('rejects paths containing disallowed characters', async () => {
