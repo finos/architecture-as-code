@@ -1509,6 +1509,13 @@ describe('parseDocumentLoaderConfig', () => {
         return cliModule.parseDocumentLoaderConfig(options);
     };
 
+    const createMockLogger = () => ({
+        info: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+    });
+
     it('should parse calmhub url when provided', async () => {
         const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub'
@@ -1622,7 +1629,10 @@ describe('parseDocumentLoaderConfig', () => {
 
     it('loads direct URL auth module from config file when directUrlAuth is set', async () => {
         cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
         const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
@@ -1638,6 +1648,30 @@ describe('parseDocumentLoaderConfig', () => {
             configPath: '/configs/direct-url-auth.json'
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(mockLogger.info).toHaveBeenCalledWith(
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js (configPath: /configs/direct-url-auth.json)'
+        );
+    });
+
+    it('logs "not specified" when direct URL auth configPath is omitted', async () => {
+        cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuth: {
+                module: '/fake/direct-url-auth.js',
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(mockLogger.info).toHaveBeenCalledWith(
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js (configPath: not specified)'
+        );
     });
 
     it('logs an error and continues when direct URL auth module loading throws', async () => {
