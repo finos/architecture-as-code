@@ -7,6 +7,7 @@
 - When writing issues, follow the same guidelines: do not write lots of code examples and thoroughly lay out the entire proposed implementation plan. Prefer tables over lists of options, but don't put too much in each table cell.
 - When writing inline comments, do not explain exactly what the code does. Be concise, focusing on intent and any non-obvious gotchas.
 - Don't add comments to code that doesn't need them. Code should ideally be self-documenting.
+- When replying to review feedback, give the conclusion and the change only — "Confirmed, fixed in abc1234" is a complete reply. Do not repeat evidence the reviewer can read for themselves, do not explain how the mistake happened, and do not volunteer follow-up work nobody asked for. If you disagree, give the reason in a sentence or two and stop.
 - Write all the above in Simplified Technical English (ASD-STE100) where possible.
 
 ## Sandbox Folder for Working Files
