@@ -2,9 +2,11 @@
 
 ## Notes for supporting documentation
 
+- All documentation should be as concise as possible and should avoid explaining *everything*. Focus on the most significant details for a human reader.
 - When writing PR descriptions, do not describe every technical detail of the PR and don't include much, if any, code. Just explain any important decisions, technical gotchas that may not be obvious, and the overall intent of the PR. Link issues if possible.
-- When writing issues, follow the same guidelines: do not write lots of code examples and thoroughly lay out the entire proposed implementation plan.
+- When writing issues, follow the same guidelines: do not write lots of code examples and thoroughly lay out the entire proposed implementation plan. Prefer tables over lists of options, but don't put too much in each table cell.
 - When writing inline comments, do not explain exactly what the code does. Be concise, focusing on intent and any non-obvious gotchas.
+- Don't add comments to code that doesn't need them. Code should ideally be self-documenting.
 - Write all the above in Simplified Technical English (ASD-STE100) where possible.
 
 ## Sandbox Folder for Working Files
