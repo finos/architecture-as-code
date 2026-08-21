@@ -15,6 +15,15 @@ Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm wo
 ## Commands
 `npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
 
+## Testing gotcha — `localStorage` under Node 26
+
+`apps/studio/src/lib/stores/theme.svelte.ts` reads `localStorage` in production code.
+On Node 26 the global Web Storage API throws a `DOMException` when accessed without
+`--localstorage-file`, and in jsdom it shadows jsdom's own working implementation. No
+test exercises this path today, so the first jsdom test written against it will fail
+unless it stubs Storage. See `calm-hub-ui/AGENTS.md` for the injection pattern used
+elsewhere in the repo.
+
 ## CALM 1.2 Rules
 
 All output must conform to CALM 1.2. These are non-negotiable:

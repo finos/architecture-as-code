@@ -301,6 +301,25 @@ Reference components for the patterns above: `hub/Hub.tsx`, `components/navbar/N
 - Mock services at the module level with `vi.mock` and class constructor patterns
 - E2E tests are in `cypress/`
 
+### Storage must be injected, never taken from the global
+
+Node 25+ ships the Web Storage API as a real global, and Node 26 **throws a
+`DOMException`** when `localStorage` is touched without `--localstorage-file`. Under
+Vitest's jsdom environment Node's global shadows jsdom's working implementation, so any
+test that calls `.clear()` or `.getItem()` on the bare global fails.
+
+Two defences, and new code needs both:
+
+1. **Take `Storage` as a parameter.** `node-position-service.tsx`, `TimelineBar.tsx` and
+   `viewportStore.ts` all accept an optional `Storage`, defaulting to `localStorage` /
+   `sessionStorage`. In services and utilities take it as an argument; in components take
+   it as a `storage?: Storage` prop. Tests pass `createMemoryStorage()` from
+   `src/test-support/memory-storage.ts`.
+2. **The safety net.** `vitest.setup.ts` stubs both globals with `createMemoryStorage()`
+   for the whole run via `vi.stubGlobal`, so a test that forgets to inject still sees a
+   working Storage rather than a throwing one. Do not rely on this in new code — it exists
+   to stop the failure mode being silent.
+
 ### Test both desktop and mobile
 
 Any change that touches layout/rendering **must be verified at both a desktop and a
