@@ -1,5 +1,12 @@
 # FINOS CALM Monorepo - AI Assistant Guide
 
+## Notes for supporting documentation
+
+- When writing PR descriptions, do not describe every technical detail of the PR and don't include much, if any, code. Just explain any important decisions, technical gotchas that may not be obvious, and the overall intent of the PR. Link issues if possible.
+- When writing issues, follow the same guidelines: do not write lots of code examples and thoroughly lay out the entire proposed implementation plan.
+- When writing inline comments, do not explain exactly what the code does. Be concise, focusing on intent and any non-obvious gotchas.
+- Write all the above in Simplified Technical English (ASD-STE100) where possible.
+
 ## Sandbox Folder for Working Files
 
 **IMPORTANT:** Use the `/sandbox/` folder for all temporary working files, test outputs, notes, and drafts.
@@ -36,9 +43,8 @@ architecture-as-code/
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
-├── calm-suite/                # Sub-monorepos (see below)
-│   ├── calm-studio/           #   SvelteKit visual CALM editor — nested npm-workspace monorepo
-│   └── calm-guard/            #   Next.js continuous-compliance platform (CALMGuard)
+├── calm-studio/               # SvelteKit visual CALM editor — nested npm-workspace monorepo
+├── calm-guard/                # Next.js continuous-compliance platform (CALMGuard)
 ├── shared/                    # Shared TypeScript utilities
 ├── docs/                      # Docusaurus documentation site
 ├── examples/                  # Example CALM documents — source of truth for the CALM Hub seed scripts
@@ -49,17 +55,22 @@ architecture-as-code/
 └── scripts/                   # Repo maintenance scripts (e.g. lockfile validation)
 ```
 
-### `calm-suite/` — nested workspaces
+### Nested workspaces
 
-`calm-suite/` holds two products whose packages are wired directly into the **root** npm workspaces (run all npm commands from the repo root, never from inside these folders):
+`calm-studio/` and `calm-guard/` are products with their own internal structure, but their packages
+are wired directly into the **root** npm workspaces. Run all npm commands from the repo root, never
+from inside these folders.
 
-- **`calm-studio/`** (`calmstudio-workspace`) — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo. Sub-packages and the app are root workspaces via `calm-studio/packages/*` and `calm-studio/apps/*`: `@calmstudio/calm-core`, `@calmstudio/calmscript`, `@calmstudio/extensions`, `@calmstudio/github-action`, `@calmstudio/mcp`, `@calmstudio/diagram` (web-component), `calmstudio` (vscode-extension), and `@calmstudio/studio` (app).
-- **`calm-guard/`** (`calmguard`) — a Next.js (App Router) continuous-compliance platform, plus its Docusaurus docs (`calmguard-docs`). Both are root workspaces.
+- **`calm-studio/`** — a SvelteKit (Svelte 5) visual CALM editor, itself an npm-workspace monorepo.
+  Its packages and app join the root workspaces via `calm-studio/packages/*` and `calm-studio/apps/*`.
+  See [calm-studio/AGENTS.md](calm-studio/AGENTS.md) for the package list.
+- **`calm-guard/`** — a Next.js (App Router) continuous-compliance platform (`calmguard`), plus its
+  Docusaurus docs (`calmguard-docs`). Both are root workspaces.
 
 ## Technology Stack
 
 **TypeScript/Node.js** (npm workspaces):
-- CLI, models, widgets, shared, VSCode plugin, Hub UI, calm-server, calm-ai, and the `calm-suite/` products (CalmStudio's 8 packages/app + CALMGuard)
+- CLI, models, widgets, shared, VSCode plugin, Hub UI, calm-server, calm-ai, CalmStudio and CALMGuard
 - Build: tsup (esbuild), vitest for testing
 - Package manager: npm workspaces (single root lockfile; see [Lockfile Regeneration](#lockfile-regeneration))
 
@@ -118,7 +129,7 @@ If you add new tests that use `localStorage`/`sessionStorage`, follow this patte
 - In React components: accept `storage?: Storage` as a prop, default to `localStorage`.
 - In tests: pass `createMemoryStorage()` explicitly, or rely on the global stub in `vitest.setup.ts`.
 
-⚠️ **Latent risk in calm-studio:** `calm-suite/calm-studio/apps/studio/src/lib/stores/theme.svelte.ts`
+⚠️ **Latent risk in calm-studio:** `calm-studio/apps/studio/src/lib/stores/theme.svelte.ts`
 uses `localStorage` in production code under a jsdom test environment. No test currently exercises
 this path, but the first jsdom test written against it on Node 26 will need the same stub pattern.
 
@@ -471,5 +482,3 @@ git push origin feat/my-feature
 - Issues: https://github.com/finos/architecture-as-code/issues
 - Discussions: https://github.com/finos/architecture-as-code/discussions
 - Community: FINOS Architecture as Code meetings
-
----
