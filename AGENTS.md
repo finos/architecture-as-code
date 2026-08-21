@@ -65,11 +65,13 @@ from inside these folders.
 
 ## Technology Stack
 
-- **TypeScript/Node.js** — everything except calm-hub. Built with tsup (esbuild), tested with
-  vitest, managed as npm workspaces off a single root lockfile
+- **TypeScript/Node.js** — every package except the Java modules below. Built with tsup (esbuild),
+  tested with vitest, managed as npm workspaces off a single root lockfile
   (see [Lockfile Regeneration](#lockfile-regeneration)).
-- **Java/Maven** — calm-hub only (Quarkus 3.34+, MongoDB/NitriteDB, TestContainers). The root
-  `pom.xml` is a reactor; `cli`, `calm`, `docs` and `shared` are POM-only placeholders.
+- **Java/Maven** — the root `pom.xml` is a reactor over six modules. Two carry Java code: `calm-hub`
+  (Quarkus 3.34+, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
+  `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
+  — it is an npm workspace *and* a Maven module.
 - **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
 
 ## Node Version Requirements
@@ -190,7 +192,12 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 - **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
   `docs`, `vscode`, `deps`, `ci`, `release`
 
-Run `npx cz` for an interactive prompt. Note that only commits scoped `(cli)` trigger a CLI release.
+Run `npx cz` for an interactive prompt.
+
+Type and scope drive the automated release, so neither is cosmetic: `cli/.releaserc.json` releases
+on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
+also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. Check that file before assuming a
+commit is release-neutral.
 
 ## Pre-Commit Checklist
 

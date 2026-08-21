@@ -3,14 +3,17 @@
 Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm workspaces monorepo.
 
 ## Structure
-- `packages/calm-core/` — CALM types, validation
-- `packages/extensions/` — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
-- `packages/calmscript/` — DSL compiler
-- `packages/mcp-server/` — MCP server (20 tools)
-- `packages/github-action/` — GitHub Action build target
-- `packages/vscode-extension/` — VSCode extension build target
-- `packages/web-component/` — embeddable web component build target
-- `apps/studio/src/lib/` — canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
+Each entry below is a root npm workspace, matched by `calm-studio/packages/*` and
+`calm-studio/apps/*` in the root `package.json`. Run npm commands from the repo root.
+
+- `packages/calm-core/` (`@calmstudio/calm-core`) — CALM types, validation
+- `packages/extensions/` (`@calmstudio/extensions`) — Node type packs (core, fluxnova, ai, aws, gcp, azure, k8s, messaging, identity, opengris)
+- `packages/mcp-server/` (`@calmstudio/mcp`) — MCP server (20 tools)
+- `packages/github-action/` (`@calmstudio/github-action`) — GitHub Action build target
+- `packages/vscode-extension/` (`calmstudio`) — VSCode extension build target
+- `packages/web-component/` (`@calmstudio/diagram`) — embeddable web component build target
+- `packages/docusaurus-plugin/` (`@finos/calm-docusaurus-plugin`) — Docusaurus plugin
+- `apps/studio/` (`@calmstudio/studio`) — the SvelteKit app; `src/lib/` holds canvas, editor, io, layout, palette, properties, stores, validation, governance, templates (also c4, desktop, search, toolbar; list illustrative)
 
 ## Commands
 `npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
@@ -21,8 +24,8 @@ Visual CALM architecture editor. SvelteKit (Svelte 5), TypeScript strict, npm wo
 On Node 26 the global Web Storage API throws a `DOMException` when accessed without
 `--localstorage-file`, and in jsdom it shadows jsdom's own working implementation. No
 test exercises this path today, so the first jsdom test written against it will fail
-unless it stubs Storage. See `calm-hub-ui/AGENTS.md` for the injection pattern used
-elsewhere in the repo.
+unless it stubs Storage. See [../calm-hub-ui/AGENTS.md](../calm-hub-ui/AGENTS.md) for the injection pattern
+used elsewhere in the repo.
 
 ## CALM 1.2 Rules
 
