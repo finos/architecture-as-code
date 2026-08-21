@@ -7,6 +7,15 @@ import { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
+const REDACTED_HEADER_VALUE = '[REDACTED]';
+const SENSITIVE_HEADER_NAMES = new Set([
+    'authorization',
+    'cookie',
+    'set-cookie',
+    'proxy-authorization',
+    'x-api-key',
+    'x-auth-token',
+]);
 
 const PRIVATE_IPV4_PATTERNS = [
     /^127\./,
@@ -52,17 +61,49 @@ function toRequestPath(parsedUrl: URL): string {
     return `/${normalizedPath}`;
 }
 
-function sanitizeErrorMessage(error: unknown): string | undefined {
-    if (!(error instanceof Error)) {
-        return undefined;
+function normalizeHeaderValue(value: unknown): string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined> {
+    if (Array.isArray(value)) {
+        return value.map(item => normalizeHeaderValue(item) as string | number | boolean | null | undefined);
+    }
+    if (
+        value === null
+        || value === undefined
+        || typeof value === 'string'
+        || typeof value === 'number'
+        || typeof value === 'boolean'
+    ) {
+        return value;
+    }
+    return JSON.stringify(value);
+}
+
+function redactHeaders(headers: unknown): Record<string, ReturnType<typeof normalizeHeaderValue> | typeof REDACTED_HEADER_VALUE> {
+    const candidate = typeof headers === 'object' && headers !== null && 'toJSON' in headers && typeof headers.toJSON === 'function'
+        ? headers.toJSON()
+        : headers;
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return {};
     }
 
-    const firstLine = error.message.split('\n')[0]?.trim();
-    if (!firstLine) {
-        return undefined;
-    }
+    return Object.fromEntries(
+        Object.entries(candidate).map(([key, value]) => [
+            key,
+            SENSITIVE_HEADER_NAMES.has(key.toLowerCase()) ? REDACTED_HEADER_VALUE : normalizeHeaderValue(value),
+        ])
+    );
+}
 
-    return firstLine.replace(/\s+/g, ' ');
+function resolveLoggedUrl(baseURL: unknown, url: unknown): string | undefined {
+    const base = typeof baseURL === 'string' ? baseURL : undefined;
+    const path = typeof url === 'string' ? url : undefined;
+    if (base && path) {
+        try {
+            return new URL(path, base).toString();
+        } catch {
+            return `${base}${path}`;
+        }
+    }
+    return base ?? path;
 }
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
@@ -96,12 +137,25 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
     addAxiosDebug() {
         this.ax.interceptors.request.use(request => {
-            console.log('Starting Request', JSON.stringify(request, null, 2));
+            this.logger.debug(`Starting Request: ${JSON.stringify({
+                method: request.method,
+                url: resolveLoggedUrl(request.baseURL, request.url),
+                baseURL: request.baseURL,
+                path: request.url,
+                timeout: request.timeout,
+                maxRedirects: request.maxRedirects,
+                allowAbsoluteUrls: request.allowAbsoluteUrls,
+                headers: redactHeaders(request.headers),
+            }, null, 2)}`);
             return request;
         });
 
         this.ax.interceptors.response.use(response => {
-            console.log('Response:', response);
+            this.logger.debug(`Response: ${JSON.stringify({
+                status: response.status,
+                statusText: response.statusText,
+                url: resolveLoggedUrl(response.config?.baseURL, response.config?.url),
+            }, null, 2)}`);
             return response;
         });
     }
@@ -191,12 +245,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 try {
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
                 } catch (error) {
-                    const safeMessage = sanitizeErrorMessage(error);
                     throw new DocumentLoadError({
                         name: 'AUTHENTICATION_FAILED',
-                        message: safeMessage
-                            ? `Direct URL authentication failed for ${documentId}: ${safeMessage}`
-                            : `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
+                        message: `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
                         cause: error instanceof Error ? error : undefined,
                         recoverable: false
                     });

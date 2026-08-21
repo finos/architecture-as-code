@@ -2,6 +2,7 @@ import axios from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { DocumentLoadError } from './document-loader';
+import type { Logger } from '../logger';
 
 const ax = axios.create({});
 const mock = new AxiosMockAdapter(ax);
@@ -164,11 +165,52 @@ describe('direct-url-document-loader', () => {
         expect(lastRequest.headers?.['X-Trace-Id']).toBe('trace-123');
     });
 
+    it('redacts sensitive auth headers in debug logs while keeping safe request metadata', async () => {
+        const loggerModule = await import('../logger');
+        const mockLogger: Logger = {
+            log: vi.fn(),
+            debug: vi.fn(),
+            info: vi.fn(),
+            warn: vi.fn(),
+            error: vi.fn(),
+        };
+        vi.spyOn(loggerModule, 'initLogger').mockReturnValue(mockLogger);
+
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/debug-protected.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({
+                'Authorization': 'Bearer super-secret-token',
+                'X-Api-Key': 'api-key-secret',
+                'X-Trace-Id': 'trace-123'
+            })
+        };
+        mock.onGet('/debug-protected.json').reply(200, { '$id': url, 'title': 'schema' });
+
+        const debugLoader = new DirectUrlDocumentLoader(true, ax, [allowlistedHost], directUrlAuthPlugin);
+        await debugLoader.loadMissingDocument(url, 'schema');
+
+        const debugOutput = (mockLogger.debug as ReturnType<typeof vi.fn>).mock.calls
+            .map(([message]) => String(message))
+            .join('\n');
+
+        expect(debugOutput).toContain('Starting Request:');
+        expect(debugOutput).toContain('"method": "get"');
+        expect(debugOutput).toContain(`"url": "${url}"`);
+        expect(debugOutput).toContain('"Authorization": "[REDACTED]"');
+        expect(debugOutput).toContain('"X-Api-Key": "[REDACTED]"');
+        expect(debugOutput).toContain('"X-Trace-Id": "trace-123"');
+        expect(debugOutput).toContain('Response:');
+        expect(debugOutput).toContain('"status": 200');
+        expect(debugOutput).not.toContain('super-secret-token');
+        expect(debugOutput).not.toContain('api-key-secret');
+    });
+
     it('treats direct URL auth plugin runtime failures as fatal', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `https://${allowlistedHost}/protected.json`;
         const directUrlAuthPlugin = {
-            getAuthHeaders: vi.fn().mockRejectedValue(new Error('token exchange failed'))
+            getAuthHeaders: vi.fn().mockRejectedValue(new Error('token exchange failed: super-secret-token'))
         };
         const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
 
@@ -177,7 +219,8 @@ describe('direct-url-document-loader', () => {
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toMatchObject({ recoverable: false });
         await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
-        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}: token exchange failed`);
+        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
+        await expect(promise).rejects.not.toThrow('super-secret-token');
         expect(mock.history.get).toHaveLength(0);
     });
 
