@@ -1109,3 +1109,55 @@ To avoid passing `--calm-hub-url` every time, add the URL to `~/.calm.json`:
 ```
 
 For `push` to work, each document must have a namespace recorded in the manifest. This is set automatically by `new`. For files added with `add`, pass `--namespace <ns>` at add time. Any file without a namespace is skipped during push with a message explaining how to fix it.
+
+## Direct URL Document Loader - Custom Authentication Plugin
+
+`directUrlAuth.module` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+
+```ts
+new DefaultExport(configPath?)
+```
+
+So the class interface is effectively:
+
+```ts
+interface DirectUrlAuthPlugin {
+  getAuthHeaders(url: string, requestBody: unknown): Promise<Record<string, string>>;
+  getTlsConfig?(): Promise<{
+    httpsCaCert?: string;
+  }>;
+}
+```
+
+What each part means:
+
+- `getAuthHeaders(url, requestBody)` is required.
+  It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
+- `getTlsConfig()` is optional.
+  If present, it is only used for `https:` URLs and can return a custom CA cert via `httpsCaCert`.
+- The constructor may accept an optional `configPath: string | undefined`.
+  If the user sets `directUrlAuth.configPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
+
+A minimal example:
+
+```js
+export default class MyDirectUrlAuth {
+  constructor(configPath) {
+    this.configPath = configPath;
+  }
+
+  async getAuthHeaders(url, requestBody) {
+    return {
+      Authorization: "Bearer my-token"
+    };
+  }
+
+  async getTlsConfig() {
+    return {
+      httpsCaCert: "-----BEGIN CERTIFICATE-----\n..."
+    };
+  }
+}
+```
+
+One important nuance: the module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
