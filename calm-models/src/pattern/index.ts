@@ -1,7 +1,9 @@
 export {
     getPatternArray,
-    readCatalog,
+    readChoiceBlock,
+    listCandidates,
     type SchemaNode,
     type PatternArray,
-    type Catalog,
+    type ChoiceBlock,
+    type Candidate,
 } from './pattern-reader.js';

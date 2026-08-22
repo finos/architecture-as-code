@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     getPatternArray,
-    readCatalog,
+    readChoiceBlock,
+    listCandidates,
     type SchemaNode,
 } from './pattern-reader.js';
 
@@ -60,37 +61,119 @@ describe('getPatternArray', () => {
     });
 });
 
-describe('readCatalog', () => {
+describe('readChoiceBlock', () => {
     it('returns null for an undefined catalog', () => {
-        expect(readCatalog(undefined)).toBeNull();
+        expect(readChoiceBlock(undefined)).toBeNull();
     });
 
     it('returns null when neither oneOf nor anyOf is an array', () => {
-        expect(readCatalog({})).toBeNull();
-        expect(readCatalog({ oneOf: 'not-an-array' })).toBeNull();
+        expect(readChoiceBlock({})).toBeNull();
+        expect(readChoiceBlock({ oneOf: 'not-an-array' })).toBeNull();
     });
 
     it('reads a oneOf-only catalog', () => {
         const alternatives = [nodeWithId('a'), nodeWithId('b')];
-        expect(readCatalog({ oneOf: alternatives })).toEqual({ groupType: 'oneOf', alternatives });
+        expect(readChoiceBlock({ oneOf: alternatives })).toEqual({ groupType: 'oneOf', alternatives });
     });
 
     it('reads an anyOf-only catalog', () => {
         const alternatives = [nodeWithId('a')];
-        expect(readCatalog({ anyOf: alternatives })).toEqual({ groupType: 'anyOf', alternatives });
+        expect(readChoiceBlock({ anyOf: alternatives })).toEqual({ groupType: 'anyOf', alternatives });
     });
 
     it('prefers oneOf over anyOf when both are present', () => {
         const oneOfAlts = [nodeWithId('one')];
         const anyOfAlts = [nodeWithId('any')];
-        expect(readCatalog({ oneOf: oneOfAlts, anyOf: anyOfAlts })).toEqual({
+        expect(readChoiceBlock({ oneOf: oneOfAlts, anyOf: anyOfAlts })).toEqual({
             groupType: 'oneOf',
             alternatives: oneOfAlts,
         });
     });
 });
 
+describe('listCandidates', () => {
+    it('lists a plain prefixItems entry', () => {
+        const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
+        expect(listCandidates(pattern, 'nodes')).toEqual([
+            { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
+        ]);
+    });
 
+    it('unions oneOf and anyOf on the same slot, unlike readChoiceBlock', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ oneOf: [nodeWithId('a')], anyOf: [nodeWithId('b')] }],
+                },
+            },
+        };
 
+        const candidates = listCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
+        expect(candidates.map((c) => c.blockType)).toEqual(['oneOf', 'anyOf']);
+        expect(candidates.every((c) => c.site === 'prefixItemAlternative' && c.slotIndex === 0)).toBe(true);
+    });
 
+    it('yields both the slot and its alternatives for a hybrid slot', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ ...nodeWithId('hybrid'), oneOf: [nodeWithId('alt')] }],
+                },
+            },
+        };
+
+        const candidates = listCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => ({ uniqueId: c.uniqueId, site: c.site }))).toEqual([
+            { uniqueId: 'hybrid', site: 'prefixItem' },
+            { uniqueId: 'alt', site: 'prefixItemAlternative' },
+        ]);
+    });
+
+    it('lists items.oneOf and items.anyOf catalog members together', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: { oneOf: [nodeWithId('cat-one')], anyOf: [nodeWithId('cat-any')] },
+                },
+            },
+        };
+
+        const candidates = listCandidates(pattern, 'nodes');
+        expect(candidates).toEqual([
+            { uniqueId: 'cat-one', site: 'catalogMember', node: nodeWithId('cat-one'), path: ['properties', 'nodes', 'items', 'oneOf', 0], blockType: 'oneOf' },
+            { uniqueId: 'cat-any', site: 'catalogMember', node: nodeWithId('cat-any'), path: ['properties', 'nodes', 'items', 'anyOf', 0], blockType: 'anyOf' },
+        ]);
+    });
+
+    it('skips a pure choice-block slot with no unique-id of its own', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [{ oneOf: [nodeWithId('a'), nodeWithId('b')] }] },
+            },
+        };
+
+        const candidates = listCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
+        expect(candidates.some((c) => c.uniqueId === undefined)).toBe(false);
+    });
+
+    it('skips a catalog member with no const-pinned unique-id', () => {
+        const pattern = {
+            properties: { nodes: { items: { oneOf: [{ properties: {} }] } } },
+        };
+        expect(listCandidates(pattern, 'nodes')).toEqual([]);
+    });
+
+    it('returns an empty array when the calmType is absent', () => {
+        expect(listCandidates({ properties: {} }, 'nodes')).toEqual([]);
+    });
+
+    it('does not fall back into an allOf branch, unlike getPatternArray', () => {
+        const pattern = {
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
+        };
+        expect(listCandidates(pattern, 'nodes')).toEqual([]);
+    });
+});
 

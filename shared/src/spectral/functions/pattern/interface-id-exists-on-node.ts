@@ -1,6 +1,7 @@
-import { JSONPath } from 'jsonpath-plus';
 import { difference } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
+import { listCandidates, type SchemaNode } from '@finos/calm-models/pattern';
+import { listNodeInterfaces } from './candidate-helpers';
 
 interface ConnectsRelationship {
     node?: string;
@@ -23,18 +24,12 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     }
 
     const nodeId = input.node;
-    const nodes: object[] = JSONPath({ path: '$.properties.nodes.prefixItems[*]', json: context.document.data as object });
-    // Nodes may also be declared in an `items.oneOf`/`items.anyOf` open catalog; each catalog
-    // alternative is itself a node schema, so include them in the node lookup.
-    nodes.push(...JSONPath({ path: '$.properties.nodes.items.oneOf[*]', json: context.document.data as object }));
-    nodes.push(...JSONPath({ path: '$.properties.nodes.items.anyOf[*]', json: context.document.data as object }));
-    const node = nodes.find((node) => {
-        const uniqueId: string[] = JSONPath({ path: '$.properties.unique-id.const', json: node });
-        uniqueId.push(...JSONPath({ path: '$.oneOf[*].properties.unique-id.const', json: node }));
-        uniqueId.push(...JSONPath({ path: '$.anyOf[*].properties.unique-id.const', json: node }));
-        return uniqueId && uniqueId[0] === nodeId;
-    });
-    if (!node) {
+    const pattern = context.document.data as SchemaNode;
+    // Each candidate carries its own unique-id, so this finds the exact alternative that
+    // matches - not, as the old JSONPath-based lookup did, just the first alternative in
+    // a oneOf/anyOf slot regardless of which one actually has this id.
+    const nodeCandidate = listCandidates(pattern, 'nodes').find((candidate) => candidate.uniqueId === nodeId);
+    if (!nodeCandidate) {
         // other rule will report undefined node
         return [];
     }
@@ -42,10 +37,10 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     // all of these must be present on the referenced node
     const desiredInterfaces = input.interfaces;
 
-    const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node });
-    nodeInterfaces.push(...JSONPath({ path: '$.oneOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
-    nodeInterfaces.push(...JSONPath({ path: '$.anyOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
-    if (!nodeInterfaces || nodeInterfaces.length === 0) {
+    // Only this node's own interfaces - not, as before, the union of interfaces declared
+    // across every alternative in its oneOf/anyOf slot.
+    const nodeInterfaces = listNodeInterfaces(nodeCandidate.node).map((iface) => iface.uniqueId);
+    if (nodeInterfaces.length === 0) {
         return [
             { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
         ];
