@@ -137,6 +137,26 @@ describe('bump', () => {
             expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
         });
 
+        it.each([
+            ['MAJOR', '2.0.0'],
+            ['PATCH', '1.0.1'],
+        ] as const)('applies a %s bump to a changed narrative document', async (increment, version) => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            await bumpWorkspace(bundlePath, client, { increment });
+            expect((await loadManifest(bundlePath)).payments.version).toBe(version);
+
+            expect(await bumpWorkspace(bundlePath, client, { increment })).toMatchObject({ bumped: [] });
+        });
+
         it('skips a brand-new resource with no versions in CalmHub', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });

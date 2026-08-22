@@ -7,7 +7,7 @@ describe('narrative document helpers', () => {
     it('uses frontmatter title and preserves CRLF Markdown', () => {
         const markdown = '---\r\ntitle: Payments SAD\r\ndescription: Decisions\r\n---\r\n# Content\r\n';
         expect(parseNarrativeDocument(markdown, 'payments')).toEqual({
-            request: { name: 'Payments SAD', description: 'Decisions', documentMarkdown: markdown }, markdown,
+            request: { name: 'Payments SAD', description: 'Decisions', documentMarkdown: markdown },
         });
     });
 
@@ -37,7 +37,9 @@ describe('narrative document helpers', () => {
 
     it.each([
         [{ ...identity, namespace: 'not_valid' }, false, /valid namespace/],
-        [{ ...identity, type: 'other' as never }, false, /Unsupported/],
+        [{ ...identity, namespace: 42 }, false, /valid namespace/],
+        [{ ...identity, type: 'other' as never }, false, /unsupported/],
+        [{ ...identity, version: 1 }, false, /major.minor.patch/],
         [{ ...identity, version: '01.0.0' }, false, /major.minor.patch/],
         [{ ...identity, calmHubDocumentId: 0 }, true, /positive integer/],
     ])('rejects invalid persisted identity %#', (candidate, requireId, message) => {
@@ -51,5 +53,13 @@ describe('narrative document helpers', () => {
             '/api/calm/namespaces/finos/documents/sad/43/versions/1.0.0',
             { ...identity, calmHubDocumentId: 42 }
         )).toThrow(/stored document id/);
+        expect(() => parseNarrativeDocumentLocation(null, identity)).toThrow(/unexpected format/);
+        expect(() => parseNarrativeDocumentLocation(
+            '/api/calm/namespaces/finos/documents/sad/42/versions/01.0.0', identity, false
+        )).toThrow(/unexpected format/);
+        expect(parseNarrativeDocumentLocation(
+            '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            { ...identity, version: '1.1.0', calmHubDocumentId: 42 }, false
+        )).toBe(42);
     });
 });

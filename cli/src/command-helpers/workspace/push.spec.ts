@@ -178,6 +178,20 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
     });
 
+    it('rejects malformed persisted narrative identity before calling Hub', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 42 as unknown as string, version: '1.1.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/valid namespace/);
+        expect(client.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+    });
+
     it('fails narrative publish when Hub returns an unexpected Location', async () => {
         await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
         await saveManifest(bundlePath, {

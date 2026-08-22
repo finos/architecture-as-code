@@ -803,7 +803,7 @@ calm workspace init my-system
 
 #### `calm workspace add <file>`
 
-Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
+Register a CALM JSON document or narrative Markdown document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
 
 ```
 calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
@@ -812,16 +812,18 @@ calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] 
 | Option | Description |
 |--------|-------------|
 | `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
-| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`. |
-| `--namespace <namespace>` | CalmHub namespace to record in the manifest. If omitted, it is derived from the document `$id`. |
+| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`, `knowledge`, `sad`. |
+| `--namespace <namespace>` | CalmHub namespace to record in the manifest. It is required for narrative Markdown and otherwise derived from the document `$id` when omitted. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
 
-**Document `$id` handling.** `add` inspects the file's CalmHub `$id`:
+**Narrative Markdown documents.** Use `--type knowledge` or `sad`. `add` reads YAML frontmatter. A non-empty `title` becomes the manifest name unless you supply `--id`. `--namespace` is required. The initial manifest version is `1.0.0`. Markdown has no CALM `$id` and is never rewritten.
+
+**JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
 - **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `flow`, `adr`, `timeline`).
 
-**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file, else an interactive prompt.
+**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file or Markdown frontmatter, else an interactive prompt.
 
 ```shell
 # Interactive — prompts for type, builds the $id if needed, then the manifest name
@@ -829,6 +831,9 @@ calm workspace add ./architectures/payment-service.json
 
 # Reference an already-conformant document without copying
 calm workspace add ./architectures/payment-service.json --type architecture
+
+# Register a narrative Markdown document; the frontmatter title becomes its manifest name
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos
 ```
 
 #### `calm workspace new [type] [name] [template]`
@@ -895,6 +900,7 @@ calm workspace add ./docs/payments-sad.md --type sad --namespace finos
 calm workspace push --calm-hub-url http://localhost:8080
 calm workspace show                              # shows the published Hub location
 calm workspace check --calm-hub-url http://localhost:8080
+# Edit ./docs/payments-sad.md, then bump and publish the new version
 calm workspace bump --minor --calm-hub-url http://localhost:8080
 calm workspace push --calm-hub-url http://localhost:8080
 ```

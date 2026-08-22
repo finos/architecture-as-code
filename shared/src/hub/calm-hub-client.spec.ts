@@ -33,6 +33,14 @@ describe('CalmHubClient', () => {
             });
         });
 
+        it('creates a typed later version at the version endpoint', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/knowledge/42/versions/1.1.0';
+            mock.onPost(endpoint).reply(201, null, { location: endpoint });
+
+            await expect(client.createNarrativeDocumentVersion('finos', 'knowledge', 42, '1.1.0', request)).resolves.toBe(endpoint);
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
         it('reads typed Markdown and rejects malformed success bodies', async () => {
             const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0';
             mock.onGet(endpoint).replyOnce(200, { documentMarkdown: '# Payments' });
@@ -47,6 +55,16 @@ describe('CalmHubClient', () => {
             await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).resolves.toEqual(['1.0.0']);
             mock.onGet(endpoint).replyOnce(200, { values: [42] });
             await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it.each([404, 500])('wraps a %i response from a narrative endpoint', async (status) => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(status, { error: 'unavailable' });
+
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toMatchObject({
+                status,
+                request: `GET ${endpoint}`,
+            });
         });
     });
 
@@ -169,6 +187,19 @@ describe('CalmHubClient', () => {
 
             expect(getAuthHeaders).toHaveBeenCalledOnce();
             expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on narrative document requests', async () => {
+            authMock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+
+            await authClient.createNarrativeDocument('finos', 'sad', {
+                name: 'Payments SAD', documentMarkdown: '# Payments',
+            });
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
         });
 
         it('does not call getAuthHeaders when no auth plugin is configured', async () => {

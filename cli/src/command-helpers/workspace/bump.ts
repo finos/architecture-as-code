@@ -11,7 +11,7 @@ import {
 import { computeSemVerBump, sortSemVer } from '@finos/calm-shared/src/hub/semver';
 import { canonicalEqual } from '@finos/calm-shared/src/hub/canonical';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
-import { NarrativeDocumentIdentity, isNarrativeDocumentType, parseNarrativeDocument, validateNarrativeIdentity } from './narrative-document';
+import { NarrativeDocumentIdentity, isNarrativeDocumentType, parseNarrativeDocument, parseNarrativeDocumentLocation, validateNarrativeIdentity } from './narrative-document';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -47,7 +47,7 @@ interface ChangedResourceBase {
 
 export type ChangedResource =
     | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata })
-    | (ChangedResourceBase & { kind: 'narrative'; narrativeIdentity: NarrativeDocumentIdentity });
+    | (ChangedResourceBase & { kind: 'narrative' });
 
 export interface BumpResult {
     bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string; triggeredBy?: string; increment?: ResourceChangeType }>;
@@ -119,10 +119,11 @@ export async function detectChangedResources(
             };
             parseNarrativeDocument(raw, id);
             if (entry.calmHubDocumentId === undefined) {
-                validateNarrativeIdentity(identity, false);
+                validateNarrativeIdentity(identity, false, id);
                 continue;
             }
-            validateNarrativeIdentity(identity, true);
+            validateNarrativeIdentity(identity, true, id);
+            parseNarrativeDocumentLocation(entry.calmHubId, identity, false);
             const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId!);
             if (versions.length === 0 || !versions.includes(version)) continue;
             const remote = await client.getNarrativeDocumentVersion(
@@ -131,7 +132,7 @@ export async function detectChangedResources(
             if (remote.documentMarkdown === raw) continue;
             changed.push({
                 id, filePath, currentVersion: version,
-                latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative', narrativeIdentity: identity,
+                latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
             });
             continue;
         }

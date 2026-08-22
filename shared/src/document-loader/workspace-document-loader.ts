@@ -5,10 +5,10 @@ import { readFile } from 'fs/promises';
 import { existsSync, readFileSync } from 'fs';
 import { SchemaDirectory } from '../schema-directory';
 import path from 'path';
+import { NARRATIVE_DOCUMENT_TYPES, type NarrativeDocumentType } from '../hub/calm-hub-client';
 
 // Mirrors MANIFEST_FILENAME in the CLI workspace bundle module.
 const MANIFEST_FILENAME = 'workspace-manifest.json';
-const NARRATIVE_DOCUMENT_TYPES = new Set(['knowledge', 'sad']);
 
 /**
  * Identity of a single tracked workspace document, used to decide whether an
@@ -85,7 +85,7 @@ export class WorkspaceDocumentLoader implements DocumentLoader {
                 : undefined;
             // Narrative documents are Markdown rather than CALM JSON documents. They cannot be
             // schema-preloaded or resolve a CALM `$ref`, so keep them out of this JSON-only loader.
-            if (typeof type === 'string' && NARRATIVE_DOCUMENT_TYPES.has(type)) continue;
+            if (typeof type === 'string' && NARRATIVE_DOCUMENT_TYPES.includes(type as NarrativeDocumentType)) continue;
             const relPath = typeof value === 'string'
                 ? value
                 : (value && typeof value === 'object' && typeof (value as { path?: unknown }).path === 'string'

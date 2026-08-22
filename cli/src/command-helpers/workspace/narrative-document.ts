@@ -14,10 +14,9 @@ export interface NarrativeDocumentIdentity {
 
 export interface ParsedNarrativeDocument {
     request: NarrativeDocumentRequest;
-    markdown: string;
 }
 
-export function isNarrativeDocumentType(type: string): type is NarrativeDocumentType {
+export function isNarrativeDocumentType(type: unknown): type is NarrativeDocumentType {
     return NARRATIVE_DOCUMENT_TYPES.includes(type as NarrativeDocumentType);
 }
 
@@ -48,33 +47,44 @@ export function parseNarrativeDocument(markdown: string, label: string): ParsedN
             ...(description === undefined ? {} : { description }),
             documentMarkdown: markdown,
         },
-        markdown,
     };
 }
 
-export function validateNarrativeIdentity(identity: NarrativeDocumentIdentity, requireDocumentId: boolean): void {
-    if (!NAMESPACE_PATTERN.test(identity.namespace)) {
-        throw new Error('Narrative document namespace must be a non-empty valid namespace.');
+export function validateNarrativeIdentity(identity: unknown, requireDocumentId: boolean, label?: string): asserts identity is NarrativeDocumentIdentity {
+    const prefix = label ? `Narrative document '${label}' ` : 'Narrative document ';
+    if (!identity || typeof identity !== 'object') {
+        throw new Error(`${prefix}identity must be an object.`);
     }
-    if (!isNarrativeDocumentType(identity.type)) {
-        throw new Error(`Unsupported narrative document type '${identity.type}'.`);
+    const candidate = identity as Record<string, unknown>;
+    if (typeof candidate.namespace !== 'string' || !NAMESPACE_PATTERN.test(candidate.namespace)) {
+        throw new Error(`${prefix}namespace must be a non-empty valid namespace.`);
     }
-    if (!SEMVER_PATTERN.test(identity.version)) {
-        throw new Error(`Narrative document version '${identity.version}' must be major.minor.patch.`);
+    if (!isNarrativeDocumentType(candidate.type)) {
+        throw new Error(`${prefix}has unsupported type '${String(candidate.type)}'.`);
     }
-    if (requireDocumentId && (!Number.isSafeInteger(identity.calmHubDocumentId) || identity.calmHubDocumentId! <= 0)) {
-        throw new Error('Narrative document calmHubDocumentId must be a positive integer.');
+    if (typeof candidate.version !== 'string' || !SEMVER_PATTERN.test(candidate.version)) {
+        throw new Error(`${prefix}version '${String(candidate.version)}' must be major.minor.patch.`);
+    }
+    if (requireDocumentId && (!Number.isSafeInteger(candidate.calmHubDocumentId) || (candidate.calmHubDocumentId as number) <= 0)) {
+        throw new Error(`${prefix}calmHubDocumentId must be a positive integer.`);
     }
 }
 
-export function parseNarrativeDocumentLocation(location: string, identity: NarrativeDocumentIdentity): number {
+export function parseNarrativeDocumentLocation(
+    location: unknown,
+    identity: NarrativeDocumentIdentity,
+    requireIdentityVersion: boolean = true
+): number {
+    if (typeof location !== 'string' || !location) {
+        throw new Error(`Narrative document Location '${String(location)}' has an unexpected format.`);
+    }
     const path = extractLocationPath(location);
     const match = LOCATION_PATTERN.exec(path);
     if (!match) {
         throw new Error(`Narrative document Location '${location}' has an unexpected format.`);
     }
     const [, namespace, type, idString, version] = match;
-    if (namespace !== identity.namespace || type !== identity.type || version !== identity.version) {
+    if (namespace !== identity.namespace || type !== identity.type || (requireIdentityVersion && version !== identity.version)) {
         throw new Error(`Narrative document Location '${location}' does not match the requested identity.`);
     }
     const id = Number(idString);

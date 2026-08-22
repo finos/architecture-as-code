@@ -39,8 +39,8 @@ export interface HubControlSummary {
 
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
 
-export type NarrativeDocumentType = 'knowledge' | 'sad';
-export const NARRATIVE_DOCUMENT_TYPES: NarrativeDocumentType[] = ['knowledge', 'sad'];
+export const NARRATIVE_DOCUMENT_TYPES = ['knowledge', 'sad'] as const;
+export type NarrativeDocumentType = typeof NARRATIVE_DOCUMENT_TYPES[number];
 
 export interface NarrativeDocumentRequest {
     name: string;

@@ -224,6 +224,38 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
+        it('registers Markdown using its frontmatter title without rewriting it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            mocks.readFile.mockResolvedValueOnce(markdown);
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos']);
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('payments.md'),
+                expect.objectContaining({ id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('requires a namespace when adding a narrative document', async () => {
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'knowledge'])
+            ).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('does not mutate or register Markdown with malformed frontmatter', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: [\n---\n# Payments\n');
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos'])
+            ).rejects.toThrow();
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
         it('should exit when no workspace bundle found', async () => {
             mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(

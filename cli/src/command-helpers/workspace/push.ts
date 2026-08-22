@@ -76,7 +76,7 @@ export async function pushWorkspaceToHub(
                 const narrative = parseNarrativeDocument(raw, id);
 
                 if (entry.calmHubDocumentId === undefined) {
-                    validateNarrativeIdentity(identity, false);
+                    validateNarrativeIdentity(identity, false, id);
                     if (version !== '1.0.0') {
                         throw new Error('A narrative document without calmHubDocumentId must use version 1.0.0.');
                     }
@@ -88,7 +88,8 @@ export async function pushWorkspaceToHub(
                     continue;
                 }
 
-                validateNarrativeIdentity(identity, true);
+                validateNarrativeIdentity(identity, true, id);
+                parseNarrativeDocumentLocation(entry.calmHubId, identity, false);
                 const versions = await client.getNarrativeDocumentVersions(
                     identity.namespace, identity.type, identity.calmHubDocumentId!
                 );
