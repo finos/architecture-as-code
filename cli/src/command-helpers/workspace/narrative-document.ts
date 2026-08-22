@@ -1,7 +1,10 @@
 import { NarrativeDocumentRequest, NarrativeDocumentType, NARRATIVE_DOCUMENT_TYPES } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { parseYamlFrontMatterMapping } from '@finos/calm-shared/src/template/front-matter';
 
-const LOCATION_PATTERN = /^\/api\/calm\/namespaces\/([^/]+)\/documents\/(knowledge|sad)\/(\d+)\/versions\/((?:0|[1-9]\d*)\.(?:0|[1-9]\d*)\.(?:0|[1-9]\d*))$/;
+const LOCATION_PATTERN = new RegExp(
+    `^/api/calm/namespaces/([^/]+)/documents/(${NARRATIVE_DOCUMENT_TYPES.join('|')})/(\\d+)/versions/` +
+    `((?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*))$`
+);
 const NAMESPACE_PATTERN = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/;
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { NARRATIVE_DOCUMENT_TYPES } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { parseNarrativeDocument, parseNarrativeDocumentLocation, validateNarrativeIdentity } from './narrative-document';
 
 describe('narrative document helpers', () => {
@@ -33,6 +34,14 @@ describe('narrative document helpers', () => {
         expect(parseNarrativeDocumentLocation('http://localhost:8080/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0', identity)).toBe(42);
         expect(() => validateNarrativeIdentity({ ...identity, version: 'latest' }, false)).toThrow(/major.minor.patch/);
         expect(() => parseNarrativeDocumentLocation('/api/calm/namespaces/other/documents/sad/42/versions/1.0.0', identity)).toThrow(/does not match/);
+    });
+
+    it.each(NARRATIVE_DOCUMENT_TYPES)('accepts the supported %s Location type', (type) => {
+        const narrativeIdentity = { ...identity, type };
+        expect(parseNarrativeDocumentLocation(
+            `/api/calm/namespaces/finos/documents/${type}/42/versions/1.0.0`,
+            narrativeIdentity
+        )).toBe(42);
     });
 
     it.each([
