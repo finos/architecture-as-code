@@ -1,4 +1,5 @@
 import axios from 'axios';
+import * as https from 'node:https';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -163,6 +164,28 @@ describe('direct-url-document-loader', () => {
         const lastRequest = mock.history.get[mock.history.get.length - 1];
         expect(lastRequest.headers?.Authorization).toBe('Bearer test-token');
         expect(lastRequest.headers?.['X-Trace-Id']).toBe('trace-123');
+    });
+
+    it('uses HTTPS agent settings returned by the direct URL auth plugin', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/tls-protected.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({
+                'Authorization': 'Bearer test-token',
+            }),
+            getTlsConfig: vi.fn().mockResolvedValue({
+                httpsCaCert: 'test-ca-cert',
+            }),
+        };
+        mock.onGet('/tls-protected.json').reply(200, { '$id': url, 'title': 'schema' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        expect(document).toEqual({ '$id': url, 'title': 'schema' });
+        const lastRequest = mock.history.get[mock.history.get.length - 1];
+        expect(lastRequest.httpsAgent).toBeInstanceOf(https.Agent);
+        expect((lastRequest.httpsAgent as https.Agent).options.ca).toBe('test-ca-cert');
     });
 
     it('redacts sensitive auth headers in debug logs while keeping safe request metadata', async () => {
