@@ -189,6 +189,17 @@ describe('pushWorkspaceToHub', () => {
         expect((await loadManifest(bundlePath)).payments.calmHubDocumentId).toBeUndefined();
     });
 
+    it('rejects narrative manifests with no version or a non-initial unassigned version', async () => {
+        await writeFile(path.join(filesPath, 'missing.md'), '---\ntitle: Missing\n---\n# Missing');
+        await writeFile(path.join(filesPath, 'ahead.md'), '---\ntitle: Ahead\n---\n# Ahead');
+        await saveManifest(bundlePath, {
+            missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example' },
+            ahead: { path: 'files/ahead.md', type: 'sad', namespace: 'com.example', version: '1.1.0' },
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+    });
+
     it('skips entries whose file is invalid JSON', async () => {
         await writeFile(path.join(filesPath, 'bad.json'), 'not json {{{');
         await saveManifest(bundlePath, {
