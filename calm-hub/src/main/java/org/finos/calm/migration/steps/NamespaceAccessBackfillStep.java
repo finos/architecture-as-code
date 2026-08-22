@@ -1,5 +1,6 @@
 package org.finos.calm.migration.steps;
 
+import io.quarkus.arc.lookup.LookupUnlessProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.UserAccess;
@@ -26,6 +27,7 @@ import java.util.List;
  * Uses the CDI-produced {@link NamespaceStore} and {@link UserAccessStore} interfaces
  * so it works for both MongoDB and Nitrite backends without duplication.
  */
+@LookupUnlessProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
 public class NamespaceAccessBackfillStep implements SchemaMigrationStep {
 

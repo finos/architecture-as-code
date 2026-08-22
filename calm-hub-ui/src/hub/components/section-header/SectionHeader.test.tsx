@@ -1,8 +1,14 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SectionHeader } from './SectionHeader.js';
+import { MemoryRouter } from 'react-router-dom';
+import { SectionHeader as SectionHeaderRaw } from './SectionHeader.js';
 import { describe, it, expect, vi } from 'vitest';
 import type { BreadcrumbItem } from '../../../model/calm.js';
+
+function SectionHeader(props: React.ComponentProps<typeof SectionHeaderRaw>) {
+    return <MemoryRouter><SectionHeaderRaw {...props} /></MemoryRouter>;
+}
 
 describe('SectionHeader', () => {
     it('renders icon, namespace, id, and version', () => {
