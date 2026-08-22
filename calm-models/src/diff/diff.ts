@@ -106,12 +106,12 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
             result[key] = {
                 oldValue: metadataObjA[key],
                 newValue: null
-            }
+            };
         } else if (!valuesEqual(metadataObjA[key], metadataObjB[key])) {
             result[key] = {
                 oldValue: metadataObjA[key],
                 newValue: metadataObjB[key]
-            }
+            };
         }
     });
 
@@ -120,7 +120,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
             result[key] = {
                 oldValue: null,
                 newValue: metadataObjB[key]
-            }
+            };
         }
     });
 
@@ -355,7 +355,7 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
         metadataObjectsRemoved: [],
         metadataObjectsUnchanged: [],
         metadataObjectsModified: [],
-    }
+    };
 
     if (!Array.isArray(metadataA) && !Array.isArray(metadataB)) {
         if (valuesEqual(metadataA, metadataB)) {
@@ -364,8 +364,8 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
             result.metadataObjectsModified.push(diffMetadataObject(metadataA, metadataB));
         }
     } else {
-        let stringifiedArrayA: string[] = stringifyMetadata(metadataA);
-        let stringifiedArrayB: string[] = stringifyMetadata(metadataB);
+        const stringifiedArrayA: string[] = stringifyMetadata(metadataA);
+        const stringifiedArrayB: string[] = stringifyMetadata(metadataB);
 
         const stringifiedDiffItems = diffArrays(stringifiedArrayA, stringifiedArrayB);
         
@@ -376,7 +376,7 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
             } else if (diffItem.removed) {
                 diffItem.value.forEach((str: string) => result.metadataObjectsRemoved.push(JSON.parse(str)));
             } else {
-                diffItem.value.forEach((str: string) => result.metadataObjectsUnchanged.push(JSON.parse(str)))
+                diffItem.value.forEach((str: string) => result.metadataObjectsUnchanged.push(JSON.parse(str)));
             }
         }
     }
