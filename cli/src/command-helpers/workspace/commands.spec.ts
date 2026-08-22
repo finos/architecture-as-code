@@ -95,6 +95,7 @@ vi.mock('../../cli-config', () => ({
 
 vi.mock('@finos/calm-shared/src/hub/calm-hub-client', () => ({
     CalmHubClient: mocks.CalmHubClient,
+    NARRATIVE_DOCUMENT_TYPES: ['knowledge', 'sad'],
 }));
 
 vi.mock('./document-id-prompt', () => ({

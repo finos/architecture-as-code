@@ -863,7 +863,9 @@ where `$TYPE` is one of `patterns`, `architectures`, `standards`, `interfaces`.
 
 #### `calm workspace push`
 
-Push every document in the workspace manifest to a CalmHub instance. Each document's identity — namespace, type, mapping id and **version** — comes from its `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
+Push every document in the workspace manifest to a CalmHub instance. JSON mapping documents derive their identity — namespace, type, mapping id and **version** — from `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
+
+Narrative Markdown documents use `--type knowledge` or `--type sad`. They require YAML frontmatter with a `title` and `--namespace`. The first push stores the Hub numeric document id, location, and version (`1.0.0`) in `workspace-manifest.json`. Later changes require `workspace bump`; the command updates the manifest version without rewriting the Markdown.
 
 ```
 calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
@@ -885,6 +887,16 @@ For each tracked document, push looks up the existing versions in CalmHub:
 calm workspace push                              # URL from ~/.calm.json
 calm workspace push --calm-hub-url https://calmhub.example.com
 calm workspace push --fail-if-modified           # strict merge-time mode
+```
+
+```shell
+# First-class document POC: add, publish, inspect, edit, bump, and publish again
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos
+calm workspace push --calm-hub-url http://localhost:8080
+calm workspace show                              # shows the published Hub location
+calm workspace check --calm-hub-url http://localhost:8080
+calm workspace bump --minor --calm-hub-url http://localhost:8080
+calm workspace push --calm-hub-url http://localhost:8080
 ```
 
 #### `calm workspace check`

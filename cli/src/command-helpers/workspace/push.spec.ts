@@ -7,11 +7,17 @@ import path from 'path';
 import { existsSync } from 'fs';
 
 const makeClient = (
-    overrides: Partial<Pick<CalmHubClient, 'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion'>> = {}
+    overrides: Partial<Pick<CalmHubClient,
+        'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion' |
+        'createNarrativeDocument' | 'createNarrativeDocumentVersion' | 'getNarrativeDocumentVersions' | 'getNarrativeDocumentVersion'>> = {}
 ): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async () => []),
     createMappedResourceVersion: vi.fn(async () => '/calm/namespaces/com.example/architectures/my-arch/versions/1.0.0'),
     getMappedResourceByVersion: vi.fn(async () => ({})),
+    createNarrativeDocument: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0'),
+    createNarrativeDocumentVersion: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.1.0'),
+    getNarrativeDocumentVersions: vi.fn(async () => []),
+    getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '' })),
     ...overrides,
 }) as unknown as CalmHubClient;
 
@@ -80,6 +86,33 @@ describe('pushWorkspaceToHub', () => {
         const client = makeClient();
         await pushWorkspaceToHub(bundlePath, client);
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
+    });
+
+    it('creates a narrative document and stores its server identity', async () => {
+        const markdown = '---\ntitle: Payments SAD\ndescription: Decisions\n---\n# Payments\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            'payments-sad': { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        const client = makeClient();
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.createNarrativeDocument).toHaveBeenCalledWith('com.example', 'sad', {
+            name: 'Payments SAD', description: 'Decisions', documentMarkdown: markdown,
+        });
+        expect(await loadManifest(bundlePath)).toMatchObject({
+            'payments-sad': { calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0' },
+        });
+    });
+
+    it('fails the completed push when a narrative document is invalid', async () => {
+        await writeFile(path.join(filesPath, 'bad.md'), '# no frontmatter');
+        await saveManifest(bundlePath, {
+            bad: { path: 'files/bad.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+        expect((await loadManifest(bundlePath)).bad.calmHubDocumentId).toBeUndefined();
     });
 
     it('skips entries whose file is invalid JSON', async () => {

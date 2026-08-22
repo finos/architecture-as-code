@@ -15,6 +15,41 @@ describe('CalmHubClient', () => {
         client = new CalmHubClient({ calmHubUrl: 'http://localhost:8080' }, ax);
     });
 
+    describe('narrative documents', () => {
+        const request = { name: 'Payments SAD', description: 'Decisions', documentMarkdown: '---\ntitle: Payments SAD\n---\n# Payments' };
+
+        it('creates a narrative document using the first-class endpoint', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).resolves.toContain('/42/versions/1.0.0');
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
+        it('rejects a create response without Location', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {});
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).rejects.toMatchObject({
+                request: 'POST /api/calm/namespaces/finos/documents/sad',
+            });
+        });
+
+        it('reads typed Markdown and rejects malformed success bodies', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0';
+            mock.onGet(endpoint).replyOnce(200, { documentMarkdown: '# Payments' });
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).resolves.toEqual({ documentMarkdown: '# Payments' });
+            mock.onGet(endpoint).replyOnce(200, {});
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('requires a string version array', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(200, { values: ['1.0.0'] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).resolves.toEqual(['1.0.0']);
+            mock.onGet(endpoint).replyOnce(200, { values: [42] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toBeInstanceOf(HubClientError);
+        });
+    });
+
     // ── createNamespace ──────────────────────────────────────────────────────
 
     describe('createNamespace', () => {

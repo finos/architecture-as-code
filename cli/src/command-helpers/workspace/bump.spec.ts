@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { detectChangedResources, bumpWorkspace, canonicalEqual, maxIncrement } from './bump';
-import { saveManifest } from './bundle';
+import { loadManifest, saveManifest } from './bundle';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
@@ -16,10 +16,14 @@ const idAt = (resource: string, version: string, type = 'architectures', ns = 'c
 interface ClientOpts {
     versions?: Record<string, string[]>;
     remote?: Record<string, object>;
+    narrativeVersions?: string[];
+    narrativeMarkdown?: string;
 }
 const makeClient = (opts: ClientOpts = {}): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async (_ns: string, mappingId: string) => opts.versions?.[mappingId] ?? []),
     getMappedResourceByVersion: vi.fn(async (_ns: string, mappingId: string, version: string) => opts.remote?.[`${mappingId}@${version}`] ?? {}),
+    getNarrativeDocumentVersions: vi.fn(async () => opts.narrativeVersions ?? []),
+    getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: opts.narrativeMarkdown ?? '' })),
 }) as unknown as CalmHubClient;
 
 describe('bump', () => {
@@ -48,6 +52,26 @@ describe('bump', () => {
     });
 
     describe('detectChangedResources', () => {
+        it('detects and bumps changed narrative Markdown without rewriting it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example',
+                    version: '1.0.0', calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(changed).toHaveLength(1);
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR', preDetectedChanges: changed });
+
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.1.0');
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
+        });
+
         it('skips a brand-new resource with no versions in CalmHub', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });

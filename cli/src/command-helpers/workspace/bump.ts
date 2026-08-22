@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, resolveFilePath } from './bundle';
+import { loadManifest, resolveFilePath, saveManifest } from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import {
@@ -11,6 +11,7 @@ import {
 import { computeSemVerBump, sortSemVer } from '@finos/calm-shared/src/hub/semver';
 import { canonicalEqual } from '@finos/calm-shared/src/hub/canonical';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { NarrativeDocumentIdentity, isNarrativeDocumentType, parseNarrativeDocument, validateNarrativeIdentity } from './narrative-document';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -37,13 +38,16 @@ function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
     return JSON.stringify(json, null, 2);
 }
 
-export interface ChangedResource {
+interface ChangedResourceBase {
     id: string;
     filePath: string;
-    metadata: DocumentMetadata;
     currentVersion: string;
     latestHubVersion: string;
 }
+
+export type ChangedResource =
+    | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata })
+    | (ChangedResourceBase & { kind: 'narrative'; narrativeIdentity: NarrativeDocumentIdentity });
 
 export interface BumpResult {
     bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string; triggeredBy?: string; increment?: ResourceChangeType }>;
@@ -90,6 +94,7 @@ export async function detectChangedResources(
     for (const [id, entry] of Object.entries(manifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) {
+            if (isNarrativeDocumentType(entry.type)) throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
             logger.warn(`File not found for id '${id}': ${filePath}`);
             continue;
         }
@@ -98,7 +103,36 @@ export async function detectChangedResources(
         try {
             raw = await readFile(filePath, 'utf8');
         } catch (e) {
+            if (isNarrativeDocumentType(entry.type)) throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
             logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            continue;
+        }
+
+        if (isNarrativeDocumentType(entry.type)) {
+            const version = entry.version;
+            if (!version) throw new Error(`Narrative document '${id}' has no manifest version.`);
+            if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
+                throw new Error(`Narrative document '${id}' has incomplete Hub identity. Re-add the document to repair it.`);
+            }
+            const identity: NarrativeDocumentIdentity = {
+                namespace: entry.namespace ?? '', type: entry.type, version, calmHubDocumentId: entry.calmHubDocumentId,
+            };
+            parseNarrativeDocument(raw, id);
+            if (entry.calmHubDocumentId === undefined) {
+                validateNarrativeIdentity(identity, false);
+                continue;
+            }
+            validateNarrativeIdentity(identity, true);
+            const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId!);
+            if (versions.length === 0 || !versions.includes(version)) continue;
+            const remote = await client.getNarrativeDocumentVersion(
+                identity.namespace, identity.type, identity.calmHubDocumentId!, version
+            );
+            if (remote.documentMarkdown === raw) continue;
+            changed.push({
+                id, filePath, currentVersion: version,
+                latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative', narrativeIdentity: identity,
+            });
             continue;
         }
 
@@ -141,6 +175,7 @@ export async function detectChangedResources(
             metadata,
             currentVersion: metadata.version,
             latestHubVersion: sortSemVer(versions)[versions.length - 1],
+            kind: 'mapping',
         });
     }
 
@@ -171,6 +206,18 @@ export async function bumpWorkspace(
     for (const c of changed) {
         const docIncrement = options.perDocIncrements?.get(c.id) ?? options.increment;
         const toVersion = computeSemVerBump(c.latestHubVersion, docIncrement);
+        if (c.kind === 'narrative') {
+            const manifest = await loadManifest(bundlePath);
+            const entry = manifest[c.id];
+            if (!entry) throw new Error(`Narrative document '${c.id}' is no longer in the manifest.`);
+            manifest[c.id] = { ...entry, version: toVersion };
+            await saveManifest(bundlePath, manifest);
+            bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
+            appliedIncrements.set(c.id, docIncrement);
+            bumpedIds.add(c.id);
+            logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
+            continue;
+        }
         const raw = await readFile(c.filePath, 'utf8');
         const updated = bumpDocumentContent(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
@@ -191,8 +238,11 @@ export async function bumpWorkspace(
 
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
-        const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-        const refUpdates = await syncReferences(bundlePath, manifest, rules);
+        const jsonManifest = Object.fromEntries(
+            Object.entries(manifest).filter(([, entry]) => !isNarrativeDocumentType(entry.type))
+        );
+        const rules = await buildRefRulesFromDiskIds(jsonManifest, bundlePath);
+        const refUpdates = await syncReferences(bundlePath, jsonManifest, rules);
         allRefUpdates.push(...refUpdates);
 
         const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));
