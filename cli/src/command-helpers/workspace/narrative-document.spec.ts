@@ -27,4 +27,21 @@ describe('narrative document helpers', () => {
         expect(() => validateNarrativeIdentity({ ...identity, version: 'latest' }, false)).toThrow(/major.minor.patch/);
         expect(() => parseNarrativeDocumentLocation('/api/calm/namespaces/other/documents/sad/42/versions/1.0.0', identity)).toThrow(/does not match/);
     });
+
+    it.each([
+        [{ ...identity, namespace: 'not_valid' }, false, /valid namespace/],
+        [{ ...identity, type: 'other' as never }, false, /Unsupported/],
+        [{ ...identity, version: '01.0.0' }, false, /major.minor.patch/],
+        [{ ...identity, calmHubDocumentId: 0 }, true, /positive integer/],
+    ])('rejects invalid persisted identity %#', (candidate, requireId, message) => {
+        expect(() => validateNarrativeIdentity(candidate, requireId)).toThrow(message);
+    });
+
+    it('rejects malformed and mismatched persisted Locations', () => {
+        expect(() => parseNarrativeDocumentLocation('not-a-location', identity)).toThrow(/unexpected format/);
+        expect(() => parseNarrativeDocumentLocation(
+            '/api/calm/namespaces/finos/documents/sad/43/versions/1.0.0',
+            { ...identity, calmHubDocumentId: 42 }
+        )).toThrow(/stored document id/);
+    });
 });
