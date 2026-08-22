@@ -45,12 +45,88 @@ npx vitest run ${TEST FILE}
   - `validate()` - Main validation function (`commands/validate/validate.ts`) used by CLI and VSCode
   - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
   - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
+- **Generate** (`commands/generate/`): Pattern → architecture instantiation. `flatten-allof.ts` composes `allOf` branches, `options.ts` resolves user decisions (`extractOptions`, `selectChoices`), and `instantiate.ts` materializes the result. See [Pattern Decisions](#pattern-decisions) before changing any of these.
 - **Schema Directory** (`schema-directory.ts`): Registry of bundled CALM schemas, used for lookup by schema URL (`getSchema`).
 - **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `ants`, `docusaurus`).
 - **Resolver** (`resolver/`): CALM reference resolver plus the network-addressable extractor and validator.
 - **Hub Client** (`hub/`): `calm-hub-client` for talking to CALM Hub.
 - **View Model** (`view-model/`): ADR (Architecture Decision Record) view-model logic.
 - **Auth** (`auth/`): Auth plugin abstraction (`auth-plugin`, `no-auth-plugin`).
+
+## Pattern Decisions
+
+A **decision holder** is a relationship that carries `relationship-type.properties.options`.
+It poses a question and lists choice bundles. A **candidate** is a node or relationship that
+a bundle can select. Candidates are declared in four places: a plain `prefixItems` entry, a
+`prefixItems[i].oneOf` or `.anyOf` alternative, or an `items.oneOf`/`items.anyOf` catalog.
+
+**A decision holder must be in `properties.relationships.prefixItems`.** `extractOptions`
+(`options.ts:65`) finds decisions only through `getRelationshipsPrefixItems` (`options.ts:55`),
+which never reads the `items` catalog. A holder in a catalog is never offered, on any path.
+
+A candidate reaches the output only when a chosen bundle names its `unique-id`. Drive new
+tests from `extractOptions`, not from hand-built choices, or you do not test whether the
+decision is discoverable. See `catalog-decisions.spec.ts`.
+
+### Three questions, three owners
+
+Use the wrong one and the failure is silent, so they are separate named functions.
+
+| Question | Function | Home |
+|---|---|---|
+| What does *this block* offer? (`oneOf` wins) | `readChoiceBlock` | `@finos/calm-models/pattern` |
+| What does the pattern *declare*? (both keywords) | `listCandidates` | two copies - see below |
+| What can selection *reach*? (one keyword) | `listSelectableCandidates` | `shared/src/pattern-candidates.ts` |
+
+Use *declared* for what a document says: uniqueness, dangling references. Use *selectable*
+for "can this answer be honoured". They differ only where a block declares both keywords.
+
+`getPatternArray` locates the `prefixItems` array and `items` catalog for a property.
+
+### `allOf` has three unreconciled meanings
+
+Treat `allOf` for nodes and relationships as unsupported.
+
+| Reader | Behaviour |
+|---|---|
+| `deepMergeSchemas` (`flatten-allof.ts`) | shallow merge; a repeated property loses `type`, so `instantiate` emits `{}` |
+| `getPatternArray` | first branch wins, later branches ignored; marked TEMPORARY |
+| `calm-models` `listCandidates` | ignores `allOf`, to keep `path` correct for diagnostics |
+| `shared` `listCandidates` | follows `allOf` through `getPatternArray` |
+
+The last two disagree. A pattern whose `prefixItems` sits under `allOf` yields nothing from
+the first and one candidate from the second, with a `path` the document does not contain.
+Nothing reads that `path` today. `allOf` means **intersection**, never union, because
+`calm validate` never flattens.
+
+### Enforcement
+
+`calm generate` **never validates**. These rules run only on `calm validate`.
+
+| Rule | Severity | Catches |
+|---|---|---|
+| `pattern-option-relationship-must-be-in-prefix-items` | `error` | a holder inside an `items` catalog |
+| `pattern-decision-must-reference-selectable-nodes` / `-relationships` | `error` | a bundle naming a declared but unreachable candidate |
+| `group-relationship-with-const-nodes-references-existing-nodes-in-pattern` | `error` | a bundle naming an id that does not exist |
+| `pattern-items-catalog-must-declare-one-choice-keyword` | `warn` | a block declaring both keywords |
+
+The generate path has its own guard. `assertChoicesAreSelectable` throws from `runGenerate`.
+It is not called from `selectChoices`, because validation calls that too.
+
+`pattern-nodes-must-be-referenced` does not help with holder placement. Its query
+(`node-has-relationship.ts:10`) matches a holder in the wrong array.
+
+### Still duplicated
+
+Neither pair has caused a bug. Nothing keeps either in step.
+
+| Duplicate | Sites | Note |
+|---|---|---|
+| `listCandidates` | `pattern-reader.ts:154`, `pattern-candidates.ts:104` | diverge on `allOf`; one implementation needs the `allOf` rework first |
+| decision-holder reading | `options.ts:26,30`, `patternTransformer.ts:290,317` | already differ: one unions both keywords, the other picks `oneOf` |
+
+`calm-hub-ui` depends on `@finos/calm-models` and not on `shared`, so a shared reader must
+live in `calm-models`.
 
 ## Common Workflows
 

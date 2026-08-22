@@ -260,6 +260,28 @@ describe('Drawer', () => {
         expect(screen.getByTestId('reactflow-visualizer')).toBeInTheDocument();
     });
 
+    it('classifies a catalog-only pattern (nodes via items, no prefixItems) dropped as a file as a pattern', async () => {
+        render(<Drawer />);
+
+        // A pattern whose nodes are declared solely through an `items` catalog has no
+        // `prefixItems`. It must still be routed to the PatternVisualizer, not the
+        // architecture ReactFlowVisualizer, on the file-upload path.
+        await act(async () => {
+            await mockDropzone.onDrop?.([
+                fakeFile(
+                    JSON.stringify({
+                        properties: {
+                            nodes: { items: { oneOf: [{ properties: { 'unique-id': { const: 'cache' } } }] } },
+                        },
+                    })
+                ),
+            ]);
+        });
+
+        expect(screen.getByTestId('pattern-visualizer')).toBeInTheDocument();
+        expect(screen.queryByTestId('reactflow-visualizer')).not.toBeInTheDocument();
+    });
+
     // Regression coverage for the dropped-file stale-layout bug: `defaultLayout`/
     // `layoutEpoch` describe the currently-*loaded* resource's saved server layout,
     // so they must collapse alongside `viewportKey` once a file is dropped —

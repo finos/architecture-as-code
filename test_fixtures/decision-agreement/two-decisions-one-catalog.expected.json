@@ -1,0 +1,70 @@
+{
+    "decisions": [
+        {
+            "optionId": "cache-choice",
+            "prompt": "Pick a cache",
+            "optionType": "anyOf",
+            "choices": [
+                {
+                    "description": "Use Redis",
+                    "nodes": [
+                        "redis"
+                    ],
+                    "relationships": []
+                },
+                {
+                    "description": "Use Memcached",
+                    "nodes": [
+                        "memcached"
+                    ],
+                    "relationships": []
+                }
+            ]
+        },
+        {
+            "optionId": "queue-choice",
+            "prompt": "Pick a queue",
+            "optionType": "anyOf",
+            "choices": [
+                {
+                    "description": "Use Kafka",
+                    "nodes": [
+                        "kafka"
+                    ],
+                    "relationships": []
+                },
+                {
+                    "description": "Use RabbitMQ",
+                    "nodes": [
+                        "rabbitmq"
+                    ],
+                    "relationships": []
+                }
+            ]
+        }
+    ],
+    "answered": [
+        {
+            "choose": {
+                "cache-choice": "Use Redis",
+                "queue-choice": "Use Kafka"
+            },
+            "nodes": [
+                "webapp",
+                "redis",
+                "kafka"
+            ]
+        },
+        {
+            "choose": {
+                "cache-choice": "Use Memcached",
+                "queue-choice": "Use RabbitMQ"
+            },
+            "nodes": [
+                "webapp",
+                "memcached",
+                "rabbitmq"
+            ]
+        }
+    ]
+}
