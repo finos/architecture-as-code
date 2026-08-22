@@ -20,7 +20,7 @@ describe('relationshipIdExists', () => {
             document: {
                 data: {
                     relationships: [
-                        {'unique-id': 'relationship1'}
+                        { 'unique-id': 'relationship1' }
                     ]
                 }
             }
@@ -36,7 +36,7 @@ describe('relationshipIdExists', () => {
             document: {
                 data: {
                     relationships: [
-                        {'unique-id': 'relationship1'}
+                        { 'unique-id': 'relationship1' }
                     ]
                 }
             },

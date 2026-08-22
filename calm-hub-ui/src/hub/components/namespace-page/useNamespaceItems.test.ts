@@ -65,7 +65,7 @@ describe('useNamespaceItems', () => {
         ]);
     });
 
-    it('labels ADRs with title and status, and keeps numeric interface ids', async () => {
+    it('labels ADRs with title and status, and falls back to numeric interface ids', async () => {
         const { result } = renderHook(() => useNamespaceItems('traderx'));
         await waitFor(() => expect(result.current.loading).toBe(false));
 
@@ -77,6 +77,28 @@ describe('useNamespaceItems', () => {
             id: '7',
             name: 'My Interface',
             description: 'A port',
+        });
+        expect(interfaces?.items[0].customId).toBeUndefined();
+    });
+
+    it('prefers the customId over the numeric id for interfaces that have one', async () => {
+        const { InterfaceService } = await import('../../../service/interface-service.js');
+        vi.mocked(InterfaceService).mockImplementationOnce(function (this: unknown) {
+            return {
+                fetchInterfacesForNamespace: vi.fn().mockResolvedValue([
+                    { id: 7, name: 'My Interface', description: 'A port', customId: 'my-interface' },
+                ]),
+            } as unknown as InstanceType<typeof InterfaceService>;
+        });
+
+        const { result } = renderHook(() => useNamespaceItems('traderx'));
+        await waitFor(() => expect(result.current.loading).toBe(false));
+
+        const interfaces = result.current.groups.find((g) => g.type === 'Interfaces');
+        expect(interfaces?.items[0]).toMatchObject({
+            id: 'my-interface',
+            name: 'My Interface',
+            customId: 'my-interface',
         });
     });
 });

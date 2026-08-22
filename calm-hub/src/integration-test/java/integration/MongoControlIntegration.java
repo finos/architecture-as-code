@@ -4,11 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
@@ -245,21 +241,31 @@ public class MongoControlIntegration {
     @Test
     @Order(18)
     void end_to_end_seed_configuration_and_get_it() {
-        // Directly seed a configuration into MongoDB for the existing control
+        // Directly seed a configuration into MongoDB for the existing control, in the
+        // header/version shape (ADR 0007): a header in controlConfigurations plus one version
+        // in controlConfigurationVersions, both under the synthetic "domain::controlId"
+        // namespace control 1's configurations are scoped under.
         String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
         String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String configNamespace = VALID_DOMAIN + "::1";
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
-            MongoCollection<Document> controlCollection = database.getCollection("controls");
 
-            Document configDoc = new Document("configurationId", 100)
-                    .append("versions", new Document("1-0-0", new Document("setting", "enabled")));
+            database.getCollection("controlConfigurations").insertOne(
+                    new Document("namespace", configNamespace)
+                            .append("configurationId", 100)
+                            .append("name", (String) null)
+                            .append("description", (String) null)
+                            .append("versionCount", 1)
+                            .append("metadata", new Document()));
 
-            controlCollection.updateOne(
-                    new Document("domain", VALID_DOMAIN).append("controls.controlId", 1),
-                    Updates.push("controls.$.configurations", configDoc)
-            );
+            database.getCollection("controlConfigurationVersions").insertOne(
+                    new Document("namespace", configNamespace)
+                            .append("configurationId", 100)
+                            .append("version", "1.0.0")
+                            .append("content", new Document("setting", "enabled"))
+                            .append("metadata", new Document()));
         }
 
         // Now verify the configuration list includes the seeded config

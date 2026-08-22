@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import {JsonFragment, TemplatePathExtractor } from './template-path-extractor';
+import { JsonFragment, TemplatePathExtractor } from './template-path-extractor';
 
 const architecture = {
     $schema: 'https://calm.finos.org/workshop/account-system.pattern.json',

@@ -9,7 +9,7 @@ export function sequenceNumbersAreUnique(input: unknown, _: unknown, context: Ru
         return [];
     }
     // get sequence-number of all transitions
-    const sequenceNumbers = JSONPath({path: '$[*].sequence-number', json: input as object, resultType: 'all'});
+    const sequenceNumbers = JSONPath({ path: '$[*].sequence-number', json: input as object, resultType: 'all' });
 
     const seen = new Set();
     const messages: IFunctionResult[] = [];

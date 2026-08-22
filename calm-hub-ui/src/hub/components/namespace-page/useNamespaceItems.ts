@@ -69,9 +69,10 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
                 {
                     type: 'Interfaces',
                     items: interfaces.map((i) => ({
-                        id: i.id.toString(),
+                        id: i.customId ?? i.id.toString(),
                         name: i.name,
                         description: i.description,
+                        customId: i.customId,
                     })),
                 },
             ]);

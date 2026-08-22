@@ -20,7 +20,7 @@ describe('nodeIdExists', () => {
             document: {
                 data: {
                     nodes: [
-                        {'unique-id': 'node1'}
+                        { 'unique-id': 'node1' }
                     ]
                 }
             }
@@ -36,7 +36,7 @@ describe('nodeIdExists', () => {
             document: {
                 data: {
                     nodes: [
-                        {'unique-id': 'node1'}
+                        { 'unique-id': 'node1' }
                     ]
                 }
             },

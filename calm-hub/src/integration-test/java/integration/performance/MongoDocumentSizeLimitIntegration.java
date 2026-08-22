@@ -23,29 +23,30 @@ import static integration.MongoSetup.namespaceSetup;
 import static integration.performance.ConcurrencyTestHelper.extractIdsFromLocations;
 import static io.restassured.RestAssured.given;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The two halves of issue #2884's document-size story, one per storage shape.
+ * What issue #2884 set out to remove: MongoDB's 16MB per-document ceiling, reachable because
+ * every version's full content accumulated in one document per namespace.
  *
- * <p><b>Flow</b> still uses the one-document-per-namespace shape, where every version's full
- * content accumulates in a single document. Growing its history eventually crosses MongoDB's
- * 16MB BSON ceiling, and that failure must surface as an honest {@code 413} via
- * {@link org.finos.calm.domain.exception.StorageWriteException} — not the misleading
- * {@code 404} the stores used to throw for any {@code MongoWriteException}.</p>
+ * <p>Asserted against a real MongoDB with ~2MB versions — roughly 24MB of history written to
+ * a single architecture without any write failing. Under the old shape that was impossible
+ * by construction; each version is now its own document, bounded by its own size.</p>
  *
- * <p><b>Architecture and Pattern</b> have moved to the header/version shape, where each
- * version is its own document bounded by its own size. The same history that breaks Flow
- * must now be writable, which is the whole point of the redesign. Keeping both halves in one
- * class means the ceiling and its removal are asserted against the same real MongoDB, with
- * the same payload size, rather than being argued about.</p>
+ * <h2>The 413 half of this test has retired</h2>
+ * It asserted the opposite property — that a type still accumulating history into one
+ * document eventually fails, and that the failure surfaces as an honest {@code 413} via
+ * {@link org.finos.calm.domain.exception.StorageWriteException} rather than the misleading
+ * {@code 404} the stores once threw for any {@code MongoWriteException}. It moved to a
+ * still-unmigrated type on each round — Architecture, Pattern, Flow, Standard, Timeline —
+ * and ran out of homes: every namespace-scoped versioned type now uses the header/version
+ * shape, so nothing reachable through these endpoints can hit the ceiling any more.
  *
- * <p><b>This test relocates each time a type migrates.</b> It began on Architecture, moved to
- * Pattern when Architecture migrated, and is now on Flow. When Flow migrates it must move
- * again — Timeline, Interface, Standard and ADR are the remaining candidates, and Control
- * keeps the old shape permanently (ADR 0004). A failure here reading "expected a write to
- * fail" usually means the type under test has just been migrated, not that the 413 mapping
- * broke.</p>
+ * <p>Control is the one resource that keeps the old shape permanently (ADR 0004), but it is
+ * domain-scoped with a different path and envelope, so hosting the assertion there would
+ * have meant rewriting it to test a resource this redesign deliberately excludes. Retired
+ * instead. {@code MongoWriteFailures} still classifies {@code BSONObjectTooLarge}, and its
+ * unit tests still cover that mapping — what is gone is the end-to-end route to provoking
+ * it.</p>
  */
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -53,9 +54,6 @@ public class MongoDocumentSizeLimitIntegration {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-    // Comfortably above the ~12-15 versions expected to be needed to cross the 16MB ceiling
-    // with ~2MB versions, without letting a stuck test run indefinitely.
-    private static final int MAX_VERSION_ATTEMPTS = 20;
 
     /**
      * Enough ~2MB versions to total roughly 24MB — well past the 16MB ceiling the old shape
@@ -68,20 +66,15 @@ public class MongoDocumentSizeLimitIntegration {
     private static final String LARGE_CONTENT = "A".repeat(2_000_000);
 
     /**
-     * Both tests run against their own namespace rather than {@code finos}, because neither
-     * of them can clean up after itself.
+     * Runs against its own namespace rather than {@code finos}, because it cannot clean up
+     * after itself: it leaves roughly 24MB of version documents behind, which would otherwise
+     * turn up in any later listing of {@code finos} architectures.
      *
-     * <p>The 413 test deliberately drives the flows document <i>past</i> the 16MB ceiling and
-     * leaves it there — that is the state it asserts on. Nothing drops {@code flows} between
-     * classes ({@code MongoFlowIntegration} creates the collection only when absent), so under
-     * {@code finos} that wedged document would outlive this class: {@code
-     * end_to_end_get_with_no_flow} would find a flow, and every later flow write in the
-     * namespace would fail with 413 rather than 201. Today that is masked only by the order
-     * failsafe happens to run these classes in, which is not a guarantee.</p>
-     *
-     * <p>The same applies to the header/version half, for a less destructive reason: it leaves
-     * roughly 24MB of version documents behind, which would otherwise show up in any later
-     * listing of {@code finos} architectures.</p>
+     * <p>This mattered more while the 413 half still existed — that one wedged the shared
+     * {@code flows} document past the ceiling and left it there, so every later flow write in
+     * the namespace failed with 413 rather than 201, masked only by the order failsafe
+     * happened to run these classes in. Isolation is cheap enough to keep now that the
+     * surviving test's leftovers are merely noisy rather than destructive.</p>
      */
     private static final String NAMESPACE = "size-limit";
 
@@ -133,29 +126,6 @@ public class MongoDocumentSizeLimitIntegration {
                 .thenReturn();
     }
 
-    @Test
-    void return_413_when_a_version_write_exceeds_the_document_size_limit() throws Exception {
-        int flowId = createResource("flows", "flowJson", "size-limit-test-flow");
-        String requestBody = largeBody("flowJson", "size-limit-test-flow");
-
-        Response lastResponse = null;
-        int version = 2;
-        for (; version < MAX_VERSION_ATTEMPTS; version++) {
-            lastResponse = putVersion("flows", flowId, version, requestBody);
-            if (lastResponse.getStatusCode() != 201) {
-                break;
-            }
-        }
-
-        assertTrue(version < MAX_VERSION_ATTEMPTS,
-                "Expected a write to fail with document-too-large before " + MAX_VERSION_ATTEMPTS
-                        + " versions were written. Flows still accumulate every version's content into "
-                        + "one document per namespace, so this ceiling should still exist for them. If Flow "
-                        + "has just been migrated, this test needs to move to a type that has not.");
-        assertEquals(413, lastResponse.getStatusCode(),
-                "Expected 413 (capacity exceeded) once the document exceeds MongoDB's 16MB limit, got: "
-                        + lastResponse.getStatusCode() + " body=" + lastResponse.getBody().asString());
-    }
 
     @Test
     void keep_accepting_architecture_versions_well_past_the_old_document_ceiling() throws Exception {

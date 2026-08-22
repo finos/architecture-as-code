@@ -6,10 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -17,27 +14,44 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.bson.json.JsonParseException;
+import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
 import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
-import org.finos.calm.domain.timeline.Timeline;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
+/**
+ * Store-level tests for the header/version shape. Document mechanics are covered by
+ * {@code TestMongoVersionDocumentStoreShould}; what this class pins is the glue — which
+ * domain exception each missing thing produces, and Timeline's blank-guarding of
+ * name/description, which is where it deliberately differs from Architecture.
+ */
 @QuarkusTest
 public class TestMongoTimelineStoreShould {
 
@@ -50,421 +64,352 @@ public class TestMongoTimelineStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoCollection<Document> timelineCollection;
-    private MongoTimelineStore mongoTimelineStore;
-    private final String NAMESPACE = "finos";
-
-    private final String validJson = "{\"test\": \"test\"}";
-
-    @BeforeEach
-    void setup() {
-        timelineCollection = Mockito.mock(DocumentMongoCollection.class);
-
-        when(mongoDatabase.getCollection("timelines")).thenReturn(timelineCollection);
-        mongoTimelineStore = new MongoTimelineStore(mongoDatabase, counterStore, namespaceStore);
-    }
-
-    @Test
-    void get_timelines_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("timelines", Document.class))
-                .thenReturn(new ArrayList<>());
-
-        assertThat(mongoTimelineStore.getTimelinesForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_timelines_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        assertThat(mongoTimelineStore.getTimelinesForNamespace(NAMESPACE), is(empty()));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_timeline_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoTimelineStore.getTimelinesForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void get_timeline_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        Document doc1 = new Document("timelineId", 1001).append("name", "Timeline One").append("description", "First timeline");
-        Document doc2 = new Document("timelineId", 1002).append("name", "Timeline Two").append("description", "Second timeline");
-
-        when(documentMock.getList("timelines", Document.class))
-                .thenReturn(Arrays.asList(doc1, doc2));
-
-        List<NamespaceTimelineSummary> timelines = mongoTimelineStore.getTimelinesForNamespace(NAMESPACE);
-
-        assertThat(timelines.size(), is(2));
-        assertThat(timelines.get(0).getName(), is("Timeline One"));
-        assertThat(timelines.get(0).getDescription(), is("First timeline"));
-        assertThat(timelines.get(0).getId(), is(1001));
-        assertThat(timelines.get(1).getName(), is("Timeline Two"));
-        assertThat(timelines.get(1).getDescription(), is("Second timeline"));
-        assertThat(timelines.get(1).getId(), is(1002));
-        verify(namespaceStore).namespaceExists(NAMESPACE);
-    }
-
-    @Test
-    void get_timeline_for_namespace_returns_fallback_for_legacy_documents() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(eq(Filters.eq("namespace", NAMESPACE))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        // Legacy document without name or description
-        Document legacyDoc = new Document("timelineId", 77);
-
-        when(documentMock.getList("timelines", Document.class))
-                .thenReturn(List.of(legacyDoc));
-
-        List<NamespaceTimelineSummary> timelines = mongoTimelineStore.getTimelinesForNamespace(NAMESPACE);
-
-        assertThat(timelines.size(), is(1));
-        assertThat(timelines.get(0).getName(), is("Timeline 77"));
-        assertThat(timelines.get(0).getDescription(), is(""));
-        assertThat(timelines.get(0).getId(), is(77));
-    }
-
-    private FindIterable<Document> setupInvalidTimeline() {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        return findIterable;
-    }
-
-    private void mockSetupTimelineDocumentWithVersions() {
-        Document mainDocument = setupTimelineVersionDocument();
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    @Test
-    void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_a_timeline() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-        CreateTimelineRequest request = new CreateTimelineRequest("name", "desc", validJson);
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoTimelineStore.createTimelineForNamespace(request, namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void return_a_json_parse_exception_when_an_invalid_json_object_is_presented() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextTimelineSequenceValue()).thenReturn(42);
-        CreateTimelineRequest request = new CreateTimelineRequest("name", "desc", "Invalid JSON");
-
-        assertThrows(JsonParseException.class,
-                () -> mongoTimelineStore.createTimelineForNamespace(request, NAMESPACE));
-    }
-
-    @Test
-    void return_created_timeline_when_parameters_are_valid() throws NamespaceNotFoundException {
-        String validNamespace = NAMESPACE;
-        int sequenceNumber = 42;
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextTimelineSequenceValue()).thenReturn(sequenceNumber);
-        CreateTimelineRequest request = new CreateTimelineRequest("Test Timeline", "A test", validJson);
-
-        Timeline timeline = mongoTimelineStore.createTimelineForNamespace(request, validNamespace);
-
-        Timeline expectedTimeline = new Timeline.TimelineBuilder().setTimeline(validJson)
-                .setNamespace(validNamespace)
-                .setVersion("1.0.0")
-                .setId(sequenceNumber)
-                .build();
-
-        assertThat(timeline, is(expectedTimeline));
-        Document expectedDoc = new Document("timelineId", timeline.getId())
-                .append("name", "Test Timeline")
-                .append("description", "A test")
-                .append("versions",
-                        new Document("1-0-0", Document.parse(timeline.getTimelineJson())));
-
-        verify(timelineCollection).updateOne(
-                eq(Filters.eq("namespace", validNamespace)),
-                eq(Updates.push("timelines", expectedDoc)),
-                any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextTimelineSequenceValue()).thenReturn(42);
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
-                .thenReturn(null);
-        CreateTimelineRequest request = new CreateTimelineRequest("Test Timeline", "A test", validJson);
-
-        mongoTimelineStore.createTimelineForNamespace(request, NAMESPACE);
-
-        verify(timelineCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_when_creating_a_timeline() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextTimelineSequenceValue()).thenReturn(42);
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
-        CreateTimelineRequest request = new CreateTimelineRequest("Test Timeline", "A test", validJson);
-
-        assertThrows(MongoWriteException.class,
-                () -> mongoTimelineStore.createTimelineForNamespace(request, NAMESPACE));
-    }
-
-    @Test
-    void get_timeline_version_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace("does-not-exist").build();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineVersions(timeline));
-
-        verify(namespaceStore).namespaceExists(timeline.getNamespace());
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
-    @Test
-    void get_timeline_version_for_invalid_timeline_throws_exception() {
-        FindIterable<Document> findIterable = setupInvalidTimeline();
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).build();
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoTimelineStore store;
 
-        assertThrows(TimelineNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineVersions(timeline));
+    private static final String NAMESPACE = "finos";
+    private static final int TIMELINE_ID = 42;
+    private static final String VALID_JSON = "{\"test\": \"test\"}";
 
-        verify(timelineCollection).find(new Document("namespace", timeline.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("timelines")));
-    }
+    @BeforeEach
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
+        headerCollection = Mockito.mock(DocumentMongoCollection.class);
+        versionCollection = Mockito.mock(DocumentMongoCollection.class);
 
-    @Test
-    void throw_timeline_not_found_when_versions_document_is_missing_on_get_versions() {
-        Document timelineWithNoVersions = new Document("namespace", NAMESPACE)
-                .append("timelines", List.of(new Document("timelineId", 42)));
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
+        when(mongoDatabase.getCollection("timelines")).thenReturn(headerCollection);
+        when(mongoDatabase.getCollection("timelineVersions")).thenReturn(versionCollection);
         when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(timelineWithNoVersions);
 
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(42).build();
+        store = new MongoTimelineStore(mongoDatabase, counterStore, namespaceStore);
+    }
 
-        assertThrows(TimelineNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineVersions(timeline));
+    private FindIterable<Document> stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+        return iterable;
+    }
+
+    private void timelineExists() {
+        stubFind(headerCollection, List.of(new Document("timelineId", TIMELINE_ID)));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private void timelineDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static Timeline timeline(String version, String name, String description) {
+        return new Timeline.TimelineBuilder()
+                .setNamespace(NAMESPACE)
+                .setId(TIMELINE_ID)
+                .setVersion(version)
+                .setName(name)
+                .setDescription(description)
+                .setTimeline(VALID_JSON)
+                .build();
+    }
+
+    private static Timeline timeline(String version) {
+        return timeline(version, "timeline-name", "timeline-description");
+    }
+
+    private static CreateTimelineRequest createRequest() {
+        return new CreateTimelineRequest("timeline-name", "timeline-description", VALID_JSON);
+    }
+
+    // --- getTimelinesForNamespace ---
+
+    @Test
+    void throw_a_namespace_exception_when_listing_timelines_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getTimelinesForNamespace(NAMESPACE));
     }
 
     @Test
-    void throw_timeline_version_not_found_when_versions_document_is_missing_on_get_for_version() {
-        Document timelineWithNoVersions = new Document("namespace", NAMESPACE)
-                .append("timelines", List.of(new Document("timelineId", 42)));
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(timelineCollection.find(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(timelineWithNoVersions);
+    void return_an_empty_list_when_a_namespace_has_no_timelines() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(42).setVersion("1.0.0").build();
-
-        assertThrows(TimelineVersionNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineForVersion(timeline));
+        assertThat(store.getTimelinesForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    void get_timeline_versions_for_valid_timeline_returns_list_of_versions() throws TimelineNotFoundException, NamespaceNotFoundException {
-        mockSetupTimelineDocumentWithVersions();
+    void return_a_summary_per_header_document_without_a_version_count() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(
+                new Document("timelineId", 1).append("name", "First").append("description", "d1")
+                        .append("versionCount", 2),
+                new Document("timelineId", 2).append("name", "Second").append("description", "d2")
+                        .append("versionCount", 0)));
 
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).setId(42).build();
-        List<String> timelineVersions = mongoTimelineStore.getTimelineVersions(timeline);
-
-        assertThat(timelineVersions, is(List.of("1.0.0")));
+        assertThat(store.getTimelinesForNamespace(NAMESPACE), contains(
+                new NamespaceTimelineSummary("First", "d1", 1),
+                new NamespaceTimelineSummary("Second", "d2", 2)));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_timeline_when_retrieving_timeline_for_version() {
-        FindIterable<Document> findIterable = setupInvalidTimeline();
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE).build();
+    void fall_back_to_a_generated_name_for_headers_missing_one() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(new Document("timelineId", 7)));
 
-        assertThrows(TimelineNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineForVersion(timeline));
-
-        verify(timelineCollection).find(new Document("namespace", timeline.getNamespace()));
-        verify(findIterable).projection(Projections.fields(Projections.include("timelines")));
+        assertThat(store.getTimelinesForNamespace(NAMESPACE), contains(
+                new NamespaceTimelineSummary("Timeline 7", "", 7)));
     }
+
+
+    // --- createTimelineForNamespace ---
 
     @Test
-    void return_a_timeline_for_a_given_version() throws TimelineNotFoundException, TimelineVersionNotFoundException, NamespaceNotFoundException {
-        mockSetupTimelineDocumentWithVersions();
-
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").build();
-
-        String timelineForVersion = mongoTimelineStore.getTimelineForVersion(timeline);
-        assertThat(timelineForVersion, is(validJson));
-    }
-
-    private Document setupTimelineVersionDocument() {
-        Map<String, Document> versionMap = new HashMap<>();
-        versionMap.put("1-0-0", Document.parse(validJson));
-        Document targetStoredTimeline = new Document("timelineId", 42)
-                .append("versions", new Document(versionMap));
-
-        Document paddingTimeline = new Document("timelineId", 0);
-
-        return new Document("namespace", NAMESPACE)
-                .append("timelines", Arrays.asList(paddingTimeline, targetStoredTimeline));
-    }
-
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
-    }
-
-    @Test
-    void throw_an_exception_when_timeline_for_given_version_does_not_exist() {
-        mockSetupTimelineDocumentWithVersions();
-
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
-
-        assertThrows(TimelineVersionNotFoundException.class,
-                () -> mongoTimelineStore.getTimelineForVersion(timeline));
-    }
-
-    @Test
-    void throw_an_exception_when_create_or_update_timeline_for_version_with_a_namespace_that_doesnt_exist() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("9.0.0").build();
+    void throw_a_namespace_exception_when_creating_a_timeline_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoTimelineStore.createTimelineForVersion(timeline));
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
-
-        verify(namespaceStore, times(2)).namespaceExists(timeline.getNamespace());
+                () -> store.createTimelineForNamespace(createRequest(), NAMESPACE));
     }
 
     @Test
-    void throw_an_exception_when_create_on_a_version_that_exists() {
-        mockSetupTimelineDocumentWithVersions();
+    void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
+        CreateTimelineRequest invalid = new CreateTimelineRequest("n", "d", "{invalid json}");
 
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+        assertThrows(JsonParseException.class, () -> store.createTimelineForNamespace(invalid, NAMESPACE));
 
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.0").setTimeline(validJson).build();
+        verify(counterStore, never()).getNextTimelineSequenceValue();
+        verify(headerCollection, never()).insertOne(any(Document.class));
+    }
+
+    @Test
+    void create_a_header_and_an_initial_version() throws NamespaceNotFoundException {
+        when(counterStore.getNextTimelineSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        Timeline created = store.createTimelineForNamespace(createRequest(), NAMESPACE);
+
+        assertThat(created.getId(), is(99));
+        // Dot-separated on both backends now; Nitrite used to return "1-0-0" here.
+        assertThat(created.getDotVersion(), is("1.0.0"));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).insertOne(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().getInteger("timelineId"), is(99));
+        assertThat(headerCaptor.getValue().getInteger("versionCount"), is(0));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
+    }
+
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        when(counterStore.getNextTimelineSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createTimelineForNamespace(createRequest(), NAMESPACE));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- getTimelineVersions ---
+
+    @Test
+    void throw_a_namespace_exception_when_listing_versions_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.getTimelineVersions(timeline(null)));
+    }
+
+    @Test
+    void throw_a_timeline_exception_when_listing_versions_for_a_missing_timeline() {
+        timelineDoesNotExist();
+
+        assertThrows(TimelineNotFoundException.class, () -> store.getTimelineVersions(timeline(null)));
+    }
+
+    @Test
+    void list_versions_in_semantic_order() throws NamespaceNotFoundException, TimelineNotFoundException {
+        stubFind(headerCollection, List.of(new Document("timelineId", TIMELINE_ID)));
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0"),
+                new Document("version", "1.0.0")));
+
+        assertThat(store.getTimelineVersions(timeline(null)), contains("1.0.0", "1.9.0", "1.10.0"));
+    }
+
+    @Test
+    void return_no_versions_rather_than_not_found_for_a_timeline_with_none() throws NamespaceNotFoundException, TimelineNotFoundException {
+        stubFind(headerCollection, List.of(new Document("timelineId", TIMELINE_ID)));
+        stubFind(versionCollection, List.of());
+
+        // ADR 0003: the header proves the timeline exists, so an empty version list is an
+        // answer rather than evidence of a missing timeline.
+        assertThat(store.getTimelineVersions(timeline(null)), is(empty()));
+    }
+
+    // --- getTimelineForVersion ---
+
+    @Test
+    void throw_a_timeline_exception_when_getting_a_version_of_a_missing_timeline() {
+        timelineDoesNotExist();
+
+        assertThrows(TimelineNotFoundException.class, () -> store.getTimelineForVersion(timeline("1.0.0")));
+    }
+
+    @Test
+    void throw_a_version_exception_when_the_version_is_not_stored() {
+        stubFind(headerCollection, List.of(new Document("timelineId", TIMELINE_ID)));
+        stubFind(versionCollection, List.of());
+
+        assertThrows(TimelineVersionNotFoundException.class,
+                () -> store.getTimelineForVersion(timeline("9.0.0")));
+    }
+
+    @Test
+    void return_the_content_of_a_stored_version() throws Exception {
+        stubFind(headerCollection, List.of(new Document("timelineId", TIMELINE_ID)));
+        stubFind(versionCollection, List.of(new Document("content", new Document("test", "test"))));
+
+        assertThat(store.getTimelineForVersion(timeline("1.0.0")), containsString("\"test\""));
+    }
+
+    // --- createTimelineForVersion ---
+
+    @Test
+    void throw_a_timeline_exception_when_creating_a_version_for_a_missing_timeline() {
+        timelineDoesNotExist();
+
+        assertThrows(TimelineNotFoundException.class,
+                () -> store.createTimelineForVersion(timeline("1.0.1")));
+    }
+
+    @Test
+    void throw_a_version_exists_exception_when_the_version_is_already_stored() {
+        timelineExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
         assertThrows(TimelineVersionExistsException.class,
-                () -> mongoTimelineStore.createTimelineForVersion(timeline));
+                () -> store.createTimelineForVersion(timeline("1.0.1")));
     }
 
     @Test
-    void throw_a_timeline_not_found_exception_when_creating_or_updating_a_version_for_a_missing_timeline() {
-        mockSetupTimelineDocumentWithVersions();
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(50).setVersion("1.0.1")
-                .setTimeline(validJson).build();
+    void not_rename_the_timeline_when_the_version_already_exists() {
+        timelineExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
 
-        assertThrows(TimelineNotFoundException.class,
-                () -> mongoTimelineStore.createTimelineForVersion(timeline));
-        assertThrows(TimelineNotFoundException.class,
-                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+        assertThrows(TimelineVersionExistsException.class,
+                () -> store.createTimelineForVersion(timeline("1.0.1")));
 
-        // The entity-existence pre-check catches the missing timeline before any write is
-        // attempted, so no update is ever sent to Mongo (either overload).
-        verify(timelineCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(timelineCollection, never())
-                .updateOne(any(Bson.class), any(Bson.class));
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
 
     @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_updating_a_version_hits_the_document_size_limit() {
-        mockSetupTimelineDocumentWithVersions();
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setTimeline(validJson).build();
+    void write_the_version_and_then_the_header_details() throws Exception {
+        timelineExists();
 
-        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+        store.createTimelineForVersion(timeline("1.0.1"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.1"));
+        // Two header writes: the versionCount increment and the name/description update.
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void leave_the_stored_name_alone_when_a_version_write_carries_none() throws Exception {
+        timelineExists();
+
+        store.createTimelineForVersion(timeline("1.0.1", null, null));
+
+        // Where Architecture overwrites unconditionally — wiping the display name, bugs.md
+        // #2 — Timeline's old shape guarded these fields, so only the count write happens.
+        verify(headerCollection, Mockito.times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void update_only_the_details_that_are_present() throws Exception {
+        timelineExists();
+
+        store.createTimelineForVersion(timeline("1.0.1", "Renamed", "  "));
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), updateCaptor.capture());
+        String detailsUpdate = updateCaptor.getAllValues().get(1).toBsonDocument().toJson();
+        assertThat(detailsUpdate, containsString("Renamed"));
+        assertThat(detailsUpdate, not(containsString("description")));
+    }
+
+    // --- updateTimelineForVersion ---
+
+    @Test
+    void throw_a_timeline_exception_when_updating_a_version_for_a_missing_timeline() {
+        timelineDoesNotExist();
+
+        assertThrows(TimelineNotFoundException.class,
+                () -> store.updateTimelineForVersion(timeline("1.0.1")));
+    }
+
+    @Test
+    void force_write_a_version_on_update() throws Exception {
+        timelineExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.updateTimelineForVersion(timeline("1.0.1"));
+
+        verify(versionCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
+        // Replacing an existing version doesn't move the count, so the only header write
+        // here is the name/description update.
+        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void report_capacity_exceeded_when_a_version_write_hits_the_document_size_limit() {
+        timelineExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+                () -> store.updateTimelineForVersion(timeline("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(true));
     }
 
     @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_updating_a_version() {
-        mockSetupTimelineDocumentWithVersions();
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setTimeline(validJson).build();
-
-        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(mongoWriteException);
+    void report_a_plain_write_failure_for_other_version_write_errors() {
+        timelineExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10107, "not master"));
 
         StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoTimelineStore.updateTimelineForVersion(timeline));
+                () -> store.updateTimelineForVersion(timeline("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(false));
-    }
-
-    @Test
-    void accept_the_creation_or_update_of_a_valid_version() throws TimelineNotFoundException, NamespaceNotFoundException, TimelineVersionExistsException {
-        mockSetupTimelineDocumentWithVersions();
-
-        when(timelineCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
-
-        Timeline timeline = new Timeline.TimelineBuilder().setNamespace(NAMESPACE)
-                .setId(42).setVersion("1.0.1")
-                .setTimeline(validJson).build();
-
-        mongoTimelineStore.updateTimelineForVersion(timeline);
-        mongoTimelineStore.createTimelineForVersion(timeline);
-
-        verify(timelineCollection).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-        verify(timelineCollection).updateOne(any(Bson.class), any(Bson.class));
     }
 }

@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.ResourceType;
 
 public class CalmResourceErrorResponses {
     public static Response invalidNamespaceResponse(String namespace) {
@@ -34,6 +35,62 @@ public class CalmResourceErrorResponses {
     }
 
     /**
+     * Returns a 404 response for a layout write against a resource id that does not exist.
+     * Deliberately not a reuse of {@link org.finos.calm.resources.ArchitectureResource}'s own
+     * not-found response — that one is terser ("Invalid architecture provided") and changing it
+     * would alter five existing, already-tested response bodies for a change scoped to layout
+     * saves. Parameterized on {@code resourceType} rather than one hard-coded-noun method per
+     * type, the same convention {@link #invalidLayoutTargetResponse} already uses — a wording or
+     * sanitization fix here now reaches every layout-owning resource type at once.
+     *
+     * @param resourceType the kind of resource, lowercase (e.g. "architecture", "pattern");
+     *                      capitalized in the response body
+     * @param namespace    the namespace the resource belongs to
+     * @param id           the id of the missing resource
+     */
+    public static Response resourceNotFoundResponse(String resourceType, String namespace, int id) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity(capitalize(resourceType) + " " + id + " does not exist in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    /**
+     * Returns a 404 response for a resource with no saved default layout. See
+     * {@link #resourceNotFoundResponse} for why this is parameterized on {@code resourceType}
+     * rather than one method per resource type.
+     *
+     * @param resourceType the kind of resource, lowercase (e.g. "architecture", "pattern")
+     * @param namespace    the namespace the resource belongs to
+     * @param id           the id of the resource
+     */
+    public static Response resourceLayoutNotFoundResponse(String resourceType, String namespace, int id) {
+        return Response.status(Response.Status.NOT_FOUND)
+                .entity("No default layout saved for " + resourceType + " " + id + " in namespace: "
+                        + ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace))
+                .build();
+    }
+
+    private static String capitalize(String value) {
+        return value.isEmpty() ? value : Character.toUpperCase(value.charAt(0)) + value.substring(1);
+    }
+
+    /**
+     * Returns a 400 response for a layout PUT whose {@code for} target does not match the
+     * resource named in the URL. {@code forPath} is user-derived (parsed straight out of
+     * the request body) and is sanitized before being echoed back; {@code expectedPath} is
+     * server-constructed from validated path parameters and is trusted as-is.
+     *
+     * @param resourceType the kind of resource the layout belongs to (e.g. "architecture", "pattern")
+     */
+    public static Response invalidLayoutTargetResponse(String forPath, String expectedPath, String resourceType) {
+        String sanitizedForPath = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(forPath);
+        return Response.status(Response.Status.BAD_REQUEST)
+                .entity("Layout 'for' [" + sanitizedForPath + "] does not match " + resourceType + " [" + expectedPath + "]")
+                .build();
+    }
+
+    /**
      * Returns a 409 response for a namespace-deletion attempt that was refused because the
      * namespace still has content or child namespaces. Only the namespace name — the
      * user-derived value — is sanitized; the surrounding literal text is trusted and left
@@ -59,6 +116,38 @@ public class CalmResourceErrorResponses {
         String sanitizedDomain = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(domain);
         return Response.status(Response.Status.CONFLICT)
                 .entity("Domain " + sanitizedDomain + " contains controls and cannot be deleted")
+                .build();
+    }
+
+    /**
+     * Returns a 409 response for a resource push whose customId already maps to a resource of
+     * the given type in the namespace. {@code resourceType} is server-controlled (an enum
+     * constant, never user input) and is interpolated as-is; {@code name} and {@code namespace}
+     * are user-derived and sanitized.
+     */
+    public static Response resourceAlreadyExistsResponse(ResourceType resourceType, String name, String namespace) {
+        String sanitizedName = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(name);
+        String sanitizedNamespace = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace);
+        return Response.status(Response.Status.CONFLICT)
+                .entity(resourceType.name().toLowerCase() + " '" + sanitizedName
+                        + "' already exists in namespace '" + sanitizedNamespace + "'")
+                .build();
+    }
+
+    /**
+     * Returns a 409 response for a resource push whose explicit version already exists.
+     * {@code resourceType} is server-controlled and interpolated as-is; {@code version} is
+     * echoed unsanitized, matching every other version-conflict message in this codebase
+     * (e.g. {@code ArchitectureTools}, {@code MongoVersionDocumentStore}) — the version comes
+     * from the request's already {@code @Pattern}-validated version path/field, not free text.
+     * {@code name} and {@code namespace} are user-derived and sanitized.
+     */
+    public static Response versionAlreadyExistsResponse(String version, ResourceType resourceType, String name, String namespace) {
+        String sanitizedName = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(name);
+        String sanitizedNamespace = ResourceValidationConstants.STRICT_SANITIZATION_POLICY.sanitize(namespace);
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Version " + version + " already exists for " + resourceType.name().toLowerCase()
+                        + " '" + sanitizedName + "' in namespace '" + sanitizedNamespace + "'")
                 .build();
     }
 }

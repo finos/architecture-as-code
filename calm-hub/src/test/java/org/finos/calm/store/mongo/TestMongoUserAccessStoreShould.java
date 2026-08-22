@@ -46,10 +46,11 @@ public class TestMongoUserAccessStoreShould {
     private MongoUserAccessStore mongoUserAccessStore;
 
     @BeforeEach
-    void setup() {
+    void setup() throws NamespaceNotFoundException {
         userAccessCollection = Mockito.mock(DocumentMongoCollection.class);
 
         when(mongoDatabase.getCollection("userAccess")).thenReturn(userAccessCollection);
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         mongoUserAccessStore = new MongoUserAccessStore(mongoDatabase, namespaceStore, counterStore);
     }
 
@@ -532,6 +533,28 @@ public class TestMongoUserAccessStoreShould {
         List<UserAccess> actual = mongoUserAccessStore.getUserAccessForNamespace("GLOBAL");
 
         assertThat(actual, hasSize(0));
+        verify(namespaceStore, never()).namespaceExists("GLOBAL");
+    }
+
+    @Test
+    void get_user_access_for_global_namespace_and_id_without_namespace_existence_check() throws Exception {
+        Integer userAccessId = 202;
+
+        Document document = new Document("username", "alice")
+                .append("namespace", "GLOBAL")
+                .append("permission", Permission.admin.name())
+                .append("userAccessId", userAccessId);
+
+        DocumentFindIterable mockFindIterable = mock(DocumentFindIterable.class);
+        when(userAccessCollection.find(Filters.and(
+                Filters.eq("namespace", "GLOBAL"),
+                Filters.eq("userAccessId", userAccessId)
+        ))).thenReturn(mockFindIterable);
+        when(mockFindIterable.first()).thenReturn(document);
+
+        UserAccess actual = mongoUserAccessStore.getUserAccessForNamespaceAndId("GLOBAL", userAccessId);
+
+        assertThat(actual.getNamespace(), is("GLOBAL"));
         verify(namespaceStore, never()).namespaceExists("GLOBAL");
     }
 

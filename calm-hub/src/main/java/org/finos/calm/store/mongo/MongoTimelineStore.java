@@ -1,107 +1,95 @@
 package org.finos.calm.store.mongo;
 
-import com.mongodb.MongoWriteException;
-import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.UpdateOptions;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import org.bson.Document;
-import org.bson.conversions.Bson;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.domain.exception.TimelineNotFoundException;
 import org.finos.calm.domain.exception.TimelineVersionExistsException;
 import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
+import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
+import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
-import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.TimelineStore;
-import org.finos.calm.store.util.MongoUpsertPush;
-import org.finos.calm.store.util.MongoWriteFailures;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.util.MongoVersionDocumentStore;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
+
+import io.quarkus.arc.lookup.LookupIfProperty;
+
+import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
 
 /**
  * MongoDB-backed implementation of {@link TimelineStore}.
  *
- * <h2>Document model &amp; concurrency</h2>
- * Follows the same namespace-scoped document pattern as {@link MongoFlowStore} and
- * {@link MongoArchitectureStore}: one document per namespace (enforced by a unique index on
- * {@code timelines.namespace}), with an array of timeline sub-documents. New timelines are
- * added via upsert + {@code $push}, and new versions use an atomic conditional update with
- * {@code $elemMatch} / {@code $exists: false} to prevent duplicate version creation under
- * concurrency. Unique timeline IDs are generated atomically by {@link MongoCounterStore}.
+ * <h2>Document model</h2>
+ * One <em>header</em> document per timeline in {@code timelines}, and one <em>version</em> document
+ * per version in {@code timelineVersions}. All document handling lives in
+ * {@link MongoVersionDocumentStore}; this class only translates between that and the
+ * domain's objects and exceptions. See
+ * {@code calm-hub/decisions/0001-versioned-artefact-storage.md}.
  *
- * @see MongoCounterStore
+ * <p>Like Pattern and unlike Architecture, version writes update the header's name and
+ * description only when they are non-blank — Timeline's old shape guarded those fields.</p>
+ *
+ * <p>{@link TimelineStore} exposes no paged listing, so summaries are always fetched
+ * {@link PageRequest#UNPAGED}. The helper supports paging whenever the interface grows one.</p>
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "mongo", lookupIfMissing = true)
 @ApplicationScoped
 @Typed(MongoTimelineStore.class)
 public class MongoTimelineStore implements TimelineStore {
-    private final MongoCollection<Document> timelineCollection;
+
+    private static final String HEADER_COLLECTION = "timelines";
+    private static final String VERSION_COLLECTION = "timelineVersions";
+    private static final String ID_FIELD = "timelineId";
+    private static final String RESOURCE_LABEL = "Timeline";
+
     private final MongoCounterStore counterStore;
     private final MongoNamespaceStore namespaceStore;
-    private final Logger log = LoggerFactory.getLogger(getClass());
+    private final MongoVersionDocumentStore documentStore;
 
     public MongoTimelineStore(MongoDatabase database, MongoCounterStore counterStore, MongoNamespaceStore namespaceStore) {
         this.counterStore = counterStore;
         this.namespaceStore = namespaceStore;
-        this.timelineCollection = database.getCollection("timelines");
+        this.documentStore = new MongoVersionDocumentStore(
+                database.getCollection(HEADER_COLLECTION),
+                database.getCollection(VERSION_COLLECTION),
+                ID_FIELD,
+                RESOURCE_LABEL);
     }
 
     @Override
     public List<NamespaceTimelineSummary> getTimelinesForNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
+        return documentStore.listSummariesPaged(namespace, PageRequest.UNPAGED).stream()
+                .map(MongoTimelineStore::toTimelineSummary)
+                .toList();
+    }
 
-        Document namespaceDocument = timelineCollection.find(Filters.eq("namespace", namespace)).first();
-
-        //protects from an unpopulated mongo collection
-        if (namespaceDocument == null || namespaceDocument.isEmpty()) {
-            return List.of();
-        }
-
-        List<Document> timelines = namespaceDocument.getList("timelines", Document.class);
-        List<NamespaceTimelineSummary> timelineSummaries = new ArrayList<>();
-
-        for (Document timeline : timelines) {
-            Integer timelineId = timeline.getInteger("timelineId");
-            String name = timeline.getString("name");
-            String description = timeline.getString("description");
-            if (name == null) name = "Timeline " + timelineId;
-            if (description == null) description = "";
-            timelineSummaries.add(new NamespaceTimelineSummary(name, description, timelineId));
-        }
-
-        return timelineSummaries;
+    /** Drops the version count, which {@link NamespaceTimelineSummary} does not carry. */
+    private static NamespaceTimelineSummary toTimelineSummary(NamespaceResourceSummary summary) {
+        return new NamespaceTimelineSummary(summary.getName(), summary.getDescription(), summary.getId());
     }
 
     @Override
     public Timeline createTimelineForNamespace(CreateTimelineRequest timelineRequest, String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
+        namespaceStore.requireNamespace(namespace);
+
+        // Parsed before the counter is drawn and before anything is written, so malformed
+        // JSON can't leave a header behind with no version to go with it.
+        Document content = Document.parse(timelineRequest.getTimelineJson());
 
         int id = counterStore.getNextTimelineSequenceValue();
-        Document timelineDocument = new Document("timelineId", id)
-                .append("name", timelineRequest.getName())
-                .append("description", timelineRequest.getDescription())
-                .append("versions",
-                        new Document("1-0-0", Document.parse(timelineRequest.getTimelineJson())));
-
-        MongoUpsertPush.pushWithDuplicateRetry(timelineCollection,
-                Filters.eq("namespace", namespace),
-                "timelines", timelineDocument);
+        documentStore.createHeader(namespace, id, timelineRequest.getName(), timelineRequest.getDescription());
+        documentStore.createFirstVersion(namespace, id, content);
 
         return new Timeline.TimelineBuilder()
                 .setId(id)
-                .setVersion("1.0.0")
+                .setVersion(INITIAL_VERSION)
                 .setNamespace(namespace)
                 .setTimeline(timelineRequest.getTimelineJson())
                 .build();
@@ -109,145 +97,58 @@ public class MongoTimelineStore implements TimelineStore {
 
     @Override
     public List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        Document result = retrieveTimelineVersions(timeline);
-
-        List<Document> timelines = result.getList("timelines", Document.class);
-        for (Document timelineDoc : timelines) {
-            if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
-                // Extract the versions map from the matching timeline
-                Document versions = (Document) timelineDoc.get("versions");
-                if (versions == null) {
-                    throw new TimelineNotFoundException();
-                }
-                Set<String> versionKeys = versions.keySet();
-
-                // Convert from Mongo representation
-                List<String> resourceVersions = new ArrayList<>();
-                for (String versionKey : versionKeys) {
-                    resourceVersions.add(versionKey.replace('-', '.'));
-                }
-                return resourceVersions;
-            }
-        }
-
-        throw new TimelineNotFoundException();
-    }
-
-    private Document retrieveTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        if (!namespaceStore.namespaceExists(timeline.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
-
-        Bson filter = new Document("namespace", timeline.getNamespace());
-        Bson projection = Projections.fields(Projections.include("timelines"));
-
-        Document result = timelineCollection.find(filter).projection(projection).first();
-
-        if (result == null) {
-            throw new TimelineNotFoundException();
-        }
-
-        return result;
-    }
-
-    private void verifyTimelineExists(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        Document result = retrieveTimelineVersions(timeline);
-        List<Document> timelines = result.getList("timelines", Document.class);
-        for (Document timelineDoc : timelines) {
-            if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
-                return;
-            }
-        }
-        throw new TimelineNotFoundException();
+        requireTimeline(timeline);
+        return documentStore.listVersions(timeline.getNamespace(), timeline.getId());
     }
 
     @Override
     public String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
-        Document result = retrieveTimelineVersions(timeline);
+        requireTimeline(timeline);
 
-        List<Document> timelines = result.getList("timelines", Document.class);
-        for (Document timelineDoc : timelines) {
-            if (timeline.getId() == timelineDoc.getInteger("timelineId")) {
-                // Retrieve the versions map from the matching timeline
-                Document versions = (Document) timelineDoc.get("versions");
-                if (versions == null) {
-                    throw new TimelineVersionNotFoundException();
-                }
-
-                // Return the timeline JSON blob for the specified version
-                Document versionDoc = (Document) versions.get(timeline.getMongoVersion());
-                log.info("Version [{}] found: {}", timeline.getMongoVersion(), versionDoc != null);
-                if (versionDoc == null) {
-                    throw new TimelineVersionNotFoundException();
-                }
-                return versionDoc.toJson();
-            }
+        Document content = documentStore.getVersion(timeline.getNamespace(), timeline.getId(), timeline.getDotVersion());
+        if (content == null) {
+            throw new TimelineVersionNotFoundException();
         }
-        // Timelines is empty, no version to find
-        throw new TimelineVersionNotFoundException();
+        return content.toJson();
     }
 
     @Override
     public Timeline createTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionExistsException {
-        // Validates namespace and timeline existence
-        getTimelineVersions(timeline);
+        requireTimeline(timeline);
 
-        // Atomic conditional update: only succeeds if the version doesn't already exist
-        Document filter = new Document("namespace", timeline.getNamespace())
-                .append("timelines", new Document("$elemMatch",
-                        new Document("timelineId", timeline.getId())
-                                .append("versions." + timeline.getMongoVersion(), new Document("$exists", false))));
-
-        Document update = new Document("$set", buildVersionSetFields(timeline));
-
-        if (timelineCollection.updateOne(filter, update).getMatchedCount() == 0) {
+        Document content = Document.parse(timeline.getTimelineJson());
+        if (!documentStore.createVersion(timeline.getNamespace(), timeline.getId(), timeline.getDotVersion(), content)) {
             throw new TimelineVersionExistsException();
         }
 
+        updateHeaderDetails(timeline);
         return timeline;
     }
 
     @Override
     public Timeline updateTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
-        if (!namespaceStore.namespaceExists(timeline.getNamespace())) {
-            throw new NamespaceNotFoundException();
-        }
-        writeTimelineToMongo(timeline);
+        requireTimeline(timeline);
+
+        Document content = Document.parse(timeline.getTimelineJson());
+        documentStore.upsertVersion(timeline.getNamespace(), timeline.getId(), timeline.getDotVersion(), content);
+
+        updateHeaderDetails(timeline);
         return timeline;
     }
 
-    private void writeTimelineToMongo(Timeline timeline) throws TimelineNotFoundException, NamespaceNotFoundException {
-        // Verifies the namespace AND the specific timeline entity exist, so any
-        // MongoWriteException from the update below is a genuine write failure, not a
-        // disguised not-found.
-        verifyTimelineExists(timeline);
-
-        Document filter = new Document("namespace", timeline.getNamespace())
-                .append("timelines.timelineId", timeline.getId());
-        Document update = new Document("$set", buildVersionSetFields(timeline));
-
-        try {
-            timelineCollection.updateOne(filter, update, new UpdateOptions().upsert(true));
-        } catch (MongoWriteException ex) {
-            // Log identifying fields only, not the full timeline object — its toString()
-            // includes the entire (potentially near-16MB) timelineJson payload.
-            log.error("Failed to write timeline [namespace={}, id={}, version={}] to mongo",
-                    timeline.getNamespace(), timeline.getId(), timeline.getMongoVersion(), ex);
-            throw MongoWriteFailures.toStorageWriteException(ex);
-        }
+    /**
+     * Applies the name and description that came with a version write, ignoring either that
+     * is blank, and only after the version write succeeds.
+     */
+    private void updateHeaderDetails(Timeline timeline) {
+        documentStore.updatePresentHeaderDetails(timeline.getNamespace(), timeline.getId(),
+                timeline.getName(), timeline.getDescription());
     }
 
-    private Document buildVersionSetFields(Timeline timeline) {
-        Document setFields = new Document("timelines.$.versions." + timeline.getMongoVersion(), Document.parse(timeline.getTimelineJson()));
-        // Defensive: the REST layer enforces @NotBlank on name/description via CreateTimelineRequest,
-        // so these guards are only reachable by non-REST callers (e.g. direct store usage in tests).
-        if (timeline.getName() != null && !timeline.getName().isBlank()) {
-            setFields.append("timelines.$.name", timeline.getName());
+    private void requireTimeline(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
+        namespaceStore.requireNamespace(timeline.getNamespace());
+        if (!documentStore.headerExists(timeline.getNamespace(), timeline.getId())) {
+            throw new TimelineNotFoundException();
         }
-        if (timeline.getDescription() != null && !timeline.getDescription().isBlank()) {
-            setFields.append("timelines.$.description", timeline.getDescription());
-        }
-        return setFields;
     }
-
 }

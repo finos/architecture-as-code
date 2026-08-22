@@ -10,7 +10,7 @@ export function interfaceIdExists(input: unknown, _: unknown, context: RulesetFu
     }
 
     // get uniqueIds of all interfaces
-    const names = JSONPath({path: '$.nodes[*].interfaces[*].unique-id', json: context.document.data as object});
+    const names = JSONPath({ path: '$.nodes[*].interfaces[*].unique-id', json: context.document.data as object });
     const results: IFunctionResult[] = [];
 
     if (!names.includes(input)) {

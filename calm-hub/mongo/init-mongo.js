@@ -42,7 +42,14 @@ function canonicalVersion(version) {
 // flat lists with the parent-child relationship left implicit — so what is written here is
 // deliberately NOT the literal shape of the source below. Change this function, not the
 // data, if the storage shape changes again.
-function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField) {
+function seedVersionedResource(groupedByNamespace, headerCollection, versionCollection, arrayField, idField, versionsField, versionScheme) {
+    // "versions" for every type but ADR, whose map is called "revisions".
+    const versionsKey = versionsField || "versions";
+    // "semantic" for every type but ADR, whose revisions are integers and must be stored
+    // verbatim: VERSION_REGEX makes both separators optional, so canonicalVersion reads
+    // "100" as a spelling of 1.0.0 and would store revision 100 as "1.0.0". Mirrors
+    // VersionScheme on the Java side — see calm-hub/decisions/0003.
+    const canonicalise = versionScheme !== "numeric";
     const headers = [];
     const versions = [];
 
@@ -55,14 +62,14 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
             // inserts — then refuses, aborting the script before it records the schema version.
             // Mirrors collapseToCanonicalVersions in the two migration steps.
             const contentByCanonicalVersion = new Map();
-            for (const storedKey of Object.keys(entry.versions || {})) {
-                const version = canonicalVersion(storedKey);
+            for (const storedKey of Object.keys(entry[versionsKey] || {})) {
+                const version = canonicalise ? canonicalVersion(storedKey) : storedKey;
                 if (contentByCanonicalVersion.has(version)) {
                     logFail(`Seed data has two keys meaning version ${version} for `
                         + `${namespaceDocument.namespace}/${entry[idField]} — keeping the first, dropping '${storedKey}'`);
                     continue;
                 }
-                contentByCanonicalVersion.set(version, entry.versions[storedKey]);
+                contentByCanonicalVersion.set(version, entry[versionsKey][storedKey]);
             }
 
             headers.push({
@@ -94,6 +101,93 @@ function seedVersionedResource(groupedByNamespace, headerCollection, versionColl
         db[versionCollection].insertMany(versions);
     }
     return { headers: headers.length, versions: versions.length };
+}
+
+// Writes controls in the two-axis header/version shape of
+// calm-hub/decisions/0007-control-storage-header-version-split.md: a control's requirement
+// splits into controls/controlVersions exactly like seedVersionedResource above (domain
+// standing in for namespace), and each control's configurations split into a second pair,
+// controlConfigurations/controlConfigurationVersions, scoped under a synthetic
+// "domain::controlId" namespace.
+//
+// domainDocs is the OLD shape in memory — grouped by domain, each holding a nested controls[]
+// array with dash-encoded requirement/configuration version maps — deliberately not rewritten,
+// since it reads far better grouped by domain than as flat lists with the parent-child
+// relationship left implicit. Mirrors seedVersionedResource's split between source shape and
+// write shape.
+function seedControls(domainDocs) {
+    const controlHeaders = [];
+    const controlVersions = [];
+    const configHeaders = [];
+    const configVersions = [];
+
+    function collapse(versionsMap, scopeLabel, id) {
+        const byCanonical = new Map();
+        for (const storedKey of Object.keys(versionsMap || {})) {
+            const version = canonicalVersion(storedKey);
+            if (byCanonical.has(version)) {
+                logFail(`Seed data has two keys meaning version ${version} for ${scopeLabel}/${id} — `
+                    + `keeping the first, dropping '${storedKey}'`);
+                continue;
+            }
+            byCanonical.set(version, versionsMap[storedKey]);
+        }
+        return byCanonical;
+    }
+
+    for (const domainDoc of domainDocs) {
+        for (const control of (domainDoc.controls || [])) {
+            const requirementByVersion = collapse(control.requirement, domainDoc.domain, control.controlId);
+
+            controlHeaders.push({
+                namespace: domainDoc.domain,
+                controlId: control.controlId,
+                name: control.name,
+                description: control.description,
+                versionCount: NumberInt(requirementByVersion.size),
+                metadata: {}
+            });
+            for (const [version, content] of requirementByVersion) {
+                controlVersions.push({
+                    namespace: domainDoc.domain,
+                    controlId: control.controlId,
+                    version: version,
+                    content: content,
+                    metadata: {}
+                });
+            }
+
+            const configNamespace = `${domainDoc.domain}::${control.controlId}`;
+            for (const config of (control.configurations || [])) {
+                const versionsByVersion = collapse(config.versions, configNamespace, config.configurationId);
+
+                configHeaders.push({
+                    namespace: configNamespace,
+                    configurationId: config.configurationId,
+                    name: config.name || null,
+                    description: null,
+                    versionCount: NumberInt(versionsByVersion.size),
+                    metadata: {}
+                });
+                for (const [version, content] of versionsByVersion) {
+                    configVersions.push({
+                        namespace: configNamespace,
+                        configurationId: config.configurationId,
+                        version: version,
+                        content: content,
+                        metadata: {}
+                    });
+                }
+            }
+        }
+    }
+
+    if (controlHeaders.length > 0) db.controls.insertMany(controlHeaders);
+    if (controlVersions.length > 0) db.controlVersions.insertMany(controlVersions);
+    if (configHeaders.length > 0) db.controlConfigurations.insertMany(configHeaders);
+    if (configVersions.length > 0) db.controlConfigurationVersions.insertMany(configVersions);
+
+    return { controls: controlHeaders.length, configurations: configHeaders.length };
 }
 
 const dbName = (typeof process !== 'undefined' && process.env.CALM_DB_NAME)
@@ -134,7 +228,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 4;
+const LATEST_SCHEMA_VERSION = 14;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -148,13 +242,20 @@ if (isEmptyDatabase) {
         { $set: { version: NumberInt(LATEST_SCHEMA_VERSION) } },
         { upsert: true });
 
-    // Mirrors MongoIndexInitializationStep, which the pin above skips. Keep the two in
-    // step. Two deliberate differences, both because architectures have moved to the
-    // header/version shape (ADR 0001): architectures gets a unique
-    // (namespace, architectureId) instead of (namespace), which is what allows more than
-    // one architecture per namespace at all; and architectureVersions gets a unique
-    // (namespace, architectureId, version). The other six versioned types keep the
-    // one-document-per-namespace index until they migrate.
+    // Mirrors MongoIndexInitializationStep, MongoLayoutIndexStep, and
+    // MongoPatternLayoutIndexStep, which the pin above skips. Keep all four in step. All
+    // seven versioned types plus Control now use the header/version shape (ADR 0001, ADR
+    // 0007), so each gets a unique (namespace, <type>Id) instead of the old unique
+    // (namespace) — which is what allows more than one resource of a type per namespace at
+    // all — plus a unique (namespace, <type>Id, version) on its sibling versions collection.
+    // Control's configurations are a second, independently versioned axis under a synthetic
+    // (domain::controlId) namespace — see ADR 0007. Decorator alone keeps the
+    // one-document-per-namespace index (ADR 0004 — never versioned, no growth problem this
+    // redesign exists to solve). Layouts and pattern_layouts are a fourth, distinct shape:
+    // flat and non-versioned, one document per (namespace, architectureId) / (namespace,
+    // patternId), with no sibling versions collection and no version axis at all — see
+    // MongoLayoutIndexStep / MongoPatternLayoutIndexStep. Do not fold either into the
+    // one-document-per-namespace loop below.
     db.namespaces.createIndex({ name: 1 }, unique);
     db.domains.createIndex({ name: 1 }, unique);
     db.schemas.createIndex({ version: 1 }, unique);
@@ -163,13 +264,36 @@ if (isEmptyDatabase) {
     db.architectureVersions.createIndex({ namespace: 1, architectureId: 1, version: 1 }, unique);
     db.patterns.createIndex({ namespace: 1, patternId: 1 }, unique);
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
+    db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
+    db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
+    // Standards are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
+    db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
+    db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
+    db.interfaceVersions.createIndex({ namespace: 1, interfaceId: 1, version: 1 }, unique);
+    // Timelines are not seeded by this script, but the indexes still have to match the
+    // shape the store reads, since pinning the version skips the migration that creates them.
+    db.timelines.createIndex({ namespace: 1, timelineId: 1 }, unique);
+    db.timelineVersions.createIndex({ namespace: 1, timelineId: 1, version: 1 }, unique);
+    db.adrs.createIndex({ namespace: 1, adrId: 1 }, unique);
+    db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
+    db.layouts.createIndex({ namespace: 1, architectureId: 1 }, unique);
+    db.pattern_layouts.createIndex({ namespace: 1, patternId: 1 }, unique);
+    // Control (ADR 0007): the requirement axis is keyed exactly like the other seven types
+    // above, domain standing in for namespace. The configuration axis is a second, independent
+    // header/version pair keyed by a synthetic (domain::controlId) namespace, since a
+    // configuration's id is already globally unique and this only needs to scope listing.
+    db.controls.createIndex({ namespace: 1, controlId: 1 }, unique);
+    db.controlVersions.createIndex({ namespace: 1, controlId: 1, version: 1 }, unique);
+    db.controlConfigurations.createIndex({ namespace: 1, configurationId: 1 }, unique);
+    db.controlConfigurationVersions.createIndex({ namespace: 1, configurationId: 1, version: 1 }, unique);
 
-    // Still one document per namespace until each of these migrates, at which point its
-    // entry moves up alongside architectures and patterns.
-    for (const collection of ["flows", "timelines", "standards", "interfaces", "adrs", "decorators"]) {
+    // Still one document per namespace — Decorator is not versioned at all, so this redesign
+    // does not touch it (ADR 0004).
+    for (const collection of ["decorators"]) {
         db[collection].createIndex({ namespace: 1 }, unique);
     }
-    db.controls.createIndex({ domain: 1 }, unique);
 
     // Two partial indexes rather than one compound: namespace-scoped and domain-scoped
     // grant documents share no discriminating field.
@@ -380,10 +504,7 @@ function loadControlsFromDir(baseDir) {
         }
         domainDocs.push({ domain, controls });
     }
-    if (domainDocs.length > 0) {
-        db.controls.insertMany(domainDocs);
-        logSuccess(`Inserted controls for domains: ${domainDocs.map(d => d.domain).join(', ')}`);
-    }
+    return domainDocs;
 }
 
 logSection("Namespaces");
@@ -422,61 +543,64 @@ logSection("Controls");
 // Controls are loaded from files under CALM_CONTROLS_BASE_PATH (default: /controls).
 // Each subdirectory represents a domain; each JSON file within is one control.
 if (db.controls.countDocuments() === 0) {
-    loadControlsFromDir(controlsBasePath);
+    const domainDocs = loadControlsFromDir(controlsBasePath);
+    if (domainDocs.length > 0) {
+        logSuccess(`Loaded controls for domains: ${domainDocs.map(d => d.domain).join(', ')}`);
+    }
 
     // Add Permitted Connection control to the file-seeded security domain
-    db.controls.updateOne(
-        { domain: "security" },
+    let securityDomainDoc = domainDocs.find(d => d.domain === "security");
+    if (!securityDomainDoc) {
+        securityDomainDoc = { domain: "security", controls: [] };
+        domainDocs.push(securityDomainDoc);
+    }
+    securityDomainDoc.controls.push(
         {
-            $push: {
-                controls: {
-                    controlId: NumberInt(2),
-                    name: "Permitted Connection",
-                    description: "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
-                    requirement: {
-                        "1-0-0": {
-                            "$schema": "https://calm.finos.org/release/1.0/meta/control.json",
-                            "$id": "https://calm.finos.org/qcon/controls/permitted-connection.requirement.json",
-                            "title": "Permitted Connection Control Requirement",
-                            "description": "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
-                            "control-id": "security-002",
-                            "type": "object",
-                            "properties": {
-                                "reason": {
-                                    "type": "string",
-                                    "description": "Business justification for why this connection is required"
-                                },
-                                "protocol": {
-                                    "type": "string",
-                                    "enum": ["HTTP", "HTTPS", "JDBC", "gRPC", "WebSocket", "TCP", "UDP"],
-                                    "description": "The network protocol used for this connection"
-                                }
-                            },
-                            "required": [
-                                "reason",
-                                "protocol"
-                            ]
+            controlId: NumberInt(2),
+            name: "Permitted Connection",
+            description: "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
+            requirement: {
+                "1-0-0": {
+                    "$schema": "https://calm.finos.org/release/1.0/meta/control.json",
+                    "$id": "https://calm.finos.org/qcon/controls/permitted-connection.requirement.json",
+                    "title": "Permitted Connection Control Requirement",
+                    "description": "Defines requirements for explicitly authorizing connections between services. Every connection must declare the protocol being used and provide a business justification for why the connection is necessary.",
+                    "control-id": "security-002",
+                    "type": "object",
+                    "properties": {
+                        "reason": {
+                            "type": "string",
+                            "description": "Business justification for why this connection is required"
+                        },
+                        "protocol": {
+                            "type": "string",
+                            "enum": ["HTTP", "HTTPS", "JDBC", "gRPC", "WebSocket", "TCP", "UDP"],
+                            "description": "The network protocol used for this connection"
                         }
                     },
-                    configurations: [
-                        {
-                            configurationId: NumberInt(1),
-                            versions: {
-                                "1-0-0": {
-                                    "reason": "MCP client and Trades API require HTTP access to MCP server for querying trade data",
-                                    "protocol": "HTTP"
-                                }
-                            }
-                        }
+                    "required": [
+                        "reason",
+                        "protocol"
                     ]
                 }
-            }
+            },
+            configurations: [
+                {
+                    configurationId: NumberInt(1),
+                    versions: {
+                        "1-0-0": {
+                            "reason": "MCP client and Trades API require HTTP access to MCP server for querying trade data",
+                            "protocol": "HTTP"
+                        }
+                    }
+                }
+            ]
         }
     );
     logSuccess("Added Permitted Connection control to security domain");
 
-    // Insert Micro-Segmentation control for the network domain
-    db.controls.insertOne({
+    // Add Micro-Segmentation control for the network domain
+    domainDocs.push({
         domain: "network",
         controls: [
             {
@@ -523,8 +647,8 @@ if (db.controls.countDocuments() === 0) {
     });
     logSuccess("Initialized controls for network domain with Micro-Segmentation control");
 
-    // Insert MCP Guardrail control for the mcp-controls domain
-    db.controls.insertOne({
+    // Add MCP Guardrail control for the mcp-controls domain
+    domainDocs.push({
         domain: "mcp-controls",
         controls: [
             {
@@ -573,6 +697,10 @@ if (db.controls.countDocuments() === 0) {
         ]
     });
     logSuccess("Initialized controls for mcp-controls domain with MCP Guardrail control");
+
+    const written = seedControls(domainDocs);
+    logSuccess(`Seeded ${written.controls} control(s) and ${written.configurations} configuration(s) `
+        + `in the header/version shape`);
 } else {
     logSkip("Controls already exist, no initialization needed");
 }
@@ -1928,8 +2056,11 @@ if (isEmptyDatabase && db.patterns.countDocuments() === 0) {
 }
 
 logSection("Flows");
-if (db.flows.countDocuments() === 0) {
-    db.flows.insertMany([
+// Gated on the database being empty, like the other migrated types — the new shape
+// depends on the index swap the schema baseline performs.
+if (isEmptyDatabase && db.flows.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const flowsByNamespace = [
         {
             namespace: "finos",
             flows: [
@@ -1939,7 +2070,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
                             "title": "Flow 1",
@@ -1953,7 +2084,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "This is a non-compliant flow document. Just creating something to simulate",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
                             "title": "Flow 2",
@@ -1974,7 +2105,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for adding or updating account information in the database",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
                             "unique-id": "flow-add-update-account",
@@ -2019,7 +2150,7 @@ if (db.flows.countDocuments() === 0) {
                     description: "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection",
                     versions:
                     {
-                        "1-0-0": {
+                        "1.0.0": {
                             "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
                             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
                             "unique-id": "flow-load-list-of-accounts",
@@ -2055,9 +2186,14 @@ if (db.flows.countDocuments() === 0) {
                 }
             ]
         }
-    ]
-    );
-    logSuccess("Initialized flows for finos and traderx namespaces");
+    ];
+
+    const seededFlows = seedVersionedResource(
+        flowsByNamespace, "flows", "flowVersions", "flows", "flowId");
+    logSuccess(`Initialized ${seededFlows.headers} flows and ${seededFlows.versions} versions for finos and traderx namespaces`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding flows; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Flows already initialized, skipping...");
 }
@@ -6350,13 +6486,21 @@ if (db.userAccess.countDocuments() === 0) {
 }
 
 logSection("ADRs");
-if (db.adrs.countDocuments() === 0) {
-    db.adrs.insertMany([
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.adrs.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    // ADR keys its map "revisions", by integer, so the field name is passed explicitly.
+    const adrsByNamespace = [
         {
             namespace: 'finos',
             adrs: [
                 {
                     adrId: NumberInt(1),
+                    // Denormalized copy of revisions[1].title — see
+                    // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+                    // seedVersionedResource writes this onto the header the same way it
+                    // already does for every other type's `name`.
+                    name: 'Example ADR',
                     revisions: {
                         1: {
                             title: 'Example ADR',
@@ -6439,6 +6583,9 @@ if (db.adrs.countDocuments() === 0) {
             adrs: [
                 {
                     adrId: NumberInt(1),
+                    // Denormalized copy of revisions[1].title — see
+                    // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md.
+                    name: 'Use Load Balancer for Traffic Distribution',
                     revisions: {
                         1: {
                             title: 'Use Load Balancer for Traffic Distribution',
@@ -6482,8 +6629,13 @@ if (db.adrs.countDocuments() === 0) {
                 },
             ],
         },
-    ]);
-    logSuccess("Initialized ADRs for finos and workshop namespaces");
+    ];
+    const seededAdrs = seedVersionedResource(
+        adrsByNamespace, "adrs", "adrVersions", "adrs", "adrId", "revisions", "numeric");
+    logSuccess(`Initialized ${seededAdrs.headers} ADRs and ${seededAdrs.versions} revisions`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding ADRs; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("ADRs already initialized, skipping...");
 }
@@ -6652,8 +6804,10 @@ if (db.decorators.countDocuments() === 0) {
 
 logSection("Interfaces");
 // Insert a sample Host Port interface for the finos namespace
-if (db.interfaces.countDocuments() === 0) {
-    db.interfaces.insertOne({
+// Gated on the database being empty, like the other migrated types.
+if (isEmptyDatabase && db.interfaces.countDocuments() === 0) {
+    // Grouped by namespace for readability only — seedVersionedResource fans this out.
+    const interfacesByNamespace = [{
         namespace: "finos",
         interfaces: [
             {
@@ -6661,7 +6815,7 @@ if (db.interfaces.countDocuments() === 0) {
                 name: "Host Port Interface",
                 description: "A standard host and port interface definition for network-accessible services",
                 versions: {
-                    "1-0-0": {
+                    "1.0.0": {
                         "$schema": "https://json-schema.org/draft/2020-12/schema",
                         "$id": "https://calm.finos.org/calm/namespaces/finos/interfaces/1/versions/1.0.0",
                         "title": "Host Port Interface",
@@ -6723,14 +6877,22 @@ if (db.interfaces.countDocuments() === 0) {
                 }
             }
         ]
-    });
-    logSuccess("Initialized interfaces for finos namespace");
+    }];
+    const seededInterfaces = seedVersionedResource(
+        interfacesByNamespace, "interfaces", "interfaceVersions", "interfaces", "interfaceId");
+    logSuccess(`Initialized ${seededInterfaces.headers} interfaces and ${seededInterfaces.versions} versions for finos namespace`);
+} else if (!isEmptyDatabase) {
+    logSkip("Existing database — not seeding interfaces; the new shape needs the index swap "
+        + "that SchemaMigrationRunner will perform on startup");
 } else {
     logSkip("Interfaces already initialized, skipping...");
 }
 
 logSection("Resource Mappings");
-db.resource_mappings.createIndex({ namespace: 1, customId: 1 }, { unique: true });
+// resourceType is part of the unique key so the same customId can be reused across different
+// resource types (e.g. a pattern and an architecture can both be named "repo") — see
+// MongoResourceMappingIndexStep for the migration that carries existing deployments to this shape.
+db.resource_mappings.createIndex({ namespace: 1, resourceType: 1, customId: 1 }, { unique: true });
 db.resource_mappings.createIndex({ namespace: 1, resourceType: 1, numericId: 1 });
 logSuccess("Created resource_mappings indexes");
 

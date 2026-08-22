@@ -1,7 +1,7 @@
 ---
 id: patterns
 title: Patterns
-sidebar_position: 9
+sidebar_position: 10
 ---
 
 # Patterns in CALM

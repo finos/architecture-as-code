@@ -1,7 +1,6 @@
 package org.finos.calm.services;
 
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
-import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.DomainControlCount;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -99,10 +98,10 @@ class TestCountsServiceShould {
                         new NamespaceResourceSummary("f3", "desc", 3, 0)));
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceResourceSummary("s1", "desc", 1, 0)));
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE))
-                .thenReturn(List.of(
-                        new NamespaceAdrSummary("adr1", "draft", 1),
-                        new NamespaceAdrSummary("adr2", "accepted", 2)));
+        // ADR is counted rather than listed: its summary carries the latest revision's title
+        // and status, so building the list costs two reads and a parse per ADR for a number
+        // that discards all of it.
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(2);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE))
                 .thenReturn(List.of(new NamespaceInterfaceSummary("i1", "desc", 1)));
 
@@ -132,7 +131,7 @@ class TestCountsServiceShould {
                 .thenThrow(new NamespaceNotFoundException());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE))
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE))
                 .thenThrow(new NamespaceNotFoundException());
@@ -275,7 +274,7 @@ class TestCountsServiceShould {
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
 
         service.getNamespaceCounts(ALL_ACCESS);
@@ -308,7 +307,7 @@ class TestCountsServiceShould {
         when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
-        when(mockAdrStore.getAdrsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
         when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
 
         List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
@@ -316,6 +315,44 @@ class TestCountsServiceShould {
         // A store-level failure is counted as zero rather than 500-ing the whole endpoint.
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getArchitectures(), is(0));
+    }
+
+    @Test
+    void count_adrs_as_zero_when_the_adr_store_throws_at_runtime() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new RuntimeException("store unavailable"));
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
+
+        // ADR counts through its own path now, so it needs its own proof that a store
+        // failure is an undercount rather than a 500 for the whole endpoint.
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getAdrs(), is(0));
+    }
+
+    @Test
+    void count_adrs_as_zero_when_the_namespace_is_missing_from_the_adr_store() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "FINOS namespace")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new NamespaceNotFoundException());
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        List<NamespaceCounts> result = service.getNamespaceCounts(ALL_ACCESS);
+
+        assertThat(result, hasSize(1));
+        assertThat(result.get(0).getAdrs(), is(0));
     }
 
     @Test

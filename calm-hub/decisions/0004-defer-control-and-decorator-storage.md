@@ -1,7 +1,11 @@
 # ADR 0004: Defer Control and Decorator storage redesign
 
 **Status**: Accepted. This is a decision to *not* decide yet — it needs no
-code changes of its own.
+code changes of its own. **Fulfilled with respect to Control by
+[ADR 0007](0007-control-storage-header-version-split.md)** — the sections
+below describe Control's storage as it was *before* that redesign, and are
+now historical for Control specifically. Decorator remains deferred; nothing
+below has changed for it.
 
 ## Context
 

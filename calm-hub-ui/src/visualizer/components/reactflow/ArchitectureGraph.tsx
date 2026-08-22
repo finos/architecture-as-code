@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -24,7 +24,7 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyStoredPositions } from '../../services/node-position-service.js';
+import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useNodeSearch } from './node-search-context.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
@@ -67,8 +67,34 @@ function readMinimapHidden(): boolean {
     }
 }
 
-export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewportKey }: ArchitectureGraphProps) {
+export function ArchitectureGraph({
+    jsonData,
+    onNodeClick,
+    onEdgeClick,
+    viewportKey,
+    defaultLayout,
+    layoutEpoch,
+    onPositionsChange,
+}: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
+
+    // The parse effect below calls onPositionsChange on every apply, not just
+    // drag-end, so it must not itself re-run merely because the caller passed a
+    // new function identity — that would re-parse and re-apply positions for no
+    // data reason, and any future caller passing an inline arrow (rather than
+    // DiagramSection's viewportKey-keyed useCallback) would loop forever: the
+    // effect calls the callback, the callback triggers a parent render, the new
+    // identity re-runs the effect. Hold the latest value in a ref, updated by a
+    // post-commit effect (never during render — that would break under
+    // StrictMode/concurrent rendering), and call through a stable wrapper so the
+    // parse effect's dependency stays honest without an eslint-disable.
+    const onPositionsChangeRef = useRef(onPositionsChange);
+    useEffect(() => {
+        onPositionsChangeRef.current = onPositionsChange;
+    });
+    const reportPositions = useCallback((positions: StoredNodePosition[]) => {
+        onPositionsChangeRef.current?.(positions);
+    }, []);
 
     // The viewport store key is namespaced by device. Mobile fits to a far lower zoom
     // floor (0.1 vs desktop's 0.6), so a viewport saved while mobile must not be
@@ -129,17 +155,52 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         onEdgeClick,
         groupNodeTypes: GROUP_NODE_TYPES,
         persistKey: viewportKey,
+        onPositionsChange: reportPositions,
     });
 
+    // Still fetching the server default for this diagram: hold off applying
+    // positions rather than flashing the auto-layout and then jumping to the
+    // restored one. Only a resource type useDefaultLayout supports (currently
+    // architectures and patterns — see its SUPPORTED_TYPES — ever has
+    // `viewportKey` set by DiagramSection while `defaultLayout` is still
+    // `undefined`; dropped files resolve it to `null` immediately, and so does
+    // any caller that never sets `viewportKey` in the first place.
+    const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
+
     useEffect(() => {
+        if (awaitingDefaultLayout) return;
+
         const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
         sourceNodesRef.current = parsedNodes;
-        // Restore any custom layout the user dragged for this diagram, falling
-        // back to the parsed auto-layout when none is stored.
-        setNodes(viewportKey ? applyStoredPositions(viewportKey, parsedNodes) : parsedNodes);
+
+        // Precedence: an unsaved local drag always wins over the saved default —
+        // never silently discard a user's in-progress work — which in turn wins
+        // over the parsed auto-layout when neither is present.
+        const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
+        const effectivePositions = localPositions ?? defaultLayout ?? null;
+        const positionedNodes = applyPositions(parsedNodes, effectivePositions);
+
+        setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-    }, [jsonData, setNodes, setEdges, setAvailableNodeTypes, onNodeClick, viewportKey]);
+        reportPositions(toStoredPositions(positionedNodes));
+        // layoutEpoch has no direct use in the body — it exists purely as a
+        // dependency so "reset to default layout" (which bumps it) forces this
+        // effect to re-run and cleanly re-apply positions. reportPositions is a
+        // real dependency that happens to be identity-stable (see its definition
+        // above), so a fresh onPositionsChange from the caller never re-runs this.
+    }, [
+        jsonData,
+        setNodes,
+        setEdges,
+        setAvailableNodeTypes,
+        onNodeClick,
+        viewportKey,
+        defaultLayout,
+        layoutEpoch,
+        awaitingDefaultLayout,
+        reportPositions,
+    ]);
 
     // Search & filter
     const isSearchActive = searchTerm !== '' || typeFilter !== '';
@@ -179,6 +240,10 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         return () => window.removeEventListener('resize', refit);
     }, [isMobile]);
 
+    if (awaitingDefaultLayout) {
+        return <EmptyGraphState message="Loading saved layout…" />;
+    }
+
     if (nodes.length === 0) {
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
@@ -195,7 +260,16 @@ export function ArchitectureGraph({ jsonData, onNodeClick, onEdgeClick, viewport
         <div style={{ height: '100%', width: '100%' }}>
             <ReactFlow
                 // Remount when the diagram (resource) changes so a new architecture fits
-                // afresh; switching versions/moments keeps the same key and preserves the view.
+                // afresh; switching versions/moments keeps the same key and preserves the
+                // view. layoutEpoch is deliberately NOT folded in here — it used to be, to
+                // force a remount on "reset to default layout", but savedViewport is only
+                // recomputed from storageKey (unchanged by an epoch bump), so a remount
+                // restored defaultViewport from whatever was read at mount time rather than
+                // the user's current pan/zoom: pan, zoom, drag a node, Save, and the canvas
+                // snapped back to the load-time view (worse on mobile, which re-fits
+                // unconditionally). The remount was never load-bearing for reset — the parse
+                // effect below already has layoutEpoch in its deps and re-applies positions
+                // on its own, which is all reset needs.
                 key={viewportKey}
                 nodes={nodes}
                 edges={edges}

@@ -6,10 +6,6 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.Filters;
-import com.mongodb.client.model.Projections;
-import com.mongodb.client.model.UpdateOptions;
-import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -20,26 +16,40 @@ import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
-import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import java.util.*;
+import java.util.List;
+import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.times;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
+/**
+ * Store-level tests for the header/version shape. Document mechanics are covered by
+ * {@code TestMongoVersionDocumentStoreShould}. Standard differs from Pattern and Flow in two
+ * ways this class pins: version writes set name/description unconditionally, and there is no
+ * update path at all.
+ */
 @QuarkusTest
 public class TestMongoStandardStoreShould {
 
@@ -52,390 +62,236 @@ public class TestMongoStandardStoreShould {
     @InjectMock
     MongoNamespaceStore namespaceStore;
 
-    private MongoCollection<Document> standardCollection;
-
-    private MongoStandardStore mongoStandardStore;
-
-    @BeforeEach
-    void setup() {
-        standardCollection = Mockito.mock(DocumentMongoCollection.class);
-
-        when(mongoDatabase.getCollection("standards")).thenReturn(standardCollection);
-        mongoStandardStore = new MongoStandardStore(mongoDatabase, counterStore, namespaceStore);
-    }
-
-    @Test
-    void get_standard_for_namespace_returns_empty_list_when_none_exist() throws NamespaceNotFoundException {
-        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-        when(documentMock.getList("standards", Document.class))
-                .thenReturn(new ArrayList<>());
-
-        assertThat(mongoStandardStore.getStandardsForNamespace("finos"), is(empty()));
-        verify(namespaceStore).namespaceExists("finos");
-    }
-
-    @Test
-    void get_standard_for_namespace_returns_empty_list_when_mongo_collection_not_created() throws NamespaceNotFoundException {
-        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
-                .thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-        assertThat(mongoStandardStore.getStandardsForNamespace("finos"), is(empty()));
-        verify(namespaceStore).namespaceExists("finos");
-    }
-
-    @Test
-    void get_standard_for_namespace_that_doesnt_exist_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardsForNamespace(namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void get_standard_for_namespace_returns_values() throws NamespaceNotFoundException {
-        FindIterable<Document> findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(eq(Filters.eq("namespace", "finos"))))
-                .thenReturn(findIterable);
-        Document documentMock = Mockito.mock(Document.class);
-        when(findIterable.first()).thenReturn(documentMock);
-
-        Map<String, Object> standardDetailMap = new HashMap<>();
-        standardDetailMap.put("standardId", 55);
-        standardDetailMap.put("name", "Test Standard");
-        standardDetailMap.put("description", "Test Description");
-        standardDetailMap.put("versions", new Document("1-0-0", new Document()).append("2-0-0", new Document()));
-
-        Document doc = new Document(standardDetailMap);
-        // Second standard without a versions sub-document exercises the null-guard → 0.
-        Document docNoVersions = new Document("standardId", 56)
-                .append("name", "No Versions")
-                .append("description", "");
-
-        when(documentMock.getList("standards", Document.class))
-                .thenReturn(List.of(doc, docNoVersions));
-
-        List<NamespaceResourceSummary> standards = mongoStandardStore.getStandardsForNamespace("finos");
-
-        assertThat(standards.size(), is(2));
-        assertThat(standards.getFirst().getName(), is("Test Standard"));
-        assertThat(standards.getFirst().getDescription(), is("Test Description"));
-        assertThat(standards.getFirst().getId(), is(55));
-        assertThat(standards.getFirst().getVersionCount(), is(2));
-        assertThat(standards.get(1).getVersionCount(), is(0));
-
-        verify(namespaceStore).namespaceExists("finos");
-    }
-
-    private DocumentFindIterable setupInvalidStandard() {
-        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        //Return the same find iterable as the projection unboxes, then return null
-        when(standardCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(null);
-
-
-        return findIterable;
-    }
-
-    private void mockSetupStandardDocumentWithVersions() {
-        Document mainDocument = setupStandardVersionDocument();
-        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(mainDocument);
-    }
-
-    private void mockSetupStandardDocumentWithoutVersions() {
-        Document standardWithNoVersions = new Document("namespace", "finos")
-                .append("standards", List.of(new Document("standardId", 42)));
-        DocumentFindIterable findIterable = Mockito.mock(DocumentFindIterable.class);
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(standardCollection.find(any(Bson.class)))
-                .thenReturn(findIterable);
-        when(findIterable.projection(any(Bson.class))).thenReturn(findIterable);
-        when(findIterable.first()).thenReturn(standardWithNoVersions);
-    }
-
-    @Test
-    void return_a_namespace_exception_when_namespace_does_not_exist_when_creating_standard() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String namespace = "does-not-exist";
-        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.createStandardForNamespace(createStandardRequest, namespace));
-
-        verify(namespaceStore).namespaceExists(namespace);
-    }
-
-    @Test
-    void return_a_json_parse_exception_when_an_invalid_json_object_is_presented_when_creating_standard() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextStandardSequenceValue()).thenReturn(42);
-
-        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
-        createStandardRequest.setStandardJson("invalid JSON");
-
-        assertThrows(JsonParseException.class,
-                () -> mongoStandardStore.createStandardForNamespace(createStandardRequest, "finos"));
-    }
-
-    @Test
-    void return_created_standard_when_parameters_are_valid() throws NamespaceNotFoundException {
-        String validNamespace = "finos";
-        int sequenceNumber = 42;
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextStandardSequenceValue()).thenReturn(sequenceNumber);
-
-        CreateStandardRequest standardToCreate = new CreateStandardRequest(
-                "test",
-                "Test Standard",
-                "{}"
-        );
-
-        standardToCreate.setStandardJson("{}");
-        standardToCreate.setDescription("Test Standard");
-        standardToCreate.setName("test");
-
-        Standard createdStandard = mongoStandardStore.createStandardForNamespace(standardToCreate, validNamespace);
-
-        //Update the id from the standard
-        Standard standard = new Standard(standardToCreate);
-        standard.setVersion("1.0.0");
-        standard.setId(sequenceNumber);
-
-        assertThat(createdStandard, is(standard));
-
-        Document expectedDoc = new Document("standardId", sequenceNumber)
-                .append("name", standardToCreate.getName())
-                .append("description", standardToCreate.getDescription())
-                .append("versions", new Document("1-0-0", Document.parse(standardToCreate.getStandardJson())));
-
-        verify(standardCollection).updateOne(
-                eq(Filters.eq("namespace", validNamespace)),
-                eq(Updates.push("standards", expectedDoc)),
-                any(UpdateOptions.class));
-    }
-
-    @Test
-    void retry_and_succeed_when_a_concurrent_request_wins_the_first_create_race() throws NamespaceNotFoundException {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextStandardSequenceValue()).thenReturn(42);
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(11000, "duplicate key", new BsonDocument()), new ServerAddress(), List.of()))
-                .thenReturn(null);
-        CreateStandardRequest standardToCreate = new CreateStandardRequest("test", "Test Standard", "{}");
-
-        mongoStandardStore.createStandardForNamespace(standardToCreate, "finos");
-
-        verify(standardCollection, times(2)).updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class));
-    }
-
-    @Test
-    void propagate_non_duplicate_key_errors_when_creating_a_standard() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
-        when(counterStore.getNextStandardSequenceValue()).thenReturn(42);
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
-                .thenThrow(new MongoWriteException(new WriteError(12, "some other error", new BsonDocument()), new ServerAddress(), List.of()));
-        CreateStandardRequest standardToCreate = new CreateStandardRequest("test", "Test Standard", "{}");
-
-        assertThrows(MongoWriteException.class,
-                () -> mongoStandardStore.createStandardForNamespace(standardToCreate, "finos"));
-    }
-
-    @Test
-    void get_standard_versions_for_invalid_namespace_throws_exception() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardVersions("does-not-exist", 5));
-
-        verify(namespaceStore).namespaceExists("does-not-exist");
+    private interface DocumentMongoCollection extends MongoCollection<Document> {
     }
 
     private interface DocumentFindIterable extends FindIterable<Document> {
     }
 
+    private MongoCollection<Document> headerCollection;
+    private MongoCollection<Document> versionCollection;
+    private MongoStandardStore store;
+
+    private static final String NAMESPACE = "finos";
+    private static final int STANDARD_ID = 42;
+    private static final String VALID_JSON = "{\"test\": \"test\"}";
+
+    @BeforeEach
+    void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
+        headerCollection = Mockito.mock(DocumentMongoCollection.class);
+        versionCollection = Mockito.mock(DocumentMongoCollection.class);
+
+        when(mongoDatabase.getCollection("standards")).thenReturn(headerCollection);
+        when(mongoDatabase.getCollection("standardVersions")).thenReturn(versionCollection);
+        when(namespaceStore.namespaceExists(anyString())).thenReturn(true);
+
+        store = new MongoStandardStore(mongoDatabase, counterStore, namespaceStore);
+    }
+
+    private void stubFind(MongoCollection<Document> collection, List<Document> documents) {
+        FindIterable<Document> iterable = Mockito.mock(DocumentFindIterable.class);
+        when(collection.find(any(Bson.class))).thenReturn(iterable);
+        when(iterable.projection(any())).thenReturn(iterable);
+        when(iterable.sort(any())).thenReturn(iterable);
+        when(iterable.skip(anyInt())).thenReturn(iterable);
+        when(iterable.limit(anyInt())).thenReturn(iterable);
+        when(iterable.first()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        doAnswer(invocation -> {
+            Consumer<Document> consumer = invocation.getArgument(0);
+            documents.forEach(consumer);
+            return null;
+        }).when(iterable).forEach(any());
+    }
+
+    private void standardExists() {
+        stubFind(headerCollection, List.of(new Document("standardId", STANDARD_ID)));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+    }
+
+    private void standardDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static MongoWriteException writeError(int code, String message) {
+        return new MongoWriteException(new WriteError(code, message, new BsonDocument()), new ServerAddress(), List.of());
+    }
+
+    private static CreateStandardRequest createRequest() {
+        return new CreateStandardRequest("standard-name", "standard-description", VALID_JSON);
+    }
+
+    // --- getStandardsForNamespace ---
+
     @Test
-    void get_standard_versions_for_invalid_standard_throws_exception() {
-        FindIterable<Document> findIterable = setupInvalidStandard();
+    void throw_a_namespace_exception_when_listing_standards_for_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
-        assertThrows(StandardNotFoundException.class,
-                () -> mongoStandardStore.getStandardVersions("finos", 5));
-
-        verify(standardCollection).find(new Document("namespace", "finos"));
-        verify(findIterable).projection(Projections.fields(Projections.include("standards")));
+        assertThrows(NamespaceNotFoundException.class, () -> store.getStandardsForNamespace(NAMESPACE));
     }
 
     @Test
-    void get_standard_versions_for_standard_returns_list_of_versions() throws StandardNotFoundException, NamespaceNotFoundException {
-        mockSetupStandardDocumentWithVersions();
+    void return_an_empty_list_when_a_namespace_has_no_standards() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        List<String> standardVersions = mongoStandardStore.getStandardVersions("finos", 42);
-
-        assertThat(standardVersions, is(List.of("1.0.0")));
+        assertThat(store.getStandardsForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    void throw_standard_not_found_when_versions_document_is_missing_on_get_versions() {
-        mockSetupStandardDocumentWithoutVersions();
+    void return_a_summary_per_header_document() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(
+                new Document("standardId", 1).append("name", "First").append("description", "d1")
+                        .append("versionCount", 2),
+                new Document("standardId", 2).append("name", "Second").append("description", "d2")
+                        .append("versionCount", 0)));
 
-        assertThrows(StandardNotFoundException.class,
-                () -> mongoStandardStore.getStandardVersions("finos", 42));
+        assertThat(store.getStandardsForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("First", "d1", 1, 2),
+                new NamespaceResourceSummary("Second", "d2", 2, 0)));
     }
 
-    @Test
-    void throw_standard_version_not_found_when_versions_document_is_missing_on_get_for_version() {
-        mockSetupStandardDocumentWithoutVersions();
-
-        assertThrows(StandardVersionNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0"));
-    }
+    // --- createStandardForNamespace ---
 
     @Test
-    void throw_an_exception_for_an_invalid_namespace_when_retrieving_standard_for_version() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-        String invalidNamespace = "does-not-exist";
+    void throw_a_namespace_exception_when_creating_a_standard_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion(invalidNamespace, null, null));
-
-        verify(namespaceStore).namespaceExists(invalidNamespace);
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
     }
 
     @Test
-    void throw_an_exception_for_an_invalid_standard_when_retrieving_standard_for_version() {
-        FindIterable<Document> findIterable = setupInvalidStandard();
-        String validNamespace = "finos";
+    void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
+        CreateStandardRequest invalid = new CreateStandardRequest("n", "d", "{invalid json}");
 
-        assertThrows(StandardNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion(validNamespace, 1, null));
+        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE));
 
-        verify(standardCollection).find(new Document("namespace", validNamespace));
-        verify(findIterable).projection(Projections.fields(Projections.include("standards")));
+        verify(counterStore, never()).getNextStandardSequenceValue();
+        verify(headerCollection, never()).insertOne(any(Document.class));
     }
 
     @Test
-    void return_a_standard_for_a_given_version() throws StandardNotFoundException, StandardVersionNotFoundException, NamespaceNotFoundException {
-        mockSetupStandardDocumentWithVersions();
-
-        String standardForVersion = mongoStandardStore.getStandardForVersion("finos", 42, "1.0.0");
-        assertThat(standardForVersion, is("{}"));
-    }
-
-
-    private Document setupStandardVersionDocument() {
-        //Set up a standard document with 2 standards in (one with a valid version)
-        Map<String, Document> versionMap = new HashMap<>();
-        versionMap.put("1-0-0", Document.parse("{}"));
-        Document targetStoredStandard = new Document("standardId", 42)
-                .append("versions", new Document(versionMap));
-
-        Document paddingStandard = new Document("standardId", 0);
-
-        return new Document("namespace", "finos")
-                .append("standards", Arrays.asList(paddingStandard, targetStoredStandard));
-    }
-
-    private interface DocumentMongoCollection extends MongoCollection<Document> {
-    }
-
-    @Test
-    void throw_an_exception_when_standard_for_given_version_does_not_exist() {
-        mockSetupStandardDocumentWithVersions();
-
-        assertThrows(StandardVersionNotFoundException.class,
-                () -> mongoStandardStore.getStandardForVersion("finos", 42, "9.0.0"));
-    }
-
-    @Test
-    void throw_an_exception_for_create_standard_for_version_when_a_namespace_doesnt_exist() {
-        when(namespaceStore.namespaceExists(anyString())).thenReturn(false);
-
-        assertThrows(NamespaceNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standardToStore(), "finos", 42, "9.0.0"));
-    }
-
-    @Test
-    void throw_an_exception_for_create_standard_for_version_when_a_standard_doesnt_exist() {
-        mockSetupStandardDocumentWithVersions();
-        CreateStandardRequest standard = standardToStore();
-
-        WriteError writeError = new WriteError(2, "The positional operator did not find the match needed from the query", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class))).thenThrow(mongoWriteException);
-
-        assertThrows(StandardNotFoundException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 50, "1.0.1"));
-    }
-
-    @Test
-    void throw_an_exception_for_create_standard_for_version_when_a_version_already_exists() {
-        mockSetupStandardDocumentWithVersions();
-        CreateStandardRequest standard = standardToStore();
-
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class)))
-                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
-
-        assertThrows(StandardVersionExistsException.class, () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.0"));
-    }
-
-    @Test
-    void throw_a_storage_write_exception_with_capacity_exceeded_when_creating_a_version_hits_the_document_size_limit() {
-        mockSetupStandardDocumentWithVersions();
-        CreateStandardRequest standard = standardToStore();
-
-        WriteError writeError = new WriteError(10334, "object to insert too large", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
-
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1"));
-        assertThat(exception.isCapacityExceeded(), is(true));
-    }
-
-    @Test
-    void throw_a_storage_write_exception_without_capacity_exceeded_for_other_write_failures_when_creating_a_version() {
-        mockSetupStandardDocumentWithVersions();
-        CreateStandardRequest standard = standardToStore();
-
-        WriteError writeError = new WriteError(2, "some other error", new BsonDocument());
-        MongoWriteException mongoWriteException = new MongoWriteException(writeError, new ServerAddress(), Set.of("label"));
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class))).thenThrow(mongoWriteException);
-
-        StorageWriteException exception = assertThrows(StorageWriteException.class,
-                () -> mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1"));
-        assertThat(exception.isCapacityExceeded(), is(false));
-    }
-
-    @Test
-    void accept_the_creation_of_a_valid_version() throws StandardVersionExistsException, StandardNotFoundException, NamespaceNotFoundException {
-        mockSetupStandardDocumentWithVersions();
-        CreateStandardRequest standard = standardToStore();
-
-        when(standardCollection.updateOne(any(Bson.class), any(Bson.class)))
+    void create_a_header_and_an_initial_version() throws NamespaceNotFoundException {
+        when(counterStore.getNextStandardSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        mongoStandardStore.createStandardForVersion(standard, "finos", 42, "1.0.1");
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE);
 
-        verify(standardCollection).updateOne(any(Bson.class), any(Bson.class));
+        assertThat(created.getId(), is(99));
+        assertThat(created.getVersion(), is("1.0.0"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0"));
     }
 
-    private CreateStandardRequest standardToStore() {
-        return new CreateStandardRequest("Second Version", "Second Description", "{}");
+    @Test
+    void remove_the_header_again_when_the_first_version_write_fails() {
+        when(counterStore.getNextStandardSequenceValue()).thenReturn(99);
+        doAnswer(invocation -> {
+            throw writeError(10334, "object to insert too large");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        assertThrows(StorageWriteException.class,
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
+
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    // --- getStandardVersions ---
+
+    @Test
+    void throw_a_standard_exception_when_listing_versions_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class, () -> store.getStandardVersions(NAMESPACE, STANDARD_ID));
+    }
+
+    @Test
+    void list_versions_in_semantic_order() throws NamespaceNotFoundException, StandardNotFoundException {
+        stubFind(headerCollection, List.of(new Document("standardId", STANDARD_ID)));
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0"),
+                new Document("version", "1.0.0")));
+
+        assertThat(store.getStandardVersions(NAMESPACE, STANDARD_ID), contains("1.0.0", "1.9.0", "1.10.0"));
+    }
+
+    @Test
+    void check_existence_against_the_standard_id_not_just_the_namespace() throws Exception {
+        // The old store carried a FIXME: it looked up only the namespace and ignored the id,
+        // which happened to work while a namespace held a single standard.
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.getStandardVersions(NAMESPACE, 999));
+    }
+
+    // --- getStandardForVersion ---
+
+    @Test
+    void throw_a_version_exception_when_the_version_is_not_stored() {
+        stubFind(headerCollection, List.of(new Document("standardId", STANDARD_ID)));
+        stubFind(versionCollection, List.of());
+
+        assertThrows(StandardVersionNotFoundException.class,
+                () -> store.getStandardForVersion(NAMESPACE, STANDARD_ID, "9.0.0"));
+    }
+
+    @Test
+    void return_the_content_of_a_stored_version() throws Exception {
+        stubFind(headerCollection, List.of(new Document("standardId", STANDARD_ID)));
+        stubFind(versionCollection, List.of(new Document("content", new Document("test", "test"))));
+
+        assertThat(store.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"), containsString("\"test\""));
+    }
+
+    // --- createStandardForVersion ---
+
+    @Test
+    void throw_a_standard_exception_when_creating_a_version_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1"));
+    }
+
+    @Test
+    void throw_a_version_exists_exception_when_the_version_is_already_stored() {
+        standardExists();
+        doAnswer(invocation -> {
+            throw writeError(11000, "duplicate key");
+        }).when(versionCollection).insertOne(any(Document.class));
+
+        assertThrows(StandardVersionExistsException.class,
+                () -> store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1"));
+    }
+
+    @Test
+    void write_the_version_and_then_the_header_details() throws Exception {
+        standardExists();
+
+        store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1");
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.1"));
+        // Two header writes: the versionCount increment and the name/description update.
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void overwrite_the_header_details_even_when_blank() throws Exception {
+        standardExists();
+
+        store.createStandardForVersion(new CreateStandardRequest(null, null, VALID_JSON),
+                NAMESPACE, STANDARD_ID, "1.0.1");
+
+        // Standard's old shape $set both fields unconditionally, unlike Pattern and Flow
+        // which guarded them. Preserved rather than harmonised — see the store's javadoc.
+        verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
     }
 }

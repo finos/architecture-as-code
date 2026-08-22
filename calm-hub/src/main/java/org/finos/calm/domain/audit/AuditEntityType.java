@@ -17,5 +17,7 @@ public enum AuditEntityType {
     STANDARD,
     TIMELINE,
     USER_ACCESS,
-    SCHEMA
+    SCHEMA,
+    LAYOUT,
+    PATTERN_LAYOUT
 }

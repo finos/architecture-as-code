@@ -68,13 +68,13 @@ public class MongoArchitectureStore implements ArchitectureStore {
 
     @Override
     public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public Architecture createArchitectureForNamespace(Architecture architecture) throws NamespaceNotFoundException {
-        requireNamespace(architecture.getNamespace());
+        namespaceStore.requireNamespace(architecture.getNamespace());
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -139,7 +139,6 @@ public class MongoArchitectureStore implements ArchitectureStore {
         return architecture;
     }
 
-
     /**
      * Applies the name and description that came with a version write. Called only
      * <em>after</em> the version write succeeds: the old shape set both fields in the
@@ -151,14 +150,8 @@ public class MongoArchitectureStore implements ArchitectureStore {
                 architecture.getName(), architecture.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requireArchitecture(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
-        requireNamespace(architecture.getNamespace());
+        namespaceStore.requireNamespace(architecture.getNamespace());
         if (!documentStore.headerExists(architecture.getNamespace(), architecture.getId())) {
             throw new ArchitectureNotFoundException();
         }

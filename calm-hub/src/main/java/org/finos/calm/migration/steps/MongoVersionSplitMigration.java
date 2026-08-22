@@ -8,7 +8,7 @@ import com.mongodb.client.model.IndexOptions;
 import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
 import org.bson.Document;
-import org.finos.calm.store.util.CanonicalVersion;
+import org.finos.calm.store.util.VersionScheme;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -60,7 +60,6 @@ public class MongoVersionSplitMigration {
     private static final Logger LOG = LoggerFactory.getLogger(MongoVersionSplitMigration.class);
 
     private static final String NAMESPACE_FIELD = "namespace";
-    private static final String VERSIONS_FIELD = "versions";
     private static final String VERSION_FIELD = "version";
 
     /** The index {@code MongoIndexInitializationStep} created, in Mongo's default naming. */
@@ -74,7 +73,9 @@ public class MongoVersionSplitMigration {
     private final String versionCollection;
     private final String idField;
     private final String arrayField;
+    private final String versionsField;
     private final String resourceLabel;
+    private final VersionScheme versionScheme;
 
     /**
      * @param headerCollection  the existing per-type collection, which becomes the headers
@@ -86,12 +87,30 @@ public class MongoVersionSplitMigration {
      */
     public MongoVersionSplitMigration(MongoDatabase database, String headerCollection, String versionCollection,
                                       String idField, String arrayField, String resourceLabel) {
+        this(database, headerCollection, versionCollection, idField, arrayField, "versions", resourceLabel,
+                VersionScheme.SEMANTIC);
+    }
+
+    /**
+     * @param versionsField the field holding the version map on each old-shape entry.
+     *                      "versions" for every type but ADR, whose map is named "revisions".
+     * @param versionScheme how this type's version keys are spelled. ADR passes
+     *                      {@link VersionScheme#NUMERIC}: its keys are integer revisions, and
+     *                      canonicalising them would rewrite revision 100 to "1.0.0" — a
+     *                      corruption written straight into the migrated data, where it also
+     *                      sorts below 99 and breaks the parseInt in the ADR store.
+     */
+    public MongoVersionSplitMigration(MongoDatabase database, String headerCollection, String versionCollection,
+                                      String idField, String arrayField, String versionsField, String resourceLabel,
+                                      VersionScheme versionScheme) {
         this.database = database;
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.arrayField = arrayField;
+        this.versionsField = versionsField;
         this.resourceLabel = resourceLabel;
+        this.versionScheme = versionScheme;
     }
 
     public void migrate() {
@@ -173,7 +192,7 @@ public class MongoVersionSplitMigration {
     private int writeOneResource(MongoCollection<Document> headers, MongoCollection<Document> versions,
                                  String namespace, Document entry) {
         Integer resourceId = entry.getInteger(idField);
-        Document storedVersions = entry.get(VERSIONS_FIELD, Document.class);
+        Document storedVersions = entry.get(versionsField, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, namespace, resourceId);
 
         ReplaceOptions upsert = new ReplaceOptions().upsert(true);
@@ -254,7 +273,7 @@ public class MongoVersionSplitMigration {
         for (String storedKey : storedVersions.keySet()) {
             // CanonicalVersion handles the dash spelling directly — VERSION_REGEX treats
             // both separators as interchangeable — so no replace('-', '.') first.
-            String version = CanonicalVersion.of(storedKey);
+            String version = versionScheme.canonicalise(storedKey);
             String alreadyMapped = keysByCanonicalVersion.putIfAbsent(version, storedKey);
             if (alreadyMapped != null) {
                 LOG.warn("Discarding version key '{}' [namespace={}, {}={}] — it means the same "

@@ -125,7 +125,7 @@ describe('CalmNodeInterface', () => {
         const schema: CalmNodeInterfaceSchema = { node: 'node-2' };
         const ni = CalmNodeInterface.fromSchema(schema);
         expect(ni.interfaces).toBeUndefined();
-        expect(ni.toCanonicalSchema()).toEqual({ node: 'node-2'});
+        expect(ni.toCanonicalSchema()).toEqual({ node: 'node-2' });
     });
 });
 

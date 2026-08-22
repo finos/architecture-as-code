@@ -1,7 +1,7 @@
 import { CalmNode, CalmNodeDetails } from './node.js';
-import {CalmNodeSchema, CalmNodeDetailsSchema} from '../types/core-types.js';
-import {ResolvableAndAdaptable} from './resolvable';
-import {CalmCore} from './core';
+import { CalmNodeSchema, CalmNodeDetailsSchema } from '../types/core-types.js';
+import { ResolvableAndAdaptable } from './resolvable';
+import { CalmCore } from './core';
 
 describe('CalmNodeDetails', () => {
     it('should create from schema with both fields', () => {

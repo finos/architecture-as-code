@@ -19,880 +19,487 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
+/**
+ * Store-level tests for Control's header/version shape (ADR 0007), mirroring
+ * {@code TestMongoControlStoreShould}. Document mechanics shared with every other type are
+ * covered by {@code TestNitriteVersionDocumentStoreShould}; what this class pins is
+ * Control-specific glue: two composed stores (requirement, configuration), the synthetic
+ * {@code domain::controlId} configuration namespace, and that only a requirement version
+ * write syncs the wrapper name/description.
+ */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TestNitriteControlStoreShould {
 
     @Mock
     private Nitrite mockDb;
 
     @Mock
-    private NitriteCollection mockCollection;
+    private NitriteDomainStore domainStore;
 
     @Mock
-    private NitriteDomainStore mockDomainStore;
+    private NitriteCounterStore counterStore;
 
-    @Mock
-    private NitriteCounterStore mockCounterStore;
+    private NitriteCollection controlHeaders;
+    private NitriteCollection controlVersions;
+    private NitriteCollection configHeaders;
+    private NitriteCollection configVersions;
+    private NitriteControlStore store;
 
-    private NitriteControlStore controlStore;
-
-    private static final String TEST_DOMAIN = "security";
-    private static final String INVALID_DOMAIN = "invalid-domain";
+    private static final String DOMAIN = "security";
+    private static final int CONTROL_ID = 1;
+    private static final int CONFIGURATION_ID = 10;
+    private static final String CONFIG_NAMESPACE = DOMAIN + "::" + CONTROL_ID;
+    private static final String VALID_JSON = "{\"setting\": \"enabled\"}";
 
     @BeforeEach
-    public void setup() {
-        when(mockDb.getCollection(anyString())).thenReturn(mockCollection);
-        controlStore = new NitriteControlStore(mockDb, mockDomainStore, mockCounterStore);
+    void setup() {
+        controlHeaders = mock(NitriteCollection.class);
+        controlVersions = mock(NitriteCollection.class);
+        configHeaders = mock(NitriteCollection.class);
+        configVersions = mock(NitriteCollection.class);
+
+        when(mockDb.getCollection("controls")).thenReturn(controlHeaders);
+        when(mockDb.getCollection("controlVersions")).thenReturn(controlVersions);
+        when(mockDb.getCollection("controlConfigurations")).thenReturn(configHeaders);
+        when(mockDb.getCollection("controlConfigurationVersions")).thenReturn(configVersions);
+        when(domainStore.getDomains()).thenReturn(List.of(DOMAIN));
+
+        store = new NitriteControlStore(mockDb, domainStore, counterStore);
+    }
+
+    private void stubFind(NitriteCollection collection, List<Document> documents) {
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(collection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(collection.find()).thenReturn(cursor);
+    }
+
+    private void controlExists() {
+        stubFind(controlHeaders, List.of(Document.createDocument().put("controlId", CONTROL_ID).put("versionCount", 1)));
+        stubFind(controlVersions, List.of());
+    }
+
+    private void controlDoesNotExist() {
+        stubFind(controlHeaders, List.of());
+    }
+
+    private void configurationExists() {
+        controlExists();
+        stubFind(configHeaders, List.of(Document.createDocument().put("configurationId", CONFIGURATION_ID).put("versionCount", 1)));
+        stubFind(configVersions, List.of());
+    }
+
+    private void configurationDoesNotExist() {
+        controlExists();
+        stubFind(configHeaders, List.of());
+    }
+
+    // --- getControlsForDomain ---
+
+    @Test
+    void get_controls_for_domain_throws_when_domain_does_not_exist() {
+        assertThrows(DomainNotFoundException.class, () -> store.getControlsForDomain("invalid-domain"));
     }
 
     @Test
-    public void testGetControlsForDomain_whenDomainDoesNotExist_throwsDomainNotFoundException() {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+    void get_controls_for_domain_returns_empty_list_when_domain_has_no_controls() throws DomainNotFoundException {
+        stubFind(controlHeaders, List.of());
 
-        // Act & Assert
-        assertThrows(DomainNotFoundException.class, () -> 
-            controlStore.getControlsForDomain(INVALID_DOMAIN));
+        assertThat(store.getControlsForDomain(DOMAIN), is(empty()));
     }
 
     @Test
-    public void testGetControlsForDomain_whenDomainExistsButNoControls_returnsEmptyList() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+    void get_controls_for_domain_returns_a_detail_per_header_with_title_from_the_latest_version() throws DomainNotFoundException {
+        stubFind(controlHeaders, List.of(
+                Document.createDocument().put("controlId", 1).put("name", "Access Control").put("description", "Manage user access"),
+                Document.createDocument().put("controlId", 2).put("name", "Encryption").put("description", "Data encryption requirements")));
+        stubFind(controlVersions, List.of(Document.createDocument().put("version", "1.0.0")
+                .put("content", "{\"title\":\"Access Title\"}")));
 
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.iterator()).thenReturn(Collections.emptyIterator());
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        List<ControlDetail> result = store.getControlsForDomain(DOMAIN);
 
-        // Act
-        List<ControlDetail> result = controlStore.getControlsForDomain(TEST_DOMAIN);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.isEmpty(), is(true));
-    }
-
-    @Test
-    public void testGetControlsForDomain_whenDomainExistsWithNullControls_returnsEmptyList() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", null);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.iterator()).thenReturn(Arrays.asList(domainDoc).iterator());
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        // Act
-        List<ControlDetail> result = controlStore.getControlsForDomain(TEST_DOMAIN);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.isEmpty(), is(true));
-    }
-
-    @Test
-    public void testGetControlsForDomain_whenDomainExistsWithControls_returnsControlList() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-
-        Document control1 = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Access Control")
-                .put("description", "Manage user access");
-
-        Document control2 = Document.createDocument()
-                .put("controlId", 2)
-                .put("name", "Data Encryption")
-                .put("description", "Encrypt sensitive data");
-
-        List<Document> controls = Arrays.asList(control1, control2);
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", controls);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.iterator()).thenReturn(Arrays.asList(domainDoc).iterator());
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        // Act
-        List<ControlDetail> result = controlStore.getControlsForDomain(TEST_DOMAIN);
-
-        // Assert
         assertThat(result, hasSize(2));
         assertThat(result.get(0).getId(), is(1));
         assertThat(result.get(0).getName(), is("Access Control"));
         assertThat(result.get(0).getDescription(), is("Manage user access"));
-        assertThat(result.get(1).getId(), is(2));
-        assertThat(result.get(1).getName(), is("Data Encryption"));
-        assertThat(result.get(1).getDescription(), is("Encrypt sensitive data"));
+        assertThat(result.get(0).getTitle(), is("Access Title"));
+    }
+
+    // --- createControlRequirement ---
+
+    @Test
+    void create_control_requirement_throws_when_domain_does_not_exist() {
+        CreateControlRequirement request = new CreateControlRequirement("Test Control", "Test Description", "{}");
+
+        assertThrows(DomainNotFoundException.class, () -> store.createControlRequirement(request, "invalid-domain"));
     }
 
     @Test
-    public void testCreateControlRequirement_whenDomainDoesNotExist_throwsDomainNotFoundException() {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        CreateControlRequirement createRequest = new CreateControlRequirement(
-            "Test Control", "Test Description", "{}"
-        );
+    void create_control_requirement_creates_a_header_and_an_initial_version() throws DomainNotFoundException {
+        when(counterStore.getNextControlSequenceValue()).thenReturn(5);
+        stubFind(controlHeaders, List.of());
+        stubFind(controlVersions, List.of());
 
-        // Act & Assert
-        assertThrows(DomainNotFoundException.class, () -> 
-            controlStore.createControlRequirement(createRequest, INVALID_DOMAIN));
-    }
+        CreateControlRequirement request = new CreateControlRequirement("New Control", "New Description", "{\"type\": \"control\"}");
+        ControlDetail result = store.createControlRequirement(request, DOMAIN);
 
-    @Test
-    public void testCreateControlRequirement_whenDomainDoesNotExistInCollection_createsNewDomainDocument() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(5);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        CreateControlRequirement createRequest = new CreateControlRequirement(
-            "New Control", "New Description", "{\"type\": \"control\"}"
-        );
-
-        // Act
-        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
-
-        // Assert
         assertThat(result.getId(), is(5));
         assertThat(result.getName(), is("New Control"));
         assertThat(result.getDescription(), is("New Description"));
 
-        verify(mockCollection).insert(any(Document.class));
-        verify(mockCounterStore).getNextControlSequenceValue();
-    }
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(controlHeaders).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("controlId", Integer.class), is(5));
 
-    @Test
-    public void testCreateControlRequirement_whenDomainExistsWithNullControls_updatesDocument() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(10);
-
-        Document existingDomainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", null);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(existingDomainDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        CreateControlRequirement createRequest = new CreateControlRequirement(
-            "Another Control", "Another Description", "{\"requirement\": \"strict\"}"
-        );
-
-        // Act
-        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
-
-        // Assert
-        assertThat(result.getId(), is(10));
-        assertThat(result.getName(), is("Another Control"));
-        assertThat(result.getDescription(), is("Another Description"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-        verify(mockCounterStore).getNextControlSequenceValue();
-    }
-
-    @Test
-    public void testCreateControlRequirement_whenDomainExistsWithExistingControls_addsToExistingList() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(15);
-
-        Document existingControl = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Existing Control")
-                .put("description", "Existing Description");
-
-        List<Document> existingControls = Arrays.asList(existingControl);
-
-        Document existingDomainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", existingControls);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(existingDomainDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        CreateControlRequirement createRequest = new CreateControlRequirement(
-            "Additional Control", "Additional Description", "{\"level\": \"high\"}"
-        );
-
-        // Act
-        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
-
-        // Assert
-        assertThat(result.getId(), is(15));
-        assertThat(result.getName(), is("Additional Control"));
-        assertThat(result.getDescription(), is("Additional Description"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-        verify(mockCounterStore).getNextControlSequenceValue();
-    }
-
-    @Test
-    public void testCreateControlRequirement_storesRequirementJsonCorrectly() throws DomainNotFoundException {
-        // Arrange
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(20);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        String complexJson = "{\"type\":\"control\",\"severity\":\"high\",\"categories\":[\"security\",\"compliance\"]}";
-        CreateControlRequirement createRequest = new CreateControlRequirement(
-            "JSON Control", "Control with complex JSON", complexJson
-        );
-
-        // Act
-        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
-
-        // Assert
-        assertThat(result.getId(), is(20));
-        assertThat(result.getName(), is("JSON Control"));
-        assertThat(result.getDescription(), is("Control with complex JSON"));
-
-        // Verify that the document was inserted with the requirement in versioned format
-        verify(mockCollection).insert(argThat((Document doc) -> {
-            @SuppressWarnings("unchecked")
-            List<Document> controls = doc.get("controls", List.class);
-            if (controls != null && !controls.isEmpty()) {
-                Document controlDoc = controls.get(0);
-                Document requirement = controlDoc.get("requirement", Document.class);
-                return requirement != null && complexJson.equals(requirement.get("1-0-0", String.class));
-            }
-            return false;
-        }));
-    }
-
-    // --- Helper to build a domain document with a control containing requirement versions and configurations ---
-
-    private Document buildControlWithVersionsAndConfigs() {
-        Document requirementVersions = Document.createDocument()
-                .put("1-0-0", "{\"type\":\"req\"}")
-                .put("2-0-0", "{\"type\":\"req-v2\"}");
-
-        Document configVersions = Document.createDocument()
-                .put("1-0-0", "{\"setting\":\"val\"}");
-
-        Document config = Document.createDocument()
-                .put("configurationId", 10)
-                .put("versions", configVersions);
-
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test Control")
-                .put("description", "Test Desc")
-                .put("requirement", requirementVersions)
-                .put("configurations", Arrays.asList(config));
-
-        return Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-    }
-
-    private void setupDomainDocReturn(Document domainDoc) {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(domainDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(controlVersions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        assertThat(versionCaptor.getValue().get("content", String.class), is("{\"type\": \"control\"}"));
     }
 
     // --- getRequirementVersions ---
 
     @Test
-    public void testGetRequirementVersions_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        List<String> versions = controlStore.getRequirementVersions(TEST_DOMAIN, 1);
-
-        assertThat(versions, hasSize(2));
-        assertThat(versions, containsInAnyOrder("1.0.0", "2.0.0"));
+    void get_requirement_versions_throws_when_domain_not_found() {
+        assertThrows(DomainNotFoundException.class, () -> store.getRequirementVersions("invalid", CONTROL_ID));
     }
 
     @Test
-    public void testGetRequirementVersions_throwsDomainNotFoundException() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        assertThrows(DomainNotFoundException.class, () -> controlStore.getRequirementVersions(INVALID_DOMAIN, 1));
+    void get_requirement_versions_throws_when_control_not_found() {
+        controlDoesNotExist();
+
+        assertThrows(ControlNotFoundException.class, () -> store.getRequirementVersions(DOMAIN, 999));
     }
 
     @Test
-    public void testGetRequirementVersions_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlNotFoundException.class, () -> controlStore.getRequirementVersions(TEST_DOMAIN, 999));
-    }
+    void get_requirement_versions_returns_the_version_list() throws Exception {
+        stubFind(controlHeaders, List.of(Document.createDocument().put("controlId", CONTROL_ID)));
+        stubFind(controlVersions, List.of(Document.createDocument().put("version", "1.0.0")));
 
-    @Test
-    public void testGetRequirementVersions_nullRequirement_returnsEmpty() throws Exception {
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "No Req")
-                .put("description", "Desc")
-                .put("requirement", null)
-                .put("configurations", new ArrayList<>());
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        List<String> versions = controlStore.getRequirementVersions(TEST_DOMAIN, 1);
-        assertThat(versions, is(empty()));
+        assertThat(store.getRequirementVersions(DOMAIN, CONTROL_ID), contains("1.0.0"));
     }
 
     // --- getRequirementForVersion ---
 
     @Test
-    public void testGetRequirementForVersion_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+    void get_requirement_for_version_returns_content() throws Exception {
+        stubFind(controlHeaders, List.of(Document.createDocument().put("controlId", CONTROL_ID)));
+        stubFind(controlVersions, List.of(Document.createDocument().put("content", "{\"type\":\"requirement\"}")));
 
-        String result = controlStore.getRequirementForVersion(TEST_DOMAIN, 1, "1.0.0");
-        assertThat(result, is("{\"type\":\"req\"}"));
+        assertThat(store.getRequirementForVersion(DOMAIN, CONTROL_ID, "1.0.0"), is("{\"type\":\"requirement\"}"));
     }
 
     @Test
-    public void testGetRequirementForVersion_throwsVersionNotFoundForMissingVersion() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+    void get_requirement_for_version_throws_when_version_not_found() {
+        stubFind(controlHeaders, List.of(Document.createDocument().put("controlId", CONTROL_ID)));
+        stubFind(controlVersions, List.of());
+
         assertThrows(ControlRequirementVersionNotFoundException.class,
-                () -> controlStore.getRequirementForVersion(TEST_DOMAIN, 1, "9.9.9"));
+                () -> store.getRequirementForVersion(DOMAIN, CONTROL_ID, "9.9.9"));
     }
 
     @Test
-    public void testGetRequirementForVersion_throwsVersionNotFoundForNullRequirement() throws Exception {
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "No Req")
-                .put("description", "Desc")
-                .put("requirement", null)
-                .put("configurations", new ArrayList<>());
+    void get_requirement_for_version_throws_when_control_not_found() {
+        controlDoesNotExist();
 
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-        assertThrows(ControlRequirementVersionNotFoundException.class,
-                () -> controlStore.getRequirementForVersion(TEST_DOMAIN, 1, "1.0.0"));
-    }
-
-    @Test
-    public void testGetRequirementForVersion_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.getRequirementForVersion(TEST_DOMAIN, 999, "1.0.0"));
-    }
-
-    // --- getConfigurationsForControl ---
-
-    @Test
-    public void testGetConfigurationsForControl_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        List<Integer> configs = controlStore.getConfigurationsForControl(TEST_DOMAIN, 1);
-        assertThat(configs, hasSize(1));
-        assertThat(configs.get(0), is(10));
-    }
-
-    @Test
-    public void testGetConfigurationsForControl_nullConfigurations_returnsEmpty() throws Exception {
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "No Cfg")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", null);
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        List<Integer> configs = controlStore.getConfigurationsForControl(TEST_DOMAIN, 1);
-        assertThat(configs, is(empty()));
-    }
-
-    @Test
-    public void testGetConfigurationsForControl_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.getConfigurationsForControl(TEST_DOMAIN, 999));
-    }
-
-    // --- getConfigurationVersions ---
-
-    @Test
-    public void testGetConfigurationVersions_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        List<String> versions = controlStore.getConfigurationVersions(TEST_DOMAIN, 1, 10);
-        assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), is("1.0.0"));
-    }
-
-    @Test
-    public void testGetConfigurationVersions_throwsConfigNotFound() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlConfigurationNotFoundException.class,
-                () -> controlStore.getConfigurationVersions(TEST_DOMAIN, 1, 999));
-    }
-
-    @Test
-    public void testGetConfigurationVersions_nullVersions_returnsEmpty() throws Exception {
-        Document config = Document.createDocument()
-                .put("configurationId", 10)
-                .put("versions", null);
-
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", Arrays.asList(config));
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        List<String> versions = controlStore.getConfigurationVersions(TEST_DOMAIN, 1, 10);
-        assertThat(versions, is(empty()));
-    }
-
-    // --- getConfigurationForVersion ---
-
-    @Test
-    public void testGetConfigurationForVersion_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        String result = controlStore.getConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0");
-        assertThat(result, is("{\"setting\":\"val\"}"));
-    }
-
-    @Test
-    public void testGetConfigurationForVersion_throwsVersionNotFound() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlConfigurationVersionNotFoundException.class,
-                () -> controlStore.getConfigurationForVersion(TEST_DOMAIN, 1, 10, "9.9.9"));
-    }
-
-    @Test
-    public void testGetConfigurationForVersion_throwsVersionNotFoundWhenNullVersions() throws Exception {
-        Document config = Document.createDocument()
-                .put("configurationId", 10)
-                .put("versions", null);
-
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", Arrays.asList(config));
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-        assertThrows(ControlConfigurationVersionNotFoundException.class,
-                () -> controlStore.getConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0"));
-    }
-
-    @Test
-    public void testGetConfigurationForVersion_throwsConfigNotFound() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlConfigurationNotFoundException.class,
-                () -> controlStore.getConfigurationForVersion(TEST_DOMAIN, 1, 999, "1.0.0"));
-    }
-
-    // --- findControl edge cases ---
-
-    @Test
-    public void testFindControl_throwsControlNotFoundWhenDomainDocNull() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.getRequirementVersions(TEST_DOMAIN, 1));
-    }
-
-    @Test
-    public void testFindControl_throwsControlNotFoundWhenControlsListNull() {
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", null);
-
-        setupDomainDocReturn(domainDoc);
-
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.getRequirementVersions(TEST_DOMAIN, 1));
+        assertThrows(ControlNotFoundException.class, () -> store.getRequirementForVersion(DOMAIN, 999, "1.0.0"));
     }
 
     // --- createRequirementForVersion ---
 
     @Test
-    public void testCreateRequirementForVersion_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "3.0.0", new CreateControlRequirement("n", "d", "{\"type\":\"req-v3\"}"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-    }
-
-    @Test
-    public void testCreateRequirementForVersion_throwsWhenVersionAlreadyExists() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        assertThrows(ControlRequirementVersionExistsException.class,
-                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", new CreateControlRequirement("n", "d", "{}")));
-    }
-
-    @Test
-    public void testCreateRequirementForVersion_throwsDomainNotFoundException() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        assertThrows(DomainNotFoundException.class,
-                () -> controlStore.createRequirementForVersion(INVALID_DOMAIN, 1, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
-    }
-
-    @Test
-    public void testCreateRequirementForVersion_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.createRequirementForVersion(TEST_DOMAIN, 999, "2.0.0", new CreateControlRequirement("n", "d", "{}")));
-    }
-
-    @Test
-    public void testCreateRequirementForVersion_createsRequirementWhenNull() throws Exception {
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "No Req")
-                .put("description", "Desc")
-                .put("requirement", null)
-                .put("configurations", new ArrayList<>());
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "1.0.0", new CreateControlRequirement("n", "d", "{\"type\":\"new\"}"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-    }
-
-    // --- createControlConfiguration ---
-
-    @Test
-    public void testCreateControlConfiguration_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        when(mockCounterStore.getNextControlConfigurationSequenceValue()).thenReturn(42);
-
-        CreateControlConfiguration request = new CreateControlConfiguration("{\"setting\":\"enabled\"}");
-        int configId = controlStore.createControlConfiguration(request, TEST_DOMAIN, 1);
-
-        assertThat(configId, is(42));
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-        verify(mockCounterStore).getNextControlConfigurationSequenceValue();
-    }
-
-    @Test
-    public void testCreateControlConfiguration_throwsDomainNotFoundException() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+    void create_requirement_for_version_throws_when_domain_not_found() {
+        CreateControlRequirement request = new CreateControlRequirement("n", "d", "{}");
 
         assertThrows(DomainNotFoundException.class,
-                () -> controlStore.createControlConfiguration(request, INVALID_DOMAIN, 1));
+                () -> store.createRequirementForVersion("invalid", CONTROL_ID, "2.0.0", request));
     }
 
     @Test
-    public void testCreateControlConfiguration_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+    void create_requirement_for_version_throws_when_control_not_found() {
+        controlDoesNotExist();
+        CreateControlRequirement request = new CreateControlRequirement("n", "d", "{}");
 
         assertThrows(ControlNotFoundException.class,
-                () -> controlStore.createControlConfiguration(request, TEST_DOMAIN, 999));
+                () -> store.createRequirementForVersion(DOMAIN, 999, "2.0.0", request));
     }
 
     @Test
-    public void testCreateControlConfiguration_whenNullConfigurationsList() throws Exception {
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", null);
+    void create_requirement_for_version_succeeds_when_the_version_does_not_exist() throws Exception {
+        controlExists();
 
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
+        store.createRequirementForVersion(DOMAIN, CONTROL_ID, "2.0.0",
+                new CreateControlRequirement("n", "d", "{\"type\": \"req-v2\"}"));
 
-        setupDomainDocReturn(domainDoc);
-        when(mockCounterStore.getNextControlConfigurationSequenceValue()).thenReturn(5);
-
-        CreateControlConfiguration request = new CreateControlConfiguration("{\"setting\":\"val\"}");
-        int configId = controlStore.createControlConfiguration(request, TEST_DOMAIN, 1);
-
-        assertThat(configId, is(5));
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-    }
-
-    // --- createConfigurationForVersion ---
-
-    @Test
-    public void testCreateConfigurationForVersion_happyPath() throws Exception {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-
-        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "2.0.0", new CreateControlConfiguration("{\"setting\":\"v2\"}"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(controlVersions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("2.0.0"));
     }
 
     @Test
-    public void testCreateConfigurationForVersion_throwsWhenVersionAlreadyExists() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+    void create_requirement_for_version_throws_when_the_version_already_exists() {
+        controlExists();
+        stubFind(controlVersions, List.of(Document.createDocument().put("version", "1.0.0")));
 
-        assertThrows(ControlConfigurationVersionExistsException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", new CreateControlConfiguration("{}")));
+        assertThrows(ControlRequirementVersionExistsException.class, () ->
+                store.createRequirementForVersion(DOMAIN, CONTROL_ID, "1.0.0", new CreateControlRequirement("n", "d", "{}")));
     }
 
     @Test
-    public void testCreateConfigurationForVersion_throwsConfigNotFound() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+    void create_requirement_for_version_updates_wrapper_name_and_description_from_the_envelope() throws Exception {
+        controlExists();
 
-        assertThrows(ControlConfigurationNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 999, "2.0.0", new CreateControlConfiguration("{}")));
-    }
-
-    @Test
-    public void testCreateConfigurationForVersion_throwsDomainNotFoundException() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        assertThrows(DomainNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(INVALID_DOMAIN, 1, 10, "2.0.0", new CreateControlConfiguration("{}")));
-    }
-
-    @Test
-    public void testCreateConfigurationForVersion_throwsControlNotFoundException() {
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
-        assertThrows(ControlNotFoundException.class,
-                () -> controlStore.createConfigurationForVersion(TEST_DOMAIN, 999, 10, "2.0.0", new CreateControlConfiguration("{}")));
-    }
-
-    @Test
-    public void testCreateConfigurationForVersion_createsVersionsWhenNull() throws Exception {
-        Document config = Document.createDocument()
-                .put("configurationId", 10)
-                .put("versions", null);
-
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", Arrays.asList(config));
-
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        controlStore.createConfigurationForVersion(TEST_DOMAIN, 1, 10, "1.0.0", new CreateControlConfiguration("{\"setting\":\"new\"}"));
-
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
-    }
-
-    // --- JSON-derived name/description (bug-fix coverage) ---
-
-    @Test
-    public void testCreateControlRequirement_usesDtoNameAndDescriptionOnInitialCreate() throws DomainNotFoundException {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlSequenceValue()).thenReturn(7);
-
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        String json = "{\"control-id\":\"c1\",\"name\":\"From JSON\",\"description\":\"From JSON Desc\"}";
-        CreateControlRequirement createRequest = new CreateControlRequirement("Wrapper Name", "Wrapper Desc", json);
-
-        ControlDetail result = controlStore.createControlRequirement(createRequest, TEST_DOMAIN);
-
-        assertThat(result.getName(), is("Wrapper Name"));
-        assertThat(result.getDescription(), is("Wrapper Desc"));
-    }
-
-    @Test
-    public void testCreateRequirementForVersion_updatesWrapperNameAndDescriptionFromEnvelope() throws Exception {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-
-        Document requirement = Document.createDocument().put("1-0-0", "{}");
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Old Name")
-                .put("description", "Old Desc")
-                .put("requirement", requirement)
-                .put("configurations", new ArrayList<>());
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0",
+        store.createRequirementForVersion(DOMAIN, CONTROL_ID, "2.0.0",
                 new CreateControlRequirement("New Name", "New Desc", "{\"type\":\"req-v2\"}"));
 
-        assertThat(controlDoc.get("name", String.class), is("New Name"));
-        assertThat(controlDoc.get("description", String.class), is("New Desc"));
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        // Two header writes: the versionCount increment, then the name/description update.
+        verify(controlHeaders, times(2)).update(any(Filter.class), headerCaptor.capture());
+        Document updatedHeader = headerCaptor.getAllValues().get(1);
+        assertThat(updatedHeader.get("name", String.class), is("New Name"));
+        assertThat(updatedHeader.get("description", String.class), is("New Desc"));
     }
 
     @Test
-    public void testCreateRequirementForVersion_leavesWrapperUntouchedWhenEnvelopeLacksMetadata() throws Exception {
-        // Defensive: the REST layer enforces @NotBlank so null name/description are unreachable via REST;
-        // this test exercises the store's defensive guards for non-REST callers.
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+    void create_requirement_for_version_leaves_the_wrapper_untouched_when_the_envelope_lacks_metadata() throws Exception {
+        // Defensive: the REST layer enforces @NotBlank so a null name/description is only
+        // reachable via non-REST callers (e.g. direct store usage in tests).
+        controlExists();
 
-        Document requirement = Document.createDocument().put("1-0-0", "{}");
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Old Name")
-                .put("description", "Old Desc")
-                .put("requirement", requirement)
-                .put("configurations", new ArrayList<>());
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        controlStore.createRequirementForVersion(TEST_DOMAIN, 1, "2.0.0",
+        store.createRequirementForVersion(DOMAIN, CONTROL_ID, "2.0.0",
                 new CreateControlRequirement(null, null, "{\"type\":\"req-v2\"}"));
 
-        assertThat(controlDoc.get("name", String.class), is("Old Name"));
-        assertThat(controlDoc.get("description", String.class), is("Old Desc"));
-        verify(mockCollection).update(any(Filter.class), any(Document.class));
+        // Only the versionCount increment — updatePresentHeaderDetails writes nothing when
+        // both name and description are absent.
+        verify(controlHeaders, times(1)).update(any(Filter.class), any(Document.class));
+    }
+
+    // --- getConfigurationsForControl ---
+
+    @Test
+    void get_configurations_throws_when_control_not_found() {
+        controlDoesNotExist();
+
+        assertThrows(ControlNotFoundException.class, () -> store.getConfigurationsForControl(DOMAIN, 999));
+    }
+
+    @Test
+    void get_configurations_returns_empty_when_no_configurations_exist() throws Exception {
+        controlExists();
+        stubFind(configHeaders, List.of());
+
+        assertThat(store.getConfigurationsForControl(DOMAIN, CONTROL_ID), is(empty()));
+    }
+
+    @Test
+    void get_configurations_returns_config_ids() throws Exception {
+        controlExists();
+        stubFind(configHeaders, List.of(
+                Document.createDocument().put("configurationId", 10),
+                Document.createDocument().put("configurationId", 20)));
+
+        assertThat(store.getConfigurationsForControl(DOMAIN, CONTROL_ID), contains(10, 20));
     }
 
     // --- getConfigurationDetailsForControl ---
 
     @Test
-    public void testGetConfigurationDetailsForControl_returnsIdAndName() throws Exception {
-        Document config1 = Document.createDocument()
-                .put("configurationId", 10)
-                .put("name", "encryption-config")
-                .put("versions", Document.createDocument().put("1-0-0", "{}"));
-        Document config2 = Document.createDocument()
-                .put("configurationId", 20)
-                .put("name", "tls-config")
-                .put("versions", Document.createDocument().put("1-0-0", "{}"));
+    void get_configuration_details_returns_id_name_and_title_for_each_config() throws Exception {
+        controlExists();
+        stubFind(configHeaders, List.of(Document.createDocument().put("configurationId", 10).put("name", "encryption-config")));
+        stubFind(configVersions, List.of(Document.createDocument().put("version", "1.0.0")
+                .put("content", "{\"title\":\"Encryption Title\"}")));
 
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test Control")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", Arrays.asList(config1, config2));
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        List<ControlConfigDetail> details = controlStore.getConfigurationDetailsForControl(TEST_DOMAIN, 1);
-
-        assertThat(details, hasSize(2));
-        assertThat(details.get(0).getId(), is(10));
-        assertThat(details.get(0).getName(), is("encryption-config"));
-        assertThat(details.get(1).getId(), is(20));
-        assertThat(details.get(1).getName(), is("tls-config"));
-    }
-
-    @Test
-    public void testGetConfigurationDetailsForControl_returnsNullNameWhenNotPresent() throws Exception {
-        Document config = Document.createDocument()
-                .put("configurationId", 10)
-                .put("versions", Document.createDocument().put("1-0-0", "{}"));
-
-        Document controlDoc = Document.createDocument()
-                .put("controlId", 1)
-                .put("name", "Test Control")
-                .put("description", "Desc")
-                .put("requirement", Document.createDocument())
-                .put("configurations", Arrays.asList(config));
-        Document domainDoc = Document.createDocument()
-                .put("domain", TEST_DOMAIN)
-                .put("controls", Arrays.asList(controlDoc));
-
-        setupDomainDocReturn(domainDoc);
-
-        List<ControlConfigDetail> details = controlStore.getConfigurationDetailsForControl(TEST_DOMAIN, 1);
+        List<ControlConfigDetail> details = store.getConfigurationDetailsForControl(DOMAIN, CONTROL_ID);
 
         assertThat(details, hasSize(1));
         assertThat(details.get(0).getId(), is(10));
-        assertThat(details.get(0).getName(), is(nullValue()));
+        assertThat(details.get(0).getName(), is("encryption-config"));
+        assertThat(details.get(0).getTitle(), is("Encryption Title"));
     }
 
+    // --- createControlConfiguration ---
+
     @Test
-    public void testGetConfigurationDetailsForControl_throwsDomainNotFoundException() {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
+    void create_control_configuration_throws_when_domain_not_found() {
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
         assertThrows(DomainNotFoundException.class,
-                () -> controlStore.getConfigurationDetailsForControl(INVALID_DOMAIN, 1));
+                () -> store.createControlConfiguration(request, "invalid", CONTROL_ID));
     }
 
     @Test
-    public void testCreateControlConfiguration_withName_storesNameInDocument() throws Exception {
-        when(mockDomainStore.getDomains()).thenReturn(List.of(TEST_DOMAIN));
-        when(mockCounterStore.getNextControlConfigurationSequenceValue()).thenReturn(77);
+    void create_control_configuration_throws_when_control_not_found() {
+        controlDoesNotExist();
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
 
-        setupDomainDocReturn(buildControlWithVersionsAndConfigs());
+        assertThrows(ControlNotFoundException.class, () -> store.createControlConfiguration(request, DOMAIN, 999));
+    }
+
+    @Test
+    void create_control_configuration_creates_a_header_and_an_initial_version_under_the_composite_namespace() throws Exception {
+        controlExists();
+        when(counterStore.getNextControlConfigurationSequenceValue()).thenReturn(42);
+        stubFind(configHeaders, List.of());
+        stubFind(configVersions, List.of());
+
+        CreateControlConfiguration request = new CreateControlConfiguration(VALID_JSON);
+        int configId = store.createControlConfiguration(request, DOMAIN, CONTROL_ID);
+
+        assertThat(configId, is(42));
+
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(configHeaders).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("configurationId", Integer.class), is(42));
+        assertThat(headerCaptor.getValue().get("namespace", String.class), is(CONFIG_NAMESPACE));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(configVersions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("namespace", String.class), is(CONFIG_NAMESPACE));
+    }
+
+    @Test
+    void create_control_configuration_with_a_name_stores_it_on_the_header() throws Exception {
+        controlExists();
+        when(counterStore.getNextControlConfigurationSequenceValue()).thenReturn(55);
+        stubFind(configHeaders, List.of());
+        stubFind(configVersions, List.of());
 
         CreateControlConfiguration request = new CreateControlConfiguration("tls-config", "{\"cipher\":\"AES\"}");
-        int configId = controlStore.createControlConfiguration(request, TEST_DOMAIN, 1);
+        store.createControlConfiguration(request, DOMAIN, CONTROL_ID);
 
-        assertThat(configId, is(77));
+        ArgumentCaptor<Document> headerCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(configHeaders).insert(headerCaptor.capture());
+        assertThat(headerCaptor.getValue().get("name", String.class), is("tls-config"));
+    }
 
-        // Verify the document updated in the collection has the named config persisted
-        verify(mockCollection).update(any(Filter.class), argThat((Document doc) -> {
-            @SuppressWarnings("unchecked")
-            List<Document> controls = (List<Document>) doc.get("controls");
-            if (controls == null) return false;
-            for (Document ctrl : controls) {
-                if (Integer.valueOf(1).equals(ctrl.get("controlId", Integer.class))) {
-                    @SuppressWarnings("unchecked")
-                    List<Document> configs = (List<Document>) ctrl.get("configurations");
-                    if (configs == null) return false;
-                    return configs.stream().anyMatch(c -> "tls-config".equals(c.get("name", String.class)));
-                }
-            }
-            return false;
-        }));
+    // --- getConfigurationVersions ---
+
+    @Test
+    void get_configuration_versions_throws_when_config_not_found() {
+        configurationDoesNotExist();
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.getConfigurationVersions(DOMAIN, CONTROL_ID, 999));
+    }
+
+    @Test
+    void get_configuration_versions_returns_the_version_list_in_order() throws Exception {
+        controlExists();
+        stubFind(configHeaders, List.of(Document.createDocument().put("configurationId", CONFIGURATION_ID)));
+        stubFind(configVersions, List.of(
+                Document.createDocument().put("version", "2.0.0"),
+                Document.createDocument().put("version", "1.0.0")));
+
+        assertThat(store.getConfigurationVersions(DOMAIN, CONTROL_ID, CONFIGURATION_ID), contains("1.0.0", "2.0.0"));
+    }
+
+    // --- getConfigurationForVersion ---
+
+    @Test
+    void get_configuration_for_version_returns_content() throws Exception {
+        configurationExists();
+        stubFind(configVersions, List.of(Document.createDocument().put("content", VALID_JSON)));
+
+        assertThat(store.getConfigurationForVersion(DOMAIN, CONTROL_ID, CONFIGURATION_ID, "1.0.0"), is(VALID_JSON));
+    }
+
+    @Test
+    void get_configuration_for_version_throws_when_version_not_found() {
+        configurationExists();
+
+        assertThrows(ControlConfigurationVersionNotFoundException.class,
+                () -> store.getConfigurationForVersion(DOMAIN, CONTROL_ID, CONFIGURATION_ID, "9.9.9"));
+    }
+
+    @Test
+    void get_configuration_for_version_throws_when_config_not_found() {
+        configurationDoesNotExist();
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.getConfigurationForVersion(DOMAIN, CONTROL_ID, 999, "1.0.0"));
+    }
+
+    // --- createConfigurationForVersion ---
+
+    @Test
+    void create_configuration_for_version_throws_when_domain_not_found() {
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
+        assertThrows(DomainNotFoundException.class,
+                () -> store.createConfigurationForVersion("invalid", CONTROL_ID, CONFIGURATION_ID, "2.0.0", request));
+    }
+
+    @Test
+    void create_configuration_for_version_throws_when_control_not_found() {
+        controlDoesNotExist();
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
+        assertThrows(ControlNotFoundException.class,
+                () -> store.createConfigurationForVersion(DOMAIN, 999, CONFIGURATION_ID, "2.0.0", request));
+    }
+
+    @Test
+    void create_configuration_for_version_throws_when_config_not_found() {
+        configurationDoesNotExist();
+        CreateControlConfiguration request = new CreateControlConfiguration("{}");
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.createConfigurationForVersion(DOMAIN, CONTROL_ID, 999, "2.0.0", request));
+    }
+
+    @Test
+    void create_configuration_for_version_succeeds_when_the_version_does_not_exist() throws Exception {
+        configurationExists();
+
+        store.createConfigurationForVersion(DOMAIN, CONTROL_ID, CONFIGURATION_ID, "2.0.0",
+                new CreateControlConfiguration("{\"setting\": \"b\"}"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(configVersions).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("namespace", String.class), is(CONFIG_NAMESPACE));
+        assertThat(versionCaptor.getValue().get("version", String.class), is("2.0.0"));
+    }
+
+    @Test
+    void create_configuration_for_version_throws_when_the_version_already_exists() {
+        configurationExists();
+        stubFind(configVersions, List.of(Document.createDocument().put("version", "1.0.0")));
+
+        assertThrows(ControlConfigurationVersionExistsException.class, () ->
+                store.createConfigurationForVersion(DOMAIN, CONTROL_ID, CONFIGURATION_ID, "1.0.0",
+                        new CreateControlConfiguration("{}")));
+    }
+
+    @Test
+    void create_configuration_for_version_never_syncs_name_or_description_onto_the_header() throws Exception {
+        // Unlike a requirement version write, a configuration version write never syncs a
+        // name/description onto its header — preserved unchanged from the old shape. The only
+        // header write is the versionCount increment every version write makes.
+        configurationExists();
+
+        store.createConfigurationForVersion(DOMAIN, CONTROL_ID, CONFIGURATION_ID, "2.0.0",
+                new CreateControlConfiguration("{}"));
+
+        verify(configHeaders, times(1)).update(any(Filter.class), any(Document.class));
     }
 }

@@ -20,7 +20,6 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -65,11 +64,6 @@ class TestMongoSearchStoreShould {
         searchStore = new MongoSearchStore(database);
     }
 
-    /**
-     * Architecture has moved to the header/version shape, so each of its documents is one
-     * architecture rather than a namespace-wide array of them. The other namespaced types
-     * still use the array shape, which is why both fixtures appear in this class.
-     */
     private static Document architectureHeader(int id, String name, String description) {
         return architectureHeader("finos", id, name, description);
     }
@@ -143,17 +137,23 @@ class TestMongoSearchStoreShould {
                 .append("name", "Demo Pattern")
                 .append("description", "demo");
 
-        // A flow, still in the array shape, alongside two header-shaped types — the point
-        // being that both paths run in the same search while the rollout is part-done.
         Document flowDoc = new Document("namespace", "finos")
-                .append("flows", List.of(new Document("flowId", 3)
-                        .append("name", "Demo Flow")
-                        .append("description", "demo")));
+                .append("flowId", 3)
+                .append("name", "Demo Flow")
+                .append("description", "demo");
+
+        // Every namespaced type now reads the header shape — the array-shaped path was
+        // retired with Interface, its last caller.
+        Document interfaceDoc = new Document("namespace", "finos")
+                .append("interfaceId", 5)
+                .append("name", "Demo Interface")
+                .append("description", "demo");
 
         mockCollectionFind(architectureCollection, List.of(archDoc));
         mockCollectionFind(patternCollection, List.of(patternDoc));
         mockCollectionFind(flowCollection, List.of(flowDoc));
-        mockEmptyCollections(standardCollection, interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(interfaceCollection, List.of(interfaceDoc));
+        mockEmptyCollections(standardCollection, controlCollection, adrCollection);
 
         GroupedSearchResults results = searchStore.search("demo");
 
@@ -162,19 +162,22 @@ class TestMongoSearchStoreShould {
         assertEquals("Demo Pattern", results.getPatterns().get(0).getName());
         assertEquals(1, results.getFlows().size());
         assertEquals("Demo Flow", results.getFlows().get(0).getName());
+        assertEquals(1, results.getInterfaces().size());
+        assertEquals("Demo Interface", results.getInterfaces().get(0).getName());
     }
 
     @Test
     void search_controls_by_domain_not_namespace() {
-        Document controlEntry = new Document("controlId", 1)
+        // Control's header shape (ADR 0007) stores the domain in the "namespace" field,
+        // matching every other type's header/version collection.
+        Document controlHeader = new Document("namespace", "api-threats")
+                .append("controlId", 1)
                 .append("name", "API Rate Limiting")
                 .append("description", "Rate limit control");
-        Document domainDoc = new Document("domain", "api-threats")
-                .append("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         GroupedSearchResults results = searchStore.search("rate");
 
@@ -185,16 +188,38 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void search_adr_by_latest_revision_title() {
-        Document revisionDoc = new Document("title", "Use Event Sourcing");
-        Document adrEntry = new Document("adrId", 1)
-                .append("revisions", new Document("1", revisionDoc));
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("adrs", List.of(adrEntry));
+    void skip_a_header_with_no_id_rather_than_failing_the_search() {
+        mockEmptyCollections(patternCollection, flowCollection, standardCollection,
+                interfaceCollection, controlCollection, adrCollection);
+        mockCollectionFind(architectureCollection, List.of(
+                new Document("namespace", "finos").append("name", "event thing").append("description", "d")));
 
+        // No architectureId. SearchResult takes a primitive id, so unboxing would throw out
+        // of search() — which builds every type's results eagerly, failing the whole request
+        // rather than one type.
+        assertEquals(0, searchStore.search("event").getArchitectures().size());
+    }
+
+    @Test
+    void skip_an_adr_header_with_no_id_rather_than_failing_the_search() {
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", null)));
+
+        // SearchResult takes a primitive id and resolving the latest revision unboxes too, so
+        // one id-less header would 500 the entire /search request — every type, not just ADR.
+        assertEquals(0, searchStore.search("event").getAdrs().size());
+    }
+
+    @Test
+    void search_adr_by_its_denormalized_header_title() {
+        // ADR's header carries a denormalized copy of the latest revision's title (see
+        // calm-hub/decisions/0006-denormalize-adr-title-onto-header.md), so this reads it
+        // straight off the header like every other type — no version collection involved.
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(
+                new Document("namespace", "finos").append("adrId", 1).append("name", "Use Event Sourcing")));
 
         GroupedSearchResults results = searchStore.search("event");
 
@@ -203,40 +228,50 @@ class TestMongoSearchStoreShould {
     }
 
     @Test
-    void search_adr_uses_latest_revision_when_multiple_exist() {
-        Document revisionDoc1 = new Document("title", "Old Title");
-        Document revisionDoc2 = new Document("title", "New Title");
-        Document adrEntry = new Document("adrId", 1)
-                .append("revisions", new Document("1", revisionDoc1).append("2", revisionDoc2));
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("adrs", List.of(adrEntry));
-
+    void fall_back_to_a_placeholder_title_when_an_adr_header_has_none() {
+        // Only reachable for a header that predates both the write-path denormalization and
+        // its one-time migration backfill.
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, controlCollection);
-        mockCollectionFind(adrCollection, List.of(namespaceDoc));
+        mockCollectionFind(adrCollection, List.of(new Document("namespace", "finos").append("adrId", 7)));
 
-        GroupedSearchResults results = searchStore.search("New");
+        GroupedSearchResults results = searchStore.search("ADR 7");
 
         assertEquals(1, results.getAdrs().size());
-        assertEquals("New Title", results.getAdrs().get(0).getName());
+        assertEquals("ADR 7", results.getAdrs().get(0).getName());
     }
 
     @Test
-    void handle_null_entries_array_gracefully() {
-        // Uses a flow: only the array-shaped types can have a null entries array at all, so
-        // this covers the branch where it still exists. It moves to another unmigrated type
-        // each time one migrates — it was on architectures, then patterns.
-        Document namespaceDoc = new Document("namespace", "finos")
-                .append("flows", null);
+    void fall_back_to_a_placeholder_title_when_an_adr_header_title_is_blank() {
+        // "Untitled" is null-or-blank everywhere else in this change; a header whose title
+        // somehow ended up blank must fall back the same way a missing one does.
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+        mockCollectionFind(adrCollection, List.of(
+                new Document("namespace", "finos").append("adrId", 7).append("name", "   ")));
 
-        mockCollectionFind(flowCollection, List.of(namespaceDoc));
-        mockEmptyCollections(architectureCollection, patternCollection, standardCollection,
-                interfaceCollection, controlCollection, adrCollection);
+        GroupedSearchResults results = searchStore.search("ADR 7");
 
-        GroupedSearchResults results = searchStore.search("test");
-
-        assertTrue(results.getFlows().isEmpty());
+        assertEquals(1, results.getAdrs().size());
+        assertEquals("ADR 7", results.getAdrs().get(0).getName());
     }
+
+    @Test
+    void cap_adr_results_at_max_per_type() {
+        List<Document> headers = new ArrayList<>();
+        for (int i = 0; i < SearchStore.MAX_RESULTS_PER_TYPE + 10; i++) {
+            headers.add(new Document("namespace", "finos").append("adrId", i).append("name", "Match " + i));
+        }
+
+        mockCollectionFind(adrCollection, headers);
+        mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
+                standardCollection, interfaceCollection, controlCollection);
+
+        GroupedSearchResults results = searchStore.search("match");
+
+        assertEquals(SearchStore.MAX_RESULTS_PER_TYPE, results.getAdrs().size());
+    }
+
 
     @Test
     void handle_empty_collections_gracefully() {
@@ -323,15 +358,14 @@ class TestMongoSearchStoreShould {
      */
     @Test
     void return_controls_regardless_of_readable_namespaces() {
-        Document controlEntry = new Document("controlId", 1)
+        Document controlHeader = new Document("namespace", "api-threats")
+                .append("controlId", 1)
                 .append("name", "API Rate Limiting")
                 .append("description", "Rate limit control");
-        Document domainDoc = new Document("domain", "api-threats")
-                .append("controls", List.of(controlEntry));
 
         mockEmptyCollections(architectureCollection, patternCollection, flowCollection,
                 standardCollection, interfaceCollection, adrCollection);
-        mockCollectionFind(controlCollection, List.of(domainDoc));
+        mockCollectionFind(controlCollection, List.of(controlHeader));
 
         GroupedSearchResults results = searchStore.search("rate", Optional.of(Set.of()));
 
