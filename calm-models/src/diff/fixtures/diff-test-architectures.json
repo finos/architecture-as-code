@@ -896,5 +896,72 @@
         }]
       }
     }
+  },
+  "metadataArrayBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      },
+      {
+        "name": "removed",
+        "value": "old"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataArrayAdditionArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      },
+      {
+        "name": "removed",
+        "value": "old"
+      },
+      {
+        "name": "added",
+        "value": "new"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataArrayRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataObjectBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "unchanged": {
+        "nested": true
+      },
+      "removed": "old"
+    },
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataObjectModificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "unchanged": {
+        "nested": true
+      },
+      "added": "new"
+    },
+    "nodes": [],
+    "relationships": []
   }
 }

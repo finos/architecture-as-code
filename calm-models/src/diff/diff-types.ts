@@ -71,6 +71,11 @@ export interface ControlItemDiffResult {
     requirementsDiff: ControlItemDetailsDiffItem[];
 }
 
+export type MetadataItemDiffResult = Record<string, {
+    oldValue: unknown;
+    newValue: unknown;
+}>;
+
 export interface NodesAndRelationshipsDiffResult {
     nodesAdded: CalmNodeSchema[];
     nodesRemoved: CalmNodeSchema[];
@@ -106,6 +111,16 @@ export interface ControlDiffResult {
 }
 
 /**
- * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs and controls. TODO: incorporate flows and metadata.
+ * Represents the result of diffing two CALM Metadata Schema objects.
  */
-export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult;
+export interface MetadataDiffResult {
+    metadataObjectsAdded: Record<string, unknown>[];
+    metadataObjectsRemoved: Record<string, unknown>[];
+    metadataObjectsUnchanged: Record<string, unknown>[];
+    metadataObjectsModified: MetadataItemDiffResult[];
+}
+
+/**
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs, controls and metadata. TODO: incorporate flows.
+ */
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & MetadataDiffResult;
