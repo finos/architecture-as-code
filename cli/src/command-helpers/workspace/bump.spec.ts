@@ -110,6 +110,13 @@ describe('bump', () => {
             await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/no manifest version/);
         });
 
+        it('fails narrative checks when a tracked path cannot be read', async () => {
+            await saveManifest(bundlePath, {
+                unreadable: { path: 'files', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/could not be read/);
+        });
+
         it('detects and bumps changed narrative Markdown without rewriting it', async () => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
             await writeFile(path.join(filesPath, 'payments.md'), markdown);

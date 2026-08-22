@@ -200,6 +200,13 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
     });
 
+    it('fails narrative publish when a tracked path cannot be read', async () => {
+        await saveManifest(bundlePath, {
+            unreadable: { path: 'files', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/file could not be read/);
+    });
+
     it('skips entries whose file is invalid JSON', async () => {
         await writeFile(path.join(filesPath, 'bad.json'), 'not json {{{');
         await saveManifest(bundlePath, {
