@@ -166,7 +166,21 @@ A catalog on its own does nothing. Two different kinds of object are involved, a
 
 A candidate is included in the output only when a chosen bundle names its `unique-id`. So every catalog needs a decision holder pointing at it, and **a decision holder must be declared in `properties.relationships.prefixItems`** — never inside an `items` catalog itself. A holder is the mechanism that drives generation, so it must always be present; putting it in a catalog makes the question itself optional, and `calm generate` will not offer it.
 
-Use `anyOf` inside the holder's `options` for a zero-or-more catalog (the user may pick any combination, including none) and `oneOf` where exactly one candidate must be chosen. The holder that drives the catalog above looks like this:
+### `oneOf` and `anyOf` mean different things in different places
+
+The same two keywords appear in three positions and do three different jobs. Getting this wrong is the commonest authoring mistake with catalogs.
+
+**Inside the holder's `options` — this is the cardinality.** Use `anyOf` for a zero-or-more catalog (the user may pick any combination, including none) and `oneOf` where exactly one candidate must be chosen. This is the only place that controls how many candidates the user may select.
+
+**Inside a `prefixItems` slot — this picks which node fills one fixed position.** The slot always exists; the alternatives compete for it.
+
+**Inside `items` — neither.** The keyword there constrains what each individual array *entry* may look like, not how many entries there are. `items: { "oneOf": [cache, queue] }` reads as "each entry must be exactly one of cache or queue" — an architecture containing *both* is perfectly valid, because each entry independently matches exactly one candidate. "Zero or more" comes from `items` itself (plus `minItems`/`maxItems`), and how many are actually selected comes from the holder.
+
+Because every candidate pins its `unique-id` with a `const`, an entry can match at most one candidate schema, so `oneOf` and `anyOf` accept exactly the same architectures here. **Use `oneOf`** — it is the accurate assertion and matches the example above.
+
+**Never declare both `oneOf` and `anyOf` on one `items` block.** Only the `oneOf` list is read. Candidates under `anyOf` are silently dropped: `calm generate` will still *offer* them if a decision names them, then discard your answer without an error, and they will not appear in the diagram either.
+
+The holder that drives the catalog above looks like this:
 
 ```json
 {
@@ -747,7 +761,8 @@ Always use specific interface schema references:
 ### Array Handling
 
 - Use `prefixItems` to define specific array positions (fixed slots)
-- Use `items` with a `oneOf`/`anyOf` to define an open catalog of optional entries (zero or more, any combination); combine with `prefixItems` for mandatory-plus-optional arrays
+- Use `items` to define an open catalog of optional entries (zero or more, any combination); combine with `prefixItems` for mandatory-plus-optional arrays
+- Inside `items`, use `oneOf` (not both `oneOf` and `anyOf` — see above). The keyword constrains each entry's shape; it does **not** limit how many entries the array may hold
 - Use `minItems`/`maxItems` to constrain array sizes
 - Each array item should reference base schema + add constraints
 
