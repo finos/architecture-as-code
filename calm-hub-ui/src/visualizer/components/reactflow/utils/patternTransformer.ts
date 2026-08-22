@@ -9,7 +9,7 @@ import {
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
-import { getPatternArray, readCatalog } from '@finos/calm-models/pattern';
+import { getPatternArray, readChoiceBlock } from '@finos/calm-models/pattern';
 
 /**
  * Result of parsing pattern data into ReactFlow elements
@@ -41,16 +41,6 @@ function getPrefixItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): 
  */
 function getItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject | undefined {
     return getPatternArray(pattern, key).catalog as SchemaObject | undefined;
-}
-
-/**
- * Reads an `items` open-catalog's decision alternatives. Returns the group type
- * (`oneOf`/`anyOf`) and the alternatives array, or null when the catalog is
- * neither. `oneOf` wins when both are present, and either keyword being a
- * non-array leaves the catalog untreated.
- */
-function catalogAlternatives(items: SchemaObject): { groupType: 'oneOf' | 'anyOf'; alternatives: SchemaObject[] } | null {
-    return readCatalog(items) as { groupType: 'oneOf' | 'anyOf'; alternatives: SchemaObject[] } | null;
 }
 
 /**
@@ -230,9 +220,9 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
     // that aren't tied to a specific positional slot. Treat the whole catalog as
     // a single decision-group slot.
     if (items) {
-        const catalog = catalogAlternatives(items);
+        const catalog = readChoiceBlock(items);
         if (catalog) {
-            extractNodeDecisionGroup(catalog.alternatives, 'node-decision-items', catalog.groupType, nodes, decisionGroups);
+            extractNodeDecisionGroup(catalog.alternatives as SchemaObject[], 'node-decision-items', catalog.groupType, nodes, decisionGroups);
         }
     }
 
@@ -414,9 +404,9 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
     // Open catalog: `items.oneOf`/`items.anyOf` declares zero-or-more relationship
     // candidates not tied to a specific positional slot.
     if (items) {
-        const catalog = catalogAlternatives(items);
+        const catalog = readChoiceBlock(items);
         if (catalog) {
-            extractRelationshipDecisionGroup(catalog.alternatives, 'rel-decision-items', relationships);
+            extractRelationshipDecisionGroup(catalog.alternatives as SchemaObject[], 'rel-decision-items', relationships);
         }
     }
 
@@ -464,7 +454,13 @@ function createReactFlowNodes(
     const effectiveParent = new Map<string, string>();
     const usedDecisionGroupIds = new Set<string>();
     extractedNodes.forEach((node) => {
-        if (containerNodeIds.has(node.uniqueId)) return;
+        if (containerNodeIds.has(node.uniqueId)) {
+            // A container candidate is not drawn inside the box, but the decision is
+            // still real, so the box must survive to carry its prompt. Nesting the
+            // container inside the box is #2933.
+            if (node.decisionGroupId) usedDecisionGroupIds.add(node.decisionGroupId);
+            return;
+        }
         const parentId = parentMap.get(node.uniqueId) || node.decisionGroupId;
         if (!parentId) return;
         effectiveParent.set(node.uniqueId, parentId);
@@ -731,37 +727,28 @@ function foldOptionsMetadataIntoDecisionGroups(
 
     const groupOptionsMap = new Map<string, OptionsMetadata>();
 
+    // A candidate can be drawn in one box only, so the first decision to name it keeps it.
+    const claimedByDecision = new Set<string>();
+
     optionsMetadata.forEach((meta) => {
-        const referencedIds = Array.from(new Set(meta.choices.flatMap((c) => c.nodes))).filter((id) =>
-            extractedNodeIds.has(id)
+        const referencedIds = Array.from(new Set(meta.choices.flatMap((c) => c.nodes))).filter(
+            (id) => extractedNodeIds.has(id) && !claimedByDecision.has(id)
         );
 
-        // No referenced id resolves to a real node — render nothing for this decision.
+        // Nothing left to draw: either the ids are dangling, or an earlier decision has
+        // them all. Boxing one node twice needs the nesting rework (#2933).
         if (referencedIds.length === 0) return;
 
-        const matchedGroupIds: string[] = [];
-        referencedIds.forEach((id) => {
-            const groupId = nodeToGroupMap.get(id);
-            if (groupId && !matchedGroupIds.includes(groupId)) matchedGroupIds.push(groupId);
-        });
-
-        let targetGroup: DecisionGroup;
-        if (matchedGroupIds.length > 0) {
-            targetGroup = groupsById.get(matchedGroupIds[0])!;
-        } else {
-            targetGroup = {
-                groupId: `node-decision-options-${meta.relationshipId || referencedIds.join('-')}`,
-                groupType: meta.optionType,
-                nodeIds: [],
-            };
-            decisionGroups.push(targetGroup);
-            groupsById.set(targetGroup.groupId, targetGroup);
-        }
+        const targetGroup: DecisionGroup = {
+            groupId: `node-decision-${meta.relationshipId || referencedIds.join('-')}`,
+            groupType: meta.optionType,
+            nodeIds: [],
+        };
+        decisionGroups.push(targetGroup);
+        groupsById.set(targetGroup.groupId, targetGroup);
 
         referencedIds.forEach((id) => {
             const currentGroupId = nodeToGroupMap.get(id);
-            if (currentGroupId === targetGroup.groupId) return;
-
             if (currentGroupId) {
                 const oldGroup = groupsById.get(currentGroupId);
                 if (oldGroup) {
@@ -771,6 +758,7 @@ function foldOptionsMetadataIntoDecisionGroups(
 
             targetGroup.nodeIds.push(id);
             nodeToGroupMap.set(id, targetGroup.groupId);
+            claimedByDecision.add(id);
 
             const node = nodesById.get(id);
             if (node) node.decisionGroupId = targetGroup.groupId;

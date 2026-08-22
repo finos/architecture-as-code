@@ -784,3 +784,227 @@ describe('nested container ordering', () => {
         expect(ids).toEqual(['A', 'B', 'C', 'system']);
     });
 });
+
+describe('decision groups are keyed per decision, not per declaration site', () => {
+    const cacheQueueCatalog = [
+        schemaNode('redis', 'Redis', 'database'),
+        schemaNode('memcached', 'Memcached', 'database'),
+        schemaNode('kafka', 'Kafka', 'queue'),
+        schemaNode('rabbitmq', 'RabbitMQ', 'queue'),
+    ];
+
+    type RfNode = { id: string; type?: string; parentId?: string; data: Record<string, never> };
+
+    /** The prompt on each rendered decision box, sorted. */
+    const prompts = (nodes: RfNode[]) =>
+        nodes.filter((n) => n.type === 'decisionGroup').map((n) => n.data.prompt as unknown as string).sort();
+
+    /** The box a candidate was placed in. Fails the test if it is in none. */
+    const boxOf = (nodes: RfNode[], id: string): string => {
+        const parentId = nodes.find((n) => n.id === id)?.parentId;
+        expect(parentId, `${id} is in no decision box`).toBeDefined();
+        return parentId as string;
+    };
+
+    /** The choice descriptions on the box carrying a given prompt. */
+    const choicesFor = (nodes: RfNode[], prompt: string): string[] => {
+        const box = nodes.find((n) => n.type === 'decisionGroup' && n.data.prompt === prompt);
+        expect(box, `no decision box with prompt "${prompt}"`).toBeDefined();
+        return (box!.data.choices as unknown as { description: string }[]).map((c) => c.description);
+    };
+
+    const twoDecisionPattern = (relationships: unknown[]) =>
+        makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            cacheQueueCatalog,
+            relationships,
+            [],
+            'anyOf'
+        );
+
+    const cacheDecision = optionsRelationship('cache-choice', 'Pick a cache', [
+        { description: 'Use Redis', nodes: ['redis'] },
+        { description: 'Use Memcached', nodes: ['memcached'] },
+    ]);
+    const queueDecision = optionsRelationship('queue-choice', 'Pick a queue', [
+        { description: 'Use Kafka', nodes: ['kafka'] },
+        { description: 'Use RabbitMQ', nodes: ['rabbitmq'] },
+    ]);
+
+    it('renders one box per decision when two decisions draw from one catalog', () => {
+        const result = parsePatternData(twoDecisionPattern([cacheDecision, queueDecision])) as { nodes: RfNode[] };
+
+        expect(prompts(result.nodes)).toEqual(['Pick a cache', 'Pick a queue']);
+
+        // Each box carries its own choices, not the other decision's.
+        expect(choicesFor(result.nodes, 'Pick a cache')).toEqual(['Use Redis', 'Use Memcached']);
+        expect(choicesFor(result.nodes, 'Pick a queue')).toEqual(['Use Kafka', 'Use RabbitMQ']);
+
+        // Every candidate is drawn, and each decision's candidates share one box.
+        ['redis', 'memcached', 'kafka', 'rabbitmq'].forEach((id) =>
+            expect(result.nodes.find((n) => n.id === id), id).toBeDefined()
+        );
+        expect(boxOf(result.nodes, 'redis')).toBe(boxOf(result.nodes, 'memcached'));
+        expect(boxOf(result.nodes, 'kafka')).toBe(boxOf(result.nodes, 'rabbitmq'));
+        expect(boxOf(result.nodes, 'redis')).not.toBe(boxOf(result.nodes, 'kafka'));
+    });
+
+    it('still renders one box when one decision draws from one catalog', () => {
+        const pattern = makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [schemaNode('redis', 'Redis', 'database'), schemaNode('memcached', 'Memcached', 'database')],
+            [cacheDecision],
+            [],
+            'anyOf'
+        );
+        const result = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        expect(prompts(result.nodes)).toEqual(['Pick a cache']);
+        expect(choicesFor(result.nodes, 'Pick a cache')).toEqual(['Use Redis', 'Use Memcached']);
+        expect(boxOf(result.nodes, 'redis')).toBe(boxOf(result.nodes, 'memcached'));
+    });
+
+    it('gives a shared candidate to the first decision and still renders the second', () => {
+        // memcached is named by both. A node has one parent, so the first decision
+        // keeps it and the second renders with what is left.
+        const storeDecision = optionsRelationship('store-choice', 'Pick a store', [
+            { description: 'Use Memcached', nodes: ['memcached'] },
+            { description: 'Use Kafka', nodes: ['kafka'] },
+        ]);
+        // Exactly the three candidates the two decisions name. A fourth, unreferenced
+        // candidate would keep its own declaration-site box and is not what this pins.
+        const pattern = makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [
+                schemaNode('redis', 'Redis', 'database'),
+                schemaNode('memcached', 'Memcached', 'database'),
+                schemaNode('kafka', 'Kafka', 'queue'),
+            ],
+            [cacheDecision, storeDecision],
+            [],
+            'anyOf'
+        );
+        const result = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        expect(prompts(result.nodes)).toEqual(['Pick a cache', 'Pick a store']);
+        expect(boxOf(result.nodes, 'memcached')).toBe(boxOf(result.nodes, 'redis'));
+        expect(boxOf(result.nodes, 'kafka')).not.toBe(boxOf(result.nodes, 'redis'));
+
+        // The second box still offers the shared candidate as a choice. Only the
+        // drawing is exclusive, not the decision.
+        expect(choicesFor(result.nodes, 'Pick a store')).toEqual(['Use Memcached', 'Use Kafka']);
+    });
+
+    it('is declaration order that decides which decision keeps a shared candidate', () => {
+        const storeDecision = optionsRelationship('store-choice', 'Pick a store', [
+            { description: 'Use Memcached', nodes: ['memcached'] },
+            { description: 'Use Kafka', nodes: ['kafka'] },
+        ]);
+        const pattern = makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [
+                schemaNode('redis', 'Redis', 'database'),
+                schemaNode('memcached', 'Memcached', 'database'),
+                schemaNode('kafka', 'Kafka', 'queue'),
+            ],
+            [storeDecision, cacheDecision],
+            [],
+            'anyOf'
+        );
+        const reversed = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        // Same two decisions, declared the other way round: now the store box keeps it.
+        expect(boxOf(reversed.nodes, 'memcached')).toBe(boxOf(reversed.nodes, 'kafka'));
+        expect(boxOf(reversed.nodes, 'memcached')).not.toBe(boxOf(reversed.nodes, 'redis'));
+    });
+
+    it('renders no box for a decision whose candidates are all claimed by an earlier one', () => {
+        // A documented limit, not a fix. Boxing one node twice needs #2933.
+        const pattern = makePatternWithItems(
+            [schemaNode('webapp', 'Web App', 'service')],
+            [schemaNode('redis', 'Redis', 'database')],
+            [
+                optionsRelationship('cache-choice', 'Pick a cache', [
+                    { description: 'Use Redis', nodes: ['redis'] },
+                ]),
+                optionsRelationship('store-choice', 'Pick a store', [
+                    { description: 'Use Redis', nodes: ['redis'] },
+                ]),
+            ],
+            [],
+            'anyOf'
+        );
+        const result = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        expect(prompts(result.nodes)).toEqual(['Pick a cache']);
+    });
+});
+
+describe('decisions and containers', () => {
+    type RfNode = { id: string; type?: string; parentId?: string; data: Record<string, never> };
+
+    const deployedIn = (uniqueId: string, container: string, nodes: string[]) => ({
+        properties: {
+            'unique-id': { const: uniqueId },
+            'relationship-type': { const: { 'deployed-in': { container, nodes } } },
+        },
+    });
+
+    it('keeps the decision box when every candidate is itself a container', () => {
+        // opt-a and opt-b each contain a leaf, so both are containers. The box must
+        // still carry the decision text. Nesting them inside it is #2933.
+        const pattern = makePattern(
+            [
+                schemaNode('opt-a', 'Option A', 'system'),
+                schemaNode('opt-b', 'Option B', 'system'),
+                schemaNode('leaf-a', 'Leaf A', 'service'),
+                schemaNode('leaf-b', 'Leaf B', 'service'),
+            ],
+            [
+                deployedIn('deploy-a', 'opt-a', ['leaf-a']),
+                deployedIn('deploy-b', 'opt-b', ['leaf-b']),
+                optionsRelationship('subsystem-choice', 'Pick a subsystem', [
+                    { description: 'Use A', nodes: ['opt-a'] },
+                    { description: 'Use B', nodes: ['opt-b'] },
+                ]),
+            ]
+        );
+        const result = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        const groups = result.nodes.filter((n) => n.type === 'decisionGroup');
+        expect(groups).toHaveLength(1);
+        expect(groups[0].data.prompt).toBe('Pick a subsystem');
+
+        // The containers must NOT be nested inside the box - that is #2933's change.
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBeUndefined();
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBeUndefined();
+
+        // Containment is unchanged.
+        expect(result.nodes.find((n) => n.id === 'leaf-a')?.parentId).toBe('opt-a');
+        expect(result.nodes.find((n) => n.id === 'leaf-b')?.parentId).toBe('opt-b');
+    });
+
+    it('still suppresses the box when every candidate is pulled into a container', () => {
+        // The other branch: the candidates are container children, not containers.
+        // Suppression stays, even though a prompt exists to lose.
+        const pattern = makePattern(
+            [
+                schemaNode('k8s', 'Kubernetes', 'system'),
+                schemaNode('opt-a', 'Option A', 'service'),
+                schemaNode('opt-b', 'Option B', 'service'),
+            ],
+            [
+                deployedIn('deploy-both', 'k8s', ['opt-a', 'opt-b']),
+                optionsRelationship('svc-choice', 'Pick a service', [
+                    { description: 'Use A', nodes: ['opt-a'] },
+                    { description: 'Use B', nodes: ['opt-b'] },
+                ]),
+            ]
+        );
+        const result = parsePatternData(pattern) as { nodes: RfNode[] };
+
+        expect(result.nodes.filter((n) => n.type === 'decisionGroup')).toHaveLength(0);
+        expect(result.nodes.find((n) => n.id === 'opt-a')?.parentId).toBe('k8s');
+        expect(result.nodes.find((n) => n.id === 'opt-b')?.parentId).toBe('k8s');
+    });
+});
