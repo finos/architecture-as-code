@@ -249,7 +249,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             let tlsConfig;
             if (this.directUrlAuthPlugin) {
                 try {
-                    tlsConfig = await this.directUrlAuthPlugin.getTlsConfig?.();
+                    if (parsedUrl.protocol === 'https:') {
+                        tlsConfig = await this.directUrlAuthPlugin.getTlsConfig?.();
+                    }
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
                     authHeaderNames.push(...Object.keys(authHeaders));
                 } catch (error) {

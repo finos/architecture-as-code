@@ -188,6 +188,27 @@ describe('direct-url-document-loader', () => {
         expect((lastRequest.httpsAgent as https.Agent).options.ca).toBe('test-ca-cert');
     });
 
+    it('does not request TLS config for plain HTTP direct URL loads', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `http://${allowlistedHost}/protected.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({
+                'Authorization': 'Bearer test-token',
+            }),
+            getTlsConfig: vi.fn().mockRejectedValue(new Error('tls bootstrap failed: should-not-run')),
+        };
+        mock.onGet('/protected.json').reply(200, { '$id': url, 'title': 'schema' });
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        expect(document).toEqual({ '$id': url, 'title': 'schema' });
+        expect(directUrlAuthPlugin.getTlsConfig).not.toHaveBeenCalled();
+        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
+        const lastRequest = mock.history.get[mock.history.get.length - 1];
+        expect(lastRequest.httpsAgent).toBeUndefined();
+    });
+
     it('redacts sensitive auth headers in debug logs while keeping safe request metadata', async () => {
         const loggerModule = await import('../logger');
         const mockLogger: Logger = {
