@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
 import type { CalmDocumentType } from '@finos/calm-models/types';
+import type { NarrativeDocumentType } from '@finos/calm-shared/src/hub/calm-hub-client';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -63,13 +64,15 @@ export function extractAllReferences(json: object): string[] {
     return Array.from(new Set(allRefs));
 }
 
-export type WorkspaceDocumentType = CalmDocumentType | 'unknown';
+export type WorkspaceDocumentType = CalmDocumentType | NarrativeDocumentType | 'unknown';
 
 export type WorkspaceManifestEntry = {
     path: string;
     type: WorkspaceDocumentType;
     namespace?: string;
     calmHubId?: string;
+    version?: string;
+    calmHubDocumentId?: number;
 };
 
 export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
@@ -167,7 +170,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string; copy?: boolean; type?: WorkspaceDocumentType; namespace?: string }
+    opts?: { id?: string; destName?: string; copy?: boolean; type?: WorkspaceDocumentType; namespace?: string; version?: string }
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
     const id = await determineDocumentId(srcPath, opts?.id);
@@ -190,7 +193,12 @@ export async function addFileToBundle(
     }
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = { path: rel, type: opts?.type ?? 'unknown', ...(opts?.namespace ? { namespace: opts.namespace } : {}) };
+    manifest[id] = {
+        path: rel,
+        type: opts?.type ?? 'unknown',
+        ...(opts?.namespace ? { namespace: opts.namespace } : {}),
+        ...(opts?.version ? { version: opts.version } : {}),
+    };
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };

@@ -18,6 +18,8 @@ import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/ca
 import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
+import { isNarrativeDocumentType, parseNarrativeDocument } from './narrative-document';
+import { NARRATIVE_DOCUMENT_TYPES } from '@finos/calm-shared/src/hub/calm-hub-client';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -54,7 +56,7 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST]))
+        .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST, ...NARRATIVE_DOCUMENT_TYPES]))
         .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
         .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
             try {
@@ -66,7 +68,28 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const srcPath = path.resolve(file);
 
-                const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', CALM_DOCUMENT_TYPES_LIST);
+                const documentTypes = [...CALM_DOCUMENT_TYPES_LIST, ...NARRATIVE_DOCUMENT_TYPES];
+                const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', documentTypes);
+                if (isNarrativeDocumentType(type)) {
+                    if (!options.namespace?.trim()) {
+                        throw new Error(`Narrative document '${file}' requires --namespace.`);
+                    }
+                    const raw = await readFile(srcPath, 'utf8');
+                    const narrative = parseNarrativeDocument(raw, file);
+                    const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+                        id: options.id ?? narrative.request.name,
+                        copy: options.copy,
+                        type,
+                        namespace: options.namespace.trim(),
+                        version: '1.0.0',
+                    });
+                    if (options.copy) {
+                        logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
+                    } else {
+                        logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
+                    }
+                    return;
+                }
                 if (!isValidCalmDocumentType(type)) {
                     logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
                     process.exit(1);
