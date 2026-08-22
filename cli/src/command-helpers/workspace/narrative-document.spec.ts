@@ -30,6 +30,7 @@ describe('narrative document helpers', () => {
     it('validates identity and matching Location', () => {
         validateNarrativeIdentity(identity, false);
         expect(parseNarrativeDocumentLocation('/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0', identity)).toBe(42);
+        expect(parseNarrativeDocumentLocation('http://localhost:8080/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0', identity)).toBe(42);
         expect(() => validateNarrativeIdentity({ ...identity, version: 'latest' }, false)).toThrow(/major.minor.patch/);
         expect(() => parseNarrativeDocumentLocation('/api/calm/namespaces/other/documents/sad/42/versions/1.0.0', identity)).toThrow(/does not match/);
     });

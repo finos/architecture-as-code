@@ -68,7 +68,8 @@ export function validateNarrativeIdentity(identity: NarrativeDocumentIdentity, r
 }
 
 export function parseNarrativeDocumentLocation(location: string, identity: NarrativeDocumentIdentity): number {
-    const match = LOCATION_PATTERN.exec(location);
+    const path = extractLocationPath(location);
+    const match = LOCATION_PATTERN.exec(path);
     if (!match) {
         throw new Error(`Narrative document Location '${location}' has an unexpected format.`);
     }
@@ -84,4 +85,20 @@ export function parseNarrativeDocumentLocation(location: string, identity: Narra
         throw new Error(`Narrative document Location '${location}' does not match the stored document id.`);
     }
     return id;
+}
+
+function extractLocationPath(location: string): string {
+    if (location.startsWith('/')) {
+        return location;
+    }
+
+    try {
+        const url = new URL(location);
+        if (!['http:', 'https:'].includes(url.protocol) || url.search || url.hash) {
+            throw new Error('invalid Location URL');
+        }
+        return url.pathname;
+    } catch {
+        throw new Error(`Narrative document Location '${location}' has an unexpected format.`);
+    }
 }
