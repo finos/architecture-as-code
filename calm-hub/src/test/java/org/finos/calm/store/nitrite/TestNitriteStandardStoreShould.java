@@ -4,37 +4,52 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
+import org.dizitart.no2.exceptions.NitriteException;
 import org.dizitart.no2.filters.Filter;
+import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
 import org.finos.calm.domain.exception.StandardVersionExistsException;
 import org.finos.calm.domain.exception.StandardVersionNotFoundException;
+import org.finos.calm.domain.exception.StorageWriteException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-import java.util.*;
+import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doCallRealMethod;
 
+/**
+ * Store-level tests for the header/version shape. Document mechanics are covered by
+ * {@code TestNitriteVersionDocumentStoreShould}. Standard sets name/description
+ * unconditionally on a version write and has no update path — both pinned here.
+ */
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 public class TestNitriteStandardStoreShould {
 
     @Mock
     private Nitrite mockDb;
-
-    @Mock
-    private NitriteCollection mockCollection;
 
     @Mock
     private NitriteNamespaceStore mockNamespaceStore;
@@ -42,506 +57,210 @@ public class TestNitriteStandardStoreShould {
     @Mock
     private NitriteCounterStore mockCounterStore;
 
-    private NitriteStandardStore standardStore;
+    private NitriteCollection headerCollection;
+    private NitriteCollection versionCollection;
+    private NitriteStandardStore store;
 
-    private final String NAMESPACE = "finos";
-    private final String STANDARD_JSON = "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\"}}}";
-    // Default version used in tests
-    private final int STANDARD_ID = 42;
+    private static final String NAMESPACE = "finos";
+    private static final int STANDARD_ID = 42;
+    private static final String VALID_JSON = "{\"test\": \"test\"}";
 
     @BeforeEach
-    public void setup() {
-        when(mockDb.getCollection(anyString())).thenReturn(mockCollection);
-        standardStore = new NitriteStandardStore(mockDb, mockNamespaceStore, mockCounterStore);
+    public void setup() throws NamespaceNotFoundException {
+        doCallRealMethod().when(mockNamespaceStore).requireNamespace(anyString());
+        headerCollection = mock(NitriteCollection.class);
+        versionCollection = mock(NitriteCollection.class);
+
+        when(mockDb.getCollection("standards")).thenReturn(headerCollection);
+        when(mockDb.getCollection("standardVersions")).thenReturn(versionCollection);
+        when(mockNamespaceStore.namespaceExists(anyString())).thenReturn(true);
+
+        store = new NitriteStandardStore(mockDb, mockNamespaceStore, mockCounterStore);
     }
 
+    private void stubFind(NitriteCollection collection, List<Document> documents) {
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(collection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(documents.isEmpty() ? null : documents.get(0));
+        when(cursor.iterator()).thenAnswer(invocation -> documents.iterator());
+        when(collection.find()).thenReturn(cursor);
+    }
+
+    private void standardExists() {
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("standardId", STANDARD_ID).put("versionCount", 1)));
+    }
+
+    private void standardDoesNotExist() {
+        stubFind(headerCollection, List.of());
+    }
+
+    private static CreateStandardRequest createRequest() {
+        return new CreateStandardRequest("standard-name", "standard-description", VALID_JSON);
+    }
+
+    // --- getStandardsForNamespace ---
+
     @Test
-    public void testGetStandardsForNamespace_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        // Arrange
+    public void throw_a_namespace_exception_when_listing_standards_for_a_missing_namespace() {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
-        // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardsForNamespace(NAMESPACE));
+        assertThrows(NamespaceNotFoundException.class, () -> store.getStandardsForNamespace(NAMESPACE));
     }
 
     @Test
-    public void testGetStandardsForNamespace_whenNoStandards_returnsEmptyList() throws NamespaceNotFoundException {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+    public void return_an_empty_list_when_a_namespace_has_no_standards() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of());
 
-        // Mock cursor to return null for firstOrNull() (no namespace document found)
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        // Act
-        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.isEmpty(), is(true));
+        assertThat(store.getStandardsForNamespace(NAMESPACE), is(empty()));
     }
 
     @Test
-    public void testGetStandardsForNamespace_whenNamespaceExistsButStandardsArrayIsNull_returnsEmptyList() throws NamespaceNotFoundException {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+    public void return_a_summary_per_header_document() throws NamespaceNotFoundException {
+        stubFind(headerCollection, List.of(
+                Document.createDocument().put("standardId", 1).put("name", "First")
+                        .put("description", "d1").put("versionCount", 2),
+                Document.createDocument().put("standardId", 2).put("name", "Second")
+                        .put("description", "d2").put("versionCount", 0)));
 
-        // Create namespace document with null standards array
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", null);
+        assertThat(store.getStandardsForNamespace(NAMESPACE), contains(
+                new NamespaceResourceSummary("First", "d1", 1, 2),
+                new NamespaceResourceSummary("Second", "d2", 2, 0)));
+    }
 
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+    // --- createStandardForNamespace ---
 
-        // Act
-        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
+    @Test
+    public void reject_invalid_json_when_creating_a_standard() {
+        CreateStandardRequest invalid = new CreateStandardRequest("n", "d", "{invalid json}");
 
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.isEmpty(), is(true));
+        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE));
+        verify(headerCollection, org.mockito.Mockito.never()).insert(any(Document.class));
     }
 
     @Test
-    public void testGetStandardsForNamespace_whenNamespaceExistsButStandardsArrayIsEmpty_returnsEmptyList() throws NamespaceNotFoundException {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+    public void create_a_header_and_an_initial_version() throws NamespaceNotFoundException {
+        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("standardId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
 
-        // Create namespace document with empty standards array
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", Collections.emptyList());
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE);
 
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+        assertThat(created.getId(), is(99));
+        assertThat(created.getVersion(), is("1.0.0"));
 
-        // Act
-        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.isEmpty(), is(true));
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0"));
+        assertThat(versionCaptor.getValue().get("content", String.class), is(VALID_JSON));
     }
 
     @Test
-    public void testGetStandardsForNamespace_whenStandardsExist_returnsStandards() throws NamespaceNotFoundException {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+    public void remove_the_header_again_when_the_first_version_write_fails() {
+        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of());
+        stubFind(versionCollection, List.of());
+        when(versionCollection.insert(any(Document.class)))
+                .thenThrow(new NitriteException("store is closed"));
 
-        Map<String, Object> fullStandard = new HashMap<>();
-        fullStandard.put("standardId", 2);
-        fullStandard.put("name", "Test Name");
-        fullStandard.put("description", "Test Description");
-        fullStandard.put("versions", Document.createDocument().put("1-0-0", "{}").put("2-0-0", "{}"));
+        assertThrows(NitriteException.class,
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
 
-        // standardDoc1 carries no versions sub-document → count guards to 0;
-        // standardDoc2 carries two versions → count is 2.
-        Document standardDoc1 = Document.createDocument("standardId", 1);
-        Document standardDoc2 = Document.createDocument(fullStandard);
-        List<Document> standards = Arrays.asList(standardDoc1, standardDoc2);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", standards);
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act
-        List<NamespaceResourceSummary> result = standardStore.getStandardsForNamespace(NAMESPACE);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.size(), is(2));
-        assertThat(result.getFirst().getId(), is(1));
-        assertThat(result.getFirst().getVersionCount(), is(0));
-        assertThat(result.get(1).getId(), is(2));
-        assertThat(result.get(1).getDescription(), is("Test Description"));
-        assertThat(result.get(1).getName(), is("Test Name"));
-        assertThat(result.get(1).getVersionCount(), is(2));
+        verify(headerCollection).remove(any(Filter.class));
     }
 
     @Test
-    public void testCreateStandardForNamespace_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        // Arrange
-        CreateStandardRequest standard = new CreateStandardRequest();
-        standard.setStandardJson(STANDARD_JSON);
+    public void fail_rather_than_report_success_when_the_initial_version_already_exists() {
+        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of());
+        stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0")));
 
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+        assertThrows(StorageWriteException.class,
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
 
-        // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForNamespace(standard, NAMESPACE));
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    // --- getStandardVersions / getStandardForVersion ---
+
+    @Test
+    public void throw_a_standard_exception_when_listing_versions_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class, () -> store.getStandardVersions(NAMESPACE, STANDARD_ID));
     }
 
     @Test
-    public void testCreateStandardForNamespace_whenNamespaceExists_createsStandard() throws NamespaceNotFoundException {
-        // Arrange
-        CreateStandardRequest standard = new CreateStandardRequest();
-        standard.setStandardJson(STANDARD_JSON);
+    public void list_versions_in_semantic_order() throws NamespaceNotFoundException, StandardNotFoundException {
+        standardExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.10.0"),
+                Document.createDocument().put("version", "1.9.0"),
+                Document.createDocument().put("version", "1.0.0")));
 
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(STANDARD_ID);
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act
-        Standard result = standardStore.createStandardForNamespace(standard, NAMESPACE);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.getId(), is(STANDARD_ID));
-        assertThat(result.getNamespace(), is(NAMESPACE));
-        assertThat(result.getStandardJson(), is(STANDARD_JSON));
-        assertThat(result.getVersion(), is("1.0.0"));
-
-        verify(mockCollection).insert(any(Document.class));
+        assertThat(store.getStandardVersions(NAMESPACE, STANDARD_ID), contains("1.0.0", "1.9.0", "1.10.0"));
     }
 
     @Test
-    public void testGetStandardVersions_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+    public void throw_a_version_exception_when_the_version_is_not_stored() {
+        standardExists();
+        stubFind(versionCollection, List.of());
 
-        // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardVersions(NAMESPACE, STANDARD_ID));
+        assertThrows(StandardVersionNotFoundException.class,
+                () -> store.getStandardForVersion(NAMESPACE, STANDARD_ID, "9.0.0"));
     }
 
     @Test
-    public void testGetStandardVersions_whenStandardDoesNotExist_throwsStandardNotFoundException() {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mock(DocumentCursor.class));
+    public void return_the_content_of_a_stored_version() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of(Document.createDocument().put("content", VALID_JSON)));
 
-        // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardVersions(NAMESPACE, STANDARD_ID));
+        assertThat(store.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"), is(VALID_JSON));
+    }
+
+    // --- createStandardForVersion ---
+
+    @Test
+    public void throw_a_standard_exception_when_creating_a_version_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1"));
     }
 
     @Test
-    public void testGetStandardVersions_whenVersionsExist_returnsVersionsList() throws NamespaceNotFoundException, StandardNotFoundException {
-        // Arrange
+    public void throw_a_version_exists_exception_when_the_version_is_already_stored() {
+        standardExists();
+        stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.1")));
 
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Mock the versionsDoc with the fields we need
-        Document versionsDoc = mock(Document.class);
-        when(versionsDoc.getFields()).thenReturn(new HashSet<>(Arrays.asList("1-0-0", "1-1-0")));
-
-        // Mock the standard document
-        Document standardDoc = mock(Document.class);
-        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-
-        // Create the namespace document with the standard
-        Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
-
-        // Set up the cursor mock
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Set up the namespace store mock
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Act
-        List<String> result = standardStore.getStandardVersions(NAMESPACE, STANDARD_ID);
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.size(), is(2));
-        assertThat(result, hasItem("1.0.0"));
-        assertThat(result, hasItem("1.1.0"));
+        assertThrows(StandardVersionExistsException.class,
+                () -> store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1"));
     }
 
     @Test
-    public void testGetStandardForVersion_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+    public void write_the_version_and_then_the_header_details() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of());
 
-        // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
+        store.createStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.1");
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.1"));
+        // Two header writes: the versionCount increment, then the name/description update.
+        verify(headerCollection, times(2)).update(any(Filter.class), any(Document.class));
     }
 
     @Test
-    public void testGetStandardForVersion_whenStandardDoesNotExist_throwsStandardNotFoundException() {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Create a mock cursor that returns null for firstOrNull()
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
-    }
-
-    @Test
-    public void testGetStandardForVersion_whenVersionDoesNotExist_throwsStandardVersionNotFoundException() {
-        // Arrange
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Mock the versionsDoc with the fields we need
-        Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get("2-0-0")).thenReturn(null); // Version not found
-
-        // Mock the standard document
-        Document standardDoc = mock(Document.class);
-        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-
-        // Create the namespace document with the standard
-        Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
-
-        // Set up the cursor mock
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act & Assert
-        assertThrows(StandardVersionNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "2.0.0"));
-    }
-
-    @Test
-    public void testGetStandardForVersion_whenVersionExists_returnsStandard() throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Standard expectedStandard = new Standard();
-        expectedStandard.setId(STANDARD_ID);
-        expectedStandard.setName("Test Standard");
-        expectedStandard.setDescription("Test Description");
-        expectedStandard.setNamespace(NAMESPACE);
-        expectedStandard.setId(STANDARD_ID);
-        expectedStandard.setVersion("2.0.0");
-        expectedStandard.setStandardJson("{}");
-
-        Document versionsDoc = mock(Document.class);
-        when(versionsDoc.get("2-0-0")).thenReturn("{}");
-
-        // Mock the standard document
-        Document standardDoc = mock(Document.class);
-        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-
-        // Create the namespace document with the standard
-        Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(Collections.singletonList(standardDoc));
-
-        // Set up the cursor mock
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act
-        String standard = standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, expectedStandard.getVersion());
-
-        // Assert
-        assertThat(standard, equalTo("{}"));
-    }
-
-    @Test
-    public void testGetStandardVersions_whenVersionsDocumentIsNull_throwsStandardNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document standardDoc = Document.createDocument()
-                .put("standardId", STANDARD_ID);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", List.of(standardDoc));
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        assertThrows(StandardNotFoundException.class, () -> standardStore.getStandardVersions(NAMESPACE, STANDARD_ID));
-    }
-
-    @Test
-    public void testGetStandardForVersion_whenVersionsDocumentIsNull_throwsStandardVersionNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document standardDoc = Document.createDocument()
-                .put("standardId", STANDARD_ID);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", List.of(standardDoc));
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        assertThrows(StandardVersionNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
-    }
-
-    @Test
-    public void testGetStandardForVersion_whenVersionObjIsNotAString_throwsStandardVersionNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document versions = Document.createDocument()
-                .put("1-0-0", 12345);
-
-        Document standardDoc = Document.createDocument()
-                .put("standardId", STANDARD_ID)
-                .put("versions", versions);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", List.of(standardDoc));
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        assertThrows(StandardVersionNotFoundException.class, () -> standardStore.getStandardForVersion(NAMESPACE, STANDARD_ID, "1.0.0"));
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenVersionsDocumentIsNull_throwsStandardNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        Document standardDoc = Document.createDocument()
-                .put("standardId", STANDARD_ID);
-
-        Document namespaceDoc = Document.createDocument()
-                .put("namespace", NAMESPACE)
-                .put("standards", List.of(standardDoc));
-
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(getStandardToPersist(), NAMESPACE, STANDARD_ID, "1.0.1"));
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenNamespaceDoesNotExist_throwsNamespaceNotFoundException() {
-        // Arrange
-        CreateStandardRequest standard = getStandardToPersist();
-
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
-
-        // Act & Assert
-        assertThrows(NamespaceNotFoundException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, null, null));
-    }
-
-    private CreateStandardRequest getStandardToPersist() {
-        return new CreateStandardRequest("Test", "Test Description", STANDARD_JSON);
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenNamespaceDocumentDoesNotExist_throwsStandardNotFoundException() {
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Create a mock cursor that returns null for firstOrNull()
-        DocumentCursor mockCursor = mock(DocumentCursor.class);
-        when(mockCursor.firstOrNull()).thenReturn(null);
-        when(mockCollection.find(any(Filter.class))).thenReturn(mockCursor);
-
-        // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(getStandardToPersist(), NAMESPACE, null, null));
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenStandardDoesNotExist_throwsStandardNotFoundException() {
-        // Arrange
-        CreateStandardRequest standard = getStandardToPersist();
-
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Mock the namespace document
-        Document namespaceDoc = mock(Document.class);
-
-        // Set up the cursor mock for namespace document
-        DocumentCursor namespaceCursor = mock(DocumentCursor.class);
-        when(namespaceCursor.firstOrNull()).thenReturn(namespaceDoc);
-
-        // Set up the cursor mock for pattern document (not found)
-        DocumentCursor standardCursor = mock(DocumentCursor.class);
-        when(standardCursor.firstOrNull()).thenReturn(null);
-
-        // Set up the collection mock to return different cursors based on the filter
-        when(mockCollection.find(any(Filter.class))).thenReturn(namespaceCursor, standardCursor);
-
-        // Act & Assert
-        assertThrows(StandardNotFoundException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, STANDARD_ID, null));
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenVersionAlreadyExists_throwsStandardVersionExistsException() {
-        // Arrange
-        CreateStandardRequest standard = getStandardToPersist();
-
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Mock the versionsDoc with the fields we need
-        Document versionsDoc = mock(Document.class);
-        when(versionsDoc.containsKey(anyString())).thenReturn(true); // Version already exists
-
-        // Mock the standard document
-        Document standardDoc = mock(Document.class);
-        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-
-        // Create a list of standards with document
-        List<Document> standards = Collections.singletonList(standardDoc);
-
-        // Mock the namespace document
-        Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(standards);
-
-        // Set up the cursor mock
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act & Assert
-        assertThrows(StandardVersionExistsException.class, () -> standardStore.createStandardForVersion(standard, NAMESPACE, STANDARD_ID, "1.0.0"));
-    }
-
-    @Test
-    public void testCreateStandardForVersion_whenSuccess_returnsStandard() throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException {
-        // Arrange
-        CreateStandardRequest createStandardRequest = getStandardToPersist();
-
-        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
-
-        // Mock the versionsDoc with the fields we need
-        Document versionsDoc = mock(Document.class);
-        when(versionsDoc.containsKey(anyString())).thenReturn(false); // Version doesn't exist yet
-
-        // Mock the standard document
-        Document standardDoc = mock(Document.class);
-        when(standardDoc.get(eq("versions"), any())).thenReturn(versionsDoc);
-        when(standardDoc.get("standardId", Integer.class)).thenReturn(STANDARD_ID);
-
-        // Create a list of standards with our standards document
-        List<Document> standards = new ArrayList<>();
-        standards.add(standardDoc);
-
-        // Mock the namespace document
-        Document namespaceDoc = mock(Document.class);
-        when(namespaceDoc.get(eq("standards"), any())).thenReturn(standards);
-
-        // Set up the cursor mock
-        DocumentCursor cursor = mock(DocumentCursor.class);
-        when(cursor.firstOrNull()).thenReturn(namespaceDoc);
-        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
-
-        // Act
-        Standard result = standardStore.createStandardForVersion(createStandardRequest, NAMESPACE, STANDARD_ID, "1.0.0");
-
-        // Assert
-        assertThat(result, is(notNullValue()));
-        assertThat(result.getId(), is(STANDARD_ID));
-        assertThat(result.getNamespace(), is(NAMESPACE));
-        assertThat(result.getVersion(), is("1.0.0"));
+    public void overwrite_the_header_details_even_when_blank() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of());
+
+        store.createStandardForVersion(new CreateStandardRequest(null, null, VALID_JSON),
+                NAMESPACE, STANDARD_ID, "1.0.1");
+
+        // Unconditional, unlike Pattern and Flow — Standard's old shape did not guard these.
+        verify(headerCollection, times(2)).update(any(Filter.class), any(Document.class));
     }
 }

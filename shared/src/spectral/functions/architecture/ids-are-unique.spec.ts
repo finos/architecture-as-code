@@ -23,15 +23,15 @@ describe('idsAreUnique', () => {
                     nodes: [
                         {
                             'unique-id': 'node1',
-                            'interfaces': [{'unique-id': 'intf1'}]
+                            'interfaces': [{ 'unique-id': 'intf1' }]
                         },
                         {
                             'unique-id': 'node2'
                         }
                     ],
                     relationships: [
-                        {'unique-id': 'rel1'},
-                        {'unique-id': 'rel2'}
+                        { 'unique-id': 'rel1' },
+                        { 'unique-id': 'rel2' }
                     ]
                 }
             }
@@ -47,8 +47,8 @@ describe('idsAreUnique', () => {
             document: {
                 data: {
                     nodes: [
-                        {'unique-id': 'node1'},
-                        {'unique-id': 'node1'}
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'node1' }
                     ]
                 }
             }
@@ -65,8 +65,8 @@ describe('idsAreUnique', () => {
             document: {
                 data: {
                     relationships: [
-                        {'unique-id': 'rel1'},
-                        {'unique-id': 'rel1'}
+                        { 'unique-id': 'rel1' },
+                        { 'unique-id': 'rel1' }
                     ]
                 }
             }
@@ -86,11 +86,11 @@ describe('idsAreUnique', () => {
                     nodes: [
                         {
                             'unique-id': 'node1',
-                            'interfaces': [{'unique-id': 'intf1'}]
+                            'interfaces': [{ 'unique-id': 'intf1' }]
                         },
                         {
                             'unique-id': 'node2',
-                            'interfaces': [{'unique-id': 'intf1'}]
+                            'interfaces': [{ 'unique-id': 'intf1' }]
                         }
                     ]
                 }
@@ -110,12 +110,12 @@ describe('idsAreUnique', () => {
             document: {
                 data: {
                     nodes: [
-                        {'unique-id': 'node1'},
-                        {'unique-id': 'node2'}
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'node2' }
                     ],
                     relationships: [
-                        {'unique-id': 'node1'},
-                        {'unique-id': 'rel2'}
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'rel2' }
                     ]
                 }
             }

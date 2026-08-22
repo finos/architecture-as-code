@@ -24,6 +24,7 @@ const mocks = vi.hoisted(() => {
         loadManifest: vi.fn(async () => ({})),
         removeDocumentFromManifest: vi.fn(async () => true),
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
+        loadAuthPlugin: vi.fn(async () => ({ getAuthHeaders: vi.fn(async () => ({})) })),
         CalmHubClient: vi.fn().mockImplementation(function() {
             return { isMockClient: true };
         }),
@@ -89,6 +90,7 @@ vi.mock('../../workspace-resolver', () => ({
 
 vi.mock('../../cli-config', () => ({
     loadCliConfig: mocks.loadCliConfig,
+    loadAuthPlugin: mocks.loadAuthPlugin,
 }));
 
 vi.mock('@finos/calm-shared/src/hub/calm-hub-client', () => ({
@@ -505,6 +507,16 @@ describe('setupWorkspaceCommands', () => {
             });
         });
 
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
+        });
+
         it('exits when no workspace bundle is found', async () => {
             mocks.findWorkspaceManifestPath.mockReturnValueOnce(null);
             await expect(program.parseAsync(['node', 'test', 'workspace', 'push'])).rejects.toThrow();
@@ -530,6 +542,17 @@ describe('setupWorkspaceCommands', () => {
             await program.parseAsync(['node', 'test', 'workspace', 'check']);
             expect(mocks.detectChangedResources).toHaveBeenCalledWith('/fake/bundle', expect.objectContaining({ isMockClient: true }));
             expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
         });
 
         it('exits 1 when changed documents need bumping', async () => {
@@ -601,6 +624,17 @@ describe('setupWorkspaceCommands', () => {
                 expect.objectContaining({ isMockClient: true }),
                 expect.objectContaining({ increment: 'MINOR', perDocIncrements: expect.any(Map) })
             );
+        });
+
+        it('loads the configured auth plugin and passes it to the CalmHubClient', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/plugins/auth.js' } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledWith('/plugins/auth.js', false);
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({
+                calmHubUrl: 'https://calmhub.example.com',
+                authPlugin: expect.objectContaining({ getAuthHeaders: expect.any(Function) }),
+            }));
         });
 
         it('uses the config default increment as the select default', async () => {
@@ -716,7 +750,7 @@ describe('setupWorkspaceCommands', () => {
             mocks.select.mockResolvedValueOnce('MINOR');
             await program.parseAsync(['node', 'test', 'workspace', 'bump', '--inherit-change-type']);
             expect(mocks.bumpWorkspace).toHaveBeenCalled();
-            const callOptions = mocks.bumpWorkspace.mock.calls[0][2];
+            const callOptions = (mocks.bumpWorkspace.mock.calls[0] as unknown[])[2] as { getCascadeIncrement?: unknown };
             expect(callOptions.getCascadeIncrement).toBeUndefined();
         });
     });

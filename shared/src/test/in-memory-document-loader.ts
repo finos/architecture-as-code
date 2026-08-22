@@ -1,5 +1,6 @@
-import { DocumentLoader, CalmDocumentType, DocumentLoadError } from '../document-loader/document-loader.js';
+import { DocumentLoader, DocumentLoadError } from '../document-loader/document-loader.js';
 import { SchemaDirectory } from '../schema-directory.js';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**
  * A minimal in-memory {@link DocumentLoader} for unit tests. Documents are served from a

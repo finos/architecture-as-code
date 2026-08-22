@@ -5,17 +5,16 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -41,12 +40,7 @@ public class MongoFlowIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("flows")) {
-                database.createCollection("flows");
-                database.getCollection("flows").insertOne(
-                        new Document("namespace", "finos").append("flows", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "flows");
 
             counterSetup(database);
             namespaceSetup(database);

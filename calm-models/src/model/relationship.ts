@@ -1,5 +1,5 @@
 import { CalmMetadata } from './metadata.js';
-import { CalmControls} from './control.js';
+import { CalmControls } from './control.js';
 import { CalmNodeInterface } from './interface.js';
 import {
     CalmComposedOfRelationshipSchema,
@@ -12,7 +12,7 @@ import {
     CalmRelationshipTypeSchema
 } from '../types/core-types.js';
 import { CalmAdaptable } from './adaptable.js';
-import {CalmRelationshipCanonicalModel, CalmRelationshipTypeCanonicalModel, CalmDecisionCanonicalModel} from '../canonical/template-models.js';
+import { CalmRelationshipCanonicalModel, CalmRelationshipTypeCanonicalModel, CalmDecisionCanonicalModel } from '../canonical/template-models.js';
 
 export class CalmRelationship
 implements CalmAdaptable<CalmRelationshipSchema, CalmRelationshipCanonicalModel> {
@@ -97,7 +97,7 @@ export class CalmInteractsType extends CalmRelationshipType
     }
 
     toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
-        return { interacts: { actor: this.actor, nodes: this.nodes }};
+        return { interacts: { actor: this.actor, nodes: this.nodes } };
     }
 
     static fromSchema(schema: CalmInteractsRelationshipSchema): CalmInteractsType {
@@ -123,7 +123,7 @@ export class CalmConnectsType extends CalmRelationshipType
     }
 
     toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
-        return { connects: { source: this.source.toCanonicalSchema(), destination: this.destination.toCanonicalSchema() }};
+        return { connects: { source: this.source.toCanonicalSchema(), destination: this.destination.toCanonicalSchema() } };
     }
 
     static fromSchema(schema: CalmConnectsRelationshipSchema): CalmConnectsType {
@@ -152,7 +152,7 @@ export class CalmDeployedInType extends CalmRelationshipType
     }
 
     toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
-        return { 'deployed-in': { container: this.container, nodes: this.nodes }};
+        return { 'deployed-in': { container: this.container, nodes: this.nodes } };
     }
 
     static fromSchema(schema: CalmDeployedInRelationshipSchema): CalmDeployedInType {
@@ -176,7 +176,7 @@ export class CalmComposedOfType extends CalmRelationshipType
     }
 
     toCanonicalSchema(): CalmRelationshipTypeCanonicalModel {
-        return { 'composed-of': { container: this.container, nodes: this.nodes }};
+        return { 'composed-of': { container: this.container, nodes: this.nodes } };
     }
 
     static fromSchema(schema: CalmComposedOfRelationshipSchema): CalmComposedOfType {

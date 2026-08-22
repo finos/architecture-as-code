@@ -42,6 +42,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -506,6 +507,95 @@ class TestMongoVersionDocumentStoreShould {
 
         // Empty means "no versions", never "no such resource" — that's headerExists' job.
         assertThat(store.listVersions(NAMESPACE, RESOURCE_ID), is(empty()));
+    }
+
+    // --- getLatestVersion / getLatestVersionContent ---
+
+    @Test
+    void resolve_the_latest_version_by_the_stores_own_ordering() {
+        stubFind(versionCollection, List.of(
+                new Document("version", "1.10.0"),
+                new Document("version", "1.9.0")));
+
+        // Ranked in memory, not by a database sort: the stored values are strings, so Mongo
+        // would rank 1.10.0 below 1.9.0.
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is("1.10.0"));
+    }
+
+    @Test
+    void return_no_latest_version_for_a_resource_with_none() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersion(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    @Test
+    void store_a_numeric_revision_verbatim_rather_than_canonicalising_it() {
+        MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        // VERSION_REGEX makes both separators optional, so "100" is one of the six accepted
+        // spellings of 1.0.0. Canonicalising it would store ADR revision 100 as "1.0.0",
+        // which NumericVersionOrder then sorts BELOW 99 — the latest-revision read every ADR
+        // goes through would return revision 99's content while 100 exists — and which
+        // MongoAdrStore.getAdrRevisions cannot Integer.parseInt. Revisions 1-99 are
+        // unaffected, which is exactly why this went unnoticed.
+        numericStore.createVersion(NAMESPACE, RESOURCE_ID, "100", new Document());
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(captor.capture());
+        assertThat(captor.getValue().getString("version"), is("100"));
+    }
+
+    @Test
+    void rank_a_numeric_revision_above_a_smaller_one_that_is_three_digits() {
+        MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(
+                new Document("version", "99"),
+                new Document("version", "100")));
+
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("100"));
+    }
+
+    @Test
+    void resolve_the_latest_version_numerically_when_told_to() {
+        MongoVersionDocumentStore numericStore = new MongoVersionDocumentStore(
+                headerCollection, versionCollection, ID_FIELD, LABEL, VersionScheme.NUMERIC);
+        stubFind(versionCollection, List.of(
+                new Document("version", "2"),
+                new Document("version", "10")));
+
+        // ADR's revisions are integers; the semantic comparator would call 2 the latest.
+        assertThat(numericStore.getLatestVersion(NAMESPACE, RESOURCE_ID), is("10"));
+    }
+
+    @Test
+    void return_no_latest_content_for_a_resource_with_no_versions() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(nullValue()));
+    }
+
+    @Test
+    void return_the_content_of_the_latest_version() {
+        Document content = new Document("title", "Latest");
+        stubFind(versionCollection, List.of(
+                new Document("version", "2.0.0").append("content", content)));
+
+        assertThat(store.getLatestVersionContent(NAMESPACE, RESOURCE_ID), is(content));
+    }
+
+    // --- countHeaders ---
+
+    @Test
+    void count_headers_without_reading_any_version_documents() {
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(3L);
+
+        assertThat(store.countHeaders(NAMESPACE), is(3));
+        // The point of the method: no version collection traffic at all.
+        verifyNoInteractions(versionCollection);
     }
 
     // --- listSummariesPaged ---

@@ -64,13 +64,13 @@ public class MongoPatternStore implements PatternStore {
 
     @Override
     public List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
         return documentStore.listSummariesPaged(namespace, page);
     }
 
     @Override
     public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
-        requireNamespace(namespace);
+        namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
         // JSON can't leave a header behind with no version to go with it.
@@ -135,7 +135,6 @@ public class MongoPatternStore implements PatternStore {
         return pattern;
     }
 
-
     /**
      * Applies the name and description that came with a version write, ignoring either that
      * is blank. Called only <em>after</em> the version write succeeds: the old shape set
@@ -147,14 +146,8 @@ public class MongoPatternStore implements PatternStore {
                 pattern.getName(), pattern.getDescription());
     }
 
-    private void requireNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!namespaceStore.namespaceExists(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
-    }
-
     private void requirePattern(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
-        requireNamespace(pattern.getNamespace());
+        namespaceStore.requireNamespace(pattern.getNamespace());
         if (!documentStore.headerExists(pattern.getNamespace(), pattern.getId())) {
             throw new PatternNotFoundException();
         }

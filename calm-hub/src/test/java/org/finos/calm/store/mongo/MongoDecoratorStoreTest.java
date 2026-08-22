@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -46,8 +47,9 @@ class MongoDecoratorStoreTest {
     private MongoDecoratorStore decoratorStore;
 
     @BeforeEach
-    void setUp() {
+    void setUp() throws NamespaceNotFoundException {
         MockitoAnnotations.openMocks(this);
+        doCallRealMethod().when(namespaceStore).requireNamespace(anyString());
         when(database.getCollection(anyString())).thenReturn(decoratorCollection);
         decoratorStore = new MongoDecoratorStore(database, namespaceStore, counterStore);
     }

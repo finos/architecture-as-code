@@ -1,7 +1,8 @@
 import { initLogger, Logger } from '../logger';
 import { SchemaDirectory } from '../schema-directory';
-import { CalmDocumentType, DocumentLoader } from './document-loader';
+import { DocumentLoader } from './document-loader';
 import { DocumentLoadError } from './document-loader';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 
 type LoadReport = {

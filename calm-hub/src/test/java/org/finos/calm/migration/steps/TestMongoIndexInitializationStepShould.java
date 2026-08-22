@@ -65,6 +65,10 @@ class TestMongoIndexInitializationStepShould {
         verify(mockDatabase).getCollection("interfaces");
         verify(mockDatabase).getCollection("adrs");
         verify(mockDatabase).getCollection("decorators");
+        // layouts is a flat one-document-per-(namespace, architectureId) collection, not one
+        // document per namespace holding an array — its index is created by
+        // MongoLayoutIndexStep instead, not here.
+        verify(mockDatabase, never()).getCollection("layouts");
         // Domain-scoped + resource mappings
         verify(mockDatabase).getCollection("controls");
         verify(mockDatabase, times(2)).getCollection("resource_mappings");

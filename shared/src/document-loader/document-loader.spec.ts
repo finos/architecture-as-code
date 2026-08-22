@@ -1,6 +1,7 @@
 import { AuthPlugin } from '../auth/auth-plugin';
 import { CALM_META_SCHEMA_DIRECTORY } from '../consts';
-import { assertJsonObject, buildDocumentLoader, CALM_DOCUMENT_TYPES_LIST, DocumentLoaderOptions, DocumentLoadError, isValidCalmDocumentType } from './document-loader';
+import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-models/types';
+import { assertJsonObject, buildDocumentLoader, DocumentLoaderOptions, DocumentLoadError } from './document-loader';
 
 const mocks = vi.hoisted(() => {
     return {

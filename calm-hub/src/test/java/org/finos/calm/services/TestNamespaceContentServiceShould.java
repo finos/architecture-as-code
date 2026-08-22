@@ -7,6 +7,8 @@ import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.DecoratorStore;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.LayoutStore;
+import org.finos.calm.store.PatternLayoutStore;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.TimelineStore;
@@ -46,6 +48,10 @@ class TestNamespaceContentServiceShould {
     TimelineStore mockTimelineStore;
     @Mock
     DecoratorStore mockDecoratorStore;
+    @Mock
+    LayoutStore mockLayoutStore;
+    @Mock
+    PatternLayoutStore mockPatternLayoutStore;
 
     NamespaceContentService service;
 
@@ -53,7 +59,8 @@ class TestNamespaceContentServiceShould {
     void setUp() {
         service = new NamespaceContentService(
                 mockArchitectureStore, mockPatternStore, mockFlowStore, mockStandardStore,
-                mockAdrStore, mockInterfaceStore, mockTimelineStore, mockDecoratorStore);
+                mockAdrStore, mockInterfaceStore, mockTimelineStore, mockDecoratorStore, mockLayoutStore,
+                mockPatternLayoutStore);
     }
 
     @Test
@@ -64,10 +71,12 @@ class TestNamespaceContentServiceShould {
         verify(mockPatternStore).getPatternsForNamespace(NAMESPACE);
         verify(mockFlowStore).getFlowsForNamespace(NAMESPACE);
         verify(mockStandardStore).getStandardsForNamespace(NAMESPACE);
-        verify(mockAdrStore).getAdrsForNamespace(NAMESPACE);
+        verify(mockAdrStore).countAdrsForNamespace(NAMESPACE);
         verify(mockInterfaceStore).getInterfacesForNamespace(NAMESPACE);
         verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
         verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore).getPatternIdsWithLayoutForNamespace(NAMESPACE);
     }
 
     @Test
@@ -79,17 +88,63 @@ class TestNamespaceContentServiceShould {
 
         verify(mockPatternStore, never()).getPatternsForNamespace(NAMESPACE);
         verify(mockDecoratorStore, never()).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore, never()).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore, never()).getPatternIdsWithLayoutForNamespace(NAMESPACE);
     }
 
     @Test
-    void return_true_when_only_the_last_checked_store_has_content() throws Exception {
-        when(mockDecoratorStore.getDecoratorsForNamespace(NAMESPACE, null, null))
+    void return_true_when_only_the_architecture_layout_store_has_content() throws Exception {
+        when(mockLayoutStore.getArchitectureIdsWithLayoutForNamespace(NAMESPACE))
                 .thenReturn(List.of(1));
 
         assertThat(service.hasContent(NAMESPACE), is(true));
 
         verify(mockArchitectureStore).getArchitecturesForNamespace(NAMESPACE);
         verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
+        verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore, never()).getPatternIdsWithLayoutForNamespace(NAMESPACE);
+    }
+
+    @Test
+    void return_true_when_only_the_last_checked_store_has_content() throws Exception {
+        when(mockPatternLayoutStore.getPatternIdsWithLayoutForNamespace(NAMESPACE))
+                .thenReturn(List.of(1));
+
+        assertThat(service.hasContent(NAMESPACE), is(true));
+
+        verify(mockArchitectureStore).getArchitecturesForNamespace(NAMESPACE);
+        verify(mockTimelineStore).getTimelinesForNamespace(NAMESPACE);
+        verify(mockDecoratorStore).getDecoratorsForNamespace(NAMESPACE, null, null);
+        verify(mockLayoutStore).getArchitectureIdsWithLayoutForNamespace(NAMESPACE);
+        verify(mockPatternLayoutStore).getPatternIdsWithLayoutForNamespace(NAMESPACE);
+    }
+
+    @Test
+    void return_true_when_only_the_adr_store_has_content() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(3);
+
+        // ADR is checked by count rather than by listing, so its true path needs its own
+        // cover — this gates an irreversible namespace delete.
+        assertThat(service.hasContent(NAMESPACE), is(true));
+    }
+
+    @Test
+    void treat_namespace_not_found_from_the_adr_store_as_empty() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new NamespaceNotFoundException());
+
+        assertThat(service.hasContent(NAMESPACE), is(false));
+    }
+
+    @Test
+    void propagate_a_runtime_failure_from_the_adr_store_instead_of_treating_it_as_empty() throws Exception {
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE))
+                .thenThrow(new RuntimeException("store unavailable"));
+
+        // Deliberately unlike CountsService: reporting "no content" for content that was
+        // never confirmed absent would let the delete proceed.
+        assertThrows(RuntimeException.class, () -> service.hasContent(NAMESPACE));
     }
 
     @Test

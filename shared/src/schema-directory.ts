@@ -1,7 +1,8 @@
 import pointer from 'json-pointer';
 import { mergeSchemas, updateStringValuesRecursively } from './util.js';
 import { initLogger, Logger } from './logger.js';
-import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader/document-loader.js';
+import { DocumentLoader, DocumentLoadError } from './document-loader/document-loader.js';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**
  * Stores a directory of schemas and resolves references against that directory.

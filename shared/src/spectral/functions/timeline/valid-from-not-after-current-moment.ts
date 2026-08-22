@@ -26,7 +26,7 @@ export function validFromNotAfterCurrentMoment(input: unknown, _: unknown, conte
         }
 
         if (checkingValidFroms) {
-            const validFrom: string = JSONPath({path: '$.valid-from', json: moment, wrap: false }) as string;
+            const validFrom: string = JSONPath({ path: '$.valid-from', json: moment, wrap: false }) as string;
             if (validFrom) {
                 results.push({
                     message: `Moment with unique-id "${momentId}" is after current-moment "${currentMomentId}" but has a valid-from.`

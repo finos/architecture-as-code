@@ -1,10 +1,11 @@
-import { CalmDocumentType, DocumentLoader, DocumentLoadError } from './document-loader';
+import { DocumentLoader, DocumentLoadError } from './document-loader';
 import { initLogger, Logger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
 import { join, isAbsolute } from 'path';
 import { SchemaDirectory } from '../schema-directory';
 import { existsSync } from 'fs';
 import { getErrorMessage } from '../error-utils';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 export class FileSystemDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;
