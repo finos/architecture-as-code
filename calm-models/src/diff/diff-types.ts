@@ -121,6 +121,6 @@ export interface MetadataDiffResult {
 }
 
 /**
- * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs and controls. TODO: incorporate flows and metadata.
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs, controls and metadata. TODO: incorporate flows.
  */
-export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult;
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & MetadataDiffResult;
