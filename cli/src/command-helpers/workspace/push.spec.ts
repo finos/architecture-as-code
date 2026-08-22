@@ -178,6 +178,17 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
     });
 
+    it('fails narrative publish when Hub returns an unexpected Location', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        await saveManifest(bundlePath, {
+            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        const client = makeClient({ createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected') });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/unexpected format/);
+        expect((await loadManifest(bundlePath)).payments.calmHubDocumentId).toBeUndefined();
+    });
+
     it('skips entries whose file is invalid JSON', async () => {
         await writeFile(path.join(filesPath, 'bad.json'), 'not json {{{');
         await saveManifest(bundlePath, {

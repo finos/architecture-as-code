@@ -11,6 +11,12 @@ describe('narrative document helpers', () => {
         });
     });
 
+    it('publishes without an optional description and rejects malformed YAML', () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Content';
+        expect(parseNarrativeDocument(markdown, 'payments').request).toEqual({ name: 'Payments SAD', documentMarkdown: markdown });
+        expect(() => parseNarrativeDocument('---\ntitle: [\n---\n# Broken', 'broken')).toThrow(/malformed YAML/);
+    });
+
     it.each([
         '# No frontmatter',
         '---\n---\n# Empty mapping',
@@ -39,6 +45,7 @@ describe('narrative document helpers', () => {
 
     it('rejects malformed and mismatched persisted Locations', () => {
         expect(() => parseNarrativeDocumentLocation('not-a-location', identity)).toThrow(/unexpected format/);
+        expect(() => parseNarrativeDocumentLocation('/api/calm/namespaces/finos/documents/sad/0/versions/1.0.0', identity)).toThrow(/invalid document id/);
         expect(() => parseNarrativeDocumentLocation(
             '/api/calm/namespaces/finos/documents/sad/43/versions/1.0.0',
             { ...identity, calmHubDocumentId: 42 }
