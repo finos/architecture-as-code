@@ -1,0 +1,194 @@
+{
+    "$schema": "https://calm.finos.org/release/1.0/meta/calm.json",
+    "$id": "two-decisions-one-catalog",
+    "title": "Two decisions drawing from one catalog",
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "properties": {
+                        "unique-id": {
+                            "const": "webapp"
+                        },
+                        "name": {
+                            "const": "Web App"
+                        },
+                        "node-type": {
+                            "const": "service"
+                        }
+                    }
+                }
+            ],
+            "items": {
+                "anyOf": [
+                    {
+                        "properties": {
+                            "unique-id": {
+                                "const": "redis"
+                            },
+                            "name": {
+                                "const": "Redis"
+                            },
+                            "node-type": {
+                                "const": "database"
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "unique-id": {
+                                "const": "memcached"
+                            },
+                            "name": {
+                                "const": "Memcached"
+                            },
+                            "node-type": {
+                                "const": "database"
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "unique-id": {
+                                "const": "kafka"
+                            },
+                            "name": {
+                                "const": "Kafka"
+                            },
+                            "node-type": {
+                                "const": "queue"
+                            }
+                        }
+                    },
+                    {
+                        "properties": {
+                            "unique-id": {
+                                "const": "rabbitmq"
+                            },
+                            "name": {
+                                "const": "RabbitMQ"
+                            },
+                            "node-type": {
+                                "const": "queue"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        "relationships": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "properties": {
+                        "unique-id": {
+                            "const": "cache-choice"
+                        },
+                        "description": {
+                            "const": "Pick a cache"
+                        },
+                        "relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use Redis"
+                                                        },
+                                                        "nodes": {
+                                                            "const": [
+                                                                "redis"
+                                                            ]
+                                                        },
+                                                        "relationships": {
+                                                            "const": []
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use Memcached"
+                                                        },
+                                                        "nodes": {
+                                                            "const": [
+                                                                "memcached"
+                                                            ]
+                                                        },
+                                                        "relationships": {
+                                                            "const": []
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                },
+                {
+                    "properties": {
+                        "unique-id": {
+                            "const": "queue-choice"
+                        },
+                        "description": {
+                            "const": "Pick a queue"
+                        },
+                        "relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "anyOf": [
+                                                {
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use Kafka"
+                                                        },
+                                                        "nodes": {
+                                                            "const": [
+                                                                "kafka"
+                                                            ]
+                                                        },
+                                                        "relationships": {
+                                                            "const": []
+                                                        }
+                                                    }
+                                                },
+                                                {
+                                                    "properties": {
+                                                        "description": {
+                                                            "const": "Use RabbitMQ"
+                                                        },
+                                                        "nodes": {
+                                                            "const": [
+                                                                "rabbitmq"
+                                                            ]
+                                                        },
+                                                        "relationships": {
+                                                            "const": []
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}

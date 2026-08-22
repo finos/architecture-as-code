@@ -1,0 +1,17 @@
+{
+    "decisions": [
+        {
+            "optionId": "cache-choice",
+            "prompt": "Pick a cache",
+            "optionType": "anyOf",
+            "choices": [
+                { "description": "Use Redis", "nodes": ["redis"], "relationships": [] },
+                { "description": "Use Memcached", "nodes": ["memcached"], "relationships": [] }
+            ]
+        }
+    ],
+    "answered": [
+        { "choose": { "cache-choice": "Use Redis" }, "nodes": ["webapp", "redis"] },
+        { "choose": { "cache-choice": "Use Memcached" }, "nodes": ["webapp", "memcached"] }
+    ]
+}
