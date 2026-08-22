@@ -401,6 +401,48 @@ describe('Pattern Options', () => {
             expect(result.properties.nodes.prefixItems).toEqual([cache]);
         });
 
+        it('recovers from a malformed items-catalog oneOf ({}) via the sibling anyOf, instead of throwing', () => {
+            // `oneOf: {}` is not an array, so the old `??`-based selection treated it as
+            // present and threw ("catalogAlternatives.filter is not a function") instead of
+            // falling through to the valid `anyOf`.
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const pattern = {
+                'properties': {
+                    'nodes': {
+                        'prefixItems': [webapp],
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        'items': { 'oneOf': {} as any, 'anyOf': [cache] },
+                    },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([webapp, cache]);
+        });
+
+        it('throws on a malformed prefixItems slot (oneOf: {}) instead of emitting it as a candidate', () => {
+            // A slot with a truthy but non-array `oneOf` and no `anyOf` is not a valid
+            // choice block. Passing it through unflattened would emit the malformed
+            // `{ oneOf: {} }` object itself as a node candidate in generated output.
+            const pattern = {
+                'properties': {
+                    'nodes': {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        'prefixItems': [{ 'oneOf': {} as any }],
+                    },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+
+            expect(() => selectChoices(pattern, [])).toThrow(/Malformed oneOf\/anyOf block/);
+        });
+
         it('should not affect a normal pattern', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');

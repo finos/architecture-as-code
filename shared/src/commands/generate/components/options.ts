@@ -1,5 +1,6 @@
 import { initLogger } from '../../../logger';
-import { getPatternArray } from '@finos/calm-models/pattern';
+import { getPatternArray, readChoiceBlock } from '@finos/calm-models/pattern';
+import { listSelectableCandidates } from '../../../pattern-candidates.js';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
@@ -94,14 +95,21 @@ type Item = {
  * @returns A list of items that match the selection predicate, or the item itself if it is not a oneOf or anyOf block
  */
 function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode) => boolean): object[] {
-    if (!(item.oneOf || item.anyOf)) {
+    const block = readChoiceBlock(item);
+
+    if (!block) {
+        if (item.oneOf || item.anyOf) {
+            // A oneOf/anyOf key is present but isn't a usable choice block (neither value
+            // is an array). Passing the item through as-is would emit this malformed
+            // block itself as a node/relationship candidate in the generated output -
+            // fail loudly instead.
+            throw new Error(`Malformed oneOf/anyOf block: neither "oneOf" nor "anyOf" is an array in ${JSON.stringify(item)}`);
+        }
         // If it isn't a oneOf or anyOf block, there isn't anything to flatten so return the item
         return [item];
     }
 
-    const items: object[] = item.oneOf ?? item.anyOf ?? [];
-
-    return items
+    return (block.alternatives as object[])
         .flatMap((x: object) => x)
         .filter((x: SchemaNode) => selectionPredicate(x));
 }
@@ -130,9 +138,11 @@ function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationship
     // Only treat `items` as a decision catalog when it is a oneOf/anyOf of candidates. A plain
     // `items` schema (or `items: false` closing a tuple) is not part of the decision mechanism and
     // must be left untouched rather than stripped.
-    const isCatalog = Array.isArray(itemsCatalog?.oneOf) || Array.isArray(itemsCatalog?.anyOf);
-    const catalogAlternatives: SchemaNode[] = isCatalog ? (itemsCatalog!.oneOf ?? itemsCatalog!.anyOf ?? []) : [];
-    const selectedCatalogItems = catalogAlternatives.filter(selectionPredicate);
+    const catalogBlock = readChoiceBlock(itemsCatalog);
+    const isCatalog = catalogBlock !== null;
+    const selectedCatalogItems: SchemaNode[] = isCatalog
+        ? (catalogBlock!.alternatives as SchemaNode[]).filter(selectionPredicate)
+        : [];
 
     calmProps['prefixItems'] = [...flattenedPrefixItems, ...selectedCatalogItems];
 
@@ -167,12 +177,51 @@ function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[])
 }
 
 /**
+ * Fails when a chosen bundle names a candidate that selection cannot reach.
+ *
+ * Nothing upstream checks that a bundle's ids resolve. `extractOptions` builds the prompt
+ * from the bundle, so the user is offered the choice either way. Selection then finds no
+ * match and adds nothing, which discards the answer in silence.
+ *
+ * Two causes: a typo in the bundle, or a block that declares both `oneOf` and `anyOf`.
+ * In the second case the `anyOf` candidates look declared to validation, but only the
+ * `oneOf` list is resolved.
+ *
+ * Called from `runGenerate`, and deliberately not from `selectChoices`. Validation also
+ * calls `selectChoices`, and a malformed pattern must show its own schema errors there.
+ */
+export function assertChoicesAreSelectable(pattern: SchemaNode, choices: CalmChoice[]): void {
+    const declaredNodes = new Set(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId));
+    const declaredRelationships = new Set(listSelectableCandidates(pattern, 'relationships').map((c) => c.uniqueId));
+
+    const unresolved: string[] = [];
+    for (const choice of choices) {
+        for (const id of choice.nodes) {
+            if (!declaredNodes.has(id)) unresolved.push(`node "${id}" (choice "${choice.description}")`);
+        }
+        for (const id of choice.relationships) {
+            if (!declaredRelationships.has(id)) unresolved.push(`relationship "${id}" (choice "${choice.description}")`);
+        }
+    }
+
+    if (unresolved.length > 0) {
+        throw new Error(
+            'The pattern does not declare every candidate its decisions reference, so the ' +
+            'selection cannot be applied: ' + unresolved.join('; ') + '. Check the ' +
+            'unique-ids in the choice bundles, and that a catalog does not declare both ' +
+            '"oneOf" and "anyOf" (only the "oneOf" candidates are selectable).'
+        );
+    }
+}
+
+/**
  * Selects the choices from the pattern and removes all other choices.
  * @param inputPattern - The input pattern to select choices from
  * @param choices - The choices to select
  * @param debug - Whether to enable debug logging
  * @returns A new pattern object with the selected choices and all oneOf and anyOf blocks flattened
  */
+
 export function selectChoices(inputPattern: object, choices: CalmChoice[], debug: boolean = false): object {
     const logger = initLogger(debug, 'calm-generate-options');
     logger.debug(`Selecting these choices from the pattern [${JSON.stringify(choices)}]`);
