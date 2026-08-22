@@ -125,6 +125,6 @@ export async function loadDirectUrlAuthPlugin(config: DirectUrlAuthConfig, debug
         debug,
         'direct URL auth module',
         '❌ Direct URL auth module class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
-        [config.configPath]
+        [config.configPath ? resolveHomeDir(config.configPath) : undefined]
     );
 }

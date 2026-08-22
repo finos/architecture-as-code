@@ -160,6 +160,28 @@ describe('cli-config', () => {
         const directUrlAuthPlugin = await loadDirectUrlAuthPlugin(config.directUrlAuth!, false);
         expect(directUrlAuthPlugin.getAuthHeaders).toBeDefined();
     });
+
+    it('expands tilde in direct URL auth configPath before passing it to the constructor', async () => {
+        vi.mocked(homedir).mockReturnValue(FIXTURES_DIR);
+
+        vol.fromJSON({
+            [resolve(FIXTURES_DIR, '.calm.json')]: JSON.stringify({
+                directUrlAuth: {
+                    module: '~/test-direct-url-auth-plugin.js',
+                    configPath: '~/direct-url-auth.config.json'
+                }
+            }),
+            [DIRECT_URL_JS_FIXTURE]: '',
+        });
+
+        const config = await loadCliConfig();
+        const directUrlAuthPlugin = await loadDirectUrlAuthPlugin(config.directUrlAuth!, false);
+        await expect(directUrlAuthPlugin.getAuthHeaders('https://schemas.example.com/core.json', undefined))
+            .resolves.toEqual({
+                'Authorization': `Bearer ${resolve(FIXTURES_DIR, 'direct-url-auth.config.json')}`,
+                'X-Request-Body': undefined
+            });
+    });
     
     it('loads config props from environment variables', async () => {
         vi.stubEnv('CALM_HUB_URL', 'https://env-var.com/calmhub');

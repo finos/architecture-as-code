@@ -246,9 +246,10 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             let authHeaders: Record<string, string> | undefined;
             const authHeaderNames: string[] = [];
-            const tlsConfig = await this.directUrlAuthPlugin?.getTlsConfig?.();
+            let tlsConfig;
             if (this.directUrlAuthPlugin) {
                 try {
+                    tlsConfig = await this.directUrlAuthPlugin.getTlsConfig?.();
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
                     authHeaderNames.push(...Object.keys(authHeaders));
                 } catch (error) {

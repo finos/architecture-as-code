@@ -292,6 +292,26 @@ describe('direct-url-document-loader', () => {
         expect(mock.history.get).toHaveLength(0);
     });
 
+    it('treats direct URL TLS bootstrap failures as fatal auth failures', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/tls-protected.json`;
+        const directUrlAuthPlugin = {
+            getTlsConfig: vi.fn().mockRejectedValue(new Error('tls bootstrap failed: super-secret-ca')),
+            getAuthHeaders: vi.fn()
+        };
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+
+        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
+        await expect(promise).rejects.toMatchObject({ recoverable: false });
+        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
+        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
+        await expect(promise).rejects.not.toThrow('super-secret-ca');
+        expect(directUrlAuthPlugin.getAuthHeaders).not.toHaveBeenCalled();
+        expect(mock.history.get).toHaveLength(0);
+    });
+
     it('surfaces explicit auth errors for HTTP 401 responses', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `https://${allowlistedHost}/protected-401.json`;
