@@ -52,6 +52,37 @@ describe('bump', () => {
     });
 
     describe('detectChangedResources', () => {
+        it('treats new, already-bumped, and unchanged narrative documents as clean', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            const baseEntry = {
+                path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            };
+
+            await saveManifest(bundlePath, { payments: { ...baseEntry, calmHubDocumentId: undefined, calmHubId: undefined } });
+            expect(await detectChangedResources(bundlePath, makeClient())).toEqual([]);
+
+            await saveManifest(bundlePath, { payments: { ...baseEntry, version: '1.1.0' } });
+            expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'] }))).toEqual([]);
+
+            await saveManifest(bundlePath, { payments: baseEntry });
+            expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown }))).toEqual([]);
+        });
+
+        it('fails narrative checks with incomplete identity or missing source', async () => {
+            await saveManifest(bundlePath, {
+                partial: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/file not found/);
+
+            await writeFile(path.join(filesPath, 'partial.md'), '---\ntitle: Partial\n---\n# Partial');
+            await saveManifest(bundlePath, {
+                partial: { path: 'files/partial.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/incomplete Hub identity/);
+        });
+
         it('detects and bumps changed narrative Markdown without rewriting it', async () => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
             await writeFile(path.join(filesPath, 'payments.md'), markdown);

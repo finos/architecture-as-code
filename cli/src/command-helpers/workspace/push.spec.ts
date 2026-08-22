@@ -149,6 +149,26 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).rejects.toThrow(/payments@1.0.0/);
     });
 
+    it('idempotently skips an existing narrative version and accepts an exact strict comparison', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient({
+            getNarrativeDocumentVersions: vi.fn().mockResolvedValue(['1.0.0']),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+        await pushWorkspaceToHub(bundlePath, client, { failIfModified: true });
+
+        expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
+    });
+
     it('fails narrative publish for missing source files and incomplete Hub identity', async () => {
         await saveManifest(bundlePath, {
             missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
