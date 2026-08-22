@@ -71,6 +71,11 @@ export interface ControlItemDiffResult {
     requirementsDiff: ControlItemDetailsDiffItem[];
 }
 
+export type MetadataItemDiffResult = Record<string, {
+    oldValue: unknown;
+    newValue: unknown;
+}>;
+
 export interface NodesAndRelationshipsDiffResult {
     nodesAdded: CalmNodeSchema[];
     nodesRemoved: CalmNodeSchema[];
@@ -103,6 +108,16 @@ export interface ControlDiffResult {
     controlItemsRemoved: CalmControlsSchema;
     controlItemsUnchanged: CalmControlsSchema;
     controlItemsModified: { [controlId: string]: ControlItemDiffResult };
+}
+
+/**
+ * Represents the result of diffing two CALM Metadata Schema objects.
+ */
+export interface MetadataDiffResult {
+    metadataObjectsAdded: Record<string, unknown>[];
+    metadataObjectsRemoved: Record<string, unknown>[];
+    metadataObjectsUnchanged: Record<string, unknown>[];
+    metadataObjectsModified: MetadataItemDiffResult[];
 }
 
 /**

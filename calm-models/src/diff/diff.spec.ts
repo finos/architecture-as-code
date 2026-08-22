@@ -1,6 +1,6 @@
 import type { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '../types/index.js';
 import { describe, it, expect } from 'vitest';
-import { diffArchitectures, nodeStructureMatches, relationshipStructureMatches } from './diff.js';
+import { diffArchitectures, diffMetadata, nodeStructureMatches, relationshipStructureMatches } from './diff.js';
 import testArchitectures from './fixtures/diff-test-architectures.json' with { type: 'json' };
 
 describe('diff', () => {
@@ -595,6 +595,82 @@ describe('diff', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, reordered);
             expect(result.nodesModified).toHaveLength(0);
             expect(result.edgesModified).toHaveLength(0);
+        });
+    });
+
+    describe('diffMetadata', () => {
+        it('records added, removed and unchanged objects when comparing arrays', () => {
+            const metadataA = [
+                { name: 'unchanged', value: 'same' },
+                { name: 'removed', value: 'old' },
+            ];
+            const metadataB = [
+                { name: 'unchanged', value: 'same' },
+                { name: 'added', value: 'new' },
+            ];
+
+            expect(diffMetadata(metadataA, metadataB)).toEqual({
+                metadataObjectsAdded: [{ name: 'added', value: 'new' }],
+                metadataObjectsRemoved: [{ name: 'removed', value: 'old' }],
+                metadataObjectsUnchanged: [{ name: 'unchanged', value: 'same' }],
+                metadataObjectsModified: [],
+            });
+        });
+
+        it('records the array as removed and the object as added', () => {
+            const metadataA = [{ name: 'old', value: 'array' }];
+            const metadataB = { name: 'new', value: 'object' };
+
+            expect(diffMetadata(metadataA, metadataB)).toEqual({
+                metadataObjectsAdded: [metadataB],
+                metadataObjectsRemoved: [metadataA[0]],
+                metadataObjectsUnchanged: [],
+                metadataObjectsModified: [],
+            });
+        });
+
+        it('records the object as removed and the array as added', () => {
+            const metadataA = { name: 'old', value: 'object' };
+            const metadataB = [{ name: 'new', value: 'array' }];
+
+            expect(diffMetadata(metadataA, metadataB)).toEqual({
+                metadataObjectsAdded: [metadataB[0]],
+                metadataObjectsRemoved: [metadataA],
+                metadataObjectsUnchanged: [],
+                metadataObjectsModified: [],
+            });
+        });
+
+        it('records added and removed keys without reporting unchanged keys as modified', () => {
+            const metadataA = {
+                unchanged: { nested: true },
+                removed: 'old',
+            };
+            const metadataB = {
+                unchanged: { nested: true },
+                added: 'new',
+            };
+
+            expect(diffMetadata(metadataA, metadataB)).toEqual({
+                metadataObjectsAdded: [],
+                metadataObjectsRemoved: [],
+                metadataObjectsUnchanged: [],
+                metadataObjectsModified: [{
+                    removed: { oldValue: 'old', newValue: null },
+                    added: { oldValue: null, newValue: 'new' },
+                }],
+            });
+        });
+
+        it('records a single object in an array as unchanged', () => {
+            const metadata = [{ name: 'unchanged', value: 'same' }];
+
+            expect(diffMetadata(metadata, metadata)).toEqual({
+                metadataObjectsAdded: [],
+                metadataObjectsRemoved: [],
+                metadataObjectsUnchanged: metadata,
+                metadataObjectsModified: [],
+            });
         });
     });
 });
