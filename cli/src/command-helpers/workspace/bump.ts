@@ -110,6 +110,7 @@ export async function detectChangedResources(
         }
 
         if (isNarrativeDocumentType(entry.type)) {
+            // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
             const version = entry.version;
             if (!version) throw new Error(`Narrative document '${id}' has no manifest version.`);
             if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
