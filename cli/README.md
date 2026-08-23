@@ -651,7 +651,7 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
 
 Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`.
 
-Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.
+Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.  See [Direct URL Document Loader - Custom Authentication Plugin](#direct-url-document-loader---custom-authentication-plugin) for details.
 
 The CLI instantiates the module once per process as `new DefaultExport(configPath)` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
 
