@@ -11,7 +11,8 @@ import {
 import { computeSemVerBump, sortSemVer } from '@finos/calm-shared/src/hub/semver';
 import { canonicalEqual } from '@finos/calm-shared/src/hub/canonical';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
-import { NarrativeDocumentIdentity, isNarrativeDocumentType, parseNarrativeDocument, parseNarrativeDocumentLocation, validateNarrativeIdentity } from './narrative-document';
+import { isNarrativeDocumentType } from '@finos/calm-models/types';
+import { NarrativeDocumentIdentity, parseNarrativeDocument, validateNarrativeDocumentLocation, validateNarrativeIdentity, validateNarrativeNamespace } from './narrative-document';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -114,8 +115,9 @@ export async function detectChangedResources(
             if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
                 throw new Error(`Narrative document '${id}' has incomplete Hub identity. Re-add the document to repair it.`);
             }
+            validateNarrativeNamespace(entry.namespace, id);
             const identity: NarrativeDocumentIdentity = {
-                namespace: entry.namespace ?? '', type: entry.type, version, calmHubDocumentId: entry.calmHubDocumentId,
+                namespace: entry.namespace, type: entry.type, version, calmHubDocumentId: entry.calmHubDocumentId,
             };
             parseNarrativeDocument(raw, id);
             if (entry.calmHubDocumentId === undefined) {
@@ -123,7 +125,7 @@ export async function detectChangedResources(
                 continue;
             }
             validateNarrativeIdentity(identity, true, id);
-            parseNarrativeDocumentLocation(entry.calmHubId, identity, false);
+            validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
             const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId!);
             if (versions.length === 0 || !versions.includes(version)) continue;
             const remote = await client.getNarrativeDocumentVersion(

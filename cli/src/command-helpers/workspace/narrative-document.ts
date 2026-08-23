@@ -1,9 +1,10 @@
-import { NarrativeDocumentRequest, NarrativeDocumentType, NARRATIVE_DOCUMENT_TYPES } from '@finos/calm-shared/src/hub/calm-hub-client';
+import type { NarrativeDocumentRequest } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST, isNarrativeDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
 import { parseYamlFrontMatterMapping } from '@finos/calm-shared/src/template/front-matter';
 
 const LOCATION_PATTERN = new RegExp(
-    `^/api/calm/namespaces/([^/]+)/documents/(${NARRATIVE_DOCUMENT_TYPES.join('|')})/(\\d+)/versions/` +
-    `((?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*))$`
+    `^/api/calm/namespaces/([^/]+)/documents/(${CALM_NARRATIVE_DOCUMENT_TYPES_LIST.join('|')})/(\\d+)/versions/` +
+    '((?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*))$'
 );
 const NAMESPACE_PATTERN = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*$/;
 const SEMVER_PATTERN = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
@@ -17,10 +18,6 @@ export interface NarrativeDocumentIdentity {
 
 export interface ParsedNarrativeDocument {
     request: NarrativeDocumentRequest;
-}
-
-export function isNarrativeDocumentType(type: unknown): type is NarrativeDocumentType {
-    return NARRATIVE_DOCUMENT_TYPES.includes(type as NarrativeDocumentType);
 }
 
 export function parseNarrativeDocument(markdown: string, label: string): ParsedNarrativeDocument {
@@ -73,6 +70,13 @@ export function validateNarrativeIdentity(identity: unknown, requireDocumentId: 
     }
 }
 
+export function validateNarrativeNamespace(namespace: unknown, label?: string): asserts namespace is string {
+    const prefix = label ? `Narrative document '${label}' ` : 'Narrative document ';
+    if (typeof namespace !== 'string' || !NAMESPACE_PATTERN.test(namespace)) {
+        throw new Error(`${prefix}namespace must be a non-empty valid namespace.`);
+    }
+}
+
 export function parseNarrativeDocumentLocation(
     location: unknown,
     identity: NarrativeDocumentIdentity,
@@ -98,6 +102,19 @@ export function parseNarrativeDocumentLocation(
         throw new Error(`Narrative document Location '${location}' does not match the stored document id.`);
     }
     return id;
+}
+
+export function validateNarrativeDocumentLocation(
+    location: unknown,
+    identity: NarrativeDocumentIdentity,
+    requireIdentityVersion: boolean = true
+): void {
+    parseNarrativeDocumentLocation(location, identity, requireIdentityVersion);
+}
+
+export function constructNarrativeDocumentPath(identity: NarrativeDocumentIdentity): string {
+    validateNarrativeIdentity(identity, true);
+    return `/api/calm/namespaces/${identity.namespace}/documents/${identity.type}/${identity.calmHubDocumentId}/versions/${identity.version}`;
 }
 
 function extractLocationPath(location: string): string {

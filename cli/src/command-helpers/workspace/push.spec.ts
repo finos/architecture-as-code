@@ -192,6 +192,17 @@ describe('pushWorkspaceToHub', () => {
         expect(client.getNarrativeDocumentVersions).not.toHaveBeenCalled();
     });
 
+    it('rejects a missing narrative namespace without Hub calls or manifest mutation', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        const entry = { path: 'files/payments.md', type: 'sad' as const, version: '1.0.0' };
+        await saveManifest(bundlePath, { payments: entry });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/valid namespace/);
+        expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+        expect(await loadManifest(bundlePath)).toEqual({ payments: entry });
+    });
+
     it('fails narrative publish when Hub returns an unexpected Location', async () => {
         await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
         await saveManifest(bundlePath, {

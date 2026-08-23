@@ -13,13 +13,12 @@ import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { select, input } from '@inquirer/prompts';
-import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-models/types';
+import { CALM_DOCUMENT_TYPES_LIST, CALM_NARRATIVE_DOCUMENT_TYPES_LIST, isNarrativeDocumentType, isValidCalmDocumentType } from '@finos/calm-models/types';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
-import { isNarrativeDocumentType, parseNarrativeDocument } from './narrative-document';
-import { NARRATIVE_DOCUMENT_TYPES } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { constructNarrativeDocumentPath, parseNarrativeDocument, validateNarrativeIdentity } from './narrative-document';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -56,9 +55,20 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<file>', 'Path to the file to add to the bundle')
         .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
-        .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST, ...NARRATIVE_DOCUMENT_TYPES]))
+        .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST]))
         .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
-        .action(async (file: string, options: { id?: string; copy?: boolean; type?: string; namespace?: string }) => {
+        .option('--calm-hub-document-id <id>', 'Existing CalmHub narrative document ID')
+        .option('--ver <version>', 'Existing CalmHub narrative document version')
+        .option('--calm-hub-url <url>', 'CalmHub URL used to verify an existing narrative document')
+        .action(async (file: string, options: {
+            id?: string;
+            copy?: boolean;
+            type?: string;
+            namespace?: string;
+            calmHubDocumentId?: string;
+            ver?: string;
+            calmHubUrl?: string;
+        }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -68,7 +78,52 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const srcPath = path.resolve(file);
 
-                const documentTypes = [...CALM_DOCUMENT_TYPES_LIST, ...NARRATIVE_DOCUMENT_TYPES];
+                const hasDocumentId = options.calmHubDocumentId !== undefined;
+                const hasVersion = options.ver !== undefined;
+                const hasHubUrl = options.calmHubUrl !== undefined;
+                const recoveryRequested = hasDocumentId || hasVersion || hasHubUrl;
+                if (recoveryRequested) {
+                    if (!hasDocumentId || !hasVersion) {
+                        throw new Error('Narrative recovery requires both --calm-hub-document-id and --ver.');
+                    }
+                    if (!options.type || !isNarrativeDocumentType(options.type)) {
+                        throw new Error('Narrative recovery requires a narrative --type.');
+                    }
+                    if (!options.namespace?.trim()) {
+                        throw new Error(`Narrative document '${file}' recovery requires --namespace.`);
+                    }
+
+                    const identity = {
+                        namespace: options.namespace.trim(),
+                        type: options.type,
+                        version: options.ver,
+                        calmHubDocumentId: Number(options.calmHubDocumentId),
+                    };
+                    validateNarrativeIdentity(identity, true, file);
+                    const raw = await readFile(srcPath, 'utf8');
+                    const narrative = parseNarrativeDocument(raw, file);
+                    const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                    const client = new CalmHubClient(calmHubOptions);
+                    const remote = await client.getNarrativeDocumentVersion(
+                        identity.namespace, identity.type, identity.calmHubDocumentId, identity.version
+                    );
+                    if (remote.documentMarkdown !== raw) {
+                        throw new Error(`Narrative document '${file}' does not match CalmHub version ${identity.version}.`);
+                    }
+                    const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+                        id: options.id ?? narrative.request.name,
+                        copy: options.copy,
+                        type: identity.type,
+                        namespace: identity.namespace,
+                        version: identity.version,
+                        calmHubDocumentId: identity.calmHubDocumentId,
+                        calmHubId: constructNarrativeDocumentPath(identity),
+                    });
+                    logger.info(`${options.copy ? 'Copied' : 'Added reference to'} ${finalDestPath} (id: ${resolvedId})`);
+                    return;
+                }
+
+                const documentTypes = [...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST];
                 const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', documentTypes);
                 if (isNarrativeDocumentType(type)) {
                     if (!options.namespace?.trim()) {
@@ -572,4 +627,3 @@ async function enforceOptionPresenceByPrompt(cliInput: string | undefined, promp
         message: prompt
     });
 };
-

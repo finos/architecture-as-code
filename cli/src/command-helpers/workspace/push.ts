@@ -5,11 +5,13 @@ import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
 import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
 import { initLogger, Logger } from '@finos/calm-shared/src/logger';
 import { canonicalEqual } from './bump';
+import { isNarrativeDocumentType } from '@finos/calm-models/types';
 import {
-    isNarrativeDocumentType,
     parseNarrativeDocument,
     parseNarrativeDocumentLocation,
+    validateNarrativeDocumentLocation,
     validateNarrativeIdentity,
+    validateNarrativeNamespace,
 } from './narrative-document';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -67,8 +69,9 @@ export async function pushWorkspaceToHub(
                 if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
                     throw new Error('Narrative document Hub identity is incomplete. Re-add the document to repair it.');
                 }
+                validateNarrativeNamespace(entry.namespace, id);
                 const identity = {
-                    namespace: entry.namespace ?? '',
+                    namespace: entry.namespace,
                     type: entry.type,
                     version,
                     calmHubDocumentId: entry.calmHubDocumentId,
@@ -89,7 +92,7 @@ export async function pushWorkspaceToHub(
                 }
 
                 validateNarrativeIdentity(identity, true, id);
-                parseNarrativeDocumentLocation(entry.calmHubId, identity, false);
+                validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
                 const versions = await client.getNarrativeDocumentVersions(
                     identity.namespace, identity.type, identity.calmHubDocumentId!
                 );
@@ -97,7 +100,7 @@ export async function pushWorkspaceToHub(
                     const location = await client.createNarrativeDocumentVersion(
                         identity.namespace, identity.type, identity.calmHubDocumentId!, version, narrative.request
                     );
-                    parseNarrativeDocumentLocation(location, identity);
+                    validateNarrativeDocumentLocation(location, identity);
                     manifest[id] = { ...entry, calmHubId: location };
                     await saveManifest(bundlePath, manifest);
                     logger.info(`Pushed '${id}' version ${version} -> ${location}`);

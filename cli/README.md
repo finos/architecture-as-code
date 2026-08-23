@@ -806,7 +806,7 @@ calm workspace init my-system
 Register a CALM JSON document or narrative Markdown document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
 
 ```
-calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
+calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy] [--calm-hub-document-id <id> --ver <version> [--calm-hub-url <url>]]
 ```
 
 | Option | Description |
@@ -815,8 +815,12 @@ calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] 
 | `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`, `knowledge`, `sad`. |
 | `--namespace <namespace>` | CalmHub namespace to record in the manifest. It is required for narrative Markdown and otherwise derived from the document `$id` when omitted. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
+| `--calm-hub-document-id <id>` and `--ver <version>` | Recover an existing narrative document. Both options are required together. |
+| `--calm-hub-url <url>` | Optional CalmHub URL used only for narrative recovery. It otherwise uses the configured URL. |
 
 **Narrative Markdown documents.** Use `--type knowledge` or `sad`. `add` reads YAML frontmatter. A non-empty `title` becomes the manifest name unless you supply `--id`. `--namespace` is required. The initial manifest version is `1.0.0`. Markdown has no CALM `$id` and is never rewritten.
+
+To restore a removed narrative document without creating a new CalmHub document, supply its verified Hub id and version. The local Markdown must exactly match the stored Hub version.
 
 **JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
@@ -834,6 +838,9 @@ calm workspace add ./architectures/payment-service.json --type architecture
 
 # Register a narrative Markdown document; the frontmatter title becomes its manifest name
 calm workspace add ./docs/payments-sad.md --type sad --namespace finos
+
+# Restore an existing narrative document
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos --calm-hub-document-id 42 --ver 1.2.0
 ```
 
 #### `calm workspace new [type] [name] [template]`

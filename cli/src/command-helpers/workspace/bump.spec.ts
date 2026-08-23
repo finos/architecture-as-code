@@ -83,6 +83,24 @@ describe('bump', () => {
             await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/incomplete Hub identity/);
         });
 
+        it('rejects a missing namespace before Hub calls and accepts a valid namespace', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            const entry = {
+                path: 'files/payments.md', type: 'sad' as const, version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            };
+            const invalidClient = makeClient();
+            await saveManifest(bundlePath, { payments: entry });
+            await expect(detectChangedResources(bundlePath, invalidClient)).rejects.toThrow(/valid namespace/);
+            expect(invalidClient.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+
+            const validClient = makeClient({ narrativeVersions: [] });
+            await saveManifest(bundlePath, { payments: { ...entry, namespace: 'com.example' } });
+            await expect(detectChangedResources(bundlePath, validClient)).resolves.toEqual([]);
+            expect(validClient.getNarrativeDocumentVersions).toHaveBeenCalledWith('com.example', 'sad', 42);
+        });
+
         it('fails narrative checks when Hub version retrieval fails', async () => {
             await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
             await saveManifest(bundlePath, {

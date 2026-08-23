@@ -3,8 +3,7 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
-import type { CalmDocumentType } from '@finos/calm-models/types';
-import type { NarrativeDocumentType } from '@finos/calm-shared/src/hub/calm-hub-client';
+import type { CalmDocumentType, NarrativeDocumentType } from '@finos/calm-models/types';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -170,8 +169,23 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string; copy?: boolean; type?: WorkspaceDocumentType; namespace?: string; version?: string }
+    opts?: {
+        id?: string;
+        destName?: string;
+        copy?: boolean;
+        type?: WorkspaceDocumentType;
+        namespace?: string;
+        version?: string;
+        calmHubDocumentId?: number;
+        calmHubId?: string;
+    }
 ): Promise<{ id: string; destPath: string; rel: string }> {
+
+    const hasDocumentId = opts?.calmHubDocumentId !== undefined;
+    const hasHubId = opts?.calmHubId !== undefined;
+    if (hasDocumentId !== hasHubId || ((hasDocumentId || hasHubId) && !opts?.version)) {
+        throw new Error('Narrative document Hub identity requires calmHubDocumentId, calmHubId, and version.');
+    }
 
     const id = await determineDocumentId(srcPath, opts?.id);
     let rel: string;
@@ -198,6 +212,7 @@ export async function addFileToBundle(
         type: opts?.type ?? 'unknown',
         ...(opts?.namespace ? { namespace: opts.namespace } : {}),
         ...(opts?.version ? { version: opts.version } : {}),
+        ...(hasDocumentId ? { calmHubDocumentId: opts!.calmHubDocumentId, calmHubId: opts!.calmHubId } : {}),
     };
     await saveManifest(bundlePath, manifest);
 
