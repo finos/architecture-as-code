@@ -183,7 +183,8 @@ function resolveVariables(variables?: Record<string, string>, itemId?: string): 
 
 function calculateRelativePath(outputDir: string, inputPath: string): string {
     const resolvedPath = path.resolve(inputPath);
-    return path.relative(outputDir, resolvedPath);
+    // Forward slashes: this reference is read on other machines.
+    return path.relative(outputDir, resolvedPath).split(path.sep).join('/');
 }
 
 function extractExistingFrontMatterFields(content: string): Set<string> {
