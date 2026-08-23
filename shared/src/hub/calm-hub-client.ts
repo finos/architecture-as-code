@@ -1,4 +1,5 @@
 import axios, { Axios } from 'axios';
+import type { NarrativeDocumentType } from '@finos/calm-models/types';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
 import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
@@ -38,9 +39,6 @@ export interface HubControlSummary {
 }
 
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
-
-export const NARRATIVE_DOCUMENT_TYPES = ['knowledge', 'sad'] as const;
-export type NarrativeDocumentType = typeof NARRATIVE_DOCUMENT_TYPES[number];
 
 export interface NarrativeDocumentRequest {
     name: string;
