@@ -693,13 +693,13 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
 
 ```
-calm hub push <architecture|pattern|standard|control-requirement|control-configuration> <file> [options]
+calm hub push <architecture|pattern|standard|interface|control-requirement|control-configuration> <file> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--name <name>` | `architecture`, `pattern`, `standard` | Overrides the document's `title` field in CalmHub. |
-| `--description <description>` | `architecture`, `pattern`, `standard` | Overrides the document's `description` field. |
+| `--name <name>` | `architecture`, `pattern`, `standard`, `interface` | Overrides the document's `title` field in CalmHub. |
+| `--description <description>` | `architecture`, `pattern`, `standard`, `interface` | Overrides the document's `description` field. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance to push to. |
 | `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
 | `-t, --change-type <type>` | all | Version bump type when auto-bumping: `patch` (default), `minor`, or `major`. |
@@ -711,6 +711,8 @@ calm hub push architecture ./architectures/payment-service.json
 
 # Strict merge-time push: fail if this exact version already exists with different content
 calm hub push pattern ./patterns/microservice-pattern.json --fail-if-modified
+
+calm hub push interface ./interfaces/payment-api.interface.json
 
 # Control documents don't take --name/--description
 calm hub push control-requirement ./controls/encryption-at-rest.requirement.json
@@ -724,13 +726,13 @@ The local document is normalised the same way CalmHub stores it before comparing
 Pulls a specific (or latest) version of a resource from CalmHub.
 
 ```
-calm hub pull <architecture|pattern|standard|control-requirement|control-configuration> [options]
+calm hub pull <architecture|pattern|standard|interface|control-requirement|control-configuration> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architecture`, `pattern`, `standard` (required) | Source namespace. |
-| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard` (required) | Mapping slug of the document to pull. |
+| `--namespace <namespace>` | `architecture`, `pattern`, `standard`, `interface` (required) | Source namespace. |
+| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard`, `interface` (required) | Mapping slug of the document to pull. |
 | `--domain <domain>` | `control-requirement`, `control-configuration` (required) | Source domain. |
 | `--control-name <controlName>` | `control-requirement`, `control-configuration` (required) | Control name. |
 | `--config-name <configName>` | `control-configuration` (required) | Configuration name. |
@@ -740,6 +742,7 @@ calm hub pull <architecture|pattern|standard|control-requirement|control-configu
 
 ```shell
 calm hub pull architecture --namespace com.example --mapping payment-service --ver 2.1.0 -o ./payment-service.json
+calm hub pull interface --namespace com.example --mapping payment-api
 calm hub pull control-configuration --domain security --control-name encryption-at-rest --config-name default
 ```
 
@@ -748,12 +751,12 @@ calm hub pull control-configuration --domain security --control-name encryption-
 Lists resources of a given kind.
 
 ```
-calm hub list <architectures|patterns|standards|namespaces|domains|controls|control-configurations> [options]
+calm hub list <architectures|patterns|standards|interfaces|namespaces|domains|controls|control-configurations> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architectures`, `patterns`, `standards` | Target namespace (default: `"default"`). |
+| `--namespace <namespace>` | `architectures`, `patterns`, `standards`, `interfaces` | Target namespace (default: `"default"`). |
 | `--domain <domain>` | `controls` (required), `control-configurations` (required) | Target domain. |
 | `--control-name <controlName>` | `control-configurations` (required) | Control name. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance. |
@@ -761,6 +764,7 @@ calm hub list <architectures|patterns|standards|namespaces|domains|controls|cont
 
 ```shell
 calm hub list architectures --namespace com.example
+calm hub list interfaces --namespace com.example
 calm hub list namespaces
 calm hub list control-configurations --domain security --control-name encryption-at-rest
 ```

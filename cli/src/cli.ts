@@ -20,9 +20,12 @@ import {
     runPullArchitecture,
     runPullPattern,
     runPullStandard,
+    runPullInterface,
     runPushArchitecture,
     runPushPattern,
     runPushStandard,
+    runPushInterface,
+    runListInterfaces,
     CreateDomainOptions,
     ListDomainsOptions,
     PushControlOptions,
@@ -540,6 +543,28 @@ Example:
         });
 
     hubPushCmd
+        .command('interface <interface-file>')
+        .description('Push a CALM interface file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the interface in CALM Hub; overrides `title` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the interface; overrides `description` field if set.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
+        .action(async (interfaceFile, options) => {
+            const pushInterfaceOptions: PushOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                file: interfaceFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
+            };
+            await runPushInterface(pushInterfaceOptions);
+        });
+
+    hubPushCmd
         .command('control-requirement <requirement-file>')
         .description('Push a control requirement version to CALM Hub. $id of document must contain a full control requirement document ID including domain, control name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
@@ -633,6 +658,25 @@ Example:
                 output: options.output
             };
             await runPullStandard(pullStandardOptions);
+        });
+
+    hubPullCmd
+        .command('interface')
+        .description('Pull a specific version of a CALM interface from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the interface to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullInterfaceOptions: PullOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                mapping: options.mapping,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullInterface(pullInterfaceOptions);
         });
 
     hubPullCmd
@@ -734,6 +778,21 @@ Example:
                 format: options.format
             };
             await runListStandards(listStandardsOptions);
+        });
+
+    hubListCmd
+        .command('interfaces')
+        .description('List interfaces in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listInterfacesOptions: ListOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListInterfaces(listInterfacesOptions);
         });
 
     hubListCmd
