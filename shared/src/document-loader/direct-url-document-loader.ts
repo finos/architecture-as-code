@@ -1,6 +1,5 @@
 import axios, { Axios, AxiosRequestConfig } from 'axios';
 import { isIP } from 'net';
-import * as https from 'node:https';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { Logger, initLogger } from '../logger';
@@ -246,12 +245,8 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             let authHeaders: Record<string, string> | undefined;
             const authHeaderNames: string[] = [];
-            let tlsConfig;
             if (this.directUrlAuthPlugin) {
                 try {
-                    if (parsedUrl.protocol === 'https:') {
-                        tlsConfig = await this.directUrlAuthPlugin.getTlsConfig?.();
-                    }
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
                     authHeaderNames.push(...Object.keys(authHeaders));
                 } catch (error) {
@@ -270,9 +265,6 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 allowAbsoluteUrls: false,
                 __directUrlAuthHeaderNames: authHeaderNames,
             };
-            if (parsedUrl.protocol === 'https:' && tlsConfig?.httpsCaCert) {
-                requestConfig.httpsAgent = new https.Agent({ ca: tlsConfig.httpsCaCert });
-            }
             const response = await this.ax.get(requestPath, requestConfig);
             assertJsonObject(response.data, documentId);
             return response.data;

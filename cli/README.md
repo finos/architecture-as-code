@@ -1127,9 +1127,6 @@ So the class interface is effectively:
 ```ts
 interface DirectUrlAuthPlugin {
   getAuthHeaders(url: string, requestBody: unknown): Promise<Record<string, string>>;
-  getTlsConfig?(): Promise<{
-    httpsCaCert?: string;
-  }>;
 }
 ```
 
@@ -1137,10 +1134,10 @@ What each part means:
 
 - `getAuthHeaders(url, requestBody)` is required.
   It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
-- `getTlsConfig()` is optional.
-  If present, it is only used for `https:` URLs and can return a custom CA cert via `httpsCaCert`.
 - The constructor may accept an optional `configPath: string | undefined`.
   If the user sets `directUrlAuth.configPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
+- TLS trust is not configurable through the module.
+  Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
 
 A minimal example:
 
@@ -1153,12 +1150,6 @@ export default class MyDirectUrlAuth {
   async getAuthHeaders(url, requestBody) {
     return {
       Authorization: "Bearer my-token"
-    };
-  }
-
-  async getTlsConfig() {
-    return {
-      httpsCaCert: "-----BEGIN CERTIFICATE-----\n..."
     };
   }
 }

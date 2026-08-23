@@ -1,5 +1,4 @@
 import axios from 'axios';
-import * as https from 'node:https';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -166,15 +165,12 @@ describe('direct-url-document-loader', () => {
         expect(lastRequest.headers?.['X-Trace-Id']).toBe('trace-123');
     });
 
-    it('uses HTTPS agent settings returned by the direct URL auth plugin', async () => {
+    it('does not create a custom HTTPS agent for direct URL auth plugins', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `https://${allowlistedHost}/tls-protected.json`;
         const directUrlAuthPlugin = {
             getAuthHeaders: vi.fn().mockResolvedValue({
                 'Authorization': 'Bearer test-token',
-            }),
-            getTlsConfig: vi.fn().mockResolvedValue({
-                httpsCaCert: 'test-ca-cert',
             }),
         };
         mock.onGet('/tls-protected.json').reply(200, { '$id': url, 'title': 'schema' });
@@ -184,18 +180,17 @@ describe('direct-url-document-loader', () => {
 
         expect(document).toEqual({ '$id': url, 'title': 'schema' });
         const lastRequest = mock.history.get[mock.history.get.length - 1];
-        expect(lastRequest.httpsAgent).toBeInstanceOf(https.Agent);
-        expect((lastRequest.httpsAgent as https.Agent).options.ca).toBe('test-ca-cert');
+        expect(lastRequest.httpsAgent).toBeUndefined();
+        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
     });
 
-    it('does not request TLS config for plain HTTP direct URL loads', async () => {
+    it('loads plain HTTP direct URL requests without any TLS hook', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `http://${allowlistedHost}/protected.json`;
         const directUrlAuthPlugin = {
             getAuthHeaders: vi.fn().mockResolvedValue({
                 'Authorization': 'Bearer test-token',
             }),
-            getTlsConfig: vi.fn().mockRejectedValue(new Error('tls bootstrap failed: should-not-run')),
         };
         mock.onGet('/protected.json').reply(200, { '$id': url, 'title': 'schema' });
         const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
@@ -203,7 +198,6 @@ describe('direct-url-document-loader', () => {
         const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
 
         expect(document).toEqual({ '$id': url, 'title': 'schema' });
-        expect(directUrlAuthPlugin.getTlsConfig).not.toHaveBeenCalled();
         expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
         const lastRequest = mock.history.get[mock.history.get.length - 1];
         expect(lastRequest.httpsAgent).toBeUndefined();
@@ -310,26 +304,6 @@ describe('direct-url-document-loader', () => {
         await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
         await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
         await expect(promise).rejects.not.toThrow('super-secret-token');
-        expect(mock.history.get).toHaveLength(0);
-    });
-
-    it('treats direct URL TLS bootstrap failures as fatal auth failures', async () => {
-        const allowlistedHost = 'schemas.example.com';
-        const url = `https://${allowlistedHost}/tls-protected.json`;
-        const directUrlAuthPlugin = {
-            getTlsConfig: vi.fn().mockRejectedValue(new Error('tls bootstrap failed: super-secret-ca')),
-            getAuthHeaders: vi.fn()
-        };
-        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
-
-        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
-
-        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
-        await expect(promise).rejects.toMatchObject({ recoverable: false });
-        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
-        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
-        await expect(promise).rejects.not.toThrow('super-secret-ca');
-        expect(directUrlAuthPlugin.getAuthHeaders).not.toHaveBeenCalled();
         expect(mock.history.get).toHaveLength(0);
     });
 
