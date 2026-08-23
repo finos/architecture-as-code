@@ -103,6 +103,7 @@ For large or high-risk changes:
 
 - Ask for an issue or design discussion before merge when the change is breaking, architectural, security-sensitive, or spans multiple subprojects.
 - Involve all affected maintainers early rather than relying on a single late-stage review.
+- For significant new enhancements, require two maintainer approvals from two different organizations before merge.
 - Require clear rollout or migration notes when the change impacts consumers, contributors, or release workflows.
 - Treat schema and data-migration changes as sequence-sensitive, high-risk work: review them for malformed legacy data handling, atomicity, ordering, rollback or retry safety, and avoid changing the behavior of already-merged migration steps unless there is a compelling reason and the impact is fully understood.
 - Use the governance process in [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) when escalation or formal maintainer decision-making is needed.
