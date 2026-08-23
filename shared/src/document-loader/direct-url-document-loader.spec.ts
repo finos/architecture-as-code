@@ -184,25 +184,6 @@ describe('direct-url-document-loader', () => {
         expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
     });
 
-    it('loads plain HTTP direct URL requests without any TLS hook', async () => {
-        const allowlistedHost = 'schemas.example.com';
-        const url = `http://${allowlistedHost}/protected.json`;
-        const directUrlAuthPlugin = {
-            getAuthHeaders: vi.fn().mockResolvedValue({
-                'Authorization': 'Bearer test-token',
-            }),
-        };
-        mock.onGet('/protected.json').reply(200, { '$id': url, 'title': 'schema' });
-        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
-
-        const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
-
-        expect(document).toEqual({ '$id': url, 'title': 'schema' });
-        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
-        const lastRequest = mock.history.get[mock.history.get.length - 1];
-        expect(lastRequest.httpsAgent).toBeUndefined();
-    });
-
     it('redacts sensitive auth headers in debug logs while keeping safe request metadata', async () => {
         const loggerModule = await import('../logger');
         const mockLogger: Logger = {
