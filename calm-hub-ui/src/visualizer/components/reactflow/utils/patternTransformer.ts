@@ -201,13 +201,9 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
     const decisionGroups: DecisionGroup[] = [];
 
     prefixItems.forEach((item: SchemaObject, index: number) => {
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const groupType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            extractNodeDecisionGroup(alternatives, `node-decision-${index}`, groupType, nodes, decisionGroups);
+        const block = readChoiceBlock(item);
+        if (block) {
+            extractNodeDecisionGroup(block.alternatives as SchemaObject[], `node-decision-${index}`, block.groupType, nodes, decisionGroups);
         } else {
             const node = extractNodeFromSchemaItem(item);
             if (node) {
@@ -318,12 +314,11 @@ function extractOptionsMetadata(item: SchemaObject): OptionsMetadata | null {
         item['properties']?.['relationship-type']?.['properties']?.['options']?.['prefixItems'] || [];
 
     for (const prefixItem of optionsPrefixItems) {
-        const hasOneOf = Array.isArray(prefixItem['oneOf']);
-        const hasAnyOf = Array.isArray(prefixItem['anyOf']);
+        const block = readChoiceBlock(prefixItem);
 
-        if (hasOneOf || hasAnyOf) {
-            const optionType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? prefixItem['oneOf'] : prefixItem['anyOf'];
+        if (block) {
+            const optionType = block.groupType;
+            const alternatives = block.alternatives as SchemaObject[];
 
             const choices = alternatives
                 .map((alt: SchemaObject) => {
@@ -385,12 +380,9 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
         }
 
         // Check for oneOf/anyOf wrapped relationships
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            extractRelationshipDecisionGroup(alternatives, `rel-decision-${index}`, relationships);
+        const block = readChoiceBlock(item);
+        if (block) {
+            extractRelationshipDecisionGroup(block.alternatives as SchemaObject[], `rel-decision-${index}`, relationships);
             return;
         }
 
