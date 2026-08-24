@@ -1,12 +1,24 @@
 package org.finos.calm.security;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import io.quarkus.security.identity.SecurityIdentity;
+
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import jakarta.ws.rs.container.ResourceInfo;
 import jakarta.ws.rs.core.MultivaluedHashMap;
 import jakarta.ws.rs.core.MultivaluedMap;
 import jakarta.ws.rs.core.UriInfo;
+
 import org.finos.calm.domain.audit.AuditAction;
 import org.finos.calm.domain.audit.AuditEntityType;
 import org.finos.calm.domain.audit.AuditLogEntry;
@@ -15,6 +27,7 @@ import org.finos.calm.resources.AdrResource;
 import org.finos.calm.resources.ArchitectureResource;
 import org.finos.calm.resources.ControlResource;
 import org.finos.calm.resources.DecoratorResource;
+import org.finos.calm.resources.DocumentResource;
 import org.finos.calm.resources.DomainResource;
 import org.finos.calm.resources.DomainUserAccessResource;
 import org.finos.calm.resources.MappingControllerResource;
@@ -31,16 +44,6 @@ import org.mockito.MockitoAnnotations;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.security.Principal;
-
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 public class TestAuditRequestFilterShould {
 
@@ -73,7 +76,8 @@ public class TestAuditRequestFilterShould {
         AuditRequestFilter.stage(null);
     }
 
-    private ContainerRequestContext mockRequest(String method, MultivaluedMap<String, String> pathParams) {
+    private ContainerRequestContext mockRequest(
+            String method, MultivaluedMap<String, String> pathParams) {
         ContainerRequestContext requestContext = mock(ContainerRequestContext.class);
         UriInfo uriInfo = mock(UriInfo.class);
         when(requestContext.getMethod()).thenReturn(method);
@@ -245,6 +249,42 @@ public class TestAuditRequestFilterShould {
     }
 
     @Test
+    void resolve_document_create_from_location() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DocumentResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        ContainerRequestContext requestContext = mockRequest("POST", pathParams);
+        ContainerResponseContext responseContext =
+                mockResponse(201, "/api/calm/namespaces/finos/documents/pattern/5/versions/1.0.0");
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.DOCUMENT));
+        assertThat(entry.getEntityId(), is("5"));
+        assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    @Test
+    void resolve_document_version_write_from_path_parameters() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) DocumentResource.class);
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("namespace", "finos");
+        pathParams.putSingle("id", "5");
+        pathParams.putSingle("version", "1.0.1");
+        ContainerRequestContext requestContext = mockRequest("POST", pathParams);
+        ContainerResponseContext responseContext = mockResponse(201, null);
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.DOCUMENT));
+        assertThat(entry.getEntityId(), is("5"));
+        assertThat(entry.getVersion(), is("1.0.1"));
+        assertThat(entry.getAction(), is(AuditAction.UPDATE));
+    }
+
+    @Test
     void leave_entity_id_null_when_denied_and_no_path_param_or_staged_context() {
         // DomainResource.createDomain: @PermissionsAllowed-denied, no domain-name path param.
         when(resourceInfo.getResourceClass()).thenReturn((Class) DomainResource.class);
@@ -374,7 +414,8 @@ public class TestAuditRequestFilterShould {
     @Test
     void resolve_control_requirement_creation_via_location() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) ControlResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ControlResource.class, "createControlForDomain"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(ControlResource.class, "createControlForDomain"));
         MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
         pathParams.putSingle("domain", "payments");
         ContainerRequestContext requestContext = mockRequest("POST", pathParams);
@@ -393,7 +434,8 @@ public class TestAuditRequestFilterShould {
     @Test
     void resolve_control_configuration_creation_via_location() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) ControlResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ControlResource.class, "createControlConfiguration"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(ControlResource.class, "createControlConfiguration"));
         MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
         pathParams.putSingle("domain", "payments");
         pathParams.putSingle("controlId", "11");
@@ -412,7 +454,8 @@ public class TestAuditRequestFilterShould {
     @Test
     void resolve_control_requirement_version_directly_from_path_params() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) ControlResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ControlResource.class, "createRequirementForVersion"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(ControlResource.class, "createRequirementForVersion"));
         MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
         pathParams.putSingle("domain", "payments");
         pathParams.putSingle("controlId", "11");
@@ -434,7 +477,8 @@ public class TestAuditRequestFilterShould {
     @Test
     void resolve_mapping_controller_versioned_named_resource_via_path_params() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(MappingControllerResource.class, "createResourceVersion"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(MappingControllerResource.class, "createResourceVersion"));
         MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
         pathParams.putSingle("namespace", "finos");
         pathParams.putSingle("type", "patterns");
@@ -456,7 +500,8 @@ public class TestAuditRequestFilterShould {
     @Test
     void resolve_mapping_controller_domain_creation_via_location() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(MappingControllerResource.class, "createDomain"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(mockMethod(MappingControllerResource.class, "createDomain"));
         ContainerRequestContext requestContext = mockRequest("POST", new MultivaluedHashMap<>());
         ContainerResponseContext responseContext = mockResponse(201, "/calm/domains/payments");
 
@@ -473,7 +518,9 @@ public class TestAuditRequestFilterShould {
         // createResourceFromDocument/updateResourceFromDocument normally stage a context
         // themselves; if that didn't happen (defensive path), nothing reliable to report.
         when(resourceInfo.getResourceClass()).thenReturn((Class) MappingControllerResource.class);
-        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(MappingControllerResource.class, "createResourceFromDocument"));
+        when(resourceInfo.getResourceMethod())
+                .thenReturn(
+                        mockMethod(MappingControllerResource.class, "createResourceFromDocument"));
         ContainerRequestContext requestContext = mockRequest("POST", new MultivaluedHashMap<>());
         ContainerResponseContext responseContext = mockResponse(201, null);
 
@@ -487,8 +534,14 @@ public class TestAuditRequestFilterShould {
     @Test
     void use_staged_context_verbatim_when_present() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) NamespaceResource.class);
-        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(
-                AuditEntityType.NAMESPACE, AuditAction.CREATE, null, null, "finos.child", null));
+        AuditRequestFilter.stage(
+                new AuditRequestFilter.AuditContext(
+                        AuditEntityType.NAMESPACE,
+                        AuditAction.CREATE,
+                        null,
+                        null,
+                        "finos.child",
+                        null));
         ContainerRequestContext requestContext = mockRequest("POST", new MultivaluedHashMap<>());
         ContainerResponseContext responseContext = mockResponse(403, null);
 
@@ -503,8 +556,9 @@ public class TestAuditRequestFilterShould {
     @Test
     void clear_staged_context_after_each_request_to_avoid_leaking_across_requests() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) NamespaceResource.class);
-        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(
-                AuditEntityType.NAMESPACE, AuditAction.CREATE, null, null, "first", null));
+        AuditRequestFilter.stage(
+                new AuditRequestFilter.AuditContext(
+                        AuditEntityType.NAMESPACE, AuditAction.CREATE, null, null, "first", null));
         ContainerRequestContext firstRequest = mockRequest("POST", new MultivaluedHashMap<>());
         filter.filter(firstRequest, mockResponse(201, null));
 

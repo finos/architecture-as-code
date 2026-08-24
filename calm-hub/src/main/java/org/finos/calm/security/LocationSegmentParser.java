@@ -5,24 +5,20 @@ import org.finos.calm.domain.audit.AuditEntityType;
 import java.util.List;
 
 /**
- * Extracts an entity ID (and, where present, a version) from the path of a
- * {@code Location} response header, for the handful of server-generated-ID create
- * endpoints where the new entity's identity isn't already available as a resolved
- * JAX-RS path parameter.
+ * Extracts an entity ID (and, where present, a version) from the path of a {@code Location}
+ * response header, for the handful of server-generated-ID create endpoints where the new entity's
+ * identity isn't already available as a resolved JAX-RS path parameter.
  *
- * <p>This is coupled to each resource's specific {@code Response.created(new URI(...))}
- * call sites — see {@link AuditRequestFilter} for the full list of endpoints this
- * supports. If a resource's URI-building code changes shape, the corresponding case
- * here needs a matching update, or that endpoint's CREATE audit records will silently
- * stop carrying an entity ID.</p>
+ * <p>This is coupled to each resource's specific {@code Response.created(new URI(...))} call sites
+ * — see {@link AuditRequestFilter} for the full list of endpoints this supports. If a resource's
+ * URI-building code changes shape, the corresponding case here needs a matching update, or that
+ * endpoint's CREATE audit records will silently stop carrying an entity ID.
  */
 final class LocationSegmentParser {
 
-    private LocationSegmentParser() {
-    }
+    private LocationSegmentParser() {}
 
-    record LocationIds(String entityId, String version) {
-    }
+    record LocationIds(String entityId, String version) {}
 
     static LocationIds parse(AuditEntityType entityType, String locationPath) {
         if (locationPath == null || locationPath.isBlank()) {
@@ -40,10 +36,15 @@ final class LocationSegmentParser {
             // .../schemas/{version}/meta
             case SCHEMA -> new LocationIds(segmentBefore(segments, "meta"), null);
             // .../{plural}/{id}/versions/{version}
-            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, TIMELINE ->
-                    new LocationIds(segmentBefore(segments, "versions"), segmentAfter(segments, "versions"));
+            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, DOCUMENT, TIMELINE ->
+                    new LocationIds(
+                            segmentBefore(segments, "versions"),
+                            segmentAfter(segments, "versions"));
             // .../adrs/{id}/revisions/{revision}
-            case ADR -> new LocationIds(segmentBefore(segments, "revisions"), segmentAfter(segments, "revisions"));
+            case ADR ->
+                    new LocationIds(
+                            segmentBefore(segments, "revisions"),
+                            segmentAfter(segments, "revisions"));
             // .../domains/{domain}/controls/{controlId}  (initial control+requirement creation)
             case CONTROL_REQUIREMENT -> new LocationIds(lastSegment(segments), null);
             // .../domains/{domain}/controls/{controlId}/configurations/{configId}
