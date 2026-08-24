@@ -44,6 +44,11 @@ async function ruleCodesFor(pattern: object): Promise<string[]> {
     return result.spectralIssues.map(issue => issue.code);
 }
 
+async function ruleMessageFor(pattern: object, code: string): Promise<string | undefined> {
+    const result = await runSpectralValidations(JSON.stringify(pattern), patternRules, 'test');
+    return result.spectralIssues.find((issue) => issue.code === code)?.message;
+}
+
 describe('pattern-option-relationship-must-be-in-prefix-items', () => {
     it('passes when the decision holder is in prefixItems and only candidates are in the items catalog', async () => {
         const pattern = {
@@ -189,6 +194,32 @@ describe('pattern-items-catalog-must-declare-one-choice-keyword', () => {
             }
         });
         expect(codes).not.toContain(RULE_BOTH);
+    });
+
+    it('fires on a prefixItems slot declaring both oneOf and anyOf, not just an items catalog', async () => {
+        // The bug this rule catches - oneOf silently winning over anyOf - resolves
+        // identically for a prefixItems slot and an items catalog (both go through
+        // readChoiceBlock), and reproduces on main for prefixItems slots. The `given`
+        // already covers this site; this pins that it is actually exercised.
+        const codes = await ruleCodesFor({
+            properties: {
+                nodes: { prefixItems: [{ oneOf: [candidate('a')], anyOf: [candidate('b')] }] },
+                relationships: { prefixItems: [] }
+            }
+        });
+        expect(codes).toContain(RULE_BOTH);
+    });
+
+    it('names the block generically, not as "an items catalog", since a prefixItems slot triggers it too', async () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [{ oneOf: [candidate('a')], anyOf: [candidate('b')] }] },
+                relationships: { prefixItems: [] }
+            }
+        };
+        const message = await ruleMessageFor(pattern, RULE_BOTH);
+        expect(message).toBeDefined();
+        expect(message?.toLowerCase()).not.toContain('items catalog');
     });
 
     it('leaves a plain items schema alone — it is not a catalog', async () => {

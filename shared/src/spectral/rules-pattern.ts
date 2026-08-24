@@ -208,7 +208,7 @@ const patternRules: RulesetDefinition = {
         'pattern-items-catalog-must-declare-one-choice-keyword': {
             // Legal JSON Schema, so this is a smell and not an invalid document. Raising it
             // to `error` would not help generation, because `calm generate` never validates.
-            description: 'An items catalog must declare only one of oneOf/anyOf',
+            description: 'A choice block must declare only one of oneOf/anyOf',
             severity: 'warn',
             message: '{{error}}',
             given: [

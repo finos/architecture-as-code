@@ -19,7 +19,7 @@ export function catalogSingleChoiceKeyword(input: unknown, _: unknown, context: 
 
     return [{
         message:
-            'An items catalog declares both "oneOf" and "anyOf". Only the "oneOf" candidates are ' +
+            'This choice block declares both "oneOf" and "anyOf". Only the "oneOf" candidates are ' +
             'selectable - candidates under "anyOf" are silently dropped from generation and from ' +
             'the diagram. Declare exactly one of the two.',
         path: [...context.path],
