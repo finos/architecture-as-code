@@ -7,11 +7,17 @@ import path from 'path';
 import { existsSync } from 'fs';
 
 const makeClient = (
-    overrides: Partial<Pick<CalmHubClient, 'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion'>> = {}
+    overrides: Partial<Pick<CalmHubClient,
+        'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion' |
+        'createNarrativeDocument' | 'createNarrativeDocumentVersion' | 'getNarrativeDocumentVersions' | 'getNarrativeDocumentVersion'>> = {}
 ): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async () => []),
     createMappedResourceVersion: vi.fn(async () => '/calm/namespaces/com.example/architectures/my-arch/versions/1.0.0'),
     getMappedResourceByVersion: vi.fn(async () => ({})),
+    createNarrativeDocument: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0'),
+    createNarrativeDocumentVersion: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.1.0'),
+    getNarrativeDocumentVersions: vi.fn(async () => []),
+    getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '' })),
     ...overrides,
 }) as unknown as CalmHubClient;
 
@@ -80,6 +86,150 @@ describe('pushWorkspaceToHub', () => {
         const client = makeClient();
         await pushWorkspaceToHub(bundlePath, client);
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
+    });
+
+    it('creates a narrative document and stores its server identity', async () => {
+        const markdown = '---\ntitle: Payments SAD\ndescription: Decisions\n---\n# Payments\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            'payments-sad': { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        const client = makeClient();
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.createNarrativeDocument).toHaveBeenCalledWith('com.example', 'sad', {
+            name: 'Payments SAD', description: 'Decisions', documentMarkdown: markdown,
+        });
+        expect(await loadManifest(bundlePath)).toMatchObject({
+            'payments-sad': { calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0' },
+        });
+    });
+
+    it('fails the completed push when a narrative document is invalid', async () => {
+        await writeFile(path.join(filesPath, 'bad.md'), '# no frontmatter');
+        await saveManifest(bundlePath, {
+            bad: { path: 'files/bad.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+        expect((await loadManifest(bundlePath)).bad.calmHubDocumentId).toBeUndefined();
+    });
+
+    it('creates a later narrative version and updates its location', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.1.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient({ getNarrativeDocumentVersions: vi.fn().mockResolvedValue(['1.0.0']) });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.createNarrativeDocumentVersion).toHaveBeenCalledWith('com.example', 'sad', 42, '1.1.0', expect.objectContaining({ documentMarkdown: markdown }));
+        expect((await loadManifest(bundlePath)).payments.calmHubId).toContain('/1.1.0');
+    });
+
+    it('strictly detects changed Markdown at an existing narrative version', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient({
+            getNarrativeDocumentVersions: vi.fn().mockResolvedValue(['1.0.0']),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown.replace('Changed', 'Published') }),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).rejects.toThrow(/payments@1.0.0/);
+    });
+
+    it('idempotently skips an existing narrative version and accepts an exact strict comparison', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient({
+            getNarrativeDocumentVersions: vi.fn().mockResolvedValue(['1.0.0']),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+        await pushWorkspaceToHub(bundlePath, client, { failIfModified: true });
+
+        expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
+    });
+
+    it('fails narrative publish for missing source files and incomplete Hub identity', async () => {
+        await saveManifest(bundlePath, {
+            missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            partial: { path: 'files/partial.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
+        });
+        await writeFile(path.join(filesPath, 'partial.md'), '---\ntitle: Partial\n---\n# Partial');
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+    });
+
+    it('rejects malformed persisted narrative identity before calling Hub', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 42 as unknown as string, version: '1.1.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/valid namespace/);
+        expect(client.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+    });
+
+    it('rejects a missing narrative namespace without Hub calls or manifest mutation', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        const entry = { path: 'files/payments.md', type: 'sad' as const, version: '1.0.0' };
+        await saveManifest(bundlePath, { payments: entry });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/valid namespace/);
+        expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+        expect(await loadManifest(bundlePath)).toEqual({ payments: entry });
+    });
+
+    it('fails narrative publish when Hub returns an unexpected Location', async () => {
+        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+        await saveManifest(bundlePath, {
+            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        const client = makeClient({ createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected') });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/unexpected format/);
+        expect((await loadManifest(bundlePath)).payments.calmHubDocumentId).toBeUndefined();
+    });
+
+    it('rejects narrative manifests with no version or a non-initial unassigned version', async () => {
+        await writeFile(path.join(filesPath, 'missing.md'), '---\ntitle: Missing\n---\n# Missing');
+        await writeFile(path.join(filesPath, 'ahead.md'), '---\ntitle: Ahead\n---\n# Ahead');
+        await saveManifest(bundlePath, {
+            missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example' },
+            ahead: { path: 'files/ahead.md', type: 'sad', namespace: 'com.example', version: '1.1.0' },
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+    });
+
+    it('fails narrative publish when a tracked path cannot be read', async () => {
+        await saveManifest(bundlePath, {
+            unreadable: { path: 'files', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/file could not be read/);
     });
 
     it('skips entries whose file is invalid JSON', async () => {

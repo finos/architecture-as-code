@@ -12,6 +12,17 @@ export interface ParsedFrontMatter {
     urlToLocalPathMapping?: Map<string, string>;
 }
 
+const YAML_FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?=\r?\n|$)/;
+
+/** Parses only a leading YAML mapping. It does not resolve template-specific paths. */
+export function parseYamlFrontMatterMapping(content: string): Record<string, unknown> | null {
+    const match = YAML_FRONTMATTER_PATTERN.exec(content);
+    if (!match) return null;
+    const parsed = yaml.parse(match[1]);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return parsed as Record<string, unknown>;
+}
+
 const RESERVED_KEYS = new Set([
     'architecture',
     'url-to-local-file-mapping'

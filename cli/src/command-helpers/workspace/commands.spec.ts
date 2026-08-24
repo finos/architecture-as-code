@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Command } from 'commander';
+import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST } from '@finos/calm-models/types';
 import { setupWorkspaceCommands } from './commands';
 
 const mocks = vi.hoisted(() => {
@@ -26,7 +27,12 @@ const mocks = vi.hoisted(() => {
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
         loadAuthPlugin: vi.fn(async () => ({ getAuthHeaders: vi.fn(async () => ({})) })),
         CalmHubClient: vi.fn().mockImplementation(function() {
-            return { isMockClient: true };
+            return {
+                isMockClient: true,
+                getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '---\ntitle: Payments SAD\n---\n# Payments\n' })),
+                createNarrativeDocument: vi.fn(),
+                createNarrativeDocumentVersion: vi.fn(),
+            };
         }),
         select: vi.fn(async () => 'architecture'),
         input: vi.fn(async () => 'prompted-name'),
@@ -168,6 +174,12 @@ describe('setupWorkspaceCommands', () => {
     const CONFORMANT_ID = 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0';
 
     describe('workspace add', () => {
+        it('derives narrative Commander choices from the canonical list', () => {
+            const add = program.commands.find(command => command.name() === 'workspace')!.commands
+                .find(command => command.name() === 'add')!;
+            const typeOption = add.options.find(option => option.flags.includes('--type')) as unknown as { argChoices: string[] };
+            expect(typeOption.argChoices).toEqual(expect.arrayContaining(CALM_NARRATIVE_DOCUMENT_TYPES_LIST));
+        });
         it('builds a $id when the file has none, writes it back, and adds with the derived namespace', async () => {
             // readFile mock returns JSON with title 'My Architecture' and no $id.
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
@@ -221,6 +233,137 @@ describe('setupWorkspaceCommands', () => {
                 expect.stringContaining('test.json'),
                 expect.objectContaining({ id: 'custom-id', copy: true, type: 'pattern' })
             );
+        });
+
+        it('registers Markdown using its frontmatter title without rewriting it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            mocks.readFile.mockResolvedValueOnce(markdown);
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos']);
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('payments.md'),
+                expect.objectContaining({ id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('recovers a verified narrative document without creating it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            mocks.readFile.mockResolvedValueOnce(markdown);
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'https://explicit.example.com' }));
+            const client = mocks.CalmHubClient.mock.results[0].value;
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', 42, '1.2.0');
+            expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+            expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith('/fake/bundle', expect.stringContaining('payments.md'), expect.objectContaining({
+                id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.2.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/1.2.0',
+            }));
+        });
+
+        it('uses configured CalmHub URL and authentication for recovery', async () => {
+            const authPlugin = { getAuthHeaders: vi.fn(async () => ({})) };
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://configured.example.com', authPluginPath: 'auth.ts' });
+            mocks.loadAuthPlugin.mockResolvedValueOnce(authPlugin);
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ]);
+
+            expect(mocks.CalmHubClient).toHaveBeenCalledWith({ calmHubUrl: 'https://configured.example.com', authPlugin });
+        });
+
+        it('rejects recovery when neither an explicit nor configured Hub URL exists', async () => {
+            mocks.loadCliConfig.mockResolvedValueOnce(null);
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.loadCliConfig).toHaveBeenCalled();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it.each([
+            ['--calm-hub-document-id', '0', '--ver', '1.2.0'],
+            ['--calm-hub-document-id', '42', '--ver', 'invalid'],
+        ])('rejects invalid recovery identity values', async (idOption, id, versionOption, version) => {
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                idOption, id, versionOption, version
+            ])).rejects.toThrow();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('preserves --id as the recovery manifest key', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Payments\n');
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--id', 'payments-archive', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith('/fake/bundle', expect.any(String), expect.objectContaining({ id: 'payments-archive' }));
+        });
+
+        it.each([
+            ['--calm-hub-document-id', '42'],
+            ['--ver', '1.2.0'],
+            ['--calm-hub-url', 'https://explicit.example.com'],
+        ])('rejects incomplete narrative recovery options (%s)', async (option, value) => {
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', option, value])).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+        });
+
+        it('rejects recovery without a narrative type or namespace before Hub calls', async () => {
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'architecture', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('does not change the manifest when recovered Markdown differs', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: Payments SAD\n---\n# Local\n');
+            await expect(program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0'
+            ])).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('requires a namespace when adding a narrative document', async () => {
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'knowledge'])
+            ).rejects.toThrow();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('does not mutate or register Markdown with malformed frontmatter', async () => {
+            mocks.readFile.mockResolvedValueOnce('---\ntitle: [\n---\n# Payments\n');
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos'])
+            ).rejects.toThrow();
+
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
         it('should exit when no workspace bundle found', async () => {
