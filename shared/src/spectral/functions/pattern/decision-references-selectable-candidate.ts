@@ -1,6 +1,5 @@
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import type { SchemaNode } from '@finos/calm-models/pattern';
-import { listCandidates, listSelectableCandidates } from '../../../pattern-candidates.js';
+import { listCandidates, listSelectableCandidates, type SchemaNode } from '@finos/calm-models/pattern';
 
 /**
  * Reports a candidate that a decision names, but that selection cannot reach.

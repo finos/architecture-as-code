@@ -7,9 +7,11 @@
  * catalog member. This module is the single place that knows how to find them, so
  * generation, validation and the visualiser stop hand-rolling the same traversal.
  *
- * Two different questions get two different functions, deliberately kept apart:
+ * Three different questions get three different functions, deliberately kept apart:
  * `readChoiceBlock` picks the single form a decision offers (`oneOf` wins over `anyOf`);
- * `listCandidates` unions both, because validation needs every id a pattern declares.
+ * `listCandidates` unions both, because validation needs every id a pattern declares;
+ * `listSelectableCandidates` defers to `readChoiceBlock`'s single form, because
+ * generation needs only what an answer can actually reach.
  *
  * No selection, no mutation, no rendering — only reading. The surface is deliberately
  * limited to what has a caller today; add functions when a consumer needs them, so their
@@ -117,13 +119,27 @@ export type Candidate = {
     blockType?: 'oneOf' | 'anyOf';
 };
 
+/** How a `oneOf`/`anyOf` choice block contributes candidates. */
+type BlockResolution =
+    /** Every alternative of every keyword present - what the pattern *declares*. */
+    | 'all'
+    /** Only the operative keyword's alternatives - what selection can *reach*. */
+    | 'operative';
+
+/**
+ * The keywords a choice block contributes candidates from, for a given resolution.
+ * `'all'` unions both; `'operative'` defers to `readChoiceBlock`'s oneOf-wins rule so
+ * only the resolvable keyword is walked.
+ */
+function blockKeywords(container: SchemaNode, resolution: BlockResolution): ReadonlyArray<'oneOf' | 'anyOf'> {
+    if (resolution === 'all') return ['oneOf', 'anyOf'];
+    const block = readChoiceBlock(container);
+    return block ? [block.groupType] : [];
+}
+
 /**
  * Every node/relationship candidate declared under `properties.<calmType>`, across all
- * four declaration sites.
- *
- * Unions `oneOf` and `anyOf`, which is the opposite of `readChoiceBlock`. Validation
- * needs every declared id. Do not route this through `readChoiceBlock` - that drops
- * every `anyOf` candidate when `oneOf` is also present.
+ * four declaration sites, resolved per `resolution`.
  *
  * Skips a candidate with no `const`-pinned `unique-id`. A pure choice-block slot has no
  * id of its own, and counting it would create a false diagnostic.
@@ -131,7 +147,11 @@ export type Candidate = {
  * Reads the direct path only. It does not fall back into `allOf`, because
  * `getPatternArray` discards which branch it read, so `path` could not be trusted.
  */
-export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
+function walkCandidates(
+    pattern: SchemaNode,
+    calmType: 'nodes' | 'relationships',
+    resolution: BlockResolution
+): Candidate[] {
     const candidates: Candidate[] = [];
     const properties = pattern['properties'];
     const field = isObject(properties) ? properties[calmType] : undefined;
@@ -142,6 +162,8 @@ export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relatio
     prefixItems.forEach((item, i) => {
         if (!isObject(item)) return;
 
+        // A hybrid slot carries its own id and alternatives. Both are emitted regardless
+        // of resolution - `readChoiceBlock` only decides which *alternatives* keyword wins.
         const uniqueId = readUniqueId(item);
         if (uniqueId) {
             candidates.push({
@@ -152,7 +174,7 @@ export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relatio
             });
         }
 
-        (['oneOf', 'anyOf'] as const).forEach((blockType) => {
+        blockKeywords(item, resolution).forEach((blockType) => {
             const alternatives = item[blockType];
             if (!Array.isArray(alternatives)) return;
             alternatives.forEach((alt, j) => {
@@ -173,7 +195,7 @@ export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relatio
 
     const itemsCatalog = field['items'];
     if (isObject(itemsCatalog)) {
-        (['oneOf', 'anyOf'] as const).forEach((blockType) => {
+        blockKeywords(itemsCatalog, resolution).forEach((blockType) => {
             const alternatives = itemsCatalog[blockType];
             if (!Array.isArray(alternatives)) return;
             alternatives.forEach((alt, j) => {
@@ -192,4 +214,24 @@ export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relatio
     }
 
     return candidates;
+}
+
+/**
+ * Every node/relationship candidate a pattern declares. Unions `oneOf` and `anyOf`,
+ * which is the opposite of `readChoiceBlock`. Validation needs every declared id. Do
+ * not route this through `readChoiceBlock` - that drops every `anyOf` candidate when
+ * `oneOf` is also present.
+ */
+export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
+    return walkCandidates(pattern, calmType, 'all');
+}
+
+/**
+ * Only the candidates selection can reach, resolved as `selectChoices` resolves them:
+ * a dual-keyword block's `anyOf` alternatives are declared but not selectable.
+ * `listCandidates` is a silent bug here, because it reports the losing keyword's
+ * alternatives as available. Use it for "can this answer be honoured".
+ */
+export function listSelectableCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
+    return walkCandidates(pattern, calmType, 'operative');
 }

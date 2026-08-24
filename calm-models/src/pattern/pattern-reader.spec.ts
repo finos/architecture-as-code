@@ -3,6 +3,7 @@ import {
     getPatternArray,
     readChoiceBlock,
     listCandidates,
+    listSelectableCandidates,
     type SchemaNode,
 } from './pattern-reader.js';
 
@@ -174,6 +175,85 @@ describe('listCandidates', () => {
             allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
         };
         expect(listCandidates(pattern, 'nodes')).toEqual([]);
+    });
+});
+
+describe('listSelectableCandidates', () => {
+    it('lists a plain prefixItems entry, same as listCandidates', () => {
+        const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([
+            { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
+        ]);
+    });
+
+    it('resolves only the winning keyword of a dual-keyword block, unlike listCandidates', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ oneOf: [nodeWithId('a')], anyOf: [nodeWithId('b')] }],
+                },
+            },
+        };
+
+        const declared = listCandidates(pattern, 'nodes').map((c) => c.uniqueId);
+        const selectable = listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId);
+        expect(declared).toEqual(['a', 'b']);
+        expect(selectable).toEqual(['a']);
+    });
+
+    it('yields both the slot and its winning alternatives for a hybrid slot', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ ...nodeWithId('hybrid'), oneOf: [nodeWithId('alt-a')], anyOf: [nodeWithId('alt-b')] }],
+                },
+            },
+        };
+
+        const candidates = listSelectableCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => ({ uniqueId: c.uniqueId, site: c.site }))).toEqual([
+            { uniqueId: 'hybrid', site: 'prefixItem' },
+            { uniqueId: 'alt-a', site: 'prefixItemAlternative' },
+        ]);
+    });
+
+    it('resolves only the winning keyword of a dual-keyword items catalog', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: { oneOf: [nodeWithId('cat-one')], anyOf: [nodeWithId('cat-any')] },
+                },
+            },
+        };
+
+        expect(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId)).toEqual(['cat-one']);
+    });
+
+    it('lists every alternative when only one keyword is declared, same as listCandidates', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [{ anyOf: [nodeWithId('a'), nodeWithId('b')] }] },
+            },
+        };
+        expect(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId)).toEqual(['a', 'b']);
+    });
+
+    it('skips a catalog member with no const-pinned unique-id', () => {
+        const pattern = {
+            properties: { nodes: { items: { oneOf: [{ properties: {} }] } } },
+        };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([]);
+    });
+
+    it('returns an empty array when the calmType is absent', () => {
+        expect(listSelectableCandidates({ properties: {} }, 'nodes')).toEqual([]);
+    });
+
+    it('does not fall back into an allOf branch, unlike getPatternArray', () => {
+        const pattern = {
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
+        };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([]);
     });
 });
 

@@ -1,6 +1,5 @@
 import { initLogger } from '../../../logger';
-import { getPatternArray, readChoiceBlock } from '@finos/calm-models/pattern';
-import { listSelectableCandidates } from '../../../pattern-candidates.js';
+import { getPatternArray, readChoiceBlock, listSelectableCandidates } from '@finos/calm-models/pattern';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON

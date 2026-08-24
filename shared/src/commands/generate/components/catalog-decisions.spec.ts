@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { instantiate } from './instantiate';
 import { assertChoicesAreSelectable, extractOptions, selectChoices, CalmChoice, CalmOption } from './options';
+import { flattenAllOf } from './flatten-allof';
 import { SchemaDirectory } from '../../../schema-directory';
 
 /**
@@ -304,17 +305,14 @@ describe('an answer that cannot be honoured is refused, not discarded', () => {
 });
 
 /**
- * Pins the agreement between `extractOptions` and `assertChoicesAreSelectable` about where
- * a pattern declares its nodes and relationships.
- *
- * Both must resolve `allOf` the same way. `extractOptions` reads through `getPatternArray`,
- * which falls back into `allOf` branches. `calm-models`' `listCandidates` deliberately does
- * not, because its `path` positions Spectral diagnostics.
- *
- * That difference blocks collapsing the two candidate walks into one `allOf`-blind reader.
- * A blind guard finds no candidate here, so generation rejects the answer to its own
- * question. If you are consolidating the walks and this fails, the consolidation broke
- * generation.
+ * Pins the real division of labour for a decision declared inside an `allOf` branch:
+ * `extractOptions` discovers it on the raw pattern (`getPatternArray` falls back into
+ * `allOf`, matching what `main` already did by hand before this reader existed), and
+ * `runGenerate` flattens the same raw pattern with `flattenAllOf` - pre-existing, unrelated
+ * to this PR - before the guard or selection ever run. Neither the guard nor selection has
+ * ever tolerated a raw `allOf` pattern; `main`'s own `flattenCalmItems` threw on one with no
+ * fallback at all. So the guard is exercised here the way `runGenerate` actually calls it -
+ * post-flatten - not directly against the raw pattern `extractOptions` reads.
  */
 describe('decisions declared under allOf', () => {
     const allOfDecisionPattern = {
@@ -347,9 +345,11 @@ describe('decisions declared under allOf', () => {
         expect(options.map((o) => o.optionId)).toEqual(['cache-choice']);
     });
 
-    it('accept an answer the guard can resolve to a real candidate', () => {
+    it('accept an answer the guard can resolve to a real candidate, once flattened as runGenerate flattens it', async () => {
         const options = extractOptions(allOfDecisionPattern);
         const chosen = pick(options, 'cache-choice', 'Use Redis');
-        expect(() => assertChoicesAreSelectable(allOfDecisionPattern, [chosen])).not.toThrow();
+
+        const flattened = await flattenAllOf(allOfDecisionPattern, new SchemaDirectory({} as never), false);
+        expect(() => assertChoicesAreSelectable(flattened as never, [chosen])).not.toThrow();
     });
 });

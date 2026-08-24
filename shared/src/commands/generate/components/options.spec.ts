@@ -1,6 +1,6 @@
  
 
-import { CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
+import { assertChoicesAreSelectable, CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
 
 const applicationAtoC: CalmChoice = {
     description: 'Application A connects to Application C',
@@ -535,6 +535,61 @@ describe('Pattern Options', () => {
             }];
 
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
+        });
+    });
+
+    describe('assertChoicesAreSelectable', () => {
+        function choice(description: string, nodes: string[] = [], relationships: string[] = []): CalmChoice {
+            return { description, nodes, relationships };
+        }
+
+        it('does not throw when every choice names a plain prefixItems candidate', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick webapp', ['webapp'])])).not.toThrow();
+        });
+
+        it('does not throw when every choice names a reachable items-catalog candidate', () => {
+            const pattern = buildPatternWithItemsCatalog([], [buildNode('redis')]);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick redis', ['redis'])])).not.toThrow();
+        });
+
+        it('does not throw when choices is empty', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [])).not.toThrow();
+        });
+
+        it('does not throw for a choice naming a reachable prefixItems slot alternative', () => {
+            const pattern = buildPattern(
+                [{ oneOf: [buildNode('sql-store'), buildNode('nosql-store')] }],
+                []
+            );
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick sql', ['sql-store'])])).not.toThrow();
+        });
+
+        it('throws when a choice names a candidate in the losing keyword of a dual-keyword catalog', () => {
+            const pattern = {
+                properties: {
+                    nodes: {
+                        prefixItems: [buildNode('webapp')],
+                        items: { oneOf: [buildNode('redis')], anyOf: [buildNode('kafka')] }
+                    },
+                    relationships: { prefixItems: [] }
+                }
+            };
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick kafka', ['kafka'])]))
+                .toThrow(/node "kafka" \(choice "pick kafka"\)/);
+        });
+
+        it('throws when a choice names a node id the pattern does not declare at all', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('typo', ['webbapp'])]))
+                .toThrow(/node "webbapp" \(choice "typo"\)/);
+        });
+
+        it('throws when a choice names an unreachable relationship candidate', () => {
+            const pattern = buildPattern([], [buildConnectsRelationship('r1', 'prompt', 'a', 'b')]);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('typo', [], ['ghost'])]))
+                .toThrow(/relationship "ghost" \(choice "typo"\)/);
         });
     });
 });

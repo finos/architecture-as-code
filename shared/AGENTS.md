@@ -75,8 +75,8 @@ Use the wrong one and the failure is silent, so they are separate named function
 | Question | Function | Home |
 |---|---|---|
 | What does *this block* offer? (`oneOf` wins) | `readChoiceBlock` | `@finos/calm-models/pattern` |
-| What does the pattern *declare*? (both keywords) | `listCandidates` | two copies - see below |
-| What can selection *reach*? (one keyword) | `listSelectableCandidates` | `shared/src/pattern-candidates.ts` |
+| What does the pattern *declare*? (both keywords) | `listCandidates` | `@finos/calm-models/pattern` |
+| What can selection *reach*? (one keyword) | `listSelectableCandidates` | `@finos/calm-models/pattern` |
 
 Use *declared* for what a document says: uniqueness, dangling references. Use *selectable*
 for "can this answer be honoured". They differ only where a block declares both keywords.
@@ -91,13 +91,16 @@ Treat `allOf` for nodes and relationships as unsupported.
 |---|---|
 | `deepMergeSchemas` (`flatten-allof.ts`) | shallow merge; a repeated property loses `type`, so `instantiate` emits `{}` |
 | `getPatternArray` | first branch wins, later branches ignored; marked TEMPORARY |
-| `calm-models` `listCandidates` | ignores `allOf`, to keep `path` correct for diagnostics |
-| `shared` `listCandidates` | follows `allOf` through `getPatternArray` |
+| `listCandidates` / `listSelectableCandidates` | ignore `allOf` entirely, to keep `path` correct for diagnostics |
 
-The last two disagree. A pattern whose `prefixItems` sits under `allOf` yields nothing from
-the first and one candidate from the second, with a `path` the document does not contain.
-Nothing reads that `path` today. `allOf` means **intersection**, never union, because
-`calm validate` never flattens.
+A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at all from the
+readers, and `deepMergeSchemas` may still merge it (lossily) for `calm generate`. `allOf` means
+**intersection**, never union, because `calm validate` never flattens. `shared` previously kept
+its own copy of `listCandidates` that followed `allOf` through `getPatternArray`, disagreeing
+with the `calm-models` copy and reporting a `path` the document did not contain; nothing tested
+or relied on that behaviour, so the copy was removed rather than reconciled. Correct `allOf`
+support for nodes and relationships is still unbuilt — this only removed a second, wrong answer,
+it did not add support.
 
 ### Enforcement
 
@@ -118,12 +121,12 @@ It is not called from `selectChoices`, because validation calls that too.
 
 ### Still duplicated
 
-Neither pair has caused a bug. Nothing keeps either in step.
+Nothing keeps this pair in step. `listCandidates`'s own duplicate (`shared/src/pattern-candidates.ts`)
+is gone — both `listCandidates` and `listSelectableCandidates` now live only in `@finos/calm-models/pattern`.
 
 | Duplicate | Sites | Note |
 |---|---|---|
-| `listCandidates` | `pattern-reader.ts:154`, `pattern-candidates.ts:104` | diverge on `allOf`; one implementation needs the `allOf` rework first |
-| decision-holder reading | `options.ts:26,30`, `patternTransformer.ts:290,317` | already differ: one unions both keywords, the other picks `oneOf` |
+| decision-holder reading | `options.ts:25,29`, `patternTransformer.ts:290,317` | already differ: one unions both keywords, the other picks `oneOf` |
 
 `calm-hub-ui` depends on `@finos/calm-models` and not on `shared`, so a shared reader must
 live in `calm-models`.

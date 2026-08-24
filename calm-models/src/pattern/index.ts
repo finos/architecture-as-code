@@ -2,6 +2,7 @@ export {
     getPatternArray,
     readChoiceBlock,
     listCandidates,
+    listSelectableCandidates,
     type SchemaNode,
     type PatternArray,
     type ChoiceBlock,
