@@ -681,6 +681,28 @@ describe('CLI Integration Tests', () => {
         );
         await expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
 
+        // BASELINE, not a target to make pass silently. The generated architecture does not
+        // round-trip: validating it against the same pattern fails on a control requirement's
+        // control-id, because `calm generate` never fetches the schema `requirement-url` points
+        // at to materialize the fields that schema demands. Reproduces identically on `main`;
+        // unrelated to this PR. Tracked separately - if this test starts failing because
+        // validation now passes, the bug is fixed and this block should be deleted.
+        let validateError: { stdout?: string } | undefined;
+        try {
+            await cli.run(['validate', '-p', inputPattern, '-a', outputArchitecture, '-u', STATIC_GETTING_STARTED_MAPPING_PATH]);
+        } catch (err) {
+            validateError = err as { stdout?: string };
+        }
+        expect(validateError, 'expected calm validate to fail - if it now passes, delete this baseline block').toBeDefined();
+        const validateOutput = JSON.parse(validateError!.stdout!);
+        expect(validateOutput.hasErrors).toBe(true);
+        expect(validateOutput.jsonSchemaValidationOutputs).toContainEqual(
+            expect.objectContaining({
+                code: 'control-requirement-validation',
+                path: expect.stringContaining('control-id'),
+            })
+        );
+
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await cli.run([
