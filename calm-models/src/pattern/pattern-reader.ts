@@ -26,8 +26,13 @@ function isObject(value: unknown): value is SchemaNode {
 
 
 /**
- * TEMPORARY. Replicates today's first-`allOf`-branch-wins reading of `prefixItems`/`items`
- * for a top-level pattern property. A later branch that declares the same path is ignored.
+ * TEMPORARY. Replicates today's first-`allOf`-branch-wins reading of a single keyword
+ * (`prefixItems` or `items`) for a top-level pattern property. A later branch that declares
+ * the same path is ignored.
+ *
+ * `getPatternArray` calls this once per keyword, each search independent. So `prefixItems`
+ * and `items` for the same property can resolve from two different branches (or one from the
+ * root, one from `allOf`) - there is no single "the branch that won" for the pair.
  *
  * It exists because candidate discovery runs on the raw pattern, before `flattenAllOf`.
  * The `allOf` merge rework will delete this function. Do not correct the precedence here.
