@@ -2,7 +2,19 @@
 
 This module provides shared logic such as validation and visualization utilities, intended for use across various plugins and tools in the codebase. It simplifies code reuse and promotes a unified logic layer, making it easier to maintain and extend.
 
+## Browser entry point
 
+Browser bundles import from `@finos/calm-shared/browser`, not the package root — the root entry pulls in Node-only code (winston, `fs`, etc.).
+The browser entry covers validate (JSON Schema + Spectral), generate, diff/timeline, `SchemaDirectory`, the document loaders, and auth plugins.
+Bundlers must stub out the Node builtins the browser entry's dependency chain still requests but never touches at runtime; for webpack:
+
+```js
+resolve: {
+    fallback: { fs: false, path: false, buffer: false }
+}
+```
+
+`BROWSER_COMMAND_SUPPORT` (from `browser-capabilities.ts`) lists which `calm` CLI commands the browser entry can honour and why the rest are unsupported there, so consumers can report this to users instead of guessing.
 
 # Spectral validation rules for CALM implementations
 

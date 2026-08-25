@@ -36,9 +36,26 @@ npm test
 npx vitest run ${TEST FILE}
 ```
 
+## Entry points: Node vs browser
+
+`@finos/calm-shared` exposes two entry points via the package `exports` map:
+
+| Entry | File | Audience |
+|---|---|---|
+| `@finos/calm-shared` | `src/index.ts` | CLI, calm-server, anything on Node. Registers winston logging and the JUnit formatter at load. |
+| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, Studio/Guard). Validate (JSON Schema + Spectral), generate, diff/timeline, `SchemaDirectory`, loaders, the CLI capability manifest. |
+
+Rules:
+- New modules are browser-safe by default. Node-only code (`fs`, `path`, `net`, `process.exit`, `__dirname`, winston, mkdirp, playwright) lives in a `*.node.ts` / `node-*.ts` module or in a wrapper that the root barrel imports — never imported from `browser.ts` or anything it reaches.
+- Prefer seams over conditionals: pure core + Node wrapper (`generate-core.ts` / `generate.ts`, `diff-core.ts` / `diff.ts`), injected `DocumentLoader`s, registries (`registerNodeLoggerFactory`, `registerOutputFormatter`).
+- `scripts/check-browser-entry.mjs` runs in `npm test`. It bundles `src/browser.ts` with esbuild for the browser and fails on any Node builtin request outside a four-entry allowlist (Spectral's dependency chain requests `fs`/`path`/`buffer` but never touches `fs`/`path` at runtime), then executes a real `validate()` probe with those builtins stubbed to throw. Do not extend the allowlist to make a red build green — fix the seam.
+- Deep imports (`@finos/calm-shared/src/...`, `/dist/...`) are sealed by the `exports` map. Import from the barrel.
+- Browser consumers bundling the entry must map the allowlisted builtins to nothing — webpack: `resolve.fallback: { fs: false, path: false, buffer: false }`; esbuild: the same stub plugin the guard uses.
+- Not in the browser entry (follow-ups): template/docify (filesystem-bound loaders and output strategies), Hub read/write commands (CORS), diagram rasterisation.
+
 ## Key Components
 
-- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders.
+- **Document Loader** (`document-loader/`): Strategies for loading CALM documents — FileSystem, MultiStrategy, plus CalmHub, direct-URL, and mapped loaders. Also `InMemoryDocumentLoader` (pass-a-map loader for tests and embedders) and `buildBrowserDocumentLoader` (the browser-entry loader factory, `document-loader/browser-document-loader.ts`).
 - **Template Processor** (`template/`): Handlebars-based template generation logic.
 - **Model Visitors** (`model-visitor/`): Visitor pattern implementations for traversing CALM models.
 - **Validation** (`commands/validate/`, `spectral/`): Core validation logic (Spectral integration) and output enrichment.
@@ -67,7 +84,10 @@ npm run build:shared
 
 This package builds with `tsc` (not tsup/esbuild): `tsc -p ./tsconfig.build.json` followed by the
 `copy:docify-template-bundle` post-build step (`scripts/copy-templates.mjs`), which copies the docify
-template bundles into `dist`.
+template bundles into `dist`. `npm test --workspace shared` also runs `scripts/check-browser-entry.mjs`
+first, an esbuild-based guard that bundles `src/browser.ts` for the browser and fails the test run if it
+pulls in a Node builtin outside its allowlist or touches one at runtime — see "Entry points: Node vs
+browser" above.
 
 #### Build configuration
 `tsconfig.build.json` is the production build config. It enables `"strict": true` and **excludes** spec
