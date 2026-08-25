@@ -1,5 +1,5 @@
 import { initLogger } from '../../../logger';
-import { getPatternArray, readChoiceBlock, listSelectableCandidates } from '@finos/calm-models/pattern';
+import { getPatternArray, resolveOperativeChoiceBlock, listSelectableCandidates } from '@finos/calm-models/pattern';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
@@ -94,7 +94,7 @@ type Item = {
  * @returns A list of items that match the selection predicate, or the item itself if it is not a oneOf or anyOf block
  */
 function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode) => boolean): object[] {
-    const block = readChoiceBlock(item);
+    const block = resolveOperativeChoiceBlock(item);
 
     if (!block) {
         if (item.oneOf || item.anyOf) {
@@ -137,7 +137,7 @@ function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationship
     // Only treat `items` as a decision catalog when it is a oneOf/anyOf of candidates. A plain
     // `items` schema (or `items: false` closing a tuple) is not part of the decision mechanism and
     // must be left untouched rather than stripped.
-    const catalogBlock = readChoiceBlock(itemsCatalog);
+    const catalogBlock = resolveOperativeChoiceBlock(itemsCatalog);
     const isCatalog = catalogBlock !== null;
     const selectedCatalogItems: SchemaNode[] = isCatalog
         ? (catalogBlock!.alternatives as SchemaNode[]).filter(selectionPredicate)

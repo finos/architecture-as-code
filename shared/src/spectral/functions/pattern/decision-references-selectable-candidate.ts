@@ -1,5 +1,5 @@
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { listCandidates, listSelectableCandidates, type SchemaNode } from '@finos/calm-models/pattern';
+import { listDeclaredCandidates, listSelectableCandidates, type SchemaNode } from '@finos/calm-models/pattern';
 
 /**
  * Reports a candidate that a decision names, but that selection cannot reach.
@@ -25,7 +25,7 @@ export function decisionReferencesSelectableCandidate(
     }
 
     // Undeclared ids belong to the other rule.
-    const declared = listCandidates(pattern, calmType).some((c) => c.uniqueId === input);
+    const declared = listDeclaredCandidates(pattern, calmType).some((c) => c.uniqueId === input);
     if (!declared) {
         return [];
     }

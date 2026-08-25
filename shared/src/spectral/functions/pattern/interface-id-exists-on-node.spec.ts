@@ -226,7 +226,7 @@ describe('interfaceIdExistsOnNode', () => {
 
     describe('a prefixItems oneOf slot with two node alternatives', () => {
         // { oneOf: [A(interfaces:[iA]), B(interfaces:[iB])] }. Before the migration to
-        // listCandidates, the inner unwrapping always resolved to alternative 0 and unioned
+        // listDeclaredCandidates, the inner unwrapping always resolved to alternative 0 and unioned
         // interfaces across every alternative in the slot - so only the first two rows here
         // passed; B was never findable, and interfaces borrowed across alternatives passed
         // silently. All four rows must now behave correctly.

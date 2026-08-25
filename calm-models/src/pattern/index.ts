@@ -1,7 +1,7 @@
 export {
     getPatternArray,
-    readChoiceBlock,
-    listCandidates,
+    resolveOperativeChoiceBlock,
+    listDeclaredCandidates,
     listSelectableCandidates,
     type SchemaNode,
     type PatternArray,

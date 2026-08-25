@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     getPatternArray,
-    readChoiceBlock,
-    listCandidates,
+    resolveOperativeChoiceBlock,
+    listDeclaredCandidates,
     listSelectableCandidates,
     type SchemaNode,
 } from './pattern-reader.js';
@@ -130,45 +130,45 @@ describe('getPatternArray', () => {
     });
 });
 
-describe('readChoiceBlock', () => {
+describe('resolveOperativeChoiceBlock', () => {
     it('returns null for an undefined catalog', () => {
-        expect(readChoiceBlock(undefined)).toBeNull();
+        expect(resolveOperativeChoiceBlock(undefined)).toBeNull();
     });
 
     it('returns null when neither oneOf nor anyOf is an array', () => {
-        expect(readChoiceBlock({})).toBeNull();
-        expect(readChoiceBlock({ oneOf: 'not-an-array' })).toBeNull();
+        expect(resolveOperativeChoiceBlock({})).toBeNull();
+        expect(resolveOperativeChoiceBlock({ oneOf: 'not-an-array' })).toBeNull();
     });
 
     it('reads a oneOf-only catalog', () => {
         const alternatives = [nodeWithId('a'), nodeWithId('b')];
-        expect(readChoiceBlock({ oneOf: alternatives })).toEqual({ groupType: 'oneOf', alternatives });
+        expect(resolveOperativeChoiceBlock({ oneOf: alternatives })).toEqual({ groupType: 'oneOf', alternatives });
     });
 
     it('reads an anyOf-only catalog', () => {
         const alternatives = [nodeWithId('a')];
-        expect(readChoiceBlock({ anyOf: alternatives })).toEqual({ groupType: 'anyOf', alternatives });
+        expect(resolveOperativeChoiceBlock({ anyOf: alternatives })).toEqual({ groupType: 'anyOf', alternatives });
     });
 
     it('prefers oneOf over anyOf when both are present', () => {
         const oneOfAlts = [nodeWithId('one')];
         const anyOfAlts = [nodeWithId('any')];
-        expect(readChoiceBlock({ oneOf: oneOfAlts, anyOf: anyOfAlts })).toEqual({
+        expect(resolveOperativeChoiceBlock({ oneOf: oneOfAlts, anyOf: anyOfAlts })).toEqual({
             groupType: 'oneOf',
             alternatives: oneOfAlts,
         });
     });
 });
 
-describe('listCandidates', () => {
+describe('listDeclaredCandidates', () => {
     it('lists a plain prefixItems entry', () => {
         const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
-        expect(listCandidates(pattern, 'nodes')).toEqual([
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([
             { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
         ]);
     });
 
-    it('unions oneOf and anyOf on the same slot, unlike readChoiceBlock', () => {
+    it('unions oneOf and anyOf on the same slot, unlike resolveOperativeChoiceBlock', () => {
         const pattern = {
             properties: {
                 nodes: {
@@ -177,7 +177,7 @@ describe('listCandidates', () => {
             },
         };
 
-        const candidates = listCandidates(pattern, 'nodes');
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
         expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
         expect(candidates.map((c) => c.blockType)).toEqual(['oneOf', 'anyOf']);
         expect(candidates.every((c) => c.site === 'prefixItemAlternative' && c.slotIndex === 0)).toBe(true);
@@ -192,7 +192,7 @@ describe('listCandidates', () => {
             },
         };
 
-        const candidates = listCandidates(pattern, 'nodes');
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
         expect(candidates.map((c) => ({ uniqueId: c.uniqueId, site: c.site }))).toEqual([
             { uniqueId: 'hybrid', site: 'prefixItem' },
             { uniqueId: 'alt', site: 'prefixItemAlternative' },
@@ -208,7 +208,7 @@ describe('listCandidates', () => {
             },
         };
 
-        const candidates = listCandidates(pattern, 'nodes');
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
         expect(candidates).toEqual([
             { uniqueId: 'cat-one', site: 'catalogMember', node: nodeWithId('cat-one'), path: ['properties', 'nodes', 'items', 'oneOf', 0], blockType: 'oneOf' },
             { uniqueId: 'cat-any', site: 'catalogMember', node: nodeWithId('cat-any'), path: ['properties', 'nodes', 'items', 'anyOf', 0], blockType: 'anyOf' },
@@ -222,7 +222,7 @@ describe('listCandidates', () => {
             },
         };
 
-        const candidates = listCandidates(pattern, 'nodes');
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
         expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
         expect(candidates.some((c) => c.uniqueId === undefined)).toBe(false);
     });
@@ -231,30 +231,30 @@ describe('listCandidates', () => {
         const pattern = {
             properties: { nodes: { items: { oneOf: [{ properties: {} }] } } },
         };
-        expect(listCandidates(pattern, 'nodes')).toEqual([]);
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([]);
     });
 
     it('returns an empty array when the calmType is absent', () => {
-        expect(listCandidates({ properties: {} }, 'nodes')).toEqual([]);
+        expect(listDeclaredCandidates({ properties: {} }, 'nodes')).toEqual([]);
     });
 
     it('does not fall back into an allOf branch, unlike getPatternArray', () => {
         const pattern = {
             allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
         };
-        expect(listCandidates(pattern, 'nodes')).toEqual([]);
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([]);
     });
 });
 
 describe('listSelectableCandidates', () => {
-    it('lists a plain prefixItems entry, same as listCandidates', () => {
+    it('lists a plain prefixItems entry, same as listDeclaredCandidates', () => {
         const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
         expect(listSelectableCandidates(pattern, 'nodes')).toEqual([
             { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
         ]);
     });
 
-    it('resolves only the winning keyword of a dual-keyword block, unlike listCandidates', () => {
+    it('resolves only the winning keyword of a dual-keyword block, unlike listDeclaredCandidates', () => {
         const pattern = {
             properties: {
                 nodes: {
@@ -263,7 +263,7 @@ describe('listSelectableCandidates', () => {
             },
         };
 
-        const declared = listCandidates(pattern, 'nodes').map((c) => c.uniqueId);
+        const declared = listDeclaredCandidates(pattern, 'nodes').map((c) => c.uniqueId);
         const selectable = listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId);
         expect(declared).toEqual(['a', 'b']);
         expect(selectable).toEqual(['a']);
@@ -297,7 +297,7 @@ describe('listSelectableCandidates', () => {
         expect(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId)).toEqual(['cat-one']);
     });
 
-    it('lists every alternative when only one keyword is declared, same as listCandidates', () => {
+    it('lists every alternative when only one keyword is declared, same as listDeclaredCandidates', () => {
         const pattern = {
             properties: {
                 nodes: { prefixItems: [{ anyOf: [nodeWithId('a'), nodeWithId('b')] }] },

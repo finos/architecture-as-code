@@ -1,6 +1,6 @@
 import { difference } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { listCandidates, type SchemaNode } from '@finos/calm-models/pattern';
+import { listDeclaredCandidates, type SchemaNode } from '@finos/calm-models/pattern';
 import { listNodeInterfaces } from './candidate-helpers';
 
 interface ConnectsRelationship {
@@ -28,7 +28,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     // Each candidate carries its own unique-id, so this finds the exact alternative that
     // matches - not, as the old JSONPath-based lookup did, just the first alternative in
     // a oneOf/anyOf slot regardless of which one actually has this id.
-    const nodeCandidate = listCandidates(pattern, 'nodes').find((candidate) => candidate.uniqueId === nodeId);
+    const nodeCandidate = listDeclaredCandidates(pattern, 'nodes').find((candidate) => candidate.uniqueId === nodeId);
     if (!nodeCandidate) {
         // other rule will report undefined node
         return [];

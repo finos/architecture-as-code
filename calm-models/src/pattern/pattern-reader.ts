@@ -9,9 +9,9 @@
  * same traversal.
  *
  * Three different questions get three different functions, deliberately kept apart:
- * `readChoiceBlock` picks the single form a decision offers (`oneOf` wins over `anyOf`);
- * `listCandidates` unions both, because validation needs every id a pattern declares;
- * `listSelectableCandidates` defers to `readChoiceBlock`'s single form, because
+ * `resolveOperativeChoiceBlock` picks the single form a decision offers (`oneOf` wins over `anyOf`);
+ * `listDeclaredCandidates` unions both, because validation needs every id a pattern declares;
+ * `listSelectableCandidates` defers to `resolveOperativeChoiceBlock`'s single form, because
  * generation needs only what an answer can actually reach.
  *
  * No selection, no mutation, no rendering — only reading. The surface is deliberately
@@ -90,9 +90,9 @@ export interface ChoiceBlock {
  * catalog. `oneOf` wins when both are present. Returns `null` when neither keyword is
  * an array.
  *
- * This picks one answer. A caller that needs every declared id must use `listCandidates`.
+ * This picks one answer. A caller that needs every declared id must use `listDeclaredCandidates`.
  */
-export function readChoiceBlock(items: SchemaNode | undefined): ChoiceBlock | null {
+export function resolveOperativeChoiceBlock(items: SchemaNode | undefined): ChoiceBlock | null {
     if (!items) return null;
 
     const hasOneOf = Array.isArray(items['oneOf']);
@@ -132,12 +132,12 @@ type BlockResolution =
 
 /**
  * The keywords a choice block contributes candidates from, for a given resolution.
- * `'all'` unions both; `'operative'` defers to `readChoiceBlock`'s oneOf-wins rule so
+ * `'all'` unions both; `'operative'` defers to `resolveOperativeChoiceBlock`'s oneOf-wins rule so
  * only the resolvable keyword is walked.
  */
 function blockKeywords(container: SchemaNode, resolution: BlockResolution): ReadonlyArray<'oneOf' | 'anyOf'> {
     if (resolution === 'all') return ['oneOf', 'anyOf'];
-    const block = readChoiceBlock(container);
+    const block = resolveOperativeChoiceBlock(container);
     return block ? [block.groupType] : [];
 }
 
@@ -167,7 +167,7 @@ function walkCandidates(
         if (!isObject(item)) return;
 
         // A hybrid slot carries its own id and alternatives. Both are emitted regardless
-        // of resolution - `readChoiceBlock` only decides which *alternatives* keyword wins.
+        // of resolution - `resolveOperativeChoiceBlock` only decides which *alternatives* keyword wins.
         const uniqueId = readUniqueId(item);
         if (uniqueId) {
             candidates.push({
@@ -222,18 +222,18 @@ function walkCandidates(
 
 /**
  * Every node/relationship candidate a pattern declares. Unions `oneOf` and `anyOf`,
- * which is the opposite of `readChoiceBlock`. Validation needs every declared id. Do
- * not route this through `readChoiceBlock` - that drops every `anyOf` candidate when
+ * which is the opposite of `resolveOperativeChoiceBlock`. Validation needs every declared id. Do
+ * not route this through `resolveOperativeChoiceBlock` - that drops every `anyOf` candidate when
  * `oneOf` is also present.
  */
-export function listCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
+export function listDeclaredCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
     return walkCandidates(pattern, calmType, 'all');
 }
 
 /**
  * Only the candidates selection can reach, resolved as `selectChoices` resolves them:
  * a dual-keyword block's `anyOf` alternatives are declared but not selectable.
- * `listCandidates` is a silent bug here, because it reports the losing keyword's
+ * `listDeclaredCandidates` is a silent bug here, because it reports the losing keyword's
  * alternatives as available. Use it for "can this answer be honoured".
  */
 export function listSelectableCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {

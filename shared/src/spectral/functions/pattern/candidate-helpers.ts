@@ -20,7 +20,7 @@ export interface NodeInterface {
 
 /**
  * Reads a node candidate's own `interfaces.prefixItems`, in declaration order, skipping
- * any entry with no `const`-pinned `unique-id` — the same rule `listCandidates` applies
+ * any entry with no `const`-pinned `unique-id` — the same rule `listDeclaredCandidates` applies
  * to node/relationship candidates themselves.
  */
 export function listNodeInterfaces(node: SchemaNode): NodeInterface[] {

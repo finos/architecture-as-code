@@ -9,7 +9,7 @@ import {
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
-import { getPatternArray, readChoiceBlock } from '@finos/calm-models/pattern';
+import { getPatternArray, resolveOperativeChoiceBlock } from '@finos/calm-models/pattern';
 
 /**
  * Result of parsing pattern data into ReactFlow elements
@@ -201,7 +201,7 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
     const decisionGroups: DecisionGroup[] = [];
 
     prefixItems.forEach((item: SchemaObject, index: number) => {
-        const block = readChoiceBlock(item);
+        const block = resolveOperativeChoiceBlock(item);
         if (block) {
             extractNodeDecisionGroup(block.alternatives as SchemaObject[], `node-decision-${index}`, block.groupType, nodes, decisionGroups);
         } else {
@@ -216,7 +216,7 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
     // that aren't tied to a specific positional slot. Treat the whole catalog as
     // a single decision-group slot.
     if (items) {
-        const catalog = readChoiceBlock(items);
+        const catalog = resolveOperativeChoiceBlock(items);
         if (catalog) {
             extractNodeDecisionGroup(catalog.alternatives as SchemaObject[], 'node-decision-items', catalog.groupType, nodes, decisionGroups);
         }
@@ -314,7 +314,7 @@ function extractOptionsMetadata(item: SchemaObject): OptionsMetadata | null {
         item['properties']?.['relationship-type']?.['properties']?.['options']?.['prefixItems'] || [];
 
     for (const prefixItem of optionsPrefixItems) {
-        const block = readChoiceBlock(prefixItem);
+        const block = resolveOperativeChoiceBlock(prefixItem);
 
         if (block) {
             const optionType = block.groupType;
@@ -380,7 +380,7 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
         }
 
         // Check for oneOf/anyOf wrapped relationships
-        const block = readChoiceBlock(item);
+        const block = resolveOperativeChoiceBlock(item);
         if (block) {
             extractRelationshipDecisionGroup(block.alternatives as SchemaObject[], `rel-decision-${index}`, relationships);
             return;
@@ -396,7 +396,7 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
     // Open catalog: `items.oneOf`/`items.anyOf` declares zero-or-more relationship
     // candidates not tied to a specific positional slot.
     if (items) {
-        const catalog = readChoiceBlock(items);
+        const catalog = resolveOperativeChoiceBlock(items);
         if (catalog) {
             extractRelationshipDecisionGroup(catalog.alternatives as SchemaObject[], 'rel-decision-items', relationships);
         }

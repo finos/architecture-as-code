@@ -72,8 +72,8 @@ Use the wrong one and the failure is silent, so they are separate named function
 
 | Question | Function | Home |
 |---|---|---|
-| What does *this block* offer? (`oneOf` wins) | `readChoiceBlock` | `@finos/calm-models/pattern` |
-| What does the pattern *declare*? (both keywords) | `listCandidates` | `@finos/calm-models/pattern` |
+| What does *this block* offer? (`oneOf` wins) | `resolveOperativeChoiceBlock` | `@finos/calm-models/pattern` |
+| What does the pattern *declare*? (both keywords) | `listDeclaredCandidates` | `@finos/calm-models/pattern` |
 | What can selection *reach*? (one keyword) | `listSelectableCandidates` | `@finos/calm-models/pattern` |
 
 Use *declared* for what a document says: uniqueness, dangling references. Use *selectable*
@@ -89,13 +89,13 @@ Treat `allOf` for nodes and relationships as unsupported.
 |---|---|
 | `deepMergeSchemas` (`flatten-allof.ts`) | shallow merge; a repeated property loses `type`, so `instantiate` emits `{}` |
 | `getPatternArray` | resolves one branch per property (root, else the first branch declaring it) and reads `prefixItems`/`items` from that same branch; later branches ignored; marked TEMPORARY |
-| `listCandidates` / `listSelectableCandidates` | ignore `allOf` entirely, to keep `path` correct for diagnostics |
+| `listDeclaredCandidates` / `listSelectableCandidates` | ignore `allOf` entirely, to keep `path` correct for diagnostics |
 
 A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at all from
-`listCandidates`/`listSelectableCandidates` (they ignore `allOf` entirely), even though
+`listDeclaredCandidates`/`listSelectableCandidates` (they ignore `allOf` entirely), even though
 `getPatternArray` and `deepMergeSchemas` both still reach into it. `allOf` means
 **intersection**, never union, because `calm validate` never flattens. `shared` previously kept
-its own copy of `listCandidates` that followed `allOf` through `getPatternArray`, disagreeing
+its own copy of `listDeclaredCandidates` that followed `allOf` through `getPatternArray`, disagreeing
 with the `calm-models` copy and reporting a `path` the document did not contain; nothing tested
 or relied on that behaviour, so the copy was removed rather than reconciled — it did not add
 `allOf` support, only removed a second, wrong answer.
@@ -120,8 +120,8 @@ regardless of which array it sits in.
 
 ### Still duplicated
 
-Nothing keeps this pair in step. `listCandidates`'s own duplicate (`shared/src/pattern-candidates.ts`)
-is gone — both `listCandidates` and `listSelectableCandidates` now live only in `@finos/calm-models/pattern`.
+Nothing keeps this pair in step. `listDeclaredCandidates`'s own duplicate (`shared/src/pattern-candidates.ts`)
+is gone — both `listDeclaredCandidates` and `listSelectableCandidates` now live only in `@finos/calm-models/pattern`.
 
 | Duplicate | Sites | Note |
 |---|---|---|

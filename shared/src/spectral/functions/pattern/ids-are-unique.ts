@@ -1,5 +1,5 @@
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { listCandidates, type Candidate, type SchemaNode } from '@finos/calm-models/pattern';
+import { listDeclaredCandidates, type Candidate, type SchemaNode } from '@finos/calm-models/pattern';
 import { listNodeInterfaces } from './candidate-helpers';
 
 // Spectral's IFunctionResult.path is an array of path segments, not a pointer string.
@@ -42,8 +42,8 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
     }
 
     const pattern = context.document.data as SchemaNode;
-    const nodeCandidates = listCandidates(pattern, 'nodes');
-    const relationshipCandidates = listCandidates(pattern, 'relationships');
+    const nodeCandidates = listDeclaredCandidates(pattern, 'nodes');
+    const relationshipCandidates = listDeclaredCandidates(pattern, 'relationships');
 
     const interfaceEntries: DuplicateCheckEntry[] = nodeCandidates.flatMap((nodeCandidate) =>
         listNodeInterfaces(nodeCandidate.node).map((iface) => ({

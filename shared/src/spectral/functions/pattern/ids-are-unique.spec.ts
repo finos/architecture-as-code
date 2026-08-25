@@ -265,7 +265,7 @@ describe('idsAreUnique', () => {
 
     it('detects a duplicate id declared across prefixItems oneOf alternatives (previously undetected)', () => {
         // Positional slot alternatives were invisible to this rule until the migration to
-        // listCandidates: the identical clash inside an items catalog already errored, but
+        // listDeclaredCandidates: the identical clash inside an items catalog already errored, but
         // two prefixItems[*].oneOf[*] alternatives sharing an id did not.
         const input = {};
         const context = {

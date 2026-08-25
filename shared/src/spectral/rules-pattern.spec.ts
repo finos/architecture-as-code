@@ -199,7 +199,7 @@ describe('pattern-items-catalog-must-declare-one-choice-keyword', () => {
     it('fires on a prefixItems slot declaring both oneOf and anyOf, not just an items catalog', async () => {
         // The bug this rule catches - oneOf silently winning over anyOf - resolves
         // identically for a prefixItems slot and an items catalog (both go through
-        // readChoiceBlock), and reproduces on main for prefixItems slots. The `given`
+        // resolveOperativeChoiceBlock), and reproduces on main for prefixItems slots. The `given`
         // already covers this site; this pins that it is actually exercised.
         const codes = await ruleCodesFor({
             properties: {
