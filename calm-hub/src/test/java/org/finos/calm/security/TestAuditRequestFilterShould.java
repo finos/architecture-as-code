@@ -429,6 +429,45 @@ public class TestAuditRequestFilterShould {
         assertThat(entry.getAction(), is(AuditAction.UPDATE));
     }
 
+    @Test
+    void resolve_control_requirement_deletion_directly_from_path_params() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) ControlResource.class);
+        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ControlResource.class, "deleteControlRequirement"));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("domain", "payments");
+        pathParams.putSingle("controlId", "11");
+        ContainerRequestContext requestContext = mockRequest("DELETE", pathParams);
+        ContainerResponseContext responseContext = mockResponse(204, null);
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.CONTROL_REQUIREMENT));
+        assertThat(entry.getDomain(), is("payments"));
+        assertThat(entry.getEntityId(), is("11"));
+        assertThat(entry.getAction(), is(AuditAction.DELETE));
+    }
+
+    @Test
+    void resolve_control_configuration_deletion_directly_from_path_params() {
+        when(resourceInfo.getResourceClass()).thenReturn((Class) ControlResource.class);
+        when(resourceInfo.getResourceMethod()).thenReturn(mockMethod(ControlResource.class, "deleteControlConfiguration"));
+        MultivaluedMap<String, String> pathParams = new MultivaluedHashMap<>();
+        pathParams.putSingle("domain", "payments");
+        pathParams.putSingle("controlId", "11");
+        pathParams.putSingle("configId", "3");
+        ContainerRequestContext requestContext = mockRequest("DELETE", pathParams);
+        ContainerResponseContext responseContext = mockResponse(204, null);
+
+        filter.filter(requestContext, responseContext);
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getEntityType(), is(AuditEntityType.CONTROL_CONFIGURATION));
+        assertThat(entry.getDomain(), is("payments"));
+        assertThat(entry.getEntityId(), is("3"));
+        assertThat(entry.getAction(), is(AuditAction.DELETE));
+    }
+
     // --- MappingControllerResource dispatch --------------------------------------
 
     @Test
