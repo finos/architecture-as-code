@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -299,6 +300,30 @@ public class ArchitectureResource {
             logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]", architectureId, namespace, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to build timeline for architecture: " + architectureId).build();
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/architectures/{architectureId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete an architecture",
+            description = "Deletes an architecture and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId
+    ) {
+        try {
+            store.deleteArchitecture(namespace, architectureId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting architecture", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.error("Invalid architecture [{}] when deleting architecture", architectureId, e);
+            return invalidArchitectureResponse(architectureId);
+        }
+        return Response.noContent().build();
     }
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {

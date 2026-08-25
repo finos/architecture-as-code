@@ -152,6 +152,26 @@ public class InterfaceResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/interfaces/{interfaceId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteInterface(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("interfaceId") Integer interfaceId
+    ) {
+        try {
+            interfaceStore.deleteInterface(namespace, interfaceId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting interface", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (InterfaceNotFoundException e) {
+            logger.error("Invalid interface [{}] when deleting interface", interfaceId, e);
+            return invalidInterfaceResponse(interfaceId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response invalidInterfaceResponse(int interfaceId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid interface provided: " + interfaceId).build();
     }

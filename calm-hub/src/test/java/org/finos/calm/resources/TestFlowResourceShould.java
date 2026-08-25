@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -370,5 +371,39 @@ public class TestFlowResourceShould {
                 .put("/api/calm/namespaces/test/flows/20/versions/1.0.1")
                 .then()
                 .statusCode(403);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_flow() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/flows/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteFlowTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new FlowNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteFlowTests")
+    void respond_correctly_to_delete_flow(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws FlowNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockFlowStore).deleteFlow(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/flows/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockFlowStore, times(1)).deleteFlow(namespace, 12);
     }
 }

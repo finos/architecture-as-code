@@ -486,6 +486,40 @@ public class TestArchitectureResourceShould {
     }
 
     @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_architecture() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/architectures/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteArchitectureTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new ArchitectureNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteArchitectureTests")
+    void respond_correctly_to_delete_architecture(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws ArchitectureNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockArchitectureStore).deleteArchitecture(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/architectures/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockArchitectureStore, times(1)).deleteArchitecture(namespace, 12);
+    }
+
+    @Test
     void return_an_implied_timeline_projection_when_architecture_has_versions() throws NamespaceNotFoundException, ArchitectureNotFoundException {
         when(mockTimelineStore.getTimelinesForNamespace(any())).thenReturn(List.of());
         when(mockArchitectureStore.getArchitectureVersions(any()))

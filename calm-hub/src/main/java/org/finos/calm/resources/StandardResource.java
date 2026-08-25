@@ -142,6 +142,26 @@ public class StandardResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/standards/{standardId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteStandard(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("standardId") Integer standardId
+    ) {
+        try {
+            standardStore.deleteStandard(namespace, standardId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting standard", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (StandardNotFoundException e) {
+            logger.error("Invalid standard [{}] when deleting standard", standardId, e);
+            return invalidStandardResponse(standardId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response invalidStandardResponse(int standardId) {
         return Response.status(Response.Status.NOT_FOUND).entity("Invalid standard provided: " + standardId).build();
     }

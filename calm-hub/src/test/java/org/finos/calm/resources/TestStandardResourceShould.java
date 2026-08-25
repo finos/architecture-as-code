@@ -349,4 +349,38 @@ public class TestStandardResourceShould {
 
         verify(mockStandardStore, times(1)).createStandardForVersion(createStandardRequest, namespace, 5, "1.0.1");
     }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_standard() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/standards/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteStandardTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new StandardNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteStandardTests")
+    void respond_correctly_to_delete_standard(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws StandardNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockStandardStore).deleteStandard(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/standards/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockStandardStore, times(1)).deleteStandard(namespace, 12);
+    }
 }

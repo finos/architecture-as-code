@@ -248,6 +248,30 @@ public class PatternResource {
 
     }
 
+    @DELETE
+    @Path("{namespace}/patterns/{patternId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a pattern",
+            description = "Deletes a pattern and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deletePattern(
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("patternId") int patternId
+    ) {
+        try {
+            store.deletePattern(namespace, patternId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting pattern", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (PatternNotFoundException e) {
+            logger.error("Invalid pattern [{}] when deleting pattern", patternId, e);
+            return invalidPatternResponse(patternId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response patternWithLocationResponse(Pattern pattern) throws URISyntaxException {
         return Response.created(new URI("/api/calm/namespaces/" + pattern.getNamespace() + "/patterns/" + pattern.getId() + "/versions/" + pattern.getDotVersion())).build();
     }

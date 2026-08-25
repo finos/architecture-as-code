@@ -274,6 +274,30 @@ public class FlowResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/flows/{flowId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a flow",
+            description = "Deletes a flow and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId
+    ) {
+        try {
+            store.deleteFlow(namespace, flowId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting flow", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (FlowNotFoundException e) {
+            logger.error("Invalid flow [{}] when deleting flow", flowId, e);
+            return invalidFlowResponse(flowId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response flowWithLocationResponse(Flow flow) throws URISyntaxException {
         return Response.created(new URI("/api/calm/namespaces/" + flow.getNamespace() + "/flows/" + flow.getId() + "/versions/" + flow.getDotVersion())).build();
     }
