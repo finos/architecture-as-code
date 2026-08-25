@@ -195,6 +195,19 @@ public class MongoControlStore implements ControlStore {
         }
     }
 
+    /**
+     * Refuses to delete a control requirement that still has configurations, rather than
+     * cascading — see {@link ControlHasConfigurationsException}.
+     *
+     * <p><b>Known, accepted race</b>: the configuration count and the delete are two separate
+     * calls, not one atomic operation, so a configuration created via
+     * {@link #createConfigurationForVersion} in the gap between them survives under a
+     * requirement that has just been deleted. Not fixed here, consistent with the rest of this
+     * store layer using no transactions or locks anywhere else: a Nitrite-only lock would not
+     * extend the guarantee to Mongo (this backend), and the failure mode — one configuration
+     * document outliving the requirement it belonged to — is a data-hygiene issue, discoverable
+     * and cleanable, not a correctness or security one.</p>
+     */
     @Override
     public void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException {
         requireControl(domain, controlId);

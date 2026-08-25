@@ -192,6 +192,16 @@ public class NitriteControlStore implements ControlStore {
         }
     }
 
+    /**
+     * Refuses to delete a control requirement that still has configurations, rather than
+     * cascading — see {@link ControlHasConfigurationsException}.
+     *
+     * <p><b>Known, accepted race</b>: same non-atomic count-then-delete as
+     * {@code MongoControlStore#deleteControlRequirement} — see that method's javadoc.
+     * {@code configurationStore} and {@code requirementStore} are two separate
+     * {@link NitriteVersionDocumentStore} instances, each with its own internal lock, so
+     * neither one's locking closes the gap between the count and the delete below.</p>
+     */
     @Override
     public void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException {
         requireControl(domain, controlId);
