@@ -77,23 +77,28 @@ function checkRequests(requests) {
     return problems;
 }
 
-const workDir = await mkdtemp(path.join(tmpdir(), 'calm-browser-guard-'));
-try {
-    const entryRequests = [];
-    await bundle(path.join(sharedRoot, 'src/browser.ts'), path.join(workDir, 'browser.js'), entryRequests);
-    const problems = checkRequests(entryRequests);
-    if (problems.length) {
-        console.error('Browser entry guard FAILED:\n  ' + problems.join('\n  '));
-        process.exit(1);
-    }
-    console.log(`browser entry: ${entryRequests.length} allowlisted builtin request(s), none from shared/src`);
+async function main() {
+    const workDir = await mkdtemp(path.join(tmpdir(), 'calm-browser-guard-'));
+    try {
+        const entryRequests = [];
+        await bundle(path.join(sharedRoot, 'src/browser.ts'), path.join(workDir, 'browser.js'), entryRequests);
+        const problems = checkRequests(entryRequests);
+        if (problems.length) {
+            console.error('Browser entry guard FAILED:\n  ' + problems.join('\n  '));
+            process.exitCode = 1;
+            return;
+        }
+        console.log(`browser entry: ${entryRequests.length} allowlisted builtin request(s), none from shared/src`);
 
-    const probeOut = path.join(workDir, 'probe.js');
-    await bundle(path.join(here, 'browser-probe.ts'), probeOut, []);
-    await import(pathToFileURL(probeOut).href);
-} catch (err) {
-    console.error('Browser entry guard FAILED: ' + (err instanceof Error ? err.message : String(err)));
-    process.exit(1);
-} finally {
-    await rm(workDir, { recursive: true, force: true });
+        const probeOut = path.join(workDir, 'probe.js');
+        await bundle(path.join(here, 'browser-probe.ts'), probeOut, []);
+        await import(pathToFileURL(probeOut).href);
+    } catch (err) {
+        console.error('Browser entry guard FAILED: ' + (err instanceof Error ? err.message : String(err)));
+        process.exitCode = 1;
+    } finally {
+        await rm(workDir, { recursive: true, force: true });
+    }
 }
+
+await main();
