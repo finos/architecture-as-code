@@ -1,7 +1,10 @@
 import { registerNodeLoggerFactory } from './logger.js';
 import { createWinstonLogger } from './logger.node.js';
+import { registerOutputFormatter } from './commands/validate/format-output.js';
+import { junitFormatter } from './commands/validate/output-formats/junit-output.js';
 
 registerNodeLoggerFactory(createWinstonLogger);
+registerOutputFormatter('junit', junitFormatter);
 
 export {
     validate,

@@ -1,15 +1,8 @@
-import { RulesetDefinition } from '@stoplight/spectral-core';
-
-import validationRulesForPattern from '../../spectral/rules-pattern.js';
-import validationRulesForArchitecture from '../../spectral/rules-architecture.js';
 import { initLogger, Logger } from '../../logger.js';
 import { ValidationOutcome } from './validation.output.js';
-import createJUnitReport from './output-formats/junit-output.js';
-import prettyFormat from './output-formats/pretty-output.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { ValidationContext, ValidationMode } from './validation-rule.js';
 import { createDefaultValidationEngine, ValidationEngine } from './validation-engine.js';
-import { prettifyJson } from './validation-helpers.js';
 import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver.js';
 import { SchemaDirectoryReferenceResolver } from '../../resolver/schema-directory-reference-resolver.js';
 
@@ -23,20 +16,17 @@ export {
     convertSpectralDiagnosticToValidationOutputs
 } from './validation-helpers.js';
 
+export {
+    formatOutput,
+    registerOutputFormatter,
+    type OutputFormat,
+    type ValidateOutputFormat,
+    type ValidationDocumentContext,
+    type ValidationFormattingOptions,
+    type OutputFormatter,
+} from './format-output.js';
+
 let logger: Logger; // defined later at startup
-
-export type ValidateOutputFormat = 'json' | 'junit' | 'pretty';
-
-export interface ValidationDocumentContext {
-    id: string;
-    label?: string;
-    filePath?: string;
-    lines?: string[];
-}
-
-export interface ValidationFormattingOptions {
-    documents?: Record<string, ValidationDocumentContext>;
-}
 
 /**
  * TODO - move this out of shared and into the CLI - this is process-management code.
@@ -52,26 +42,6 @@ export function exitBasedOffOfValidationOutcome(validationOutcome: ValidationOut
         process.exit(1);
     }
     process.exit(0);
-}
-
-export type OutputFormat = 'junit' | 'json' | 'pretty'
-
-export function formatOutput(
-    validationOutcome: ValidationOutcome,
-    format: OutputFormat,
-    options?: ValidationFormattingOptions
-): string {
-    logger.info(`Formatting output as ${format}`);
-    switch (format) {
-    case 'junit': {
-        const spectralRuleNames = extractSpectralRuleNames();
-        return createJUnitReport(validationOutcome, spectralRuleNames);
-    }
-    case 'pretty':
-        return prettyFormat(validationOutcome, options);
-    case 'json':
-        return prettifyJson(validationOutcome);
-    }
 }
 
 /**
@@ -157,14 +127,4 @@ function buildValidationContext(
 
     logger.debug('You must provide an architecture, a pattern, or a timeline');
     throw new Error('You must provide an architecture, a pattern, or a timeline');
-}
-
-function extractSpectralRuleNames(): string[] {
-    const architectureRuleNames = getRuleNamesFromRuleset(validationRulesForArchitecture);
-    const patternRuleNames = getRuleNamesFromRuleset(validationRulesForPattern);
-    return architectureRuleNames.concat(patternRuleNames);
-}
-
-function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
-    return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
 }
