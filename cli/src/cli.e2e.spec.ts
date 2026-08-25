@@ -683,9 +683,10 @@ describe('CLI Integration Tests', () => {
 
         // BASELINE, not a target to make pass silently. The generated architecture does not
         // round-trip: validating it against the same pattern fails on a control requirement's
-        // control-id, because `calm generate` never fetches the schema `requirement-url` points
-        // at to materialize the fields that schema demands. Reproduces identically on `main`;
-        // unrelated to this PR. Tracked separately - if this test starts failing because
+        // control-id. permitted-connection-jdbc.config.json declares "security-003", but the
+        // requirement schema it is checked against pins "security-002" - a one-value copy-paste
+        // slip; the sibling http config uses "security-002" correctly. Reproduces identically on
+        // `main`; unrelated to this PR. Tracked separately - if this test starts failing because
         // validation now passes, the bug is fixed and this block should be deleted.
         let validateError: { stdout?: string } | undefined;
         try {
