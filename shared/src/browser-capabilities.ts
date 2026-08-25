@@ -2,7 +2,9 @@
  * Which `calm` CLI commands the browser entry point can honour. Browser consumers (e.g. the
  * in-browser learning lab) use this to report honestly which commands are available and why the
  * others are not. `cli/src/browser-manifest.spec.ts` asserts this list matches the commands the
- * CLI actually registers, so the two cannot drift.
+ * CLI actually registers, so the two cannot drift — at top-level commands plus the `hub`
+ * subgroups' granularity; `workspace` subcommands are covered by the single `workspace` entry,
+ * not enumerated individually.
  */
 export type BrowserCommandSupport =
     | { command: string; status: 'supported' }

@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Guards the browser entry point: bundles src/browser.ts for the browser, fails on any Node
-// builtin request outside the documented allowlist, then executes a probe with those builtins
-// stubbed to throw if touched. Run as part of `npm test` (see package.json).
+// builtin request outside the documented allowlist, then executes a probe (exercising validate,
+// generate and diff) with those builtins stubbed to throw if touched. Run as part of `npm test`
+// (see package.json).
 import * as esbuild from 'esbuild';
 import { builtinModules } from 'node:module';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -15,8 +16,9 @@ const repoRoot = path.resolve(sharedRoot, '..');
 const builtins = new Set([...builtinModules, ...builtinModules.map((m) => `node:${m}`)]);
 
 // Every Node builtin the browser bundle is allowed to *request* (none may be *touched* at
-// runtime on the validate path — the probe proves that). Each entry: builtin + a regex on the
-// importer path. Anything else fails the build. Extend only with a matching probe change.
+// runtime on the validate, generate or diff paths — the probe proves that). Each entry: builtin
+// + a regex on the importer path. Anything else fails the build. Extend only with a matching
+// probe change.
 const ALLOWED = [
     { builtin: 'fs', importer: /@stoplight\/spectral-runtime\/dist\/reader\.js$/ },
     { builtin: 'fs', importer: /@stoplight\/json-ref-readers\/file\.js$/ },
@@ -68,16 +70,31 @@ async function bundle(entry, outfile, requests) {
 
 function checkRequests(requests) {
     const problems = [];
+    const matchedAllowed = new Set();
+    const sharedSrc = path.join(sharedRoot, 'src');
     for (const { builtin, importer } of requests) {
         const rel = path.relative(repoRoot, importer);
-        if (importer.startsWith(path.join(sharedRoot, 'src') + path.sep)) {
+        // Normalise separators before matching so the guard behaves the same on Windows, where
+        // esbuild's importer paths use backslashes.
+        const normalizedImporter = importer.replace(/\\/g, '/');
+        const relFromSharedSrc = path.relative(sharedSrc, importer);
+        const isSharedSrc = relFromSharedSrc !== '' && !relFromSharedSrc.startsWith('..') && !path.isAbsolute(relFromSharedSrc);
+        if (isSharedSrc) {
             problems.push(`shared source imports Node builtin '${builtin}': ${rel}`);
             continue;
         }
-        if (!ALLOWED.some((a) => a.builtin === builtin && a.importer.test(importer))) {
+        const allowedIndex = ALLOWED.findIndex((a) => a.builtin === builtin && a.importer.test(normalizedImporter));
+        if (allowedIndex === -1) {
             problems.push(`unexpected Node builtin '${builtin}' requested by ${rel}`);
+        } else {
+            matchedAllowed.add(allowedIndex);
         }
     }
+    ALLOWED.forEach((allowed, index) => {
+        if (!matchedAllowed.has(index)) {
+            problems.push(`allowlist entry never matched: ${allowed.builtin} <- ${allowed.importer}`);
+        }
+    });
     return problems;
 }
 

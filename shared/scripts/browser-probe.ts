@@ -1,6 +1,6 @@
 // Bundled by check-browser-entry.mjs with fs/path stubbed to throw on touch. Exercises the real
-// validate() path (JSON Schema + Spectral) through the browser entry with in-memory schemas.
-import { validate, SchemaDirectory, buildBrowserDocumentLoader, formatOutput, browserSupportFor } from '../src/browser';
+// validate(), generate() and diffDocuments() paths through the browser entry with in-memory schemas.
+import { validate, SchemaDirectory, buildBrowserDocumentLoader, formatOutput, browserSupportFor, generate, diffDocuments } from '../src/browser';
 import calm from '../../calm/release/1.2/meta/calm.json';
 import core from '../../calm/release/1.2/meta/core.json';
 import iface from '../../calm/release/1.2/meta/interface.json';
@@ -47,4 +47,24 @@ if (!bad.hasErrors) {
 if (browserSupportFor('docify')?.status !== 'unsupported') {
     throw new Error('probe: manifest missing docify');
 }
-console.log('browser probe ok: ' + bad.spectralSchemaValidationOutputs.length + ' spectral issue(s) on the broken document');
+
+const minimalPattern = {
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://x/p.json',
+    type: 'object',
+    properties: {
+        nodes: { type: 'array', prefixItems: [] },
+        relationships: { type: 'array', prefixItems: [] },
+    },
+};
+const generated = await generate(minimalPattern, await directory()) as { nodes: unknown[] };
+if (!Array.isArray(generated.nodes) || generated.nodes.length !== 0) {
+    throw new Error('probe: generate did not produce the expected empty nodes array');
+}
+
+const diffResult = diffDocuments(arch('db'), { ...arch('db'), nodes: arch('db').nodes.slice(0, 1) });
+if (diffResult.hasChanges !== true) {
+    throw new Error('probe: diffDocuments did not report a change for the removed node');
+}
+
+console.log('browser probe ok: ' + bad.spectralSchemaValidationOutputs.length + ' spectral issue(s) on the broken document; generate and diff also ran');

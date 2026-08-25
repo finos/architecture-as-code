@@ -9,7 +9,9 @@ describe('browser capability manifest', () => {
     });
 
     it('gives a reason for every unsupported command', () => {
-        for (const entry of BROWSER_COMMAND_SUPPORT.filter((e) => e.status === 'unsupported')) {
+        const unsupported = BROWSER_COMMAND_SUPPORT.filter((e) => e.status === 'unsupported');
+        expect(unsupported.length).toBeGreaterThan(0);
+        for (const entry of unsupported) {
             expect(entry.reason.length).toBeGreaterThan(10);
         }
     });
