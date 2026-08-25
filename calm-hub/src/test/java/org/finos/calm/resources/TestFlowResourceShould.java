@@ -5,6 +5,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Flow;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
 import org.finos.calm.domain.exception.FlowVersionNotFoundException;
@@ -405,5 +406,29 @@ public class TestFlowResourceShould {
                 .statusCode(expectedStatusCode);
 
         verify(mockFlowStore, times(1)).deleteFlow(namespace, 12);
+    }
+
+    @Test
+    void delete_flow_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/flows/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.FLOW, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_flow() throws Exception {
+        doThrow(new FlowNotFoundException()).when(mockFlowStore).deleteFlow("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/flows/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

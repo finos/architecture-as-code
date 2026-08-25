@@ -23,6 +23,7 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ public class FlowResource {
 
     private final FlowStore store;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(FlowResource.class);
 
@@ -49,9 +51,10 @@ public class FlowResource {
     Boolean allowPutOperations;
 
     @Inject
-    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds) {
+    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -295,6 +298,7 @@ public class FlowResource {
             logger.error("Invalid flow [{}] when deleting flow", flowId, e);
             return invalidFlowResponse(flowId);
         }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.FLOW, flowId);
         return Response.noContent().build();
     }
 

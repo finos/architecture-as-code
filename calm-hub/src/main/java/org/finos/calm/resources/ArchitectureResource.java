@@ -33,6 +33,7 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.ArchitectureTimelineService;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -57,6 +58,7 @@ public class ArchitectureResource {
     private final ArchitectureStore store;
     private final ArchitectureTimelineService timelineService;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(ArchitectureResource.class);
 
@@ -65,10 +67,11 @@ public class ArchitectureResource {
 
     @Inject
     public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService,
-                                CustomIdEnrichmentService customIds) {
+                                CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.timelineService = timelineService;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     /**
@@ -323,6 +326,7 @@ public class ArchitectureResource {
             logger.error("Invalid architecture [{}] when deleting architecture", architectureId, e);
             return invalidArchitectureResponse(architectureId);
         }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.ARCHITECTURE, architectureId);
         return Response.noContent().build();
     }
 

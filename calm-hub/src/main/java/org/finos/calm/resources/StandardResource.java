@@ -16,6 +16,7 @@ import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +32,14 @@ public class StandardResource {
 
     private final StandardStore standardStore;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(StandardResource.class);
 
-    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds) {
+    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.standardStore = standardStore;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -159,6 +162,7 @@ public class StandardResource {
             logger.error("Invalid standard [{}] when deleting standard", standardId, e);
             return invalidStandardResponse(standardId);
         }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.STANDARD, standardId);
         return Response.noContent().build();
     }
 

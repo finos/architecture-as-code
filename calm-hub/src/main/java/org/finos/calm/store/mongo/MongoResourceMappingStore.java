@@ -198,4 +198,17 @@ public class MongoResourceMappingStore implements ResourceMappingStore {
             throw new MappingNotFoundException();
         }
     }
+
+    @Override
+    public void deleteMappingByNumericId(String namespace, ResourceType type, int numericId) throws NamespaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        Bson filter = Filters.and(
+                Filters.eq("namespace", namespace),
+                Filters.eq("resourceType", type.name()),
+                Filters.eq("numericId", numericId)
+        );
+
+        mappingCollection.deleteOne(filter);
+    }
 }

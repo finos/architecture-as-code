@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.StandardNotFoundException;
@@ -382,5 +383,29 @@ public class TestStandardResourceShould {
                 .statusCode(expectedStatusCode);
 
         verify(mockStandardStore, times(1)).deleteStandard(namespace, 12);
+    }
+
+    @Test
+    void delete_standard_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/standards/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.STANDARD, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_standard() throws Exception {
+        doThrow(new StandardNotFoundException()).when(mockStandardStore).deleteStandard("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/standards/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
     }
 }

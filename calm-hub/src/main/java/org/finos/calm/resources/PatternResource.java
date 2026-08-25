@@ -22,6 +22,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,7 @@ public class PatternResource {
 
     private final PatternStore store;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(PatternResource.class);
 
@@ -47,9 +49,10 @@ public class PatternResource {
     Boolean allowPutOperations;
 
     @Inject
-    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds) {
+    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -269,6 +272,7 @@ public class PatternResource {
             logger.error("Invalid pattern [{}] when deleting pattern", patternId, e);
             return invalidPatternResponse(patternId);
         }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.PATTERN, patternId);
         return Response.noContent().build();
     }
 

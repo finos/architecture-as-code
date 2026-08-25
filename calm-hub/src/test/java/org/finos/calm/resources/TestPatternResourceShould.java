@@ -508,4 +508,28 @@ public class TestPatternResourceShould {
 
         verify(mockPatternStore, times(1)).deletePattern(namespace, 12);
     }
+
+    @Test
+    void delete_pattern_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.PATTERN, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_pattern() throws Exception {
+        doThrow(new PatternNotFoundException()).when(mockPatternStore).deletePattern("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
+    }
 }
