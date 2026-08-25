@@ -128,13 +128,18 @@ function warnOnDiscardedKeys(
             ? `allOf merge on property '${propKey}' discarded keys [${discardedKeys.join(', ')}] declared in an earlier branch. This is a limitation of allOf merging, not an error in the pattern.`
             : `allOf merge on property '${propKey}' discarded keys [${discardedKeys.join(', ')}] declared in an allOf branch and overridden by the schema's own properties.`;
 
-    logger.warn(message);
+    // Debug, not warn: this is new machinery over a construct the pattern's own
+    // documentation already declares unsupported (`allOf` for nodes/relationships), and a
+    // false "discarded" report on legitimate refinement is a support question with no
+    // action attached. Worth surfacing for someone diagnosing the merge, not worth
+    // interrupting everyone else's normal output.
+    logger.debug(message);
 }
 
 /**
  * Deep merges two schema objects, combining properties, required arrays, and prefixItems.
  *
- * @param warnOnDiscard - When set, warns (via `logger.warn`) about property keys that the
+ * @param warnOnDiscard - When set, logs (via `logger.debug`) about property keys that the
  * `properties` branch's shallow spread discards. `'allOf-branch'` and `'root-override'`
  * select the message's direction; `false` (the default) stays silent, which positional
  * `prefixItems` merges and `$ref`-refinement merges rely on.

@@ -249,8 +249,8 @@ describe('flattenAllOf', () => {
         });
     });
 
-    describe('discarded-key warnings across allOf', () => {
-        it('warns when two allOf branches each declare a nodes items catalog', async () => {
+    describe('discarded-key debug logging across allOf', () => {
+        it('logs at debug when two allOf branches each declare a nodes items catalog', async () => {
             // Both branches declare `properties.nodes.items`; the shallow properties
             // merge makes the later branch's catalog win and silently drops the first.
             const schema = {
@@ -262,12 +262,12 @@ describe('flattenAllOf', () => {
 
             await flattenAllOf(schema, mockSchemaDir, true);
 
-            expect(mockWarn).toHaveBeenCalledWith(
+            expect(mockDebug).toHaveBeenCalledWith(
                 expect.stringContaining('allOf merge on property \'nodes\' discarded keys [items] declared in an earlier branch')
             );
         });
 
-        it('does not warn when only one allOf branch declares a catalog', async () => {
+        it('does not log when only one allOf branch declares a catalog', async () => {
             const schema = {
                 allOf: [
                     { properties: { nodes: { items: { oneOf: [{ const: 'a' }] } } } },
@@ -277,7 +277,7 @@ describe('flattenAllOf', () => {
 
             await flattenAllOf(schema, mockSchemaDir, true);
 
-            expect(mockWarn).not.toHaveBeenCalled();
+            expect(mockDebug).not.toHaveBeenCalledWith(expect.stringContaining('discarded keys'));
         });
 
         it('names prefixItems as discarded, not the catalog, when the catalog is in the later branch', async () => {
@@ -306,12 +306,12 @@ describe('flattenAllOf', () => {
 
             await flattenAllOf(schema, mockSchemaDir, true);
 
-            expect(mockWarn).toHaveBeenCalledWith(
+            expect(mockDebug).toHaveBeenCalledWith(
                 expect.stringContaining('allOf merge on property \'nodes\' discarded keys [prefixItems] declared in an earlier branch')
             );
         });
 
-        it('warns and names [type, prefixItems] on a prefixItems + minItems collision with no catalog anywhere', async () => {
+        it('logs at debug and names [type, prefixItems] on a prefixItems + minItems collision with no catalog anywhere', async () => {
             const schema = {
                 allOf: [
                     {
@@ -328,12 +328,12 @@ describe('flattenAllOf', () => {
 
             await flattenAllOf(schema, mockSchemaDir, true);
 
-            expect(mockWarn).toHaveBeenCalledWith(
+            expect(mockDebug).toHaveBeenCalledWith(
                 expect.stringContaining('allOf merge on property \'nodes\' discarded keys [type, prefixItems] declared in an earlier branch')
             );
         });
 
-        it('does not warn on a $ref refinement where the resolved def and siblings both declare the same property', async () => {
+        it('does not log on a $ref refinement where the resolved def and siblings both declare the same property', async () => {
             // allOf: [{ $ref: ..., properties: {...} }] is the idiomatic composition form:
             // refining a $ref'd definition with local sibling keys is ordinary JSON Schema,
             // not a lossy allOf-branch collision, even though it discards the same keys.
@@ -361,7 +361,7 @@ describe('flattenAllOf', () => {
 
             await flattenAllOf(schema, mockSchemaDir, true);
 
-            expect(mockWarn).not.toHaveBeenCalled();
+            expect(mockDebug).not.toHaveBeenCalledWith(expect.stringContaining('discarded keys'));
         });
     });
 });
