@@ -5,7 +5,8 @@
  * A CALM pattern declares candidates in four places: a plain `prefixItems` entry, a
  * `prefixItems[i].oneOf`/`anyOf` alternative, or an `items.oneOf`/`items.anyOf` open
  * catalog member. This module is the single place that knows how to find them, so
- * generation, validation and the visualiser stop hand-rolling the same traversal.
+ * generation, validation, the visualiser and the pattern differ stop hand-rolling the
+ * same traversal.
  *
  * Three different questions get three different functions, deliberately kept apart:
  * `readChoiceBlock` picks the single form a decision offers (`oneOf` wins over `anyOf`);

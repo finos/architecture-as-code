@@ -490,5 +490,74 @@
         "prefixItems": []
       }
     }
+  },
+  "catalogBasePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalog Base Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "webapp" },
+              "name": { "const": "Web App" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "anyOf": [
+            {
+              "properties": {
+                "unique-id": { "const": "redis" },
+                "name": { "const": "Redis" },
+                "node-type": { "const": "database" }
+              }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "catalogAdditionPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalog Addition Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "properties": {
+              "unique-id": { "const": "webapp" },
+              "name": { "const": "Web App" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "anyOf": [
+            {
+              "properties": {
+                "unique-id": { "const": "redis" },
+                "name": { "const": "Redis" },
+                "node-type": { "const": "database" }
+              }
+            },
+            {
+              "properties": {
+                "unique-id": { "const": "valkey" },
+                "name": { "const": "Valkey" },
+                "node-type": { "const": "database" }
+              }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
   }
 }

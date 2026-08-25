@@ -1,6 +1,7 @@
 import type { CalmNodeSchema, CalmRelationshipSchema } from '../types/index.js';
 import type { NodesAndRelationshipsDiffResult } from './diff-types.js';
 import { canonicalKey, diffNodesAndRelationships } from './diff.js';
+import { getPatternArray } from '../pattern/pattern-reader.js';
 
 type SchemaObject = Record<string, unknown>;
 
@@ -40,28 +41,15 @@ function collapseSchema(schema: unknown): unknown {
 }
 
 /**
- * Reads the `prefixItems` for a top-level pattern field (e.g. `nodes`,
- * `relationships`), handling both direct `properties` and `allOf` wrapping.
+ * Reads the declared candidates for a top-level pattern field (e.g. `nodes`,
+ * `relationships`): its `prefixItems` slots plus, if present, its `items` open
+ * catalog, appended as one more block for {@link expandAlternatives} to unpack -
+ * a catalog is itself a `oneOf`/`anyOf` block, the same shape a decision slot is.
+ * Delegates to `getPatternArray` for the `properties`/`allOf` resolution.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
-    const direct = isObject(pattern['properties'])
-        ? pattern['properties'][key]
-        : undefined;
-    if (isObject(direct) && Array.isArray(direct['prefixItems'])) {
-        return direct['prefixItems'] as SchemaObject[];
-    }
-
-    if (Array.isArray(pattern['allOf'])) {
-        for (const sub of pattern['allOf']) {
-            if (!isObject(sub) || !isObject(sub['properties'])) continue;
-            const field = sub['properties'][key];
-            if (isObject(field) && Array.isArray(field['prefixItems'])) {
-                return field['prefixItems'] as SchemaObject[];
-            }
-        }
-    }
-
-    return [];
+function getCandidateItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject[] {
+    const { prefixItems, catalog } = getPatternArray(pattern, key);
+    return catalog ? [...prefixItems, catalog] as SchemaObject[] : prefixItems as SchemaObject[];
 }
 
 /**
@@ -146,8 +134,8 @@ function partitionPattern(pattern: unknown): { nodes: PatternPartition; relation
         };
     }
     return {
-        nodes: partitionPrefixItems(getPrefixItems(pattern, 'nodes')),
-        relationships: partitionPrefixItems(getPrefixItems(pattern, 'relationships')),
+        nodes: partitionPrefixItems(getCandidateItems(pattern, 'nodes')),
+        relationships: partitionPrefixItems(getCandidateItems(pattern, 'relationships')),
     };
 }
 
