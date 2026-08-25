@@ -15,6 +15,17 @@ import java.util.List;
 public interface AdrStore {
 
     List<NamespaceAdrSummary> getAdrsForNamespace(String namespace) throws NamespaceNotFoundException;
+
+    /**
+     * @return how many ADRs the namespace holds.
+     *
+     * <p>Deliberately not {@code getAdrsForNamespace(namespace).size()}. An ADR summary
+     * carries the latest revision's title and status, so building the list costs two reads
+     * and a JSON parse per ADR; callers that only want a number would pay that for nothing.
+     * Every other type's summary comes straight off its header, which is why only ADR needs
+     * this.</p>
+     */
+    int countAdrsForNamespace(String namespace) throws NamespaceNotFoundException;
     AdrMeta createAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrParseException;
     AdrMeta getAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException;
     List<Integer> getAdrRevisions(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException;

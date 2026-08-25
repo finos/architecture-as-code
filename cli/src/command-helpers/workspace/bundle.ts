@@ -3,7 +3,7 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
-import type { CalmDocumentType } from '@finos/calm-shared/src/document-loader/document-loader';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -181,7 +181,8 @@ export async function addFileToBundle(
         const destName = opts.destName ?? path.basename(srcPath);
         destPath = path.join(filesDir, destName);
         await copyFile(srcPath, destPath);
-        rel = path.relative(bundlePath, destPath);
+        // Forward slashes: the manifest travels with the bundle.
+        rel = path.relative(bundlePath, destPath).split(path.sep).join('/');
     } else {
         // reference the original file using its absolute path so it remains resolvable
         // regardless of where the bundle directory sits

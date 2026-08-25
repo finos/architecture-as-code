@@ -7,4 +7,5 @@ export interface CalmDiagramProps {
   data?: string;
   theme?: 'light' | 'dark';
   flow?: string;
+  containers?: 'nested' | 'edges';
 }

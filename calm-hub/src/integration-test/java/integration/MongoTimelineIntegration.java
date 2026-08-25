@@ -5,19 +5,18 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.bson.Document;
 import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static io.restassured.RestAssured.given;
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
+import static integration.MongoSetup.primeHeaderCollection;
 import static org.hamcrest.Matchers.*;
 
 @QuarkusTest
@@ -47,12 +46,7 @@ public class MongoTimelineIntegration {
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
 
-            if (!database.listCollectionNames().into(new ArrayList<>()).contains("timelines")) {
-                database.createCollection("timelines");
-                database.getCollection("timelines").insertOne(
-                        new Document("namespace", "finos").append("timelines", new ArrayList<>())
-                );
-            }
+            primeHeaderCollection(database, "timelines");
 
             counterSetup(database);
             namespaceSetup(database);

@@ -12,6 +12,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -19,6 +20,7 @@ import org.finos.calm.domain.exception.PatternVersionExistsException;
 import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
+import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.PatternStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +39,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX
 public class PatternResource {
 
     private final PatternStore store;
+    private final CustomIdEnrichmentService customIds;
 
     private final Logger logger = LoggerFactory.getLogger(PatternResource.class);
 
@@ -44,8 +47,9 @@ public class PatternResource {
     Boolean allowPutOperations;
 
     @Inject
-    public PatternResource(PatternStore store) {
+    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds) {
         this.store = store;
+        this.customIds = customIds;
     }
 
     @GET
@@ -63,7 +67,8 @@ public class PatternResource {
             @Valid @BeanParam PaginationQueryParams page
     ) {
         try {
-            return Response.ok(new ValueWrapper<>(store.getPatternsForNamespace(namespace, page.toPageRequest()))).build();
+            return Response.ok(new ValueWrapper<>(customIds.enrich(namespace, ResourceType.PATTERN,
+                    store.getPatternsForNamespace(namespace, page.toPageRequest())))).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when retrieving patterns", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);

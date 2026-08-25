@@ -20,9 +20,9 @@ request.
   nvm use   # reads .nvmrc
   ```
 
-- **Java 21 and Maven** — only needed if you are working on the CALM Hub
-  backend (`calm-hub`). The repo ships a Maven wrapper (`./mvnw`), so you just
-  need a JDK.
+- **Java 21 (JDK)** — only needed if you are working on the CALM Hub backend
+  (`calm-hub`). You don't need Maven itself; the repo ships a Maven wrapper
+  (`./mvnw`).
 - **Docker** — optional; used for CALM Hub integration tests and local
   MongoDB.
 
@@ -90,8 +90,8 @@ Do not share credentials or confidential information with AI tools unless you
 are authorized to do so. By opening a PR, you remain responsible for the full
 change, including any AI-assisted portions.
 
-For full guidance, see the repository contributor policy:
-[Responsible Use of AI Coding Assistants](https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
+For full guidance, see the project-wide contributor policy:
+[Responsible Use of AI Coding Assistants](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md#responsible-use-of-ai-coding-assistants).
 
 ## 6. Open your pull request
 

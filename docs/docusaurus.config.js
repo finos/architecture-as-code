@@ -6,6 +6,7 @@
 
 import {themes as prismThemes} from 'prism-react-renderer';
 import remarkSectionCallouts from './src/plugins/remark-section-callouts.js';
+import calmRemark from '@finos/calm-docusaurus-plugin/remark';
 
 /** @type {import('@docusaurus/types').Config} */
 const config = {
@@ -66,7 +67,7 @@ const config = {
                     // Runs before Docusaurus' own heading/TOC plugins so the
                     // headings it replaces with callouts never reach the page
                     // TOC. Deliberately not applied to the 'talks' plugin.
-                    beforeDefaultRemarkPlugins: [remarkSectionCallouts],
+                    beforeDefaultRemarkPlugins: [remarkSectionCallouts, calmRemark],
                 },
                 blog: false,
                 theme: {
@@ -75,6 +76,8 @@ const config = {
             }),
         ],
     ],
+
+    plugins: ['@finos/calm-docusaurus-plugin'],
 
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
@@ -86,6 +89,9 @@ const config = {
                 logo: {
                     alt: 'CALM Logo',
                     src: 'img/2025_CALM_Icon.svg',
+                    // Same white variant CALM Hub uses in its dark mode — the
+                    // navy element of the standard icon vanishes on a dark base.
+                    srcDark: 'img/2025_CALM_Icon_WHT.svg',
                 },
                 items: [
                     {
@@ -114,7 +120,7 @@ const config = {
                     },
                     {
                         href: 'https://hub.calm.finos.org/',
-                        label: 'Hub',
+                        label: 'CALM Hub',
                         position: 'right',
                     },
                     {
@@ -181,7 +187,7 @@ const config = {
                         ],
                     },
                 ],
-                copyright: `Copyright © ${new Date().getFullYear()} DevOps Automation - FINOS`,
+                copyright: `Copyright © ${new Date().getFullYear()} Architecture as Code - FINOS`,
             },
             prism: {
                 theme: prismThemes.github,

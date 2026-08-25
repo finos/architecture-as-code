@@ -84,7 +84,7 @@ public class MappingControllerService {
         try {
             ResourceMapping existing;
             try {
-                existing = mappingStore.getMapping(namespace, name);
+                existing = mappingStore.getMapping(namespace, resourceType, name);
             } catch (MappingNotFoundException ignored) {
                 existing = null;
             }
@@ -123,9 +123,9 @@ public class MappingControllerService {
         }
     }
 
-    public ResourceMapping getMapping(String namespace, String name)
+    public ResourceMapping getMapping(String namespace, ResourceType type, String name)
             throws MappingNotFoundException, NamespaceNotFoundException {
-        return mappingStore.getMapping(namespace, name);
+        return mappingStore.getMapping(namespace, type, name);
     }
 
     public List<String> getVersionsForMapping(ResourceMapping mapping) throws Exception {
@@ -443,10 +443,10 @@ public class MappingControllerService {
             mappingStore.createMapping(namespace, name, resourceType, 0);
             try {
                 int numericId = createResourceInStore(resourceType, namespace, json, title, description);
-                mappingStore.updateMappingNumericId(namespace, name, numericId);
+                mappingStore.updateMappingNumericId(namespace, resourceType, name, numericId);
             } catch (Exception e) {
                 try {
-                    mappingStore.deleteMapping(namespace, name);
+                    mappingStore.deleteMapping(namespace, resourceType, name);
                 } catch (Exception rollbackEx) {
                     logger.error("Failed to rollback mapping for [{}] in namespace [{}]",
                             STRICT_SANITIZATION_POLICY.sanitize(name),
@@ -461,8 +461,7 @@ public class MappingControllerService {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (DuplicateMappingException e) {
-            return Response.status(Response.Status.CONFLICT)
-                    .entity("Resource name already exists in namespace: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+            return CalmResourceErrorResponses.resourceAlreadyExistsResponse(resourceType, name, namespace);
         } catch (Exception e) {
             logger.error("Error creating resource [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -486,9 +485,8 @@ public class MappingControllerService {
             }
             // Reject if the explicit version already exists.
             if (versions.contains(versionSpec.version())) {
-                return Response.status(Response.Status.CONFLICT)
-                        .entity("Version " + versionSpec.version() + " already exists for resource: "
-                                + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        versionSpec.version(), mapping.getResourceType(), name, namespace);
             }
             String newVersion = versionSpec.version();
             String title = documentParser.extractStringField(json, "title");

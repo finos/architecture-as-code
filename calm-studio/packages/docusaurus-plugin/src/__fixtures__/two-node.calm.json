@@ -1,0 +1,18 @@
+{
+  "nodes": [
+    { "unique-id": "web", "node-type": "actor", "name": "Web Client", "description": "Browser UI" },
+    { "unique-id": "api", "node-type": "service", "name": "Trade API", "description": "Backend trade service" }
+  ],
+  "relationships": [
+    {
+      "unique-id": "web-to-api",
+      "relationship-type": {
+        "connects": {
+          "source": { "node": "web" },
+          "destination": { "node": "api" }
+        }
+      },
+      "protocol": "HTTPS"
+    }
+  ]
+}

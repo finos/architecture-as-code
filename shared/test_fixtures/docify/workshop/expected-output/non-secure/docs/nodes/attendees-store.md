@@ -59,9 +59,9 @@ title: "Attendees Store"
 ## Related Nodes
 ```mermaid
 graph TD;
-attendees-store[attendees-store]:::highlight;
-attendees -- Connects --> attendees-store;
-attendees-store -- Deployed In --> k8s-cluster;
+attendees-store[Attendees Store]:::highlight;
+attendees[Attendees Service] -- Connects --> attendees-store[Attendees Store];
+attendees-store[Attendees Store] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
 classDef highlight fill:#f2bbae;
 ```
 

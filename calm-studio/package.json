@@ -13,7 +13,8 @@
     "packages/mcp-server",
     "packages/github-action",
     "packages/vscode-extension",
-    "packages/web-component"
+    "packages/web-component",
+    "packages/docusaurus-plugin"
   ],
   "scripts": {
     "prepare": "husky || true",

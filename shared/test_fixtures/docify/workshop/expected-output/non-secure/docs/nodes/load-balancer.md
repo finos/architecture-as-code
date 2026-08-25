@@ -54,10 +54,10 @@ title: "Load Balancer"
 ## Related Nodes
 ```mermaid
 graph TD;
-load-balancer[load-balancer]:::highlight;
-conference-website -- Connects --> load-balancer;
-load-balancer -- Connects --> attendees;
-load-balancer -- Deployed In --> k8s-cluster;
+load-balancer[Load Balancer]:::highlight;
+conference-website[Conference Website] -- Connects --> load-balancer[Load Balancer];
+load-balancer[Load Balancer] -- Connects --> attendees[Attendees Service];
+load-balancer[Load Balancer] -- Deployed In --> k8s-cluster[Kubernetes Cluster];
 classDef highlight fill:#f2bbae;
 ```
 

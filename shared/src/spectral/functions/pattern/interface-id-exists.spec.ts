@@ -21,7 +21,7 @@ describe('interfaceIdExists', () => {
                 data: {
                     interfaces: {
                         prefixItems: [
-                            {properties: {'unique-id': {const: 'intf1'}}} // will match this interface
+                            { properties: { 'unique-id': { const: 'intf1' } } } // will match this interface
                         ]
                     }
                 }
@@ -39,7 +39,7 @@ describe('interfaceIdExists', () => {
                 data: {
                     interfaces: {
                         prefixItems: [
-                            {properties: {'unique-id': {const: 'intf1'}}}
+                            { properties: { 'unique-id': { const: 'intf1' } } }
                         ]
                     }
                 }

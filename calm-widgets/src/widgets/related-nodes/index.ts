@@ -13,6 +13,7 @@ type RelatedNodesViewModel = {
     nodeId?: string;
     relationshipId?: string;
     relatedRelationships: CalmRelationshipTypeKindView[];
+    nodeNames?: Record<string, string>;
 };
 
 interface RelatedNodesOptions {
@@ -33,6 +34,9 @@ const findById = (
     id: string
 ): CalmRelationshipCanonicalModel | undefined =>
     rels.find(r => r['unique-id'] === id);
+
+const buildNodeNames = (context: CalmCoreCanonicalModel): Record<string, string> =>
+    Object.fromEntries(context.nodes.map(n => [n['unique-id'], n.name]));
 
 const filterContainerRelationshipForNode = (
     rt: CalmRelationshipTypeCanonicalModel,
@@ -111,12 +115,13 @@ export const RelatedNodesWidget: CalmWidget<CalmCoreCanonicalModel, RelatedNodes
         const relId = options?.['relationship-id'];
 
         const relationships = context.relationships;
+        const nodeNames = buildNodeNames(context);
 
         if (relId) {
             const found = findById(relationships, relId);
             return found
-                ? { relationshipId: relId, relatedRelationships: [toKindView(found['relationship-type'])] }
-                : { relationshipId: relId, relatedRelationships: [] };
+                ? { relationshipId: relId, relatedRelationships: [toKindView(found['relationship-type'])], nodeNames }
+                : { relationshipId: relId, relatedRelationships: [], nodeNames };
         }
 
         if (nodeId) {
@@ -124,11 +129,12 @@ export const RelatedNodesWidget: CalmWidget<CalmCoreCanonicalModel, RelatedNodes
             return {
                 id: nodeId,
                 nodeId,
-                relatedRelationships: filteredRels.map(r => toKindView(r['relationship-type']))
+                relatedRelationships: filteredRels.map(r => toKindView(r['relationship-type'])),
+                nodeNames
             };
         }
 
-        return { relatedRelationships: [] };
+        return { relatedRelationships: [], nodeNames };
     },
 
     validateContext: isCalmCoreCanonicalModel,

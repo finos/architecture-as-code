@@ -20,8 +20,8 @@ describe('momentIdExists', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1'}, // will match this moment
-                        {'unique-id': 'moment2'}
+                        { 'unique-id': 'moment1' }, // will match this moment
+                        { 'unique-id': 'moment2' }
                     ]
                 }
             }
@@ -37,8 +37,8 @@ describe('momentIdExists', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1'},
-                        {'unique-id': 'moment2'}
+                        { 'unique-id': 'moment1' },
+                        { 'unique-id': 'moment2' }
                     ]
                 }
             },

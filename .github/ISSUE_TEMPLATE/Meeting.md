@@ -2,7 +2,6 @@
 name: 🤝 Architecture as Code Meeting Agenda
 about: To track Architecture as Code meeting agenda and attendance
 type: Meeting
-labels: meeting
 ---
 
 ## Date

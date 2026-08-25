@@ -34,8 +34,8 @@ describe('validFromNotAfterCurrentMoment', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1'},
-                        {'unique-id': 'moment2'}
+                        { 'unique-id': 'moment1' },
+                        { 'unique-id': 'moment2' }
                     ]
                 }
             }
@@ -51,9 +51,9 @@ describe('validFromNotAfterCurrentMoment', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1', 'valid-from': '2023-01-01'},
-                        {'unique-id': 'moment2'},
-                        {'unique-id': 'moment3'}
+                        { 'unique-id': 'moment1', 'valid-from': '2023-01-01' },
+                        { 'unique-id': 'moment2' },
+                        { 'unique-id': 'moment3' }
                     ]
                 }
             }
@@ -69,9 +69,9 @@ describe('validFromNotAfterCurrentMoment', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1', 'valid-from': '2023-01-01'},
-                        {'unique-id': 'moment2', 'valid-from': '2024-01-01'},
-                        {'unique-id': 'moment3'}
+                        { 'unique-id': 'moment1', 'valid-from': '2023-01-01' },
+                        { 'unique-id': 'moment2', 'valid-from': '2024-01-01' },
+                        { 'unique-id': 'moment3' }
                     ]
                 }
             }
@@ -87,9 +87,9 @@ describe('validFromNotAfterCurrentMoment', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1', 'valid-from': '2023-01-01'},
-                        {'unique-id': 'moment2', 'valid-from': '2024-01-01'},
-                        {'unique-id': 'moment3', 'valid-from': '2025-01-01'}
+                        { 'unique-id': 'moment1', 'valid-from': '2023-01-01' },
+                        { 'unique-id': 'moment2', 'valid-from': '2024-01-01' },
+                        { 'unique-id': 'moment3', 'valid-from': '2025-01-01' }
                     ]
                 }
             }
@@ -105,9 +105,9 @@ describe('validFromNotAfterCurrentMoment', () => {
             document: {
                 data: {
                     moments: [
-                        {'unique-id': 'moment1', 'valid-from': '2023-01-01'},
-                        {'unique-id': 'moment2', 'valid-from': '2024-01-01'},
-                        {'unique-id': 'moment3', 'valid-from': '2025-01-01'}
+                        { 'unique-id': 'moment1', 'valid-from': '2023-01-01' },
+                        { 'unique-id': 'moment2', 'valid-from': '2024-01-01' },
+                        { 'unique-id': 'moment3', 'valid-from': '2025-01-01' }
                     ]
                 }
             }

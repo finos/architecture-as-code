@@ -20,6 +20,7 @@
         "@docusaurus/core": "3.10.1",
         "@docusaurus/preset-classic": "3.10.1",
         "@docusaurus/react-loadable": "6.0.0",
+        "@finos/calm-docusaurus-plugin": "*",
         "@mdx-js/react": "^3.1.0",
         "ajv": "^8.20.0",
         "ajv-formats": "^3.0.1",

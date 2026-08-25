@@ -5,6 +5,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.bson.json.JsonParseException;
 import org.finos.calm.domain.Pattern;
+import org.finos.calm.domain.ResourceMapping;
+import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
 import org.finos.calm.domain.exception.PatternVersionExistsException;
@@ -13,6 +15,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,7 +34,9 @@ import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAG
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
@@ -42,6 +47,9 @@ public class TestPatternResourceShould {
 
     @InjectMock
     PatternStore mockPatternStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_patterns() throws NamespaceNotFoundException {
@@ -89,6 +97,49 @@ public class TestPatternResourceShould {
                 .body("values[1].versionCount", equalTo(1));
 
         verify(mockPatternStore, times(1)).getPatternsForNamespace("finos", PageRequest.UNPAGED);
+    }
+
+    @Test
+    void include_the_custom_id_on_pattern_summaries_that_have_a_mapping() throws Exception {
+        List<NamespaceResourceSummary> summaries = Arrays.asList(
+                new NamespaceResourceSummary("Pattern One", "First", 12345, 3),
+                new NamespaceResourceSummary("Pattern Two", "Second", 54321, 1)
+        );
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any())).thenReturn(summaries);
+        when(mockResourceMappingStore.listMappingsByNumericIds("finos", ResourceType.PATTERN, List.of(12345, 54321)))
+                .thenReturn(List.of(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos")
+                        .setCustomId("api-gateway-pattern")
+                        .setResourceType(ResourceType.PATTERN)
+                        .setNumericId(12345)
+                        .build()));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values[0].id", equalTo(12345))
+                .body("values[0].customId", equalTo("api-gateway-pattern"))
+                .body("values[1].id", equalTo(54321))
+                .body("values[1].customId", nullValue());
+    }
+
+    @Test
+    void still_return_pattern_summaries_when_the_custom_id_lookup_fails() throws Exception {
+        when(mockPatternStore.getPatternsForNamespace(anyString(), any()))
+                .thenReturn(List.of(new NamespaceResourceSummary("Pattern One", "First", 12345, 3)));
+        when(mockResourceMappingStore.listMappingsByNumericIds(anyString(), any(), anyList()))
+                .thenThrow(new IllegalStateException("mapping collection unavailable"));
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values[0].name", equalTo("Pattern One"))
+                .body("values[0].id", equalTo(12345))
+                .body("values[0].customId", nullValue());
     }
 
     @Test

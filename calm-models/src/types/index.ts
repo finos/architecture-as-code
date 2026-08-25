@@ -9,6 +9,23 @@ export * from './control-requirement-types.js';
 export * from './units-types.js';
 export * from './timeline-types.js';
 
+export const CALM_DOCUMENT_TYPES_LIST = [
+    'pattern',
+    'architecture',
+    'interface',
+    'flow',
+    'control',
+    'schema',
+    'timeline',
+    'adr'
+] as const;
+
+export type CalmDocumentType = (typeof CALM_DOCUMENT_TYPES_LIST)[number];
+
+export function isValidCalmDocumentType(input: string): input is CalmDocumentType {
+    return CALM_DOCUMENT_TYPES_LIST.some((type) => type === input);
+}
+
 // Export relationship type classes
 export {
     CalmComposedOfType,

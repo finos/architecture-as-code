@@ -1,38 +1,19 @@
 # Maintainers
 
-This file lists the maintainers of this repository.
+**This roster has moved.** The Maintainers of the FINOS Architecture as Code project (also known as CALM) are listed in the project's governance repository:
 
-## Current maintainers
+### → [finos/calm-governance/MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md)
 
-| GitHub Username   | Name                     | Organization          | Email                            |
-|-------------------|--------------------------|-----------------------|----------------------------------|
-| @Budlee           | Matthew Auburn           | Morgan Stanley        | matthew.auburn@morganstanley.com |
-| @LeighFinegold    | LeighF                   | Morgan Stanley        | leigh_finegold@hotmail.co.uk     |
-| @Thels            | Ross Maden               | Morgan Stanley        | ross.maden@morganstanley.com     |
-| @YoofiTT96        | Joseph Yoofi Brown-Pobee | turntabl              | yoofi.brownpobee@outlook.com     |
-| @aamanrebello     | Aaman Rebello            | Morgan Stanley        | aaman.rebello@morganstanley.com  |
-| @aidanm3341       | Aidan McPhelim           | Morgan Stanley        | aidan.mcphelim@morganstanley.com |
-| @dc-ms            | Denis Coffaro            | Morgan Stanley        | denis.coffaro@morganstanley.com  |
-| @eddie-knight     | Eddie Knight             | Revanite Incorporated | knight@linux.com                 |
-| @gjs-opsflo       | Gourav J. Shah           | OpsFlow.Sh            | gjs@opsflow.sh                   |
-| @grahampacker-ms  | Graham Packer            | Morgan Stanley        | graham.packer@morganstanley.com  |
-| @jimthompson5802  | Jim Thompson             | Freddie Mac           | jimthompson5802@gmail.com        |
-| @jpgough-ms       | James Gough              | Morgan Stanley        | james.gough@morganstanley.com    |
-| @lbulanti-ms      | Luigi Bulanti            | Morgan Stanley        | bulantiluigi@gmail.com           |
-| @markscott-ms     | Mark Scott               | Morgan Stanley        | markscot@morganstanley.com       |
-| @opsflowanoop     | Anoop Mehendale          | Opsflow               | anoop@opsflow.sh                 |
-| @rocketstack-matt | Matthew Bain             | Morgan Stanley        | matt@rocketstack.co              |
-| @willosborne      | Will Osborne             | Morgan Stanley        | willfosborne@gmail.com           |
-| @yt-ms            | Yan                      | Morgan Stanley        | yan.tordoff@morganstanley.com    |
+The roster is project-wide and covers every repository in the project, so it is held in one place rather than duplicated per repository. That file also records the **Lead Maintainer**. This file remains as a pointer so that existing links to it continue to resolve.
 
-For information about maintainer responsibilities and resources, see the [FINOS Maintainers Cheatsheet](https://community.finos.org/docs/finos-maintainers-cheatsheet).
+The roles of Maintainer and Lead Maintainer, the qualifications for becoming a Maintainer, and the processes for electing and removing Maintainers are defined in [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md).
 
-## Updating this file
+## Maintainers of the projects in this monorepo
 
-All changes to the maintainer list are managed openly:
+Each subproject in this repository has its own maintainers, listed against that project in the [Projects table in README.md](README.md#projects). They are drawn from the project-wide roster above.
 
-- **Submit a Pull Request** to this file for any addition, removal, or update.
-- **If your project's governance requires a vote**, document or link to the vote outcome in the PR description or comments.
-- This process creates a public audit trail of project leadership over time.
+## Proposing a change to the roster
 
-Please email **help@finos.org** whenever this file is updated with a change to maintainership.
+Raise a [Maintainer Update issue](https://github.com/finos/architecture-as-code/issues/new?template=Maintainer_update.md) to open the nomination and hold the vote, then submit the resulting pull request against [MAINTAINERS.md in finos/calm-governance](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md), linking the vote outcome.
+
+Please email **help@finos.org** whenever the roster is updated with a change to maintainership.

@@ -40,11 +40,13 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 public class AdrResource {
 
     private final AdrStore store;
+    private final StorageWriteExceptionMapper storageWriteExceptionMapper;
     private final Logger logger = LoggerFactory.getLogger(AdrResource.class);
 
     @Inject
-    public AdrResource(AdrStore store) {
+    public AdrResource(AdrStore store, StorageWriteExceptionMapper storageWriteExceptionMapper) {
         this.store = store;
+        this.storageWriteExceptionMapper = storageWriteExceptionMapper;
     }
 
     /**
@@ -310,7 +312,8 @@ public class AdrResource {
                 AdrRevisionNotFoundException.class, ex -> handleAdrRevisionNotFoundException(adrId, revision, ex),
                 AdrParseException.class, this::handleAdrParseException,
                 AdrPersistenceException.class, ex -> handleAdrPersistenceException(adrId, ex),
-                AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex)
+                AdrRevisionExistsException.class, ex -> handleAdrRevisionExistsException(adrId, ex),
+                StorageWriteException.class, ex -> storageWriteExceptionMapper.toResponse((StorageWriteException) ex)
         );
 
         return handlers.getOrDefault(e.getClass(), ex -> {

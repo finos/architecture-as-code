@@ -27,10 +27,10 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
                   node-version-file: '.nvmrc'
                   cache: npm
@@ -49,6 +49,7 @@ jobs:
                   npm run build --if-present --workspace=@calmstudio/studio
                   npm run build --if-present --workspace=calmstudio
                   npm run build --if-present --workspace=@calmstudio/github-action
+                  npm run build --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Lint
               run: |
@@ -56,6 +57,7 @@ jobs:
                   npm run lint --if-present --workspace=@calmstudio/extensions
                   npm run lint --if-present --workspace=@calmstudio/mcp
                   npm run lint --if-present --workspace=@calmstudio/studio
+                  npm run lint --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Typecheck
               run: |
@@ -63,6 +65,7 @@ jobs:
                   npm run typecheck --if-present --workspace=@calmstudio/extensions
                   npm run typecheck --if-present --workspace=@calmstudio/mcp
                   npm run typecheck --if-present --workspace=@calmstudio/github-action
+                  npm run typecheck --if-present --workspace=@finos/calm-docusaurus-plugin
 
             - name: Test
               run: |
@@ -70,6 +73,8 @@ jobs:
                   npm run test --if-present --workspace=@calmstudio/extensions
                   npm run test --if-present --workspace=@calmstudio/mcp
                   npm run test --if-present --workspace=@calmstudio/studio
+                  npm run test --if-present --workspace=@calmstudio/diagram
+                  npm run test --if-present --workspace=@finos/calm-docusaurus-plugin
 
     e2e-tests:
         name: E2E Tests
@@ -77,10 +82,10 @@ jobs:
         needs: build-lint-test
         steps:
             - name: Checkout
-              uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Setup Node.js
-              uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:
                   node-version-file: '.nvmrc'
                   cache: npm

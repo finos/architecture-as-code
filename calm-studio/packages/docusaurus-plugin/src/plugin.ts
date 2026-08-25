@@ -1,0 +1,46 @@
+// SPDX-FileCopyrightText: 2024 CalmStudio contributors - see NOTICE file
+//
+// SPDX-License-Identifier: Apache-2.0
+
+import type { Plugin } from '@docusaurus/types';
+
+/**
+ * Docusaurus plugin: routes *.calm.json imports through the pre-rendering
+ * webpack loader and injects the CalmDiagram stylesheet.
+ *
+ * The loader and stylesheet are referenced as package subpaths (resolved by
+ * webpack's enhanced-resolve against this package's `exports` map) so this
+ * entry needs no Node built-ins and stays safe to import from MDX.
+ *
+ * Note: the remark plugin (`@finos/calm-docusaurus-plugin/remark`) must be
+ * registered separately via `beforeDefaultRemarkPlugins` in the preset
+ * config — Docusaurus has no API for one plugin to extend another plugin's
+ * remark chain. See README.
+ */
+export default function calmstudioDocusaurusPlugin(): Plugin<void> {
+  return {
+    name: '@finos/calm-docusaurus-plugin',
+    configureWebpack() {
+      return {
+        module: {
+          rules: [
+            {
+              test: /\.calm\.json$/,
+              type: 'javascript/auto',
+              use: '@finos/calm-docusaurus-plugin/loader',
+            },
+          ],
+        },
+      };
+    },
+    getClientModules() {
+      // Docusaurus resolves getClientModules() entries with
+      // `path.resolve(plugin.path, entry)`, where `plugin.path` is the
+      // directory of this plugin's resolved entry file (i.e. `dist/`) — NOT
+      // a module specifier lookup through the package's `exports` map. A
+      // package-specifier string here silently resolves to a bogus nested
+      // path. Use a path relative to `dist/` instead.
+      return ['./styles.css'];
+    },
+  };
+}

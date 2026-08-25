@@ -63,8 +63,9 @@ public class MongoAuditLogDeniedIntegration {
 
         if (!database.listCollectionNames().into(new ArrayList<>()).contains("patterns")) {
             database.createCollection("patterns");
-            database.getCollection("patterns").insertOne(
-                    new Document("namespace", "finos").append("patterns", new ArrayList<>()));
+            // Collection only — no per-namespace document. That priming belonged to the old
+            // one-document-per-namespace shape; under the header/version shape it has no id
+            // field, so the header reader surfaces it as a resource named "<Type> null".
         }
 
         boolean grantExists = database.getCollection("userAccess").find(Filters.and(

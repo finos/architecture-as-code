@@ -9,7 +9,7 @@ export function nodeIdExists(input: unknown, _: unknown, context: RulesetFunctio
         return [];
     }
     // get uniqueIds of all nodes
-    const names = JSONPath({path: '$.nodes[*].unique-id', json: context.document.data as object});
+    const names = JSONPath({ path: '$.nodes[*].unique-id', json: context.document.data as object });
     const results: IFunctionResult[] = [];
 
     if (!names.includes(input)) {

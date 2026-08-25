@@ -313,6 +313,14 @@ public class AdrTools {
         } catch (AdrRevisionExistsException e) {
             logger.warn("Concurrent update created a conflicting revision for ADR [{}] in namespace [{}]", adrId, namespace, e);
             return ToolResponse.error("Error: ADR " + adrId + " was concurrently updated, please retry.");
+        } catch (Exception e) {
+            // Every checked exception the store declares is handled above, so this exists for
+            // the unchecked ones — chiefly StorageWriteException, which the write path raises
+            // for an operational failure rather than a missing resource. Without it such a
+            // failure propagates out of the @Tool method instead of returning an error
+            // response. The five sibling methods in this class already end this way.
+            logger.error("Unexpected error updating status for ADR [{}] in namespace [{}]", adrId, namespace, e);
+            return ToolResponse.error("Error: Failed to update status for ADR " + adrId + ".");
         }
     }
 }

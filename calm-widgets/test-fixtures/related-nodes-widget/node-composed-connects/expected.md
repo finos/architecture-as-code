@@ -1,7 +1,7 @@
 ```mermaid
 graph TD;
-SystemC[SystemC]:::highlight;
-SystemC -- Composed Of --> ServiceA;
-SystemC -- Composed Of --> ServiceB;
+system-c[Backend System]:::highlight;
+system-c[Backend System] -- Composed Of --> svc-a[Service Alpha];
+system-c[Backend System] -- Composed Of --> svc-b[Service Beta];
 classDef highlight fill:#f2bbae;
 ```

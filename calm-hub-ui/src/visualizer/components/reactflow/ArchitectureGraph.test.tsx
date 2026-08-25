@@ -1,8 +1,10 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
+import { saveNodePositions } from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -12,6 +14,23 @@ import { ArchitectureGraph } from './ArchitectureGraph';
  */
 const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
 const miniMapProps: { current: Record<string, unknown> | null } = { current: null };
+// React strips `key` from the props a component receives, so a remount can't be
+// observed by reading reactFlowProps — instead, a lazily-initialised bit of
+// state (set once per mount, never again) doubles as a per-instance identity.
+let reactFlowMountCount = 0;
+
+// A named, capitalised function so react-hooks/rules-of-hooks recognises this
+// as a component (an inline arrow assigned to a lowercase `default:` property
+// doesn't look like one to the rule, even though React treats it as one).
+function MockReactFlow(props: Record<string, unknown>) {
+    reactFlowProps.current = props;
+    const [instanceId] = useState(() => ++reactFlowMountCount);
+    return (
+        <div data-testid="react-flow" data-instance={instanceId}>
+            {props.children as ReactNode}
+        </div>
+    );
+}
 
 vi.mock('reactflow', async () => {
     // Keep the real hooks (useNodesState/useEdgesState/useStore) so the graph's
@@ -21,10 +40,7 @@ vi.mock('reactflow', async () => {
     return {
         ...actual,
         __esModule: true,
-        default: (props: Record<string, unknown>) => {
-            reactFlowProps.current = props;
-            return <div data-testid="react-flow">{props.children as ReactNode}</div>;
-        },
+        default: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: ({ children }: { children?: ReactNode }) => (
             <div data-testid="rf-controls">{children}</div>
@@ -65,6 +81,7 @@ describe('ArchitectureGraph', () => {
     beforeEach(() => {
         reactFlowProps.current = null;
         miniMapProps.current = null;
+        reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
     });
@@ -90,7 +107,7 @@ describe('ArchitectureGraph', () => {
             'calm-hub:diagram-viewport',
             JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
         );
-        render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
+        render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
         expect(reactFlowProps.current?.fitView).toBe(false);
         expect(reactFlowProps.current?.defaultViewport).toEqual({ x: 5, y: 6, zoom: 0.8 });
         expect(reactFlowProps.current?.fitViewOptions).toEqual({
@@ -191,7 +208,7 @@ describe('ArchitectureGraph', () => {
                 JSON.stringify({ key: 'mobile:ns/id', viewport: { x: 0, y: 0, zoom: 1 } })
             );
             mockMobileViewport();
-            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" />);
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
             expect(reactFlowProps.current?.fitView).toBe(true);
             expect(reactFlowProps.current?.defaultViewport).toBeUndefined();
             // Floor drops to the pane minZoom (0.1) + tighter padding so even a wide
@@ -220,6 +237,186 @@ describe('ArchitectureGraph', () => {
             // fitting 390px after rotation / iOS chrome collapse.
             window.dispatchEvent(new Event('resize'));
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
+        });
+    });
+
+    describe('default layout precedence', () => {
+        const key = 'ns/id';
+
+        function nodePosition(id: string) {
+            const nodes = reactFlowProps.current?.nodes as Node[] | undefined;
+            return nodes?.find((n) => n.id === id)?.position;
+        }
+
+        it('applies the local scratch layout, even when a different server default exists', () => {
+            saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
+
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 999, y: 999 } }]}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+        });
+
+        it('applies the server default when no local scratch is stored', () => {
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('falls back to the auto-layout when neither scratch nor a server default exist', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey={key} defaultLayout={null} />);
+
+            // No loading gate, no forced position — the graph renders with dagre's own layout.
+            expect(screen.getByTestId('react-flow')).toBeInTheDocument();
+            expect(nodePosition('node-1')).toBeDefined();
+        });
+
+        it('shows a loading placeholder and withholds the graph while the server default is still loading', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey={key} defaultLayout={undefined} />);
+
+            expect(screen.getByText('Loading saved layout…')).toBeInTheDocument();
+            expect(screen.queryByTestId('react-flow')).not.toBeInTheDocument();
+        });
+
+        it('does not gate on a missing viewportKey (e.g. a dropped file) even with defaultLayout undefined', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} defaultLayout={undefined} />);
+
+            expect(screen.getByTestId('react-flow')).toBeInTheDocument();
+        });
+
+        it('re-applies positions when layoutEpoch changes, picking up a cleared scratch layout', () => {
+            saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
+
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={0}
+                />
+            );
+            expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+
+            // Simulate "reset to default": the scratch entry is cleared and the
+            // epoch bumps, forcing a clean re-apply of the server default.
+            localStorage.removeItem('calm-hub:node-positions:ns/id');
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={1}
+                />
+            );
+
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('does not remount ReactFlow on a layoutEpoch bump, so the current viewport survives a save/reset', () => {
+            // The ReactFlow `key` used to fold in layoutEpoch, forcing a remount on
+            // every reset. But savedViewport is memoised on storageKey alone (never
+            // recomputed by an epoch bump), so a remount restored defaultViewport
+            // from whatever was read at *mount* time, not the user's current pan/
+            // zoom — the canvas would snap back on every save. The remount was never
+            // needed for positions: the parse effect already has layoutEpoch in its
+            // own deps and re-applies on its own (proved by the test above).
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 5, y: 6 } }]}
+                    layoutEpoch={0}
+                />
+            );
+            const instanceBefore = screen.getByTestId('react-flow').getAttribute('data-instance');
+
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    layoutEpoch={1}
+                />
+            );
+
+            expect(screen.getByTestId('react-flow').getAttribute('data-instance')).toBe(instanceBefore);
+            expect(nodePosition('node-1')).toEqual({ x: 333, y: 444 });
+        });
+
+        it('reports applied positions upward via onPositionsChange', () => {
+            const onPositionsChange = vi.fn();
+            render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={[{ id: 'node-1', position: { x: 5, y: 6 } }]}
+                    onPositionsChange={onPositionsChange}
+                />
+            );
+
+            expect(onPositionsChange).toHaveBeenCalled();
+            const reported = onPositionsChange.mock.calls.at(-1)?.[0];
+            expect(reported.find((p: { id: string }) => p.id === 'node-1')?.position).toEqual({ x: 5, y: 6 });
+        });
+
+        it('does not re-run the parse effect when onPositionsChange gets a new identity', () => {
+            // Held stable across rerenders — a fresh array literal per render would
+            // itself be a real dependency change (defaultLayout) and confound the
+            // thing under test.
+            const stableDefaultLayout = [{ id: 'node-1', position: { x: 5, y: 6 } }];
+
+            const firstCallback = vi.fn();
+            const { rerender } = render(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={firstCallback}
+                />
+            );
+            expect(firstCallback).toHaveBeenCalledTimes(1);
+
+            // Same props except a brand-new function identity — as a naive inline
+            // arrow at a call site would produce. The parse effect must not treat
+            // this as a real dependency change: no second parse-and-apply, and no
+            // call to the stale first callback.
+            const secondCallback = vi.fn();
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={secondCallback}
+                />
+            );
+
+            expect(firstCallback).toHaveBeenCalledTimes(1);
+            expect(secondCallback).not.toHaveBeenCalled();
+
+            // The next genuine re-apply (layoutEpoch bump) reports through the
+            // *current* callback, proving the ref is kept up to date.
+            rerender(
+                <ArchitectureGraph
+                    jsonData={mockCalmData}
+                    viewportKey={key}
+                    defaultLayout={stableDefaultLayout}
+                    onPositionsChange={secondCallback}
+                    layoutEpoch={1}
+                />
+            );
+            expect(secondCallback).toHaveBeenCalledTimes(1);
+            expect(firstCallback).toHaveBeenCalledTimes(1);
         });
     });
 });

@@ -7,7 +7,7 @@ sidebar_position: 1
 # Tool setup
 
 ## Prerequisites
-- Visual Studio Code (v1.106 or later)
+- Visual Studio Code (v1.107 or later)
 - An active GitHub Copilot subscription
 - GitHub Copilot and Copilot Chat extensions installed in VS Code
 - CALM CLI installed globally (`npm install -g @finos/calm-cli`)
@@ -48,4 +48,3 @@ For more details, see the CALM documentation or run `calm init-ai --help`.
 - Given LLM capabilities, the prompts shown in the tutorial are not prescriptive and can be reused with different AI Assistants integrated with CALM.  The reader is encouraged to experiment with alternative wordings to see what works best for the particular AI Assistant being used.  
 - Responses from the LLM should be viewed as suggestions and must be reviewed by the architect for accuracy.  The architect should revise responses to reflect their organization's objectives and standards.
 - CALM AI Support is an evolving function and capabilities may change in the future.
-

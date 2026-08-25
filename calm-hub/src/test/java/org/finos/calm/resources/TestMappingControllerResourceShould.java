@@ -66,7 +66,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_201_when_creating_a_new_pattern_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("api-gateway")
@@ -80,12 +80,12 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
 
-        verify(mockMappingStore).updateMappingNumericId("finos", "api-gateway", 1);
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.PATTERN, "api-gateway", 1);
     }
 
     @Test
     void return_201_when_creating_a_new_architecture_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-arch")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("my-arch"), eq(ResourceType.ARCHITECTURE), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("my-arch")
@@ -99,12 +99,12 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/architectures/my-arch/versions/1.0.0"));
 
-        verify(mockMappingStore).updateMappingNumericId("finos", "my-arch", 2);
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.ARCHITECTURE, "my-arch", 2);
     }
 
     @Test
     void return_201_when_creating_a_new_flow_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("my-flow"), eq(ResourceType.FLOW), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("my-flow")
@@ -118,12 +118,12 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/flows/my-flow/versions/1.0.0"));
 
-        verify(mockMappingStore).updateMappingNumericId("finos", "my-flow", 5);
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.FLOW, "my-flow", 5);
     }
 
     @Test
     void return_201_when_creating_a_new_standard_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-standard")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "my-standard")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("my-standard"), eq(ResourceType.STANDARD), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("my-standard")
@@ -137,12 +137,12 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/standards/my-standard/versions/1.0.0"));
 
-        verify(mockMappingStore).updateMappingNumericId("finos", "my-standard", 3);
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.STANDARD, "my-standard", 3);
     }
 
     @Test
     void return_201_when_creating_a_new_interface_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-interface")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "my-interface")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("my-interface"), eq(ResourceType.INTERFACE), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("my-interface")
@@ -156,7 +156,7 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201)
                 .header("Location", containsString("/calm/namespaces/finos/interfaces/my-interface/versions/1.0.0"));
 
-        verify(mockMappingStore).updateMappingNumericId("finos", "my-interface", 4);
+        verify(mockMappingStore).updateMappingNumericId("finos", ResourceType.INTERFACE, "my-interface", 4);
     }
 
     @Test
@@ -183,7 +183,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_namespace_not_found_on_create() throws Exception {
-        when(mockMappingStore.getMapping("invalid", "test-resource")).thenThrow(new NamespaceNotFoundException());
+        when(mockMappingStore.getMapping("invalid", ResourceType.PATTERN, "test-resource")).thenThrow(new NamespaceNotFoundException());
 
         given().header("Content-Type", "application/json").body(versionedDoc("invalid", "patterns", "test-resource", "1.0.0")).when()
                 .post("/calm")
@@ -192,7 +192,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_409_when_duplicate_name_on_create() throws Exception {
-        when(mockMappingStore.getMapping("finos", "dup-id")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "dup-id")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("dup-id"), eq(ResourceType.PATTERN), eq(0)))
                 .thenThrow(new DuplicateMappingException());
 
@@ -203,7 +203,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void rollback_mapping_when_store_creation_fails() throws Exception {
-        when(mockMappingStore.getMapping("finos", "fail-create")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "fail-create")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("fail-create"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("fail-create")
@@ -215,25 +215,25 @@ public class TestMappingControllerResourceShould {
                 .post("/calm")
                 .then().statusCode(400);
 
-        verify(mockMappingStore).deleteMapping("finos", "fail-create");
+        verify(mockMappingStore).deleteMapping("finos", ResourceType.PATTERN, "fail-create");
     }
 
     @Test
     void rollback_mapping_even_when_rollback_itself_fails() throws Exception {
-        when(mockMappingStore.getMapping("finos", "rollback-me")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "rollback-me")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("rollback-me"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("rollback-me")
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
                 .thenThrow(new RuntimeException("store failure"));
-        doThrow(new RuntimeException("rollback failed")).when(mockMappingStore).deleteMapping("finos", "rollback-me");
+        doThrow(new RuntimeException("rollback failed")).when(mockMappingStore).deleteMapping("finos", ResourceType.PATTERN, "rollback-me");
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "rollback-me", "1.0.0")).when()
                 .post("/calm")
                 .then().statusCode(400);
 
-        verify(mockMappingStore).deleteMapping("finos", "rollback-me");
+        verify(mockMappingStore).deleteMapping("finos", ResourceType.PATTERN, "rollback-me");
     }
 
     // --- POST /calm adding explicit version to existing resource ---
@@ -243,7 +243,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "api-gateway", "2.0.0")).when()
@@ -257,7 +257,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-arch")
                 .setResourceType(ResourceType.ARCHITECTURE).setNumericId(2).build();
-        when(mockMappingStore.getMapping("finos", "my-arch")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenReturn(existing);
         when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "architectures", "my-arch", "2.0.0")).when()
@@ -273,7 +273,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-flow")
                 .setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(existing);
         when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "flows", "my-flow", "2.0.0")).when()
@@ -289,7 +289,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-standard")
                 .setResourceType(ResourceType.STANDARD).setNumericId(3).build();
-        when(mockMappingStore.getMapping("finos", "my-standard")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "my-standard")).thenReturn(existing);
         when(mockStandardStore.getStandardVersions("finos", 3)).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "standards", "my-standard", "2.0.0")).when()
@@ -305,7 +305,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-interface")
                 .setResourceType(ResourceType.INTERFACE).setNumericId(4).build();
-        when(mockMappingStore.getMapping("finos", "my-interface")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "my-interface")).thenReturn(existing);
         when(mockInterfaceStore.getInterfaceVersions("finos", 4)).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "interfaces", "my-interface", "2.0.0")).when()
@@ -321,7 +321,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("orphan")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "orphan")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "orphan")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of());
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "orphan", "2.0.0")).when()
@@ -334,7 +334,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("null-msg")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "null-msg")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "null-msg")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
         when(mockPatternStore.createPatternForVersion(any(Pattern.class))).thenThrow(new RuntimeException((String) null));
 
@@ -348,7 +348,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("badns").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("badns", "api-gateway")).thenReturn(existing);
+        when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new NamespaceNotFoundException());
 
         given().header("Content-Type", "application/json").body(versionedDoc("badns", "patterns", "api-gateway", "2.0.0")).when()
@@ -375,7 +375,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_400_when_first_create_requests_non_1_0_0_via_versioned_id() throws Exception {
-        when(mockMappingStore.getMapping("finos", "seed-me")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "seed-me")).thenThrow(new MappingNotFoundException());
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "seed-me", "2.0.0")).when()
                 .post("/calm")
@@ -384,7 +384,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_201_when_first_create_uses_versioned_id_of_1_0_0() throws Exception {
-        when(mockMappingStore.getMapping("finos", "seed-one")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "seed-one")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("seed-one"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("seed-one")
@@ -420,7 +420,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_201_when_creating_specific_version_on_new_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "v-new")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "v-new")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("finos"), eq("v-new"), eq(ResourceType.PATTERN), eq(0)))
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("v-new")
@@ -437,7 +437,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_400_when_creating_non_1_0_0_specific_version_on_new_resource() throws Exception {
-        when(mockMappingStore.getMapping("finos", "v-seed")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "v-seed")).thenThrow(new MappingNotFoundException());
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "v-seed", "2.0.0")).when()
                 .post("/calm/namespaces/finos/patterns/v-seed/versions/2.0.0")
@@ -449,7 +449,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("v-exist")
                 .setResourceType(ResourceType.PATTERN).setNumericId(9).build();
-        when(mockMappingStore.getMapping("finos", "v-exist")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "v-exist")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "v-exist", "2.0.0")).when()
@@ -465,7 +465,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("v-dup")
                 .setResourceType(ResourceType.PATTERN).setNumericId(10).build();
-        when(mockMappingStore.getMapping("finos", "v-dup")).thenReturn(existing);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "v-dup")).thenReturn(existing);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "2.0.0"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "v-dup", "2.0.0")).when()
@@ -491,7 +491,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_400_when_title_is_missing_on_new_resource_create() throws Exception {
-        when(mockMappingStore.getMapping("finos", "no-title")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "no-title")).thenThrow(new MappingNotFoundException());
         // Body has $id and version 1.0.0 but NO title field
         String body = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/no-title/versions/1.0.0\"}";
 
@@ -507,7 +507,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0", "1.1.0"));
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions")
@@ -522,7 +522,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("sorted-test")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "sorted-test")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "sorted-test")).thenReturn(mapping);
         when(mockPatternStore.getPatternVersions(any(Pattern.class)))
                 .thenReturn(List.of("2.0.0", "1.0.0", "1.1.0", "1.0.1"));
 
@@ -537,7 +537,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_mapping_not_found_on_list_versions() throws Exception {
-        when(mockMappingStore.getMapping("finos", "nonexistent")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "nonexistent")).thenThrow(new MappingNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/nonexistent/versions")
                 .then().statusCode(404);
@@ -548,7 +548,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("missing-versions")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "missing-versions")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "missing-versions")).thenReturn(mapping);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new PatternNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/missing-versions/versions")
@@ -560,7 +560,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("err-list-versions")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "err-list-versions")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "err-list-versions")).thenReturn(mapping);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenThrow(new RuntimeException("boom"));
 
         given().when().get("/calm/namespaces/finos/patterns/err-list-versions/versions")
@@ -572,7 +572,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions").then().statusCode(200);
@@ -586,7 +586,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{\"version\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0")
@@ -598,7 +598,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-arch")
                 .setResourceType(ResourceType.ARCHITECTURE).setNumericId(2).build();
-        when(mockMappingStore.getMapping("finos", "my-arch")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenReturn(mapping);
         when(mockArchitectureStore.getArchitectureForVersion(any(Architecture.class))).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/architectures/my-arch/versions/1.0.0")
@@ -610,7 +610,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-flow")
                 .setResourceType(ResourceType.FLOW).setNumericId(5).build();
-        when(mockMappingStore.getMapping("finos", "my-flow")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(mapping);
         when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/flows/my-flow/versions/1.0.0")
@@ -622,7 +622,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-standard")
                 .setResourceType(ResourceType.STANDARD).setNumericId(3).build();
-        when(mockMappingStore.getMapping("finos", "my-standard")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "my-standard")).thenReturn(mapping);
         when(mockStandardStore.getStandardForVersion("finos", 3, "1.0.0")).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/standards/my-standard/versions/1.0.0")
@@ -634,7 +634,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-interface")
                 .setResourceType(ResourceType.INTERFACE).setNumericId(4).build();
-        when(mockMappingStore.getMapping("finos", "my-interface")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "my-interface")).thenReturn(mapping);
         when(mockInterfaceStore.getInterfaceForVersion("finos", 4, "1.0.0")).thenReturn("{\"v\": \"1.0.0\"}");
 
         given().when().get("/calm/namespaces/finos/interfaces/my-interface/versions/1.0.0")
@@ -643,7 +643,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_mapping_not_found_on_get_version() throws Exception {
-        when(mockMappingStore.getMapping("finos", "nonexistent")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "nonexistent")).thenThrow(new MappingNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/nonexistent/versions/1.0.0")
                 .then().statusCode(404);
@@ -654,7 +654,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternVersionNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/9.9.9")
@@ -666,7 +666,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("missing-pattern")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "missing-pattern")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "missing-pattern")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternNotFoundException());
 
         given().when().get("/calm/namespaces/finos/patterns/missing-pattern/versions/1.0.0")
@@ -678,7 +678,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("badns").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("badns", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new NamespaceNotFoundException());
 
         given().when().get("/calm/namespaces/badns/patterns/api-gateway/versions/1.0.0")
@@ -690,7 +690,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("err-version")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "err-version")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "err-version")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new RuntimeException("boom"));
 
         given().when().get("/calm/namespaces/finos/patterns/err-version/versions/1.0.0")
@@ -702,7 +702,7 @@ public class TestMappingControllerResourceShould {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("api-gateway")
                 .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
-        when(mockMappingStore.getMapping("finos", "api-gateway")).thenReturn(mapping);
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
         when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0").then().statusCode(200);
@@ -1085,7 +1085,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_400_when_versioned_post_body_is_blank() throws Exception {
-        when(mockMappingStore.getMapping("finos", "my-res")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "my-res")).thenThrow(new MappingNotFoundException());
         given().header("Content-Type", "application/json")
                 .body("   ")
                 .when().post("/calm/namespaces/finos/patterns/my-res/versions/1.0.0")
@@ -1094,7 +1094,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_namespace_not_found_on_versioned_post_via_namespace_exception() throws Exception {
-        when(mockMappingStore.getMapping("badns", "v-test")).thenThrow(new NamespaceNotFoundException());
+        when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "v-test")).thenThrow(new NamespaceNotFoundException());
         given().header("Content-Type", "application/json")
                 .body(versionedDoc("badns", "patterns", "v-test", "1.0.0"))
                 .when().post("/calm/namespaces/badns/patterns/v-test/versions/1.0.0")
@@ -1113,7 +1113,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_namespace_exception_on_list_versions() throws Exception {
-        when(mockMappingStore.getMapping("badns", "api-gateway")).thenThrow(new NamespaceNotFoundException());
+        when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "api-gateway")).thenThrow(new NamespaceNotFoundException());
         given().when().get("/calm/namespaces/badns/patterns/api-gateway/versions")
                 .then().statusCode(404);
     }
@@ -1134,7 +1134,7 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void return_404_when_namespace_not_found_in_mapping_store_on_create() throws Exception {
-        when(mockMappingStore.getMapping("badns", "new-res")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.getMapping("badns", ResourceType.PATTERN, "new-res")).thenThrow(new MappingNotFoundException());
         when(mockMappingStore.createMapping(eq("badns"), eq("new-res"), eq(ResourceType.PATTERN), eq(0)))
                 .thenThrow(new NamespaceNotFoundException());
         given().header("Content-Type", "application/json")
