@@ -2,15 +2,18 @@ import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, resolveFilePath } from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
-import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
 import {
+    CalmHubClient,
+    ResourceChangeType,
     DocumentMetadata,
     extractDocumentMetadata,
     constructDocumentId,
-} from '@finos/calm-shared/src/hub/document-id-utils';
-import { computeSemVerBump, sortSemVer } from '@finos/calm-shared/src/hub/semver';
-import { canonicalEqual } from '@finos/calm-shared/src/hub/canonical';
-import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+    computeSemVerBump,
+    sortSemVer,
+    canonicalEqual,
+    initLogger,
+    Logger,
+} from '@finos/calm-shared';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };

@@ -14,11 +14,10 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
 vi.mock('@finos/calm-shared', async () => {
-    const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/dist/hub/document-id-utils');
-    // Real (pure) semver helpers used by pushDocument's version-bump path.
-    const semver = await vi.importActual('@finos/calm-shared/dist/hub/semver');
-    // Real (pure) canonical-equality helper used by pushDocument's fail-if-modified path.
-    const canonical = await vi.importActual('@finos/calm-shared/dist/hub/canonical');
+    const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
+    const documentIdUtils = actual as unknown as Record<string, unknown>;
+    const semver = actual;
+    const canonical = actual;
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
@@ -42,9 +41,9 @@ vi.mock('@finos/calm-shared', async () => {
     };
     return {
         ...documentIdUtils,
-        extractDocumentMetadata: vi.fn(documentIdUtils['extractDocumentMetadata'] as (...args: unknown[]) => unknown),
         ...semver,
         ...canonical,
+        extractDocumentMetadata: vi.fn(documentIdUtils['extractDocumentMetadata'] as (...args: unknown[]) => unknown),
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
             constructor(public status: number, public error: string, public request: string) {

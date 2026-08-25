@@ -50,12 +50,11 @@ export {
 export { Docifier, DocifyMode, DiagramExportFormat } from './docify/docifier.js';
 export { C4Model } from './docify/graphing/c4.js';
 export { CalmRelationshipGraph } from './docify/graphing/relationship-graph.js';
-export { ValidationOutcome } from './commands/validate/validation.output';
-export * from './test/file-comparison.js';
+export { ValidationOutcome } from './commands/validate/validation.output.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
-export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader';
-export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader';
-export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader';
+export { buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from './document-loader/document-loader.js';
+export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader.js';
+export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader.js';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
@@ -65,6 +64,7 @@ export {
 export {
     CalmHubClient,
     HubClientError,
+    RESOURCE_TYPES,
     type HubNamespaceSummary,
     type HubCreateResult,
     type HubNamespaceCreateResult,

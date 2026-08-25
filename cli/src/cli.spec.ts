@@ -14,7 +14,6 @@ let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let diffModule: typeof import('./command-helpers/diff');
 let hubCommandsModule: typeof import('./command-helpers/hub-commands');
-let _fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
 let documentLoaderModule: typeof import('../../shared/src/document-loader/document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
@@ -32,7 +31,6 @@ describe('CLI Commands', () => {
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
-        _fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
         documentLoaderModule = await import('../../shared/src/document-loader/document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
