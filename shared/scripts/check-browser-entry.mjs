@@ -56,7 +56,11 @@ async function bundle(entry, outfile, requests) {
         platform: 'browser',
         format: 'esm',
         mainFields: ['browser', 'module', 'main'],
-        define: { 'process.env.NODE_ENV': '"production"' },
+        define: {
+            'process.env.NODE_ENV': '"production"',
+            process: 'undefined',
+            Buffer: 'undefined',
+        },
         logLevel: 'silent',
         plugins: [stubPlugin(requests)],
     });
@@ -66,7 +70,7 @@ function checkRequests(requests) {
     const problems = [];
     for (const { builtin, importer } of requests) {
         const rel = path.relative(repoRoot, importer);
-        if (importer.startsWith(path.join(sharedRoot, 'src'))) {
+        if (importer.startsWith(path.join(sharedRoot, 'src') + path.sep)) {
             problems.push(`shared source imports Node builtin '${builtin}': ${rel}`);
             continue;
         }
@@ -91,6 +95,8 @@ async function main() {
         console.log(`browser entry: ${entryRequests.length} allowlisted builtin request(s), none from shared/src`);
 
         const probeOut = path.join(workDir, 'probe.js');
+        // The probe's module graph is the entry's graph plus JSON schema fixtures, already
+        // checked above, so its builtin requests are intentionally not re-checked here.
         await bundle(path.join(here, 'browser-probe.ts'), probeOut, []);
         await import(pathToFileURL(probeOut).href);
     } catch (err) {
