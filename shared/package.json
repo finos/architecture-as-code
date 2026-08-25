@@ -23,7 +23,8 @@
         "copy:docify-template-bundle": "node scripts/copy-templates.mjs",
         "watch": "tsc -watch -p ./tsconfig.build.json",
         "clean": "rimraf dist tsconfig.build.tsbuildinfo",
-        "test": "vitest run",
+        "test": "node scripts/check-browser-entry.mjs && vitest run",
+        "check:browser-entry": "node scripts/check-browser-entry.mjs",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
         "dependency-check": "dependency-check --project 'calm-shared' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
@@ -67,6 +68,7 @@
         "winston": "^3.17.0"
     },
     "devDependencies": {
+        "esbuild": "^0.28.1"
     },
     "overrides": {
         "path-to-regexp": "8.4.2",
