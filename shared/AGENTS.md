@@ -61,8 +61,8 @@ a bundle can select. Candidates are declared in four places: a plain `prefixItem
 `prefixItems[i].oneOf` or `.anyOf` alternative, or an `items.oneOf`/`items.anyOf` catalog.
 
 **A decision holder must be in `properties.relationships.prefixItems`.** `extractOptions`
-(`options.ts:65`) finds decisions only through `getRelationshipsPrefixItems` (`options.ts:55`),
-which never reads the `items` catalog. A holder in a catalog is never offered, on any path.
+finds decisions only through `getRelationshipsPrefixItems`, both in `options.ts`, which never
+reads the `items` catalog. A holder in a catalog is never offered, on any path.
 
 A candidate reaches the output only when a chosen bundle names its `unique-id`. Drive new
 tests from `extractOptions`, not from hand-built choices, or you do not test whether the
@@ -90,11 +90,12 @@ Treat `allOf` for nodes and relationships as unsupported.
 | Reader | Behaviour |
 |---|---|
 | `deepMergeSchemas` (`flatten-allof.ts`) | shallow merge; a repeated property loses `type`, so `instantiate` emits `{}` |
-| `getPatternArray` | first branch wins, later branches ignored; marked TEMPORARY |
+| `getPatternArray` | resolves one branch per property (root, else the first branch declaring it) and reads `prefixItems`/`items` from that same branch; later branches ignored; marked TEMPORARY |
 | `listCandidates` / `listSelectableCandidates` | ignore `allOf` entirely, to keep `path` correct for diagnostics |
 
-A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at all from the
-readers, and `deepMergeSchemas` may still merge it (lossily) for `calm generate`. `allOf` means
+A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at all from
+`listCandidates`/`listSelectableCandidates` (they ignore `allOf` entirely), even though
+`getPatternArray` and `deepMergeSchemas` both still reach into it. `allOf` means
 **intersection**, never union, because `calm validate` never flattens. `shared` previously kept
 its own copy of `listCandidates` that followed `allOf` through `getPatternArray`, disagreeing
 with the `calm-models` copy and reporting a `path` the document did not contain; nothing tested
@@ -116,8 +117,9 @@ it did not add support.
 The generate path has its own guard. `assertChoicesAreSelectable` throws from `runGenerate`.
 It is not called from `selectChoices`, because validation calls that too.
 
-`pattern-nodes-must-be-referenced` does not help with holder placement. Its query
-(`node-has-relationship.ts:10`) matches a holder in the wrong array.
+`pattern-nodes-must-be-referenced` does not help with holder placement. Its recursive
+`$..relationship-type..*@string()` query (`node-has-relationship.ts`) matches a holder
+regardless of which array it sits in.
 
 ### Still duplicated
 
@@ -126,7 +128,7 @@ is gone — both `listCandidates` and `listSelectableCandidates` now live only i
 
 | Duplicate | Sites | Note |
 |---|---|---|
-| decision-holder reading | `options.ts:25,29`, `patternTransformer.ts:290,317` | already differ: one unions both keywords, the other picks `oneOf` |
+| decision-holder reading | `options.ts` (`isOptionsRelationship`, `getItemsInOptionsRelationship`), `patternTransformer.ts` (`isOptionsRelationship`, the `options.prefixItems` read) | already differ: one unions both keywords, the other picks `oneOf` |
 
 `calm-hub-ui` depends on `@finos/calm-models` and not on `shared`, so a shared reader must
 live in `calm-models`.
