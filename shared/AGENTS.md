@@ -43,7 +43,7 @@ npx vitest run ${TEST FILE}
 | Entry | File | Audience |
 |---|---|---|
 | `@finos/calm-shared` | `src/index.ts` | CLI, calm-server, anything on Node. Registers winston logging and the JUnit formatter at load. |
-| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, Studio/Guard). Validate (JSON Schema + Spectral), generate, diff/timeline, `SchemaDirectory`, loaders, the CLI capability manifest. |
+| `@finos/calm-shared/browser` | `src/browser.ts` | Browser bundles (the docs learning lab, Studio/Guard). Validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, loaders, the CLI capability manifest. |
 
 Rules:
 - New modules are browser-safe by default. Node-only code (`fs`, `path`, `net`, `process.exit`, `__dirname`, winston, mkdirp, playwright) lives in a `*.node.ts` / `node-*.ts` module or in a wrapper that the root barrel imports — never imported from `browser.ts` or anything it reaches.
@@ -51,7 +51,7 @@ Rules:
 - `scripts/check-browser-entry.mjs` runs in `npm test`. It bundles `src/browser.ts` with esbuild for the browser and fails on any Node builtin request outside a four-entry allowlist (Spectral's dependency chain requests `fs`/`path`/`buffer` but never touches `fs`/`path` at runtime), then executes a real probe (`validate()`, `generate()`, `diffDocuments()`) with those builtins stubbed to throw. Do not extend the allowlist to make a red build green — fix the seam.
 - Deep imports (`@finos/calm-shared/src/...`, `/dist/...`) are sealed by the `exports` map. Import from the barrel.
 - Browser consumers bundling the entry must map the allowlisted builtins to nothing — webpack: `resolve.fallback: { fs: false, path: false, buffer: false }`; esbuild: the same stub plugin the guard uses.
-- Not in the browser entry (follow-ups): template/docify (filesystem-bound loaders and output strategies), Hub read/write commands (CORS), diagram rasterisation.
+- Not in the browser entry (follow-ups): template/docify (filesystem-bound loaders and output strategies), Hub read/write commands (CORS), diagram rasterisation, the standalone `timeline` command (synthesises from versioned architecture files on the local filesystem — `diff --timeline` via `diffTimeline` is supported).
 
 ## Key Components
 

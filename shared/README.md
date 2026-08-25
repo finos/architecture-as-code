@@ -5,7 +5,7 @@ This module provides shared logic such as validation and visualization utilities
 ## Browser entry point
 
 Browser bundles import from `@finos/calm-shared/browser`, not the package root — the root entry pulls in Node-only code (winston, `fs`, etc.).
-The browser entry covers validate (JSON Schema + Spectral), generate, diff/timeline, `SchemaDirectory`, the document loaders, and auth plugins.
+The browser entry covers validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, the document loaders, and auth plugins. The standalone `timeline` command is not supported in the browser — it synthesises a timeline from versioned architecture files on the local filesystem.
 Bundlers must stub out the Node builtins the browser entry's dependency chain still requests but never touches at runtime; for webpack:
 
 ```js

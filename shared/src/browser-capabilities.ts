@@ -16,7 +16,11 @@ export const BROWSER_COMMAND_SUPPORT: readonly BrowserCommandSupport[] = [
     { command: 'validate', status: 'supported' },
     { command: 'generate', status: 'supported' },
     { command: 'diff', status: 'supported' },
-    { command: 'timeline', status: 'supported' },
+    {
+        command: 'timeline',
+        status: 'unsupported',
+        reason: 'synthesises a timeline from versioned architecture files on the local filesystem; timeline diffing is available in the browser through diffTimeline (the diff --timeline core)'
+    },
     { command: 'template', status: 'unsupported', reason: FILESYSTEM_REASON },
     { command: 'docify', status: 'unsupported', reason: `${FILESYSTEM_REASON}, and rasterises diagrams with a headless browser` },
     { command: 'init-ai', status: 'unsupported', reason: 'installs AI assistant files into the local project' },

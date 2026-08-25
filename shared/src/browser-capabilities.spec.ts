@@ -3,9 +3,15 @@ import { BROWSER_COMMAND_SUPPORT, browserSupportFor } from './browser-capabiliti
 
 describe('browser capability manifest', () => {
     it('marks the pure engine commands as supported', () => {
-        for (const cmd of ['validate', 'generate', 'diff', 'timeline']) {
+        for (const cmd of ['validate', 'generate', 'diff']) {
             expect(browserSupportFor(cmd)).toEqual({ command: cmd, status: 'supported' });
         }
+    });
+
+    it('marks timeline as unsupported because it synthesises from the local filesystem', () => {
+        const entry = browserSupportFor('timeline');
+        expect(entry?.status).toBe('unsupported');
+        expect(entry && 'reason' in entry ? entry.reason : '').toContain('diffTimeline');
     });
 
     it('gives a reason for every unsupported command', () => {
