@@ -461,6 +461,50 @@ describe('Pattern Options', () => {
             );
             expect(selectChoices(pattern, [])).toEqual(expectedPattern);
         });
+
+        it('drops a decision holder entirely when nothing is selected for it, instead of an illegal empty options.prefixItems', () => {
+            const applicationA = buildNode('application-a');
+            const applicationC = buildNode('application-c');
+            const connectsRelationshipA = buildConnectsRelationship('application-a-to-c', 'app a to app c', 'application-a', 'application-c');
+
+            const pattern = buildPattern(
+                [applicationA, applicationC],
+                [
+                    buildPatternOptionRelationship(
+                        'cache-choice',
+                        'Pick a cache',
+                        buildPatternOption('anyOf', buildPatternChoice(applicationAtoC))
+                    ),
+                    buildPatternOptionRelationship(
+                        'queue-choice',
+                        'Pick a queue',
+                        buildPatternOption('anyOf', buildPatternChoice(applicationBtoC))
+                    ),
+                    connectsRelationshipA,
+                ]
+            );
+
+            // Answer cache-choice; leave queue-choice with zero selections - the checkbox
+            // (anyOf) case the feature advertises as a legitimate answer.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [applicationAtoC]) as any;
+
+            const relationshipIds = result.properties.relationships.prefixItems
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((r: any) => r.properties['unique-id'].const);
+            expect(relationshipIds).not.toContain('queue-choice');
+            expect(relationshipIds).toContain('cache-choice');
+
+            // An options.prefixItems of length 0 is not a legal JSON Schema (prefixItems
+            // must hold at least one entry) - compiling exactly that is what broke
+            // `calm validate` on this input before the fix.
+            for (const rel of result.properties.relationships.prefixItems) {
+                const options = rel.properties?.['relationship-type']?.properties?.options;
+                if (options) {
+                    expect(options.prefixItems.length).toBeGreaterThan(0);
+                }
+            }
+        });
     });
 
     describe('allOf pattern support', () => {

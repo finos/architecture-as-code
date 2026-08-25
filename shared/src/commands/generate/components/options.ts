@@ -150,7 +150,15 @@ function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationship
     }
 }
 
-function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {
+/**
+ * Returns `undefined` when nothing was selected for this decision, rather than the
+ * relationship with an empty `options.prefixItems`. An empty `prefixItems` is not a
+ * legal JSON Schema, so writing one there breaks the next schema compilation - both
+ * `calm generate` and `calm validate` compile the narrowed pattern via `selectChoices`.
+ * A decision resolved to "nothing chosen" has nothing to materialize, so the holder
+ * itself is dropped instead.
+ */
+function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode | undefined {
     if (!isOptionsRelationship(relationship)) {
         return relationship;
     }
@@ -158,6 +166,10 @@ function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoic
     const selectionPredicate = (x: SchemaNode) => choices.map(choice => choice.description).includes(x['properties']['description']['const']);
     const newItems = getItemsInOptionsRelationship(relationship)
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
+
+    if (newItems.length === 0) {
+        return undefined;
+    }
 
     relationship['properties']['relationship-type']['properties']['options']['prefixItems'] = newItems;
     return relationship;
@@ -172,7 +184,8 @@ function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[])
     if (!relationships?.['prefixItems']) return;
 
     relationships['prefixItems'] = relationships['prefixItems']
-        .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices));
+        .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices))
+        .filter((rel: SchemaNode | undefined): rel is SchemaNode => rel !== undefined);
 }
 
 /**
