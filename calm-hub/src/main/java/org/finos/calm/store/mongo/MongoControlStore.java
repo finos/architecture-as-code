@@ -12,6 +12,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
+import org.finos.calm.domain.exception.ControlHasConfigurationsException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -191,6 +192,29 @@ public class MongoControlStore implements ControlStore {
                 configurationNamespace(domain, controlId), configurationId, version, content);
         if (!created) {
             throw new ControlConfigurationVersionExistsException();
+        }
+    }
+
+    @Override
+    public void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException {
+        requireControl(domain, controlId);
+
+        int configurationCount = configurationStore.countHeaders(configurationNamespace(domain, controlId));
+        if (configurationCount > 0) {
+            throw new ControlHasConfigurationsException(controlId, configurationCount);
+        }
+
+        if (!requirementStore.deleteResource(domain, controlId)) {
+            throw new ControlNotFoundException();
+        }
+    }
+
+    @Override
+    public void deleteControlConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        requireConfiguration(domain, controlId, configurationId);
+
+        if (!configurationStore.deleteResource(configurationNamespace(domain, controlId), configurationId)) {
+            throw new ControlConfigurationNotFoundException();
         }
     }
 
