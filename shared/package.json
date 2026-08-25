@@ -4,6 +4,16 @@
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "main": "dist/index.js",
     "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/index.js"
+        },
+        "./browser": {
+            "types": "./dist/browser.d.ts",
+            "default": "./dist/browser.js"
+        }
+    },
     "files": [
         "dist"
     ],
@@ -27,7 +37,6 @@
     ],
     "author": "",
     "license": "ISC",
-    "module": "esnext",
     "type": "module",
     "dependencies": {
         "@apidevtools/json-schema-ref-parser": "^14.0.0",
@@ -35,7 +44,6 @@
         "@finos/calm-widgets": "file:../calm-widgets",
         "@mermaid-js/layout-elk": "^0.2.1",
         "@stoplight/json": "^3.21.7",
-        "@stoplight/spectral-cli": "^6.14.3",
         "@stoplight/spectral-core": "^1.19.5",
         "@stoplight/spectral-functions": "^1.9.4",
         "ajv": "^8.18.0",

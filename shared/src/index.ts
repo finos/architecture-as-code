@@ -107,3 +107,8 @@ export {
     type ParsedDocumentContext,
     __test__ as validationEnrichmentTest
 } from './commands/validate/validation-enrichment.js';
+export { InMemoryDocumentLoader } from './document-loader/in-memory-document-loader.js';
+export { buildBrowserDocumentLoader, type BrowserDocumentLoaderOptions } from './document-loader/browser-document-loader.js';
+export { generate, type GenerateOptions } from './commands/generate/generate-core.js';
+export { diffDocuments, diffTimeline, tryDetectDocumentType, type DiffDocumentsOptions } from './commands/diff/diff-core.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport } from './browser-capabilities.js';
