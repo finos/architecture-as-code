@@ -33,6 +33,11 @@ final class MappingCleanup {
         } catch (NamespaceNotFoundException e) {
             logger.warn("Could not clean up the mapping for {} [{}] in namespace [{}] after delete "
                     + "— the namespace no longer exists", type, numericId, namespace, e);
+        } catch (RuntimeException e) {
+            // A driver/DB failure (MongoException, a Nitrite lock/store error, ...) must not
+            // surface as an unhandled 500 for a delete that has already succeeded.
+            logger.warn("Could not clean up the mapping for {} [{}] in namespace [{}] after delete",
+                    type, numericId, namespace, e);
         }
     }
 }

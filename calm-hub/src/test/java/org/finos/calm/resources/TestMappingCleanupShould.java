@@ -41,4 +41,17 @@ class TestMappingCleanupShould {
 
         verify(mappingStore).deleteMappingByNumericId("finos", ResourceType.ARCHITECTURE, 42);
     }
+
+    @Test
+    void log_rather_than_throw_when_the_mapping_store_fails_at_runtime() throws NamespaceNotFoundException {
+        // A driver/DB failure (MongoException, a Nitrite lock/store error, ...) must not
+        // surface as an unhandled 500 for a delete that has already succeeded.
+        doThrow(new RuntimeException("connection reset"))
+                .when(mappingStore).deleteMappingByNumericId("finos", ResourceType.ARCHITECTURE, 42);
+
+        assertDoesNotThrow(() ->
+                MappingCleanup.deleteMapping(mappingStore, logger, "finos", ResourceType.ARCHITECTURE, 42));
+
+        verify(mappingStore).deleteMappingByNumericId("finos", ResourceType.ARCHITECTURE, 42);
+    }
 }
