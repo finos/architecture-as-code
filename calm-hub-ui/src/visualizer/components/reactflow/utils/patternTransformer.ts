@@ -692,13 +692,14 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
  * Folds each options-relationship decision's referenced node ids into a single
  * decision group, mutating `decisionGroups`/`extractedNodes` in place:
  *
- * - If any referenced id already belongs to an existing decision group (built
- *   during node extraction, e.g. a prefixItems oneOf slot or the items
- *   catalog), ALL of the decision's referenced ids are folded into that one
- *   group (moving them out of any other group they were previously in).
- * - If none of the referenced ids belong to an existing group, a brand new
- *   group is created (id derived from the options relationship's own
- *   unique-id) containing exactly the referenced ids.
+ * - Every decision gets its own new group (id derived from the options
+ *   relationship's own unique-id). Each referenced id is moved into that new
+ *   group, out of whatever group it previously belonged to (built during node
+ *   extraction, e.g. a prefixItems oneOf slot or the items catalog, or an
+ *   earlier decision processed in this same pass).
+ * - A candidate can be drawn in one box only: once an id has been claimed by a
+ *   decision, a later decision naming the same id does not draw it again, so
+ *   that later decision's group contains only the ids that are still free.
  * - Ids that don't resolve to a real extracted node (dangling/typo'd
  *   references) are dropped; if a decision ends up with no valid ids at all,
  *   it is skipped entirely so no empty box is rendered.
