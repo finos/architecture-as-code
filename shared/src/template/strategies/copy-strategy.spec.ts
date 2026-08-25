@@ -51,7 +51,7 @@ describe('CopyStrategy', () => {
 
         strategy.process(entry, context, mockLogger);
 
-        expect(fs.mkdirSync).toHaveBeenCalledWith('/test/output/output', { recursive: true });
+        expect(fs.mkdirSync).toHaveBeenCalledWith(path.join('/test/output', 'output'), { recursive: true });
         expect(fs.writeFileSync).toHaveBeenCalledWith(
             path.join('/test/output', 'output/config.js'),
             'const config = {};',

@@ -27,18 +27,27 @@ function resolveCEngineeringRoot(): string | null {
 	return existsSync(candidate) ? candidate : null;
 }
 
-describe('CEngineering AAC Spectral rules', () => {
+function resolveCEngineeringInputs(): { rulesetPath: string; documentPath: string } | null {
 	const root = resolveCEngineeringRoot();
+	if (!root) return null;
+	const rulesetPath = path.join(root, 'architecture', 'rules.json');
+	const documentPath = [
+		path.join(root, 'application-components', 'aac', 'aac.appcomp.json'),
+		path.join(root, 'tests', 'fixtures', 'aac.appcomp.json'),
+	].find((candidate) => existsSync(candidate));
+	if (!existsSync(rulesetPath) || !documentPath) return null;
+	return { rulesetPath, documentPath };
+}
 
-	it.skipIf(!root)('flags incomplete applicationService in aac.appcomp.json', async () => {
+describe('CEngineering AAC Spectral rules', () => {
+	const inputs = resolveCEngineeringInputs();
+
+	it.skipIf(!inputs)('flags incomplete applicationService in aac.appcomp.json', async () => {
 		const ruleset = JSON.parse(
-			readFileSync(path.join(root!, 'architecture', 'rules.json'), 'utf8')
+			readFileSync(inputs!.rulesetPath, 'utf8')
 		) as unknown;
 		const document = JSON.parse(
-			readFileSync(
-				path.join(root!, 'application-components', 'aac', 'aac.appcomp.json'),
-				'utf8'
-			)
+			readFileSync(inputs!.documentPath, 'utf8')
 		) as unknown;
 
 		const results = await runSpectralLint(document, ruleset);

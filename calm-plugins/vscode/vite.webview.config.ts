@@ -2,9 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
+import { jsonFromDisk } from './json-from-disk';
 
 export default defineConfig({
-    plugins: [react(), tailwindcss()],
+    plugins: [jsonFromDisk(), react(), tailwindcss()],
+    json: { stringify: true },
     build: {
         target: 'esnext',
         outDir: 'dist/webview',

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Command } from 'commander';
+import path from 'path';
 import { setupWorkspaceCommands } from './commands';
 
 const mocks = vi.hoisted(() => {
@@ -153,7 +154,7 @@ describe('setupWorkspaceCommands', () => {
         it('should call ensureWorkspaceBundle with custom dir', async () => {
             await program.parseAsync(['node', 'test', 'workspace', 'init', 'my-ws', '--dir', '/custom/dir']);
             expect(mocks.ensureWorkspaceBundle).toHaveBeenCalledWith(
-                '/custom/dir',
+                path.resolve('/custom/dir'),
                 'my-ws'
             );
         });

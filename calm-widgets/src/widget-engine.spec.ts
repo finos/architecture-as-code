@@ -3,7 +3,6 @@ import handlebars from 'handlebars';
 import { WidgetEngine, WidgetsOptionsContainer } from './widget-engine';
 import { WidgetRegistry } from './widget-registry';
 import { CalmWidget } from './types';
-import { WidgetRenderer } from './widget-renderer';
 
 const globalHelpers = {
     kebabToTitleCase: (s: string) => s.replace(/-/g, ' '),
@@ -14,12 +13,15 @@ vi.mock('./widget-helpers', () => ({
     registerGlobalTemplateHelpers: () => globalHelpers,
 }));
 
-const render = vi.fn().mockReturnValue('rendered-content');
-vi.mock('./widget-renderer', () => ({
-    WidgetRenderer: vi.fn().mockImplementation(function () {
-        return { render: render };
-    }),
-}));
+const { render, WidgetRenderer } = vi.hoisted(() => {
+    const render = vi.fn().mockReturnValue('rendered-content');
+    class WidgetRendererImpl {
+        render = render;
+    }
+    const WidgetRenderer = vi.fn(WidgetRendererImpl);
+    return { render, WidgetRenderer };
+});
+vi.mock('./widget-renderer', () => ({ WidgetRenderer }));
 
 vi.mock('./widgets/json-viewer', () => ({
     JsonViewerWidget: {

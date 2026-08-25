@@ -1,5 +1,6 @@
 import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
+import path from 'path';
 import { WorkspaceDocumentLoader, stripVersionSuffix } from './workspace-document-loader';
 import { DocumentLoadError } from './document-loader';
 
@@ -58,18 +59,18 @@ describe('WorkspaceDocumentLoader', () => {
 
         it('resolves a reference by its bare manifest id', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            expect(loader.resolvePath('workshop-pattern')).toBe('/ws/files/workshop-pattern.json');
+            expect(loader.resolvePath('workshop-pattern')).toBe(path.resolve(BUNDLE, 'files/workshop-pattern.json'));
         });
 
         it('resolves a reference by its exact $id', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            expect(loader.resolvePath(PATTERN_ID)).toBe('/ws/files/workshop-pattern.json');
+            expect(loader.resolvePath(PATTERN_ID)).toBe(path.resolve(BUNDLE, 'files/workshop-pattern.json'));
         });
 
         it('resolves a reference at a different version of the same $id', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
             const otherVersion = 'https://hub.example.com/calm/namespaces/ws/patterns/workshop/versions/9.9.9';
-            expect(loader.resolvePath(otherVersion)).toBe('/ws/files/workshop-pattern.json');
+            expect(loader.resolvePath(otherVersion)).toBe(path.resolve(BUNDLE, 'files/workshop-pattern.json'));
         });
 
         it('does not resolve a full URL to a host-less $id (cross-host false positive)', () => {
@@ -84,7 +85,7 @@ describe('WorkspaceDocumentLoader', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
             // Same host as PATTERN_ID (hub.example.com), different version
             const otherVersion = 'https://hub.example.com/calm/namespaces/ws/patterns/workshop/versions/2.0.0';
-            expect(loader.resolvePath(otherVersion)).toBe('/ws/files/workshop-pattern.json');
+            expect(loader.resolvePath(otherVersion)).toBe(path.resolve(BUNDLE, 'files/workshop-pattern.json'));
         });
 
         it('does not resolve a full URL to a full-URL $id when origins differ', () => {
@@ -97,17 +98,17 @@ describe('WorkspaceDocumentLoader', () => {
             // A $ref with no /versions/<v> segment should still resolve locally.
             const loader = new WorkspaceDocumentLoader(BUNDLE);
             const unversioned = '/calm/namespaces/ws/standards/security';
-            expect(loader.resolvePath(unversioned)).toBe('/ws/files/security-standard.json');
+            expect(loader.resolvePath(unversioned)).toBe(path.resolve(BUNDLE, 'files/security-standard.json'));
         });
 
         it('ignores a #/... fragment when matching', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            expect(loader.resolvePath('workshop-pattern#/nodes/0')).toBe('/ws/files/workshop-pattern.json');
+            expect(loader.resolvePath('workshop-pattern#/nodes/0')).toBe(path.resolve(BUNDLE, 'files/workshop-pattern.json'));
         });
 
         it('resolves a document without an $id by bare id only', () => {
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            expect(loader.resolvePath('no-id-doc')).toBe('/ws/files/no-id.json');
+            expect(loader.resolvePath('no-id-doc')).toBe(path.resolve(BUNDLE, 'files/no-id.json'));
         });
 
         it('returns undefined for an untracked reference', () => {

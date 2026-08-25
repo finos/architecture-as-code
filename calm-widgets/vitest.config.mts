@@ -25,6 +25,8 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
+        include: ['src/**/*.spec.ts'],
+        exclude: ['dist/**'],
         coverage: {
             provider: 'v8',
             ...v8CoverageSettings,

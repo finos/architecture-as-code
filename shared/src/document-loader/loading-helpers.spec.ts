@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import path from 'path';
 import { resolveSchemaRef, loadArchitectureAndPattern, loadArchitecture, loadPattern, loadPatternFromDocumentIfPresent } from './loading-helpers';
 import { DocumentLoader } from './document-loader';
 import { SchemaDirectory } from '../schema-directory';
@@ -38,17 +39,17 @@ describe('resolveSchemaRef', () => {
 
     it('should resolve relative paths against architecture file directory', () => {
         const result = resolveSchemaRef('../schemas/custom.json', '/project/architectures/arch.json', mockLogger);
-        expect(result).toBe('/project/schemas/custom.json');
+        expect(result).toBe(path.resolve(path.dirname(path.resolve('/project/architectures/arch.json')), '../schemas/custom.json'));
     });
 
     it('should resolve sibling relative paths against architecture file directory', () => {
         const result = resolveSchemaRef('./schema.json', '/project/architectures/arch.json', mockLogger);
-        expect(result).toBe('/project/architectures/schema.json');
+        expect(result).toBe(path.resolve(path.dirname(path.resolve('/project/architectures/arch.json')), './schema.json'));
     });
 
     it('should resolve simple filename against architecture file directory', () => {
         const result = resolveSchemaRef('schema.json', '/project/architectures/arch.json', mockLogger);
-        expect(result).toBe('/project/architectures/schema.json');
+        expect(result).toBe(path.resolve(path.dirname(path.resolve('/project/architectures/arch.json')), 'schema.json'));
     });
 
     it('should return schemaRef unchanged when architecturePath is empty', () => {
@@ -127,7 +128,9 @@ describe('loading helpers', () => {
 
             const result = await loadPatternFromDocumentIfPresent(arch, '/path/arch.json', mockDocLoader, mockSchemaDirectory, mockLogger);
 
-            expect(mockSchemaDirectory.getSchema).toHaveBeenCalledWith('/path/pattern.json');
+            expect(mockSchemaDirectory.getSchema).toHaveBeenCalledWith(
+                path.resolve(path.dirname(path.resolve('/path/arch.json')), 'pattern.json')
+            );
             expect(result).toBe(schema);
         });
 
@@ -139,7 +142,10 @@ describe('loading helpers', () => {
 
             const result = await loadPatternFromDocumentIfPresent(arch, '/path/arch.json', mockDocLoader, mockSchemaDirectory, mockLogger);
 
-            expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith('/path/pattern.json', 'pattern');
+            expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith(
+                path.resolve(path.dirname(path.resolve('/path/arch.json')), 'pattern.json'),
+                'pattern'
+            );
             expect(result).toBe(pattern);
         });
     });

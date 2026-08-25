@@ -7,6 +7,7 @@ import {
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
+import path from 'path';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -1628,11 +1629,12 @@ describe('parseDocumentLoaderConfig', () => {
 
     it('sets workspaceBundlePath when a workspace bundle is found in the repo', async () => {
         const resolverModule = await import('./workspace-resolver');
+        const bundlePath = path.join('/repo', '.calm-workspace', 'bundles', 'default');
         const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath')
-            .mockReturnValue('/repo/.calm-workspace/bundles/default');
+            .mockReturnValue(bundlePath);
         try {
             const options = await parseDocLoaderConfigForTest({});
-            expect(options.workspaceBundlePath).toBe('/repo/.calm-workspace/bundles/default');
+            expect(options.workspaceBundlePath).toBe(bundlePath);
         } finally {
             spy.mockRestore();
         }

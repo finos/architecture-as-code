@@ -14,11 +14,11 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
 vi.mock('@finos/calm-shared', async () => {
-    const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/dist/hub/document-id-utils');
+    const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/src/hub/document-id-utils');
     // Real (pure) semver helpers used by pushDocument's version-bump path.
-    const semver = await vi.importActual('@finos/calm-shared/dist/hub/semver');
+    const semver = await vi.importActual('@finos/calm-shared/src/hub/semver');
     // Real (pure) canonical-equality helper used by pushDocument's fail-if-modified path.
-    const canonical = await vi.importActual('@finos/calm-shared/dist/hub/canonical');
+    const canonical = await vi.importActual('@finos/calm-shared/src/hub/canonical');
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),

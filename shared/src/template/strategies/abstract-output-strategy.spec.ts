@@ -150,7 +150,7 @@ describe('AbstractOutputStrategy', () => {
         it('creates directory and writes file', () => {
             strategy.testWriteFile('/output/path/file.md', 'content', mockLogger, '✅ Generated:');
 
-            expect(fs.mkdirSync).toHaveBeenCalledWith('/output/path', { recursive: true });
+            expect(fs.mkdirSync).toHaveBeenCalledWith(path.dirname('/output/path/file.md'), { recursive: true });
             expect(fs.writeFileSync).toHaveBeenCalledWith('/output/path/file.md', 'content', 'utf8');
             expect(mockLogger.info).toHaveBeenCalledWith('✅ Generated: /output/path/file.md');
         });

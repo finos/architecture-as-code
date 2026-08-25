@@ -449,9 +449,7 @@ describe('CLI Integration Tests', () => {
         ]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
-        const actualContent = fs.readFileSync(outputFile, 'utf8').trim();
-        const expectedContent = fs.readFileSync(expectedOutput, 'utf8').trim();
-        expect(actualContent).toEqual(expectedContent);
+        await expectFilesMatch(expectedOutput, outputFile);
     });
 
 
@@ -470,9 +468,7 @@ describe('CLI Integration Tests', () => {
         await cli.run(['template', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
-        const actual = fs.readFileSync(outputFile, 'utf8').trim();
-        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
-        expect(actual).toEqual(expected);
+        await expectFilesMatch(expectedOutputPath, outputFile);
 
         fs.rmSync(outputDir, { recursive: true });
     });
@@ -538,9 +534,7 @@ describe('CLI Integration Tests', () => {
         await cli.run(['docify', '--architecture', testModelPath, '--template', templatePath, '--output', outputFile, '--url-to-local-file-mapping', localDirectory]);
 
         expect(fs.existsSync(outputFile)).toBe(true);
-        const actual = fs.readFileSync(outputFile, 'utf8').trim();
-        const expected = fs.readFileSync(expectedOutputPath, 'utf8').trim();
-        expect(actual).toEqual(expected);
+        await expectFilesMatch(expectedOutputPath, outputFile);
 
         fs.rmSync(outputDir, { recursive: true });
     });

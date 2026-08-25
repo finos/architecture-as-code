@@ -4,7 +4,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { tmpdir } from 'node:os';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
 
@@ -124,7 +124,7 @@ describe('renderCalmFile', () => {
     const { renderCalmFile } = await import('../render.js');
     const result = await renderCalmFile(tmpFile);
 
-    expect(result.fileName).toBe(tmpFile.split('/').pop());
+    expect(result.fileName).toBe(basename(tmpFile));
     expect(result.svg).toContain('<svg');
     expect(result.svg).toContain('</svg>');
     expect(Array.isArray(result.issues)).toBe(true);

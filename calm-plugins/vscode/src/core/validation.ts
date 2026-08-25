@@ -20,14 +20,16 @@ import addFormats from 'ajv-formats';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
 import { getRelationshipVariant, getReferencedNodeIds } from './helpers.js';
 
-import calmSchema from './schemas/calm.json' with { type: 'json' };
-import coreSchema from './schemas/core.json' with { type: 'json' };
-import controlSchema from './schemas/control.json' with { type: 'json' };
-import controlRequirementSchema from './schemas/control-requirement.json' with { type: 'json' };
-import interfaceSchema from './schemas/interface.json' with { type: 'json' };
-import flowSchema from './schemas/flow.json' with { type: 'json' };
-import evidenceSchema from './schemas/evidence.json' with { type: 'json' };
-import unitsSchema from './schemas/units.json' with { type: 'json' };
+// Import attributes (`with { type: 'json' }`) trip Vite's JSON plugin on Windows
+// (`File: [object Object]`). Bundler resolution + resolveJsonModule is enough.
+import calmSchema from './schemas/calm.json';
+import coreSchema from './schemas/core.json';
+import controlSchema from './schemas/control.json';
+import controlRequirementSchema from './schemas/control-requirement.json';
+import interfaceSchema from './schemas/interface.json';
+import flowSchema from './schemas/flow.json';
+import evidenceSchema from './schemas/evidence.json';
+import unitsSchema from './schemas/units.json';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

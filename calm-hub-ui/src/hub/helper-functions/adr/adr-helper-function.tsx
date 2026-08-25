@@ -17,7 +17,7 @@ export function GetDate(props: { date: string }) {
 
     return (
         <div className="font-bold inline">
-            {newDate.getDate()} {newDate.toLocaleString('default', { month: 'short' })},{' '}
+            {newDate.getDate()} {newDate.toLocaleString('en-GB', { month: 'short' })},{' '}
             {newDate.getFullYear()} <p className="inline font-normal">at</p> {newDate.getHours()}:
             {newDate.getMinutes()}
         </div>

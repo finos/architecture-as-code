@@ -1,5 +1,6 @@
 import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
+import path from 'path';
 import { MappedDocumentLoader } from './mapped-document-loader';
 import { DocumentLoadError } from './document-loader';
 
@@ -206,7 +207,7 @@ describe('MappedDocumentLoader', () => {
             const loader = new MappedDocumentLoader(urlMap, '/project', false);
             
             const result = loader.resolvePath('http://example.com/schema.json');
-            expect(result).toBe('/project/local/schema.json');
+            expect(result).toBe(path.resolve('/project', 'local/schema.json'));
         });
 
         it('should return undefined if mapping not found', () => {

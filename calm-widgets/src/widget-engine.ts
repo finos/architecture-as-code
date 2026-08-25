@@ -1,3 +1,4 @@
+import path from 'path';
 import Handlebars from 'handlebars';
 import { WidgetRegistry } from './widget-registry';
 import { WidgetRenderer } from './widget-renderer';
@@ -90,27 +91,27 @@ export class WidgetEngine {
         const widgets: { widget: CalmWidget<unknown, object, unknown>, folder: string }[] = [
             {
                 widget: BlockArchitectureWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/block-architecture',
+                folder: path.join(__dirname, 'widgets', 'block-architecture'),
             },
             {
                 widget: FlowSequenceWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/flow-sequence',
+                folder: path.join(__dirname, 'widgets', 'flow-sequence'),
             },
             {
                 widget: JsonViewerWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/json-viewer',
+                folder: path.join(__dirname, 'widgets', 'json-viewer'),
             },
             {
                 widget: ListWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/list',
+                folder: path.join(__dirname, 'widgets', 'list'),
             },
             {
                 widget: RelatedNodesWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/related-nodes',
+                folder: path.join(__dirname, 'widgets', 'related-nodes'),
             },
             {
                 widget: TableWidget as CalmWidget<unknown, object, unknown>,
-                folder: __dirname + '/widgets/table',
+                folder: path.join(__dirname, 'widgets', 'table'),
             },
         ];
         this.setupWidgets(widgets);

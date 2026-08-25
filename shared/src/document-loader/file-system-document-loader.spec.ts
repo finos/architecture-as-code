@@ -1,5 +1,6 @@
 import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
+import path from 'path';
 import { FileSystemDocumentLoader } from './file-system-document-loader';
 import { DocumentLoadError } from './document-loader';
 
@@ -72,6 +73,6 @@ describe('file-system-document-loader', () => {
 
     it('resolves absolute path when resolvePath is called with relative path and basePath', () => {
         const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
-        expect(loader.resolvePath('subdir/file.json')).toBe('/project/subdir/file.json');
+        expect(loader.resolvePath('subdir/file.json')).toBe(path.join('/project', 'subdir', 'file.json'));
     });
 });

@@ -128,9 +128,12 @@ public class NitriteDBConfigTest {
 
     @Test
     public void testInitializeWithIOException() throws Exception {
-        // Given
+        // Given — use a file as the parent path so createDirectories fails on every OS
+        // (a Unix-style "/cannot-be-created" path is creatable on Windows).
+        Path blocker = tempDir.resolve("not-a-directory");
+        Files.writeString(blocker, "blocker");
         nitriteDBConfig.databaseMode = "standalone";
-        nitriteDBConfig.dataDirectory = "/non-existent-directory-that-cannot-be-created";
+        nitriteDBConfig.dataDirectory = blocker.resolve("nested").toString();
 
         // When/Then
         Exception exception = assertThrows(RuntimeException.class, () -> {

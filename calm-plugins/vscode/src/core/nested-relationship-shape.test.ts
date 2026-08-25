@@ -14,14 +14,21 @@ import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
 import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateCalmArchitecture } from './validation.js';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
-const loadSchema = (name: string) =>
-	JSON.parse(readFileSync(resolve(here, 'schemas', name), 'utf-8'));
+const loadSchema = (name: string) => {
+	const schemaPath = resolve(here, 'schemas', name);
+	let raw = readFileSync(schemaPath, 'utf-8').trim();
+	// Git symlinks check out as text pointers on Windows without core.symlinks.
+	if (!raw.startsWith('{') && !raw.startsWith('[')) {
+		raw = readFileSync(resolve(dirname(schemaPath), raw), 'utf-8');
+	}
+	return JSON.parse(raw);
+};
 
 function buildAjv(): Ajv2020 {
 	const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true });

@@ -23,7 +23,9 @@ describe('docusaurus template bundle dependencies', () => {
 
         const exitCode = await new Promise<number>((resolve, reject) => {
             const stderr: string[] = [];
-            const proc = spawn('npm', ['install', '--package-lock-only', '--prefix', tmpDir]);
+            const proc = spawn('npm', ['install', '--package-lock-only', '--prefix', tmpDir], {
+                shell: true,
+            });
             proc.stderr?.on('data', (chunk: Buffer) => {
                 stderr.push(chunk.toString());
                 console.error(chunk.toString());

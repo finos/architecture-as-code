@@ -132,7 +132,7 @@ describe('TemplateProcessor E2E', () => {
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
 
-        expect(actualContent).toEqual(expectedContent); // Compare file contents
+        expect(actualContent.replaceAll('\r\n', '\n')).toEqual(expectedContent.replaceAll('\r\n', '\n')); // Compare file contents
     });
 
     it('should process a bundle with repeated output', async () => {
@@ -170,7 +170,7 @@ describe('TemplateProcessor E2E', () => {
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
 
-        expect(actualContent).toEqual(expectedContent);
+        expect(actualContent.replaceAll('\r\n', '\n')).toEqual(expectedContent.replaceAll('\r\n', '\n'));
     });
 
     it('should process a bundle with URL dereferencing', async () => {
@@ -195,7 +195,7 @@ describe('TemplateProcessor E2E', () => {
         expect(fs.existsSync(actualFile)).toBe(true);
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
-        expect(actualContent).toEqual(expectedContent);
+        expect(actualContent.replaceAll('\r\n', '\n')).toEqual(expectedContent.replaceAll('\r\n', '\n'));
     });
 
     it('should use TemplateDefaultTransformer when no transformer is specified', async () => {
@@ -252,7 +252,7 @@ describe('TemplateProcessor E2E', () => {
         expect(fs.existsSync(actualFile)).toBe(true);
         const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
         const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
-        expect(actualContent).toEqual(expectedContent);
+        expect(actualContent.replaceAll('\r\n', '\n')).toEqual(expectedContent.replaceAll('\r\n', '\n'));
     }, 20_000);
 
     function simulateAmendmentsPostGenerate(archPath: string, amendedPath: string) {
@@ -400,7 +400,7 @@ describe('TemplateProcessor E2E', () => {
                 expect(fs.existsSync(actualFile)).toBe(true);
                 const actualContent = fs.readFileSync(actualFile, 'utf8').trim();
                 const expectedContent = fs.readFileSync(expectedFile, 'utf8').trim();
-                expect(actualContent).toEqual(expectedContent);
+                expect(actualContent.replaceAll('\r\n', '\n')).toEqual(expectedContent.replaceAll('\r\n', '\n'));
             };
         }
 

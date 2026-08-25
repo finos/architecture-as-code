@@ -129,8 +129,8 @@ const BOOTSTRAP_HTML = `<!DOCTYPE html><html><head><meta charset="utf-8">
  * runs mermaid.render() in-page for each diagram.
  */
 export class MermaidBrowserRenderer {
-    private readonly mermaidDist = path.dirname(require.resolve('mermaid/package.json')) + '/dist';
-    private readonly elkDist = path.dirname(require.resolve('@mermaid-js/layout-elk/package.json')) + '/dist';
+    private readonly mermaidDist = path.join(path.dirname(require.resolve('mermaid/package.json')), 'dist');
+    private readonly elkDist = path.join(path.dirname(require.resolve('@mermaid-js/layout-elk/package.json')), 'dist');
 
     private server?: http.Server;
     private page?: Page;
@@ -256,8 +256,10 @@ export class MermaidBrowserRenderer {
             return;
         }
 
-        const resolved = path.resolve(rootDir, decoded);
-        if (resolved !== rootDir && !resolved.startsWith(rootDir + path.sep)) {
+        const root = path.resolve(rootDir);
+        const resolved = path.resolve(root, decoded);
+        const relative = path.relative(root, resolved);
+        if (relative.startsWith('..') || path.isAbsolute(relative)) {
             res.writeHead(403);
             res.end();
             return;
