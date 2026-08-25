@@ -12,6 +12,7 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -35,6 +36,9 @@ public class TestFlowResourceShould {
 
     @InjectMock
     FlowStore mockFlowStore;
+
+    @InjectMock
+    ResourceMappingStore mockResourceMappingStore;
 
     @Test
     void return_a_404_when_an_invalid_namespace_is_provided_on_get_flows() throws NamespaceNotFoundException {

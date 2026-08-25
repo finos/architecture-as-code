@@ -465,4 +465,37 @@ public class MongoMappingControllerIntegration {
                 .statusCode(200)
                 .body(containsString("Repo Pattern"));
     }
+
+    @Test
+    @Order(35)
+    void numeric_pattern_listing_carries_the_custom_id_for_patterns_created_by_name() {
+        // Relies on the ordered tests above having created these through the name-based API.
+        given()
+                .when().get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.customId", hasItems("test-pattern", "repo"))
+                .body("values.find { it.customId == 'test-pattern' }.id", notNullValue());
+    }
+
+    @Test
+    @Order(36)
+    void numeric_pattern_listing_omits_the_custom_id_for_a_pattern_created_by_the_numeric_api() {
+        // Created through /api/calm, which writes no mapping — so it has no customId to report.
+        String location = given()
+                .body("{\"name\": \"Unmapped Pattern\", \"description\": \"No custom ID\", \"patternJson\": \"{}\"}")
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(201)
+                .extract()
+                .header("Location");
+        int id = Integer.parseInt(location.replaceAll(".*/patterns/(\\d+)/.*", "$1"));
+
+        given()
+                .when().get("/api/calm/namespaces/finos/patterns")
+                .then()
+                .statusCode(200)
+                .body("values.find { it.id == " + id + " }.customId", nullValue());
+    }
 }
