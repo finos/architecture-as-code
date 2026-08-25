@@ -55,80 +55,14 @@ npx vitest run ${TEST FILE}
 
 ## Pattern Decisions
 
-See `calm-ai/tools/pattern-creation.md` for what a **decision holder** and **candidate** are.
-Candidates are declared in four places: a plain `prefixItems` entry, a `prefixItems[i].oneOf`
-or `.anyOf` alternative, or an `items.oneOf`/`items.anyOf` catalog.
-
-**A decision holder must be in `properties.relationships.prefixItems`.** `extractOptions`
-finds decisions only through `getRelationshipsPrefixItems`, both in `options.ts`, which never
-reads the `items` catalog — a holder placed there is invisible to it.
+See [PATTERN-DECISIONS.md](./PATTERN-DECISIONS.md) before you change how a pattern's decisions
+are read, merged, or rendered. It covers where a candidate can be declared, what `oneOf`/`anyOf`
+mean in each location, which of the three pattern-reader functions to call for which question,
+why `allOf` has three readers that disagree, the enforcement rules, how decisions fold into the
+visualiser's boxes, and two known disagreements between packages with the reason each exists.
 
 Drive new tests from `extractOptions`, not from hand-built choices, or you do not test whether
 the decision is discoverable. See `catalog-decisions.spec.ts`.
-
-### Three questions, three owners
-
-Use the wrong one and the failure is silent, so they are separate named functions.
-
-| Question | Function | Home |
-|---|---|---|
-| What does *this block* offer? (`oneOf` wins) | `resolveOperativeChoiceBlock` | `@finos/calm-models/pattern` |
-| What does the pattern *declare*? (both keywords) | `listDeclaredCandidates` | `@finos/calm-models/pattern` |
-| What can selection *reach*? (one keyword) | `listSelectableCandidates` | `@finos/calm-models/pattern` |
-
-Use *declared* for what a document says: uniqueness, dangling references. Use *selectable*
-for "can this answer be honoured". They differ only where a block declares both keywords.
-
-`getPatternArray` is a fourth relevant function — see its row in the `allOf` table below.
-
-### `allOf` has three unreconciled meanings
-
-Treat `allOf` for nodes and relationships as unsupported.
-
-| Reader | Behaviour |
-|---|---|
-| `deepMergeSchemas` (`flatten-allof.ts`) | shallow merge; a repeated property loses `type`, so `instantiate` emits `{}` |
-| `getPatternArray` | resolves one branch per property (root, else the first branch declaring it) and reads `prefixItems`/`items` from that same branch; later branches ignored; marked TEMPORARY |
-| `listDeclaredCandidates` / `listSelectableCandidates` | ignore `allOf` entirely, to keep `path` correct for diagnostics |
-
-A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at all from
-`listDeclaredCandidates`/`listSelectableCandidates` (they ignore `allOf` entirely), even though
-`getPatternArray` and `deepMergeSchemas` both still reach into it. `allOf` means
-**intersection**, never union, because `calm validate` never flattens. `shared` previously kept
-its own copy of `listDeclaredCandidates` that followed `allOf` through `getPatternArray`, disagreeing
-with the `calm-models` copy and reporting a `path` the document did not contain; nothing tested
-or relied on that behaviour, so the copy was removed rather than reconciled — it did not add
-`allOf` support, only removed a second, wrong answer.
-
-### Enforcement
-
-`calm generate` **never validates**. These rules run only on `calm validate`.
-
-| Rule | Severity | Catches |
-|---|---|---|
-| `pattern-option-relationship-must-be-in-prefix-items` | `error` | a holder inside an `items` catalog |
-| `pattern-decision-must-reference-selectable-nodes` / `-relationships` | `error` | a bundle naming a declared but unreachable candidate |
-| `group-relationship-with-const-nodes-references-existing-nodes-in-pattern` | `error` | a bundle naming an id that does not exist |
-| `pattern-items-catalog-must-declare-one-choice-keyword` | `warn` | a block declaring both keywords |
-
-The generate path has its own guard. `assertChoicesAreSelectable` throws from `runGenerate`.
-It is not called from `selectChoices`, because validation calls that too.
-
-`pattern-nodes-must-be-referenced` does not help with holder placement. Its recursive
-`$..relationship-type..*@string()` query (`node-has-relationship.ts`) matches a holder
-regardless of which array it sits in.
-
-### Still duplicated
-
-Nothing keeps this pair in step. `listDeclaredCandidates`'s own duplicate (`shared/src/pattern-candidates.ts`)
-is gone — both `listDeclaredCandidates` and `listSelectableCandidates` now live only in `@finos/calm-models/pattern`.
-
-| Duplicate | Sites | Note |
-|---|---|---|
-| decision-holder reading | `options.ts` (`isOptionsRelationship`, `getItemsInOptionsRelationship`), `patternTransformer.ts` (`isOptionsRelationship`, the `options.prefixItems` read) | already differ: one unions both keywords, the other picks `oneOf` |
-
-`calm-hub-ui` depends on `@finos/calm-models` and not on `shared`, so a shared reader must
-live in `calm-models`.
 
 ## Common Workflows
 
