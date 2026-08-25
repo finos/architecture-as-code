@@ -20,6 +20,9 @@ function registeredCommandKeys(): string[] {
 }
 
 describe('browser capability manifest matches the CLI', () => {
+    // Granularity: top-level commands plus the `hub` subgroups (`hub pull`, `hub list`, ...);
+    // `workspace` subcommands are intentionally not enumerated, they're covered by the single
+    // `workspace` entry.
     it('lists every registered command exactly once', () => {
         const manifest = BROWSER_COMMAND_SUPPORT.map((entry) => entry.command).sort();
         expect(manifest).toEqual(registeredCommandKeys());
