@@ -13,8 +13,10 @@ const ZONE_ID = /^[0-9a-zA-Z.:_-]+$/;
 function isIPv6Literal(host: string): boolean {
     let candidate = host;
     const mapped = candidate.match(IPV4_TAIL);
-    if (mapped && candidate.lastIndexOf(':') < (mapped.index ?? 0)) {
-        // IPv4-mapped tail counts as two hextets.
+    if (mapped && (mapped.index === 0 || candidate[(mapped.index ?? 0) - 1] === ':')) {
+        // IPv4-mapped tail counts as two hextets. Must be immediately preceded by ':' (or start
+        // the string) — otherwise the dotted-quad regex may have partial-matched into the middle
+        // of a hextet (e.g. the "1.2.3.4" inside "a1.2.3.4"), which is not a real mapped tail.
         candidate = candidate.slice(0, mapped.index) + '0:0';
     }
     const parts = candidate.split('::');
