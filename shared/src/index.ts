@@ -3,6 +3,9 @@ import { createWinstonLogger } from './logger.node.js';
 import { registerOutputFormatter } from './commands/validate/format-output.js';
 import { junitFormatter } from './commands/validate/output-formats/junit-output.js';
 
+// These top-level calls are load-bearing side effects (they register the Node logger factory and
+// the junit output formatter for consumers of this entry point) — never add "sideEffects": false
+// to shared/package.json, or bundlers will tree-shake them away.
 registerNodeLoggerFactory(createWinstonLogger);
 registerOutputFormatter('junit', junitFormatter);
 

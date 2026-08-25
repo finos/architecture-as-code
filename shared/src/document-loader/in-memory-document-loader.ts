@@ -10,6 +10,10 @@ import type { CalmDocumentType } from '@finos/calm-models/types';
  *
  * Documents whose `$id` is a string are registered as schemas on initialise, so schema lookups
  * behave exactly as they do with {@link FileSystemDocumentLoader} over a schema directory.
+ *
+ * Documents are returned by reference, not cloned, so a consumer reusing one `documents` map
+ * across runs shares object identity between runs — unlike {@link FileSystemDocumentLoader},
+ * which re-parses from disk on every load.
  */
 export class InMemoryDocumentLoader implements DocumentLoader {
     private readonly logger: Logger;

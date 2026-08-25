@@ -14,6 +14,8 @@ resolve: {
 }
 ```
 
+The browser entry guard's allowlist assumes bundlers resolve dependencies with the `browser` main field first (`mainFields: ['browser', 'module', 'main']`); a node/SSR-target bundle resolves the Node builds of the same dependencies instead and will see more builtin requests than the allowlist covers.
+
 `BROWSER_COMMAND_SUPPORT` (from `browser-capabilities.ts`) lists which `calm` CLI commands the browser entry can honour and why the rest are unsupported there, so consumers can report this to users instead of guessing.
 
 # Spectral validation rules for CALM implementations
