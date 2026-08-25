@@ -1,3 +1,8 @@
+import { registerNodeLoggerFactory } from './logger.js';
+import { createWinstonLogger } from './logger.node.js';
+
+registerNodeLoggerFactory(createWinstonLogger);
+
 export {
     validate,
     formatOutput as getFormattedOutput,
@@ -31,8 +36,9 @@ export {
 export { ValidationOutput } from './commands/validate/validation.output.js';
 export { CALM_META_SCHEMA_DIRECTORY } from './consts.js';
 export { SchemaDirectory } from './schema-directory.js';
-export { initLogger } from './logger.js';
-export type { Logger } from './logger.js';
+export { initLogger, registerNodeLoggerFactory } from './logger.js';
+export type { Logger, LogLevel, NodeLoggerFactory } from './logger.js';
+export { createWinstonLogger } from './logger.node.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
