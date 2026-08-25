@@ -60,6 +60,74 @@ describe('getPatternArray', () => {
         const pattern = { properties: { nodes: { prefixItems: [nodeWithId('a')], items: false } } };
         expect(getPatternArray(pattern, 'nodes').catalog).toBeUndefined();
     });
+
+    it('does not compose prefixItems from one source with a catalog from another', () => {
+        const pattern = {
+            properties: { nodes: { prefixItems: [nodeWithId('root-a')] } },
+            allOf: [{
+                properties: {
+                    nodes: {
+                        prefixItems: [nodeWithId('branch-x')],
+                        items: { anyOf: [nodeWithId('branch-cat')] },
+                    },
+                },
+            }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The root's own prefixItems wins wholesale (same first-source-wins precedent as
+        // the test above) - it must NOT borrow the allOf branch's catalog, which would
+        // describe an array no single declaration site in the document actually contains.
+        expect(result.prefixItems).toEqual([nodeWithId('root-a')]);
+        expect(result.catalog).toBeUndefined();
+    });
+
+    it('does not compose the other way either: a catalog from one source with prefixItems from another', () => {
+        const pattern = {
+            properties: { nodes: { items: { anyOf: [nodeWithId('root-cat')] } } },
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('branch-a')] } } }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The root's own declaration (a catalog, no prefixItems of its own) wins wholesale.
+        // Its own gap - no prefixItems - must stay a gap, not get silently patched by
+        // borrowing the allOf branch's prefixItems.
+        expect(result.prefixItems).toEqual([]);
+        expect(result.catalog).toEqual({ anyOf: [nodeWithId('root-cat')] });
+    });
+
+    it('does not compose across two different allOf branches when the root declares neither', () => {
+        const pattern = {
+            allOf: [
+                { properties: { nodes: { prefixItems: [nodeWithId('branch1-a')] } } },
+                { properties: { nodes: { items: { anyOf: [nodeWithId('branch2-cat')] } } } },
+            ],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The first branch that declares anything wins wholesale; the second branch's
+        // catalog must not be borrowed to fill the first branch's gap.
+        expect(result.prefixItems).toEqual([nodeWithId('branch1-a')]);
+        expect(result.catalog).toBeUndefined();
+    });
+
+    it('skips a source that declares the property but neither keyword, and resolves from the next one', () => {
+        const pattern = {
+            properties: { nodes: { minItems: 1 } }, // declares `nodes` but with nothing selectable
+            allOf: [{
+                properties: {
+                    nodes: {
+                        prefixItems: [nodeWithId('branch-a')],
+                        items: { anyOf: [nodeWithId('branch-cat')] },
+                    },
+                },
+            }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        expect(result.prefixItems).toEqual([nodeWithId('branch-a')]);
+        expect(result.catalog).toEqual({ anyOf: [nodeWithId('branch-cat')] });
+    });
 });
 
 describe('readChoiceBlock', () => {

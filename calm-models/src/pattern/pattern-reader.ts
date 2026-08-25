@@ -26,23 +26,20 @@ function isObject(value: unknown): value is SchemaNode {
 
 
 /**
- * TEMPORARY. Replicates today's first-`allOf`-branch-wins reading of a single keyword
- * (`prefixItems` or `items`) for a top-level pattern property. A later branch that declares
- * the same path is ignored.
- *
- * `getPatternArray` calls this once per keyword, each search independent. So `prefixItems`
- * and `items` for the same property can resolve from two different branches (or one from the
- * root, one from `allOf`) - there is no single "the branch that won" for the pair.
+ * TEMPORARY. Replicates today's first-`allOf`-branch-wins reading of a top-level pattern
+ * property. A later branch declaring the same path is ignored, and `prefixItems`/`items`
+ * are always read from the *same* resolved source - never composed from two different
+ * branches, which would describe an array no single declaration site actually contains.
  *
  * It exists because candidate discovery runs on the raw pattern, before `flattenAllOf`.
  * The `allOf` merge rework will delete this function. Do not correct the precedence here.
  */
-function readArrayKeyword(pattern: SchemaNode, key: string, keyword: string): unknown {
+function resolveArrayContainer(pattern: SchemaNode, key: string): SchemaNode | undefined {
     const direct = pattern['properties'];
     if (isObject(direct)) {
         const field = direct[key];
-        if (isObject(field) && field[keyword]) {
-            return field[keyword];
+        if (isObject(field) && (field['prefixItems'] || field['items'])) {
+            return field as SchemaNode;
         }
     }
 
@@ -52,8 +49,8 @@ function readArrayKeyword(pattern: SchemaNode, key: string, keyword: string): un
             const branchProperties = branch['properties'];
             if (!isObject(branchProperties)) continue;
             const field = branchProperties[key];
-            if (isObject(field) && field[keyword]) {
-                return field[keyword];
+            if (isObject(field) && (field['prefixItems'] || field['items'])) {
+                return field as SchemaNode;
             }
         }
     }
@@ -68,16 +65,17 @@ export interface PatternArray {
 
 /**
  * Reads the `prefixItems` array and `items` open-catalog declared for a top-level
- * pattern property (`nodes` or `relationships`), resolving `allOf` per `readArrayKeyword`
+ * pattern property (`nodes` or `relationships`), resolving `allOf` per `resolveArrayContainer`
  * above. Absent `prefixItems` yields an empty array so callers can iterate
  * unconditionally; an absent catalog yields `undefined`.
  */
 export function getPatternArray(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): PatternArray {
-    const prefixItems = readArrayKeyword(pattern, calmType, 'prefixItems');
-    const catalog = readArrayKeyword(pattern, calmType, 'items');
+    const container = resolveArrayContainer(pattern, calmType);
+    const prefixItems = container?.['prefixItems'];
+    const catalog = container?.['items'];
     return {
         prefixItems: Array.isArray(prefixItems) ? (prefixItems as SchemaNode[]) : [],
-        catalog: isObject(catalog) ? catalog : undefined,
+        catalog: isObject(catalog) ? (catalog as SchemaNode) : undefined,
     };
 }
 
