@@ -1,6 +1,6 @@
 import { CalmChoice, selectChoices } from './components/options.js';
-import { instantiate } from './components/instantiate';
-import { flattenAllOf } from './components/flatten-allof';
+import { instantiate } from './components/instantiate.js';
+import { flattenAllOf } from './components/flatten-allof.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 
 export interface GenerateOptions {
