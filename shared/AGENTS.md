@@ -55,18 +55,16 @@ npx vitest run ${TEST FILE}
 
 ## Pattern Decisions
 
-A **decision holder** is a relationship that carries `relationship-type.properties.options`.
-It poses a question and lists choice bundles. A **candidate** is a node or relationship that
-a bundle can select. Candidates are declared in four places: a plain `prefixItems` entry, a
-`prefixItems[i].oneOf` or `.anyOf` alternative, or an `items.oneOf`/`items.anyOf` catalog.
+See `calm-ai/tools/pattern-creation.md` for what a **decision holder** and **candidate** are.
+Candidates are declared in four places: a plain `prefixItems` entry, a `prefixItems[i].oneOf`
+or `.anyOf` alternative, or an `items.oneOf`/`items.anyOf` catalog.
 
 **A decision holder must be in `properties.relationships.prefixItems`.** `extractOptions`
 finds decisions only through `getRelationshipsPrefixItems`, both in `options.ts`, which never
-reads the `items` catalog. A holder in a catalog is never offered, on any path.
+reads the `items` catalog — a holder placed there is invisible to it.
 
-A candidate reaches the output only when a chosen bundle names its `unique-id`. Drive new
-tests from `extractOptions`, not from hand-built choices, or you do not test whether the
-decision is discoverable. See `catalog-decisions.spec.ts`.
+Drive new tests from `extractOptions`, not from hand-built choices, or you do not test whether
+the decision is discoverable. See `catalog-decisions.spec.ts`.
 
 ### Three questions, three owners
 
@@ -81,7 +79,7 @@ Use the wrong one and the failure is silent, so they are separate named function
 Use *declared* for what a document says: uniqueness, dangling references. Use *selectable*
 for "can this answer be honoured". They differ only where a block declares both keywords.
 
-`getPatternArray` locates the `prefixItems` array and `items` catalog for a property.
+`getPatternArray` is a fourth relevant function — see its row in the `allOf` table below.
 
 ### `allOf` has three unreconciled meanings
 
@@ -99,9 +97,8 @@ A pattern whose `prefixItems`/`items` sits under `allOf` yields no candidates at
 **intersection**, never union, because `calm validate` never flattens. `shared` previously kept
 its own copy of `listCandidates` that followed `allOf` through `getPatternArray`, disagreeing
 with the `calm-models` copy and reporting a `path` the document did not contain; nothing tested
-or relied on that behaviour, so the copy was removed rather than reconciled. Correct `allOf`
-support for nodes and relationships is still unbuilt — this only removed a second, wrong answer,
-it did not add support.
+or relied on that behaviour, so the copy was removed rather than reconciled — it did not add
+`allOf` support, only removed a second, wrong answer.
 
 ### Enforcement
 
