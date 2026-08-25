@@ -18,6 +18,8 @@ The browser entry guard's allowlist assumes bundlers resolve dependencies with t
 
 `BROWSER_COMMAND_SUPPORT` (from `browser-capabilities.ts`) lists which `calm` CLI commands the browser entry can honour and why the rest are unsupported there, so consumers can report this to users instead of guessing.
 
+In a browser, `DirectUrlDocumentLoader` and `CalmHubDocumentLoader` also revalidate the final response origin against the one they requested, because the browser follows redirects transparently (axios's `maxRedirects` option only applies in Node) and a redirect from an allowed origin could otherwise be answered by another origin.
+
 # Spectral validation rules for CALM implementations
 
 `As of November 2024 - Spectral rules are bundled into shared and converted into typescript representation. `

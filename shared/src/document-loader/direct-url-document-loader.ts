@@ -2,6 +2,7 @@ import axios, { Axios } from 'axios';
 import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
+import { assertResponseOrigin } from './response-origin.js';
 import { Logger, initLogger } from '../logger';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
@@ -170,6 +171,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 maxRedirects: 0,
                 allowAbsoluteUrls: false
             });
+            assertResponseOrigin(response, new URL(baseURL).origin, documentId);
             assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
