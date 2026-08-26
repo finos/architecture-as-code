@@ -5,8 +5,8 @@ that are spread across several packages. Read it before you change how a pattern
 read, merged, or rendered.
 
 It describes the behaviour the code has. Where two parts of the system disagree, this
-document names the disagreement and gives the reason. It does not pick a winner unless
-the code already has.
+document names the disagreement and gives the reason. It does not pick a winner, except
+where only one answer is coherent - and then it says why the other is not available.
 
 For what a **decision holder** and a **candidate** are, see
 `calm-ai/tools/pattern-creation.md`. That guide is for pattern authors. This
@@ -94,7 +94,7 @@ to split a property's definition across branches - see `calm-ai/tools/pattern-cr
 |---|---|---|---|
 | `deepMergeSchemas` (`flatten-allof.ts`) | generation (`runGenerate`, before anything else) | Shallow merge of all branches. A repeated property loses its `type`, so `instantiate` emits `{}` for it. | It must hand `instantiate` one schema to materialise from, so it has to combine branches rather than choose one. |
 | `getPatternArray` | generation (`extractOptions`), visualisation (`patternTransformer.ts`), pattern diff (`diff/pattern-diff.ts`) | Resolves one branch per property: the root schema, or else the first `allOf` branch declaring it. `prefixItems` and `items` always come from that same branch. | It returns a *location*, not a merged schema, and runs on the raw pattern. Merging two branches would describe an array no declaration site contains. Its private `resolveArrayContainer` carries the TEMPORARY marker. |
-| `listDeclaredCandidates` / `listSelectableCandidates` | validation (4 Spectral rules), generation (`assertChoicesAreSelectable`) | Ignore `allOf` entirely. A candidate declared only inside a branch is invisible. | Each candidate reports a `path` used in diagnostics. `getPatternArray` discards which branch it read, so following `allOf` would produce a path the document does not contain. |
+| `listDeclaredCandidates` / `listSelectableCandidates` | validation (4 Spectral rules), generation (`assertChoicesAreSelectable`, which runs after `flattenAllOf` and so never meets an `allOf`) | Ignore `allOf` entirely. A candidate declared only inside a branch is invisible to validation. | Each candidate reports a `path` used in diagnostics. `getPatternArray` discards which branch it read, so following `allOf` would produce a path the document does not contain. |
 
 The split is observable on one document. Give all three the same pattern whose `nodes` and
 `relationships` live only inside an `allOf` branch: `extractOptions` finds the decision, and
@@ -209,10 +209,16 @@ The helpers beside it are not, and they diverge three ways.
 | A malformed holder | unguarded property access, throws | optional chaining, renders nothing |
 
 The second divergence also breaks generation on its own. Two question blocks under one holder
-emit two options, and both take `optionId` from the holder's `unique-id`, so they collide.
-`cli/src/command-helpers/generate-options.ts` resolves an answer with `find` and keys answers
-by `optionId`, so only the first is addressable. Every pattern in this repository declares one
-question block per holder, so this is unreachable today.
+emit two options, and both take `optionId` from the holder's `unique-id`, so they collide. The
+effect differs by path. Interactively, both questions are asked and both answers are applied;
+only the replayable `--option-choices` string that gets logged is lossy, because the second
+answer overwrites the first under the shared key. Non-interactively, `loadChoicesFromInput`
+resolves with `find`, so the second block's choices are unreachable and naming one is rejected
+as invalid.
+
+No pattern in this repository declares more than one question block per holder. The format
+allows it: `option-type` in the meta-schema is an unbounded array of `decision` objects, so a
+holder is designed to be able to ask several questions.
 
 One shared reader would close all three. `calm-hub-ui` depends on `@finos/calm-models` and not
 on `shared`, so it would live in `calm-models`, beside the readers above. It would have three
