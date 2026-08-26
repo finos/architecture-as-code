@@ -25,6 +25,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
     const [lines, setLines] = useState([WELCOME_LINE]);
     const [input, setInput] = useState('');
     const [history, setHistory] = useState([]);
+    const [busy, setBusy] = useState(false);
     const historyPos = useRef(-1);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
@@ -35,25 +36,51 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
         }
     }, [lines]);
 
-    const submit = () => {
+    // The input is disabled while a command runs, which drops focus — take it back once the
+    // command finishes. Guarded so the terminal does not grab focus on first mount.
+    const wasBusy = useRef(false);
+    useEffect(() => {
+        if (wasBusy.current && !busy) {
+            inputRef.current?.focus();
+        }
+        wasBusy.current = busy;
+    }, [busy]);
+
+    const submit = async () => {
         const value = input;
         const promptCwd = cwd;
-        const result = onRun(value) || [];
-        if (result.some((line) => line.kind === 'clear')) {
-            setLines([]);
-        } else {
-            setLines((prev) => [...prev, {text: value, kind: 'cmd', promptCwd}, ...result]);
-        }
+        // Echo the command and a placeholder straight away — validation is async now, so the
+        // result can be a tick or two behind the keystroke.
+        setLines((prev) => [
+            ...prev,
+            {text: value, kind: 'cmd', promptCwd},
+            {text: '…', kind: 'dim', pending: true},
+        ]);
         if (value.trim()) {
             setHistory((prev) => [...prev, value]);
         }
         historyPos.current = -1;
         setInput('');
+        setBusy(true);
+        let result = [];
+        try {
+            result = (await onRun(value)) || [];
+        } finally {
+            setBusy(false);
+        }
+        if (result.some((line) => line.kind === 'clear')) {
+            setLines([]);
+        } else {
+            setLines((prev) => [...prev.filter((line) => !line.pending), ...result]);
+        }
     };
 
     const handleKeyDown = (event) => {
         if (event.key === 'Enter') {
             event.preventDefault();
+            if (busy) {
+                return;
+            }
             submit();
         } else if (event.key === 'Tab') {
             event.preventDefault();
@@ -141,6 +168,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
                         value={input}
                         onChange={(event) => setInput(event.target.value)}
                         onKeyDown={handleKeyDown}
+                        disabled={busy}
                         spellCheck={false}
                         autoComplete="off"
                         autoCapitalize="off"

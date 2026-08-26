@@ -5,8 +5,8 @@ import Terminal from './Terminal';
 import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import {createVfs} from './vfs';
-import {validateArchitecture} from './engine';
-import {completeCommand, runCommand} from './shell';
+import {validateArchitecture, ENGINE_VERSION} from '../engine';
+import {completeCommand, runCommand} from '../shell';
 import {
     ARCHITECTURE_FILE,
     COMPLETION,
@@ -207,6 +207,9 @@ export default function Lab() {
     const vfs = vfsRef.current;
 
     const flagsRef = useRef({hasValidatedOk: false});
+    // Validation is async now, so results can arrive out of order — only the
+    // newest recompute is allowed to publish its result.
+    const validationSeq = useRef(0);
     const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
@@ -276,9 +279,13 @@ export default function Lab() {
         });
     };
 
-    const recompute = () => {
+    const recompute = async () => {
         const text = vfs.read(ARCHITECTURE_FILE) ?? '';
-        const result = validateArchitecture(text);
+        const seq = ++validationSeq.current;
+        const result = await validateArchitecture(text);
+        if (seq !== validationSeq.current) {
+            return; // a newer recompute has superseded this one
+        }
         setValidation(result);
         const state = {
             doc: result.doc || null,
@@ -305,7 +312,7 @@ export default function Lab() {
     };
 
     useEffect(() => {
-        recompute();
+        void recompute();
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -323,18 +330,17 @@ export default function Lab() {
         }
     };
 
-    const runShell = (input) => {
-        const lines = runCommand(input, {
+    const runShell = async (input) => {
+        const lines = await runCommand(input, {
             vfs,
             getCwd: () => vfs.getCwd(),
             setCwd: (dir) => {
                 vfs.setCwd(dir);
                 setCwd(dir);
             },
-            engine: {validateArchitecture},
             onEvent: handleEvent,
         });
-        recompute();
+        await recompute();
         return lines;
     };
 
@@ -381,6 +387,8 @@ export default function Lab() {
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
     const allDone = completed.size === STEPS.length;
     const errorCount = validation ? validation.errors.length + (validation.parseError ? 1 : 0) : 0;
+    // Warnings are informational — they are listed but never make a step fail.
+    const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
     const cssVars =
         termHeight != null ? {'--lab-term-height': `${termHeight}px`} : undefined;
@@ -582,16 +590,25 @@ export default function Lab() {
                             </div>
                             <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>
                                 <div className={styles.problemsPanel}>
-                                    {!validation || validation.ok ? (
+                                    {(!validation || validation.ok) && !warnings.length ? (
                                         <div className={styles.problemsEmpty}>
                                             no problems — the saved file is schema-valid
                                         </div>
-                                    ) : (
+                                    ) : !validation || validation.ok ? null : (
                                         <ul className={styles.problemsList}>
                                             {validation.parseError && <li>{validation.parseError}</li>}
                                             {validation.errors.map((error) => (
                                                 <li key={`${error.path}|${error.message}`}>
                                                     ✗ {error.path} — {error.message}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                    {warnings.length > 0 && (
+                                        <ul className={styles.problemsList}>
+                                            {warnings.map((warning) => (
+                                                <li key={`${warning.path}|${warning.message}`}>
+                                                    ⚠ {warning.path} — {warning.message}
                                                 </li>
                                             ))}
                                         </ul>
@@ -603,7 +620,7 @@ export default function Lab() {
                 </div>
 
                 <div className={styles.statusBar}>
-                    <span>CALM 1.2 · Ajv engine</span>
+                    <span>CALM 1.2 · @finos/calm-shared {ENGINE_VERSION}</span>
                     {!validation ? (
                         <span>checking…</span>
                     ) : validation.ok ? (
