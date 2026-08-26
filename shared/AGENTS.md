@@ -59,7 +59,8 @@ See [PATTERN-DECISIONS.md](./PATTERN-DECISIONS.md) before you change how a patte
 are read, merged, or rendered. It covers where a candidate can be declared, what `oneOf`/`anyOf`
 mean in each location, which of the three pattern-reader functions to call for which question,
 why `allOf` has three readers that disagree, the enforcement rules, how decisions fold into the
-visualiser's boxes, and two known disagreements between packages with the reason each exists.
+visualiser's boxes, why `calm generate` offers decision choices it then discards, and what a
+shared decision-holder reader would have to settle first.
 
 Drive new tests from `extractOptions`, not from hand-built choices, or you do not test whether
 the decision is discoverable. See `catalog-decisions.spec.ts`.

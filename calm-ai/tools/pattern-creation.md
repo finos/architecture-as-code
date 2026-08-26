@@ -238,7 +238,7 @@ Guidance:
 
 - Keep every candidate that a single decision references within one declaration site. A decision whose candidates are split between a `prefixItems` slot and an `items` catalog, or spread across nodes with inconsistent container membership, is a pattern smell — model the choice at one consistent level.
 - Declare every decision holder (a relationship with `relationship-type.options`) in `properties.relationships.prefixItems`. A catalog with no holder pointing at it can never be selected from, and `calm validate` warns that its candidates are unreferenced.
-- Duplicate `unique-id`s inside an `items` catalog are rejected by `calm validate`, and a catalog node that no relationship or decision references produces a warning — the same check a plain `prefixItems` entry gets. A candidate declared as a `prefixItems[i].oneOf`/`anyOf` alternative does not get this warning yet; that gap predates this feature and is tracked separately.
+- Duplicate `unique-id`s inside an `items` catalog are rejected by `calm validate`, and a catalog node that no relationship or decision references produces a warning — the same check a plain `prefixItems` entry gets. A candidate declared as a `prefixItems[i].oneOf`/`anyOf` alternative does not get this warning — the rule reaches a plain `prefixItems` entry and an `items` catalog member, but not inside a slot's alternatives.
 
 ### Relationship Options with Decision Points
 

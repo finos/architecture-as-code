@@ -33,7 +33,9 @@ function isObject(value: unknown): value is SchemaNode {
  * branches, which would describe an array no single declaration site actually contains.
  *
  * It exists because candidate discovery runs on the raw pattern, before `flattenAllOf`.
- * The `allOf` merge rework will delete this function. Do not correct the precedence here.
+ * Do not correct the precedence here - a reader that disagrees with `flattenAllOf` is worse
+ * than one that is wrong the same way. This function becomes removable once `allOf` branches
+ * are combined by real schema intersection, not before.
  */
 function resolveArrayContainer(pattern: SchemaNode, key: string): SchemaNode | undefined {
     const direct = pattern['properties'];

@@ -1,12 +1,12 @@
 # Pattern Decisions
 
-This document explains how CALM patterns express decisions today. It ties together
-rules that are spread across several packages. Read it before you change how a pattern
-is read, merged, or rendered.
+This document explains how CALM patterns express decisions. It ties together rules
+that are spread across several packages. Read it before you change how a pattern is
+read, merged, or rendered.
 
-This is a recap of current, intended behaviour. It is not a proposal for new
-behaviour. Where two parts of the system disagree, this document says so and gives
-the reason. It does not pick a winner unless the code already has.
+It describes the behaviour the code has. Where two parts of the system disagree, this
+document names the disagreement and gives the reason. It does not pick a winner unless
+the code already has.
 
 For what a **decision holder** and a **candidate** are, see
 `calm-ai/tools/pattern-creation.md`. That guide is for pattern authors. This
@@ -45,10 +45,12 @@ can match at most one candidate schema either way. Use `oneOf` here. It is the a
 keyword, and it is the one the readers below resolve to when both are present.
 
 **Never declare both `oneOf` and `anyOf` on one block.** Nothing in JSON Schema
-forbids it, so a pattern can still do it by mistake. When it happens, every reader in
-this codebase resolves it the same way: `oneOf` wins, and the `anyOf` alternatives are
-dropped. See "A known disagreement" below for the one place that does not follow this
-rule yet.
+forbids it, so a pattern can still do it by mistake. When it happens, every operation
+that resolves a block to what will actually exist reads it the same way: `oneOf` wins,
+and the `anyOf` alternatives are dropped. Operations that only enumerate what a pattern
+declares union both keywords instead, which is why `listDeclaredCandidates` exists
+alongside `listSelectableCandidates`. See "A known disagreement" below for the one
+operation that enumerates on the union and then resolves against it.
 
 ## Three functions answer three different questions
 
@@ -79,8 +81,8 @@ schema error there instead.
 
 This means a decision holder placed somewhere illegal, such as inside an `items`
 catalog, produces a `calm validate` error but not a `calm generate` error. A user who
-only runs `calm generate` sees no error. The decision is simply never offered. This is
-documented behaviour, not an oversight, but it is easy to miss.
+only runs `calm generate` sees no error. The decision is simply never offered. The
+behaviour is deliberate, and it is easy to miss.
 
 ## `allOf` has three unreconciled readers
 
@@ -94,16 +96,16 @@ system read it, and they do not agree.
 | `listDeclaredCandidates` / `listSelectableCandidates` | Ignore `allOf` entirely. This keeps the reported `path` correct for diagnostics. |
 
 **Why this is not one answer.** `allOf` means intersection, not union, because `calm
-validate` never flattens a pattern before checking it. A correct merge would need to
-combine the branches the way a real JSON Schema validator combines them. No part of
-this codebase does that yet. Each reader above made its own narrow, expedient choice
-instead, scoped to what its one caller needed.
+validate` never flattens a pattern before checking it. A correct merge would combine
+the branches the way a real JSON Schema validator combines them. No part of this
+codebase does that. Each reader above makes its own narrow choice instead, scoped to
+what its one caller needs.
 
-`shared` used to keep a second copy of `listDeclaredCandidates` that followed `allOf`
-through `getPatternArray`. It disagreed with the `calm-models` copy and reported a
-`path` the document did not contain. Nothing tested or relied on that behaviour, so
-the copy was deleted rather than fixed. A full `allOf`-intersection rework is
-separate, larger work, not started.
+Keep one implementation of each `list*` function, and keep it in `calm-models`. Do not
+add a copy that follows `allOf` through `getPatternArray`: that combination reports a
+`path` the document does not contain, which is wrong for a diagnostic. Reconciling the
+three readers needs the real intersection merge described above, which is larger work
+than any single caller justifies.
 
 ## Enforcement
 
@@ -116,11 +118,12 @@ These rules run only on `calm validate`. `calm generate` never runs them.
 | `group-relationship-with-const-nodes-references-existing-nodes-in-pattern` | error | A choice bundle naming an id that does not exist at all. |
 | `pattern-items-catalog-must-declare-one-choice-keyword` | warn | An `items` catalog block, or a `prefixItems[*]` slot, that declares both keywords. |
 
-The last rule's `given` paths reach `properties.<nodes\|relationships>.items` and
-`properties.<nodes\|relationships>.prefixItems[*]`. They do not reach inside a
-decision holder's own `relationship-type.options.prefixItems[*]`. So a decision holder
-that declares both keywords in its own options block is not caught by this rule, or
-by any other rule today. This is the root cause of the disagreement below.
+The last rule's eight `given` paths reach `properties.<nodes\|relationships>.items` and
+`properties.<nodes\|relationships>.prefixItems[*]`, each also under `allOf[*]`. So the rule
+does reach a decision holder, as one of the `relationships.prefixItems[*]` entries, but it
+only checks the keywords that entry declares itself. It never descends into the holder's own
+`relationship-type.options.prefixItems[*]`, so no rule catches a decision holder that declares
+both keywords in its options block. This is the root cause of the disagreement below.
 
 `pattern-nodes-must-be-referenced` does not help with decision-holder placement. Its
 recursive query matches a holder regardless of which array it sits in, so it cannot
@@ -128,8 +131,8 @@ tell a legal holder from an illegal one.
 
 ## How decisions fold into the visualiser's boxes
 
-The pattern visualiser (`calm-hub-ui`) draws each decision as a box. The rules below
-are current, deliberate behaviour, not bugs, unless stated otherwise.
+The pattern visualiser (`calm-hub-ui`) draws each decision as a box. Each rule below
+is deliberate behaviour.
 
 **Every decision gets its own box.** Two decisions drawing from the same catalog
 produce two boxes, each with its own prompt.
@@ -145,55 +148,67 @@ a child of a container (`deployed-in` or `composed-of`), it is drawn inside the
 container, not inside the choice box.
 
 **A decision whose candidates are themselves containers keeps its box.** The box is
-drawn next to the containers, not around them. Nesting a box around its containers is
-future work, not current behaviour.
+drawn next to the containers, not around them. Issue #2933 covers nesting.
 
 **A decision whose every candidate is pulled into one shared container loses its box
 entirely, prompt included.** This is the one case where container precedence removes
-the question from the diagram, not just its candidates. It is deliberate and tested,
-not an oversight — the alternative, an empty box with nothing inside it, was judged
-worse. Nesting the box inside the container, so the question survives, is tracked as
-future work in issue #2933.
+the question from the diagram, not just its candidates. The alternative was an empty
+box with nothing inside it. Issue #2933 covers nesting the box inside the container,
+so that the question survives.
 
-## A known disagreement: a decision holder that declares both keywords
+## A known disagreement: generation offers more than it resolves
 
-`options.ts` (used by `calm generate`) and `patternTransformer.ts` (used by the
-visualiser) both read a decision holder's choice bundles. They disagree when one
-block declares both `oneOf` and `anyOf`.
+Four operations read a decision holder's **question block** - the `oneOf`/`anyOf` array
+under `relationship-type.options.prefixItems[i]`, whose elements are choice bundles. Inside
+that block the keyword sets cardinality. It is not a candidate declaration site, so the
+`nodes`/`relationships` rules above do not apply to it.
 
-- `options.ts`'s `extractOptions` reads the block once as `oneOf` and once as `anyOf`,
-  and offers the union of both as available choices.
-- `patternTransformer.ts`'s `extractOptionsMetadata` calls
-  `resolveOperativeChoiceBlock`, which picks `oneOf` only, matching the rule stated
-  above for every other reader in this codebase.
+| Operation | Surface | Reads the question block as |
+|---|---|---|
+| `extractOptionsFromBlock` (`options.ts`) | generation, offering | union of both keywords |
+| `flattenOneOfAndAnyOf` (`options.ts`) | generation, resolving | `oneOf` wins |
+| `extractOptionsMetadata` (`patternTransformer.ts`) | visualisation | `oneOf` wins |
+| `pattern-decision-must-reference-selectable-nodes` | validation | union, by JSONPath recursive descent |
 
-So a choice from the `anyOf` half is offered by `calm generate` but never drawn by the
-visualiser. If a user answers with that choice, `calm generate` accepts it as valid
-when it builds the prompt, but nothing downstream treats it as reachable the way the
-rest of the system does.
+**The disagreement is inside `options.ts`.** `extractOptionsFromBlock` builds the prompt from
+both keywords. `flattenOneOfAndAnyOf` then applies the answer through
+`resolveOperativeChoiceBlock`, which resolves `oneOf` only. So a choice from the `anyOf` half
+is offered, accepted, and then discarded. `calm generate` reports success, and the holder is
+dropped from the output.
 
-**Why this exists.** This predates the items-catalog feature entirely. It was checked
-directly against `main`: `options.ts`'s union-both behaviour is unchanged, and the
-visualiser's `oneOf`-wins behaviour was already there, hand-written, before it was
-swapped to call the shared `resolveOperativeChoiceBlock`. Neither side was built
-against the other. Nobody has reconciled them.
+`assertChoicesAreSelectable` does not catch this. It checks the answer's ids against
+`listSelectableCandidates`, which reads the candidate declaration site, not the question
+block. Ids declared normally there pass, so the guard stays silent.
 
-**Which side is likely wrong.** `oneOf`-wins is the rule every other reader in this
-codebase already follows — `resolveOperativeChoiceBlock`, `listSelectableCandidates`,
-and the reasoning behind `pattern-decision-must-reference-selectable-nodes`. That
-makes `options.ts`'s union-both behaviour the outlier, not the visualiser's. This is
-not fixed here. It is tracked as a follow-up issue.
+Neither other surface is a party to this. `extractOptionsMetadata` already matches
+generation's resolution step. The validation rule enumerates and never resolves, so union is
+correct for it, and it reads the block through a JSONPath `given` rather than a reader
+function.
 
-## Still duplicated
+**Which side changes.** Resolution cannot read the union. Within a question block `oneOf`
+means pick exactly one and `anyOf` means pick any number, so a block declaring both would
+have to be single-select and multi-select at once. Resolution must drop one keyword, and
+`oneOf`-wins is already that rule everywhere else. Enumeration is the side that moves:
+`extractOptionsFromBlock` should call `resolveOperativeChoiceBlock` too. A prompt that offers
+what resolution discards is a defect, not a competing policy.
 
-**Decision-holder reading.** `options.ts` (`isOptionsRelationship`,
-`getItemsInOptionsRelationship`) and `patternTransformer.ts` (`isOptionsRelationship`,
-its own `options.prefixItems` read) each re-implement finding a decision holder and
-reading its choice bundles. Nothing keeps this pair in step, which is why they
-disagree as described above. `calm-hub-ui` depends on `@finos/calm-models` and not on
-`shared`, so a shared reader for this would have to live in `calm-models`, the same
-place the readers above already live.
+**What this blocks.** `options.ts` and `patternTransformer.ts` each re-implement finding a
+decision holder and reading its question blocks. `isOptionsRelationship` is identical in both.
+The helpers beside it are not, and they diverge three ways.
 
-**A small id-reading helper.** `shared/src/spectral/functions/pattern/candidate-helpers.ts`
-re-implements `isObject` and `readUniqueId`, which already exist, privately, in
-`calm-models/src/pattern/pattern-reader.ts`. Exporting them would close this one.
+| Divergence | `options.ts` | `patternTransformer.ts` |
+|---|---|---|
+| A block declaring both keywords | union when offering, `oneOf` wins when resolving | `oneOf` wins |
+| Question blocks read per holder | every entry in `options.prefixItems` | the first entry yielding a described choice, then returns |
+| A malformed holder | unguarded property access, throws | optional chaining, renders nothing |
+
+The second divergence also breaks generation on its own. Two question blocks under one holder
+emit two options, and both take `optionId` from the holder's `unique-id`, so they collide.
+`cli/src/command-helpers/generate-options.ts` resolves an answer with `find` and keys answers
+by `optionId`, so only the first is addressable. Every pattern in this repository declares one
+question block per holder, so this is unreachable today.
+
+One shared reader would close all three. `calm-hub-ui` depends on `@finos/calm-models` and not
+on `shared`, so it would live in `calm-models`, beside the readers above. It would have three
+callers, and two of them already want the same thing, so the keyword policy above is what
+stands in the way.

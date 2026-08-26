@@ -207,8 +207,10 @@ function mergePrefixItems(target: unknown[], source: unknown[], logger: Logger):
 
     for (let i = 0; i < maxLen; i++) {
         if (i < target.length && i < source.length) {
-            // Both have items at this position - merge them. Positional merges never warn:
-            // they are the chimera path (see AGENTS.md), a separate, already-tracked issue.
+            // Both have items at this position - merge them. Positional merges stay silent:
+            // the result fuses index i of two branches into a schema neither branch declares
+            // on its own, so there is no authored declaration whose lost keys are worth
+            // reporting.
             result.push(
                 deepMergeSchemas(
                     target[i] as Record<string, unknown>,
