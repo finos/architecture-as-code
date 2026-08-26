@@ -90,11 +90,16 @@ Three parts of the system read `allOf` for `nodes` and `relationships`, and they
 agree. Nothing may assume consistent behaviour across them. Pattern authors are told not
 to split a property's definition across branches - see `calm-ai/tools/pattern-creation.md`.
 
-| Reader | Behaviour |
-|---|---|
-| `deepMergeSchemas` (`flatten-allof.ts`) | Shallow merge. A repeated property loses its `type`, so `instantiate` emits `{}` for it. |
-| `getPatternArray` | Resolves one branch per property: the root schema, or else the first `allOf` branch that declares it. Reads `prefixItems` and `items` from that same branch. Later branches are ignored. Its private `resolveArrayContainer` carries the TEMPORARY marker, not `getPatternArray` itself. |
-| `listDeclaredCandidates` / `listSelectableCandidates` | Ignore `allOf` entirely. This keeps the reported `path` correct for diagnostics. |
+| Reader | Used by | `allOf` behaviour | Why it cannot do what the others do |
+|---|---|---|---|
+| `deepMergeSchemas` (`flatten-allof.ts`) | generation (`runGenerate`, before anything else) | Shallow merge of all branches. A repeated property loses its `type`, so `instantiate` emits `{}` for it. | It must hand `instantiate` one schema to materialise from, so it has to combine branches rather than choose one. |
+| `getPatternArray` | generation (`extractOptions`), visualisation (`patternTransformer.ts`), pattern diff (`diff/pattern-diff.ts`) | Resolves one branch per property: the root schema, or else the first `allOf` branch declaring it. `prefixItems` and `items` always come from that same branch. | It returns a *location*, not a merged schema, and runs on the raw pattern. Merging two branches would describe an array no declaration site contains. Its private `resolveArrayContainer` carries the TEMPORARY marker. |
+| `listDeclaredCandidates` / `listSelectableCandidates` | validation (4 Spectral rules), generation (`assertChoicesAreSelectable`) | Ignore `allOf` entirely. A candidate declared only inside a branch is invisible. | Each candidate reports a `path` used in diagnostics. `getPatternArray` discards which branch it read, so following `allOf` would produce a path the document does not contain. |
+
+The split is observable on one document. Give all three the same pattern whose `nodes` and
+`relationships` live only inside an `allOf` branch: `extractOptions` finds the decision, and
+`listDeclaredCandidates` reports no candidates at all. Generation offers a choice over a node
+validation believes does not exist.
 
 **Why this is not one answer.** `allOf` means intersection, not union, because `calm
 validate` never flattens a pattern before checking it. A correct merge would combine
