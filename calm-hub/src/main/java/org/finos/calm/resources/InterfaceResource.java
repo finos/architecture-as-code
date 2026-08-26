@@ -21,6 +21,7 @@ import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,13 +36,15 @@ public class InterfaceResource {
 
     private final InterfaceStore interfaceStore;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(InterfaceResource.class);
 
     @Inject
-    public InterfaceResource(InterfaceStore interfaceStore, CustomIdEnrichmentService customIds) {
+    public InterfaceResource(InterfaceStore interfaceStore, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.interfaceStore = interfaceStore;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -150,6 +153,27 @@ public class InterfaceResource {
             logger.error("Cannot parse interface JSON for interface [{}] in namespace [{}]", interfaceId, namespace, e);
             return invalidJsonResponse();
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/interfaces/{interfaceId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteInterface(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("interfaceId") Integer interfaceId
+    ) {
+        try {
+            interfaceStore.deleteInterface(namespace, interfaceId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting interface", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (InterfaceNotFoundException e) {
+            logger.error("Invalid interface [{}] when deleting interface", interfaceId, e);
+            return invalidInterfaceResponse(interfaceId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.INTERFACE, interfaceId);
+        return Response.noContent().build();
     }
 
     private Response invalidInterfaceResponse(int interfaceId) {

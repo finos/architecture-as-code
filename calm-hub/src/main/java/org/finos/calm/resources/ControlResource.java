@@ -327,6 +327,63 @@ public class ControlResource {
         }
     }
 
+    @DELETE
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{domain}/controls/{controlId}")
+    @Operation(
+            summary = "Delete a control requirement",
+            description = "Deletes a control requirement and all of its versions. Refuses if the control still has configurations. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteControlRequirement(
+            @PathParam("domain")
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlId") int controlId) {
+        try {
+            store.deleteControlRequirement(domain, controlId);
+        } catch (DomainNotFoundException e) {
+            logger.error("Invalid domain [{}] when deleting control", domain, e);
+            return invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return invalidControlResponse(controlId);
+        } catch (ControlHasConfigurationsException e) {
+            logger.error("Control [{}] has {} configuration(s) and cannot be deleted", controlId, e.getConfigurationCount(), e);
+            return controlHasConfigurationsResponse(e.getControlId(), e.getConfigurationCount());
+        }
+        return Response.noContent().build();
+    }
+
+    @DELETE
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("{domain}/controls/{controlId}/configurations/{configId}")
+    @Operation(
+            summary = "Delete a control configuration",
+            description = "Deletes a control configuration and all of its versions. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteControlConfiguration(
+            @PathParam("domain")
+            @Pattern(regexp = DOMAIN_REGEX, message = DOMAIN_MESSAGE)
+            String domain,
+            @PathParam("controlId") int controlId,
+            @PathParam("configId") int configId) {
+        try {
+            store.deleteControlConfiguration(domain, controlId, configId);
+        } catch (DomainNotFoundException e) {
+            logger.error("Invalid domain [{}] when deleting configuration", domain, e);
+            return invalidDomainResponse(domain);
+        } catch (ControlNotFoundException e) {
+            logger.error("Control [{}] not found in domain [{}]", controlId, domain, e);
+            return invalidControlResponse(controlId);
+        } catch (ControlConfigurationNotFoundException e) {
+            logger.error("Configuration [{}] not found for control [{}]", configId, controlId, e);
+            return invalidConfigurationResponse(configId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response invalidDomainResponse(String domain) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Invalid domain provided: " + STRICT_SANITIZATION_POLICY.sanitize(domain))
@@ -342,6 +399,12 @@ public class ControlResource {
     private Response invalidConfigurationResponse(int configId) {
         return Response.status(Response.Status.NOT_FOUND)
                 .entity("Configuration not found: " + configId)
+                .build();
+    }
+
+    private Response controlHasConfigurationsResponse(int controlId, int configurationCount) {
+        return Response.status(Response.Status.CONFLICT)
+                .entity("Control " + controlId + " has " + configurationCount + " configuration(s) and cannot be deleted")
                 .build();
     }
 

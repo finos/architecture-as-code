@@ -189,11 +189,15 @@ public class NitriteControlIntegration {
 
     @Test
     @Order(15)
-    void end_to_end_get_configuration_returns_404_for_nonexistent_config() {
+    void end_to_end_get_configuration_by_id_alone_returns_405() {
+        // There is no GET at this exact path — only .../configurations/{id}/versions[...] —
+        // so it always fell through to a 404 "no matching route". Since the DELETE endpoint
+        // now claims this exact path, JAX-RS correctly reports 405 (path matched, method
+        // didn't) instead of 404 (nothing matched).
         given()
                 .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/999")
                 .then()
-                .statusCode(404);
+                .statusCode(405);
     }
 
     @Test
@@ -513,5 +517,99 @@ public class NitriteControlIntegration {
                 .statusCode(200)
                 .body("values.find { it.id == 1 }.name", equalTo("Final Access Control"))
                 .body("values.find { it.id == 1 }.description", equalTo("Final"));
+    }
+
+    // --- Delete: requirement + configuration ---
+    //
+    // Uses a freshly created control (rather than control 1, already exercised above) so this
+    // scenario is self-contained and doesn't depend on the ordering or accumulated state of the
+    // tests above.
+
+    @Test
+    @Order(50)
+    void end_to_end_delete_control_refuses_while_configurations_exist_then_succeeds() throws JsonProcessingException {
+        CreateControlRequirement requirementRequest = new CreateControlRequirement(
+                "Delete Test Control", "Control created to exercise delete", "{\"type\": \"requirement\"}");
+
+        String location = given()
+                .body(objectMapper.writeValueAsString(requirementRequest))
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls")
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+        int controlId = Integer.parseInt(location.substring(location.lastIndexOf('/') + 1));
+
+        CreateControlConfiguration configRequest = new CreateControlConfiguration("{\"setting\": \"enabled\"}");
+        String configLocation = given()
+                .body(objectMapper.writeValueAsString(configRequest))
+                .header("Content-Type", "application/json")
+                .when().post("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId + "/configurations")
+                .then()
+                .statusCode(201)
+                .extract().header("Location");
+        int configId = Integer.parseInt(configLocation.substring(configLocation.lastIndexOf('/') + 1));
+
+        // Refuses while the configuration still exists — does not cascade.
+        given()
+                .when().delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId)
+                .then()
+                .statusCode(409)
+                .body(containsString("configuration"));
+
+        // Requirement is untouched by the refused delete.
+        given()
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId + "/requirement/versions/1.0.0")
+                .then()
+                .statusCode(200);
+
+        // Delete the configuration first...
+        given()
+                .when().delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId + "/configurations/" + configId)
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId + "/configurations/" + configId + "/versions")
+                .then()
+                .statusCode(404);
+
+        // ...then the requirement can be deleted.
+        given()
+                .when().delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId)
+                .then()
+                .statusCode(204);
+
+        given()
+                .when().get("/api/calm/domains/" + VALID_DOMAIN + "/controls/" + controlId + "/requirement/versions/1.0.0")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Order(51)
+    void end_to_end_delete_control_returns_404_for_missing_control() {
+        given()
+                .when().delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/99999")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Order(52)
+    void end_to_end_delete_control_returns_404_for_invalid_domain() {
+        given()
+                .when().delete("/api/calm/domains/" + INVALID_DOMAIN + "/controls/1")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    @Order(53)
+    void end_to_end_delete_configuration_returns_404_for_missing_configuration() {
+        given()
+                .when().delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/99999")
+                .then()
+                .statusCode(404);
     }
 }

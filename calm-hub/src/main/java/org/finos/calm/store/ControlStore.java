@@ -7,6 +7,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
+import org.finos.calm.domain.exception.ControlHasConfigurationsException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -29,4 +30,15 @@ public interface ControlStore {
     List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException;
     String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException;
     void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException;
+
+    /**
+     * Deletes a control requirement and all of its versions. Refuses if the control still
+     * has configurations, rather than cascading — see {@link ControlHasConfigurationsException}.
+     */
+    void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException;
+
+    /**
+     * Deletes a control configuration and all of its versions.
+     */
+    void deleteControlConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException;
 }
