@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -123,6 +124,30 @@ class TestNitriteVersionDocumentStoreShould {
 
         // Matches the Mongo helper: the caller is already failing a create.
         assertDoesNotThrow(() -> store.deleteHeader(NAMESPACE, RESOURCE_ID));
+    }
+
+    // --- deleteResource ---
+
+    @Test
+    void delete_the_header_and_all_versions_of_a_resource() {
+        Document header = header(RESOURCE_ID, "name", "description", 2);
+        stubFind(headerCollection, List.of(header));
+        stubFind(versionCollection, List.of(versionDocument("1.0.0"), versionDocument("2.0.0")));
+
+        boolean deleted = store.deleteResource(NAMESPACE, RESOURCE_ID);
+
+        assertThat(deleted, is(true));
+        verify(versionCollection, times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(header);
+    }
+
+    @Test
+    void report_false_when_deleting_a_resource_that_does_not_exist() {
+        stubFind(headerCollection, List.of());
+
+        assertThat(store.deleteResource(NAMESPACE, RESOURCE_ID), is(false));
+        verify(headerCollection, never()).remove(any(Document.class));
+        verifyNoInteractions(versionCollection);
     }
 
     // --- createVersion ---

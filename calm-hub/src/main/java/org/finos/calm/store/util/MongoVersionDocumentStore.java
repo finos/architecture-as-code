@@ -10,6 +10,7 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -156,8 +157,9 @@ public class MongoVersionDocumentStore {
      *
      * <p>The old shape pushed the resource and its first version in one document write, so
      * a failure left nothing behind. Splitting them means a failed version write can strand
-     * a header that no API can remove — there is no delete endpoint for these types — and it
-     * would show up in listings and search with {@code versionCount: 0} forever.</p>
+     * a header that no API can remove — this is a narrower operation than
+     * {@link #deleteResource}, the general-purpose delete — and it would show up in listings
+     * and search with {@code versionCount: 0} forever.</p>
      *
      * <p>Not a general-purpose delete: nothing else calls this, and it deliberately does not
      * touch the version collection, because the only caller has just failed to write the
@@ -172,6 +174,31 @@ public class MongoVersionDocumentStore {
             LOG.warn("Failed to remove the header after a failed first version write "
                     + "[namespace={}, {}={}] — it may be left with no versions",
                     namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Deletes a resource entirely: its header and every version document. This is the
+     * general-purpose delete backing a DELETE endpoint — unlike {@link #deleteHeader}, a
+     * failure here is translated and thrown rather than swallowed, and the version
+     * collection is cleared too.
+     *
+     * <p>Versions are removed before the header, not after: if the version delete fails,
+     * the header is still there as evidence the resource exists, rather than leaving
+     * unreachable version documents behind under a header that's already gone.</p>
+     *
+     * @return {@code true} if a header was actually deleted, {@code false} if none existed
+     * at this (namespace, resourceId) — lets the caller distinguish "already gone" from
+     * "removed".
+     */
+    public boolean deleteResource(String namespace, int resourceId) {
+        try {
+            versionCollection.deleteMany(headerFilter(namespace, resourceId));
+            DeleteResult result = headerCollection.deleteOne(headerFilter(namespace, resourceId));
+            return result.getDeletedCount() > 0;
+        } catch (MongoException e) {
+            LOG.error("Failed to delete resource [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw StorageWriteException.writeFailed(e);
         }
     }
 

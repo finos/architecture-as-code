@@ -4,6 +4,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import path from 'node:path';
 import { runDiff, formatDiff, hasChanges, detectDocumentType } from './diff.js';
 import type { NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
+import type { TimelineInput } from '@finos/calm-models/diff';
 
 const loggerMock = {
     info: vi.fn(),
@@ -311,5 +312,39 @@ describe('formatDiff', () => {
         const out = formatDiff(r, 'summary', 'pattern');
         expect(out).toContain('  - (unpinned service Worker)');
         expect(out).not.toContain('undefined');
+    });
+});
+
+describe('diff core', () => {
+    const archA = { nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'x' }], relationships: [] };
+    const archB = { nodes: [...archA.nodes, { 'unique-id': 'b', 'node-type': 'service', name: 'B', description: 'y' }], relationships: [] };
+
+    it('diffs two architecture objects and formats a summary', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        const result = diffDocuments(archA, archB, { format: 'summary' });
+        expect(result.hasChanges).toBe(true);
+        expect(result.diff.nodesAdded.map((n) => n['unique-id'])).toEqual(['b']);
+        expect(result.formatted).toContain('Nodes added:');
+    });
+
+    it('uses labels in the mismatch error instead of file paths', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        expect(() => diffDocuments(archA, archB, { documentType: 'pattern', labels: ['left.json', 'right.json'] }))
+            .toThrow(/left\.json matches 'architecture'/);
+    });
+
+    it('diffs a timeline through an injected resolver', async () => {
+        const { diffTimeline } = await import('./diff-core');
+        const timeline = {
+            'unique-id': 't',
+            moments: [
+                { 'unique-id': 'm1', details: { 'detailed-architecture': 'mem://a' } },
+                { 'unique-id': 'm2', details: { 'detailed-architecture': 'mem://b' } },
+            ],
+        } as unknown as TimelineInput;
+        const resolver = vi.fn(async (ref: string) => (ref === 'mem://a' ? archA : archB));
+        const { diffs } = await diffTimeline(timeline, resolver);
+        expect(resolver).toHaveBeenCalledWith('mem://a');
+        expect(diffs).toHaveLength(1);
     });
 });

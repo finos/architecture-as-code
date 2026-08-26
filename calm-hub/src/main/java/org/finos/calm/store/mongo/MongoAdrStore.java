@@ -301,4 +301,12 @@ public class MongoAdrStore implements AdrStore {
             throw new AdrNotFoundException();
         }
     }
+
+    @Override
+    public void deleteAdr(String namespace, int adrId) throws NamespaceNotFoundException, AdrNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, adrId)) {
+            throw new AdrNotFoundException();
+        }
+    }
 }
