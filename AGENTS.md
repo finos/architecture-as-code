@@ -35,6 +35,7 @@ architecture-as-code/
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
+├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
 ├── calm-models/               # TypeScript data models
@@ -119,6 +120,7 @@ Read the guide for a package before working on its code, tests, or build.
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
+- **[calm-lab/AGENTS.md](calm-lab/AGENTS.md)** - In-browser learning lab, browser-engine contract, deploy
 - **[calm-server/AGENTS.md](calm-server/AGENTS.md)** - TypeScript CALM server
 - **[calm-plugins/vscode/AGENTS.md](calm-plugins/vscode/AGENTS.md)** - VSCode extension, MVVM architecture
 - **[calm-widgets/AGENTS.md](calm-widgets/AGENTS.md)** - Widget system, Handlebars templates, common pitfalls
@@ -156,10 +158,14 @@ AGENTS.md.
 ```
 TypeScript packages (npm workspaces) build in order:
   calm-models → calm-widgets → shared → cli → calm-plugins/vscode
+                                     ↳ calm-lab
 ```
 
 Always build dependencies before dependent packages. The Maven reactor works this out for itself:
 `./mvnw clean install`.
+
+`calm-lab` consumes the compiled `@finos/calm-shared/browser` entry, so `shared` must be built
+first — `npm run build:calm-lab` chains the whole order for you.
 
 ## Testing
 
