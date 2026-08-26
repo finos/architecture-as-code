@@ -241,3 +241,34 @@ export function listDeclaredCandidates(pattern: SchemaNode, calmType: 'nodes' | 
 export function listSelectableCandidates(pattern: SchemaNode, calmType: 'nodes' | 'relationships'): Candidate[] {
     return walkCandidates(pattern, calmType, 'operative');
 }
+
+/** An interface a node candidate declares, and its position in `interfaces.prefixItems`. */
+export type DeclaredInterface = {
+    uniqueId: string;
+    index: number;
+};
+
+/**
+ * Reads a node candidate's own `interfaces.prefixItems`, in declaration order, skipping any
+ * entry with no `const`-pinned `unique-id` - the same rule the candidate readers above apply
+ * to the candidates themselves.
+ *
+ * Reports `index`, not a `path`: it receives the candidate's schema without knowing where that
+ * schema sits, so only the caller can turn a position into a document location.
+ */
+export function listNodeInterfaces(node: SchemaNode): DeclaredInterface[] {
+    const properties = node['properties'];
+    const interfacesSchema = isObject(properties) ? properties['interfaces'] : undefined;
+    const prefixItems = isObject(interfacesSchema) && Array.isArray(interfacesSchema['prefixItems'])
+        ? (interfacesSchema['prefixItems'] as SchemaNode[])
+        : [];
+
+    const result: DeclaredInterface[] = [];
+    prefixItems.forEach((iface, index) => {
+        if (!isObject(iface)) return;
+        const uniqueId = readUniqueId(iface);
+        if (!uniqueId) return;
+        result.push({ uniqueId, index });
+    });
+    return result;
+}

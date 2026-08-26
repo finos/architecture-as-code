@@ -1,6 +1,5 @@
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { listDeclaredCandidates, type Candidate, type SchemaNode } from '@finos/calm-models/pattern';
-import { listNodeInterfaces } from './candidate-helpers';
+import { listDeclaredCandidates, listNodeInterfaces, type Candidate, type SchemaNode } from '@finos/calm-models/pattern';
 
 // Spectral's IFunctionResult.path is an array of path segments, not a pointer string.
 // candidate.path stops at the candidate's own schema object, so the message and the

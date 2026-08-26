@@ -1,7 +1,6 @@
 import { difference } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { listDeclaredCandidates, type SchemaNode } from '@finos/calm-models/pattern';
-import { listNodeInterfaces } from './candidate-helpers';
+import { listDeclaredCandidates, listNodeInterfaces, type SchemaNode } from '@finos/calm-models/pattern';
 
 interface ConnectsRelationship {
     node?: string;
