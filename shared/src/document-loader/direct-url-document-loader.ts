@@ -1,7 +1,8 @@
 import axios, { Axios } from 'axios';
-import { isIP } from 'net';
+import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
+import { assertResponseOrigin } from './response-origin.js';
 import { Logger, initLogger } from '../logger';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
@@ -29,11 +30,11 @@ const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_.-]+$/;
 
 function isPrivateHost(hostname: string): boolean {
     if (/^localhost$/i.test(hostname)) return true;
-    // URL.hostname wraps IPv6 in brackets; strip them for isIP/pattern checks
+    // URL.hostname wraps IPv6 in brackets; strip them for ipLiteralVersion/pattern checks
     const bare = hostname.startsWith('[') && hostname.endsWith(']')
         ? hostname.slice(1, -1)
         : hostname;
-    const ipVersion = isIP(bare);
+    const ipVersion = ipLiteralVersion(bare);
     if (ipVersion === 4) return PRIVATE_IPV4_PATTERNS.some(p => p.test(bare));
     if (ipVersion === 6) return PRIVATE_IPV6_PATTERNS.some(p => p.test(bare));
     return false;
@@ -170,6 +171,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 maxRedirects: 0,
                 allowAbsoluteUrls: false
             });
+            assertResponseOrigin(response, new URL(baseURL).origin, documentId);
             assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
