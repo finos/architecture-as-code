@@ -15,6 +15,7 @@
         "calm-server",
         "docs",
         "calm-hub-ui",
+        "calm-lab",
         "calm-plugins/vscode",
         "calm-guard",
         "calm-guard/docs",
@@ -28,6 +29,7 @@
         "build:shared": "npm run build --workspace calm-models --workspace calm-widgets --workspace shared",
         "build:calm-widgets": "npm run build --workspace calm-models --workspace calm-widgets",
         "build:calm-hub-ui": "npm run build --workspace calm-models --workspace calm-hub-ui",
+        "build:calm-lab": "npm run build --workspace calm-models --workspace calm-widgets --workspace shared --workspace calm-lab",
         "build:docs": "npm run build --workspace docs",
         "test": "npm run test --workspaces --if-present",
         "test:calm-server": "npm run build:calm-server && npm run test --workspace calm-server",
@@ -47,6 +49,7 @@
         "link:calm-server": "npm link --workspace calm-server",
         "link:cli": "npm link --workspace cli",
         "calm-hub-ui:run": "npm run start --workspace calm-hub-ui",
+        "calm-lab:run": "npm run start --workspace calm-lab",
         "calm-hub-ui:prod": "npm run build --workspace calm-models && npm run prod --workspace calm-hub-ui",
         "prepare": "husky"
     },

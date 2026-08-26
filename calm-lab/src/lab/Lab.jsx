@@ -1,6 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
 import clsx from 'clsx';
-import Link from '@docusaurus/Link';
 import styles from './lab.module.css';
 import Terminal from './Terminal';
 import Editor from './Editor';
@@ -442,9 +441,9 @@ export default function Lab() {
                                     <p>{COMPLETION.message}</p>
                                     <div className={styles.doneLinks}>
                                         {COMPLETION.links.map((link) => (
-                                            <Link to={link.to} key={link.to}>
+                                            <a href={link.to} key={link.to}>
                                                 {link.label}
-                                            </Link>
+                                            </a>
                                         ))}
                                     </div>
                                 </div>

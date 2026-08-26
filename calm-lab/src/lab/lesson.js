@@ -159,7 +159,10 @@ export const COMPLETION = {
     message:
         'You just modelled and validated a CALM architecture in your browser — no install required.',
     links: [
-        {to: '/tutorials/beginner/01-setup', label: 'Continue with the full beginner tutorials →'},
-        {to: '/learn', label: 'Back to the Learn hub'},
+        {
+            to: 'https://calm.finos.org/tutorials/beginner/01-setup',
+            label: 'Continue with the full beginner tutorials →',
+        },
+        {to: 'https://calm.finos.org/learn', label: 'Back to the Learn hub'},
     ],
 };

@@ -1,0 +1,20 @@
+/*
+ * The page frame. The lab's own chassis (src/lab/lab.module.css) is theme-invariant but reads a
+ * handful of Docusaurus variables the docs site used to supply — they are defined here instead.
+ */
+:root {
+    --ifm-font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    --ifm-font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --ifm-navbar-height: 48px;
+    --calm-muted: #6b7280;
+}
+
+html, body, #root { height: 100%; margin: 0; }
+body { font-family: var(--ifm-font-family-base); }
+.app { display: flex; flex-direction: column; height: 100%; }
+.app-header { display: flex; align-items: center; gap: 16px; height: var(--ifm-navbar-height); padding: 0 16px; background: #0b1f3a; color: #fff; }
+.app-brand { color: #fff; font-weight: 700; text-decoration: none; letter-spacing: 0.04em; }
+.app-title { opacity: 0.85; }
+.app-nav { margin-left: auto; display: flex; gap: 16px; }
+.app-nav a { color: #fff; opacity: 0.85; text-decoration: none; }
+.app-nav a:hover { opacity: 1; }
