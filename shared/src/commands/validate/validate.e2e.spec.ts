@@ -164,6 +164,70 @@ describe('validate E2E', () => {
             const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
         });
+
+        it('narrows the pattern to every chosen candidate of a multi-select anyOf decision, not just the first', async () => {
+            const pattern = {
+                properties: {
+                    nodes: {
+                        type: 'array',
+                        prefixItems: [{ properties: { 'unique-id': { const: 'webapp' } } }],
+                        items: {
+                            anyOf: [
+                                { properties: { 'unique-id': { const: 'postgres-db' } } },
+                                { properties: { 'unique-id': { const: 'mysql-db' } } },
+                            ],
+                        },
+                    },
+                    relationships: {
+                        type: 'array',
+                        prefixItems: [
+                            {
+                                properties: {
+                                    'unique-id': { const: 'database-choice' },
+                                    description: { const: 'Which database(s)?' },
+                                    'relationship-type': {
+                                        type: 'object',
+                                        properties: {
+                                            options: {
+                                                type: 'array',
+                                                prefixItems: [
+                                                    {
+                                                        anyOf: [
+                                                            { properties: { description: { const: 'Use PostgreSQL' }, nodes: { const: ['postgres-db'] }, relationships: { const: [] } } },
+                                                            { properties: { description: { const: 'Use MySQL' }, nodes: { const: ['mysql-db'] }, relationships: { const: [] } } },
+                                                        ],
+                                                    },
+                                                ],
+                                            },
+                                        },
+                                    },
+                                },
+                            },
+                        ],
+                    },
+                },
+            };
+
+            const architecture = {
+                relationships: [
+                    {
+                        'unique-id': 'database-choice',
+                        'relationship-type': {
+                            options: [
+                                { description: 'Use PostgreSQL', nodes: ['postgres-db'], relationships: [] },
+                                { description: 'Use MySQL', nodes: ['mysql-db'], relationships: [] },
+                            ],
+                        },
+                    },
+                ],
+            };
+
+            const narrowed = applyArchitectureOptionsToPattern(architecture, pattern, false) as {
+                properties: { nodes: { prefixItems: { properties: { 'unique-id': { const: string } } }[] } };
+            };
+            const narrowedNodeIds = narrowed.properties.nodes.prefixItems.map((n) => n.properties['unique-id'].const);
+            expect(narrowedNodeIds).toEqual(['webapp', 'postgres-db', 'mysql-db']);
+        });
     });
 
     describe('schema specific validations', () => {

@@ -1,5 +1,6 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
-import { pattern, truthy, length, xor } from '@stoplight/spectral-functions';
+import { falsy, pattern, truthy, length, xor } from '@stoplight/spectral-functions';
+import { catalogSingleChoiceKeyword } from './functions/pattern/catalog-single-choice-keyword';
 import { numericalPlaceHolder } from './functions/helper-functions';
 import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
@@ -7,6 +8,7 @@ import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
+import { decisionReferencesSelectableCandidate } from './functions/pattern/decision-references-selectable-candidate';
 
 
 const patternRules: RulesetDefinition = {
@@ -134,7 +136,11 @@ const patternRules: RulesetDefinition = {
             description: 'Nodes must be referenced by at least one relationship',
             severity: 'warn',
             message: '{{error}}',
-            given: '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+            given: [
+                '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+                '$.properties.nodes.items.oneOf[*].properties.unique-id.const',
+                '$.properties.nodes.items.anyOf[*].properties.unique-id.const',
+            ],
             then: {
                 function: nodeHasRelationship,
             },
@@ -197,6 +203,67 @@ const patternRules: RulesetDefinition = {
                 functionOptions: {
                     max: 1
                 },
+            },
+        },
+        'pattern-items-catalog-must-declare-one-choice-keyword': {
+            // Legal JSON Schema, so this is a smell and not an invalid document. Raising it
+            // to `error` would not help generation, because `calm generate` never validates.
+            description: 'A choice block must declare only one of oneOf/anyOf',
+            severity: 'warn',
+            message: '{{error}}',
+            given: [
+                '$.properties.nodes.items',
+                '$.properties.relationships.items',
+                '$.properties.nodes.prefixItems[*]',
+                '$.properties.relationships.prefixItems[*]',
+                '$.allOf[*].properties.nodes.items',
+                '$.allOf[*].properties.relationships.items',
+                '$.allOf[*].properties.nodes.prefixItems[*]',
+                '$.allOf[*].properties.relationships.prefixItems[*]',
+            ],
+            then: {
+                function: catalogSingleChoiceKeyword,
+            },
+        },
+        'pattern-decision-must-reference-selectable-nodes': {
+            // Covers only the declared-but-unreachable case. A plain typo is already an
+            // error from group-relationship-with-const-nodes-references-existing-nodes.
+            description: 'Nodes referenced by a pattern decision must be selectable',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems[*]..nodes.const[*]',
+            then: {
+                function: decisionReferencesSelectableCandidate,
+                functionOptions: {
+                    calmType: 'nodes'
+                }
+            },
+        },
+        'pattern-decision-must-reference-selectable-relationships': {
+            description: 'Relationships referenced by a pattern decision must be selectable',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$..relationship-type.properties.options.prefixItems[*]..relationships.const[*]',
+            then: {
+                function: decisionReferencesSelectableCandidate,
+                functionOptions: {
+                    calmType: 'relationships'
+                }
+            },
+        },
+        'pattern-option-relationship-must-be-in-prefix-items': {
+            // A holder in an `items` catalog makes the decision itself optional, so
+            // `calm generate` never offers it. Candidates go in the catalog; the decision
+            // that selects them goes in prefixItems.
+            description: 'Options relationships must be declared in relationships.prefixItems, not in an items catalog',
+            severity: 'error',
+            message: 'A relationship declaring "relationship-type.options" must be in "properties.relationships.prefixItems". Declaring a decision inside an "items" catalog makes the decision itself optional - move the options relationship into prefixItems and leave only its candidates in the catalog.',
+            given: [
+                '$..relationships.items.oneOf[*].properties.relationship-type.properties.options',
+                '$..relationships.items.anyOf[*].properties.relationship-type.properties.options',
+            ],
+            then: {
+                function: falsy,
             },
         }
     }

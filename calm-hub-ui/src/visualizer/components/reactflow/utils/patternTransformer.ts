@@ -9,6 +9,7 @@ import {
 import { createEdge } from './edgeFactory';
 import { GRAPH_LAYOUT } from './constants';
 import { THEME } from '../theme';
+import { getPatternArray, resolveOperativeChoiceBlock } from '@finos/calm-models/pattern';
 
 /**
  * Result of parsing pattern data into ReactFlow elements
@@ -26,20 +27,20 @@ type SchemaObject = Record<string, any>;
 
 /**
  * Gets the prefixItems for a given top-level key (e.g. 'nodes' or 'relationships')
+ * from a pattern, handling allOf structures. Absent prefixItems yields an empty
+ * array so callers can iterate unconditionally.
+ */
+function getPrefixItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject[] {
+    return getPatternArray(pattern, key).prefixItems as SchemaObject[];
+}
+
+/**
+ * Gets the `items` catalog schema (the `items.oneOf`/`items.anyOf` open-catalog
+ * declaration) for a given top-level key (e.g. 'nodes' or 'relationships')
  * from a pattern, handling allOf structures.
  */
-function getPrefixItems(pattern: SchemaObject, key: string): SchemaObject[] {
-    if (pattern['properties']?.[key]?.['prefixItems']) {
-        return pattern['properties'][key]['prefixItems'];
-    }
-    if (pattern['allOf'] && Array.isArray(pattern['allOf'])) {
-        for (const schema of pattern['allOf']) {
-            if (schema['properties']?.[key]?.['prefixItems']) {
-                return schema['properties'][key]['prefixItems'];
-            }
-        }
-    }
-    return [];
+function getItems(pattern: SchemaObject, key: 'nodes' | 'relationships'): SchemaObject | undefined {
+    return getPatternArray(pattern, key).catalog as SchemaObject | undefined;
 }
 
 /**
@@ -166,33 +167,43 @@ interface DecisionGroup {
     nodeIds: string[];
 }
 
+/**
+ * Extracts a set of oneOf/anyOf node alternatives into ExtractedNodes, stamping
+ * them all with the same decisionGroupId and recording a DecisionGroup for them.
+ */
+function extractNodeDecisionGroup(
+    alternatives: SchemaObject[],
+    groupId: string,
+    groupType: 'oneOf' | 'anyOf',
+    nodes: ExtractedNode[],
+    decisionGroups: DecisionGroup[],
+): void {
+    const groupNodeIds: string[] = [];
+
+    alternatives.forEach((alt: SchemaObject) => {
+        const node = extractNodeFromSchemaItem(alt);
+        if (node) {
+            node.decisionGroupId = groupId;
+            nodes.push(node);
+            groupNodeIds.push(node.uniqueId);
+        }
+    });
+
+    if (groupNodeIds.length > 0) {
+        decisionGroups.push({ groupId, groupType, nodeIds: groupNodeIds });
+    }
+}
+
 function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[]; decisionGroups: DecisionGroup[] } {
     const prefixItems = getPrefixItems(pattern, 'nodes');
+    const items = getItems(pattern, 'nodes');
     const nodes: ExtractedNode[] = [];
     const decisionGroups: DecisionGroup[] = [];
 
     prefixItems.forEach((item: SchemaObject, index: number) => {
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const groupType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            const groupId = `node-decision-${index}`;
-            const groupNodeIds: string[] = [];
-
-            alternatives.forEach((alt: SchemaObject) => {
-                const node = extractNodeFromSchemaItem(alt);
-                if (node) {
-                    node.decisionGroupId = groupId;
-                    nodes.push(node);
-                    groupNodeIds.push(node.uniqueId);
-                }
-            });
-
-            if (groupNodeIds.length > 0) {
-                decisionGroups.push({ groupId, groupType, nodeIds: groupNodeIds });
-            }
+        const block = resolveOperativeChoiceBlock(item);
+        if (block) {
+            extractNodeDecisionGroup(block.alternatives as SchemaObject[], `node-decision-${index}`, block.groupType, nodes, decisionGroups);
         } else {
             const node = extractNodeFromSchemaItem(item);
             if (node) {
@@ -200,6 +211,16 @@ function extractNodesFromPattern(pattern: SchemaObject): { nodes: ExtractedNode[
             }
         }
     });
+
+    // Open catalog: `items.oneOf`/`items.anyOf` declares zero-or-more candidates
+    // that aren't tied to a specific positional slot. Treat the whole catalog as
+    // a single decision-group slot.
+    if (items) {
+        const catalog = resolveOperativeChoiceBlock(items);
+        if (catalog) {
+            extractNodeDecisionGroup(catalog.alternatives as SchemaObject[], 'node-decision-items', catalog.groupType, nodes, decisionGroups);
+        }
+    }
 
     return { nodes, decisionGroups };
 }
@@ -226,6 +247,7 @@ interface OptionsMetadata {
     prompt: string;
     optionType: 'oneOf' | 'anyOf';
     choices: { description: string; nodes: string[]; relationships: string[] }[];
+    relationshipId: string;
 }
 
 function extractRelTypeFromConst(relTypeConst: SchemaObject): Omit<ExtractedRelationship, 'uniqueId' | 'description' | 'protocol' | 'decisionGroupId'> | null {
@@ -286,17 +308,17 @@ function extractSingleRelationship(item: SchemaObject): ExtractedRelationship | 
 
 function extractOptionsMetadata(item: SchemaObject): OptionsMetadata | null {
     const prompt = readSchemaValue(item, 'description') || 'Decision';
+    const relationshipId = readSchemaValue(item, 'unique-id') || '';
 
     const optionsPrefixItems: SchemaObject[] =
         item['properties']?.['relationship-type']?.['properties']?.['options']?.['prefixItems'] || [];
 
     for (const prefixItem of optionsPrefixItems) {
-        const hasOneOf = Array.isArray(prefixItem['oneOf']);
-        const hasAnyOf = Array.isArray(prefixItem['anyOf']);
+        const block = resolveOperativeChoiceBlock(prefixItem);
 
-        if (hasOneOf || hasAnyOf) {
-            const optionType: 'oneOf' | 'anyOf' = hasOneOf ? 'oneOf' : 'anyOf';
-            const alternatives: SchemaObject[] = hasOneOf ? prefixItem['oneOf'] : prefixItem['anyOf'];
+        if (block) {
+            const optionType = block.groupType;
+            const alternatives = block.alternatives as SchemaObject[];
 
             const choices = alternatives
                 .map((alt: SchemaObject) => {
@@ -312,11 +334,30 @@ function extractOptionsMetadata(item: SchemaObject): OptionsMetadata | null {
                 .filter((c) => c.description);
 
             if (choices.length > 0) {
-                return { prompt, optionType, choices };
+                return { prompt, optionType, choices, relationshipId };
             }
         }
     }
     return null;
+}
+
+/**
+ * Extracts a set of oneOf/anyOf relationship alternatives, stamping them all
+ * with the same decisionGroupId (relationship-side grouping only affects edge
+ * color/dash — there is no relationship decision-group box).
+ */
+function extractRelationshipDecisionGroup(
+    alternatives: SchemaObject[],
+    groupId: string,
+    relationships: ExtractedRelationship[],
+): void {
+    alternatives.forEach((alt: SchemaObject) => {
+        const rel = extractSingleRelationship(alt);
+        if (rel) {
+            rel.decisionGroupId = groupId;
+            relationships.push(rel);
+        }
+    });
 }
 
 function extractRelationshipsFromPattern(pattern: SchemaObject): {
@@ -324,6 +365,7 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
     optionsMetadata: OptionsMetadata[];
 } {
     const prefixItems = getPrefixItems(pattern, 'relationships');
+    const items = getItems(pattern, 'relationships');
     const relationships: ExtractedRelationship[] = [];
     const optionsMetadata: OptionsMetadata[] = [];
 
@@ -338,20 +380,9 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
         }
 
         // Check for oneOf/anyOf wrapped relationships
-        const hasOneOf = Array.isArray(item['oneOf']);
-        const hasAnyOf = Array.isArray(item['anyOf']);
-
-        if (hasOneOf || hasAnyOf) {
-            const alternatives: SchemaObject[] = hasOneOf ? item['oneOf'] : item['anyOf'];
-            const groupId = `rel-decision-${index}`;
-
-            alternatives.forEach((alt: SchemaObject) => {
-                const rel = extractSingleRelationship(alt);
-                if (rel) {
-                    rel.decisionGroupId = groupId;
-                    relationships.push(rel);
-                }
-            });
+        const block = resolveOperativeChoiceBlock(item);
+        if (block) {
+            extractRelationshipDecisionGroup(block.alternatives as SchemaObject[], `rel-decision-${index}`, relationships);
             return;
         }
 
@@ -361,6 +392,15 @@ function extractRelationshipsFromPattern(pattern: SchemaObject): {
             relationships.push(rel);
         }
     });
+
+    // Open catalog: `items.oneOf`/`items.anyOf` declares zero-or-more relationship
+    // candidates not tied to a specific positional slot.
+    if (items) {
+        const catalog = resolveOperativeChoiceBlock(items);
+        if (catalog) {
+            extractRelationshipDecisionGroup(catalog.alternatives as SchemaObject[], 'rel-decision-items', relationships);
+        }
+    }
 
     return { relationships, optionsMetadata };
 }
@@ -398,8 +438,34 @@ function createReactFlowNodes(
     const groupNodes: Node[] = [];
     const { containerNodeIds, parentMap } = containerInfo;
 
-    // Create decision group parent nodes
+    // Determine each non-container node's parent. A container (deployed-in /
+    // composed-of) takes precedence over a decision group: a node that is both an
+    // optional decision candidate AND a container child renders inside its
+    // container, not in the choice box. Track which decision groups actually keep
+    // at least one child after that precedence is applied.
+    const effectiveParent = new Map<string, string>();
+    const usedDecisionGroupIds = new Set<string>();
+    extractedNodes.forEach((node) => {
+        if (containerNodeIds.has(node.uniqueId)) {
+            // A container candidate is not drawn inside the box, but the decision is
+            // still real, so the box must survive to carry its prompt. Nesting the
+            // container inside the box is #2933.
+            if (node.decisionGroupId) usedDecisionGroupIds.add(node.decisionGroupId);
+            return;
+        }
+        const parentId = parentMap.get(node.uniqueId) || node.decisionGroupId;
+        if (!parentId) return;
+        effectiveParent.set(node.uniqueId, parentId);
+        if (parentId === node.decisionGroupId) {
+            usedDecisionGroupIds.add(node.decisionGroupId);
+        }
+    });
+
+    // Create decision group parent nodes — but only for groups that still have at
+    // least one child after container precedence is applied, so a group whose every
+    // member was pulled into a container does not render as an empty box.
     decisionGroups.forEach((group) => {
+        if (!usedDecisionGroupIds.has(group.groupId)) return;
         const optionsMeta = groupOptionsMap?.get(group.groupId);
         groupNodes.push({
             id: group.groupId,
@@ -453,8 +519,7 @@ function createReactFlowNodes(
     extractedNodes.forEach((node) => {
         if (containerNodeIds.has(node.uniqueId)) return; // already a group node
 
-        // Determine parent: decision group takes precedence, then container
-        const parentId = node.decisionGroupId || parentMap.get(node.uniqueId);
+        const parentId = effectiveParent.get(node.uniqueId);
 
         regularNodes.push({
             id: node.uniqueId,
@@ -621,6 +686,95 @@ function applyPatternLayout(regularNodes: Node[], groupNodes: Node[], edges: Edg
     return { nodes: allNodes, edges };
 }
 
+// ---- Decision group / options-metadata folding ----
+
+/**
+ * Folds each options-relationship decision's referenced node ids into a single
+ * decision group, mutating `decisionGroups`/`extractedNodes` in place:
+ *
+ * - Every decision gets its own new group (id derived from the options
+ *   relationship's own unique-id). Each referenced id is moved into that new
+ *   group, out of whatever group it previously belonged to (built during node
+ *   extraction, e.g. a prefixItems oneOf slot or the items catalog, or an
+ *   earlier decision processed in this same pass).
+ * - A candidate can be drawn in one box only: once an id has been claimed by a
+ *   decision, a later decision naming the same id does not draw it again, so
+ *   that later decision's group contains only the ids that are still free.
+ * - Ids that don't resolve to a real extracted node (dangling/typo'd
+ *   references) are dropped; if a decision ends up with no valid ids at all,
+ *   it is skipped entirely so no empty box is rendered.
+ *
+ * Returns the map from decision-group id to the OptionsMetadata that targets it.
+ */
+function foldOptionsMetadataIntoDecisionGroups(
+    extractedNodes: ExtractedNode[],
+    decisionGroups: DecisionGroup[],
+    optionsMetadata: OptionsMetadata[],
+): Map<string, OptionsMetadata> {
+    const nodeToGroupMap = new Map<string, string>();
+    decisionGroups.forEach((g) => g.nodeIds.forEach((nid) => nodeToGroupMap.set(nid, g.groupId)));
+
+    const extractedNodeIds = new Set(extractedNodes.map((n) => n.uniqueId));
+    const nodesById = new Map(extractedNodes.map((n) => [n.uniqueId, n]));
+    const groupsById = new Map(decisionGroups.map((g) => [g.groupId, g]));
+
+    const groupOptionsMap = new Map<string, OptionsMetadata>();
+
+    // A candidate can be drawn in one box only, so the first decision to name it keeps it.
+    const claimedByDecision = new Set<string>();
+
+    optionsMetadata.forEach((meta) => {
+        const referencedIds = Array.from(new Set(meta.choices.flatMap((c) => c.nodes))).filter(
+            (id) => extractedNodeIds.has(id) && !claimedByDecision.has(id)
+        );
+
+        // Nothing left to draw: either the ids are dangling, or an earlier decision has
+        // them all. Boxing one node twice needs the nesting rework (#2933).
+        if (referencedIds.length === 0) return;
+
+        const targetGroup: DecisionGroup = {
+            groupId: `node-decision-${meta.relationshipId || referencedIds.join('-')}`,
+            groupType: meta.optionType,
+            nodeIds: [],
+        };
+        decisionGroups.push(targetGroup);
+        groupsById.set(targetGroup.groupId, targetGroup);
+
+        referencedIds.forEach((id) => {
+            const currentGroupId = nodeToGroupMap.get(id);
+            if (currentGroupId) {
+                const oldGroup = groupsById.get(currentGroupId);
+                if (oldGroup) {
+                    oldGroup.nodeIds = oldGroup.nodeIds.filter((nid) => nid !== id);
+                }
+            }
+
+            targetGroup.nodeIds.push(id);
+            nodeToGroupMap.set(id, targetGroup.groupId);
+            claimedByDecision.add(id);
+
+            const node = nodesById.get(id);
+            if (node) node.decisionGroupId = targetGroup.groupId;
+        });
+
+        groupOptionsMap.set(targetGroup.groupId, meta);
+    });
+
+    // Drop any groups emptied out by the folding above so no empty box renders.
+    const emptiedGroupIds = new Set(
+        decisionGroups.filter((g) => g.nodeIds.length === 0).map((g) => g.groupId)
+    );
+    if (emptiedGroupIds.size > 0) {
+        for (let i = decisionGroups.length - 1; i >= 0; i--) {
+            if (emptiedGroupIds.has(decisionGroups[i].groupId)) {
+                decisionGroups.splice(i, 1);
+            }
+        }
+    }
+
+    return groupOptionsMap;
+}
+
 // ---- Public API ----
 
 /**
@@ -633,22 +787,10 @@ export function parsePatternData(pattern: SchemaObject): ParsedPatternData {
         const { nodes: extractedNodes, decisionGroups } = extractNodesFromPattern(pattern);
         const { relationships, optionsMetadata } = extractRelationshipsFromPattern(pattern);
 
-        // Build map from node ID to its decision group for options metadata mapping
-        const nodeToGroupMap = new Map<string, string>();
-        decisionGroups.forEach((g) => g.nodeIds.forEach((nid) => nodeToGroupMap.set(nid, g.groupId)));
-
-        // Map options metadata to the decision groups they target
-        const groupOptionsMap = new Map<string, OptionsMetadata>();
-        optionsMetadata.forEach((meta) => {
-            const allNodes = meta.choices.flatMap((c) => c.nodes);
-            for (const nodeId of allNodes) {
-                const groupId = nodeToGroupMap.get(nodeId);
-                if (groupId && !groupOptionsMap.has(groupId)) {
-                    groupOptionsMap.set(groupId, meta);
-                    break;
-                }
-            }
-        });
+        // Fold each decision's referenced node ids into a single decision group
+        // (creating one if none of its ids already belong to one) and build the
+        // map from decision-group id to the OptionsMetadata that targets it.
+        const groupOptionsMap = foldOptionsMetadataIntoDecisionGroups(extractedNodes, decisionGroups, optionsMetadata);
 
         const containerInfo = buildContainerInfo(relationships);
         const { regularNodes, groupNodes } = createReactFlowNodes(

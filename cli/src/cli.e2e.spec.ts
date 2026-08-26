@@ -681,6 +681,29 @@ describe('CLI Integration Tests', () => {
         );
         await expectFilesMatch(expectedOutputArchitecture, outputArchitecture);
 
+        // BASELINE, not a target to make pass silently. The generated architecture does not
+        // round-trip: validating it against the same pattern fails on a control requirement's
+        // control-id. permitted-connection-jdbc.config.json declares "security-003", but the
+        // requirement schema it is checked against pins "security-002" - a one-value copy-paste
+        // slip; the sibling http config uses "security-002" correctly. Reproduces identically on
+        // `main`; unrelated to this PR. Tracked separately - if this test starts failing because
+        // validation now passes, the bug is fixed and this block should be deleted.
+        let validateError: { stdout?: string } | undefined;
+        try {
+            await cli.run(['validate', '-p', inputPattern, '-a', outputArchitecture, '-u', STATIC_GETTING_STARTED_MAPPING_PATH]);
+        } catch (err) {
+            validateError = err as { stdout?: string };
+        }
+        expect(validateError, 'expected calm validate to fail - if it now passes, delete this baseline block').toBeDefined();
+        const validateOutput = JSON.parse(validateError!.stdout!);
+        expect(validateOutput.hasErrors).toBe(true);
+        expect(validateOutput.jsonSchemaValidationOutputs).toContainEqual(
+            expect.objectContaining({
+                code: 'control-requirement-validation',
+                path: expect.stringContaining('control-id'),
+            })
+        );
+
         //STEP 2: Generate Docify Website From Architecture
         const outputWebsite = path.resolve(actualOutputDir, 'website');
         await cli.run([

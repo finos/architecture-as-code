@@ -1,6 +1,6 @@
  
 
-import { CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
+import { assertChoicesAreSelectable, CalmChoice, CalmOption, extractOptions, selectChoices } from './options';
 
 const applicationAtoC: CalmChoice = {
     description: 'Application A connects to Application C',
@@ -123,6 +123,27 @@ function buildPattern(nodes: object[], relationships: object[]) {
                 'prefixItems': relationships
             }
         }
+    };
+}
+
+// Builds a pattern with mandatory prefixItems plus an open items.oneOf/anyOf catalog
+function buildPatternWithItemsCatalog(
+    mandatoryNodes: object[],
+    catalogNodes: object[],
+    relationships: object[] = [],
+    catalogRelationships: object[] = []
+) {
+    return {
+        'properties': {
+            'nodes': {
+                'prefixItems': mandatoryNodes,
+                ...(catalogNodes.length > 0 && { 'items': { 'oneOf': catalogNodes } }),
+            },
+            'relationships': {
+                'prefixItems': relationships,
+                ...(catalogRelationships.length > 0 && { 'items': { 'oneOf': catalogRelationships } }),
+            },
+        },
     };
 }
 
@@ -300,6 +321,128 @@ describe('Pattern Options', () => {
             expect(pattern).toEqual(patternBeforeSelection);
         });
 
+        it('should move selected items-catalog candidates into prefixItems', () => {
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const queue = buildNode('queue');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [cache, queue]);
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+
+            expect(result.properties.nodes.prefixItems).toEqual([webapp, cache]);
+            expect(result.properties.nodes.items).toBeUndefined();
+        });
+
+        it('should keep only the mandatory nodes when no items-catalog candidates are selected', () => {
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const queue = buildNode('queue');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [cache, queue]);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, []) as any;
+
+            expect(result.properties.nodes.prefixItems).toEqual([webapp]);
+        });
+
+        it('should not throw when a calmType has only an items catalog and no prefixItems', () => {
+            const cache = buildNode('cache');
+            const pattern = {
+                'properties': {
+                    'nodes': { 'items': { 'oneOf': [cache] } },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([cache]);
+        });
+
+        it('should move a selected items-catalog relationship into prefixItems and delete items', () => {
+            const webapp = buildNode('webapp');
+            const edge = buildConnectsRelationship('webapp-to-db', 'webapp to db', 'webapp', 'db');
+
+            const pattern = buildPatternWithItemsCatalog([webapp], [], [], [edge]);
+
+            const wireChoice: CalmChoice = { description: 'Wire db', nodes: [], relationships: ['webapp-to-db'] };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [wireChoice]) as any;
+
+            expect(result.properties.relationships.prefixItems).toEqual([edge]);
+            expect(result.properties.relationships.items).toBeUndefined();
+        });
+
+        it('should not throw when a pattern has a nodes items catalog and no relationships property', () => {
+            const cache = buildNode('cache');
+            // No `relationships` property at all - the shape a nodes-only catalog pattern takes.
+            const pattern = {
+                'properties': {
+                    'nodes': { 'items': { 'oneOf': [cache] } },
+                },
+            };
+
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([cache]);
+        });
+
+        it('recovers from a malformed items-catalog oneOf ({}) via the sibling anyOf, instead of throwing', () => {
+            // `oneOf: {}` is not an array, so the old `??`-based selection treated it as
+            // present and threw ("catalogAlternatives.filter is not a function") instead of
+            // falling through to the valid `anyOf`.
+            const webapp = buildNode('webapp');
+            const cache = buildNode('cache');
+            const pattern = {
+                'properties': {
+                    'nodes': {
+                        'prefixItems': [webapp],
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        'items': { 'oneOf': {} as any, 'anyOf': [cache] },
+                    },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+            const cacheChoice: CalmChoice = { description: 'Use cache', nodes: ['cache'], relationships: [] };
+
+            expect(() => selectChoices(pattern, [cacheChoice])).not.toThrow();
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [cacheChoice]) as any;
+            expect(result.properties.nodes.prefixItems).toEqual([webapp, cache]);
+        });
+
+        it('throws on a malformed prefixItems slot (oneOf: {}) instead of emitting it as a candidate', () => {
+            // A slot with a truthy but non-array `oneOf` and no `anyOf` is not a valid
+            // choice block. Passing it through unflattened would emit the malformed
+            // `{ oneOf: {} }` object itself as a node candidate in generated output.
+            const pattern = {
+                'properties': {
+                    'nodes': {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        'prefixItems': [{ 'oneOf': {} as any }],
+                    },
+                    'relationships': { 'prefixItems': [] },
+                },
+            };
+
+            expect(() => selectChoices(pattern, [])).toThrow(/Malformed oneOf\/anyOf block/);
+        });
+
         it('should not affect a normal pattern', () => {
             const applicationA = buildNode('application-a');
             const applicationB = buildNode('application-b');
@@ -317,6 +460,50 @@ describe('Pattern Options', () => {
                 [ connectsRelationshipA, connectsRelationshipB ]
             );
             expect(selectChoices(pattern, [])).toEqual(expectedPattern);
+        });
+
+        it('drops a decision holder entirely when nothing is selected for it, instead of an illegal empty options.prefixItems', () => {
+            const applicationA = buildNode('application-a');
+            const applicationC = buildNode('application-c');
+            const connectsRelationshipA = buildConnectsRelationship('application-a-to-c', 'app a to app c', 'application-a', 'application-c');
+
+            const pattern = buildPattern(
+                [applicationA, applicationC],
+                [
+                    buildPatternOptionRelationship(
+                        'cache-choice',
+                        'Pick a cache',
+                        buildPatternOption('anyOf', buildPatternChoice(applicationAtoC))
+                    ),
+                    buildPatternOptionRelationship(
+                        'queue-choice',
+                        'Pick a queue',
+                        buildPatternOption('anyOf', buildPatternChoice(applicationBtoC))
+                    ),
+                    connectsRelationshipA,
+                ]
+            );
+
+            // Answer cache-choice; leave queue-choice with zero selections - the checkbox
+            // (anyOf) case the feature advertises as a legitimate answer.
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const result = selectChoices(pattern, [applicationAtoC]) as any;
+
+            const relationshipIds = result.properties.relationships.prefixItems
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                .map((r: any) => r.properties['unique-id'].const);
+            expect(relationshipIds).not.toContain('queue-choice');
+            expect(relationshipIds).toContain('cache-choice');
+
+            // An options.prefixItems of length 0 is not a legal JSON Schema (prefixItems
+            // must hold at least one entry) - compiling exactly that is what broke
+            // `calm validate` on this input before the fix.
+            for (const rel of result.properties.relationships.prefixItems) {
+                const options = rel.properties?.['relationship-type']?.properties?.options;
+                if (options) {
+                    expect(options.prefixItems.length).toBeGreaterThan(0);
+                }
+            }
         });
     });
 
@@ -392,6 +579,61 @@ describe('Pattern Options', () => {
             }];
 
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
+        });
+    });
+
+    describe('assertChoicesAreSelectable', () => {
+        function choice(description: string, nodes: string[] = [], relationships: string[] = []): CalmChoice {
+            return { description, nodes, relationships };
+        }
+
+        it('does not throw when every choice names a plain prefixItems candidate', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick webapp', ['webapp'])])).not.toThrow();
+        });
+
+        it('does not throw when every choice names a reachable items-catalog candidate', () => {
+            const pattern = buildPatternWithItemsCatalog([], [buildNode('redis')]);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick redis', ['redis'])])).not.toThrow();
+        });
+
+        it('does not throw when choices is empty', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [])).not.toThrow();
+        });
+
+        it('does not throw for a choice naming a reachable prefixItems slot alternative', () => {
+            const pattern = buildPattern(
+                [{ oneOf: [buildNode('sql-store'), buildNode('nosql-store')] }],
+                []
+            );
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick sql', ['sql-store'])])).not.toThrow();
+        });
+
+        it('throws when a choice names a candidate in the losing keyword of a dual-keyword catalog', () => {
+            const pattern = {
+                properties: {
+                    nodes: {
+                        prefixItems: [buildNode('webapp')],
+                        items: { oneOf: [buildNode('redis')], anyOf: [buildNode('kafka')] }
+                    },
+                    relationships: { prefixItems: [] }
+                }
+            };
+            expect(() => assertChoicesAreSelectable(pattern, [choice('pick kafka', ['kafka'])]))
+                .toThrow(/node "kafka" \(choice "pick kafka"\)/);
+        });
+
+        it('throws when a choice names a node id the pattern does not declare at all', () => {
+            const pattern = buildPattern([buildNode('webapp')], []);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('typo', ['webbapp'])]))
+                .toThrow(/node "webbapp" \(choice "typo"\)/);
+        });
+
+        it('throws when a choice names an unreachable relationship candidate', () => {
+            const pattern = buildPattern([], [buildConnectsRelationship('r1', 'prompt', 'a', 'b')]);
+            expect(() => assertChoicesAreSelectable(pattern, [choice('typo', [], ['ghost'])]))
+                .toThrow(/relationship "ghost" \(choice "typo"\)/);
         });
     });
 });

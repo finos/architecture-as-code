@@ -409,6 +409,66 @@ describe('validation support functions', () => {
             const choices = extractChoicesFromArchitecture(architecture);
             expect(choices).toHaveLength(2);
         });
+
+        it('captures every answer of a multi-select anyOf decision, not just the first', async () => {
+            // Real shape confirmed via the actual generate pipeline: selecting two anyOf
+            // candidates produces one options[] entry per selection, not one combined entry.
+            const architecture = {
+                relationships: [
+                    {
+                        'unique-id': 'database-choice',
+                        'relationship-type': {
+                            options: [
+                                { 'description': 'Use PostgreSQL', 'nodes': ['postgres-db'], 'relationships': [] },
+                                { 'description': 'Use MySQL', 'nodes': ['mysql-db'], 'relationships': [] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices).toHaveLength(2);
+            expect(choices.map((c) => c.description)).toEqual(['Use PostgreSQL', 'Use MySQL']);
+        });
+
+        it('does not throw on a zero-answer anyOf decision (options: [])', async () => {
+            const architecture = {
+                relationships: [
+                    {
+                        'unique-id': 'database-choice',
+                        'relationship-type': { options: [] }
+                    }
+                ]
+            };
+            expect(() => extractChoicesFromArchitecture(architecture)).not.toThrow();
+            expect(extractChoicesFromArchitecture(architecture)).toHaveLength(0);
+        });
+
+        it('combines a multi-answer decision with a separate single-answer decision', async () => {
+            const architecture = {
+                relationships: [
+                    {
+                        'unique-id': 'database-choice',
+                        'relationship-type': {
+                            options: [
+                                { 'description': 'Use PostgreSQL', 'nodes': ['postgres-db'], 'relationships': [] },
+                                { 'description': 'Use MySQL', 'nodes': ['mysql-db'], 'relationships': [] }
+                            ]
+                        }
+                    },
+                    {
+                        'unique-id': 'cache-choice',
+                        'relationship-type': {
+                            options: [
+                                { 'description': 'Use Redis', 'nodes': ['redis'], 'relationships': [] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices).toHaveLength(3);
+        });
     });
 });
 

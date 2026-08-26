@@ -2,11 +2,13 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { mkdirp } from 'mkdirp';
 
-import { CalmChoice, selectChoices } from './components/options.js';
+import { assertChoicesAreSelectable, CalmChoice, selectChoices } from './components/options.js';
 import { instantiate } from './components/instantiate';
 import { flattenAllOf } from './components/flatten-allof';
 import { initLogger } from '../../logger.js';
 import { SchemaDirectory } from '../../schema-directory.js';
+
+type SchemaNodeLike = { [key: string]: unknown };
 
 export async function runGenerate(pattern: object, outputPath: string, debug: boolean, schemaDirectory: SchemaDirectory, chosenChoices?: CalmChoice[]): Promise<void> {
     const logger = initLogger(debug, 'calm-generate');
@@ -21,6 +23,9 @@ export async function runGenerate(pattern: object, outputPath: string, debug: bo
         );
 
         if (chosenChoices) {
+            // Refuse rather than silently drop an answer the pattern cannot honour. The
+            // catch below turns this into a logged error and no output file.
+            assertChoicesAreSelectable(flattenedPattern as SchemaNodeLike, chosenChoices);
             flattenedPattern = selectChoices(flattenedPattern, chosenChoices, debug);
         }
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DiffResult } from '@finos/calm-models/diff';
+import { DiffResult, diffPatterns } from '@finos/calm-models/diff';
 import { parsePatternDataWithDiff } from './patternDiffTransformer.js';
 
 const pattern = {
@@ -57,5 +57,44 @@ describe('patternDiffTransformer', () => {
         expect(added?.data.diffStatus).toBe('added');
         expect(added?.style).toMatchObject({ boxShadow: '0 0 0 3px #16a34a' });
         expect(result.nodes.find((n) => n.id === 'api-gateway')?.data.diffStatus).toBe('unchanged');
+    });
+
+    it('marks a newly added items-catalog candidate as added, using the real diffPatterns output', () => {
+        const patternBeforeCatalog = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        { properties: { 'unique-id': { const: 'api-gateway' }, name: { const: 'API Gateway' }, 'node-type': { const: 'service' } } },
+                    ],
+                },
+                relationships: { type: 'array', prefixItems: [] },
+            },
+        };
+        const patternWithCatalog = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [
+                        { properties: { 'unique-id': { const: 'api-gateway' }, name: { const: 'API Gateway' }, 'node-type': { const: 'service' } } },
+                    ],
+                    items: {
+                        anyOf: [
+                            { properties: { 'unique-id': { const: 'redis' }, name: { const: 'Redis' }, 'node-type': { const: 'database' } } },
+                        ],
+                    },
+                },
+                relationships: { type: 'array', prefixItems: [] },
+            },
+        };
+
+        // Not a hand-built DiffResult - this is the real diffPatterns output, so the
+        // test proves the pattern-diff reader and the graph transformer agree on catalog
+        // candidates, not just that applyDiffStatus honours whatever it's given.
+        const diffResult = diffPatterns(patternBeforeCatalog, patternWithCatalog);
+        const result = parsePatternDataWithDiff(patternWithCatalog, diffResult, false);
+        const redis = result.nodes.find((n) => n.id === 'redis');
+        expect(redis).toBeDefined();
+        expect(redis?.data.diffStatus).toBe('added');
     });
 });

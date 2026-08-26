@@ -98,6 +98,148 @@ Patterns use JSON schema constructs to provide choices and options:
 }
 ```
 
+### Optional Nodes with an `items` Catalog (zero or more)
+
+`prefixItems` describes fixed array positions: a slot is always present, and a `oneOf`/`anyOf` inside it chooses *which kind* of node fills that position. Use it when a node must exist and you are only choosing its type.
+
+When you instead want an **open catalog** of optional nodes — "include any combination of these, including none" — declare the candidates under `items` (which applies to every array entry) rather than `prefixItems` (which pins entries to positions). Mandatory nodes go in `prefixItems`; the optional catalog goes in `items`:
+
+```json
+{
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "minItems": 2,
+            "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "webapp" },
+                        "name": { "const": "Web Application" },
+                        "node-type": { "const": "webclient" }
+                    }
+                },
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "database" },
+                        "name": { "const": "Database" },
+                        "node-type": { "const": "database" }
+                    }
+                }
+            ],
+            "items": {
+                "oneOf": [
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "cache" },
+                            "name": { "const": "Cache" },
+                            "node-type": { "const": "service" }
+                        }
+                    },
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "type": "object",
+                        "properties": {
+                            "unique-id": { "const": "queue" },
+                            "name": { "const": "Message Queue" },
+                            "node-type": { "const": "service" }
+                        }
+                    }
+                ]
+            }
+        }
+    }
+}
+```
+
+Here `webapp` and `database` are always present, while `cache` and `queue` form an optional catalog: an instantiated architecture may include neither, either, or both.
+
+A catalog on its own does nothing. Two different kinds of object are involved, and it is worth being precise about which is which:
+
+- A **candidate** is a concrete node or relationship that may or may not end up in the generated architecture. Candidates are what an `items` catalog holds. Relationship candidates can use an `items` catalog exactly as node candidates do.
+- A **decision holder** is a relationship carrying `relationship-type.options`. It is not part of the architecture being described — it asks the user a question and lists the choice bundles that answer it. Each bundle names candidates by `unique-id`.
+
+A candidate is included in the output only when a chosen bundle names its `unique-id`. So every catalog needs a decision holder pointing at it, and **a decision holder must be declared in `properties.relationships.prefixItems`** — never inside an `items` catalog itself. A holder is the mechanism that drives generation, so it must always be present; putting it in a catalog makes the question itself optional, and `calm generate` will not offer it.
+
+### `oneOf` and `anyOf` mean different things in different places
+
+The same two keywords appear in three positions and do three different jobs. Getting this wrong is the commonest authoring mistake with catalogs.
+
+**Inside the holder's `options` — this is the cardinality.** Use `anyOf` for a zero-or-more catalog (the user may pick any combination, including none) and `oneOf` where exactly one candidate must be chosen. This is the only place that controls how many candidates the user may select.
+
+**Inside a `prefixItems` slot — this picks which node fills one fixed position.** The slot always exists; the alternatives compete for it.
+
+**Inside `items` — neither.** The keyword there constrains what each individual array *entry* may look like, not how many entries there are. `items: { "oneOf": [cache, queue] }` reads as "each entry must be exactly one of cache or queue" — an architecture containing *both* is perfectly valid, because each entry independently matches exactly one candidate. "Zero or more" comes from `items` itself (plus `minItems`/`maxItems`), and how many are actually selected comes from the holder.
+
+Because every candidate pins its `unique-id` with a `const`, an entry can match at most one candidate schema, so `oneOf` and `anyOf` accept exactly the same architectures here. **Use `oneOf`** — it is the accurate assertion and matches the example above.
+
+**Never declare both `oneOf` and `anyOf` on one `items` block.** Only the `oneOf` list is read. Candidates under `anyOf` are silently dropped: `calm generate` will still *offer* them if a decision names them, then discard your answer without an error, and they will not appear in the diagram either.
+
+The holder that drives the catalog above looks like this:
+
+```json
+{
+    "properties": {
+        "relationships": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "type": "object",
+                    "properties": {
+                        "unique-id": { "const": "optional-components" },
+                        "description": { "const": "Which optional components do you want?" },
+                        "relationship-type": {
+                            "type": "object",
+                            "properties": {
+                                "options": {
+                                    "type": "array",
+                                    "prefixItems": [
+                                        {
+                                            "anyOf": [
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": { "const": "Add a cache" },
+                                                        "nodes": { "const": ["cache"] },
+                                                        "relationships": { "const": [] }
+                                                    }
+                                                },
+                                                {
+                                                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/decision",
+                                                    "type": "object",
+                                                    "properties": {
+                                                        "description": { "const": "Add a message queue" },
+                                                        "nodes": { "const": ["queue"] },
+                                                        "relationships": { "const": [] }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }
+                            }
+                        }
+                    }
+                }
+            ]
+        }
+    }
+}
+```
+
+Guidance:
+
+- Keep every candidate that a single decision references within one declaration site. A decision whose candidates are split between a `prefixItems` slot and an `items` catalog, or spread across nodes with inconsistent container membership, is a pattern smell — model the choice at one consistent level.
+- Declare every decision holder (a relationship with `relationship-type.options`) in `properties.relationships.prefixItems`. A catalog with no holder pointing at it can never be selected from, and `calm validate` warns that its candidates are unreferenced.
+- Duplicate `unique-id`s inside an `items` catalog are rejected by `calm validate`, and a catalog node that no relationship or decision references produces a warning — the same check a plain `prefixItems` entry gets. A candidate declared as a `prefixItems[i].oneOf`/`anyOf` alternative does not get this warning — the rule reaches a plain `prefixItems` entry and an `items` catalog member, but not inside a slot's alternatives.
+
 ### Relationship Options with Decision Points
 
 ```json
@@ -618,7 +760,9 @@ Always use specific interface schema references:
 
 ### Array Handling
 
-- Use `prefixItems` to define specific array positions
+- Use `prefixItems` to define specific array positions (fixed slots)
+- Use `items` to define an open catalog of optional entries (zero or more, any combination); combine with `prefixItems` for mandatory-plus-optional arrays
+- Inside `items`, use `oneOf` (not both `oneOf` and `anyOf` — see above). The keyword constrains each entry's shape; it does **not** limit how many entries the array may hold
 - Use `minItems`/`maxItems` to constrain array sizes
 - Each array item should reference base schema + add constraints
 
@@ -643,13 +787,16 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 - `const` - Fixed values that cannot be changed
 - `enum` - List of allowed values
 - `minItems`/`maxItems` - Array size constraints
-- `prefixItems` - Define specific array items
+- `prefixItems` - Define specific array items by position (fixed slots)
+- `items` - Define the rule every array entry must satisfy; with a `oneOf`/`anyOf` inside it, an open catalog of optional entries (zero or more)
 
 ### Option Constructs
 
 - `anyOf` - One or more options can be true
 - `oneOf` - Exactly one option must be true
 - `allOf` - All conditions must be true
+- Placed inside a `prefixItems` slot, `oneOf`/`anyOf` chooses which node fills that fixed position; placed inside `items`, they define the optional catalog an entry may be drawn from
+- Do not split a single property's definition (e.g. `properties.nodes`) across separate `allOf` branches — the merge is shallow, so the later branch's definition replaces the earlier one wholesale rather than combining them. `allOf` is unsupported for `relationships`: decision holders are only discovered in `properties.relationships.prefixItems` on the raw pattern, before `allOf` is flattened
 
 ### Schema References
 
@@ -666,7 +813,8 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options
 6. All constraint properties must be valid JSON schema constructs
-7. Pattern should be testable with `calm validate -p <pattern-file>`
+7. `unique-id`s must be unique across the whole pattern, including inside `items.oneOf`/`anyOf` catalogs
+8. Pattern should be testable with `calm validate -p <pattern-file>`
 
 ## Best Practices
 

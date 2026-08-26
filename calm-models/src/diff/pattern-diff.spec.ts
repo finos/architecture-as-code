@@ -55,6 +55,11 @@ describe('normalisePatternToInstance', () => {
         const { nodes } = normalisePatternToInstance(testPatterns.undiffablePattern);
         expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway']);
     });
+
+    it('includes items-catalog candidates alongside prefixItems', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.catalogBasePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['webapp', 'redis']);
+    });
 });
 
 describe('diffPatterns', () => {
@@ -147,5 +152,26 @@ describe('diffPatterns', () => {
     it('leaves undiffableItems unset for fully-constrained patterns', () => {
         const result = diffPatterns(testPatterns.basePattern, testPatterns.additionPattern);
         expect(result.undiffableItems).toBeUndefined();
+    });
+
+    it('detects a candidate added to an items catalog', () => {
+        const result = diffPatterns(testPatterns.catalogBasePattern, testPatterns.catalogAdditionPattern);
+        const addedIds = result.nodesAdded.map((n) => n['unique-id']);
+        expect(addedIds).toContain('valkey');
+        expect(addedIds).not.toContain('redis');
+    });
+
+    it('detects a candidate removed from an items catalog', () => {
+        const result = diffPatterns(testPatterns.catalogAdditionPattern, testPatterns.catalogBasePattern);
+        const removedIds = result.nodesRemoved.map((n) => n['unique-id']);
+        expect(removedIds).toContain('valkey');
+        expect(removedIds).not.toContain('redis');
+    });
+
+    it('treats an unchanged catalog candidate as same, not added', () => {
+        const result = diffPatterns(testPatterns.catalogBasePattern, testPatterns.catalogBasePattern);
+        const sameIds = result.nodesSame.map((n) => n['unique-id']);
+        expect(sameIds).toContain('redis');
+        expect(result.nodesAdded).toHaveLength(0);
     });
 });

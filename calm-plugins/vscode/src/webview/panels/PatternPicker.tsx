@@ -61,10 +61,20 @@ export function PatternPicker({ visible, mode, patterns, onApply, onClose }: Pat
     );
 }
 
-function instantiateFromPattern(schema: unknown): any {
+/**
+ * An `items` open catalog is structurally the same as a `prefixItems` slot's own
+ * `oneOf`/`anyOf` block - `instantiateNode`/`instantiateRel` already know how to unwrap
+ * one of those by taking its first alternative, so appending the catalog schema here
+ * reuses that path instead of needing a second one.
+ */
+function catalogEntry(items: unknown): any[] {
+    return items && typeof items === 'object' ? [items] : [];
+}
+
+export function instantiateFromPattern(schema: unknown): any {
     const p = schema as any;
-    const nodeSchemas = p?.properties?.nodes?.prefixItems ?? [];
-    const relSchemas = p?.properties?.relationships?.prefixItems ?? [];
+    const nodeSchemas = [...(p?.properties?.nodes?.prefixItems ?? []), ...catalogEntry(p?.properties?.nodes?.items)];
+    const relSchemas = [...(p?.properties?.relationships?.prefixItems ?? []), ...catalogEntry(p?.properties?.relationships?.items)];
 
     const nodes = nodeSchemas.map((s: any) => instantiateNode(s)).filter(Boolean).map((n: any) => {
         if (!n['unique-id']) n['unique-id'] = '[[PLACEHOLDER]]';

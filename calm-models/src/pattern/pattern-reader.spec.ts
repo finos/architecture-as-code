@@ -1,0 +1,327 @@
+import { describe, it, expect } from 'vitest';
+import {
+    getPatternArray,
+    resolveOperativeChoiceBlock,
+    listDeclaredCandidates,
+    listSelectableCandidates,
+    type SchemaNode,
+} from './pattern-reader.js';
+
+function nodeWithId(uniqueId: string): SchemaNode {
+    return { properties: { 'unique-id': { const: uniqueId } } };
+}
+
+describe('getPatternArray', () => {
+    it('reads prefixItems and catalog declared directly under properties', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [nodeWithId('a')],
+                    items: { oneOf: [nodeWithId('b')] },
+                },
+            },
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        expect(result.prefixItems).toEqual([nodeWithId('a')]);
+        expect(result.catalog).toEqual({ oneOf: [nodeWithId('b')] });
+    });
+
+    it('yields an empty prefixItems array and undefined catalog when neither is declared', () => {
+        const result = getPatternArray({ properties: {} }, 'nodes');
+        expect(result.prefixItems).toEqual([]);
+        expect(result.catalog).toBeUndefined();
+    });
+
+    it('falls back to the first allOf branch that declares the array', () => {
+        const pattern = {
+            allOf: [
+                { properties: { nodes: { prefixItems: [nodeWithId('first-branch')] } } },
+                { properties: { nodes: { prefixItems: [nodeWithId('second-branch')] } } },
+            ],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // TEMPORARY (first-branch-wins): a later branch declaring the same path is
+        // invisible today. Do not "fix" this here — see the reader's allOf note.
+        expect(result.prefixItems).toEqual([nodeWithId('first-branch')]);
+    });
+
+    it('prefers a direct declaration over an allOf branch', () => {
+        const pattern = {
+            properties: { nodes: { prefixItems: [nodeWithId('direct')] } },
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('branch')] } } }],
+        };
+
+        expect(getPatternArray(pattern, 'nodes').prefixItems).toEqual([nodeWithId('direct')]);
+    });
+
+    it('treats a falsy keyword value (e.g. items: false closing a tuple) as absent', () => {
+        const pattern = { properties: { nodes: { prefixItems: [nodeWithId('a')], items: false } } };
+        expect(getPatternArray(pattern, 'nodes').catalog).toBeUndefined();
+    });
+
+    it('does not compose prefixItems from one source with a catalog from another', () => {
+        const pattern = {
+            properties: { nodes: { prefixItems: [nodeWithId('root-a')] } },
+            allOf: [{
+                properties: {
+                    nodes: {
+                        prefixItems: [nodeWithId('branch-x')],
+                        items: { anyOf: [nodeWithId('branch-cat')] },
+                    },
+                },
+            }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The root's own prefixItems wins wholesale (same first-source-wins precedent as
+        // the test above) - it must NOT borrow the allOf branch's catalog, which would
+        // describe an array no single declaration site in the document actually contains.
+        expect(result.prefixItems).toEqual([nodeWithId('root-a')]);
+        expect(result.catalog).toBeUndefined();
+    });
+
+    it('does not compose the other way either: a catalog from one source with prefixItems from another', () => {
+        const pattern = {
+            properties: { nodes: { items: { anyOf: [nodeWithId('root-cat')] } } },
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('branch-a')] } } }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The root's own declaration (a catalog, no prefixItems of its own) wins wholesale.
+        // Its own gap - no prefixItems - must stay a gap, not get silently patched by
+        // borrowing the allOf branch's prefixItems.
+        expect(result.prefixItems).toEqual([]);
+        expect(result.catalog).toEqual({ anyOf: [nodeWithId('root-cat')] });
+    });
+
+    it('does not compose across two different allOf branches when the root declares neither', () => {
+        const pattern = {
+            allOf: [
+                { properties: { nodes: { prefixItems: [nodeWithId('branch1-a')] } } },
+                { properties: { nodes: { items: { anyOf: [nodeWithId('branch2-cat')] } } } },
+            ],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        // The first branch that declares anything wins wholesale; the second branch's
+        // catalog must not be borrowed to fill the first branch's gap.
+        expect(result.prefixItems).toEqual([nodeWithId('branch1-a')]);
+        expect(result.catalog).toBeUndefined();
+    });
+
+    it('skips a source that declares the property but neither keyword, and resolves from the next one', () => {
+        const pattern = {
+            properties: { nodes: { minItems: 1 } }, // declares `nodes` but with nothing selectable
+            allOf: [{
+                properties: {
+                    nodes: {
+                        prefixItems: [nodeWithId('branch-a')],
+                        items: { anyOf: [nodeWithId('branch-cat')] },
+                    },
+                },
+            }],
+        };
+
+        const result = getPatternArray(pattern, 'nodes');
+        expect(result.prefixItems).toEqual([nodeWithId('branch-a')]);
+        expect(result.catalog).toEqual({ anyOf: [nodeWithId('branch-cat')] });
+    });
+});
+
+describe('resolveOperativeChoiceBlock', () => {
+    it('returns null for an undefined catalog', () => {
+        expect(resolveOperativeChoiceBlock(undefined)).toBeNull();
+    });
+
+    it('returns null when neither oneOf nor anyOf is an array', () => {
+        expect(resolveOperativeChoiceBlock({})).toBeNull();
+        expect(resolveOperativeChoiceBlock({ oneOf: 'not-an-array' })).toBeNull();
+    });
+
+    it('reads a oneOf-only catalog', () => {
+        const alternatives = [nodeWithId('a'), nodeWithId('b')];
+        expect(resolveOperativeChoiceBlock({ oneOf: alternatives })).toEqual({ groupType: 'oneOf', alternatives });
+    });
+
+    it('reads an anyOf-only catalog', () => {
+        const alternatives = [nodeWithId('a')];
+        expect(resolveOperativeChoiceBlock({ anyOf: alternatives })).toEqual({ groupType: 'anyOf', alternatives });
+    });
+
+    it('prefers oneOf over anyOf when both are present', () => {
+        const oneOfAlts = [nodeWithId('one')];
+        const anyOfAlts = [nodeWithId('any')];
+        expect(resolveOperativeChoiceBlock({ oneOf: oneOfAlts, anyOf: anyOfAlts })).toEqual({
+            groupType: 'oneOf',
+            alternatives: oneOfAlts,
+        });
+    });
+});
+
+describe('listDeclaredCandidates', () => {
+    it('lists a plain prefixItems entry', () => {
+        const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([
+            { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
+        ]);
+    });
+
+    it('unions oneOf and anyOf on the same slot, unlike resolveOperativeChoiceBlock', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ oneOf: [nodeWithId('a')], anyOf: [nodeWithId('b')] }],
+                },
+            },
+        };
+
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
+        expect(candidates.map((c) => c.blockType)).toEqual(['oneOf', 'anyOf']);
+        expect(candidates.every((c) => c.site === 'prefixItemAlternative' && c.slotIndex === 0)).toBe(true);
+    });
+
+    it('yields both the slot and its alternatives for a hybrid slot', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ ...nodeWithId('hybrid'), oneOf: [nodeWithId('alt')] }],
+                },
+            },
+        };
+
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => ({ uniqueId: c.uniqueId, site: c.site }))).toEqual([
+            { uniqueId: 'hybrid', site: 'prefixItem' },
+            { uniqueId: 'alt', site: 'prefixItemAlternative' },
+        ]);
+    });
+
+    it('lists items.oneOf and items.anyOf catalog members together', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: { oneOf: [nodeWithId('cat-one')], anyOf: [nodeWithId('cat-any')] },
+                },
+            },
+        };
+
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
+        expect(candidates).toEqual([
+            { uniqueId: 'cat-one', site: 'catalogMember', node: nodeWithId('cat-one'), path: ['properties', 'nodes', 'items', 'oneOf', 0], blockType: 'oneOf' },
+            { uniqueId: 'cat-any', site: 'catalogMember', node: nodeWithId('cat-any'), path: ['properties', 'nodes', 'items', 'anyOf', 0], blockType: 'anyOf' },
+        ]);
+    });
+
+    it('skips a pure choice-block slot with no unique-id of its own', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [{ oneOf: [nodeWithId('a'), nodeWithId('b')] }] },
+            },
+        };
+
+        const candidates = listDeclaredCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => c.uniqueId)).toEqual(['a', 'b']);
+        expect(candidates.some((c) => c.uniqueId === undefined)).toBe(false);
+    });
+
+    it('skips a catalog member with no const-pinned unique-id', () => {
+        const pattern = {
+            properties: { nodes: { items: { oneOf: [{ properties: {} }] } } },
+        };
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([]);
+    });
+
+    it('returns an empty array when the calmType is absent', () => {
+        expect(listDeclaredCandidates({ properties: {} }, 'nodes')).toEqual([]);
+    });
+
+    it('does not fall back into an allOf branch, unlike getPatternArray', () => {
+        const pattern = {
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
+        };
+        expect(listDeclaredCandidates(pattern, 'nodes')).toEqual([]);
+    });
+});
+
+describe('listSelectableCandidates', () => {
+    it('lists a plain prefixItems entry, same as listDeclaredCandidates', () => {
+        const pattern = { properties: { nodes: { prefixItems: [nodeWithId('solo')] } } };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([
+            { uniqueId: 'solo', site: 'prefixItem', node: nodeWithId('solo'), path: ['properties', 'nodes', 'prefixItems', 0] },
+        ]);
+    });
+
+    it('resolves only the winning keyword of a dual-keyword block, unlike listDeclaredCandidates', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ oneOf: [nodeWithId('a')], anyOf: [nodeWithId('b')] }],
+                },
+            },
+        };
+
+        const declared = listDeclaredCandidates(pattern, 'nodes').map((c) => c.uniqueId);
+        const selectable = listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId);
+        expect(declared).toEqual(['a', 'b']);
+        expect(selectable).toEqual(['a']);
+    });
+
+    it('yields both the slot and its winning alternatives for a hybrid slot', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    prefixItems: [{ ...nodeWithId('hybrid'), oneOf: [nodeWithId('alt-a')], anyOf: [nodeWithId('alt-b')] }],
+                },
+            },
+        };
+
+        const candidates = listSelectableCandidates(pattern, 'nodes');
+        expect(candidates.map((c) => ({ uniqueId: c.uniqueId, site: c.site }))).toEqual([
+            { uniqueId: 'hybrid', site: 'prefixItem' },
+            { uniqueId: 'alt-a', site: 'prefixItemAlternative' },
+        ]);
+    });
+
+    it('resolves only the winning keyword of a dual-keyword items catalog', () => {
+        const pattern = {
+            properties: {
+                nodes: {
+                    items: { oneOf: [nodeWithId('cat-one')], anyOf: [nodeWithId('cat-any')] },
+                },
+            },
+        };
+
+        expect(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId)).toEqual(['cat-one']);
+    });
+
+    it('lists every alternative when only one keyword is declared, same as listDeclaredCandidates', () => {
+        const pattern = {
+            properties: {
+                nodes: { prefixItems: [{ anyOf: [nodeWithId('a'), nodeWithId('b')] }] },
+            },
+        };
+        expect(listSelectableCandidates(pattern, 'nodes').map((c) => c.uniqueId)).toEqual(['a', 'b']);
+    });
+
+    it('skips a catalog member with no const-pinned unique-id', () => {
+        const pattern = {
+            properties: { nodes: { items: { oneOf: [{ properties: {} }] } } },
+        };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([]);
+    });
+
+    it('returns an empty array when the calmType is absent', () => {
+        expect(listSelectableCandidates({ properties: {} }, 'nodes')).toEqual([]);
+    });
+
+    it('does not fall back into an allOf branch, unlike getPatternArray', () => {
+        const pattern = {
+            allOf: [{ properties: { nodes: { prefixItems: [nodeWithId('in-a-branch')] } } }],
+        };
+        expect(listSelectableCandidates(pattern, 'nodes')).toEqual([]);
+    });
+});
+

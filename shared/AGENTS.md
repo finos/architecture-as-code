@@ -45,12 +45,25 @@ npx vitest run ${TEST FILE}
   - `validate()` - Main validation function (`commands/validate/validate.ts`) used by CLI and VSCode
   - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
   - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
+- **Generate** (`commands/generate/`): Pattern → architecture instantiation. `flatten-allof.ts` composes `allOf` branches, `options.ts` resolves user decisions (`extractOptions`, `selectChoices`), and `instantiate.ts` materializes the result. See [Pattern Decisions](#pattern-decisions) before changing any of these.
 - **Schema Directory** (`schema-directory.ts`): Registry of bundled CALM schemas, used for lookup by schema URL (`getSchema`).
 - **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `ants`, `docusaurus`).
 - **Resolver** (`resolver/`): CALM reference resolver plus the network-addressable extractor and validator.
 - **Hub Client** (`hub/`): `calm-hub-client` for talking to CALM Hub.
 - **View Model** (`view-model/`): ADR (Architecture Decision Record) view-model logic.
 - **Auth** (`auth/`): Auth plugin abstraction (`auth-plugin`, `no-auth-plugin`).
+
+## Pattern Decisions
+
+See [PATTERN-DECISIONS.md](./PATTERN-DECISIONS.md) before you change how a pattern's decisions
+are read, merged, or rendered. It covers where a candidate can be declared, what `oneOf`/`anyOf`
+mean in each location, which of the three pattern-reader functions to call for which question,
+why `allOf` has three readers that disagree, the enforcement rules, how decisions fold into the
+visualiser's boxes, why `calm generate` offers decision choices it then discards, and what a
+shared decision-holder reader would have to settle first.
+
+Drive new tests from `extractOptions`, not from hand-built choices, or you do not test whether
+the decision is discoverable. See `catalog-decisions.spec.ts`.
 
 ## Common Workflows
 
