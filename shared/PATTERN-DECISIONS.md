@@ -86,13 +86,14 @@ behaviour is deliberate, and it is easy to miss.
 
 ## `allOf` has three unreconciled readers
 
-Treat `allOf` for `nodes` and `relationships` as unsupported. Three parts of the
-system read it, and they do not agree.
+Three parts of the system read `allOf` for `nodes` and `relationships`, and they do not
+agree. Nothing may assume consistent behaviour across them. Pattern authors are told not
+to split a property's definition across branches - see `calm-ai/tools/pattern-creation.md`.
 
 | Reader | Behaviour |
 |---|---|
 | `deepMergeSchemas` (`flatten-allof.ts`) | Shallow merge. A repeated property loses its `type`, so `instantiate` emits `{}` for it. |
-| `getPatternArray` | Resolves one branch per property: the root schema, or else the first `allOf` branch that declares it. Reads `prefixItems` and `items` from that same branch. Later branches are ignored. Marked TEMPORARY in the code. |
+| `getPatternArray` | Resolves one branch per property: the root schema, or else the first `allOf` branch that declares it. Reads `prefixItems` and `items` from that same branch. Later branches are ignored. Its private `resolveArrayContainer` carries the TEMPORARY marker, not `getPatternArray` itself. |
 | `listDeclaredCandidates` / `listSelectableCandidates` | Ignore `allOf` entirely. This keeps the reported `path` correct for diagnostics. |
 
 **Why this is not one answer.** `allOf` means intersection, not union, because `calm
