@@ -47,6 +47,9 @@ jobs:
             - name: Lint calm-lab
               run: npm run lint --workspace=calm-lab
 
+            - name: Typecheck calm-lab
+              run: npm run typecheck --workspace=calm-lab
+
             - name: Build calm-lab (models → widgets → shared → lab)
               run: npm run build:calm-lab
 

@@ -79,6 +79,22 @@ describe('Terminal', () => {
         expect(input).not.toBeDisabled();
     });
 
+    it('leaves focus alone if it moved outside the terminal while the command ran', async () => {
+        const pending = deferred();
+        const outside = document.createElement('input');
+        document.body.appendChild(outside);
+        const input = renderTerminal(() => pending.promise);
+        type(input, 'ls');
+        outside.focus();
+
+        await act(async () => {
+            pending.resolve([]);
+        });
+
+        expect(document.activeElement).toBe(outside);
+        outside.remove();
+    });
+
     it('restores focus to the input once the command completes', async () => {
         const pending = deferred();
         const input = renderTerminal(() => pending.promise);

@@ -20,6 +20,7 @@ npm run calm-lab:run                  # Dev server
 npm run build:calm-lab                # models → widgets → shared → lab, into calm-lab/dist
 npm test --workspace calm-lab         # Unit tests
 npm run lint --workspace calm-lab     # ESLint
+npm run typecheck --workspace calm-lab  # tsc --noEmit
 ```
 
 `shared` must be built first — the app imports the compiled browser entry, which

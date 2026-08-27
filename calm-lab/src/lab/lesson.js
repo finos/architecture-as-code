@@ -145,10 +145,11 @@ export const STEPS = [
             '`calm validate architecture/trading-system.architecture.json`.',
         hintLabel: 'complete file',
         hint: STEP_3_TARGET_FILE,
-        // State-based on purpose: saving runs the exact same Ajv engine
-        // as `calm validate`, so the tick must not additionally require a
-        // terminal validate — learners who pasted the hint and saved saw
-        // an all-green editor while the step refused to complete.
+        // State-based on purpose: saving runs the same engine as
+        // `calm validate` (JSON Schema plus the Spectral rules, via
+        // @finos/calm-shared/browser), so the tick must not additionally
+        // require a terminal validate — learners who pasted the hint and
+        // saved saw an all-green editor while the step refused to complete.
         check: (state) =>
             Boolean(state.doc) && hasConnectsRelationship(state.doc) && state.validation.ok,
     },

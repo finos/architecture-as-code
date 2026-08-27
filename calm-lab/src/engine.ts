@@ -10,11 +10,10 @@ import {
     type ValidationOutcome,
     type ValidationOutput,
 } from '@finos/calm-shared/browser';
-import sharedPackage from '../../shared/package.json';
 import { SCHEMAS } from './schemas';
 
 export type LabSeverity = 'error' | 'warning' | 'info' | 'hint';
-export interface LabIssue { severity: LabSeverity; path: string; message: string; code: string }
+export interface LabIssue { severity: LabSeverity; path: string; message: string }
 /**
  * `issues`/`errors` are capped at MAX_ISSUES for display; `issueCount` and
  * `errorCount` are the real totals, so nothing ever under-reports the problems
@@ -24,8 +23,8 @@ export interface LabValidation { ok: boolean; parseError?: string; issues: LabIs
 export interface LabDiff { formatted: string; hasChanges: boolean }
 export class LabError extends Error {}
 
-export const DEFAULT_SCHEMA_ID = 'https://calm.finos.org/release/1.2/meta/calm.json';
-export const ENGINE_VERSION: string = sharedPackage.version;
+/** Injected by `define` in vite.config.ts — see src/vite-env.d.ts. */
+export const ENGINE_VERSION: string = __CALM_SHARED_VERSION__;
 const MAX_ISSUES = 20;
 
 let directoryPromise: Promise<SchemaDirectory> | undefined;
@@ -89,7 +88,7 @@ function toIssues(outcome: ValidationOutcome): IssueSummary {
         }
         // Counting continues past the cap — the display is truncated, the totals are not.
         if (issues.length < MAX_ISSUES) {
-            issues.push({ severity, path, message, code: String(output.code ?? '') });
+            issues.push({ severity, path, message });
         }
     }
     return { issues, issueCount, errorCount };

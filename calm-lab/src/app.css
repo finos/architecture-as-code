@@ -6,7 +6,6 @@
     --ifm-font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
     --ifm-font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     --ifm-navbar-height: 48px;
-    --calm-muted: #6b7280;
 }
 
 html, body, #root { height: 100%; margin: 0; }

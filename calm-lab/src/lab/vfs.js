@@ -4,8 +4,8 @@
  * by the paths of the files they contain. State is persisted to
  * localStorage so a refresh keeps the learner's work.
  *
- * Only ever construct/use this client-side (the Lab is rendered
- * behind BrowserOnly); all storage access is guarded regardless.
+ * The lab is a standalone single-page app, so this always runs in a
+ * browser; storage access is guarded anyway for private-browsing mode.
  */
 
 const STORAGE_KEY = 'calm-lab-workspace-v1';
@@ -57,14 +57,6 @@ export function createVfs(seedFiles) {
         seed(nextFiles) {
             files = {...nextFiles};
             cwd = HOME;
-            const storage = getStorage();
-            if (storage) {
-                try {
-                    storage.removeItem(STORAGE_KEY);
-                } catch {
-                    // ignore
-                }
-            }
             persist();
         },
         read(path) {

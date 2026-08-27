@@ -29,6 +29,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
     const historyPos = useRef(-1);
     const scrollRef = useRef(null);
     const inputRef = useRef(null);
+    const paneRef = useRef(null);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -36,12 +37,17 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
         }
     }, [lines]);
 
-    // The input is disabled while a command runs, which drops focus — take it back once the
-    // command finishes. Guarded so the terminal does not grab focus on first mount.
+    // The input is disabled while a command runs, which drops focus to the body — take it back
+    // once the command finishes. Guarded so the terminal does not grab focus on first mount, nor
+    // pull the caret out of the editor if the learner moved there while the command ran.
     const wasBusy = useRef(false);
     useEffect(() => {
         if (wasBusy.current && !busy) {
-            inputRef.current?.focus();
+            const active = document.activeElement;
+            const focusIsLoose = !active || active === document.body;
+            if (focusIsLoose || paneRef.current?.contains(active)) {
+                inputRef.current?.focus();
+            }
         }
         wasBusy.current = busy;
     }, [busy]);
@@ -138,7 +144,10 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
     };
 
     return (
-        <div className={chromeless ? styles.paneFill : styles.terminalPane} onClick={focusInput}>
+        <div
+            className={chromeless ? styles.paneFill : styles.terminalPane}
+            ref={paneRef}
+            onClick={focusInput}>
             {!chromeless && (
                 <div className={styles.paneHeader}>
                     <span className={styles.paneDots} aria-hidden="true">

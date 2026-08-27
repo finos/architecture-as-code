@@ -47,8 +47,14 @@ describe('createVfs', () => {
     it('seed() resets files, cwd and storage', () => {
         const vfs = createVfs(seed);
         vfs.write('/workspace/new.json', '1');
+        vfs.setCwd('/workspace/dir');
         vfs.seed(seed);
         expect(vfs.read('/workspace/new.json')).toBeNull();
         expect(vfs.getCwd()).toBe('/workspace');
+        // The reset has to reach storage too, or a reload restores the old work.
+        expect(JSON.parse(localStorage.getItem('calm-lab-workspace-v1'))).toEqual({
+            files: seed,
+            cwd: '/workspace',
+        });
     });
 });

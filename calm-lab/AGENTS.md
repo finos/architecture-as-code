@@ -23,6 +23,7 @@ npm run calm-lab:run                  # Dev server
 npm run build:calm-lab                # models → widgets → shared → lab
 npm test --workspace calm-lab         # Unit tests
 npm run lint --workspace calm-lab     # ESLint
+npm run typecheck --workspace calm-lab  # tsc --noEmit (CI runs this after lint)
 ```
 
 `shared` must be built before the lab: the app imports the compiled `@finos/calm-shared/browser`
@@ -36,6 +37,8 @@ side of it. The lab's half is `vite.config.ts`:
 - `fs` and `path` resolve to `src/shims/empty.ts`, `buffer` to `src/shims/buffer.ts`. The shared
   browser entry's dependency chain asks for them at bundle time but never calls them at runtime.
 - `resolve.mainFields` puts `browser` first.
+- `__CALM_SHARED_VERSION__` is a `define` reading `shared/package.json` at config time, so `src/`
+  never imports a manifest from outside its own tree. Declared in `src/vite-env.d.ts`.
 
 **Never add Node-only code to `src/`** — no `fs`, `path`, `process`, `__dirname`. If something you
 need is not on the browser entry, the fix belongs upstream in `shared`, behind that guard, not in a
@@ -50,6 +53,7 @@ shim here.
 | `src/shell.ts` | The terminal's command interpreter |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
+| `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
@@ -62,8 +66,22 @@ behind a `validationSeq` guard: a recompute that is no longer the newest returns
 `setValidation`. Keep that guard if you touch the validation path — saving and running
 `calm validate` can both be in flight at once, and without it the older result wins at random.
 
+`handleReset` bumps a second ref, `sessionEpoch`. A command captures it before awaiting and
+discards its lines, its event and its recompute if the learner reset the lesson meanwhile —
+otherwise an in-flight `calm validate` ticks a step off the fresh lesson.
+
+`runShell` does not await `recompute`: `ls` and `cat` must not sit behind a Spectral run with the
+input disabled.
+
 A step is complete when there are no **errors**. Warnings are listed in the Problems panel but
 never fail a step.
+
+## The diagram renders untrusted input
+
+The Diagram tab parses the editor buffer as the learner types, so `src/lab/hubRenderer/**` must
+never assume the document is schema-valid: containment parents are filtered to nodes that exist and
+checked for cycles, and every value that reaches React or `.toLowerCase()` goes through
+`toDisplayText`. Both the lab and the diagram sit behind `ErrorBoundary` for whatever gets through.
 
 ## Commands the lab does not run
 
