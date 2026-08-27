@@ -45,11 +45,13 @@ describe('validateArchitecture', () => {
         expect(result.issues).toEqual([]);
     });
 
-    it('caps and dedupes issues', async () => {
+    it('caps and dedupes issues but reports the uncapped totals', async () => {
         const many = { ...valid, nodes: Array.from({ length: 30 }, (_, i) => ({ 'unique-id': `n${i}` })) };
         const result = await validateArchitecture(JSON.stringify(many));
-        expect(result.issues.length).toBeLessThanOrEqual(20);
+        expect(result.issues.length).toBe(20);
         expect(new Set(result.issues.map((i) => `${i.path}|${i.message}`)).size).toBe(result.issues.length);
+        expect(result.issueCount).toBeGreaterThan(result.issues.length);
+        expect(result.errorCount).toBeGreaterThan(result.errors.length);
     });
 });
 

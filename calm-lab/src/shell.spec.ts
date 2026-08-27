@@ -29,11 +29,25 @@ describe('calm validate', () => {
         expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
     });
 
-    it('prints errors for an invalid document', async () => {
+    it('prints the engine pretty report for an invalid document', async () => {
         const { ctx } = context({ '/workspace/bad.json': '{"$schema": "https://calm.finos.org/release/1.2/meta/calm.json", "nodes": "nope"}' });
         const lines = await runCommand('calm validate bad.json', ctx);
-        expect(lines.some((l) => l.kind === 'err')).toBe(true);
-        expect(lines[0].text).toMatch(/problem/);
+        const text = lines.map((l) => l.text);
+        expect(text[0]).toMatch(/^bad\.json: \d+ problems? found$/);
+        expect(text).toContain('Summary');
+        expect(text.some((line) => /^- Errors: yes/.test(line))).toBe(true);
+        // The severity label carries the 'err' colour; the rest of the block is dim.
+        const errorLines = lines.filter((l) => l.kind === 'err');
+        expect(errorLines.length).toBeGreaterThan(0);
+        expect(errorLines.every((l) => l.text.trimStart().startsWith('ERROR'))).toBe(true);
+    });
+
+    it('reports a JSON parse error on one line', async () => {
+        const { ctx } = context({ '/workspace/bad.json': '{ nope' });
+        const lines = await runCommand('calm validate bad.json', ctx);
+        expect(lines).toHaveLength(1);
+        expect(lines[0].kind).toBe('err');
+        expect(lines[0].text).toMatch(/^calm validate: .*not valid JSON/);
     });
 
     it('reports a missing file', async () => {
@@ -75,6 +89,16 @@ describe('other calm commands', () => {
         expect(line.kind).toBe('dim');
         expect(line.text).toMatch(/^`calm hub pull` isn't available in the browser lab: /);
         expect(line.text).toContain('CORS');
+    });
+
+    it('lists the hub subcommands and their reasons for a bare `calm hub`', async () => {
+        const { ctx } = context({});
+        const lines = await runCommand('calm hub', ctx);
+        const text = lines.map((l) => l.text);
+        expect(text[0]).toBe('`calm hub` needs a subcommand:');
+        expect(text.some((line) => /^ {2}calm hub pull — .*CORS/.test(line))).toBe(true);
+        expect(text.some((line) => /^ {2}calm hub push — /.test(line))).toBe(true);
+        expect(text[text.length - 1]).toContain('https://calm.finos.org/working-with-calm/cli');
     });
 
     it('rejects unknown subcommands', async () => {

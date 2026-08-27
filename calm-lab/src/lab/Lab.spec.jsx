@@ -60,6 +60,52 @@ describe('Lab', () => {
         await waitFor(() => expect(stepOneCompleted()).toBe(true));
     });
 
+    it('lists a parse error without claiming the list was truncated', async () => {
+        engine.validateArchitecture.mockImplementation(async () => ({
+            ok: false,
+            parseError: 'This file is not valid JSON — Unexpected end of JSON input',
+            issues: [],
+            errors: [],
+            issueCount: 1,
+            errorCount: 1,
+            pretty: '',
+        }));
+        await act(async () => {
+            render(<Lab />);
+        });
+
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+
+        expect(screen.getByText(/not valid JSON/)).toBeInTheDocument();
+        expect(screen.queryByText(/showing first/)).not.toBeInTheDocument();
+    });
+
+    it('says how many problems it is not showing when the list is capped', async () => {
+        const issues = Array.from({length: 20}, (_, i) => ({
+            severity: 'error',
+            path: `/nodes/${i}`,
+            message: 'is invalid',
+        }));
+        engine.validateArchitecture.mockImplementation(async () => ({
+            ok: false,
+            issues,
+            errors: issues,
+            issueCount: 45,
+            errorCount: 45,
+            pretty: '',
+            doc: {nodes: [], relationships: []},
+        }));
+        await act(async () => {
+            render(<Lab />);
+        });
+
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+
+        expect(screen.getByText(/showing first 20 of 45 problems/)).toBeInTheDocument();
+        // The badge reports the real total, not the 20 the panel can list.
+        expect(screen.getByRole('button', {name: /✗ 45 problems/})).toBeInTheDocument();
+    });
+
     it('does not complete a step from a validate the learner reset away', async () => {
         await act(async () => {
             render(<Lab />);

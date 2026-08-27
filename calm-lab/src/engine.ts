@@ -5,6 +5,7 @@ import {
     buildBrowserDocumentLoader,
     diffDocuments,
     browserSupportFor,
+    BROWSER_COMMAND_SUPPORT,
     type BrowserCommandSupport,
     type ValidationOutcome,
     type ValidationOutput,
@@ -14,7 +15,12 @@ import { SCHEMAS } from './schemas';
 
 export type LabSeverity = 'error' | 'warning' | 'info' | 'hint';
 export interface LabIssue { severity: LabSeverity; path: string; message: string; code: string }
-export interface LabValidation { ok: boolean; parseError?: string; issues: LabIssue[]; errors: LabIssue[]; pretty: string; doc?: object }
+/**
+ * `issues`/`errors` are capped at MAX_ISSUES for display; `issueCount` and
+ * `errorCount` are the real totals, so nothing ever under-reports the problems
+ * in a document.
+ */
+export interface LabValidation { ok: boolean; parseError?: string; issues: LabIssue[]; errors: LabIssue[]; issueCount: number; errorCount: number; pretty: string; doc?: object }
 export interface LabDiff { formatted: string; hasChanges: boolean }
 export class LabError extends Error {}
 
@@ -58,23 +64,35 @@ function toSeverity(value: string): LabSeverity {
     return value === 'error' || value === 'warning' || value === 'info' || value === 'hint' ? value : 'error';
 }
 
-function toIssues(outcome: ValidationOutcome): LabIssue[] {
+interface IssueSummary { issues: LabIssue[]; issueCount: number; errorCount: number }
+
+function toIssues(outcome: ValidationOutcome): IssueSummary {
     const ordered: ValidationOutput[] = [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs];
     const rank: Record<LabSeverity, number> = { error: 0, warning: 1, info: 2, hint: 3 };
     ordered.sort((a, b) => rank[toSeverity(a.severity)] - rank[toSeverity(b.severity)]);
     const seen = new Set<string>();
     const issues: LabIssue[] = [];
+    let issueCount = 0;
+    let errorCount = 0;
     for (const output of ordered) {
         const path = output.path || '/';
         const message = output.message ?? 'is invalid';
         const key = `${path}|${message}`;
-        if (seen.has(key) || issues.length >= MAX_ISSUES) {
+        if (seen.has(key)) {
             continue;
         }
         seen.add(key);
-        issues.push({ severity: toSeverity(output.severity), path, message, code: String(output.code ?? '') });
+        const severity = toSeverity(output.severity);
+        issueCount += 1;
+        if (severity === 'error') {
+            errorCount += 1;
+        }
+        // Counting continues past the cap — the display is truncated, the totals are not.
+        if (issues.length < MAX_ISSUES) {
+            issues.push({ severity, path, message, code: String(output.code ?? '') });
+        }
     }
-    return issues;
+    return { issues, issueCount, errorCount };
 }
 
 /** Validate an architecture document with the real CALM engine (JSON Schema + Spectral rules). */
@@ -83,14 +101,16 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
     try {
         doc = parseJson(jsonText, 'This file');
     } catch (error) {
-        return { ok: false, parseError: (error as Error).message, issues: [], errors: [], pretty: (error as Error).message };
+        return { ok: false, parseError: (error as Error).message, issues: [], errors: [], issueCount: 1, errorCount: 1, pretty: (error as Error).message };
     }
     const outcome = await validate(doc, undefined, undefined, await schemaDirectory());
-    const issues = toIssues(outcome);
+    const { issues, issueCount, errorCount } = toIssues(outcome);
     return {
         ok: !outcome.hasErrors,
         issues,
         errors: issues.filter((issue) => issue.severity === 'error'),
+        issueCount,
+        errorCount,
         pretty: formatOutput(outcome, 'pretty'),
         doc,
     };
@@ -110,4 +130,9 @@ export function diffArchitectures(aText: string, bText: string, labels: [string,
 
 export function commandSupport(command: string): BrowserCommandSupport | undefined {
     return browserSupportFor(command);
+}
+
+/** The `hub *` entries of the browser capability manifest, for `calm hub`'s listing. */
+export function hubCommands(): readonly BrowserCommandSupport[] {
+    return BROWSER_COMMAND_SUPPORT.filter((entry) => entry.command.startsWith('hub '));
 }

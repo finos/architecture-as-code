@@ -300,6 +300,8 @@ export default function Lab() {
                 parseError: 'Validation failed: ' + (error?.message ?? String(error)),
                 issues: [],
                 errors: [],
+                issueCount: 1,
+                errorCount: 1,
                 pretty: '',
             });
             return;
@@ -421,7 +423,14 @@ export default function Lab() {
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
     const allDone = completed.size === STEPS.length;
-    const errorCount = validation ? validation.errors.length + (validation.parseError ? 1 : 0) : 0;
+    // The uncapped total: the Problems tab lists at most 20, the badge must
+    // still report every error the engine found.
+    const errorCount = validation?.errorCount ?? 0;
+    const listedCount = validation?.issues?.length ?? 0;
+    const totalCount = validation?.issueCount ?? 0;
+    // A parse error (or an engine failure) counts as one problem but lists no
+    // issues — it is not a truncated list, so it gets no "showing first" note.
+    const capped = !validation?.parseError && totalCount > listedCount;
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
@@ -659,6 +668,13 @@ export default function Lab() {
                                                 </li>
                                             ))}
                                         </ul>
+                                    )}
+                                    {capped && (
+                                        <div className={styles.problemsEmpty}>
+                                            showing first {listedCount} of {totalCount} problems —
+                                            run `calm validate {EDITOR_FILE_LABEL}` for the full
+                                            report
+                                        </div>
                                     )}
                                 </div>
                             </div>

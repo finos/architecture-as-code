@@ -8,7 +8,7 @@
  * scrollback.
  */
 
-import { validateArchitecture, diffArchitectures, commandSupport, ENGINE_VERSION, LabError } from './engine';
+import { validateArchitecture, diffArchitectures, commandSupport, hubCommands, ENGINE_VERSION, LabError } from './engine';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
 
@@ -87,12 +87,17 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
             return [{ text: `✓ ${target} is a valid CALM architecture`, kind: 'ok' }];
         }
         if (result.parseError) {
-            return [{ text: `  ✗ / — ${result.parseError}`, kind: 'err' }];
+            return [{ text: `calm validate: ${result.parseError}`, kind: 'err' }];
         }
-        const count = result.errors.length;
+        // The engine's own `pretty` report, exactly as `calm validate` prints it
+        // on the command line — the lab must not invent a second format.
+        const count = result.errorCount;
         return [
             { text: `${target}: ${count} problem${count === 1 ? '' : 's'} found`, kind: 'dim' },
-            ...result.errors.map((issue): Line => ({ text: `  ✗ ${issue.path} — ${issue.message}`, kind: 'err' })),
+            ...result.pretty
+                .replace(/\n$/, '')
+                .split('\n')
+                .map((text): Line => ({ text, kind: text.trimStart().startsWith('ERROR') ? 'err' : 'dim' })),
         ];
     }
     if (sub === 'diff') {
@@ -115,7 +120,21 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
             return [{ text: `calm diff: ${error instanceof LabError ? error.message : String(error)}`, kind: 'err' }];
         }
     }
-    // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends.
+    // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,
+    // so a bare `calm hub` lists them rather than claiming `hub` is unknown.
+    if (sub === 'hub' && !rest[0]) {
+        const entries = hubCommands();
+        if (entries.length) {
+            return [
+                { text: '`calm hub` needs a subcommand:', kind: 'out' },
+                ...entries.map((entry): Line => ({
+                    text: `  calm ${entry.command} — ${entry.status === 'unsupported' ? entry.reason : 'the engine supports it, but it is not wired into the lab yet'}`,
+                    kind: 'dim',
+                })),
+                { text: `Use the CLI for these — ${CLI_DOCS}`, kind: 'dim' },
+            ];
+        }
+    }
     const command = sub === 'hub' && rest[0] ? `hub ${rest[0]}` : sub;
     const support = commandSupport(command);
     if (support?.status === 'unsupported') {
