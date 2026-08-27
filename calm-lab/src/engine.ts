@@ -24,14 +24,24 @@ const MAX_ISSUES = 20;
 
 let directoryPromise: Promise<SchemaDirectory> | undefined;
 
+async function loadSchemaDirectory(): Promise<SchemaDirectory> {
+    const directory = new SchemaDirectory(buildBrowserDocumentLoader({ documents: SCHEMAS, allowRemote: false }));
+    await directory.loadSchemas();
+    return directory;
+}
+
 /** One SchemaDirectory for the session, seeded with the bundled meta-schemas; no remote loading. */
 function schemaDirectory(): Promise<SchemaDirectory> {
     if (!directoryPromise) {
-        directoryPromise = (async () => {
-            const directory = new SchemaDirectory(buildBrowserDocumentLoader({ documents: SCHEMAS, allowRemote: false }));
-            await directory.loadSchemas();
-            return directory;
-        })();
+        const pending = loadSchemaDirectory();
+        directoryPromise = pending;
+        // Never memoise a failure: a rejected promise would disable validation
+        // for the rest of the session, with no way back but a reload.
+        pending.catch(() => {
+            if (directoryPromise === pending) {
+                directoryPromise = undefined;
+            }
+        });
     }
     return directoryPromise;
 }

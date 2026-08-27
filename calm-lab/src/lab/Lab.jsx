@@ -211,6 +211,9 @@ export default function Lab() {
     // Validation is async now, so results can arrive out of order — only the
     // newest recompute is allowed to publish its result.
     const validationSeq = useRef(0);
+    // Bumped by "Reset lesson" — anything captured under an older epoch is
+    // discarded rather than applied to the fresh lesson.
+    const sessionEpoch = useRef(0);
     const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
@@ -283,7 +286,24 @@ export default function Lab() {
     const recompute = async () => {
         const text = vfs.read(ARCHITECTURE_FILE) ?? '';
         const seq = ++validationSeq.current;
-        const result = await validateArchitecture(text);
+        let result;
+        try {
+            result = await validateArchitecture(text);
+        } catch (error) {
+            if (seq !== validationSeq.current) {
+                return;
+            }
+            // The engine itself failed (schema load, Spectral) — say so rather
+            // than leaving the status bar on "checking…" forever.
+            setValidation({
+                ok: false,
+                parseError: 'Validation failed: ' + (error?.message ?? String(error)),
+                issues: [],
+                errors: [],
+                pretty: '',
+            });
+            return;
+        }
         if (seq !== validationSeq.current) {
             return; // a newer recompute has superseded this one
         }
@@ -332,6 +352,10 @@ export default function Lab() {
     };
 
     const runShell = async (input) => {
+        // A reset while `calm validate` is in flight starts a fresh lesson —
+        // the in-flight command's output, its event and its recompute all
+        // belong to the session the learner threw away.
+        const epoch = sessionEpoch.current;
         const lines = await runCommand(input, {
             vfs,
             getCwd: () => vfs.getCwd(),
@@ -339,9 +363,18 @@ export default function Lab() {
                 vfs.setCwd(dir);
                 setCwd(dir);
             },
-            onEvent: handleEvent,
+            onEvent: (event) => {
+                if (epoch === sessionEpoch.current) {
+                    handleEvent(event);
+                }
+            },
         });
-        await recompute();
+        if (epoch !== sessionEpoch.current) {
+            return [];
+        }
+        // Not awaited: `ls`, `cat` and `pwd` must not sit behind a Spectral run
+        // with the terminal input disabled. validationSeq orders the results.
+        void recompute();
         return lines;
     };
 
@@ -369,6 +402,7 @@ export default function Lab() {
     };
 
     const handleReset = () => {
+        sessionEpoch.current += 1;
         vfs.seed(SEED_FILES);
         clearProgress();
         flagsRef.current = {hasValidatedOk: false};

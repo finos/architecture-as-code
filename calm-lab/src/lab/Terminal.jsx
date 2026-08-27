@@ -65,6 +65,9 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
         let result = [];
         try {
             result = (await onRun(value)) || [];
+        } catch (error) {
+            // Without this the `…` placeholder would stay on screen forever.
+            result = [{text: 'error: ' + (error?.message ?? String(error)), kind: 'err'}];
         } finally {
             setBusy(false);
         }
