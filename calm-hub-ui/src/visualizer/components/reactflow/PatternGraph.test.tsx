@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { PatternGraph } from './PatternGraph';
-import { saveNodePositions } from '../../services/node-position-service.js';
+import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow is rendered with. Mirrors ArchitectureGraph.test.tsx's
@@ -85,7 +85,7 @@ describe('PatternGraph', () => {
             return nodes?.find((n) => n.id === id)?.position;
         }
 
-        it('applies the local scratch layout, even when a different server default exists', () => {
+        it('applies local scratch over the default layout when both exist', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             render(
@@ -132,22 +132,21 @@ describe('PatternGraph', () => {
             expect(screen.getByTestId('react-flow')).toBeInTheDocument();
         });
 
-        it('re-applies positions when layoutEpoch changes, picking up a cleared scratch layout', () => {
+        it('falls back to scratch when no default layout is provided, then applies default on epoch bump after scratch is cleared', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             const { rerender } = render(
                 <PatternGraph
                     patternData={mockPatternData}
                     viewportKey={key}
-                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    defaultLayout={null}
                     layoutEpoch={0}
                 />
             );
             expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
 
-            // Simulate "reset to default": the scratch entry is cleared and the
-            // epoch bumps, forcing a clean re-apply of the server default.
-            localStorage.removeItem('calm-hub:node-positions:ns/id');
+            // Simulate save/reset: scratch is cleared before the epoch bumps.
+            clearStoredNodePositions(key);
             rerender(
                 <PatternGraph
                     patternData={mockPatternData}
