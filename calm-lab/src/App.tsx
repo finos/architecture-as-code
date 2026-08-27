@@ -1,6 +1,22 @@
+import ErrorBoundary from './ErrorBoundary';
 import Lab from './lab/Lab';
 
 const DOCS_URL = 'https://calm.finos.org';
+
+function LabCrashed() {
+    return (
+        <div className="app-crash" role="alert">
+            <h1>The lab hit an error</h1>
+            <p>
+                Your work is saved in this browser — reloading the page picks it up where you
+                left off.
+            </p>
+            <button type="button" className="app-crash-btn" onClick={() => window.location.reload()}>
+                Reload
+            </button>
+        </div>
+    );
+}
 
 export default function App() {
     return (
@@ -13,7 +29,9 @@ export default function App() {
                     <a href="https://github.com/finos/architecture-as-code">GitHub ↗</a>
                 </nav>
             </header>
-            <Lab />
+            <ErrorBoundary fallback={<LabCrashed />}>
+                <Lab />
+            </ErrorBoundary>
         </div>
     );
 }

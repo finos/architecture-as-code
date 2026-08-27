@@ -7,18 +7,18 @@
 import React from 'react';
 import {Handle, Position} from 'reactflow';
 import styles from './lab.module.css';
-import {extractNodeType} from './hubRenderer/calmHelpers';
+import {extractNodeType, toDisplayText} from './hubRenderer/calmHelpers';
 import {getNodeTypeColor} from './hubRenderer/theme';
 
 export default function HubCustomNode({data}) {
-    const nodeType = extractNodeType(data) || 'unknown';
+    const nodeType = toDisplayText(extractNodeType(data)) || 'unknown';
     const color = getNodeTypeColor(nodeType);
 
     return (
         <div
             className={styles.flowNode}
             style={{borderColor: color}}
-            title={data.description || ''}
+            title={toDisplayText(data.description)}
             data-testid="custom-node">
             {/* Hidden handles to satisfy React Flow; floating edge computes actual attachment */}
             <Handle type="source" position={Position.Right} id="source" style={{opacity: 0}} />

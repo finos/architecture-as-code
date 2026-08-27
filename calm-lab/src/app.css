@@ -18,3 +18,10 @@ body { font-family: var(--ifm-font-family-base); }
 .app-nav { margin-left: auto; display: flex; gap: 16px; }
 .app-nav a { color: #fff; opacity: 0.85; text-decoration: none; }
 .app-nav a:hover { opacity: 1; }
+
+/* Fallback for the boundary around the whole lab (src/ErrorBoundary.tsx). */
+.app-crash { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; background: #0b1030; color: #c7d0f0; }
+.app-crash h1 { margin: 0; font-size: 20px; }
+.app-crash p { margin: 0; max-width: 44ch; color: #8b96c9; }
+.app-crash-btn { padding: 8px 18px; border: 1px solid #4da3ff; border-radius: 4px; background: transparent; color: #4da3ff; font: inherit; cursor: pointer; }
+.app-crash-btn:hover { background: rgba(77, 163, 255, 0.12); }

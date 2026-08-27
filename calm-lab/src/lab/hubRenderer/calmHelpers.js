@@ -40,6 +40,21 @@ export function extractRelationshipType(relationship) {
     return relationship?.['relationship-type'];
 }
 
+/**
+ * Coerces a CALM property to something React can render as a child.
+ *
+ * Lab addition (not in the Hub original): the lab renders the editor buffer
+ * live, so a half-typed document can put an object or a number where the
+ * schema wants a string. React throws on an object child, and `.toLowerCase()`
+ * throws on a number — coerce here instead.
+ *
+ * @param value - Any value read off a CALM node or relationship
+ * @returns The value as a string; '' for null/undefined
+ */
+export function toDisplayText(value) {
+    return value === null || value === undefined ? '' : String(value);
+}
+
 export function getRelationshipTypeDisplayString(relType) {
     if (!relType) return 'unknown';
     if ('connects' in relType) return 'connects';

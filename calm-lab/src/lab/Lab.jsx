@@ -4,6 +4,7 @@ import styles from './lab.module.css';
 import Terminal from './Terminal';
 import Editor from './Editor';
 import HubDiagram from './HubDiagram';
+import ErrorBoundary from '../ErrorBoundary';
 import {createVfs} from './vfs';
 import {validateArchitecture, ENGINE_VERSION} from '../engine';
 import {completeCommand, runCommand} from '../shell';
@@ -390,6 +391,7 @@ export default function Lab() {
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
+    const savedArchitecture = vfs.read(ARCHITECTURE_FILE) ?? '';
     const cssVars =
         termHeight != null ? {'--lab-term-height': `${termHeight}px`} : undefined;
 
@@ -546,7 +548,18 @@ export default function Lab() {
                                 {/* Mounted only while active so the ReactFlow canvas
                                     always measures a real size and fits on open. */}
                                 {topTab === 'diagram' && (
-                                    <HubDiagram jsonText={vfs.read(ARCHITECTURE_FILE) ?? ''} />
+                                    // Keyed on the document so an edit retries a
+                                    // render the previous buffer crashed.
+                                    <ErrorBoundary
+                                        key={savedArchitecture}
+                                        fallback={
+                                            <div className={styles.diagramEmpty}>
+                                                the diagram couldn&apos;t be rendered for this
+                                                document — fix the problems in the Problems tab
+                                            </div>
+                                        }>
+                                        <HubDiagram jsonText={savedArchitecture} />
+                                    </ErrorBoundary>
                                 )}
                             </div>
                         </div>

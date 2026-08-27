@@ -2,6 +2,7 @@
 // Keep logic in sync until the shared renderer package extraction.
 
 import { MarkerType } from 'reactflow';
+import { toDisplayText } from './calmHelpers';
 
 /**
  * Creates a ReactFlow edge with consistent styling
@@ -19,6 +20,14 @@ export function createEdge(config) {
         data,
     } = config;
 
+    // `...data` is the raw relationship, so `description` and `protocol` come
+    // straight from the document — coerce them, the edge label renders both.
+    const edgeData = { description: label, ...data };
+    edgeData.description = toDisplayText(edgeData.description);
+    if ('protocol' in edgeData) {
+        edgeData.protocol = toDisplayText(edgeData.protocol);
+    }
+
     const edge = {
         id,
         source,
@@ -32,10 +41,7 @@ export function createEdge(config) {
             strokeWidth: dashed ? 2 : 2.5,
             ...(dashed && { strokeDasharray: '5,5' }),
         },
-        data: {
-            description: label,
-            ...data,
-        },
+        data: edgeData,
     };
 
     if (markerPosition === 'end') {
