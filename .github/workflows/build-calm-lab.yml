@@ -47,11 +47,13 @@ jobs:
             - name: Lint calm-lab
               run: npm run lint --workspace=calm-lab
 
-            - name: Typecheck calm-lab
-              run: npm run typecheck --workspace=calm-lab
-
             - name: Build calm-lab (models → widgets → shared → lab)
               run: npm run build:calm-lab
+
+            # After the build: the typecheck resolves @finos/calm-shared/browser through
+            # shared/dist/browser.d.ts, which only exists once shared has been built.
+            - name: Typecheck calm-lab
+              run: npm run typecheck --workspace=calm-lab
 
             - name: Test calm-lab
               run: npm run test --workspace=calm-lab
