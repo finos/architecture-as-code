@@ -42,7 +42,7 @@ export default function LearnLab() {
                             className={shared.btnPrimary}
                             href={LAB_URL}
                             target="_blank"
-                            rel="noopener">
+                            rel="noopener noreferrer">
                             Open the lab ↗
                         </Link>
                     </div>

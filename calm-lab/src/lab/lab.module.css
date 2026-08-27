@@ -409,14 +409,6 @@
 }
 
 .doneLinks a:hover {
-    color: #7bbaff;
-}
-
-.doneLinks a {
-    color: #4da3ff;
-}
-
-.doneLinks a:hover {
     color: #7cbcff;
     text-decoration: none;
 }
