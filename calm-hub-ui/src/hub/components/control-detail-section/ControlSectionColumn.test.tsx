@@ -19,15 +19,13 @@ describe('ControlSectionColumn', () => {
         expect(screen.getByTestId('content')).toBeInTheDocument();
     });
 
-    it('adds a right border only when bordered', () => {
-        const { rerender, container } = render(
-            <ControlSectionColumn label="A"><div /></ControlSectionColumn>,
+    it('renders as a rounded bordered card', () => {
+        const { container } = render(
+            <ControlSectionColumn label="A">
+                <div data-testid="content" />
+            </ControlSectionColumn>,
         );
-        expect(container.firstChild).not.toHaveClass('border-r');
-
-        rerender(
-            <ControlSectionColumn label="A" bordered><div /></ControlSectionColumn>,
-        );
-        expect(container.firstChild).toHaveClass('border-r');
+        expect(container.firstChild).toHaveClass('rounded-[12px]', 'bg-base-100', 'overflow-hidden');
+        expect((container.firstChild as HTMLElement).style.border).toContain('1px solid');
     });
 });

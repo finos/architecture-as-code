@@ -232,7 +232,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
         return (
             <div className="w-full h-full flex flex-col bg-base-100">
-                <div className="flex items-center justify-between border-b border-base-300 pr-2">
+                <div className="flex items-center justify-between pr-2">
                     <div role="tablist" className="tabs tabs-bordered">
                         <button
                             type="button"
@@ -260,21 +260,17 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
                 {panel === 'requirement' ? (
                     <div className="flex-1 min-h-0 flex flex-col">
-                        {reqPicker && (
-                            <div className="px-4 py-2 border-b border-base-300">{reqPicker}</div>
-                        )}
-                        <div className="flex-1 min-h-0 overflow-auto bg-base-200">
+                        {reqPicker && <div className="px-4 pb-2">{reqPicker}</div>}
+                        <div className="flex-1 min-h-0 overflow-auto bg-base-100">
                             {renderBody(requirementJson, activeViewMode)}
                         </div>
                     </div>
                 ) : (
                     <div className="flex-1 min-h-0 flex flex-col">
                         {configPicker && (
-                            <div className="px-4 py-2 border-b border-base-300 flex flex-col gap-2">
-                                {configPicker}
-                            </div>
+                            <div className="px-4 pb-2 flex flex-col gap-2">{configPicker}</div>
                         )}
-                        <div className="flex-1 min-h-0 overflow-auto bg-base-200">
+                        <div className="flex-1 min-h-0 overflow-auto bg-base-100">
                             {renderBody(configJson, activeViewMode)}
                         </div>
                     </div>
@@ -285,7 +281,7 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
 
     // ── Desktop: Requirement and Configuration side by side ─────────────────
     return (
-        <div className="w-full h-full flex bg-base-100">
+        <div className="w-full h-full flex gap-4 bg-base-100">
             <ControlSectionColumn
                 label="Requirement"
                 picker={reqPicker}
@@ -294,7 +290,6 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                         <ViewToggle mode={reqViewMode} onChange={setReqViewMode} />
                     ) : null
                 }
-                bordered={showConfig}
             >
                 {renderBody(requirementJson, viewMode ?? reqViewMode)}
             </ControlSectionColumn>

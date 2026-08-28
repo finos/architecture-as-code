@@ -11,11 +11,10 @@ interface ControlPanelProps {
 }
 
 /**
- * Full-pane view for a selected control — it fills the content area like an
- * architecture or document detail view rather than a side panel. A breadcrumb
- * (Explore / <domain> / <control>) navigates back; the domain crumb returns to
- * that domain's control list. The single readable/raw toggle lives in the header
- * and drives {@link ControlDetailSection}.
+ * Full-pane view for a selected control. Styled like the domain explore page it
+ * is reached from — same page surface, breadcrumb, shield tile and title — with
+ * the Requirement / Configuration content in bordered cards below. The single
+ * readable/raw toggle drives {@link ControlDetailSection}.
  */
 export function ControlPanel({ controlData }: ControlPanelProps) {
     const [viewMode, setViewMode] = useState<ViewMode>('readable');
@@ -23,37 +22,50 @@ export function ControlPanel({ controlData }: ControlPanelProps) {
 
     return (
         <div className="w-full h-full flex flex-col bg-base-100 overflow-hidden">
-            <div className="bg-base-200 px-4 sm:px-6 py-3 border-b border-base-300 flex flex-wrap items-start justify-between gap-2">
-                <div className="min-w-0">
-                    <nav className="text-[13px]" aria-label="Breadcrumb">
-                        <Link
-                            to="/"
-                            className="no-underline hover:underline"
-                            style={{ color: colors.redesign.mutedAlt }}
-                        >
-                            Explore
-                        </Link>
-                        <span style={{ color: colors.redesign.mutedAlt }}> / </span>
-                        <Link
-                            to={`/domain/${encodeURIComponent(controlData.domain)}`}
-                            className="no-underline hover:underline"
-                            style={{ color: colors.redesign.mutedAlt }}
-                        >
-                            {controlData.domain}
-                        </Link>
-                        <span style={{ color: colors.redesign.mutedAlt }}> / </span>
-                        <span className="font-semibold" style={{ color: colors.redesign.bodyStrong }}>
-                            {controlLabel}
-                        </span>
-                    </nav>
-                    <h2 className="text-base sm:text-xl font-semibold flex items-center gap-2 mt-0.5 text-primary min-w-0">
-                        <IoShieldCheckmarkOutline className="shrink-0" />
-                        <span className="truncate">{controlLabel}</span>
-                    </h2>
+            <div className="shrink-0 pt-8 px-6 sm:px-10 pb-5">
+                <nav className="text-[13px] mb-4" aria-label="Breadcrumb">
+                    <Link
+                        to="/"
+                        className="no-underline hover:underline"
+                        style={{ color: colors.redesign.mutedAlt }}
+                    >
+                        Explore
+                    </Link>
+                    <span style={{ color: colors.redesign.mutedAlt }}> / </span>
+                    <Link
+                        to={`/domain/${encodeURIComponent(controlData.domain)}`}
+                        className="no-underline hover:underline"
+                        style={{ color: colors.redesign.mutedAlt }}
+                    >
+                        {controlData.domain}
+                    </Link>
+                    <span style={{ color: colors.redesign.mutedAlt }}> / </span>
+                    <span className="font-semibold" style={{ color: colors.redesign.bodyStrong }}>
+                        {controlLabel}
+                    </span>
+                </nav>
+
+                <div className="flex items-center gap-3">
+                    <div
+                        className="flex items-center justify-center shrink-0 rounded-[11px]"
+                        style={{ width: 44, height: 44, backgroundColor: colors.redesign.tintBg }}
+                    >
+                        <IoShieldCheckmarkOutline
+                            size={22}
+                            style={{ color: colors.redesign.primaryText }}
+                        />
+                    </div>
+                    <h1
+                        className="flex-1 min-w-0 truncate text-[27px] font-bold"
+                        style={{ color: colors.redesign.ink }}
+                    >
+                        {controlLabel}
+                    </h1>
+                    <ViewToggle mode={viewMode} onChange={setViewMode} />
                 </div>
-                <ViewToggle mode={viewMode} onChange={setViewMode} />
             </div>
-            <div className="flex-1 min-h-0 overflow-hidden">
+
+            <div className="flex-1 min-h-0 px-6 sm:px-10 pb-8">
                 <ControlDetailSection controlData={controlData} viewMode={viewMode} />
             </div>
         </div>
