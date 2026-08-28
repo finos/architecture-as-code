@@ -2,21 +2,82 @@
  * The page frame. The lab's own chassis (src/lab/lab.module.css) is theme-invariant but reads a
  * handful of Docusaurus variables the docs site used to supply — they are defined here instead.
  */
+/*
+ * Brand tokens mirror docs/src/css/custom.css (CALM blue #007dff · navy #000063; Space Grotesk
+ * headings, IBM Plex Sans body, IBM Plex Mono code) so the header reads as the docs navbar.
+ */
 :root {
-    --ifm-font-family-base: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --ifm-font-family-monospace: SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    --ifm-navbar-height: 48px;
+    --ifm-color-primary: #007dff;
+    --calm-navy: #000063;
+    --calm-ink: #0b1020;
+    --calm-line: #e4e9f2;
+    --ifm-font-family-base: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', Roboto, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    --ifm-font-family-monospace: 'IBM Plex Mono', SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    --ifm-heading-font-family: 'Space Grotesk', var(--ifm-font-family-base);
+    --ifm-navbar-height: 4rem;
+    --navbar-bg: #ffffff;
+    --navbar-fg: var(--calm-ink);
+    --navbar-title: var(--calm-navy);
+    --navbar-muted: #5b6478;
+    --navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+/* The docs navbar follows the visitor's colour scheme; so does this one. */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --ifm-color-primary: #4da3ff;
+        --navbar-bg: #242526;
+        --navbar-fg: #e3e3e3;
+        --navbar-title: #ffffff;
+        --navbar-muted: #b4b9c4;
+        --navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+    }
 }
 
 html, body, #root { height: 100%; margin: 0; }
 body { font-family: var(--ifm-font-family-base); }
 .app { display: flex; flex-direction: column; height: 100%; }
-.app-header { display: flex; align-items: center; gap: 16px; height: var(--ifm-navbar-height); padding: 0 16px; background: #0b1f3a; color: #fff; }
-.app-brand { color: #fff; font-weight: 700; text-decoration: none; letter-spacing: 0.04em; }
-.app-title { opacity: 0.85; }
-.app-nav { margin-left: auto; display: flex; gap: 16px; }
-.app-nav a { color: #fff; opacity: 0.85; text-decoration: none; }
-.app-nav a:hover { opacity: 1; }
+
+/* Header — structure and class names follow Infima's navbar so it matches calm.finos.org. */
+.navbar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    height: var(--ifm-navbar-height);
+    padding: 0 1rem;
+    background: var(--navbar-bg);
+    color: var(--navbar-fg);
+    box-shadow: var(--navbar-shadow);
+    flex: 0 0 auto;
+}
+.navbar__brand { display: flex; align-items: center; gap: 0.5rem; color: inherit; text-decoration: none; min-width: 0; }
+.navbar__logo { display: flex; align-items: center; height: 2rem; }
+.navbar__logo img { height: 2rem; width: 2rem; }
+.navbar__title {
+    font-family: var(--ifm-heading-font-family);
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: var(--navbar-title);
+}
+.navbar__subtitle { color: var(--navbar-muted); font-weight: 500; padding-left: 0.75rem; border-left: 1px solid var(--calm-line); white-space: nowrap; }
+.navbar__items { margin-left: auto; display: flex; align-items: center; gap: 0.25rem; }
+.navbar__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.75rem;
+    color: var(--navbar-fg);
+    font-weight: 500;
+    text-decoration: none;
+    border-bottom: 2px solid transparent;
+}
+.navbar__link:hover { color: var(--ifm-color-primary); border-bottom-color: var(--ifm-color-primary); }
+.navbar__link:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 2px; }
+.navbar__external { opacity: 0.6; }
+@media (max-width: 640px) {
+    .navbar__subtitle { display: none; }
+    .navbar__link { padding: 0.25rem 0.5rem; }
+}
 
 /* Fallback for the boundary around the whole lab (src/ErrorBoundary.tsx). */
 .app-crash { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; background: #0b1030; color: #c7d0f0; }

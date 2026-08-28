@@ -124,6 +124,11 @@ const config = {
                         position: 'right',
                     },
                     {
+                        href: 'https://lab.calm.finos.org/',
+                        label: 'Lab',
+                        position: 'right',
+                    },
+                    {
                         href: 'https://github.com/finos/architecture-as-code',
                         label: 'GitHub',
                         position: 'right',
