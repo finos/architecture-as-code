@@ -61,7 +61,8 @@ body { font-family: var(--ifm-font-family-base); background: var(--page-bg); }
     font-size: 1.25rem;
     color: var(--navbar-title);
 }
-.navbar__subtitle { color: var(--navbar-muted); font-weight: 500; padding-left: 0.75rem; border-left: 1px solid var(--calm-line); white-space: nowrap; }
+/* Same colour and weight as the docs navbar links (Infima's base font colour). */
+.navbar__subtitle { color: var(--navbar-fg); font-weight: 500; padding-left: 0.75rem; border-left: 1px solid var(--calm-line); white-space: nowrap; }
 .navbar__items { margin-left: auto; display: flex; align-items: center; gap: 0.25rem; }
 .navbar__link {
     display: inline-flex;
