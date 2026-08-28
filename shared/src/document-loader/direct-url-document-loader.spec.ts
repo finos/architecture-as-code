@@ -23,6 +23,10 @@ describe('direct-url-document-loader', () => {
         directUrlDocumentLoader = new DirectUrlDocumentLoader(false, ax);
     });
 
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('loads a document directly from a URL', async () => {
         const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
         const document = await directUrlDocumentLoader.loadMissingDocument(url, 'pattern');

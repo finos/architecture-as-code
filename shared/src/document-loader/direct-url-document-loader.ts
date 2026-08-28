@@ -4,7 +4,7 @@ import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
 import { Logger, initLogger } from '../logger';
-import { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin';
+import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
