@@ -502,61 +502,56 @@ describe('Hub', () => {
             expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
         });
 
-        it('opens a control detail panel beside the domain grid and keeps both across a no-nav re-render', () => {
+        it('replaces the domain grid with the full-pane control view and keeps it across a no-nav re-render', () => {
             renderAt('/domain/security');
             // Before selecting a control, the domain page (card grid) shows.
             expect(screen.getByTestId('domain-page')).toBeInTheDocument();
 
-            // Selecting a control opens its panel in place (no navigation): the
-            // control detail shows AND the card grid stays, so closing the panel
-            // returns to the grid rather than navigating "back" out of the domain.
+            // Selecting a control fills the whole content pane (like an architecture
+            // or document detail view) — the grid is replaced, not kept behind.
             loadControl();
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
 
             // A re-render that does NOT navigate (e.g. collapsing the sidebar) must not
-            // clear the in-place control — location.key is unchanged.
+            // clear the control — location.key is unchanged.
             fireEvent.click(screen.getByLabelText('Collapse sidebar'));
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
-            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
         });
 
-        it('closes the control panel back to the grid without navigating', () => {
+        it('returns to the domain control list via the breadcrumb', () => {
             renderAt('/domain/security');
-            loadControl();
+            loadControl(); // domain: 'test-domain'
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
 
-            // Closing the panel clears the in-place control; the grid remains.
-            fireEvent.click(screen.getByLabelText('Close control details'));
+            // The domain breadcrumb navigates back to that domain's control list.
+            fireEvent.click(screen.getByRole('link', { name: 'test-domain' }));
             expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
-            expect(screen.getByTestId('domain-page')).toBeInTheDocument();
+            expect(screen.getByTestId('domain-page')).toHaveTextContent('Domain: test-domain');
         });
 
-        it('on the detail route, keeps the domain grid behind the panel and closes back to the grid', () => {
-            // A control reached via the detail route (deep-link / mobile drill-down,
-            // which navigates to /:domain/controls/:id/detail) must not blank the
-            // content pane behind the panel, and closing must land on the grid.
+        it('fills the pane on the control detail route and returns to the grid via the breadcrumb', () => {
+            // A control reached via the detail route (deep-link / mobile drill-down)
+            // fills the content pane; the breadcrumb lands back on the grid.
             renderWithNav('/test-domain/controls/1/detail', []);
             loadControl(); // domain: 'test-domain'
-            expect(screen.getByTestId('domain-page')).toHaveTextContent('Domain: test-domain');
             expect(screen.getByTestId('control-detail-section')).toBeInTheDocument();
+            expect(screen.queryByTestId('domain-page')).not.toBeInTheDocument();
 
-            // Close from a detail route navigates to /domain/test-domain → grid, no panel.
-            fireEvent.click(screen.getByLabelText('Close control details'));
+            fireEvent.click(screen.getByRole('link', { name: 'test-domain' }));
             expect(screen.queryByTestId('control-detail-section')).not.toBeInTheDocument();
             expect(screen.getByTestId('domain-page')).toHaveTextContent('Domain: test-domain');
         });
 
-        it('renders the control panel as a full-screen takeover on mobile', () => {
+        it('renders the control view full-pane on mobile, with no takeover dialog', () => {
             const restore = mockMobileViewport(true);
             try {
                 renderAt('/domain/security');
                 loadControl();
-                const closeBtn = screen.getByLabelText('Close control details');
-                expect(closeBtn).toBeInTheDocument();
-                // On mobile the panel is wrapped in a full-screen takeover dialog
-                // (desktop renders it inline, with no enclosing dialog).
-                expect(closeBtn.closest('[role="dialog"]')).not.toBeNull();
+                const view = screen.getByTestId('control-detail-section');
+                expect(view).toBeInTheDocument();
+                // It fills the normal content pane rather than an overlay dialog.
+                expect(view.closest('[role="dialog"]')).toBeNull();
             } finally {
                 restore();
             }

@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { ReadableJsonView } from './ReadableJsonView.js';
+import { ReadableJsonView, JsonTree } from './ReadableJsonView.js';
 import { describe, it, expect } from 'vitest';
 
 describe('ReadableJsonView', () => {
@@ -71,5 +71,27 @@ describe('ReadableJsonView', () => {
         render(<ReadableJsonView json={json} />);
 
         expect(screen.getByTestId('readable-json-view')).toBeInTheDocument();
+    });
+
+    it('exports JsonTree for direct use', () => {
+        render(<JsonTree data={{ a: 1 }} />);
+        expect(screen.getByText('a')).toBeInTheDocument();
+        expect(screen.getByText('1')).toBeInTheDocument();
+    });
+
+    it('renders plain strings without turning URLs into links (generic renderer)', () => {
+        render(<ReadableJsonView json={{ ref: 'https://example.com/x' }} />);
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(screen.getByText('https://example.com/x')).toBeInTheDocument();
+    });
+
+    it('renders a custom value via the renderValue prop', () => {
+        render(
+            <JsonTree
+                data={{ a: 'x' }}
+                renderValue={(v) => <span data-testid="custom">{String(v)}</span>}
+            />,
+        );
+        expect(screen.getByTestId('custom')).toHaveTextContent('x');
     });
 });
