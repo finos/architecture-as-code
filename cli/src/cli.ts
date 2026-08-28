@@ -921,6 +921,21 @@ export async function parseDocumentLoaderConfig(
         }
     }
 
+    if (userConfig && userConfig.directUrlAuth) {
+        const directUrlAuthConfigPath = userConfig.directUrlAuth.configPath !== undefined
+            ? userConfig.directUrlAuth.configPath
+            : 'not specified';
+        logger.info('Loading direct URL auth module from config file: ' + userConfig.directUrlAuth.module);
+        logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
+        try {
+            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(userConfig.directUrlAuth, !!options.verbose);
+            docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
+            logger.debug('Direct URL auth module loaded successfully');
+        } catch (err) {
+            logger.error('Failed to load direct URL auth module: ' + (err instanceof Error ? err.message : String(err)));
+        }
+    }
+
 
     // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
     // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is

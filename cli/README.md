@@ -15,6 +15,7 @@ Note that if they're set on the command line, e.g. `--calm-hub-url`, this will o
 | `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
 | `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
 | `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+| `directUrlAuth`      | None                        | Direct-URL authentication module config for protected remote document fetches. See [Direct URL authentication modules](#direct-url-authentication-modules). |
 
 Rather than hand-editing this file, use [`calm init-config`](#managing-the-config-file-with-init-config) to create or update it.
 
@@ -646,6 +647,27 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
 }
 ```
 
+## Direct URL authentication modules
+
+Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`.
+
+Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.  See [Direct URL Document Loader - Custom Authentication Plugin](#direct-url-document-loader---custom-authentication-plugin) for details.
+
+The CLI instantiates the module once per process as `new DefaultExport(configPath)` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
+
+Example `~/.calm.json`:
+
+```json
+{
+  "directUrlAuth": {
+    "module": "~/plugins/direct-url-auth.js",
+    "configPath": "~/plugins/direct-url-auth.config.json"
+  }
+}
+```
+
+This flow does not replace `authPluginPath`: `authPluginPath` still applies only to CalmHub requests, and `directUrlAuth` applies only to direct `http(s)` fetches.
+
 ## CALM Hub
 
 The `calm hub` commands let you push, pull, list, and create resources on a CalmHub instance directly, one document/resource at a time. (If you're managing a whole set of interrelated documents, see [CALM Workspace](#calm-workspace) below, which wraps these same operations for a tracked bundle of files.)
@@ -1091,3 +1113,46 @@ To avoid passing `--calm-hub-url` every time, add the URL to `~/.calm.json`:
 ```
 
 For `push` to work, each document must have a namespace recorded in the manifest. This is set automatically by `new`. For files added with `add`, pass `--namespace <ns>` at add time. Any file without a namespace is skipped during push with a message explaining how to fix it.
+
+## Direct URL Document Loader - Custom Authentication Plugin
+
+`directUrlAuth.module` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+
+```ts
+new DefaultExport(configPath?)
+```
+
+So the class interface is effectively:
+
+```ts
+interface DirectUrlAuthPlugin {
+  getAuthHeaders(url: string, requestBody: unknown): Promise<Record<string, string>>;
+}
+```
+
+What each part means:
+
+- `getAuthHeaders(url, requestBody)` is required.
+  It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
+- The constructor may accept an optional `configPath: string | undefined`.
+  If the user sets `directUrlAuth.configPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
+- TLS trust is not configurable through the module.
+  Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
+
+A minimal example:
+
+```js
+export default class MyDirectUrlAuth {
+  constructor(configPath) {
+    this.configPath = configPath;
+  }
+
+  async getAuthHeaders(url, requestBody) {
+    return {
+      Authorization: "Bearer my-token"
+    };
+  }
+}
+```
+
+One important nuance: the module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.

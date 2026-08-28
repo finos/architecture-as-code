@@ -1,9 +1,10 @@
-import axios, { Axios } from 'axios';
+import axios, { Axios, AxiosRequestConfig } from 'axios';
 import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
 import { Logger, initLogger } from '../logger';
+import { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
@@ -52,12 +53,72 @@ function toRequestPath(parsedUrl: URL): string {
     return `/${normalizedPath}`;
 }
 
+type LoggedHeaderValue = string | number | boolean | null | undefined | LoggedHeaderValue[];
+
+type DirectUrlDebugRequest = AxiosRequestConfig & {
+    __directUrlAuthHeaderNames?: string[];
+};
+
+function normalizeHeaderValue(value: unknown): string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined> {
+    if (Array.isArray(value)) {
+        return value.map(item => normalizeHeaderValue(item) as string | number | boolean | null | undefined);
+    }
+    if (
+        value === null
+        || value === undefined
+        || typeof value === 'string'
+        || typeof value === 'number'
+        || typeof value === 'boolean'
+    ) {
+        return value;
+    }
+    return JSON.stringify(value);
+}
+
+function collectSafeHeaders(headers: unknown, authHeaderNames: readonly string[]): Record<string, LoggedHeaderValue> {
+    const candidate = typeof headers === 'object' && headers !== null && 'toJSON' in headers && typeof headers.toJSON === 'function'
+        ? headers.toJSON()
+        : headers;
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return {};
+    }
+
+    const authHeaderNameSet = new Set(authHeaderNames.map(name => name.toLowerCase()));
+    return Object.fromEntries(
+        Object.entries(candidate)
+            .filter(([key]) => !authHeaderNameSet.has(key.toLowerCase()))
+            .map(([key, value]) => [
+                key,
+                normalizeHeaderValue(value) as LoggedHeaderValue,
+            ])
+    );
+}
+
+function resolveLoggedUrl(baseURL: unknown, url: unknown): string | undefined {
+    const base = typeof baseURL === 'string' ? baseURL : undefined;
+    const path = typeof url === 'string' ? url : undefined;
+    if (base && path) {
+        try {
+            return new URL(path, base).toString();
+        } catch {
+            return `${base}${path}`;
+        }
+    }
+    return base ?? path;
+}
+
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
     private readonly allowedRemoteHosts: Set<string>;
+    private readonly directUrlAuthPlugin?: DirectUrlAuthPlugin;
 
-    constructor(debug: boolean, axiosInstance?: Axios, allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS) {
+    constructor(
+        debug: boolean,
+        axiosInstance?: Axios,
+        allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS,
+        directUrlAuthPlugin?: DirectUrlAuthPlugin
+    ) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -69,6 +130,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
         this.allowedRemoteHosts = new Set(allowedRemoteHosts.map(host => normalizeHost(host)));
+        this.directUrlAuthPlugin = directUrlAuthPlugin;
         if (debug) {
             this.addAxiosDebug();
         }
@@ -76,12 +138,28 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
     addAxiosDebug() {
         this.ax.interceptors.request.use(request => {
-            console.log('Starting Request', JSON.stringify(request, null, 2));
+            const authHeaderNames = [...((request as DirectUrlDebugRequest).__directUrlAuthHeaderNames ?? [])].sort();
+            this.logger.debug(`Starting Request: ${JSON.stringify({
+                method: request.method,
+                url: resolveLoggedUrl(request.baseURL, request.url),
+                baseURL: request.baseURL,
+                path: request.url,
+                timeout: request.timeout,
+                maxRedirects: request.maxRedirects,
+                allowAbsoluteUrls: request.allowAbsoluteUrls,
+                headers: collectSafeHeaders(request.headers, authHeaderNames),
+                authHeadersPresent: authHeaderNames.length > 0,
+                authHeaderNames,
+            }, null, 2)}`);
             return request;
         });
 
         this.ax.interceptors.response.use(response => {
-            console.log('Response:', response);
+            this.logger.debug(`Response: ${JSON.stringify({
+                status: response.status,
+                statusText: response.statusText,
+                url: resolveLoggedUrl(response.config?.baseURL, response.config?.url),
+            }, null, 2)}`);
             return response;
         });
     }
@@ -166,17 +244,43 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 });
             }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
-            const response = await this.ax.get(requestPath, {
+            let authHeaders: Record<string, string> | undefined;
+            const authHeaderNames: string[] = [];
+            if (this.directUrlAuthPlugin) {
+                try {
+                    authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
+                    authHeaderNames.push(...Object.keys(authHeaders));
+                } catch (error) {
+                    throw new DocumentLoadError({
+                        name: 'AUTHENTICATION_FAILED',
+                        message: `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
+                        cause: error instanceof Error ? error : undefined,
+                        recoverable: false
+                    });
+                }
+            }
+            const requestConfig: DirectUrlDebugRequest = {
                 baseURL,
+                headers: authHeaders,
                 maxRedirects: 0,
-                allowAbsoluteUrls: false
-            });
+                allowAbsoluteUrls: false,
+                __directUrlAuthHeaderNames: authHeaderNames,
+            };
+            const response = await this.ax.get(requestPath, requestConfig);
             assertResponseOrigin(response, new URL(baseURL).origin, documentId);
             assertJsonObject(response.data, documentId);
             return response.data;
         } catch (error) {
             if (error instanceof DocumentLoadError) {
                 throw error;
+            }
+            if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+                throw new DocumentLoadError({
+                    name: 'AUTHENTICATION_FAILED',
+                    message: `Direct URL request was not authorized for ${documentId} (HTTP ${error.response.status}). Check direct URL auth configuration and remote credentials.`,
+                    cause: error,
+                    recoverable: false
+                });
             }
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
