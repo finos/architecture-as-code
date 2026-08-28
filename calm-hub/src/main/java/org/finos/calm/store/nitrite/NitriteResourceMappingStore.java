@@ -215,4 +215,22 @@ public class NitriteResourceMappingStore implements ResourceMappingStore {
             lock.unlock();
         }
     }
+
+    @Override
+    public void deleteMappingByNumericId(String namespace, ResourceType type, int numericId) throws NamespaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        lock.lock();
+        try {
+            Filter filter = Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+                    where(RESOURCE_TYPE_FIELD).eq(type.name()),
+                    where(NUMERIC_ID_FIELD).eq(numericId));
+            Document existing = mappingCollection.find(filter).firstOrNull();
+            if (existing != null) {
+                mappingCollection.remove(existing);
+            }
+        } finally {
+            lock.unlock();
+        }
+    }
 }

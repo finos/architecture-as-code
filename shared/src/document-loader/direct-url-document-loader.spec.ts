@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { Axios } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { DirectUrlDocumentLoader } from './direct-url-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -398,5 +398,39 @@ describe('direct-url-document-loader', () => {
         const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json?evil=1';
         await expect(directUrlDocumentLoader.loadMissingDocument(url, 'schema'))
             .rejects.toThrow('query string');
+    });
+
+    it('rejects a response redirected to a different origin', async () => {
+        const redirectAx = axios.create({});
+        vi.spyOn(redirectAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://evil.example/x.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: 'https://evil.example/x.json' }
+        });
+        const redirectedLoader = new DirectUrlDocumentLoader(false, redirectAx as unknown as Axios);
+
+        const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
+        await expect(redirectedLoader.loadMissingDocument(url, 'schema'))
+            .rejects.toThrow('redirected to a different origin');
+    });
+
+    it('accepts a response whose responseURL confirms the same origin', async () => {
+        const sameOriginAx = axios.create({});
+        vi.spyOn(sameOriginAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://calm.finos.org/core.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json' }
+        });
+        const sameOriginLoader = new DirectUrlDocumentLoader(false, sameOriginAx as unknown as Axios);
+
+        const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
+        const document = await sameOriginLoader.loadMissingDocument(url, 'schema');
+        expect(document).toEqual({ '$id': 'https://calm.finos.org/core.json' });
     });
 });

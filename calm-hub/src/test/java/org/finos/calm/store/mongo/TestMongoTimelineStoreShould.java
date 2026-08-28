@@ -7,6 +7,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -411,5 +412,31 @@ public class TestMongoTimelineStoreShould {
         StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> store.updateTimelineForVersion(timeline("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(false));
+    }
+
+    // --- deleteTimeline ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_timeline_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteTimeline(NAMESPACE, TIMELINE_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_versions_when_the_timeline_exists() throws Exception {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteTimeline(NAMESPACE, TIMELINE_ID);
+
+        verify(versionCollection).deleteMany(any(Bson.class));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void throw_a_timeline_exception_when_deleting_a_missing_timeline() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThrows(TimelineNotFoundException.class, () -> store.deleteTimeline(NAMESPACE, TIMELINE_ID));
     }
 }

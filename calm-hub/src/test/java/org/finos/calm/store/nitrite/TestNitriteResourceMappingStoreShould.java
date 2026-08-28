@@ -410,4 +410,48 @@ public class TestNitriteResourceMappingStoreShould {
         assertThrows(MappingNotFoundException.class,
                 () -> store.deleteMapping(NAMESPACE, ResourceType.PATTERN, "nonexistent"));
     }
+
+    // --- deleteMappingByNumericId ---
+
+    @Test
+    void delete_mapping_by_numeric_id_successfully() throws NamespaceNotFoundException {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        Document existing = Document.createDocument()
+                .put("namespace", NAMESPACE)
+                .put("customId", "api-gateway")
+                .put("resourceType", "PATTERN")
+                .put("numericId", 42);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(existing);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        store.deleteMappingByNumericId(NAMESPACE, ResourceType.PATTERN, 42);
+
+        verify(mockCollection).remove(existing);
+    }
+
+    @Test
+    void not_throw_when_deleting_a_mapping_by_numeric_id_that_does_not_exist() throws NamespaceNotFoundException {
+        // Most resources have no custom-id mapping at all — this must be a silent no-op, not
+        // an error, so a resource delete can call it unconditionally.
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(true);
+
+        DocumentCursor cursor = mock(DocumentCursor.class);
+        when(cursor.firstOrNull()).thenReturn(null);
+        when(mockCollection.find(any(Filter.class))).thenReturn(cursor);
+
+        store.deleteMappingByNumericId(NAMESPACE, ResourceType.PATTERN, 999);
+
+        verify(mockCollection, never()).remove(any(Document.class));
+    }
+
+    @Test
+    void throw_namespace_not_found_when_deleting_a_mapping_by_numeric_id_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists("invalid")).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteMappingByNumericId("invalid", ResourceType.PATTERN, 42));
+    }
 }

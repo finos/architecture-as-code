@@ -293,6 +293,33 @@ public class AdrResource {
         }
     }
 
+    /**
+     * Delete an ADR and all of its revisions
+     *
+     * @param namespace the namespace the ADR is in
+     * @param adrId     the ID of the ADR
+     * @return no content on success
+     */
+    @DELETE
+    @Path("{namespace}/adrs/{adrId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete an ADR",
+            description = "Deletes an ADR and all of its revisions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteAdrForNamespace(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("adrId") int adrId
+    ) {
+        try {
+            store.deleteAdr(namespace, adrId);
+        } catch (Exception e) {
+            return handleException(e, namespace, adrId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response adrWithLocationResponse(AdrMeta adrMeta) throws URISyntaxException {
         return Response.created(new URI("/api/calm/namespaces/" + adrMeta.getNamespace() + "/adrs/" + adrMeta.getId() + "/revisions/" + adrMeta.getRevision())).build();
     }
