@@ -11,6 +11,16 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
     </head>
     <body>
+        <script>
+            // Stamp the stored colour mode before first paint so the header doesn't flash light
+            // for visitors who chose dark (mirrors Docusaurus's inline theme script).
+            try {
+                var theme = window.localStorage.getItem('theme');
+                if (theme === 'dark' || theme === 'light') {
+                    document.documentElement.setAttribute('data-theme', theme);
+                }
+            } catch (e) { /* storage unavailable */ }
+        </script>
         <div id="root"></div>
         <script type="module" src="/src/main.tsx"></script>
     </body>

@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 
 vi.mock('./lab/Lab', () => ({ default: () => <div data-testid="lab" /> }));
 
@@ -31,5 +32,18 @@ describe('App header', () => {
     it('renders the lab inside the frame', () => {
         render(<App />);
         expect(screen.getByTestId('lab')).toBeInTheDocument();
+    });
+
+    it('has the docs-style colour-mode toggle: light by default, dark on click, white logo in dark mode', async () => {
+        const user = userEvent.setup();
+        render(<App />);
+        const toggle = screen.getByRole('button', { name: /currently light mode/ });
+        expect(document.documentElement.getAttribute('data-theme')).toBe('light');
+
+        await user.click(toggle);
+        expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+        expect(screen.getByRole('button', { name: /currently dark mode/ })).toBeInTheDocument();
+        expect(screen.getByRole('img', { name: 'CALM Logo' })).toHaveAttribute('src', '/img/2025_CALM_Icon_WHT.svg');
+        expect(localStorage.getItem('theme')).toBe('dark');
     });
 });

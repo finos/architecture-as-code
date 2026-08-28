@@ -1,5 +1,7 @@
+import ColorModeToggle from './ColorModeToggle';
 import ErrorBoundary from './ErrorBoundary';
 import Lab from './lab/Lab';
+import { useColorMode } from './theme';
 
 const DOCS_URL = 'https://calm.finos.org';
 
@@ -29,14 +31,14 @@ function LabCrashed() {
 }
 
 export default function App() {
+    const { mode, toggle } = useColorMode();
+    // The white icon variant in dark mode, as the docs navbar's `srcDark` does.
+    const logo = mode === 'dark' ? '/img/2025_CALM_Icon_WHT.svg' : '/img/2025_CALM_Icon.svg';
     return (
         <div className="app">
             <header className="navbar" role="banner">
                 <a className="navbar__brand" href={`${DOCS_URL}/`} target="_blank" rel="noopener noreferrer">
-                    <picture className="navbar__logo">
-                        <source srcSet="/img/2025_CALM_Icon_WHT.svg" media="(prefers-color-scheme: dark)" />
-                        <img src="/img/2025_CALM_Icon.svg" alt="CALM Logo" width="32" height="32" />
-                    </picture>
+                    <img className="navbar__logo" src={logo} alt="CALM Logo" width="32" height="32" />
                     <b className="navbar__title">CALM</b>
                 </a>
                 <span className="navbar__subtitle">Learning Lab</span>
@@ -54,6 +56,7 @@ export default function App() {
                             </svg>
                         </a>
                     ))}
+                    <ColorModeToggle mode={mode} onToggle={toggle} />
                 </nav>
             </header>
             <ErrorBoundary fallback={<LabCrashed />}>

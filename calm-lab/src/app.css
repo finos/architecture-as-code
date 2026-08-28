@@ -20,22 +20,24 @@
     --navbar-title: var(--calm-navy);
     --navbar-muted: #5b6478;
     --navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.1);
+    --page-bg: #f5f8fd; /* docs --calm-bg-soft */
 }
 
-/* The docs navbar follows the visitor's colour scheme; so does this one. */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --ifm-color-primary: #4da3ff;
-        --navbar-bg: #242526;
-        --navbar-fg: #e3e3e3;
-        --navbar-title: #ffffff;
-        --navbar-muted: #b4b9c4;
-        --navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
-    }
+/* Explicit colour mode, stamped on <html> by src/theme.ts exactly as the docs site does
+   (light by default; the navbar toggle persists the choice under the same `theme` key). */
+:root[data-theme="dark"] {
+    --ifm-color-primary: #4da3ff;
+    --calm-line: #2f3646;
+    --navbar-bg: #242526;
+    --navbar-fg: #e3e3e3;
+    --navbar-title: #ffffff;
+    --navbar-muted: #b4b9c4;
+    --navbar-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+    --page-bg: #1b1b1d; /* Docusaurus dark background */
 }
 
 html, body, #root { height: 100%; margin: 0; }
-body { font-family: var(--ifm-font-family-base); }
+body { font-family: var(--ifm-font-family-base); background: var(--page-bg); }
 .app { display: flex; flex-direction: column; height: 100%; }
 
 /* Header — structure and class names follow Infima's navbar so it matches calm.finos.org. */
@@ -74,6 +76,23 @@ body { font-family: var(--ifm-font-family-base); }
 .navbar__link:hover { color: var(--ifm-color-primary); border-bottom-color: var(--ifm-color-primary); }
 .navbar__link:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 2px; }
 .navbar__external { opacity: 0.6; }
+/* Docusaurus's colour-mode toggle: a round, borderless icon button at the end of the navbar. */
+.colorModeToggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    margin-left: 0.5rem;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--navbar-fg);
+    cursor: pointer;
+}
+.colorModeToggle:hover { background: rgba(127, 127, 127, 0.18); }
+.colorModeToggle:focus-visible { outline: 2px solid var(--ifm-color-primary); outline-offset: 2px; }
 @media (max-width: 640px) {
     .navbar__subtitle { display: none; }
     .navbar__link { padding: 0.25rem 0.5rem; }
