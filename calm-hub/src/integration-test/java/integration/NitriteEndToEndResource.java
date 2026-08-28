@@ -28,6 +28,7 @@ public class NitriteEndToEndResource implements QuarkusTestResourceLifecycleMana
 
         return Map.of(
                 "calm.database.mode", "standalone",
+                "calm.standalone.seed-demo-data", "false",
                 "calm.standalone.data-directory", tempDir.toString(),
                 "calm.standalone.database-name", "testdb",
                 "calm.standalone.username", "admin",
