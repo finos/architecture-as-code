@@ -92,9 +92,9 @@ function diffControlItem(controlItemA: CalmControlSchema, controlItemB: CalmCont
 
 function stringifyMetadata(metadata: CalmMetadataSchema): string[] {
     if (Array.isArray(metadata)) {
-        return metadata.map((obj: Record<string, unknown>) => JSON.stringify(obj));
+        return metadata.map((obj: Record<string, unknown>) => JSON.stringify(normalizeValue(obj)));
     } else {
-        return [JSON.stringify(metadata)];
+        return [JSON.stringify(normalizeValue(metadata))];
     }
 }
 
@@ -102,7 +102,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
     const result: MetadataItemDiffResult = {};
 
     Object.keys(metadataObjA).forEach((key: string) => {
-        if (!(key in metadataObjB)) {
+        if (!Object.hasOwn(metadataObjB, key)) {
             result[key] = {
                 oldValue: metadataObjA[key],
                 newValue: null
@@ -116,7 +116,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
     });
 
     Object.keys(metadataObjB).forEach((key: string) => {
-        if (!(key in metadataObjA)) {
+        if (!Object.hasOwn(metadataObjA, key)) {
             result[key] = {
                 oldValue: null,
                 newValue: metadataObjB[key]
@@ -359,7 +359,9 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
 
     if (!Array.isArray(metadataA) && !Array.isArray(metadataB)) {
         if (valuesEqual(metadataA, metadataB)) {
-            result.metadataObjectsUnchanged.push(metadataA);
+            if (Object.keys(metadataA).length > 0) {
+                result.metadataObjectsUnchanged.push(metadataA);
+            }
         } else {
             result.metadataObjectsModified.push(diffMetadataObject(metadataA, metadataB));
         }
