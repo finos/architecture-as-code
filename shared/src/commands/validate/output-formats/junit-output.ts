@@ -1,5 +1,9 @@
 import junitReportBuilder, { TestSuite } from 'junit-report-builder';
+import { RulesetDefinition } from '@stoplight/spectral-core';
 import { ValidationOutcome } from '../validation.output';
+import validationRulesForPattern from '../../../spectral/rules-pattern.js';
+import validationRulesForArchitecture from '../../../spectral/rules-architecture.js';
+import type { OutputFormatter } from '../format-output.js';
 
 export default function createJUnitReport(
     validationOutcome: ValidationOutcome,
@@ -52,3 +56,13 @@ function createFailingTestCase(testSuite: TestSuite, testName: string){
         .failure();
 }
 
+function getRuleNamesFromRuleset(ruleset: RulesetDefinition): string[] {
+    return Object.keys((ruleset as { rules: Record<string, unknown> }).rules);
+}
+
+function extractSpectralRuleNames(): string[] {
+    return getRuleNamesFromRuleset(validationRulesForArchitecture)
+        .concat(getRuleNamesFromRuleset(validationRulesForPattern));
+}
+
+export const junitFormatter: OutputFormatter = (outcome) => createJUnitReport(outcome, extractSpectralRuleNames());

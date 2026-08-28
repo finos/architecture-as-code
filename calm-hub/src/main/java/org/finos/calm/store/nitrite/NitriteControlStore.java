@@ -12,6 +12,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
+import org.finos.calm.domain.exception.ControlHasConfigurationsException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -189,6 +190,41 @@ public class NitriteControlStore implements ControlStore {
         if (!created) {
             throw new ControlConfigurationVersionExistsException();
         }
+    }
+
+    /**
+     * Refuses to delete a control requirement that still has configurations, rather than
+     * cascading — see {@link ControlHasConfigurationsException}.
+     *
+     * <p><b>Known, accepted race</b>: same non-atomic count-then-delete as
+     * {@code MongoControlStore#deleteControlRequirement} — see that method's javadoc.
+     * {@code configurationStore} and {@code requirementStore} are two separate
+     * {@link NitriteVersionDocumentStore} instances, each with its own internal lock, so
+     * neither one's locking closes the gap between the count and the delete below.</p>
+     */
+    @Override
+    public void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException {
+        requireControl(domain, controlId);
+
+        int configurationCount = configurationStore.countHeaders(configurationNamespace(domain, controlId));
+        if (configurationCount > 0) {
+            throw new ControlHasConfigurationsException(controlId, configurationCount);
+        }
+
+        if (!requirementStore.deleteResource(domain, controlId)) {
+            throw new ControlNotFoundException();
+        }
+        LOG.info("Deleted control requirement {} from domain '{}'", controlId, domain);
+    }
+
+    @Override
+    public void deleteControlConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
+        requireConfiguration(domain, controlId, configurationId);
+
+        if (!configurationStore.deleteResource(configurationNamespace(domain, controlId), configurationId)) {
+            throw new ControlConfigurationNotFoundException();
+        }
+        LOG.info("Deleted configuration {} from control {} in domain '{}'", configurationId, controlId, domain);
     }
 
     private void requireControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {

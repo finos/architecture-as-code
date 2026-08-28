@@ -6,6 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -293,5 +294,31 @@ public class TestMongoInterfaceStoreShould {
         // Interface's old shape $set both fields unconditionally, unlike Pattern and Flow
         // which guarded them. Preserved rather than harmonised — see the store's javadoc.
         verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    // --- deleteInterface ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_an_interface_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteInterface(NAMESPACE, INTERFACE_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_versions_when_the_interface_exists() throws Exception {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteInterface(NAMESPACE, INTERFACE_ID);
+
+        verify(versionCollection).deleteMany(any(Bson.class));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void throw_an_interface_exception_when_deleting_a_missing_interface() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThrows(InterfaceNotFoundException.class, () -> store.deleteInterface(NAMESPACE, INTERFACE_ID));
     }
 }

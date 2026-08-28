@@ -106,8 +106,10 @@ the primitive operations every store needs against its
   that fails, removing the header again. The split shape makes that
   compensation necessary — the old shape wrote the resource and its first
   version in one document write, so a failure left nothing behind — and
-  there is no delete endpoint for any of these types, so a header stranded
-  with `versionCount: 0` stays visible in listings and search permanently.
+  without it a header stranded with `versionCount: 0` stays visible in
+  listings and search until an admin notices and deletes it by hand via the
+  `deleteResource` endpoint added later; `deleteHeader` exists so that never
+  has to happen in the ordinary case.
 
   That is why it belongs here rather than in each store. A per-store copy
   is a correctness routine duplicated once per type per backend, fourteen
