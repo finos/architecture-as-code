@@ -11,6 +11,7 @@ import {
 } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ControlService } from '../../../service/control-service.js';
+import { sortVersionsDescending } from '../../../model/version.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 
 export type ViewMode = 'readable' | 'raw';
@@ -82,12 +83,18 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
         setSelectedConfigId(configId);
         setSelectedConfigVersion('');
         setConfigJson(undefined);
+        // Clear the previous config's versions first, otherwise the auto-select
+        // effect fires against the new config with a version string it may not
+        // have (a 404), before this config's own versions load.
+        setConfigVersions([]);
         controlService.fetchConfigurationVersions(
             controlData.domain,
             controlData.controlId,
             configId,
         )
-            .then((versions) => { if (loadGen.current === gen) setConfigVersions(versions); })
+            .then((versions) => {
+                if (loadGen.current === gen) setConfigVersions(sortVersionsDescending(versions));
+            })
             .catch((error) => {
                 if (loadGen.current !== gen) return;
                 console.error('%s', 'Failed to load configuration versions:', error);
@@ -130,7 +137,9 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
             controlData.domain,
             controlData.controlId,
         )
-            .then((versions) => { if (loadGen.current === gen) setRequirementVersions(versions); })
+            .then((versions) => {
+                if (loadGen.current === gen) setRequirementVersions(sortVersionsDescending(versions));
+            })
             .catch((error) => {
                 if (loadGen.current !== gen) return;
                 console.error('%s', 'Failed to load requirement versions:', error);
@@ -148,23 +157,26 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
             });
     }, [controlService, controlData.domain, controlData.controlId]);
 
-    // Auto-select first requirement version when versions load
+    // Auto-select the latest requirement version when versions load
+    // (requirementVersions is sorted newest-first, so [0] is the latest).
     useEffect(() => {
         if (requirementVersions.length > 0 && !selectedReqVersion) {
             handleReqVersionClick(requirementVersions[0]);
         }
     }, [requirementVersions, selectedReqVersion, handleReqVersionClick]);
 
-    // Auto-select a lone configuration (its picker is hidden for a single option)
+    // Auto-select a default configuration (the first the API returns) whenever
+    // the control has any, so a config is shown without an extra click.
     useEffect(() => {
-        if (configs.length === 1 && selectedConfigId === null) {
+        if (configs.length > 0 && selectedConfigId === null) {
             handleConfigClick(configs[0].id);
         }
     }, [configs, selectedConfigId, handleConfigClick]);
 
-    // Auto-select a lone configuration version
+    // Auto-select the latest configuration version (configVersions is sorted
+    // newest-first).
     useEffect(() => {
-        if (configVersions.length === 1 && !selectedConfigVersion) {
+        if (configVersions.length > 0 && !selectedConfigVersion) {
             handleConfigVersionClick(configVersions[0]);
         }
     }, [configVersions, selectedConfigVersion, handleConfigVersionClick]);
@@ -205,7 +217,6 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
             <>
                 <OptionSelect
                     label="Configuration"
-                    placeholder="Select a configuration"
                     className="w-full sm:w-auto"
                     options={configOptions}
                     value={selectedConfigId !== null ? String(selectedConfigId) : ''}
@@ -213,7 +224,6 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
                 />
                 <OptionSelect
                     label="Configuration version"
-                    placeholder="Select a version"
                     className="w-full sm:w-auto"
                     options={configVersionOptions}
                     value={selectedConfigVersion}

@@ -205,12 +205,25 @@ describe('ControlDetailSection', () => {
             });
         });
 
-        it('auto-selects the first requirement version and fetches its schema', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
+        it('auto-selects the latest requirement version, not the first in the list', async () => {
+            setupMocks({ reqVersions: ['1.0.0', '2.0.0', '0.9.0'] });
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0');
+                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '2.0.0');
+            });
+        });
+
+        it('auto-selects a default configuration and its latest version', async () => {
+            setupMocks({
+                configs: [{ id: 10 }, { id: 20 }],
+                cfgVersions: ['1.0.0', '2.0.0', '1.5.0'],
+            });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0');
             });
         });
 
@@ -237,14 +250,14 @@ describe('ControlDetailSection', () => {
             expect(screen.queryByLabelText('Requirement version')).not.toBeInTheDocument();
         });
 
-        it('renders a dropdown with an option per version when several exist', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
+        it('renders a newest-first dropdown with the latest version selected', async () => {
+            setupMocks({ reqVersions: ['0.1.0', '2.0.0', '1.0.0'] });
             render(<ControlDetailSection controlData={controlData} />);
 
             const select = await screen.findByLabelText('Requirement version');
-            expect(select).toHaveValue('0.1.0');
-            expect(screen.getByRole('option', { name: '0.1.0' })).toBeInTheDocument();
-            expect(screen.getByRole('option', { name: '0.2.0' })).toBeInTheDocument();
+            expect(select).toHaveValue('2.0.0');
+            const options = Array.from(select.querySelectorAll('option')).map((o) => o.textContent);
+            expect(options).toEqual(['2.0.0', '1.0.0', '0.1.0']);
         });
 
         it('fetches the chosen version and updates the selection', async () => {
@@ -253,10 +266,10 @@ describe('ControlDetailSection', () => {
             render(<ControlDetailSection controlData={controlData} />);
 
             const select = await screen.findByLabelText('Requirement version');
-            await user.selectOptions(select, '0.2.0');
+            await user.selectOptions(select, '0.1.0');
 
-            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.2.0');
-            expect(select).toHaveValue('0.2.0');
+            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0');
+            expect(select).toHaveValue('0.1.0');
         });
     });
 
@@ -290,22 +303,44 @@ describe('ControlDetailSection', () => {
             expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
         });
 
-        it('does not render a version picker until a configuration with several versions is chosen', async () => {
+        it('does not request a version the newly selected configuration lacks', async () => {
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            // config 10 has 2.0.0; config 20 only has 1.0.0
+            mockFetchConfigurationVersions.mockImplementation((_d: unknown, _c: unknown, configId: number) =>
+                Promise.resolve(configId === 10 ? ['2.0.0'] : ['1.0.0']),
+            );
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() =>
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0'),
+            );
+
+            await user.selectOptions(await screen.findByLabelText('Configuration'), '20');
+
+            await waitFor(() =>
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0'),
+            );
+            expect(mockFetchConfigurationForVersion).not.toHaveBeenCalledWith('security', 1, 20, '2.0.0');
+        });
+
+        it('shows a version picker for the auto-selected config and re-fetches on config change', async () => {
             setupMocks({ configs: [{ id: 10 }, { id: 20 }], cfgVersions: ['1.0.0', '1.1.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await screen.findByLabelText('Configuration');
-            expect(screen.queryByLabelText('Configuration version')).not.toBeInTheDocument();
-
-            await user.selectOptions(screen.getByLabelText('Configuration'), '10');
-
+            // Default config (id 10) is auto-selected, so its version picker is shown
+            // right away with the latest version selected.
             const versionSelect = await screen.findByLabelText('Configuration version');
-            expect(screen.getByRole('option', { name: '1.0.0' })).toBeInTheDocument();
-            expect(screen.getByRole('option', { name: '1.1.0' })).toBeInTheDocument();
+            expect(versionSelect).toHaveValue('1.1.0');
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
 
-            await user.selectOptions(versionSelect, '1.1.0');
-            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '1.1.0');
+            // Choosing a different config re-fetches that config's versions.
+            await user.selectOptions(screen.getByLabelText('Configuration'), '20');
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
+
+            await user.selectOptions(screen.getByLabelText('Configuration version'), '1.0.0');
+            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0');
         });
     });
 
