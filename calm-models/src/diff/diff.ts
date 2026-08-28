@@ -102,7 +102,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
     const result: MetadataItemDiffResult = {};
 
     Object.keys(metadataObjA).forEach((key: string) => {
-        if (!Object.hasOwn(metadataObjB, key)) {
+        if (!Object.prototype.hasOwnProperty.call(metadataObjB, key)) {
             result[key] = {
                 oldValue: metadataObjA[key],
                 newValue: null
@@ -116,7 +116,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
     });
 
     Object.keys(metadataObjB).forEach((key: string) => {
-        if (!Object.hasOwn(metadataObjA, key)) {
+        if (!Object.prototype.hasOwnProperty.call(metadataObjA, key)) {
             result[key] = {
                 oldValue: null,
                 newValue: metadataObjB[key]
@@ -360,7 +360,7 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
     if (!Array.isArray(metadataA) && !Array.isArray(metadataB)) {
         if (valuesEqual(metadataA, metadataB)) {
             if (Object.keys(metadataA).length > 0) {
-                result.metadataObjectsUnchanged.push(metadataA);
+                result.metadataObjectsUnchanged.push(normalizeValue(metadataA) as Record<string, unknown>);
             }
         } else {
             result.metadataObjectsModified.push(diffMetadataObject(metadataA, metadataB));
