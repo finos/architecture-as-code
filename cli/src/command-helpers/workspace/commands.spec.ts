@@ -93,17 +93,8 @@ vi.mock('../../cli-config', () => ({
     loadAuthPlugin: mocks.loadAuthPlugin,
 }));
 
-vi.mock('@finos/calm-shared/src/hub/calm-hub-client', () => ({
-    CalmHubClient: mocks.CalmHubClient,
-}));
-
 vi.mock('./document-id-prompt', () => ({
     promptForDocumentId: mocks.promptForDocumentId,
-}));
-
-vi.mock('@finos/calm-shared/src/hub/document-id-utils', () => ({
-    isConformantDocumentId: mocks.isConformantDocumentId,
-    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
 }));
 
 vi.mock('fs/promises', async (importOriginal) => {
@@ -116,7 +107,11 @@ vi.mock('@inquirer/prompts', () => ({
     input: mocks.input,
 }));
 
-vi.mock('@finos/calm-shared/src/logger', () => ({
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
+    CalmHubClient: mocks.CalmHubClient,
+    isConformantDocumentId: mocks.isConformantDocumentId,
+    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
     initLogger: () => ({
         info: vi.fn(),
         warn: vi.fn(),

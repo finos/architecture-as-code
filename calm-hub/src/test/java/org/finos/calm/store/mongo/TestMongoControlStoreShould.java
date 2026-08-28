@@ -6,6 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -19,6 +20,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
+import org.finos.calm.domain.exception.ControlHasConfigurationsException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -38,6 +40,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -580,5 +583,79 @@ public class TestMongoControlStoreShould {
                 new CreateControlConfiguration("{}"));
 
         verify(configHeaders, Mockito.times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    // --- deleteControlRequirement ---
+
+    @Test
+    void throw_a_domain_exception_when_deleting_a_control_requirement_in_a_missing_domain() {
+        assertThrows(DomainNotFoundException.class, () -> store.deleteControlRequirement("invalid", CONTROL_ID));
+    }
+
+    @Test
+    void throw_a_control_exception_when_deleting_a_missing_control_requirement() {
+        controlDoesNotExist();
+
+        assertThrows(ControlNotFoundException.class, () -> store.deleteControlRequirement(DOMAIN, CONTROL_ID));
+    }
+
+    @Test
+    void refuse_to_delete_a_control_requirement_that_still_has_configurations() {
+        controlExists();
+        when(configHeaders.countDocuments(any(Bson.class))).thenReturn(2L);
+
+        ControlHasConfigurationsException exception = assertThrows(ControlHasConfigurationsException.class,
+                () -> store.deleteControlRequirement(DOMAIN, CONTROL_ID));
+        assertThat(exception.getControlId(), is(CONTROL_ID));
+        assertThat(exception.getConfigurationCount(), is(2));
+        verify(controlHeaders, never()).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void delete_the_requirement_header_and_all_versions_when_it_has_no_configurations() throws Exception {
+        controlExists();
+        when(configHeaders.countDocuments(any(Bson.class))).thenReturn(0L);
+        when(controlHeaders.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteControlRequirement(DOMAIN, CONTROL_ID);
+
+        verify(controlVersions).deleteMany(any(Bson.class));
+        verify(controlHeaders).deleteOne(any(Bson.class));
+    }
+
+    // --- deleteControlConfiguration ---
+
+    @Test
+    void throw_a_domain_exception_when_deleting_a_configuration_in_a_missing_domain() {
+        assertThrows(DomainNotFoundException.class,
+                () -> store.deleteControlConfiguration("invalid", CONTROL_ID, CONFIGURATION_ID));
+    }
+
+    @Test
+    void throw_a_control_exception_when_deleting_a_configuration_for_a_missing_control() {
+        controlDoesNotExist();
+
+        assertThrows(ControlNotFoundException.class,
+                () -> store.deleteControlConfiguration(DOMAIN, CONTROL_ID, CONFIGURATION_ID));
+    }
+
+    @Test
+    void throw_a_configuration_exception_when_deleting_a_missing_configuration() {
+        controlExists();
+        stubFind(configHeaders, List.of());
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.deleteControlConfiguration(DOMAIN, CONTROL_ID, CONFIGURATION_ID));
+    }
+
+    @Test
+    void delete_the_configuration_header_and_all_versions_when_it_exists() throws Exception {
+        configurationExists();
+        when(configHeaders.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteControlConfiguration(DOMAIN, CONTROL_ID, CONFIGURATION_ID);
+
+        verify(configVersions).deleteMany(any(Bson.class));
+        verify(configHeaders).deleteOne(any(Bson.class));
     }
 }

@@ -1,7 +1,7 @@
 import path from 'path';
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import type { ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
+import type { ResourceChangeType } from '@finos/calm-shared';
 
 /**
  * Central, repo-level workspace configuration. Committed at

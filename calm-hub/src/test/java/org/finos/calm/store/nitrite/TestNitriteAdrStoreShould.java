@@ -382,4 +382,33 @@ public class TestNitriteAdrStoreShould {
         assertThrows(AdrRevisionExistsException.class,
                 () -> store.updateAdrStatus(adrMeta(1, null), Status.accepted));
     }
+
+    // --- deleteAdr ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_an_adr_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteAdr(NAMESPACE, ADR_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_revisions_when_the_adr_exists() throws Exception {
+        adrExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1"),
+                Document.createDocument().put("version", "2")));
+
+        store.deleteAdr(NAMESPACE, ADR_ID);
+
+        verify(versionCollection, org.mockito.Mockito.times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    void throw_an_adr_exception_when_deleting_a_missing_adr() {
+        adrDoesNotExist();
+
+        assertThrows(AdrNotFoundException.class, () -> store.deleteAdr(NAMESPACE, ADR_ID));
+    }
 }

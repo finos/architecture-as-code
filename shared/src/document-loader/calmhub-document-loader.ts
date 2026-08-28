@@ -1,6 +1,7 @@
 import axios, { Axios } from 'axios';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, assertJsonObject, DocumentLoadError, CALM_HUB_PROTOS } from './document-loader';
+import { assertResponseOrigin } from './response-origin.js';
 import { initLogger, Logger } from '../logger';
 import { AuthPlugin } from '../auth/auth-plugin';
 import type { CalmDocumentType } from '@finos/calm-models/types';
@@ -120,6 +121,7 @@ export class CalmHubDocumentLoader implements DocumentLoader {
 
         try {
             const response = await this.ax.get(path);
+            assertResponseOrigin(response, this.calmHubOrigin, documentId);
             const document = response.data;
             assertJsonObject(document, documentId);
             this.logger.debug('Successfully loaded document from CALMHub with id ' + documentId);
