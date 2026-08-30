@@ -37,6 +37,26 @@ export function renderFlowOverlay(
 ): string {
   const parts: string[] = ['<g class="flow-overlay">'];
 
+  // Rank transitions within each relationship by sequence-number (not document
+  // order) so badges on a shared edge spread along the path in flow order.
+  const perRelationshipCount = new Map<string, number>();
+  const rankInRelationship = new Map<unknown, number>();
+  {
+    const groups = new Map<string, typeof flow.transitions>();
+    for (const t of flow.transitions) {
+      const id = t['relationship-unique-id'];
+      const g = groups.get(id) ?? [];
+      g.push(t);
+      groups.set(id, g);
+    }
+    for (const [id, g] of groups) {
+      perRelationshipCount.set(id, g.length);
+      [...g]
+        .sort((a, b) => a['sequence-number'] - b['sequence-number'])
+        .forEach((t, rank) => rankInRelationship.set(t, rank));
+    }
+  }
+
   for (const transition of flow.transitions) {
     const layouts = (edgeLayoutsByRelationship.get(transition['relationship-unique-id']) ?? []).filter(
       (l) => l.points.length >= 2
@@ -70,18 +90,46 @@ export function renderFlowOverlay(
       );
     }
 
-    // One sequence badge per transition, placed at the first edge's midpoint
-    const midIdx = Math.floor(badgeEdge.points.length / 2);
-    const midPoint = badgeEdge.points[midIdx] ?? badgeEdge.points[0];
-    if (midPoint === undefined) continue;
-    const midX = midPoint.x;
-    const midY = midPoint.y;
+    // One sequence badge per transition. Transitions sharing a relationship
+    // spread along the first edge's path (rank k of n sits at (k+1)/(n+1),
+    // ranked by sequence-number) so request/response pairs never stack.
+    const relId = transition['relationship-unique-id'];
+    const rank = rankInRelationship.get(transition) ?? 0;
+    const count = perRelationshipCount.get(relId) ?? 1;
+    const fraction = (rank + 1) / (count + 1);
+    const walk = walkPolyline(badgeEdge.points);
+    const badgePoint = pointOnWalk(walk, fraction);
+    if (badgePoint === undefined) continue;
+    // Reverse (response) badges shift perpendicular to the path — a "return
+    // lane" — but only when the edge is crowded: multiple transitions whose
+    // along-path spacing is below a badge diameter. A lone reverse badge
+    // stays on its edge. Which side the lane lands on follows the layout
+    // engine's point ordering; it can in principle overlap a neighbouring
+    // element — biasing away from the diagram centroid would be the fuller
+    // fix if that shows up in practice.
+    const isReverse = direction === 'destination-to-source';
+    const crowded = count > 1 && walk.total / (count + 1) < 20;
+    const normal = crowded ? normalOnWalk(walk, fraction) : undefined;
+    const laneOffset = isReverse && normal !== undefined ? 22 : 0;
+    const midX = round2(badgePoint.x + (normal?.x ?? 0) * laneOffset);
+    const midY = round2(badgePoint.y + (normal?.y ?? 0) * laneOffset);
 
+    // The flow schema defines `description` on transitions; `summary` was a
+    // legacy CalmStudio field. Prefer the schema field, fall back for older files.
+    const transitionLabel =
+      transition.description ?? (transition as { summary?: string }).summary ?? '';
+    // Static-render convention: forward (request) badges are solid; reverse
+    // destination-to-source (response) badges render hollow, so direction is
+    // legible without the animation.
+    const badgeClass = isReverse ? 'flow-badge flow-badge-reverse' : 'flow-badge';
+    const circleFill = isReverse ? '#ffffff' : '#3b82f6';
+    const circleExtra = isReverse ? ' stroke="#3b82f6" stroke-width="2"' : '';
+    const numberFill = isReverse ? '#3b82f6' : 'white';
     parts.push(
-      `<g class="flow-badge" data-summary="${escapeAttr(transition.summary)}">`,
-      `  <circle cx="${midX}" cy="${midY}" r="10" fill="#3b82f6"/>`,
-      `  <text x="${midX}" y="${midY}" fill="white" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
-      `  <title>${escapeAttr(transition.summary)}</title>`,
+      `<g class="${badgeClass}" data-description="${escapeAttr(transitionLabel)}">`,
+      `  <circle cx="${midX}" cy="${midY}" r="10" fill="${circleFill}"${circleExtra}/>`,
+      `  <text x="${midX}" y="${midY}" fill="${numberFill}" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
+      `  <title>${escapeAttr(transitionLabel)}</title>`,
       `</g>`
     );
   }
@@ -157,6 +205,62 @@ function getReferencedNodeIdsWithFlatFallback(rel: CalmRelationship): string[] {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/** Precomputed polyline segments and total length, shared by point/normal lookups. */
+interface PolylineWalk {
+  segments: Array<{ a: { x: number; y: number }; b: { x: number; y: number }; len: number }>;
+  total: number;
+  first: { x: number; y: number } | undefined;
+  last: { x: number; y: number } | undefined;
+}
+
+function walkPolyline(points: Array<{ x: number; y: number }>): PolylineWalk {
+  const segments: PolylineWalk['segments'] = [];
+  let total = 0;
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1];
+    const b = points[i];
+    if (a === undefined || b === undefined) continue;
+    const len = Math.hypot(b.x - a.x, b.y - a.y);
+    segments.push({ a, b, len });
+    total += len;
+  }
+  return { segments, total, first: points[0], last: points[points.length - 1] };
+}
+
+/** Point at a given fraction (0..1) of the walk; falls back to the first point. */
+function pointOnWalk(walk: PolylineWalk, fraction: number): { x: number; y: number } | undefined {
+  if (walk.total === 0) return walk.first;
+  let target = Math.min(Math.max(fraction, 0), 1) * walk.total;
+  for (const seg of walk.segments) {
+    if (target <= seg.len) {
+      const t = seg.len === 0 ? 0 : target / seg.len;
+      return { x: round2(seg.a.x + (seg.b.x - seg.a.x) * t), y: round2(seg.a.y + (seg.b.y - seg.a.y) * t) };
+    }
+    target -= seg.len;
+  }
+  return walk.last;
+}
+
+/** Unit normal of the segment containing the fraction point; undefined for degenerate walks. */
+function normalOnWalk(walk: PolylineWalk, fraction: number): { x: number; y: number } | undefined {
+  if (walk.total === 0) return undefined;
+  let target = Math.min(Math.max(fraction, 0), 1) * walk.total;
+  for (const seg of walk.segments) {
+    if (target <= seg.len) {
+      if (seg.len === 0) return undefined;
+      const tx = (seg.b.x - seg.a.x) / seg.len;
+      const ty = (seg.b.y - seg.a.y) / seg.len;
+      return { x: -ty, y: tx };
+    }
+    target -= seg.len;
+  }
+  return undefined;
+}
+
+function round2(n: number): number {
+  return Math.round(n * 100) / 100;
+}
 
 function escapeAttr(str: string): string {
   return str
