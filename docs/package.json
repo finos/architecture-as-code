@@ -17,8 +17,8 @@
     },
     "dependencies": {
         "@finos/calm-docusaurus-plugin": "*",
-        "@docusaurus/core": "3.10.1",
-        "@docusaurus/preset-classic": "3.10.1",
+        "@docusaurus/core": "3.10.2",
+        "@docusaurus/preset-classic": "3.10.2",
         "@docusaurus/react-loadable": "6.0.0",
         "@mdx-js/react": "^3.1.0",
         "clsx": "^2.1.1",
