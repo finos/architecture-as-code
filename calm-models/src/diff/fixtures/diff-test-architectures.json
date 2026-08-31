@@ -963,5 +963,37 @@
     },
     "nodes": [],
     "relationships": []
+  },
+  "metadataEmptyObjectArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {},
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataEmptyArrayArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataMatchingObjectArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "name": "shared",
+      "value": "unchanged"
+    },
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataMatchingArrayArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
   }
 }

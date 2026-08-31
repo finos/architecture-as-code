@@ -669,8 +669,33 @@ describe('diff', () => {
             expect(result.metadataObjectsRemoved).toEqual([]);
             expect(result.metadataObjectsUnchanged).toEqual([]);
             expect(result.metadataObjectsModified).toEqual([{
-                removed: { oldValue: 'old', newValue: null },
-                added: { oldValue: null, newValue: 'new' },
+                removed: { changeType: 'removed', oldValue: 'old', newValue: null },
+                added: { changeType: 'added', oldValue: null, newValue: 'new' },
+            }]);
+        });
+
+        it('distinguishes a removed key from a key whose value changed to a genuine null via changeType', () => {
+            const base = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { foo: 'bar', other: 1 },
+            } as CalmArchitectureSchema;
+            const keyRemoved = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { other: 1 },
+            } as CalmArchitectureSchema;
+            const keySetToNull = {
+                ...testArchitectures.baseArchitecture,
+                metadata: { foo: null, other: 1 },
+            } as CalmArchitectureSchema;
+
+            const removedResult = diffArchitectures(base, keyRemoved);
+            expect(removedResult.metadataObjectsModified).toEqual([{
+                foo: { changeType: 'removed', oldValue: 'bar', newValue: null },
+            }]);
+
+            const modifiedResult = diffArchitectures(base, keySetToNull);
+            expect(modifiedResult.metadataObjectsModified).toEqual([{
+                foo: { changeType: 'modified', oldValue: 'bar', newValue: null },
             }]);
         });
 
@@ -699,6 +724,50 @@ describe('diff', () => {
             expect(result.metadataObjectsUnchanged).toEqual(
                 testArchitectures.metadataArrayBaseArchitecture.metadata,
             );
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports a whole non-empty array as added when the other side has no metadata, without a phantom empty entry', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataEmptyObjectArchitecture,
+                testArchitectures.metadataArrayBaseArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual(testArchitectures.metadataArrayBaseArchitecture.metadata);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports a whole non-empty object as removed when the other side has no metadata, without a phantom empty entry', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataObjectBaseArchitecture,
+                testArchitectures.metadataEmptyArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([testArchitectures.metadataObjectBaseArchitecture.metadata]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('reports no changes when both sides have no metadata, regardless of container type', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataEmptyObjectArchitecture,
+                testArchitectures.metadataEmptyArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual([]);
+            expect(result.metadataObjectsRemoved).toEqual([]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
+            expect(result.metadataObjectsModified).toEqual([]);
+        });
+
+        it('treats content-identical object-form and array-form metadata as a structural change, not unchanged', () => {
+            const result = diffArchitectures(
+                testArchitectures.metadataMatchingObjectArchitecture,
+                testArchitectures.metadataMatchingArrayArchitecture,
+            );
+            expect(result.metadataObjectsAdded).toEqual(testArchitectures.metadataMatchingArrayArchitecture.metadata);
+            expect(result.metadataObjectsRemoved).toEqual([testArchitectures.metadataMatchingObjectArchitecture.metadata]);
+            expect(result.metadataObjectsUnchanged).toEqual([]);
             expect(result.metadataObjectsModified).toEqual([]);
         });
     });

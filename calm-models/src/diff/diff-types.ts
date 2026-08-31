@@ -71,7 +71,10 @@ export interface ControlItemDiffResult {
     requirementsDiff: ControlItemDetailsDiffItem[];
 }
 
+export type MetadataFieldChangeType = 'added' | 'removed' | 'modified';
+
 export type MetadataItemDiffResult = Record<string, {
+    changeType: MetadataFieldChangeType;
     oldValue: unknown;
     newValue: unknown;
 }>;

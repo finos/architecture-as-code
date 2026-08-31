@@ -98,17 +98,29 @@ function stringifyMetadata(metadata: CalmMetadataSchema): string[] {
     }
 }
 
+function isEmptyMetadata(metadata: CalmMetadataSchema): boolean {
+    return Array.isArray(metadata) ? metadata.length === 0 : Object.keys(metadata).length === 0;
+}
+
+function metadataAsItems(metadata: CalmMetadataSchema): Record<string, unknown>[] {
+    return Array.isArray(metadata)
+        ? metadata.map((obj: Record<string, unknown>) => normalizeValue(obj) as Record<string, unknown>)
+        : [normalizeValue(metadata) as Record<string, unknown>];
+}
+
 function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB: Record<string, unknown>): MetadataItemDiffResult {
     const result: MetadataItemDiffResult = {};
 
     Object.keys(metadataObjA).forEach((key: string) => {
         if (!Object.prototype.hasOwnProperty.call(metadataObjB, key)) {
             result[key] = {
+                changeType: 'removed',
                 oldValue: metadataObjA[key],
                 newValue: null
             };
         } else if (!valuesEqual(metadataObjA[key], metadataObjB[key])) {
             result[key] = {
+                changeType: 'modified',
                 oldValue: metadataObjA[key],
                 newValue: metadataObjB[key]
             };
@@ -118,6 +130,7 @@ function diffMetadataObject(metadataObjA: Record<string, unknown>, metadataObjB:
     Object.keys(metadataObjB).forEach((key: string) => {
         if (!Object.prototype.hasOwnProperty.call(metadataObjA, key)) {
             result[key] = {
+                changeType: 'added',
                 oldValue: null,
                 newValue: metadataObjB[key]
             };
@@ -347,6 +360,9 @@ export function diffControls(
 
 /**
  * Core diff function for CALM metadata objects/arrays of objects. For objects, identifies what fields were added, removed or updated. For arrays, identifies what objects were added, removed or unchanged.
+ * Object-form and array-form metadata are distinct shapes (`oneOf` in the CALM schema), so a change
+ * of form is reported as a full removal/addition rather than being content-diffed across the boundary.
+ * An empty side (missing metadata, `{}` or `[]`) contributes nothing rather than being diffed as a value.
  */
 export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetadataSchema): MetadataDiffResult {
 
@@ -357,29 +373,50 @@ export function diffMetadata(metadataA: CalmMetadataSchema, metadataB: CalmMetad
         metadataObjectsModified: [],
     };
 
+    const isEmptyA = isEmptyMetadata(metadataA);
+    const isEmptyB = isEmptyMetadata(metadataB);
+
+    if (isEmptyA && isEmptyB) {
+        return result;
+    }
+
+    if (isEmptyA !== isEmptyB) {
+        if (isEmptyA) {
+            result.metadataObjectsAdded.push(...metadataAsItems(metadataB));
+        } else {
+            result.metadataObjectsRemoved.push(...metadataAsItems(metadataA));
+        }
+        return result;
+    }
+
+    if (Array.isArray(metadataA) !== Array.isArray(metadataB)) {
+        result.metadataObjectsRemoved.push(...metadataAsItems(metadataA));
+        result.metadataObjectsAdded.push(...metadataAsItems(metadataB));
+        return result;
+    }
+
     if (!Array.isArray(metadataA) && !Array.isArray(metadataB)) {
         if (valuesEqual(metadataA, metadataB)) {
-            if (Object.keys(metadataA).length > 0) {
-                result.metadataObjectsUnchanged.push(normalizeValue(metadataA) as Record<string, unknown>);
-            }
+            result.metadataObjectsUnchanged.push(normalizeValue(metadataA) as Record<string, unknown>);
         } else {
             result.metadataObjectsModified.push(diffMetadataObject(metadataA, metadataB));
         }
-    } else {
-        const stringifiedArrayA: string[] = stringifyMetadata(metadataA);
-        const stringifiedArrayB: string[] = stringifyMetadata(metadataB);
+        return result;
+    }
 
-        const stringifiedDiffItems = diffArrays(stringifiedArrayA, stringifiedArrayB);
-        
-        for (let i = 0; i < stringifiedDiffItems.length; i++) {
-            const diffItem: ChangeObject<string[]> = stringifiedDiffItems[i];
-            if (diffItem.added) {
-                diffItem.value.forEach((str: string) => result.metadataObjectsAdded.push(JSON.parse(str)));
-            } else if (diffItem.removed) {
-                diffItem.value.forEach((str: string) => result.metadataObjectsRemoved.push(JSON.parse(str)));
-            } else {
-                diffItem.value.forEach((str: string) => result.metadataObjectsUnchanged.push(JSON.parse(str)));
-            }
+    const stringifiedArrayA: string[] = stringifyMetadata(metadataA);
+    const stringifiedArrayB: string[] = stringifyMetadata(metadataB);
+
+    const stringifiedDiffItems = diffArrays(stringifiedArrayA, stringifiedArrayB);
+
+    for (let i = 0; i < stringifiedDiffItems.length; i++) {
+        const diffItem: ChangeObject<string[]> = stringifiedDiffItems[i];
+        if (diffItem.added) {
+            diffItem.value.forEach((str: string) => result.metadataObjectsAdded.push(JSON.parse(str)));
+        } else if (diffItem.removed) {
+            diffItem.value.forEach((str: string) => result.metadataObjectsRemoved.push(JSON.parse(str)));
+        } else {
+            diffItem.value.forEach((str: string) => result.metadataObjectsUnchanged.push(JSON.parse(str)));
         }
     }
 
