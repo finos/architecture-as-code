@@ -171,25 +171,31 @@ public class GitHubControlStore implements ControlStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
-    private RegistryEntry findControlEntry(String domain, int controlId) throws ControlNotFoundException {
-        // Search all namespaces for a control with matching ID in the given domain subfolder
+    private RegistryEntry findControlEntry(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        boolean domainExists = false;
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
                 String path = entry.filePath().toString();
                 boolean inDomain = path.contains("controls/" + domain + "/") || path.contains("controls\\" + domain + "\\");
-                if (inDomain && (entry.uniqueId().hashCode() & 0x7FFFFFFF) == controlId) {
-                    return entry;
+                if (inDomain) {
+                    domainExists = true;
+                    if ((entry.uniqueId().hashCode() & 0x7FFFFFFF) == controlId) {
+                        return entry;
+                    }
                 }
             }
         }
-        // Fallback: search by ID across all controls (for namespace-scoped access)
-        for (String namespace : registryService.getSnapshot().getNamespaces()) {
-            List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
-            Optional<RegistryEntry> found = entries.stream()
-                    .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == controlId)
-                    .findFirst();
-            if (found.isPresent()) return found.get();
+        if (!domainExists) {
+            // Fallback: search by ID across all controls (for namespace-scoped access)
+            for (String namespace : registryService.getSnapshot().getNamespaces()) {
+                List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
+                Optional<RegistryEntry> found = entries.stream()
+                        .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == controlId)
+                        .findFirst();
+                if (found.isPresent()) return found.get();
+            }
+            throw new DomainNotFoundException(domain);
         }
         throw new ControlNotFoundException();
     }

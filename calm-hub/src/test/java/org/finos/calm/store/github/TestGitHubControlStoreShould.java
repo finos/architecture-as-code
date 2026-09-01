@@ -51,7 +51,7 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_controls_for_domain() throws Exception {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of(DOMAIN, List.of(entry)),
@@ -180,7 +180,7 @@ class TestGitHubControlStoreShould {
 
     @Test
     void throw_control_not_found_when_id_does_not_match() {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of(DOMAIN, List.of(entry)),

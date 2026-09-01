@@ -117,6 +117,9 @@ public class NamespaceResource {
                     UserAccessValidator::getReadableNamespaces);
         }
         // Fallback: derive readable set from UserAccessStore grants (GitHub/OIDC mode)
+        if (identity.isAnonymous() || identity.getPrincipal() == null || userAccessStore == null) {
+            return Optional.empty();
+        }
         String username = identity.getPrincipal().getName();
         Set<String> readable = userAccessStore.getGrantsForUser(username).stream()
                 .map(UserAccess::getNamespace)
