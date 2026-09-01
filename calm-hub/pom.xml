@@ -38,27 +38,27 @@
             <dependency>
                 <groupId>io.quarkiverse.mcp</groupId>
                 <artifactId>quarkus-mcp-server-http</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.1</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkiverse.mcp</groupId>
                 <artifactId>quarkus-mcp-server-http-deployment</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.1</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkiverse.mcp</groupId>
                 <artifactId>quarkus-mcp-server-core</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.1</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkiverse.mcp</groupId>
                 <artifactId>quarkus-mcp-server-core-deployment</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.1</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkiverse.mcp</groupId>
                 <artifactId>quarkus-mcp-server-sse-client</artifactId>
-                <version>1.12.1</version>
+                <version>1.13.1</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -136,12 +136,12 @@
         <dependency>
             <groupId>org.dizitart</groupId>
             <artifactId>nitrite</artifactId>
-            <version>4.3.2</version>
+            <version>4.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.dizitart</groupId>
             <artifactId>nitrite-mvstore-adapter</artifactId>
-            <version>4.3.2</version>
+            <version>4.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -216,7 +216,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>3.1.0</version>
+                <version>3.2.0</version>
                 <executions>
                     <execution>
                         <id>read-node-versions</id>

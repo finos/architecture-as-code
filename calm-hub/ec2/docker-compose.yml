@@ -55,7 +55,7 @@ services:
     # bump the pin manually — releases at
     # https://github.com/nicholas-fedor/watchtower/releases — then
     # `sudo docker compose up -d`.
-    image: nickfedor/watchtower:1.19.0
+    image: nickfedor/watchtower:1.21.0
     container_name: watchtower
     restart: unless-stopped
     # Hardening: watchtower only talks to the Docker API over the mounted

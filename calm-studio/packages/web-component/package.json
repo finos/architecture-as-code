@@ -23,7 +23,7 @@
   "dependencies": {
     "@calmstudio/calm-core": "*",
     "@calmstudio/extensions": "*",
-    "elkjs": "^0.11.1"
+    "elkjs": "^0.12.0"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.0.0",
