@@ -25,17 +25,20 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceCounts;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.domain.UserAccess;
 import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.services.CountsService;
 import org.finos.calm.services.NamespaceService;
+import org.finos.calm.store.UserAccessStore;
 
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.finos.calm.resources.CalmResourceErrorResponses.invalidNamespaceResponse;
 import static org.finos.calm.resources.CalmResourceErrorResponses.namespaceNotEmptyResponse;
@@ -57,6 +60,9 @@ public class NamespaceResource {
     CalmHubPermissionChecker permissionChecker;
 
     @Inject
+    UserAccessStore userAccessStore;
+
+    @Inject
     @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
     boolean authEnabled;
 
@@ -76,7 +82,13 @@ public class NamespaceResource {
     )
     @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
-        return new ValueWrapper<>(namespaceService.getNamespaces());
+        Optional<Set<String>> readable = resolveReadableNamespaces();
+        if (readable.isEmpty()) {
+            return new ValueWrapper<>(namespaceService.getNamespaces());
+        }
+        return new ValueWrapper<>(namespaceService.getNamespaces().stream()
+                .filter(ns -> readable.get().contains(ns.getName()))
+                .toList());
     }
 
     @GET
@@ -97,8 +109,20 @@ public class NamespaceResource {
     }
 
     private Optional<Set<String>> resolveReadableNamespaces() {
-        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
-                UserAccessValidator::getReadableNamespaces);
+        if (!authEnabled) {
+            return Optional.empty();
+        }
+        if (userAccessValidatorInstance.isResolvable()) {
+            return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                    UserAccessValidator::getReadableNamespaces);
+        }
+        // Fallback: derive readable set from UserAccessStore grants (GitHub/OIDC mode)
+        String username = identity.getPrincipal().getName();
+        Set<String> readable = userAccessStore.getGrantsForUser(username).stream()
+                .map(UserAccess::getNamespace)
+                .filter(ns -> ns != null)
+                .collect(Collectors.toSet());
+        return Optional.of(readable);
     }
 
     @POST

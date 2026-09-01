@@ -122,7 +122,7 @@ public class ControlResource {
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
-            @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE)
             String version) {
         try {
             return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();

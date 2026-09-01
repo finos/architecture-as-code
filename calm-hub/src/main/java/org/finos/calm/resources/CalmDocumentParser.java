@@ -28,21 +28,25 @@ public class CalmDocumentParser {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /** Maps the plural URL path segment (e.g. {@code "patterns"}) to {@link ResourceType}. */
-    public static final Map<String, ResourceType> TYPE_MAP = Map.of(
-            "patterns",      ResourceType.PATTERN,
-            "architectures", ResourceType.ARCHITECTURE,
-            "flows",         ResourceType.FLOW,
-            "standards",     ResourceType.STANDARD,
-            "interfaces",    ResourceType.INTERFACE
+    public static final Map<String, ResourceType> TYPE_MAP = Map.ofEntries(
+            Map.entry("patterns",        ResourceType.PATTERN),
+            Map.entry("architectures",   ResourceType.ARCHITECTURE),
+            Map.entry("flows",           ResourceType.FLOW),
+            Map.entry("standards",       ResourceType.STANDARD),
+            Map.entry("interfaces",      ResourceType.INTERFACE),
+            Map.entry("building-blocks", ResourceType.BUILDING_BLOCK),
+            Map.entry("controls",        ResourceType.CONTROL)
     );
 
     /** Maps {@link ResourceType} back to its plural URL segment. */
-    public static final Map<ResourceType, String> TYPE_PLURAL_MAP = Map.of(
-            ResourceType.PATTERN,      "patterns",
-            ResourceType.ARCHITECTURE, "architectures",
-            ResourceType.FLOW,         "flows",
-            ResourceType.STANDARD,     "standards",
-            ResourceType.INTERFACE,    "interfaces"
+    public static final Map<ResourceType, String> TYPE_PLURAL_MAP = Map.ofEntries(
+            Map.entry(ResourceType.PATTERN,        "patterns"),
+            Map.entry(ResourceType.ARCHITECTURE,   "architectures"),
+            Map.entry(ResourceType.FLOW,           "flows"),
+            Map.entry(ResourceType.STANDARD,       "standards"),
+            Map.entry(ResourceType.INTERFACE,      "interfaces"),
+            Map.entry(ResourceType.BUILDING_BLOCK, "building-blocks"),
+            Map.entry(ResourceType.CONTROL,        "controls")
     );
 
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
