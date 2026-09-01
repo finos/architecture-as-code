@@ -84,4 +84,15 @@ class TestGitHubMetricsShould {
         assertThat(gauge, is(notNullValue()));
         assertThat(gauge.value(), equalTo(0.0));
     }
+
+    @Test
+    void create_content_detected_counter() {
+        Counter counter = metrics.contentDetectedCounter(registry, "architecture");
+        assertThat(counter, is(notNullValue()));
+        counter.increment();
+
+        Counter found = registry.find("calm.github.content.detected").tag("type", "architecture").counter();
+        assertThat(found, is(notNullValue()));
+        assertThat(found.count(), equalTo(1.0));
+    }
 }

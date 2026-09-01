@@ -10,11 +10,14 @@ import org.mockito.quality.Strictness;
 
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
@@ -148,5 +151,44 @@ class TestGitHubCloneManagerShould {
         assertThat(cloneManager.hasNamespaces(), is(false));
         cloneManager.registerNamespace("finos", "finos/repo", "main");
         assertThat(cloneManager.hasNamespaces(), is(true));
+    }
+
+    @Test
+    void register_namespace_with_access_groups() {
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of("group-a", "group-b"));
+        assertThat(cloneManager.getAccessGroupsForNamespace("finos"), equalTo(Set.of("group-a", "group-b")));
+    }
+
+    @Test
+    void return_empty_access_groups_for_unknown_namespace() {
+        assertThat(cloneManager.getAccessGroupsForNamespace("unknown"), is(empty()));
+    }
+
+    @Test
+    void return_repo_for_registered_namespace() {
+        cloneManager.registerNamespace("finos", "finos/repo", "main");
+        assertThat(cloneManager.getRepoForNamespace("finos"), equalTo("finos/repo"));
+    }
+
+    @Test
+    void return_null_for_unknown_namespace_repo() {
+        assertThat(cloneManager.getRepoForNamespace("unknown"), is(nullValue()));
+    }
+
+    @Test
+    void transition_to_degraded_on_pull_all_when_some_fail() {
+        cloneManager.registerNamespace("ns1", "org/repo1", "main");
+        cloneManager.registerNamespace("ns2", "org/repo2", "main");
+        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
+        cloneManager.cloneAll();
+
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns1"))).thenReturn(true);
+        when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns2"))).thenReturn(true);
+        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns1"), "test-token")).thenReturn(true);
+        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns2"), "test-token")).thenReturn(false);
+        cloneManager.pullAll();
+
+        assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.DEGRADED));
     }
 }

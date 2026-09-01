@@ -64,4 +64,11 @@ class TestNoOpResourceMappingStoreShould {
                 () -> store.deleteMapping("finos", ResourceType.PATTERN, "custom-id"));
         assertThat(ex.getMessage(), containsString("unique-id"));
     }
+
+    @Test
+    void throw_on_delete_mapping_by_numeric_id() {
+        UnsupportedOperationException ex = assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteMappingByNumericId("finos", ResourceType.PATTERN, 1));
+        assertThat(ex.getMessage(), containsString("unique-id"));
+    }
 }

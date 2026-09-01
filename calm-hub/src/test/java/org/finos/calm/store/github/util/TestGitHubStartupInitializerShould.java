@@ -95,4 +95,50 @@ class TestGitHubStartupInitializerShould {
 
         verify(cloneManager, never()).registerNamespace(any(), any(), any(), any());
     }
+
+    @Test
+    void parse_access_groups_from_namespace_config() {
+        initializer.namespaceConfigs = Optional.of(List.of(
+                "finos|finos/repo|main|group-a;group-b"
+        ));
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of(
+                "finos", Path.of("/tmp/finos")
+        ));
+
+        initializer.onStart(new StartupEvent());
+
+        verify(cloneManager).registerNamespace("finos", "finos/repo", "main",
+                java.util.Set.of("group-a", "group-b"));
+    }
+
+    @Test
+    void handle_clone_failure_gracefully() {
+        initializer.namespaceConfigs = Optional.of(List.of("finos|finos/repo|main"));
+        when(executor.runAsync(any(Runnable.class))).thenAnswer(invocation -> {
+            Runnable task = invocation.getArgument(0);
+            task.run();
+            return java.util.concurrent.CompletableFuture.completedFuture(null);
+        });
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of());
+        org.mockito.Mockito.doThrow(new RuntimeException("clone failed")).when(cloneManager).cloneAll();
+
+        initializer.onStart(new StartupEvent());
+
+        verify(cloneManager).cloneAll();
+        verify(registryService, never()).rebuild(any());
+    }
+
+    @Test
+    void parse_blank_access_groups_as_empty_set() {
+        initializer.namespaceConfigs = Optional.of(List.of(
+                "finos|finos/repo|main|  "
+        ));
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of(
+                "finos", Path.of("/tmp/finos")
+        ));
+
+        initializer.onStart(new StartupEvent());
+
+        verify(cloneManager).registerNamespace("finos", "finos/repo", "main", java.util.Set.of());
+    }
 }
