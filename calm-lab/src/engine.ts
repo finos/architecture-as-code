@@ -3,7 +3,6 @@ import {
     formatOutput,
     SchemaDirectory,
     buildBrowserDocumentLoader,
-    diffDocuments,
     browserSupportFor,
     BROWSER_COMMAND_SUPPORT,
     type BrowserCommandSupport,
@@ -20,7 +19,6 @@ export interface LabIssue { severity: LabSeverity; path: string; message: string
  * in a document.
  */
 export interface LabValidation { ok: boolean; parseError?: string; issues: LabIssue[]; errors: LabIssue[]; issueCount: number; errorCount: number; pretty: string; doc?: object }
-export interface LabDiff { formatted: string; hasChanges: boolean }
 export class LabError extends Error {}
 
 /** Injected by `define` in vite.config.ts — see src/vite-env.d.ts. */
@@ -51,7 +49,8 @@ function schemaDirectory(): Promise<SchemaDirectory> {
     return directoryPromise;
 }
 
-function parseJson(text: string, label: string): object {
+/** Parses JSON with a `LabError` carrying the file label — shared by every command that reads editor buffers. */
+export function parseJson(text: string, label: string): object {
     try {
         return JSON.parse(text) as object;
     } catch (error) {
@@ -113,18 +112,6 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
         pretty: formatOutput(outcome, 'pretty'),
         doc,
     };
-}
-
-/** Diff two architecture documents (summary format), labelled with the file names for messages. */
-export function diffArchitectures(aText: string, bText: string, labels: [string, string]): LabDiff {
-    const a = parseJson(aText, labels[0]) as Record<string, unknown>;
-    const b = parseJson(bText, labels[1]) as Record<string, unknown>;
-    try {
-        const result = diffDocuments(a, b, { format: 'summary', labels });
-        return { formatted: result.formatted, hasChanges: result.hasChanges };
-    } catch (error) {
-        throw new LabError((error as Error).message);
-    }
 }
 
 export function commandSupport(command: string): BrowserCommandSupport | undefined {

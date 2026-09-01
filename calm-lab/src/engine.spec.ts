@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateArchitecture, diffArchitectures, commandSupport, ENGINE_VERSION, LabError } from './engine';
+import { validateArchitecture, commandSupport, ENGINE_VERSION } from './engine';
 
 const valid = {
     $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
@@ -52,26 +52,6 @@ describe('validateArchitecture', () => {
         expect(new Set(result.issues.map((i) => `${i.path}|${i.message}`)).size).toBe(result.issues.length);
         expect(result.issueCount).toBeGreaterThan(result.issues.length);
         expect(result.errorCount).toBeGreaterThan(result.errors.length);
-    });
-});
-
-describe('diffArchitectures', () => {
-    it('summarises added nodes', () => {
-        const a = { ...valid, nodes: valid.nodes.slice(0, 1), relationships: [] };
-        const diff = diffArchitectures(JSON.stringify(a), JSON.stringify({ ...valid, relationships: [] }), ['a.json', 'b.json']);
-        expect(diff.hasChanges).toBe(true);
-        expect(diff.formatted).toContain('Nodes added:');
-        expect(diff.formatted).toContain('orders-api');
-    });
-
-    it('reports no changes for identical documents', () => {
-        const text = JSON.stringify(valid);
-        expect(diffArchitectures(text, text, ['a', 'b']).hasChanges).toBe(false);
-    });
-
-    it('throws a LabError naming the file for invalid JSON', () => {
-        expect(() => diffArchitectures('{', JSON.stringify(valid), ['left.json', 'right.json'])).toThrow(LabError);
-        expect(() => diffArchitectures('{', JSON.stringify(valid), ['left.json', 'right.json'])).toThrow(/left\.json/);
     });
 });
 

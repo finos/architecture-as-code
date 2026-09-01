@@ -72,6 +72,13 @@ describe('calm diff', () => {
         const { ctx } = context({});
         expect(await runCommand('calm diff a.json', ctx)).toEqual([{ text: 'usage: calm diff <file-a> <file-b>', kind: 'err' }]);
     });
+
+    it('reports a JSON parse error naming the file', async () => {
+        const { ctx } = context({ '/workspace/a.json': '{ nope', '/workspace/b.json': valid });
+        const [line] = await runCommand('calm diff a.json b.json', ctx);
+        expect(line.kind).toBe('err');
+        expect(line.text).toMatch(/^calm diff: a\.json is not valid JSON/);
+    });
 });
 
 describe('other calm commands', () => {

@@ -48,9 +48,9 @@ shim here.
 
 | Path | What it is |
 | --- | --- |
-| `src/engine.ts` | `validateArchitecture` / `diffArchitectures` on `@finos/calm-shared/browser` |
+| `src/engine.ts` | `validateArchitecture` / `parseJson` on `@finos/calm-shared/browser` |
 | `src/schemas.ts` | The CALM meta-schemas, imported from `calm/` and keyed by `$id` |
-| `src/shell.ts` | The terminal's command interpreter |
+| `src/shell.ts` | The terminal's command interpreter; calls `diffDocuments` directly for `calm diff` |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |

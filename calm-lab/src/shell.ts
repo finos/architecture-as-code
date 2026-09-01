@@ -8,7 +8,8 @@
  * scrollback.
  */
 
-import { validateArchitecture, diffArchitectures, commandSupport, hubCommands, ENGINE_VERSION, LabError } from './engine';
+import { diffDocuments } from '@finos/calm-shared/browser';
+import { validateArchitecture, parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
 
@@ -111,13 +112,15 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
             return [{ text: `calm diff: file not found: ${missing}`, kind: 'err' }];
         }
         try {
-            const diff = diffArchitectures(contents[0]!, contents[1]!, [a, b]);
+            const docA = parseJson(contents[0]!, a) as Record<string, unknown>;
+            const docB = parseJson(contents[1]!, b) as Record<string, unknown>;
+            const diff = diffDocuments(docA, docB, { format: 'summary', labels: [a, b] });
             if (!diff.hasChanges) {
                 return [{ text: `no changes between ${a} and ${b}`, kind: 'ok' }];
             }
             return diff.formatted.split('\n').map((text): Line => ({ text, kind: 'out' }));
         } catch (error) {
-            return [{ text: `calm diff: ${error instanceof LabError ? error.message : String(error)}`, kind: 'err' }];
+            return [{ text: `calm diff: ${error instanceof Error ? error.message : String(error)}`, kind: 'err' }];
         }
     }
     // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,

@@ -21,7 +21,7 @@ const engine = vi.hoisted(() => ({
 
 vi.mock('../engine', () => ({
     validateArchitecture: engine.validateArchitecture,
-    diffArchitectures: vi.fn(),
+    parseJson: vi.fn(),
     commandSupport: vi.fn(() => undefined),
     ENGINE_VERSION: '0.0.0-test',
     LabError: class LabError extends Error {},
