@@ -12,8 +12,10 @@ block sites that accept free-text input can allow-list it separately from the do
 - **Engine**: `@finos/calm-shared/browser`
 - **Diagram**: `reactflow` + `@dagrejs/dagre`
 
-New modules are TypeScript. The components moved over from the docs site are still JSX and keep
-their original formatting — do not reformat them, and do not convert them wholesale.
+New modules are TypeScript. The React components moved over from the docs site (`Lab.jsx`,
+`Terminal.jsx`, `Editor.jsx`, the `Hub*` diagram components) are still JSX — converting them to TSX
+means typing their props/refs/hooks, which is real work and stays a follow-up. Plain logic modules
+with no JSX (`vfs.ts`, `lesson.ts`) have no such cost and are TypeScript.
 
 ## Key Commands
 
@@ -93,7 +95,7 @@ manifest in step with the commands the CLI registers, so do not hard-code these 
 
 Node 26 throws a `DOMException` on `localStorage` without `--localstorage-file`, and in jsdom its
 global shadows jsdom's working implementation. `vitest.setup.ts` stubs both `localStorage` and
-`sessionStorage` with `createMemoryStorage()` from `src/test-support/memory-storage.ts`. `vfs.js`
+`sessionStorage` with `createMemoryStorage()` from `src/test-support/memory-storage.ts`. `vfs.ts`
 also guards every storage access, so the lab degrades to in-memory in private-browsing mode.
 
 ## Deploy

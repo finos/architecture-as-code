@@ -11,7 +11,24 @@
 const STORAGE_KEY = 'calm-lab-workspace-v1';
 const HOME = '/workspace';
 
-function getStorage() {
+export interface VfsEntry { name: string; isDir: boolean }
+export interface VfsSnapshot { files: Record<string, string>; cwd: string }
+
+export interface Vfs {
+    seed(nextFiles: Record<string, string>): void;
+    read(path: string): string | null;
+    write(path: string, content: string): void;
+    exists(path: string): boolean;
+    isDir(path: string): boolean;
+    list(dir: string): VfsEntry[];
+    resolve(fromCwd: string, path: string): string;
+    getCwd(): string;
+    setCwd(dir: string): void;
+    toJSON(): VfsSnapshot;
+    fromJSON(data: unknown): void;
+}
+
+function getStorage(): Storage | null {
     try {
         if (typeof window !== 'undefined' && window.localStorage) {
             return window.localStorage;
@@ -22,7 +39,7 @@ function getStorage() {
     return null;
 }
 
-export function resolvePath(cwd, path) {
+export function resolvePath(cwd: string, path: string): string {
     const raw = path && path.length ? path : '.';
     const base = raw.startsWith('/') ? [] : (cwd || '/').split('/').filter(Boolean);
     for (const segment of raw.split('/')) {
@@ -38,8 +55,12 @@ export function resolvePath(cwd, path) {
     return '/' + base.join('/');
 }
 
-export function createVfs(seedFiles) {
-    let files = {...seedFiles};
+function isVfsSnapshot(data: unknown): data is VfsSnapshot {
+    return typeof data === 'object' && data !== null && 'files' in data;
+}
+
+export function createVfs(seedFiles: Record<string, string>): Vfs {
+    let files: Record<string, string> = {...seedFiles};
     let cwd = HOME;
 
     const persist = () => {
@@ -53,7 +74,7 @@ export function createVfs(seedFiles) {
         }
     };
 
-    const vfs = {
+    const vfs: Vfs = {
         seed(nextFiles) {
             files = {...nextFiles};
             cwd = HOME;
@@ -78,7 +99,7 @@ export function createVfs(seedFiles) {
         },
         list(dir) {
             const prefix = dir === '/' ? '/' : dir + '/';
-            const names = new Map();
+            const names = new Map<string, boolean>();
             for (const file of Object.keys(files)) {
                 if (!file.startsWith(prefix)) {
                     continue;
@@ -111,7 +132,7 @@ export function createVfs(seedFiles) {
             return {files: {...files}, cwd};
         },
         fromJSON(data) {
-            if (data && data.files) {
+            if (isVfsSnapshot(data)) {
                 files = {...data.files};
                 cwd = data.cwd || HOME;
             }

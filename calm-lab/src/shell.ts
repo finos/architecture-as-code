@@ -10,19 +10,9 @@
 
 import { diffDocuments } from '@finos/calm-shared/browser';
 import { validateArchitecture, parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
+import type { Vfs } from './lab/vfs';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
-
-/** The subset of the JS vfs (`src/lab/vfs.js`) the shell uses — declared here since vfs.js is untyped. */
-export interface Vfs {
-    resolve(cwd: string, path: string): string;
-    read(path: string): string | null;
-    exists(path: string): boolean;
-    isDir(path: string): boolean;
-    list(dir: string): Array<{ name: string; isDir: boolean }>;
-    getCwd(): string;
-    setCwd(dir: string): void;
-}
 
 export interface ShellContext {
     vfs: Vfs;

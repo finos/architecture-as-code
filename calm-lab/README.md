@@ -15,7 +15,7 @@ real state — the saved workspace and the engine's validation result — so any
 ## Lessons
 
 A lesson is data: seed files for the virtual filesystem, an ordered list of steps, and a
-completion panel. Today the lab ships one lesson, defined in `src/lab/lesson.js`:
+completion panel. Today the lab ships one lesson, defined in `src/lab/lesson.ts`:
 
 | Export | What it is |
 |---|---|
@@ -32,7 +32,7 @@ event-ordered, so the order in which a learner edits, saves and validates never 
 Keep checks about the model (does the document contain the thing the step asked for, and is it
 valid?), not about how the learner got there.
 
-To change or extend the lesson, edit `src/lab/lesson.js` and cover the new checks in
+To change or extend the lesson, edit `src/lab/lesson.ts` and cover the new checks in
 `src/lab/lesson.spec.js`. Publishing **multiple** lessons — lessons as standalone data files,
 a lesson picker, per-lesson progress, and "try it in your browser" links from the tutorials —
 is Phase A of [#2879](https://github.com/finos/architecture-as-code/issues/2879) and is not

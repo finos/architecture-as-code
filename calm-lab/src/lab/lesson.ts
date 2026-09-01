@@ -7,6 +7,27 @@
  * which a learner edits, saves and validates never wedges a step.
  */
 
+import type { LabValidation } from '../engine';
+
+/** A CALM document, loosely typed — the lab reads a live-edited buffer that may not validate yet. */
+type CalmDocLike = Record<string, unknown>;
+
+export interface LessonState {
+    doc: CalmDocLike | null;
+    /** Every check only reads `.ok` — the fuller `LabValidation` shape isn't needed here. */
+    validation: Pick<LabValidation, 'ok'>;
+    hasValidatedOk: boolean;
+}
+
+export interface LessonStep {
+    id: string;
+    title: string;
+    body: string;
+    hintLabel: string;
+    hint: string;
+    check(state: LessonState): boolean;
+}
+
 export const HOME_DIR = '/workspace';
 export const ARCHITECTURE_FILE = '/workspace/architecture/trading-system.architecture.json';
 
@@ -86,19 +107,20 @@ export const SEED_FILES = {
     [ARCHITECTURE_FILE]: SEED_ARCHITECTURE,
 };
 
-export function hasOrdersApiNode(doc) {
-    const nodes = Array.isArray(doc?.nodes) ? doc.nodes : [];
+export function hasOrdersApiNode(doc: CalmDocLike | null | undefined): boolean {
+    const nodes = Array.isArray(doc?.nodes) ? (doc.nodes as Record<string, unknown>[]) : [];
     return nodes.some(
         (node) => node?.['unique-id'] === 'orders-api' && node?.['node-type'] === 'service',
     );
 }
 
-export function hasConnectsRelationship(doc) {
-    const nodes = Array.isArray(doc?.nodes) ? doc.nodes : [];
+export function hasConnectsRelationship(doc: CalmDocLike | null | undefined): boolean {
+    const nodes = Array.isArray(doc?.nodes) ? (doc.nodes as Record<string, unknown>[]) : [];
     const nodeIds = new Set(nodes.map((node) => node?.['unique-id']));
-    const relationships = Array.isArray(doc?.relationships) ? doc.relationships : [];
+    const relationships = Array.isArray(doc?.relationships) ? (doc.relationships as Record<string, unknown>[]) : [];
     return relationships.some((relationship) => {
-        const connects = relationship?.['relationship-type']?.connects;
+        const relationshipType = relationship?.['relationship-type'] as Record<string, unknown> | undefined;
+        const connects = relationshipType?.connects as { source?: { node?: unknown }; destination?: { node?: unknown } } | undefined;
         return (
             connects?.source?.node === 'trading-ui' &&
             connects?.destination?.node === 'orders-api' &&
@@ -108,7 +130,7 @@ export function hasConnectsRelationship(doc) {
     });
 }
 
-export const STEPS = [
+export const STEPS: LessonStep[] = [
     {
         id: 'look-around',
         title: 'Look around',

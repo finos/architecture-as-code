@@ -52,7 +52,7 @@ describe('createVfs', () => {
         expect(vfs.read('/workspace/new.json')).toBeNull();
         expect(vfs.getCwd()).toBe('/workspace');
         // The reset has to reach storage too, or a reload restores the old work.
-        expect(JSON.parse(localStorage.getItem('calm-lab-workspace-v1'))).toEqual({
+        expect(JSON.parse(localStorage.getItem('calm-lab-workspace-v1')!)).toEqual({
             files: seed,
             cwd: '/workspace',
         });
