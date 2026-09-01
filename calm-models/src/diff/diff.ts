@@ -4,6 +4,7 @@ import type {
     CalmControlDetailSchema,
     CalmControlSchema,
     CalmControlsSchema,
+    CalmFlowSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -17,6 +18,8 @@ import type {
     ArchitectureDiffResult,
     ControlDiffResult,
     ControlItemDiffResult,
+    FlowChange,
+    FlowDiffResult,
     ChangeType,
 } from './diff-types.js';
 
@@ -92,12 +95,35 @@ export function diffArchitectures(
     const adrDiff = diffAdrs(archA.adrs ?? [], archB.adrs ?? []);
 
     const controlsDiff = diffControls(archA.controls ?? {}, archB.controls ?? {});
+    const flowsDiff = diffFlows(archA.flows ?? [], archB.flows ?? []);
 
     return {
         ...nodesAndRelationshipsDiff,
         ...adrDiff,
-        ...controlsDiff
+        ...controlsDiff,
+        ...flowsDiff,
     };
+}
+
+export function diffFlows(flowsA: CalmFlowSchema[], flowsB: CalmFlowSchema[]): FlowDiffResult {
+    const flowsByIdA = new Map(flowsA.map((flow) => [flow['unique-id'], flow]));
+    const flowsByIdB = new Map(flowsB.map((flow) => [flow['unique-id'], flow]));
+    const flowsAdded = [...flowsByIdB.values()].filter((flow) => !flowsByIdA.has(flow['unique-id']));
+    const flowsRemoved = [...flowsByIdA.values()].filter((flow) => !flowsByIdB.has(flow['unique-id']));
+    const flowsModified: FlowChange[] = [];
+    const flowsSame: CalmFlowSchema[] = [];
+
+    for (const [id, flowA] of flowsByIdA) {
+        const flowB = flowsByIdB.get(id);
+        if (!flowB) continue;
+        if (valuesEqual(flowA, flowB)) {
+            flowsSame.push(flowA);
+        } else {
+            flowsModified.push({ original: flowA, updated: flowB });
+        }
+    }
+
+    return { flowsAdded, flowsRemoved, flowsModified, flowsSame };
 }
 
 /**

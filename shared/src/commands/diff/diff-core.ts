@@ -4,6 +4,7 @@ import {
     diffTimelineAdjacent,
     diffTimelineMoments,
     type ArchitectureResolver,
+    type FlowDiffResult,
     type MomentDiff,
     type NodesAndRelationshipsDiffResult,
     type TimelineInput,
@@ -15,13 +16,15 @@ export type DiffOutputFormat = 'json' | 'summary';
 
 export type DiffDocumentType = 'architecture' | 'pattern';
 
+type DiffResult = NodesAndRelationshipsDiffResult & Partial<FlowDiffResult>;
+
 export interface DiffRunResult {
-    diff: NodesAndRelationshipsDiffResult;
+    diff: DiffResult;
     formatted: string;
     hasChanges: boolean;
 }
 
-export function hasChanges(diff: NodesAndRelationshipsDiffResult): boolean {
+export function hasChanges(diff: DiffResult): boolean {
     return (
         diff.nodesAdded.length > 0 ||
         diff.nodesRemoved.length > 0 ||
@@ -31,6 +34,9 @@ export function hasChanges(diff: NodesAndRelationshipsDiffResult): boolean {
         diff.edgesRemoved.length > 0 ||
         diff.edgesModified.length > 0 ||
         diff.edgesRenamed.length > 0 ||
+        (diff.flowsAdded?.length ?? 0) > 0 ||
+        (diff.flowsRemoved?.length ?? 0) > 0 ||
+        (diff.flowsModified?.length ?? 0) > 0 ||
         (diff.invalidItems?.nodes.length ?? 0) > 0 ||
         (diff.invalidItems?.relationships.length ?? 0) > 0 ||
         (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
@@ -56,7 +62,7 @@ function edgeLabel(edge: CalmRelationshipSchema): string {
 }
 
 export function formatDiff(
-    diff: NodesAndRelationshipsDiffResult,
+    diff: DiffResult,
     format: DiffOutputFormat,
     documentType: DiffDocumentType = 'architecture',
 ): string {
@@ -74,6 +80,9 @@ export function formatDiff(
         `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${diff.nodesModified.length}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
         `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${diff.edgesModified.length}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
     ];
+    if (diff.flowsAdded) {
+        lines.push(`Flows:         +${diff.flowsAdded.length}  -${diff.flowsRemoved!.length}  ~${diff.flowsModified!.length}  =${diff.flowsSame!.length}`);
+    }
     if (invalidNodes + invalidEdges > 0) {
         lines.push(`Invalid items: ${invalidNodes} node(s) + ${invalidEdges} relationship(s) skipped (missing unique-id)`);
     }
@@ -95,6 +104,9 @@ export function formatDiff(
     list('Relationships removed:', diff.edgesRemoved.map(edgeLabel));
     list('Relationships modified:', diff.edgesModified.map((e) => edgeLabel(e.original)));
     list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
+    list('Flows added:', diff.flowsAdded?.map((flow) => flow['unique-id']) ?? []);
+    list('Flows removed:', diff.flowsRemoved?.map((flow) => flow['unique-id']) ?? []);
+    list('Flows modified:', diff.flowsModified?.map((flow) => flow.original['unique-id']) ?? []);
     return lines.join('\n');
 }
 

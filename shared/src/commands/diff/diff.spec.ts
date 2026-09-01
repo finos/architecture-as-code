@@ -244,6 +244,9 @@ describe('hasChanges', () => {
         ['edgesRemoved'],
         ['edgesModified'],
         ['edgesRenamed'],
+        ['flowsAdded'],
+        ['flowsRemoved'],
+        ['flowsModified'],
     ] as const)('returns true when %s has entries', (key) => {
         const r: NodesAndRelationshipsDiffResult = { ...emptyResult, [key]: [{ placeholder: true }] as never };
         expect(hasChanges(r)).toBe(true);
@@ -325,6 +328,23 @@ describe('diff core', () => {
         expect(result.hasChanges).toBe(true);
         expect(result.diff.nodesAdded.map((n) => n['unique-id'])).toEqual(['b']);
         expect(result.formatted).toContain('Nodes added:');
+    });
+
+    it('reports flow changes in the summary and hasChanges result', async () => {
+        const { diffDocuments } = await import('./diff-core');
+        const withFlow = {
+            ...archA,
+            flows: [{
+                'unique-id': 'write-flow',
+                name: 'Write flow',
+                description: 'Writes a record.',
+                transitions: [],
+            }],
+        };
+        const result = diffDocuments(archA, withFlow, { format: 'summary' });
+        expect(result.hasChanges).toBe(true);
+        expect(result.formatted).toContain('Flows:         +1  -0  ~0  =0');
+        expect(result.formatted).toContain('Flows added:\n  - write-flow');
     });
 
     it('uses labels in the mismatch error instead of file paths', async () => {

@@ -555,6 +555,35 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - flow changes', () => {
+        const flow = {
+            'unique-id': 'write-flow',
+            name: 'Write flow',
+            description: 'Writes a record.',
+            transitions: [{ 'relationship-unique-id': 'gateway-to-payment', 'sequence-number': 1, description: 'Write.' }],
+        };
+
+        it('detects added, removed, modified, and unchanged flows', () => {
+            const base = { ...testArchitectures.baseArchitecture, flows: [flow] } as CalmArchitectureSchema;
+            const changed = {
+                ...base,
+                flows: [
+                    { ...flow, transitions: [...flow.transitions, { 'relationship-unique-id': 'gateway-to-payment', 'sequence-number': 2, description: 'Confirm.' }] },
+                    { ...flow, 'unique-id': 'read-flow', name: 'Read flow' },
+                ],
+            } as CalmArchitectureSchema;
+            const result = diffArchitectures(base, changed);
+            expect(result.flowsAdded.map((item) => item['unique-id'])).toEqual(['read-flow']);
+            expect(result.flowsRemoved).toEqual([]);
+            expect(result.flowsModified).toHaveLength(1);
+            expect(result.flowsModified[0].original['unique-id']).toBe('write-flow');
+            expect(result.flowsSame).toEqual([]);
+
+            const removed = diffArchitectures(base, { ...base, flows: [] });
+            expect(removed.flowsRemoved.map((item) => item['unique-id'])).toEqual(['write-flow']);
+        });
+    });
+
     describe('diffArchitectures - comprehensive scenarios', () => {
         const empty = (): CalmArchitectureSchema => ({
             nodes: [],
