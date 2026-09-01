@@ -125,6 +125,11 @@ public class GitHubPatternStore implements PatternStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws PatternNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.PATTERN);
         Optional<RegistryEntry> found = entries.stream()

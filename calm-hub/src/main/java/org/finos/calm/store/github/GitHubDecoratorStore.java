@@ -57,6 +57,11 @@ public class GitHubDecoratorStore implements DecoratorStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
         if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
             throw new NamespaceNotFoundException();

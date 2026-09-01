@@ -13,6 +13,7 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionExistsException;
 import org.finos.calm.domain.exception.ControlConfigurationVersionNotFoundException;
+import org.finos.calm.domain.exception.ControlHasConfigurationsException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
@@ -157,6 +158,16 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public void createConfigurationForVersion(String domain, int controlId, int configurationId, String version, CreateControlConfiguration request) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionExistsException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public void deleteControlRequirement(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException, ControlHasConfigurationsException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public void deleteControlConfiguration(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 

@@ -117,6 +117,11 @@ public class GitHubArchitectureStore implements ArchitectureStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws ArchitectureNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
         Optional<RegistryEntry> found = entries.stream()

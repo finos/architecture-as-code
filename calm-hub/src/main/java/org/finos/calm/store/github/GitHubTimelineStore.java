@@ -117,6 +117,11 @@ public class GitHubTimelineStore implements TimelineStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws TimelineNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.TIMELINE);
         Optional<RegistryEntry> found = entries.stream()

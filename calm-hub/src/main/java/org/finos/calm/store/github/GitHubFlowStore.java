@@ -123,6 +123,11 @@ public class GitHubFlowStore implements FlowStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteFlow(String namespace, int flowId) throws NamespaceNotFoundException, FlowNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws FlowNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.FLOW);
         Optional<RegistryEntry> found = entries.stream()

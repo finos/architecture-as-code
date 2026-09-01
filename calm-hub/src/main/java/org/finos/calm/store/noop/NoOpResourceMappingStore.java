@@ -54,4 +54,9 @@ public class NoOpResourceMappingStore implements ResourceMappingStore {
     public void deleteMapping(String namespace, ResourceType type, String customId) throws MappingNotFoundException, NamespaceNotFoundException {
         throw new GitHubWriteNotSupportedException(MESSAGE);
     }
+
+    @Override
+    public void deleteMappingByNumericId(String namespace, ResourceType type, int numericId) throws NamespaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(MESSAGE);
+    }
 }

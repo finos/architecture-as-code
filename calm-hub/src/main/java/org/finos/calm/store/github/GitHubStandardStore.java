@@ -127,6 +127,11 @@ public class GitHubStandardStore implements StandardStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws StandardNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.STANDARD);
         Optional<RegistryEntry> found = entries.stream()

@@ -96,6 +96,12 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteMappingByNumericId(String namespace, ResourceType type, int numericId)
+            throws NamespaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private ResourceMapping toResourceMapping(String namespace, ResourceType type, RegistryEntry entry) {
         return new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace(namespace)

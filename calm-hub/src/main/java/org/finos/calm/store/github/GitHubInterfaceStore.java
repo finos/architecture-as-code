@@ -117,6 +117,11 @@ public class GitHubInterfaceStore implements InterfaceStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    @Override
+    public void deleteInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
     private RegistryEntry findEntryById(String namespace, int id) throws InterfaceNotFoundException {
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.INTERFACE);
         Optional<RegistryEntry> found = entries.stream()
