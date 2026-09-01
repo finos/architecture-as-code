@@ -59,11 +59,17 @@ V6
 - přidat layout Radial do nabídky layoutu 
 - načítani temlates z projektové složky definovane v projekct file.
 - vytvořit deploy do dokeru
-- sjednotit layout diagramů s calm_hub
 - odstranit zobrazeni ralation pro kontejnerove realce (ty co se projevi zmenou vizualizace nodu na kontejner ) nastaveni property pro  vazbu v editoru přidat do hlavičky kontejneru ikonku  pro načtení property pro vazbu do property editoru. 
-- extenzion do samostatné definice pro každou extenzion. Požadavek je aby se definice dala použit napřič spektrem tools jako je CALM-hub a calm plugin pro visual studio a calm-cli. Umožnit načist definici externě ze souboru. 
 - doplnit filter na filter dle typu nodu 
-
+- najit kde je node použit (find usege)- vypsat všechny použití(reference na daný prvek) v ostaních calm souborech a umožnit otevřit vyhledaný diagram
+V7
+- u vazeb compose of  a deployed in umožnit sloučeni vazeb na stejnem kontejneru do jedné a prislušne uprav i property tak aby umožnoval parci s vice nody v destination . 
+- vytvařet vazbu compouse of a deloyed in pretaženim nódu spolu se zmačknutou klavesou alt na nod ze kterého se má stat kontejner.  jestli že se jedná o první vazbu nech vybrat typ vazby v pripadě že jsou  již vazby typu compose of nebo deloyed in přidej pouze tento node do sezanmu na existující vazbě. Při vytaženi prvku z kontejneru se zmačknutouk klavesou alt odstran tento prvek z vaby compose of nebo deployed in.
+- v dialogu pro nastavení projektu umožni výběr adresařů u položek predstavujici adresaře u souboru umožni vyber souboru z disku
+- umožnit použivat pattern  format z CALM CLI  pro generovani z  template a nabidnout patterny jako template v nabidce - !! pro genrovani použit voláni calm cli nebo import funkčnosti na urovni zdrojového kódu. Ne nová implementace !!
+V8
+- sjednotit layout diagramů s calm_hub
+- extenzion do samostatné definice pro každou extenzion. Požadavek je aby se definice dala použit napřič spektrem tools jako je CALM-hub a calm plugin pro visual studio a calm-cli. Umožnit načist definici externě ze souboru.
 ```
 ## fix
 ```

@@ -13,11 +13,19 @@
 		filter: DiagramFilterState;
 		metadataKeys: MetaKey[];
 		metadataValues: string[];
+		nodeTypes?: string[];
 		hasSelection: boolean;
 		onchange: (next: DiagramFilterState) => void;
 	}
 
-	let { filter, metadataKeys, metadataValues, hasSelection, onchange }: Props = $props();
+	let {
+		filter,
+		metadataKeys,
+		metadataValues,
+		nodeTypes = [],
+		hasSelection,
+		onchange,
+	}: Props = $props();
 
 	function setMode(mode: DiagramFilterState['mode']) {
 		if (mode === 'focus-neighbors' && !hasSelection) return;
@@ -29,7 +37,21 @@
 			});
 			return;
 		}
+		if (mode === 'node-type') {
+			onchange({
+				mode: 'node-type',
+				nodeTypes: filter.nodeTypes?.length ? filter.nodeTypes : [...nodeTypes],
+			});
+			return;
+		}
 		onchange({ mode });
+	}
+
+	function toggleNodeType(t: string) {
+		const current = new Set(filter.nodeTypes ?? []);
+		if (current.has(t)) current.delete(t);
+		else current.add(t);
+		onchange({ mode: 'node-type', nodeTypes: [...current] });
 	}
 </script>
 
@@ -62,6 +84,15 @@
 	>
 		Metadata
 	</button>
+	<button
+		type="button"
+		class="seg"
+		class:active={filter.mode === 'node-type'}
+		disabled={nodeTypes.length === 0}
+		onclick={() => setMode('node-type')}
+	>
+		Node type
+	</button>
 
 	{#if filter.mode === 'metadata'}
 		<select
@@ -93,6 +124,21 @@
 				<option value={v}>{v}</option>
 			{/each}
 		</select>
+	{/if}
+
+	{#if filter.mode === 'node-type'}
+		<div class="type-pills" role="group" aria-label="Node types">
+			{#each nodeTypes as t}
+				<label class="pill">
+					<input
+						type="checkbox"
+						checked={filter.nodeTypes?.includes(t) ?? false}
+						onchange={() => toggleNodeType(t)}
+					/>
+					{t}
+				</label>
+			{/each}
+		</div>
 	{/if}
 
 	{#if filter.mode !== 'off'}
@@ -146,5 +192,17 @@
 		color: #2563eb;
 		cursor: pointer;
 		font-size: 11px;
+	}
+	.type-pills {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+	}
+	.pill {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		font-size: 11px;
+		cursor: pointer;
 	}
 </style>

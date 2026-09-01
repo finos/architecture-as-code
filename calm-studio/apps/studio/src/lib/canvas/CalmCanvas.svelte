@@ -41,7 +41,7 @@
 
 	import { nodeTypes, resolveNodeType } from './nodeTypes';
 	import { edgeTypes, DEFAULT_EDGE_TYPE } from './edgeTypes';
-import { makeContainment, isContainmentType, ensureContainmentEdge } from './containment';
+	import { makeContainment, isContainmentType, ensureContainmentEdge, syncContainmentRelData, applyContainmentVisibility } from './containment';
 	import { estimateRectangleNodeSize, ARCHIMATE_ICON_WIDTH } from './rectangleNodeSize';
 	import { resolvePackNode, scaffoldNodeMetadata, scaffoldRelationshipMetadata } from '@calmstudio/extensions';
 	import EdgeMarkers from './edges/EdgeMarkers.svelte';
@@ -161,7 +161,8 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 				source: parentNode.id,
 				target: childId,
 				type: 'composed-of',
-				data: { protocol: '', description: '' },
+				hidden: true,
+				data: { protocol: '', description: '', calmVariant: 'composed-of' },
 			});
 		}
 
@@ -180,6 +181,9 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 		readonly = false,
 		ondblclicknode,
 		onnavigatereference,
+		onfindneighbors,
+		onfindusage,
+		projectActionsEnabled = false,
 	}: {
 		nodes?: Node[];
 		edges?: Edge[];
@@ -197,10 +201,20 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 		ondblclicknode?: (node: Node) => void;
 		/** Called when user double-clicks reference glasses on a node. */
 		onnavigatereference?: (calmId: string) => void;
+		/** Find project-wide neighbors of this node (R28). */
+		onfindneighbors?: (nodeId: string) => void;
+		/** Find usages of this node in other files (R37). */
+		onfindusage?: (nodeId: string) => void;
+		/** True when a project folder is open (enables neighbor/usage menu items). */
+		projectActionsEnabled?: boolean;
 	} = $props();
 
 	setContext('referenceNavigation', {
 		onNavigateReference: (calmId: string) => onnavigatereference?.(calmId),
+	});
+
+	setContext('containmentRelSelect', {
+		onSelect: (relUniqueId: string) => selectContainmentRelationship(relUniqueId),
 	});
 
 	setContext(CANVAS_NODES_CONTEXT, (() => nodes) satisfies CanvasNodesGetter);
@@ -250,9 +264,41 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 			const x = node.position.x + (node.measured?.width ?? 120) / 2;
 			const y = node.position.y + (node.measured?.height ?? 60) / 2;
 			setCenter(x, y, { zoom: 1.2, duration: 400 });
-			// Select the node
 			nodes = nodes.map((n) => ({ ...n, selected: n.id === node.id }));
+			edges = edges.map((e) => ({ ...e, selected: false }));
+			onselectionchange?.((node.data?.calmId as string) ?? node.id, null);
 		}
+	}
+
+	/** Select a relationship by unique-id (including hidden containment edges). */
+	export function navigateToEdge(relUniqueId: string) {
+		selectContainmentRelationship(relUniqueId);
+		const edge = edges.find(
+			(e) => e.id === relUniqueId || (e.data as { calmRelId?: string } | undefined)?.calmRelId === relUniqueId
+		);
+		if (!edge) return;
+		const src = nodes.find((n) => n.id === edge.source);
+		if (src) {
+			const x = src.position.x + (src.measured?.width ?? 120) / 2;
+			const y = src.position.y + (src.measured?.height ?? 60) / 2;
+			setCenter(x, y, { zoom: 1.2, duration: 400 });
+		}
+	}
+
+	let holdHiddenEdgeSelection = false;
+
+	function selectContainmentRelationship(relUniqueId: string) {
+		edges = edges.map((e) => {
+			const calmRelId = (e.data as { calmRelId?: string } | undefined)?.calmRelId;
+			return {
+				...e,
+				selected: e.id === relUniqueId || calmRelId === relUniqueId,
+			};
+		});
+		nodes = nodes.map((n) => ({ ...n, selected: false }));
+		const edge = edges.find((e) => e.selected);
+		holdHiddenEdgeSelection = true;
+		onselectionchange?.(null, edge?.id ?? relUniqueId);
 	}
 
 	// ─── Search state ─────────────────────────────────────────────────────────
@@ -497,14 +543,19 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 		const edge = edges.find((e) => e.id === edgeId);
 		if (!edge) return;
 
-		edges = edges.map((e) =>
-			e.id === edgeId ? { ...e, type: newType } : e
+		edges = applyContainmentVisibility(
+			edges.map((e) =>
+				e.id === edgeId
+					? { ...e, type: newType, hidden: isContainmentType(newType) }
+					: e
+			)
 		);
 
 		// If changing TO a containment type, establish containment
 		if (isContainmentType(newType)) {
 			nodes = makeContainment(edge.source, edge.target, nodes);
 		}
+		nodes = syncContainmentRelData(nodes, edges);
 		applyFromCanvas(nodes, edges);
 		notifyChange();
 	}
@@ -524,11 +575,44 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 	function handleEdgeContextMenu(event: { event: MouseEvent; edge: Edge }) {
 		if (readonly) return;
 		event.event.preventDefault();
+		nodeMenu = null;
 		edgeMenu = {
 			x: event.event.clientX,
 			y: event.event.clientY,
 			edgeId: event.edge.id,
 		};
+	}
+
+	let nodeMenu = $state<{ x: number; y: number; nodeId: string } | null>(null);
+
+	function nodeCalmId(node: Node): string {
+		return (node.data?.calmId as string) ?? node.id;
+	}
+
+	function handleNodeContextMenu(event: { event: MouseEvent; node: Node }) {
+		event.event.preventDefault();
+		edgeMenu = null;
+		const nodeId = nodeCalmId(event.node);
+		nodes = nodes.map((n) => ({ ...n, selected: n.id === event.node.id }));
+		edges = edges.map((e) => ({ ...e, selected: false }));
+		onselectionchange?.(nodeId, null);
+		nodeMenu = {
+			x: event.event.clientX,
+			y: event.event.clientY,
+			nodeId,
+		};
+	}
+
+	function closeNodeMenu() {
+		nodeMenu = null;
+	}
+
+	function runNodeMenuAction(kind: 'neighbors' | 'usage') {
+		if (!nodeMenu) return;
+		const id = nodeMenu.nodeId;
+		nodeMenu = null;
+		if (kind === 'neighbors') onfindneighbors?.(id);
+		else onfindusage?.(id);
 	}
 
 	function selectEdgeType(type: string) {
@@ -678,6 +762,7 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 		// Ensure a composed-of edge exists and sync the canonical model.
 		if (draggedNode.parentId && draggedNode.type !== 'container') {
 			edges = ensureContainmentEdge(draggedNode.parentId, draggedNode.id, edges);
+			nodes = syncContainmentRelData(nodes, edges);
 			applyFromCanvas(nodes, edges);
 			notifyChange();
 			return;
@@ -704,6 +789,7 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 					pushSnapshot(nodes, edges);
 					nodes = makeContainment(candidate.id, draggedNode.id, nodes);
 					edges = ensureContainmentEdge(candidate.id, draggedNode.id, edges);
+					nodes = syncContainmentRelData(nodes, edges);
 					applyFromCanvas(nodes, edges);
 					notifyChange();
 					return;
@@ -774,6 +860,7 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 
 		nodes = nextNodes;
 		edges = nextEdges;
+		nodes = syncContainmentRelData(nodes, edges);
 		applyFromCanvas(nodes, edges);
 		notifyChange();
 		onselectionchange?.(newId, null);
@@ -831,6 +918,11 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 	// ─── Selection change ─────────────────────────────────────────────────────
 
 	function handleSelectionChange({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) {
+		if (holdHiddenEdgeSelection && selectedNodes.length === 0 && selectedEdges.length === 0) {
+			holdHiddenEdgeSelection = false;
+			return;
+		}
+		holdHiddenEdgeSelection = false;
 		const nodeId = selectedNodes.length > 0 ? (selectedNodes[0].data?.calmId as string ?? selectedNodes[0].id) : null;
 		const edgeId = selectedEdges.length > 0 ? selectedEdges[0].id : null;
 		onselectionchange?.(nodeId, edgeId);
@@ -895,6 +987,7 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 		onnodedragstop={handleNodeDragStop}
 		ondelete={handleDelete}
 		onedgecontextmenu={handleEdgeContextMenu}
+		onnodecontextmenu={handleNodeContextMenu}
 		onselectionchange={handleSelectionChange}
 		onnodeclick={handleNodeClick}
 	>
@@ -931,6 +1024,38 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 						{opt.label}
 					</button>
 				{/each}
+			</div>
+		</div>
+	{/if}
+
+	{#if nodeMenu}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="edge-menu-backdrop" onclick={closeNodeMenu}>
+			<div
+				class="edge-menu"
+				style="left: {nodeMenu.x}px; top: {nodeMenu.y}px;"
+				onclick={(e) => e.stopPropagation()}
+			>
+				<div class="edge-menu-header">Node</div>
+				<button
+					type="button"
+					class="edge-menu-item"
+					disabled={!projectActionsEnabled || !onfindneighbors}
+					title={projectActionsEnabled ? 'Find neighbors' : 'Open a project folder first'}
+					onclick={() => runNodeMenuAction('neighbors')}
+				>
+					Find neighbors…
+				</button>
+				<button
+					type="button"
+					class="edge-menu-item"
+					disabled={!projectActionsEnabled || !onfindusage}
+					title={projectActionsEnabled ? 'Find usage' : 'Open a project folder first'}
+					onclick={() => runNodeMenuAction('usage')}
+				>
+					Find usage…
+				</button>
 			</div>
 		</div>
 	{/if}
@@ -995,6 +1120,11 @@ import { makeContainment, isContainmentType, ensureContainmentEdge } from './con
 
 	.edge-menu-item:hover {
 		background: var(--color-surface-tertiary);
+	}
+
+	.edge-menu-item:disabled {
+		opacity: 0.45;
+		cursor: not-allowed;
 	}
 
 	:global(.dark) .edge-menu-item {

@@ -191,6 +191,32 @@ export function calmToFlow(
 
 	const parentIds = new Set(parentChildren.keys());
 
+	function containmentRelsFor(containerId: string): Array<{
+		uniqueId: string;
+		name: string;
+		variant: 'composed-of' | 'deployed-in';
+	}> {
+		const out: Array<{ uniqueId: string; name: string; variant: 'composed-of' | 'deployed-in' }> = [];
+		for (const rel of arch.relationships) {
+			const v = variantOf(rel['relationship-type']);
+			if (v !== 'composed-of' && v !== 'deployed-in') continue;
+			const rt = rel['relationship-type'];
+			const container =
+				v === 'composed-of' && 'composed-of' in rt
+					? rt['composed-of'].container
+					: v === 'deployed-in' && 'deployed-in' in rt
+						? rt['deployed-in'].container
+						: '';
+			if (container !== containerId) continue;
+			out.push({
+				uniqueId: rel['unique-id'],
+				name: (rel as CalmRelationship & { name?: string }).name || rel['unique-id'],
+				variant: v,
+			});
+		}
+		return out;
+	}
+
 	const nodes: Node[] = arch.nodes.map((cn: CalmNode, idx: number) => {
 		const isParent = parentIds.has(cn['unique-id']);
 		const parentId = childToParent.get(cn['unique-id']);
@@ -218,6 +244,7 @@ export function calmToFlow(
 				metadata: cn.metadata,
 				isReference,
 				calmDetails: details,
+				containmentRels: isParent ? containmentRelsFor(cn['unique-id']) : [],
 			}
 		};
 
@@ -258,11 +285,13 @@ export function calmToFlow(
 		const pairs = expandEdgePairs(cr);
 		const multi = pairs.length > 1;
 		pairs.forEach((pair, i) => {
+			const isContainment = CONTAINMENT_VARIANTS.has(pair.variant);
 			edges.push({
 				id: multi ? `${cr['unique-id']}#${i}` : cr['unique-id'],
 				source: pair.source,
 				target: pair.target,
 				type: pair.variant,
+				hidden: isContainment,
 				data: {
 					calmRelId: cr['unique-id'],
 					calmVariant: pair.variant,

@@ -34,6 +34,21 @@ export function isContainmentType(edgeType: string): boolean {
 }
 
 /**
+ * Hide composed-of / deployed-in edges on the canvas; keep connects/interacts visible.
+ * Nesting is shown via parentId boxes — the JSON relationship stays in the model.
+ */
+export function applyContainmentVisibility(edges: Edge[]): Edge[] {
+	let changed = false;
+	const next = edges.map((e) => {
+		const hidden = isContainmentType(e.type ?? '');
+		if (e.hidden === hidden) return e;
+		changed = true;
+		return { ...e, hidden };
+	});
+	return changed ? next : edges;
+}
+
+/**
  * Establishes a containment relationship between parent and child nodes.
  *
  * - Sets parentId on the child node (Svelte Flow nesting)
@@ -124,7 +139,33 @@ export function applyContainmentFromEdges(nodes: Node[], edges: Edge[]): Node[] 
 			result = makeContainment(edge.source, edge.target, result);
 		}
 	}
-	return result;
+	return syncContainmentRelData(result, edges);
+}
+
+/** Attach containment relationship summaries onto container node data (header icon). */
+export function syncContainmentRelData(nodes: Node[], edges: Edge[]): Node[] {
+	const byParent = new Map<
+		string,
+		Array<{ uniqueId: string; name: string; variant: 'composed-of' | 'deployed-in' }>
+	>();
+	for (const e of edges) {
+		if (!isContainmentType(e.type ?? '')) continue;
+		const uniqueId = String((e.data as { calmRelId?: string } | undefined)?.calmRelId ?? e.id);
+		const variant = (e.type === 'deployed-in' ? 'deployed-in' : 'composed-of') as
+			| 'composed-of'
+			| 'deployed-in';
+		const list = byParent.get(e.source) ?? [];
+		if (!list.some((r) => r.uniqueId === uniqueId)) {
+			list.push({ uniqueId, name: uniqueId, variant });
+		}
+		byParent.set(e.source, list);
+	}
+	return nodes.map((n) => {
+		const rels = byParent.get(n.id) ?? [];
+		const current = n.data?.containmentRels as unknown;
+		if (JSON.stringify(current ?? []) === JSON.stringify(rels)) return n;
+		return { ...n, data: { ...n.data, containmentRels: rels } };
+	});
 }
 
 /**
@@ -149,9 +190,11 @@ export function ensureContainmentEdge(
 			source: parentId,
 			target: childId,
 			type: variant,
+			hidden: true,
 			data: {
 				protocol: '',
 				description: '',
+				calmVariant: variant,
 			},
 		},
 	];

@@ -10,12 +10,14 @@ import {
 	readProjectRelativeText,
 	writeProjectRelativeFile,
 } from './projectFs';
+import { applyProjectTemplates } from '$lib/templates/projectTemplates';
 
 let rootHandle = $state<FileSystemDirectoryHandle | null>(null);
 let config = $state<CalmProjectConfig | null>(null);
 let configFileName = $state<string | null>(null);
 let loadError = $state<string | null>(null);
 let needsCreate = $state(false);
+let templateWarnings = $state<string[]>([]);
 
 export function getProjectRootHandle(): FileSystemDirectoryHandle | null {
 	return rootHandle;
@@ -37,12 +39,18 @@ export function projectNeedsCreate(): boolean {
 	return needsCreate;
 }
 
+export function getTemplateLoadWarnings(): string[] {
+	return templateWarnings;
+}
+
 export function clearProject(): void {
 	rootHandle = null;
 	config = null;
 	configFileName = null;
 	loadError = null;
 	needsCreate = false;
+	templateWarnings = [];
+	void applyProjectTemplates(null, null);
 }
 
 /**
@@ -56,10 +64,13 @@ export async function loadProjectFromRoot(
 	needsCreate = false;
 	config = null;
 	configFileName = null;
+	templateWarnings = [];
 
 	const files = await findRootCalmrjFiles(handle);
 	if (files.length === 0) {
 		needsCreate = true;
+		const result = await applyProjectTemplates(handle, null);
+		templateWarnings = result.warnings;
 		return 'missing';
 	}
 	if (files.length > 1) {
@@ -78,6 +89,8 @@ export async function loadProjectFromRoot(
 		config = parsed;
 		configFileName = name;
 		needsCreate = false;
+		const result = await applyProjectTemplates(handle, parsed);
+		templateWarnings = result.warnings;
 		return 'loaded';
 	} catch (e) {
 		loadError = (e as Error).message;
@@ -104,6 +117,8 @@ export async function createProjectFile(
 	configFileName = safeName;
 	needsCreate = false;
 	loadError = null;
+	const result = await applyProjectTemplates(handle, next);
+	templateWarnings = result.warnings;
 	return next;
 }
 
@@ -123,6 +138,8 @@ export async function saveProjectConfig(
 		JSON.stringify(next, null, 2) + '\n'
 	);
 	config = next;
+	const result = await applyProjectTemplates(rootHandle, next);
+	templateWarnings = result.warnings;
 }
 
 export function setRulesetEnabled(path: string, enabled: boolean): void {
@@ -160,4 +177,19 @@ export function setNeighborSearchRoots(roots: string[]): void {
 
 export function getNeighborSearchRoots(): string[] {
 	return config?.neighbors?.searchRoots ?? [];
+}
+
+/** Set project-relative templates folder (R33). Empty string removes the key. */
+export function setTemplatesDir(dir: string): void {
+	if (!config) return;
+	const trimmed = dir.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').trim();
+	if (!trimmed) {
+		const { templates: _omit, ...rest } = config;
+		config = rest;
+		return;
+	}
+	config = {
+		...config,
+		templates: { dir: trimmed },
+	};
 }

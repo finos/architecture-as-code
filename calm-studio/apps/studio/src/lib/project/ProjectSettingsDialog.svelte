@@ -8,6 +8,7 @@
 		saveProjectConfig,
 		setRulesetEnabled,
 		setNeighborSearchRoots,
+		setTemplatesDir,
 	} from '$lib/project/projectStore.svelte';
 
 	interface Props {
@@ -18,6 +19,7 @@
 
 	let newPath = $state('validation/team-rules.json');
 	let newRoot = $state('components');
+	let templatesDir = $state(getProjectConfig()?.templates?.dir ?? '');
 	let status = $state<string | null>(null);
 	let saving = $state(false);
 
@@ -48,6 +50,11 @@
 
 	async function removeSearchRoot(root: string) {
 		setNeighborSearchRoots(searchRoots.filter((r) => r !== root));
+		await persist();
+	}
+
+	async function saveTemplatesDir() {
+		setTemplatesDir(templatesDir);
 		await persist();
 	}
 
@@ -145,6 +152,25 @@
 					<input class="input" bind:value={newRoot} placeholder="components" />
 					<button type="button" class="btn" onclick={() => void addSearchRoot()} disabled={!newRoot.trim() || saving}>
 						Add folder
+					</button>
+				</div>
+			</section>
+
+			<section class="section">
+				<h3 class="section-title">Project templates</h3>
+				<p class="hint">
+					Folder of CALM template JSON files (relative to the project root). Merged with bundled
+					templates; the same <code>_template.id</code> overwrites a bundled card.
+				</p>
+				<div class="add-row">
+					<input class="input" bind:value={templatesDir} placeholder="templates" />
+					<button
+						type="button"
+						class="btn"
+						onclick={() => void saveTemplatesDir()}
+						disabled={saving}
+					>
+						Save
 					</button>
 				</div>
 			</section>

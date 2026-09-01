@@ -26,6 +26,22 @@ describe('project defaults', () => {
 		expect(isCalmProjectConfig({})).toBe(false);
 		expect(isCalmProjectConfig(null)).toBe(false);
 	});
+
+	it('accepts optional templates.dir', () => {
+		const cfg = createDefaultProjectConfig('onebank');
+		expect(
+			isCalmProjectConfig({
+				...cfg,
+				templates: { dir: 'templates' },
+			})
+		).toBe(true);
+		expect(
+			isCalmProjectConfig({
+				...cfg,
+				templates: { dir: 1 },
+			} as unknown)
+		).toBe(false);
+	});
 });
 
 describe('resolveExtractPath', () => {

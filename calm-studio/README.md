@@ -85,6 +85,25 @@ npm run dev --workspace=@calmstudio/studio
 
 Open [http://localhost:5173](http://localhost:5173).
 
+### Docker
+
+From the **monorepo root**, one command builds and serves the Studio SPA:
+
+```bash
+docker compose -f calm-studio/docker-compose.yml up --build
+```
+
+Open [http://localhost:5173](http://localhost:5173). Nginx healthcheck is on port 80 inside the container (`5173:80` on the host).
+
+The image is a static SPA. **Opening a project still uses the browser File System Access API** on your machine — the container does not mount architecture repositories.
+
+Secondary flow if you already built `apps/studio/build` locally:
+
+```bash
+docker build -f calm-studio/Dockerfile.static -t calm-studio:static ./calm-studio
+docker run --rm -p 5173:80 calm-studio:static
+```
+
 ### MCP Server
 
 Use with Claude Code:

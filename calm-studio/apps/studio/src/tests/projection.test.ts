@@ -125,10 +125,17 @@ describe('calmToFlow', () => {
 				},
 			],
 		};
-		const { nodes } = calmToFlow(arch);
+		const { nodes, edges } = calmToFlow(arch);
 		const child = nodes.find((n) => n.id === 'child-1')!;
 		expect(child.parentId).toBe('parent-1');
 		expect(child.extent).toBe('parent');
+		expect(edges).toHaveLength(1);
+		expect(edges[0].hidden).toBe(true);
+		expect(edges[0].type).toBe('composed-of');
+		const parent = nodes.find((n) => n.id === 'parent-1')!;
+		expect(parent.data.containmentRels).toEqual([
+			{ uniqueId: 'rel-1', name: 'rel-1', variant: 'composed-of' },
+		]);
 	});
 
 	test('marks reference nodes with isReference and reference-node class', () => {

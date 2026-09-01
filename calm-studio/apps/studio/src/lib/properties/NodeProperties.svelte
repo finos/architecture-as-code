@@ -30,6 +30,7 @@
 		onopenreference,
 		onextract,
 		onfindneighbors,
+		onfindusage,
 	}: {
 		node: Node;
 		/** Called once before the first mutation per selection — used to push undo snapshot. */
@@ -44,6 +45,8 @@
 		onextract?: (nodeId: string) => void;
 		/** Find project-wide neighbors (R28). */
 		onfindneighbors?: (nodeId: string) => void;
+		/** Find usages of this node in other files (R37). */
+		onfindusage?: (nodeId: string) => void;
 	} = $props();
 
 	const nd = $derived(asCalmFlowNodeData(node.data as Record<string, unknown>));
@@ -187,6 +190,17 @@
 					aria-label="Find neighbors"
 				>
 					Neighbors…
+				</button>
+			{/if}
+			{#if onfindusage}
+				<button
+					type="button"
+					class="extract-btn"
+					onclick={() => onfindusage(nd.calmId)}
+					title="Find usage across the project"
+					aria-label="Find usage"
+				>
+					Usage…
 				</button>
 			{/if}
 			{#if onextract && !isReference}

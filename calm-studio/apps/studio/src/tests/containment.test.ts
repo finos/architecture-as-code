@@ -3,8 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, test, expect } from 'vitest';
-import type { Node } from '@xyflow/svelte';
-import { makeContainment, removeContainment, isContainmentType, ensureContainmentEdge, applyContainmentFromEdges, CONTAINER_DEFAULT_WIDTH, CONTAINER_DEFAULT_HEIGHT } from '$lib/canvas/containment';
+import type { Node, Edge } from '@xyflow/svelte';
+import { makeContainment, removeContainment, isContainmentType, ensureContainmentEdge, applyContainmentFromEdges, applyContainmentVisibility, CONTAINER_DEFAULT_WIDTH, CONTAINER_DEFAULT_HEIGHT } from '$lib/canvas/containment';
 
 // ─── Fixtures ───────────────────────────────────────────────────────────────
 
@@ -194,6 +194,27 @@ describe('ensureContainmentEdge', () => {
 		const initial = ensureContainmentEdge('parent', 'child', []);
 		const again = ensureContainmentEdge('parent', 'child', initial);
 		expect(again).toHaveLength(1);
+	});
+});
+
+describe('applyContainmentVisibility', () => {
+	test('hides composed-of and deployed-in, shows connects', () => {
+		const edges: Edge[] = [
+			{ id: 'a', source: 'p', target: 'c', type: 'connects', hidden: false },
+			{ id: 'b', source: 'p', target: 'c', type: 'composed-of' },
+			{ id: 'c', source: 'p', target: 'c', type: 'deployed-in', hidden: false },
+		];
+		const next = applyContainmentVisibility(edges);
+		expect(next.find((e) => e.id === 'a')?.hidden).toBe(false);
+		expect(next.find((e) => e.id === 'b')?.hidden).toBe(true);
+		expect(next.find((e) => e.id === 'c')?.hidden).toBe(true);
+	});
+
+	test('unhides an edge when type is no longer containment', () => {
+		const edges: Edge[] = [
+			{ id: 'a', source: 'p', target: 'c', type: 'connects', hidden: true },
+		];
+		expect(applyContainmentVisibility(edges)[0]?.hidden).toBe(false);
 	});
 });
 

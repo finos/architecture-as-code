@@ -54,8 +54,8 @@
 
 	// ─── State ────────────────────────────────────────────────────────────────
 
-	const categories = getAllCategories();
-	let activeCategory = $state(categories[0] ?? 'fluxnova');
+	const categories = $derived(getAllCategories());
+	let activeCategory = $state(getAllCategories()[0] ?? 'fluxnova');
 
 	const activeTemplates = $derived(getTemplatesByCategory(activeCategory));
 

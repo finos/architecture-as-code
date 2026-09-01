@@ -26,7 +26,14 @@ import { resolveSiblingOverlaps } from '../canvas/edgeRouting/obstacleRouter';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-export type LayoutDirection = 'DOWN' | 'RIGHT' | 'UP';
+export type LayoutDirection = 'DOWN' | 'RIGHT' | 'UP' | 'RADIAL';
+
+/** Layered ELK directions (Radial ignores these). */
+export type LayeredLayoutDirection = Exclude<LayoutDirection, 'RADIAL'>;
+
+function asLayeredDirection(direction: LayoutDirection): LayeredLayoutDirection {
+	return direction === 'RADIAL' ? 'DOWN' : direction;
+}
 
 /** Position map: node unique-id -> {x, y, width?, height?} from ELK layout. */
 export type PositionMap = Map<string, { x: number; y: number; width?: number; height?: number }>;
@@ -96,14 +103,17 @@ const elk = new ELK();
  *
  * @param arch - The CALM architecture to lay out.
  * @param pinnedIds - Set of node unique-ids to exclude from layout.
- * @param direction - Layout direction: 'DOWN', 'RIGHT', 'UP'. Defaults to 'DOWN'.
+ * @param direction - Layout direction: 'DOWN', 'RIGHT', 'UP', or 'RADIAL'. Defaults to 'DOWN'.
+ * @param sizeHints - Optional measured sizes keyed by unique-id.
+ * @param centerNodeId - When direction is RADIAL and exactly one node is selected, use as center.
  * @returns A Map of node unique-id to {x, y, width?, height?} for all NON-PINNED nodes.
  */
 export async function layoutCalm(
 	arch: CalmArchitecture,
 	pinnedIds: Set<string>,
 	direction: LayoutDirection = 'DOWN',
-	sizeHints?: Map<string, { width: number; height: number }>
+	sizeHints?: Map<string, { width: number; height: number }>,
+	centerNodeId?: string | null
 ): Promise<PositionMap> {
 	const freeNodes = arch.nodes.filter((n) => !pinnedIds.has(n['unique-id']));
 	if (freeNodes.length === 0) return new Map();
@@ -276,10 +286,11 @@ export async function layoutCalm(
 			// 3. No edges (e.g., subnets with instances): use rectpacking for
 			//    horizontal row in TTB, vertical column in LTR.
 			const hasSubContainers = childArray.some((id) => parentChildren.has(id));
+			const nestedDir = asLayeredDirection(direction);
 			if (innerEdges.length > 0) {
 				const edgeDirection = hasSubContainers
-					? direction
-					: direction === 'RIGHT' ? 'DOWN' : 'RIGHT';
+					? nestedDir
+					: nestedDir === 'RIGHT' ? 'DOWN' : 'RIGHT';
 				elkNode.layoutOptions = {
 					'elk.algorithm': 'layered',
 					'elk.direction': edgeDirection,
@@ -296,7 +307,7 @@ export async function layoutCalm(
 					'elk.algorithm': 'rectpacking',
 					'elk.padding': '[top=56,left=40,bottom=40,right=40]',
 					'elk.spacing.nodeNode': '80',
-					'elk.aspectRatio': direction === 'DOWN' ? '99' : '0.01',
+					'elk.aspectRatio': asLayeredDirection(direction) === 'DOWN' ? '99' : '0.01',
 				};
 			}
 		}
@@ -339,18 +350,31 @@ export async function layoutCalm(
 		});
 	}
 
+	const radialCenter = resolveRadialCenterId(centerNodeId, childToParent, topLevelNodeIds);
+
+	const rootLayoutOptions: Record<string, string> =
+		direction === 'RADIAL'
+			? {
+					'elk.algorithm': 'radial',
+					'elk.spacing.nodeNode': '120',
+					'elk.spacing.edgeNode': '50',
+					'elk.spacing.edgeEdge': '30',
+					...(radialCenter ? { 'elk.radial.centerId': radialCenter } : {}),
+				}
+			: {
+					'elk.algorithm': 'layered',
+					'elk.direction': direction,
+					'elk.layered.spacing.nodeNodeBetweenLayers': '160',
+					'elk.spacing.nodeNode': '120',
+					'elk.spacing.edgeNode': '50',
+					'elk.spacing.edgeEdge': '30',
+					'elk.layered.spacing.edgeNodeBetweenLayers': '50',
+					'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
+				};
+
 	const graph: ElkNode = {
 		id: 'root',
-		layoutOptions: {
-			'elk.algorithm': 'layered',
-			'elk.direction': direction,
-			'elk.layered.spacing.nodeNodeBetweenLayers': '160',
-			'elk.spacing.nodeNode': '120',
-			'elk.spacing.edgeNode': '50',
-			'elk.spacing.edgeEdge': '30',
-			'elk.layered.spacing.edgeNodeBetweenLayers': '50',
-			'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-		},
+		layoutOptions: rootLayoutOptions,
 		children: topLevelNodes,
 		edges: topEdges,
 	};
@@ -487,4 +511,15 @@ function findTopLevelAncestor(nodeId: string, childToParent: Map<string, string>
 		current = childToParent.get(current)!;
 	}
 	return current;
+}
+
+/** Radial center must be a top-level (root-graph) node id. */
+function resolveRadialCenterId(
+	centerNodeId: string | null | undefined,
+	childToParent: Map<string, string>,
+	topLevelNodeIds: Set<string>
+): string | undefined {
+	if (!centerNodeId) return undefined;
+	const top = findTopLevelAncestor(centerNodeId, childToParent);
+	return topLevelNodeIds.has(top) ? top : undefined;
 }

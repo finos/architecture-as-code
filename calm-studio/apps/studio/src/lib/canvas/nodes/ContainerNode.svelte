@@ -4,9 +4,15 @@
 	import { Handle, Position, NodeResizer, type NodeProps } from '@xyflow/svelte';
 	import ValidationBadge from './ValidationBadge.svelte';
 	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
+	import ContainerRelIcon from './ContainerRelIcon.svelte';
 	import { getNodeInterfaces } from './nodeData';
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
+	const containmentRels = $derived(
+		((data as Record<string, unknown>).containmentRels as
+			| Array<{ uniqueId: string; name: string; variant: 'composed-of' | 'deployed-in' }>
+			| undefined) ?? []
+	);
 
 	let collapsed = $state((data as Record<string, unknown>).collapsed === true);
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
@@ -45,9 +51,12 @@
 		<div class="collapsed-row">
 			<div class="dot"></div>
 			<span class="label">{data.label ?? data.calmId}</span>
-			<button class="toggle" onclick={toggleCollapse} title="Expand" aria-label="Expand container">
-				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
-			</button>
+			<span class="header-right">
+				<ContainerRelIcon rels={containmentRels} />
+				<button class="toggle" onclick={toggleCollapse} title="Expand" aria-label="Expand container">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg>
+				</button>
+			</span>
 		</div>
 	</div>
 {:else}
@@ -59,9 +68,12 @@
 				<div class="dot"></div>
 				<span class="label">{data.label ?? data.calmId}</span>
 			</div>
-			<button class="toggle" onclick={toggleCollapse} title="Collapse" aria-label="Collapse container">
-				<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
-			</button>
+			<div class="header-right">
+				<ContainerRelIcon rels={containmentRels} />
+				<button class="toggle" onclick={toggleCollapse} title="Collapse" aria-label="Collapse container">
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 15l-6-6-6 6"/></svg>
+				</button>
+			</div>
 		</div>
 		<div class="body"></div>
 	</div>
@@ -88,6 +100,7 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
+		width: 100%;
 	}
 	.container.expanded {
 		width: 100%;
@@ -116,6 +129,14 @@
 		display: flex;
 		align-items: center;
 		gap: 6px;
+		min-width: 0;
+	}
+	.header-right {
+		display: flex;
+		align-items: center;
+		gap: 4px;
+		margin-left: auto;
+		flex-shrink: 0;
 	}
 	.body { flex: 1; }
 	.dot {

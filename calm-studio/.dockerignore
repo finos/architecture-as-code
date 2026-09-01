@@ -1,0 +1,14 @@
+# Used when build context is calm-studio/ (thin/static builds).
+# Multi-stage builds use the monorepo root as context — see root .dockerignore patterns below if added.
+
+**/node_modules
+**/.svelte-kit
+**/coverage
+**/playwright-report
+**/test-results
+**/*.md
+!README.md
+docs
+examples
+**/src-tauri
+**/.DS_Store

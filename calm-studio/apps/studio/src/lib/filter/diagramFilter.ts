@@ -9,13 +9,15 @@
 import type { Node, Edge } from '@xyflow/svelte';
 import { readMetadataPath, getMetadataFieldsForNodeType } from '$lib/metadata/metadataForm';
 
-export type DiagramFilterMode = 'off' | 'focus-neighbors' | 'metadata';
+export type DiagramFilterMode = 'off' | 'focus-neighbors' | 'metadata' | 'node-type';
 
 export interface DiagramFilterState {
 	mode: DiagramFilterMode;
 	/** Dot path joined, e.g. `owner` or `archimate.layer` */
 	metadataKey?: string;
 	metadataValue?: string;
+	/** Selected node-type values when mode is `node-type`. */
+	nodeTypes?: string[];
 }
 
 export const DEFAULT_DIAGRAM_FILTER: DiagramFilterState = { mode: 'off' };
@@ -158,6 +160,42 @@ export function computeMetadataMatch(
 	return { nodeIds, edgeIds };
 }
 
+function nodeTypeOf(n: Node): string {
+	return String(n.data?.calmType ?? '');
+}
+
+/** Distinct node-type values present on the current diagram. */
+export function collectNodeTypesOnDiagram(nodes: Node[]): string[] {
+	const types = new Set<string>();
+	for (const n of nodes) {
+		const t = nodeTypeOf(n);
+		if (t) types.add(t);
+	}
+	return [...types].sort((a, b) => a.localeCompare(b));
+}
+
+export function computeNodeTypeMatch(
+	nodes: Node[],
+	edges: Edge[],
+	selectedTypes: string[]
+): FogMatchSet {
+	const typeSet = new Set(selectedTypes);
+	const nodeIds = new Set<string>();
+	for (const n of nodes) {
+		if (typeSet.has(nodeTypeOf(n))) {
+			nodeIds.add(n.id);
+			nodeIds.add(nodeCalmId(n));
+		}
+	}
+	const edgeIds = new Set<string>();
+	for (const e of edges) {
+		if (nodeIds.has(e.source) && nodeIds.has(e.target)) {
+			edgeIds.add(e.id);
+		}
+	}
+	return { nodeIds, edgeIds };
+}
+
 export function computeFogMatchSet(
 	filter: DiagramFilterState,
 	nodes: Node[],
@@ -171,6 +209,9 @@ export function computeFogMatchSet(
 	if (filter.mode === 'metadata' && filter.metadataKey && filter.metadataValue) {
 		const path = filter.metadataKey.split('.');
 		return computeMetadataMatch(nodes, edges, path, filter.metadataValue);
+	}
+	if (filter.mode === 'node-type' && (filter.nodeTypes?.length ?? 0) > 0) {
+		return computeNodeTypeMatch(nodes, edges, filter.nodeTypes ?? []);
 	}
 	return null;
 }

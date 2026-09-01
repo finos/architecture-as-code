@@ -60,7 +60,7 @@ interface IndexedFile {
 	arch: CalmArchitecture;
 }
 
-function listJsonFiles(entries: ExplorerTreeEntry[]): Array<{ relativePath: string; handle: FileSystemFileHandle }> {
+export function listJsonFiles(entries: ExplorerTreeEntry[]): Array<{ relativePath: string; handle: FileSystemFileHandle }> {
 	const out: Array<{ relativePath: string; handle: FileSystemFileHandle }> = [];
 	for (const entry of entries) {
 		if (entry.kind === 'file') {

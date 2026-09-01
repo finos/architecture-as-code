@@ -30,6 +30,7 @@
 		onopenreference,
 		onextract,
 		onfindneighbors,
+		onfindusage,
 	}: {
 		selectedNode?: Node | null;
 		selectedEdge?: Edge | null;
@@ -49,6 +50,8 @@
 		onextract?: (nodeId: string) => void;
 		/** Find project-wide neighbors (R28). */
 		onfindneighbors?: (nodeId: string) => void;
+		/** Find usages of this node in other files (R37). */
+		onfindusage?: (nodeId: string) => void;
 	} = $props();
 
 	/** Prefer node when both are somehow selected. */
@@ -139,6 +142,7 @@
 						onopenreference={onopenreference}
 						onextract={readonly ? undefined : onextract}
 						onfindneighbors={onfindneighbors}
+						onfindusage={onfindusage}
 					/>
 				{:else if activeEdge}
 					<EdgeProperties

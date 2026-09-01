@@ -21,6 +21,8 @@
 		onsaveall,
 		onfindneighbors,
 		findNeighborsEnabled = false,
+		onfindusage,
+		findUsageEnabled = false,
 		onnew,
 		onvalidate,
 		onexportcalm,
@@ -47,6 +49,8 @@
 		onsaveall?: () => void;
 		onfindneighbors?: () => void;
 		findNeighborsEnabled?: boolean;
+		onfindusage?: () => void;
+		findUsageEnabled?: boolean;
 		onnew: () => void;
 		onvalidate: () => void;
 		onexportcalm: () => void;
@@ -339,6 +343,23 @@
 					<line x1="21" y1="21" x2="16.65" y2="16.65" />
 				</svg>
 				<span class="btn-label">Neighbors</span>
+			</button>
+		{/if}
+
+		{#if onfindusage}
+			<button
+				type="button"
+				class="toolbar-btn"
+				onclick={onfindusage}
+				disabled={!findUsageEnabled}
+				aria-label="Find usage of selected node"
+				title={findUsageEnabled ? 'Find usage' : 'Select a node in a project folder'}
+			>
+				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+					<circle cx="11" cy="11" r="8" />
+					<path d="M8 11h6M11 8v6" />
+				</svg>
+				<span class="btn-label">Usage</span>
 			</button>
 		{/if}
 

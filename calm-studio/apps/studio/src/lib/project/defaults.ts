@@ -62,5 +62,10 @@ export function isCalmProjectConfig(value: unknown): value is CalmProjectConfig 
 	const naming = v['naming'] as Record<string, unknown>;
 	if (typeof naming['profile'] !== 'string') return false;
 	if (!naming['patterns'] || typeof naming['patterns'] !== 'object') return false;
+	if (v['templates'] !== undefined) {
+		if (!v['templates'] || typeof v['templates'] !== 'object') return false;
+		const templates = v['templates'] as Record<string, unknown>;
+		if (typeof templates['dir'] !== 'string') return false;
+	}
 	return true;
 }

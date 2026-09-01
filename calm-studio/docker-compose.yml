@@ -1,0 +1,28 @@
+# SPDX-FileCopyrightText: 2024 CalmStudio contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# From the monorepo root:
+#   docker compose -f calm-studio/docker-compose.yml up --build
+#
+# Studio: http://localhost:5173
+#
+# Multi-stage build (Dockerfile) compiles the SPA and serves it with nginx.
+# The container serves the UI only. Opening a project uses the browser
+# File System Access API against the user's machine — architecture files
+# are not mounted into the container.
+#
+# Secondary (pre-built static files):
+#   npm run build --workspace=calm-models
+#   npm run build --workspace=@calmstudio/calm-core
+#   npm run build --workspace=@calmstudio/studio
+#   docker build -f calm-studio/Dockerfile.static -t calm-studio:static ./calm-studio
+
+services:
+  calm-studio:
+    build:
+      context: ..
+      dockerfile: calm-studio/Dockerfile
+    image: calm-studio:latest
+    ports:
+      - "5173:80"
+    restart: unless-stopped

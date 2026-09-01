@@ -95,6 +95,49 @@ export function getAllTemplates(): CalmTemplate[] {
 	return Array.from(templates.values());
 }
 
+/** Remove every registered template (bundled and project). */
+export function clearTemplateRegistry(): void {
+	templates.clear();
+}
+
+/** Restore the bundled FluxNova + OpenGRIS set (drops project-only ids). */
+export function resetToBundledTemplates(): void {
+	templates.clear();
+	initAllTemplates();
+}
+
+/**
+ * True when `value` is a project/bundled template JSON object.
+ * Requires `_template.id`, `_template.name`, `_template.category`.
+ */
+export function parseCalmTemplate(value: unknown): CalmTemplate | null {
+	if (!value || typeof value !== 'object') return null;
+	const rec = value as Record<string, unknown>;
+	const meta = rec['_template'];
+	if (!meta || typeof meta !== 'object') return null;
+	const m = meta as Record<string, unknown>;
+	if (typeof m['id'] !== 'string' || m['id'].trim() === '') return null;
+	if (typeof m['name'] !== 'string' || m['name'].trim() === '') return null;
+	if (typeof m['category'] !== 'string' || m['category'].trim() === '') return null;
+	if (!Array.isArray(rec['nodes']) || !Array.isArray(rec['relationships'])) return null;
+	const tags = Array.isArray(m['tags'])
+		? m['tags'].filter((t): t is string => typeof t === 'string')
+		: [];
+	return {
+		...(rec as unknown as CalmArchitecture),
+		_template: {
+			id: m['id'].trim(),
+			name: m['name'].trim(),
+			description: typeof m['description'] === 'string' ? m['description'] : '',
+			category: m['category'].trim(),
+			tags,
+			version: typeof m['version'] === 'string' ? m['version'] : '1.0.0',
+			author: typeof m['author'] === 'string' ? m['author'] : '',
+			sourceRef: typeof m['sourceRef'] === 'string' ? m['sourceRef'] : undefined,
+		},
+	};
+}
+
 // ─── Static imports for all 10 templates (6 FluxNova + 4 OpenGRIS) ───────────
 // SvelteKit / Vite handles JSON imports natively in the app package.
 

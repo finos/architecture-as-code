@@ -31,6 +31,7 @@
 		getProjectLoadError,
 		loadProjectFromRoot,
 		projectNeedsCreate,
+		getTemplateLoadWarnings,
 	} from '$lib/project/projectStore.svelte';
 	import CreateProjectDialog from '$lib/project/CreateProjectDialog.svelte';
 	import ProjectSettingsDialog from '$lib/project/ProjectSettingsDialog.svelte';
@@ -307,6 +308,10 @@
 		<p class="error" role="alert">{errorMessage}</p>
 	{/if}
 
+	{#each getTemplateLoadWarnings() as warning}
+		<p class="hint warning" role="status">{warning}</p>
+	{/each}
+
 	{#if !fsSupported}
 		<p class="hint">Use Chrome or Safari for project folder browsing.</p>
 	{:else if loading}
@@ -525,6 +530,11 @@
 
 	.error {
 		color: #ef4444;
+	}
+
+	.hint.warning {
+		color: #b45309;
+		background: rgba(245, 158, 11, 0.1);
 	}
 
 	.tree {

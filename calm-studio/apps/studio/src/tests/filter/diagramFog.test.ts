@@ -69,4 +69,23 @@ describe('diagramFilter', () => {
 	test('computeFogMatchSet returns null when off', () => {
 		expect(computeFogMatchSet({ mode: 'off' }, nodes, edges, 'a')).toBeNull();
 	});
+
+	test('node-type mode matches selected types and connecting edges', () => {
+		const typed: Node[] = [
+			{ id: 'a', position: { x: 0, y: 0 }, data: { calmId: 'a', calmType: 'service' } },
+			{ id: 'b', position: { x: 1, y: 0 }, data: { calmId: 'b', calmType: 'service' } },
+			{ id: 'c', position: { x: 2, y: 0 }, data: { calmId: 'c', calmType: 'database' } },
+		];
+		const match = computeFogMatchSet(
+			{ mode: 'node-type', nodeTypes: ['service'] },
+			typed,
+			edges,
+			null
+		);
+		expect(match?.nodeIds.has('a')).toBe(true);
+		expect(match?.nodeIds.has('b')).toBe(true);
+		expect(match?.nodeIds.has('c')).toBe(false);
+		expect(match?.edgeIds.has('e-ab')).toBe(true);
+		expect(match?.edgeIds.has('e-bc')).toBe(false);
+	});
 });

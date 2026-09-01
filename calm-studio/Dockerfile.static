@@ -1,0 +1,24 @@
+# SPDX-FileCopyrightText: 2024 CalmStudio contributors
+# SPDX-License-Identifier: Apache-2.0
+#
+# Serve a pre-built CalmStudio static site with nginx.
+#
+# From the monorepo root:
+#
+#   npm run build --workspace=calm-models
+#   npm run build --workspace=@calmstudio/calm-core
+#   npm run build --workspace=@calmstudio/studio
+#   docker build -f calm-studio/Dockerfile.static -t calm-studio calm-studio
+#   docker run --rm -p 5173:80 calm-studio
+#
+# For a fully self-contained (multi-stage) build, use Dockerfile instead.
+#
+
+FROM nginx:1.27-alpine
+
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/studio/build /usr/share/nginx/html
+
+EXPOSE 80
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1

@@ -47,7 +47,7 @@
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
 	import { getModelJson, getExportJson, applyFromJson, applyFromCanvas, getModel, resetModel, updateEdgeProperty } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
-	import { applyContainmentFromEdges } from '$lib/canvas/containment';
+	import { applyContainmentFromEdges, applyContainmentVisibility } from '$lib/canvas/containment';
 	import { pushSnapshot, resetHistory, undo, redo, exportHistoryState, loadHistoryState, createEmptyHistoryState } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { buildLayoutSizeHints } from '$lib/layout/layoutSizeHints';
@@ -78,12 +78,15 @@
 	import FindNeighborsDialog from '$lib/neighbors/FindNeighborsDialog.svelte';
 	import { scanProjectNeighbors, type NeighborHit } from '$lib/neighbors/findNeighbors';
 	import { addNeighborsToCanvas } from '$lib/neighbors/addNeighbors';
+	import FindUsageDialog from '$lib/usage/FindUsageDialog.svelte';
+	import { scanProjectUsage, type UsageHit } from '$lib/usage/findUsage';
 	import DiagramFilterBar from '$lib/filter/DiagramFilterBar.svelte';
 	import {
 		DEFAULT_DIAGRAM_FILTER,
 		applyFogClasses,
 		collectMetadataFilterKeys,
 		collectMetadataValuesOnDiagram,
+		collectNodeTypesOnDiagram,
 		computeFogMatchSet,
 		type DiagramFilterState,
 	} from '$lib/filter/diagramFilter';
@@ -458,6 +461,11 @@
 	let neighborsFocusId = $state<string | null>(null);
 	let neighborsSearchRoots = $state<string[]>([]);
 
+	let usageDialogOpen = $state(false);
+	let usageLoading = $state(false);
+	let usageError = $state<string | null>(null);
+	let usageHits = $state<UsageHit[]>([]);
+
 	let diagramFilter = $state<DiagramFilterState>({ ...DEFAULT_DIAGRAM_FILTER });
 	let tabFilters = $state<Record<string, DiagramFilterState>>({});
 
@@ -802,6 +810,45 @@
 		}
 	}
 
+	async function openFindUsage(focusId?: string | null): Promise<void> {
+		const id = focusId ?? selectedNodeId;
+		const root = getProjectRootHandle();
+		if (!id || !root) return;
+
+		usageDialogOpen = true;
+		usageLoading = true;
+		usageError = null;
+		usageHits = [];
+		const searchRoots = getProjectConfig()?.neighbors?.searchRoots ?? [];
+		try {
+			usageHits = await scanProjectUsage(root, id, getFileRelativePath(), { searchRoots });
+		} catch (e) {
+			usageError = e instanceof Error ? e.message : 'Failed to scan project usage';
+		} finally {
+			usageLoading = false;
+		}
+	}
+
+	async function handleUsageOpen(hit: UsageHit): Promise<void> {
+		usageDialogOpen = false;
+		const file = findFileInTree(getExplorerTree(), hit.relativePath);
+		if (!file) {
+			importError = `File not found in project: ${hit.relativePath}`;
+			return;
+		}
+		const content = await readFileContent(file);
+		const opened = await openCalmFileAfterConfirm(content, file.name, file.handle, file.relativePath);
+		if (!opened) return;
+		await tick();
+		if (hit.kind === 'node') {
+			selectedNodeId = hit.uniqueId;
+			selectedEdgeId = null;
+			canvas?.navigateToNode(hit.uniqueId);
+			return;
+		}
+		canvas?.navigateToEdge(hit.uniqueId);
+	}
+
 	function handleNeighborsConfirm(selected: NeighborHit[]): void {
 		if (!neighborsFocusId || selected.length === 0) {
 			neighborsDialogOpen = false;
@@ -1000,9 +1047,11 @@
 			? collectMetadataValuesOnDiagram(nodes, diagramFilter.metadataKey.split('.'))
 			: []
 	);
+	const diagramNodeTypes = $derived(collectNodeTypesOnDiagram(nodes));
 	const findNeighborsEnabled = $derived(
 		!!selectedNodeId && !!getProjectRootHandle()
 	);
+	const findUsageEnabled = $derived(findNeighborsEnabled);
 
 	// Derive selected node/edge objects for properties panel
 	const selectedNode = $derived(
@@ -1183,6 +1232,7 @@
 			}
 			return e;
 		});
+		edges = applyContainmentVisibility(edges);
 
 		// composed-of / deployed-in: enlarge container and fix child positions
 		nextNodes = applyContainmentFromEdges(nextNodes, edges);
@@ -1726,9 +1776,14 @@
 
 		// Size hints must match rendered label chrome — otherwise ELK packs too tight
 		const sizeHints = buildLayoutSizeHints(model, nodes);
+		const selectedCanvasNodes = nodes.filter((n) => n.selected);
+		const centerId =
+			direction === 'RADIAL' && selectedCanvasNodes.length === 1
+				? String(selectedCanvasNodes[0]?.data?.calmId ?? selectedCanvasNodes[0]?.id)
+				: null;
 
 		// Run ELK for free (unpinned) nodes
-		const elkPositions = await layoutCalm(model, pinnedIds, direction, sizeHints);
+		const elkPositions = await layoutCalm(model, pinnedIds, direction, sizeHints, centerId);
 
 		// Build final position map: ELK results + pinned node current positions
 		const finalPositions = new Map<
@@ -1870,6 +1925,8 @@
 			onsaveall={handleSaveAll}
 			onfindneighbors={() => void openFindNeighbors()}
 			findNeighborsEnabled={findNeighborsEnabled}
+			onfindusage={() => void openFindUsage()}
+			findUsageEnabled={findUsageEnabled}
 			onnew={handleNew}
 			onvalidate={handleValidate}
 			onexportcalm={handleExportCalm}
@@ -1905,6 +1962,7 @@
 			filter={diagramFilter}
 			metadataKeys={metadataFilterKeys}
 			metadataValues={metadataFilterValues}
+			nodeTypes={diagramNodeTypes}
 			hasSelection={!!selectedNodeId}
 			onchange={handleDiagramFilterChange}
 		/>
@@ -2014,6 +2072,7 @@
 										<option value="DOWN">Top to Bottom</option>
 										<option value="RIGHT">Left to Right</option>
 										<option value="UP">Hierarchical</option>
+										<option value="RADIAL">Radial</option>
 									</select>
 
 									<!-- Layout button -->
@@ -2083,6 +2142,9 @@
 										onfileimport={handleFileImport}
 										oncanvaschange={markDirty}
 										onnavigatereference={handleNavigateReference}
+										onfindneighbors={(id) => void openFindNeighbors(id)}
+										onfindusage={(id) => void openFindUsage(id)}
+										projectActionsEnabled={!!getProjectRootHandle()}
 									/>
 								{/if}
 
@@ -2118,6 +2180,7 @@
 							onopenreference={handleNavigateReference}
 							onextract={handleExtractRequest}
 							onfindneighbors={(id) => void openFindNeighbors(id)}
+							onfindusage={(id) => void openFindUsage(id)}
 							readonly={isC4Mode()}
 						/>
 					</Pane>
@@ -2191,6 +2254,16 @@
 				searchRoots={neighborsSearchRoots}
 				onconfirm={handleNeighborsConfirm}
 				oncancel={() => (neighborsDialogOpen = false)}
+			/>
+		{/if}
+
+		{#if usageDialogOpen}
+			<FindUsageDialog
+				hits={usageHits}
+				loading={usageLoading}
+				error={usageError}
+				onopen={(hit) => void handleUsageOpen(hit)}
+				oncancel={() => (usageDialogOpen = false)}
 			/>
 		{/if}
 

@@ -113,6 +113,15 @@ describe('Toolbar — button callbacks', () => {
 		await fireEvent.click(getByRole('button', { name: /open template picker/i }));
 		expect(ontemplates).toHaveBeenCalledOnce();
 	});
+
+	it('calls onfindusage when Usage button is clicked', async () => {
+		const onfindusage = vi.fn();
+		const { getByRole } = render(Toolbar, {
+			props: makeToolbarProps({ onfindusage, findUsageEnabled: true }),
+		});
+		await fireEvent.click(getByRole('button', { name: /find usage of selected node/i }));
+		expect(onfindusage).toHaveBeenCalledOnce();
+	});
 });
 
 describe('Toolbar — governance badge', () => {

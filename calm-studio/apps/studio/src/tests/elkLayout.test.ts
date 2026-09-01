@@ -147,4 +147,19 @@ describe('layoutCalm', () => {
 			}
 		}
 	});
+
+	it('RADIAL produces positions for all unpinned nodes', async () => {
+		const result = await layoutCalm(threeNodeArch, new Set(), 'RADIAL');
+		expect(result.size).toBe(3);
+		for (const pos of result.values()) {
+			expect(typeof pos.x).toBe('number');
+			expect(typeof pos.y).toBe('number');
+		}
+	});
+
+	it('RADIAL with a selected center still lays out all nodes', async () => {
+		const result = await layoutCalm(threeNodeArch, new Set(), 'RADIAL', undefined, 'b');
+		expect(result.size).toBe(3);
+		expect(result.has('b')).toBe(true);
+	});
 });

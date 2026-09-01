@@ -31,6 +31,11 @@ export interface CalmProjectNeighborsConfig {
 	searchRoots: string[];
 }
 
+/** Project template folder (R33). Path is relative to the project root. */
+export interface CalmProjectTemplatesConfig {
+	dir: string;
+}
+
 export interface CalmProjectConfig {
 	$schema?: string;
 	version: number;
@@ -43,6 +48,8 @@ export interface CalmProjectConfig {
 	diagrams: Record<string, unknown>;
 	/** Optional Find-neighbors scan roots. */
 	neighbors?: CalmProjectNeighborsConfig;
+	/** Optional folder of CALM template JSON files (R33). */
+	templates?: CalmProjectTemplatesConfig;
 }
 
 export interface NamingResolveContext {

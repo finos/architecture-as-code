@@ -5,15 +5,15 @@
 | ---------------------- | ------------------------------------------------------------------------------------------------ |
 | **Owner / DRI**        | TBD                                                                                              |
 | **Status**             | Draft                                                                                            |
-| **Version**            | 0.18                                                                                             |
-| **Last updated**       | 2026-07-26                                                                                       |
+| **Version**            | 0.19                                                                                             |
+| **Last updated**       | 2026-09-01                                                                                       |
 | **Target release**     | TBD                                                                                              |
 | **Reviewers**          | eng lead, design                                                                                 |
 | **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                       |
 | **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
 
 
-> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension pack), required fields when creating elements, and direction reversal for all relationship types.
+> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension pack), required fields when creating elements, and direction reversal for all relationship types. **BBR V7 is out of scope.**
 
 
 
@@ -34,7 +34,7 @@
 
 ## 1. Problem and context
 
-CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
+CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
 
 **Why now:** Users work with real CALM projects (multiple JSON files, cross-file references, enterprise naming like CEngineering), but must switch manually outside the studio and maintain project conventions by hand. Editor and export bugs undermine trust in the tool as the source of truth for CALM 1.2 documents.
 
@@ -67,6 +67,13 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Diagram filter / fog         | Missing — no highlight/fog by focus neighbors or metadata                                             |
 | Save all                     | Missing — save only active tab                                                                        |
 | Bulk tab close               | Missing — close one tab only; no close left/right/all                                                 |
+| Radial layout                | Missing — dropdown is layered directions only (DOWN / RIGHT / UP)                                 |
+| Project templates            | Missing — picker lists bundled templates only; `.calmrj` has no `templates.dir`                   |
+| Docker deploy                | Partial — `Dockerfile` / `Dockerfile.static` / compose exist; documented one-command path unreliable |
+| Containment edge display     | Drawn as canvas edges **and** nested boxes — duplicate visualization                              |
+| Container → relationship UI  | Missing — no header icon to load containment relationship into properties                         |
+| Fog by node-type             | Missing — R29 modes are focus neighbors and single metadata value only                            |
+| Find usage                   | Missing — no reverse lookup of reference stubs / relationship endpoints in other files            |
 
 
 
@@ -82,6 +89,7 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V3:** Speed up orientation in large projects (reveal file, fresh node list), support safe in-file node duplication, and make reference drill-down and auto-layout trustworthy on real diagrams.
 - **V4:** Persist project config in `*.calmrj` (Spectral rulesets, directory/naming conventions); **extract** a node into its own diagram file with a confirm dialog and parent stub reference.
 - **V5:** Discover **project-wide 1-hop neighbors** of the selected node and add them as references (plus relationships with preserved `unique-id`); **session-only** canvas filter/fog by focus neighbors or a single metadata value; **Save all** dirty tabs; **bulk tab close** (left / right / all) with one summary dirty dialog.
+- **V6:** Offer **Radial** auto-layout; load **project templates** from a folder in `.calmrj` (merged with bundled); ship a **documented working Docker image**; hide **containment edges** and open their properties from a **container header icon**; add **node-type** as a third fog-filter mode; **Find usage** of the selected node in other project files.
 
 **Non-goals**
 
@@ -102,6 +110,13 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Multi-hop neighbor discovery** or graph path search — V5 is 1 hop only (#24).
 - **Multi-select metadata filter values** — V5 allows a single value (#26).
 - **Moving or deleting** the source relationship from its home file when adding a neighbor — V5 **copies** the relationship into the current diagram with the same `unique-id` (#23).
+- **BBR V7** — unify layout with CALM Hub; split extensions into per-extension definitions reusable across Hub / VS Code / CLI.
+- **Replacing bundled templates** when a project folder is set — V6 **merges**; same `_template.id` overwrites the bundled entry (#30).
+- **CALM Hub in the Studio Docker stack**, image publish to GHCR/CI — V6 is Studio SPA image + docs only (#31).
+- **Mounting a host architecture repo into the container as the project folder** — File System Access stays in the **browser**; Docker only serves the SPA (#31).
+- **Deleting or rewriting** `composed-of` / `deployed-in` in JSON when hiding their canvas edges — V6 hides the **line** only (#32).
+- **Combining fog modes (AND)** — V6 node-type is a **third independent** mode, not stacked on neighbors/metadata (#33).
+- **Find usage of the current file** — scan is **other** project files only, same exclusion as R28 (#34).
 
 **Success metrics**
 
@@ -131,6 +146,12 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Fog non-matching nodes/edges on filter         | Not available           | Match highlighted; others fogged; clear ≤ 1 click   | v5   |
 | Save all dirty tabs                            | Save active only        | All dirty tabs saved (Untitled → Save As) ≤ 2 clicks| v5   |
 | Bulk close tabs (left / right / all)           | Close one at a time     | VS Code menu; one summary dirty dialog              | v5   |
+| Radial auto-layout from toolbar                | Layered directions only | Radial in same dropdown; selected node = center     | v6   |
+| Load templates from project folder             | Bundled only            | `.calmrj` `templates.dir` merged into picker        | v6   |
+| One-command Docker Studio                      | Files exist, path broken| `compose up --build` serves SPA; healthcheck green  | v6   |
+| Containment shown twice (edge + nest)          | Both visible            | Nesting only; header icon opens relationship props  | v6   |
+| Fog by node-type                               | Neighbors / metadata    | Third mode; multi-select types on diagram           | v6   |
+| Find where a node is used                      | Manual tree browse      | Dialog of stubs + rel endpoints; open + focus       | v6   |
 
 
 
@@ -162,6 +183,12 @@ CALM Studio today lets users model architecture in a single file with a palette 
 19. **UC-19 — Diagram filter / fog:** User enables filter by **focus neighbors** (selected node, 1 hop) or by **one metadata value** (keys from document header schema; values present on the diagram) → matching nodes/edges stay clear; others appear fogged. Filter is session-only; clear restores full opacity.
 20. **UC-20 — Save all:** User chooses **Save all** → every dirty tab is saved; Untitled tabs prompt Save As in sequence.
 21. **UC-21 — Bulk close tabs:** User right-clicks a tab → Close tabs to the left / Close tabs to the right / Close all → dirty targets handled in **one** summary dialog (Save all / Don't save / Cancel); Close all includes the current tab.
+22. **UC-22 — Radial layout:** User picks **Radial** in the layout dropdown and runs auto-layout → nodes arrange radially; if a node is selected it is the center, otherwise ELK chooses.
+23. **UC-23 — Project templates:** User opens a folder whose `.calmrj` sets `templates.dir` → Template picker lists bundled templates plus JSON files from that folder (same `_template` metadata); duplicate id replaces the bundled card.
+24. **UC-24 — Docker Studio:** Operator runs the documented compose/build from the monorepo root → nginx SPA is reachable with a passing healthcheck.
+25. **UC-25 — Containment without extra edges:** Nested nodes show as containers only; `composed-of` / `deployed-in` lines are hidden. User clicks the header icon → properties show that containment relationship (menu if more than one).
+26. **UC-26 — Fog by node type:** User sets filter mode **Node type**, multi-selects types present on the diagram → matching nodes stay clear; others and their edges fog. Independent of neighbors/metadata modes.
+27. **UC-27 — Find usage:** User selects a node → **Find usage** → dialog lists reference stubs and relationship endpoints in **other** project files → Open activates/opens the diagram and focuses the hit.
 
 **Not for:** Users outside officially supported browsers (**Chrome**, **Safari**). Firefox, Edge, and older versions without File System Access API — file panel unavailable, rest of studio may work with limitations.
 
@@ -462,7 +489,8 @@ When the user opens a project folder (R1), Studio looks for **exactly one** `*.c
 
 1. Enabled **Spectral** ruleset paths (relative to project root).
 2. **Directory structure + naming conventions** used by Extract (R27).
-3. Future diagram-related settings (placeholder object allowed; unused keys ignored with forward compatibility).
+3. **Templates folder** (`templates.dir`) used by the template picker (R33).
+4. Future diagram-related settings (placeholder object allowed; unused keys ignored with forward compatibility).
 
 ```json
 {
@@ -495,6 +523,7 @@ When the user opens a project folder (R1), Studio looks for **exactly one** `*.c
       }
     }
   },
+  "templates": { "dir": "templates" },
   "diagrams": {}
 }
 ```
@@ -617,7 +646,7 @@ sequenceDiagram
 1. **Focus neighbors** — requires a selected (focused) node; matches that node plus **direct** 1-hop neighbors on the **current diagram** (inbound + outbound). Nodes/edges not in the match set are fogged.
 2. **Metadata value** — pick **one** metadata key from keys defined by the extension schema(s) referenced in the document header (`$schema` / pack schema), then pick **one** value from values **actually present** on nodes currently on the diagram. Matching nodes stay clear; non-matching nodes and edges fogged.
 
-**Visual:** matching elements full opacity / emphasis; non-matching nodes **and edges** reduced opacity (fog / mist). Session-only — not written to `.calmrj` or JSON. Clear filter restores default rendering. Switching tabs clears or isolates filter per tab (engineering: per-tab session state preferred).
+**Visual:** matching elements full opacity / emphasis; non-matching nodes **and edges** reduced opacity (fog / mist). Session-only — not written to `.calmrj` or JSON. Clear filter restores default rendering. Switching tabs clears or isolates filter per tab (engineering: per-tab session state preferred). **V6 R36** adds a third independent mode (node type) — see §4.25.
 
 
 
@@ -645,6 +674,84 @@ Tab context menu (VS Code–style):
 | Close all | **All** tabs including the current / clicked tab |
 
 If the close set contains one or more dirty tabs, show **one** summary dialog listing dirty files: **Save all** / **Don't save** / **Cancel**. Save all uses R30 semantics for that subset (including Save As for Untitled). Cancel leaves all tabs unchanged. Clean tabs in the set close without prompts.
+
+
+
+### 4.21 Radial layout (P1 — BBR V6, #29)
+
+Add **Radial** as a fourth item in the existing canvas layout dropdown (same control as Top to Bottom / Left to Right / Hierarchical). Choosing Radial and clicking Auto-layout runs ELK `radial` instead of `layered`. Direction options stay layered algorithms; Radial ignores the layered direction.
+
+**Center (#29):** if exactly one node is selected on the active canvas, that node is the radial root; otherwise ELK picks the center. Nested containers keep `parentId` nesting; radial applies to the graph ELK already receives (same containment flattening rules as layered).
+
+
+
+### 4.22 Project templates (P1 — BBR V6, #30)
+
+`.calmrj` optional block:
+
+```json
+"templates": { "dir": "templates" }
+```
+
+`dir` is a project-relative folder. On Open folder / project load, scan that folder recursively for `.json` files. A file is a template when it is valid CALM JSON **and** has `_template` with at least `id`, `name`, `category` (same shape as bundled FluxNova/OpenGRIS). Invalid or non-template JSON is **skipped** with a non-blocking warning (toast or Files-panel note); project load still succeeds.
+
+**Merge (#30):** register project templates **after** bundled ones. Same `_template.id` **overwrites** the bundled entry. Empty / missing `dir` or missing folder → picker unchanged (bundled only). Template picker categories include project categories as extra tabs. Loading a template still strips `_template` before applying to the canvas (existing `loadTemplate` behavior).
+
+
+
+### 4.23 Docker deploy (P1 — BBR V6, #31)
+
+Make **one documented command** from the **monorepo root** produce a running Studio:
+
+- `docker compose -f calm-studio/docker-compose.yml up --build` (or equivalent in README)
+- Build context = monorepo root; use the **multi-stage** `calm-studio/Dockerfile` (not the pre-built `Dockerfile.static` path unless a second documented flow is explicit)
+- Serve the static SPA on the mapped port (today `5173:80`); nginx healthcheck must pass
+- README: build/run, URL, healthcheck, and the limitation that the container **serves the UI only** — opening a project still uses the **browser** File System Access API against the user’s machine
+
+Out of scope: CALM Hub in the same compose, GHCR publish, mounting architecture files into the container as a substitute for Open folder.
+
+
+
+### 4.24 Hidden containment edges (P1 — BBR V6, #32)
+
+Do **not** draw canvas edges for `composed-of` and `deployed-in`. Containment remains visible only as nested boxes (`parentId`). `connects` and `interacts` stay drawn. JSON **keeps** the containment relationships unchanged.
+
+SVG/PNG export must match the canvas (no containment lines).
+
+**Header icon** on a container node (parent with containment children):
+
+| Containment relationships on that node | Click |
+| -------------------------------------- | ----- |
+| 0 | Icon hidden or disabled |
+| 1 | Select that relationship; properties panel shows `EdgeProperties` (same as selecting the hidden edge) |
+| 2+ | Small menu: `name` or `unique-id` + variant (`composed-of` / `deployed-in`) → then same properties selection |
+
+Icon lives in the **container header**, not on child nodes. Does not mark the diagram dirty by itself (selection only).
+
+
+
+### 4.25 Node-type fog mode (P1 — BBR V6, #33)
+
+Extend R29 with a **third independent** mode (not AND with neighbors/metadata):
+
+1. Focus neighbors (V5)
+2. Metadata value (V5)
+3. **Node type** (V6) — multi-select of `node-type` values **present on the current diagram**; matching nodes stay clear; non-matching nodes **and edges** fogged
+
+Radio still includes Off. Session-only; per-tab state preferred. Clear restores full opacity.
+
+
+
+### 4.26 Find usage (P1 — BBR V6, #34)
+
+**Find usage** in toolbar **and** node context menu (same entry pattern as R28). Requires one selected node and an open project folder. Scan all project CALM files **except** the active diagram (honor `neighbors.searchRoots` when set).
+
+A **hit** is either:
+
+1. **Reference stub** — a node with the same `unique-id` **and** `details.detailed-architecture` set
+2. **Relationship endpoint** — a relationship in that file whose endpoints include the selected `unique-id` (`connects` source/destination, `composed-of` container or nodes, `deployed-in` container or nodes, `interacts` actor or nodes)
+
+Dialog lists file path, kind (`node` / `relationship`), node `name` or relationship `name`/`unique-id` and variant. Empty state: no usages in other files. Selecting a row **Open** (or double-click) opens/activates the file tab (R15/R2) and focuses: node → select + viewport (R22); relationship → select the corresponding edge (or its container if the edge is hidden by R35). Read-only — does not copy or mutate other files.
 
 
 
@@ -779,7 +886,21 @@ flowchart TB
 
 
 
-### Iteration 6 — P2
+### Iteration 6 — P1 (BBR V6 — radial, project templates, Docker, containment UI, node-type fog, find usage)
+
+
+| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
+| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R32 | As an architect I want Radial in the layout menu so hub-and-spoke diagrams lay out without layered directions.  | P1       | - [ ] **Radial** is a fourth option in the existing layout dropdown (#29) - [ ] Auto-layout uses ELK `radial` when Radial is selected - [ ] Exactly one selected node → that node is the radial center - [ ] No / multi selection → ELK chooses the center - [ ] Nested `parentId` containment preserved - [ ] Layered options (Top to Bottom / Left to Right / Hierarchical) unchanged | Open   |
+| R33 | As an architect I want templates from the project folder listed in the picker alongside bundled ones.           | P1       | - [ ] `.calmrj` optional `templates.dir` (project-relative) - [ ] Recursive scan of `.json` with `_template.id` / `name` / `category` (#30) - [ ] Registered **after** bundled; same id **overwrites** bundled - [ ] Invalid files skipped with warning; project load not blocked - [ ] Missing/empty dir → bundled only - [ ] Picker shows project categories; `loadTemplate` still strips `_template` | Open   |
+| R34 | As an operator I want a documented Docker deploy that builds and serves Studio in one command.                  | P1       | - [ ] From monorepo root: compose (or documented equivalent) **build + run** using multi-stage `calm-studio/Dockerfile` (#31) - [ ] SPA reachable on mapped port; nginx healthcheck passes - [ ] README: command, URL, healthcheck, browser-FS limitation - [ ] `Dockerfile.static` either fixed to a documented pre-build flow or clearly secondary - [ ] No Hub service, no GHCR publish in this story | Open   |
+| R35 | As an architect I want containment shown only as nested boxes, with a header icon to edit the relationship.     | P1       | - [ ] Canvas does **not** draw `composed-of` / `deployed-in` edges (#32) - [ ] Nesting via `parentId` unchanged; JSON relationships unchanged - [ ] `connects` / `interacts` still drawn - [ ] SVG/PNG matches canvas (no containment lines) - [ ] Container header icon: 1 rel → select it in properties; 2+ → menu then properties; 0 → hidden/disabled - [ ] Selection does not dirty the diagram | Open   |
+| R36 | As an architect I want to fog the diagram by node type as a third filter mode.                                  | P1       | - [ ] Third **independent** mode **Node type** next to Off / Focus neighbors / Metadata (#33) - [ ] Multi-select of `node-type` values present on the current diagram - [ ] Matching nodes clear; non-matching nodes **and edges** fogged - [ ] Session-only; Clear restores opacity; per-tab state preferred | Open   |
+| R37 | As an architect I want to find where the selected node is used in other project files and open that diagram.    | P1       | - [ ] **Find usage** in toolbar **and** node context menu (#34) - [ ] Requires one selected node + open project - [ ] Scan other project files only (same roots as R28) - [ ] Hits: reference stubs (same `unique-id` + `detailed-architecture`) **and** relationships where the id is an endpoint - [ ] Dialog: path, kind (node / relationship), name/id/variant - [ ] Open/double-click → tab + focus node or select edge (hidden containment → select via R35 icon/container) - [ ] Empty state; read-only (no writes) | Open   |
+
+
+
+### Iteration 7 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
@@ -795,6 +916,8 @@ flowchart TB
 - `details.detailed-architecture` (string, relative path) is the accepted cross-file reference approach in CALM 1.2.
 - Spectral engine used for project rulesets is compatible with `calm validate` / shared validation stack where feasible.
 - The same relationship `unique-id` may appear in more than one diagram file when neighbors are imported (intentional copy for local visibility; source of truth remains the home file until a future sync story).
+- Docker Studio is a static nginx SPA; File System Access runs in the host browser, not against the container filesystem (#31).
+- Project template files use the same `_template` envelope as bundled templates; non-conforming JSON in `templates.dir` is ignored with a warning (#30).
 
 
 
@@ -837,6 +960,7 @@ flowchart TB
 | Open folder          | Load `*.calmrj` or offer Create project (R24)                                                          |
 | **Extract to diagram** | Context menu on node → path dialog → child file + parent stub (R27)                                  |
 | **Find neighbors**     | Toolbar + node context menu → dialog → add references + copy relationships (R28)                     |
+| **Find usage**         | Toolbar + node context menu → dialog of stubs + rel endpoints in other files → open + focus (R37)    |
 | **Save all**           | Toolbar / File menu → dirty tabs only; Untitled → Save As (R30)                                      |
 
 
@@ -865,14 +989,35 @@ flowchart TB
 
 ```
 ┌─ Filter ──────────────────────────────────────────────┐
-│ ( ) Off  (•) Focus neighbors  ( ) Metadata            │
+│ ( ) Off  (•) Focus neighbors  ( ) Metadata  ( ) Type  │
 │ Metadata key: [owner ▼]  Value: [platform-team ▼]     │
+│ Node types:  ☑ service  ☑ database  ☐ actor           │
 │                                              [Clear]  │
 └───────────────────────────────────────────────────────┘
 ```
 
 - Matching nodes/edges full opacity; others fogged (including edges).
 - Session-only; not persisted.
+- **Type** mode is independent of Focus neighbors / Metadata (R36).
+
+
+
+### Find usage dialog (V6, R37)
+
+```
+┌─ Find usage ──────────────────────────────────────────┐
+│ Node: API Gateway (api-gateway)                       │
+├───────────────────────────────────────────────────────┤
+│ 📄 overview.json     node          stub               │
+│ 📄 billing.json      relationship  connects           │
+│ 📄 platform.json     relationship  composed-of        │
+├───────────────────────────────────────────────────────┤
+│                         [Cancel]  [Open selected]     │
+└───────────────────────────────────────────────────────┘
+```
+
+- Scan excludes active diagram (same roots as R28).
+- Open focuses the stub node or selects the relationship (R35 if containment edge is hidden).
 
 
 
@@ -936,6 +1081,9 @@ flowchart TB
 | Right-click tab        | Close / Close left / Close right / Close all (R31)   |
 | Close all              | Includes current tab; one summary dirty dialog (#28) |
 | **Save all**           | Dirty tabs only; Untitled → Save As (R30)            |
+| Layout dropdown        | Top to Bottom / Left to Right / Hierarchical / **Radial** (R32) |
+| **Find usage**         | Toolbar + node context menu (R37)                    |
+| Container header icon  | Load hidden containment relationship into properties (R35) |
 
 
 
@@ -1040,6 +1188,12 @@ TBD — Figma link after review.
 | **Find neighbors (V5)**        | `apps/studio/src/lib/neighbors/` (new), dialog, project scan                     | 1-hop scan excl. active file; R4 insert + copy rel same `unique-id` (R28)                       |
 | **Diagram filter/fog (V5)**    | canvas overlay / toolbar filter, edge+node opacity                               | Session focus-neighbor + single metadata filter (R29)                                           |
 | **Save all + bulk close (V5)** | TabBar context menu, `+page.svelte` save/close orchestration                     | Save dirty only; Close left/right/all + summary dialog (R30–R31)                                |
+| **Radial layout (V6)**         | `elkLayout.ts`, canvas toolbar dropdown                                          | ELK `radial`; selected node = center (#29, R32)                                                 |
+| **Project templates (V6)**     | `templates/registry.ts`, `.calmrj` `templates.dir`, TemplatePicker               | Merge after bundled; same id overwrites (#30, R33)                                              |
+| **Docker (V6)**                | `calm-studio/Dockerfile`, `docker-compose.yml`, README                           | Multi-stage from monorepo root; healthcheck; docs (#31, R34)                                    |
+| **Containment UI (V6)**        | `projection.ts` / canvas edges, container node header, `EdgeProperties`          | Hide `composed-of`/`deployed-in` lines; header icon → properties (#32, R35)                     |
+| **Node-type fog (V6)**         | canvas/toolbar filter (R29 control)                                              | Third independent mode; multi-select types on diagram (#33, R36)                                |
+| **Find usage (V6)**            | `apps/studio/src/lib/usage/` (new), reuse project scan                           | Stubs + rel endpoints excl. active file; open + focus (#34, R37)                                |
 | **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                    | TabBar, per-tab model/canvas state, FIFO limit 10, close/evict guards                           |
 | Layout                         | `apps/studio/src/routes/+page.svelte`                                          | Palette/Files toggle, TabBar, active tab → canvas + JSON                                        |
 | JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                | Fix selection + cursor; bind to active tab                                                      |
@@ -1371,6 +1525,12 @@ Extend / add:
 - `apps/studio/src/tests/filter/diagramFog.test.ts` — new (focus neighbors, metadata single value, edge fog) (V5)
 - `apps/studio/src/tests/tabs/saveAll.test.ts` — new (dirty only, Untitled Save As abort) (V5)
 - `apps/studio/src/tests/tabs/bulkClose.test.ts` — new (left/right/all, one summary dialog) (V5)
+- `apps/studio/src/tests/layout/radialLayout.test.ts` — new (ELK radial; selected node as center) (V6)
+- `apps/studio/src/tests/templates/projectTemplates.test.ts` — new (scan `templates.dir`, merge, id overwrite, skip invalid) (V6)
+- `apps/studio/src/tests/canvas/hideContainmentEdges.test.ts` — new (no composed-of/deployed-in edges; JSON unchanged) (V6)
+- `apps/studio/src/tests/canvas/containerRelIcon.test.ts` — new (1 rel select; 2+ menu) (V6)
+- `apps/studio/src/tests/filter/nodeTypeFog.test.ts` — new (third mode, multi-select types, edge fog) (V6)
+- `apps/studio/src/tests/usage/findUsage.test.ts` — new (stubs + rel endpoints, excl. active, open focus) (V6)
 - `components/EdgeProperties.test.ts` — swap direction (P1)
 - `components/MetadataForm.test.ts` — schema-driven fields, enum/required (P1)
 - `reference-readonly.test.ts` — properties locked when `detailed-architecture` set (P1)
@@ -1378,6 +1538,19 @@ Extend / add:
 
 
 ## 8. Release criteria and rollout
+
+
+
+### Definition of Done — iteration 6 (P1, BBR V6)
+
+- [ ] All acceptance criteria R32–R37 met
+- [ ] Unit tests for radial center, project templates merge/overwrite, hidden containment edges + header icon, node-type fog, find usage scan/open
+- [ ] Manual smoke: Radial with one node selected → that node at center; no selection → layout still completes
+- [ ] Manual smoke: `.calmrj` `templates.dir` with one new template + one id clash → picker shows extra card and overwritten bundled name
+- [ ] Manual smoke: `docker compose -f calm-studio/docker-compose.yml up --build` from monorepo root → SPA + healthcheck
+- [ ] Manual smoke: nested container → no containment lines; header icon opens EdgeProperties; JSON still has `composed-of`/`deployed-in`
+- [ ] Manual smoke: Node type fog multi-select → unmatched nodes/edges fogged; Clear restores
+- [ ] Manual smoke: Find usage → stub in file A + connects in file B → Open focuses each; current file not listed
 
 
 
@@ -1483,6 +1656,14 @@ Extend / add:
 | 26  | ~~Diagram filter persistence and modes~~                                     | —        | PM     | **Resolved** — session-only; focus 1-hop neighbors; single metadata value; fog nodes **and** edges (#26)     |
 | 27  | ~~Save all scope / Untitled~~                                                | —        | PM     | **Resolved** — dirty tabs only; Untitled → Save As (#27)                                                     |
 | 28  | ~~Bulk close dirty handling~~                                                | —        | PM     | **Resolved** — VS Code menu; Close all includes current; one summary dialog (#28)                            |
+| 29  | ~~Radial layout placement and center~~                                       | —        | PM     | **Resolved** — fourth dropdown item; selected node = center; else ELK chooses (#29)                          |
+| 30  | ~~Project templates vs bundled~~                                             | —        | PM     | **Resolved** — `templates.dir` in `.calmrj`; same `_template` shape; merge; same id overwrites (#30)         |
+| 31  | ~~Docker scope~~                                                             | —        | PM     | **Resolved** — working multi-stage image + docs; no Hub compose; no GHCR; browser FS limitation (#31)        |
+| 32  | ~~Containment edge hiding and property access~~                              | —        | PM     | **Resolved** — hide `composed-of` and `deployed-in`; header icon; 2+ → menu (#32)                            |
+| 33  | ~~Node-type filter vs existing fog modes~~                                   | —        | PM     | **Resolved** — third independent mode; multi-select types on diagram (#33)                                   |
+| 34  | ~~Find usage hit definition~~                                                | —        | PM     | **Resolved** — stubs (id + `detailed-architecture`) **and** relationship endpoints in other files (#34)      |
+| 35  | Docker compose context mismatch (`Dockerfile.static` vs monorepo `Dockerfile`) | Medium | eng    | Open — R34 must pick one working documented path                                                             |
+| 36  | ELK radial quality on nested containers                                      | Low    | eng    | Open — keep `parentId`; accept ELK default if nested radial is poor                                          |
 
 
 
@@ -1509,13 +1690,20 @@ Extend / add:
 | Reveal in tree          | Scroll Files panel to active tab's project file (R19)                        |
 | Relationship clone      | In-file only; rewire endpoints to new `unique-id` (R21)                      |
 | Obstacle router         | Orthogonal path around node bboxes; shared by all edge components (R23, #16) |
-| `.calmrj` / project file | JSON project config at folder root — rulesets, naming, future diagram settings (R24) |
+| `.calmrj` / project file | JSON project config at folder root — rulesets, naming, templates folder, future diagram settings (R24, R33) |
 | Extract to diagram      | Move node subgraph to new file; parent becomes `detailed-architecture` stub (R27) |
 | Naming profile          | Template map `node-type` → dir/file; default `cengineering-archimate` (R26) |
 | Find neighbors          | Project-wide 1-hop peers of selected node; add as R4 refs + copy rels (R28) |
 | Diagram fog             | Session filter: dim non-matching nodes/edges (R29)                          |
 | Save all                | Persist all dirty tabs; Untitled → Save As (R30)                            |
 | Bulk tab close          | Close left / right / all with one summary dirty dialog (R31)                |
+| Radial layout           | ELK `radial` option in the layout dropdown; selected node = center (R32)    |
+| Project templates       | `.calmrj` `templates.dir`; merge with bundled; same id overwrites (R33)     |
+| Docker Studio           | Multi-stage nginx SPA from monorepo root; documented compose (R34)          |
+| Hidden containment edge | `composed-of` / `deployed-in` not drawn; nesting remains (R35)              |
+| Container rel icon      | Header control to load containment relationship into properties (R35)       |
+| Node-type fog           | Third independent R29 mode; multi-select types (R36)                        |
+| Find usage              | Reverse lookup of stubs + relationship endpoints in other files (R37)       |
 
 
 
@@ -1538,7 +1726,13 @@ Extend / add:
 15. **V5 find neighbors** (R28) — project scan, dialog, R4 + rel copy
 16. **V5 filter/fog** (R29) — focus neighbors + metadata single value
 17. **V5 Save all + bulk close** (R30–R31) — dirty save; left/right/all
-18. **P2 desktop / watch** (R13, R14)
+18. **V6 radial** (R32) — dropdown + ELK `radial` + selected center
+19. **V6 project templates** (R33) — `.calmrj` `templates.dir` merge
+20. **V6 Docker** (R34) — compose from monorepo root + README
+21. **V6 containment UI** (R35) — hide lines; header icon → properties
+22. **V6 node-type fog** (R36) — third independent filter mode
+23. **V6 find usage** (R37) — stubs + rel endpoints; open + focus
+24. **P2 desktop / watch** (R13, R14)
 
 
 
@@ -1553,6 +1747,11 @@ Extend / add:
 - **R25 / #19:** never disable core CALM schema validation when applying project Spectral rulesets.
 - **R28 / #23:** when adding neighbors, copy relationships with the **same** `unique-id`; never delete or rewrite the source file's relationship.
 - **R29 / #26:** diagram fog is session-only — do not persist filter state to `.calmrj` or architecture JSON.
+- **R33 / #30:** project templates merge after bundled; overwrite on `_template.id` only — do not drop bundled templates when `templates.dir` is unset.
+- **R34 / #31:** do not add CALM Hub to Studio compose; document browser File System Access limitation.
+- **R35 / #32:** hide containment **edges** only — do not delete `composed-of` / `deployed-in` from the model.
+- **R36 / #33:** node-type fog is a separate mode — do not AND it with focus-neighbors or metadata.
+- **R37 / #34:** find usage is read-only; do not copy or rewrite other files.
 
 
 
@@ -1579,6 +1778,7 @@ Extend / add:
 | 2026-07-16 | 0.16    | stakeholder      | **Confirmed #16:** full obstacle-aware edge routing in R23 scope (manual placement + resize)                                                            |
 | 2026-07-21 | 0.17    | stakeholder      | **BBR V4 (lines 26–30):** R24–R27 `.calmrj`, Spectral rulesets, naming profile, extract-to-diagram; R13–R14 → Iteration 5; decisions #19–#22             |
 | 2026-07-26 | 0.18    | stakeholder      | **BBR V5 (lines 48–55):** R28–R31 find neighbors, diagram fog, Save all, bulk tab close; R13–R14 → Iteration 6; decisions #23–#28                        |
+| 2026-09-01 | 0.19    | stakeholder      | **BBR V6 (lines 58–64):** R32–R37 radial, project templates, Docker, hidden containment + header icon, node-type fog, find usage; V7 ignored; R13–R14 → Iteration 7; decisions #29–#34 |
 
 
 
@@ -1677,5 +1877,25 @@ Extend / add:
 | Save all                         | Dirty tabs only; Untitled → Save As; Cancel Save As aborts remainder (#27)                                  |
 | Bulk close                       | VS Code: left / right / all; Close all includes current; one summary dirty dialog (#28)                     |
 | Iteration priority               | V5 = Iteration 5 (P1, R28–R31); Tauri/watch R13–R14 = Iteration 6                                           |
+
+
+
+### Session decisions (2026-09-01, BBR V6)
+
+
+| Decision                         | Choice                                                                                                      |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Radial in UI                     | Fourth item in the **same** layout dropdown; not a separate algorithm selector (#29)                        |
+| Radial center                    | Exactly one selected node → that node is center; otherwise ELK chooses (#29)                                |
+| Project templates format         | Same `_template` metadata as bundled; `templates.dir` in `.calmrj` (#30)                                    |
+| Project vs bundled templates     | **Merge**; same `_template.id` overwrites bundled (#30)                                                     |
+| Docker scope                     | Working multi-stage image + README; no Hub stack; no GHCR publish (#31)                                     |
+| Docker vs Open folder            | Container serves SPA; project open stays browser File System Access (#31)                                   |
+| Hidden containment variants      | Both `composed-of` and `deployed-in`; JSON unchanged (#32)                                                  |
+| Multiple containment rels        | Header icon: 1 → properties; 2+ → menu (`name` / `unique-id` + variant) (#32)                               |
+| Node-type fog                    | Third **independent** mode; multi-select types present on the diagram (#33)                                 |
+| Find usage hits                  | Reference stubs **and** relationship endpoints in **other** files; open + focus (#34)                       |
+| BBR V7                           | Out of scope for this revision                                                                              |
+| Iteration priority               | V6 = Iteration 6 (P1, R32–R37); Tauri/watch R13–R14 = Iteration 7                                           |
 
 
