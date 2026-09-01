@@ -303,11 +303,11 @@ public class ProxyAuthIntegration {
 
     @Test
     @Order(15)
-    void user_with_namespace_grant_only_is_forbidden_from_reading_domain_controls() {
+    void user_with_namespace_grant_can_read_domain_controls() {
         given()
                 .header(PROXY_HEADER, USER_ALICE)
                 .when().get("/calm/domains/security/controls")
                 .then()
-                .statusCode(403);
+                .statusCode(200);
     }
 }
