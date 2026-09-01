@@ -17,4 +17,9 @@ public interface FlowStore {
     String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException;
     Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException;
     Flow updateFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException;
+
+    /**
+     * Deletes a flow and all of its versions.
+     */
+    void deleteFlow(String namespace, int flowId) throws NamespaceNotFoundException, FlowNotFoundException;
 }

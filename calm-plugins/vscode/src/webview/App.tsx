@@ -29,6 +29,9 @@ import {
     setStandardsLoadedCallback,
     setDrillResultCallback,
     setStandardProseCallback,
+    setDefinitionResolvedCallback,
+    setDefinitionResolutionFailedCallback,
+    setUpdatesAvailableCallback,
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
@@ -163,6 +166,13 @@ function CanvasApp() {
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
+            // Request resolution for any nodes with definition-id references
+            for (const node of layoutedNodes) {
+                const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
+                if (defId) {
+                    postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
+                }
+            }
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
@@ -187,11 +197,27 @@ function CanvasApp() {
         setStandardProseCallback((_url, prose) => {
             setActiveStandardProse(prose);
         });
+        setDefinitionResolvedCallback((nodeId, controls) => {
+            setNodes((nds) => nds.map((n) => {
+                if (n.id !== nodeId) return n;
+                const data = n.data as Record<string, unknown>;
+                // Only set controls if node doesn't already have them (from saved file)
+                const existingControls = data.controls as Record<string, unknown> | undefined;
+                const hasExisting = existingControls && Object.keys(existingControls).length > 0;
+                return { ...n, data: { ...data, controls: hasExisting ? existingControls : controls, _resolvedControls: controls } };
+            }));
+        });
+        setDefinitionResolutionFailedCallback((nodeId, error) => {
+            console.warn(`[CALM Canvas] Failed to resolve definition for node ${nodeId}: ${error}`);
+        });
+        setUpdatesAvailableCallback((updates) => {
+            useCanvasStore.setState({ availableUpdates: updates });
+        });
         initBridge();
 
         const initialJson = (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
         if (initialJson) { loadArchitecture(initialJson); setInitialized(true); }
-    }, [loadArchitecture]);
+    }, [loadArchitecture, setNodes]);
 
     // --- Undo/Redo ---
     useEffect(() => {
@@ -426,6 +452,7 @@ function CanvasApp() {
             // Building block / standard drop
             const buildingBlock = (store.buildingBlocks as any[]).find((n: any) => n.id === buildingBlockId);
             if (!buildingBlock) return;
+            const isHubSourced = !!(buildingBlock.namespace && buildingBlock.sha);
             const controlsCopy = JSON.parse(JSON.stringify(buildingBlock.controls ?? {})) as Record<string, unknown>;
 
             if (behaviour === 'apply-controls-on-drop') {
@@ -454,6 +481,12 @@ function CanvasApp() {
                     }
                 }
                 if (targetId) {
+                    // Hub-sourced standard/guideline: write a definition-id CURIE ref
+                    const stdCurieType = buildingBlock.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards';
+                    const requirementUrl = (isHubSourced && buildingBlock.sha)
+                        ? `${buildingBlock.namespace}:${stdCurieType}:${buildingBlock.id}@${buildingBlock.sha}`
+                        : undefined;
+
                     // Merge controls into target (if any) and create standards node + edge
                     setNodes((nds) => {
                         const existingStdNode = nds.find(
@@ -462,9 +495,11 @@ function CanvasApp() {
                         let stdNodeId: string;
                         let updatedNodes = nds.map((n) => {
                             if (n.id !== targetId) return n;
-                            if (Object.keys(controlsCopy).length === 0) return n;
+                            if (!isHubSourced && Object.keys(controlsCopy).length === 0) return n;
                             const data = { ...(n.data as Record<string, unknown>) };
-                            data.controls = mergeControls((data.controls as Record<string, unknown>) ?? {}, controlsCopy);
+                            if (!isHubSourced) {
+                                data.controls = mergeControls((data.controls as Record<string, unknown>) ?? {}, controlsCopy);
+                            }
                             return { ...n, data };
                         });
 
@@ -473,19 +508,24 @@ function CanvasApp() {
                         } else {
                             // Create a standards node near the drop position
                             stdNodeId = `standard-${Date.now()}`;
+                            const stdNodeData: Record<string, unknown> = {
+                                label: buildingBlock.name,
+                                calmId: stdNodeId,
+                                calmType: 'standard',
+                                description: buildingBlock.description ?? '',
+                                interfaces: [],
+                            };
+                            if (requirementUrl) {
+                                stdNodeData['definition-id'] = requirementUrl;
+                            } else {
+                                stdNodeData.controls = {};
+                                stdNodeData.metadata = { 'source-building-block': buildingBlockId };
+                            }
                             const stdNode: Node = {
                                 id: stdNodeId,
                                 type: resolveFlowNodeType('service'),
                                 position: { x: position.x + 200, y: position.y - 100 },
-                                data: {
-                                    label: buildingBlock.name,
-                                    calmId: stdNodeId,
-                                    calmType: 'standard',
-                                    description: buildingBlock.description ?? '',
-                                    interfaces: [],
-                                    controls: {},
-                                    metadata: { 'source-building-block': buildingBlockId },
-                                },
+                                data: stdNodeData,
                             };
                             updatedNodes = [...updatedNodes, stdNode];
                         }
@@ -526,21 +566,37 @@ function CanvasApp() {
             }
 
             const id = `${buildingBlock.nodeType}-${Date.now()}`;
+            const curieType = buildingBlock.behaviour === 'apply-controls-on-drop'
+                ? (buildingBlock.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards')
+                : 'building-blocks';
             const newNode: Node = {
                 id,
                 type: resolveFlowNodeType(buildingBlock.nodeType),
                 position,
-                data: {
-                    label: buildingBlock.name,
-                    calmId: id,
-                    calmType: buildingBlock.nodeType,
-                    description: buildingBlock.description ?? '',
-                    interfaces: [],
-                    controls: controlsCopy,
-                    metadata: { 'source-building-block': buildingBlock.id },
-                },
+                data: isHubSourced
+                    ? {
+                        label: buildingBlock.name,
+                        calmId: id,
+                        calmType: buildingBlock.nodeType,
+                        description: buildingBlock.description ?? '',
+                        interfaces: [],
+                        'definition-id': `${buildingBlock.namespace}:${curieType}:${buildingBlock.id}@${buildingBlock.sha}`,
+                    }
+                    : {
+                        label: buildingBlock.name,
+                        calmId: id,
+                        calmType: buildingBlock.nodeType,
+                        description: buildingBlock.description ?? '',
+                        interfaces: [],
+                        controls: controlsCopy,
+                        metadata: { 'source-building-block': buildingBlock.id },
+                    },
             };
             setNodes((nds) => [...nds, newNode]);
+            // Request resolution for Hub-sourced blocks so the webview can render controls
+            if (isHubSourced) {
+                postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
+            }
             setTimeout(() => emitChange(true), 0);
             return;
         }

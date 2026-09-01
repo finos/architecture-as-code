@@ -393,4 +393,27 @@ public class TestAdrResourceShould {
         verify(mockAdrStore, times(1)).getAdr(expectedAdrToRetrieveMeta);
     }
 
+    static Stream<Arguments> provideParametersForDeleteAdrTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new AdrNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteAdrTests")
+    void respond_correctly_to_delete_adr(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws NamespaceNotFoundException, AdrNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockAdrStore).deleteAdr(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/adrs/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockAdrStore, times(1)).deleteAdr(namespace, 12);
+    }
 }

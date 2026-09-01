@@ -1,9 +1,7 @@
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, saveManifest, resolveFilePath } from './bundle';
-import { CalmHubClient } from '@finos/calm-shared/src/hub/calm-hub-client';
-import { DocumentMetadata, extractDocumentMetadata } from '@finos/calm-shared/src/hub/document-id-utils';
-import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { CalmHubClient, DocumentMetadata, extractDocumentMetadata, initLogger, Logger } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
 
 const logger: Logger = initLogger(false, 'workspace');

@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { REFERENCE_PROPERTIES, WorkspaceManifest, resolveFilePath } from './bundle';
-import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { initLogger, Logger } from '@finos/calm-shared';
 
 const logger: Logger = initLogger(false, 'workspace');
 

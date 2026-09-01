@@ -365,6 +365,44 @@ public class TestMongoResourceMappingStoreShould {
                 () -> store.deleteMapping("invalid", ResourceType.PATTERN, "test"));
     }
 
+    // --- deleteMappingByNumericId ---
+
+    @Test
+    void delete_mapping_by_numeric_id_successfully() throws NamespaceNotFoundException {
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+
+        var deleteResult = Mockito.mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(1L);
+        when(mappingCollection.deleteOne(any(org.bson.conversions.Bson.class))).thenReturn(deleteResult);
+
+        store.deleteMappingByNumericId("finos", ResourceType.PATTERN, 42);
+
+        verify(mappingCollection).deleteOne(any(org.bson.conversions.Bson.class));
+    }
+
+    @Test
+    void not_throw_when_deleting_a_mapping_by_numeric_id_that_does_not_exist() throws NamespaceNotFoundException {
+        // Most resources have no custom-id mapping at all — this must be a silent no-op, not
+        // an error, so a resource delete can call it unconditionally.
+        when(namespaceStore.namespaceExists("finos")).thenReturn(true);
+
+        var deleteResult = Mockito.mock(com.mongodb.client.result.DeleteResult.class);
+        when(deleteResult.getDeletedCount()).thenReturn(0L);
+        when(mappingCollection.deleteOne(any(org.bson.conversions.Bson.class))).thenReturn(deleteResult);
+
+        store.deleteMappingByNumericId("finos", ResourceType.PATTERN, 999);
+
+        verify(mappingCollection).deleteOne(any(org.bson.conversions.Bson.class));
+    }
+
+    @Test
+    void throw_namespace_not_found_when_deleting_a_mapping_by_numeric_id_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists("invalid")).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteMappingByNumericId("invalid", ResourceType.PATTERN, 42));
+    }
+
     // --- Helper interfaces for Mockito generics ---
 
     private interface DocumentMongoCollection extends MongoCollection<Document> {

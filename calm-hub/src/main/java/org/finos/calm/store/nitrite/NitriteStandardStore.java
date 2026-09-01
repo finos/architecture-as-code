@@ -153,4 +153,13 @@ public class NitriteStandardStore implements StandardStore {
         namespaceStore.requireNamespace(namespace);
         requireStandardExists(namespace, standardId);
     }
+
+    @Override
+    public void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
+        LOG.info("Deleted standard with ID {} from namespace '{}'", standardId, namespace);
+    }
 }

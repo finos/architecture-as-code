@@ -157,6 +157,38 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Deletes a resource entirely: its header and every version document, under a single
+     * write lock so no concurrent read observes a header with no versions or vice versa.
+     * See {@link MongoVersionDocumentStore#deleteResource} — this is the general-purpose
+     * delete backing a DELETE endpoint, unlike {@link #deleteHeader}.
+     *
+     * @return {@code true} if a header was actually removed, {@code false} if none existed.
+     */
+    public boolean deleteResource(String namespace, int resourceId) {
+        lock.writeLock().lock();
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                return false;
+            }
+            // Materialize matches before removing — mutating the collection while its
+            // cursor is still being iterated is unsafe.
+            List<Document> versions = new ArrayList<>();
+            for (Document versionDocument : versionCollection.find(filter)) {
+                versions.add(versionDocument);
+            }
+            for (Document versionDocument : versions) {
+                versionCollection.remove(versionDocument);
+            }
+            headerCollection.remove(header);
+            return true;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Writes the first version of a newly created resource, removing the header again if
      * that fails. See {@link MongoVersionDocumentStore#createFirstVersion} — the reasoning
      * for owning this here, and for treating {@code !created} as a real failure, is the

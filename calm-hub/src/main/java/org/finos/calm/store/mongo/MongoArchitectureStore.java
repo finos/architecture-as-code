@@ -156,4 +156,12 @@ public class MongoArchitectureStore implements ArchitectureStore {
             throw new ArchitectureNotFoundException();
         }
     }
+
+    @Override
+    public void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
+    }
 }

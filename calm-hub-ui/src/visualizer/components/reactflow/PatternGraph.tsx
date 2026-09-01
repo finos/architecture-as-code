@@ -124,8 +124,9 @@ export function PatternGraph({
         const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
         sourceNodesRef.current = parsedNodes;
         sourceEdgesRef.current = parsedEdges;
-        // Precedence: an unsaved local drag always wins over the saved default,
-        // which in turn wins over the parsed auto-layout when neither is present.
+        // Precedence: a provided default layout (from document _layout or
+        // server-saved) wins over stale localStorage scratch. Scratch only
+        // applies when there is no default.
         const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
         const effectivePositions = localPositions ?? defaultLayout ?? null;
         const positionedNodes = applyPositions(parsedNodes, effectivePositions);

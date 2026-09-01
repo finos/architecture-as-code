@@ -72,10 +72,20 @@ export function flowToCalm(
             name: data.label ?? '',
             description: data.description ?? '',
         };
+        if (data['definition-id']) {
+            calmNode['definition-id'] = data['definition-id'];
+        }
         if (data.interfaces) calmNode.interfaces = data.interfaces;
-        if (data.controls) calmNode.controls = data.controls;
+        if (data.controls && Object.keys(data.controls as object).length > 0) {
+            if (data['definition-id']) {
+                // For ref-based nodes: only save requirement-url + config (strip resolved descriptions)
+                calmNode.controls = stripResolvedNoise(data.controls as Record<string, unknown>);
+            } else {
+                calmNode.controls = data.controls;
+            }
+        }
         if (data.details) calmNode.details = data.details;
-        if (data.metadata) calmNode.metadata = data.metadata;
+        if (data.metadata && !data['definition-id']) calmNode.metadata = data.metadata;
         calmNodes.push(calmNode);
     }
 
@@ -215,4 +225,26 @@ function buildRelationshipType(variant: string, source: string, target: string):
         case 'connects': return { connects: { source: { node: source }, destination: { node: target } } };
         default: return { [variant]: { source: { node: source }, destination: { node: target } } };
     }
+}
+
+function stripResolvedNoise(controls: Record<string, unknown>): Record<string, unknown> {
+    const stripped: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(controls)) {
+        const ctrl = value as Record<string, unknown> | undefined;
+        if (!ctrl) continue;
+        const clean: Record<string, unknown> = {};
+        // Keep only requirements (with requirement-url + config), drop description and other resolved fields
+        if (ctrl.requirements && Array.isArray(ctrl.requirements)) {
+            clean.requirements = (ctrl.requirements as Array<Record<string, unknown>>).map((req) => {
+                const r: Record<string, unknown> = {};
+                if (req['requirement-url']) r['requirement-url'] = req['requirement-url'];
+                if (req.config) r.config = req.config;
+                return r;
+            });
+        }
+        if (Object.keys(clean).length > 0) {
+            stripped[key] = clean;
+        }
+    }
+    return stripped;
 }

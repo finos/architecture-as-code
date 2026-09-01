@@ -23,6 +23,7 @@ const mocks = vi.hoisted(() => ({
     processExit: vi.fn(),
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
+    readFileSync: vi.fn(),
     parseDocumentLoaderConfig: vi.fn(),
     buildDocumentLoader: vi.fn(function () { return {
         loadMissingDocument: mocks.loadMissingDocument
@@ -49,6 +50,7 @@ vi.mock('mkdirp', () => ({
 vi.mock('fs', () => ({
     ...vi.importActual('fs'),
     writeFileSync: mocks.writeFileSync,
+    readFileSync: mocks.readFileSync,
 }));
 
 vi.mock('../cli', async () => ({
@@ -69,6 +71,7 @@ describe('runValidate', () => {
         process.exit = mocks.processExit as any;
 
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
+        mocks.readFileSync.mockImplementation(function () { throw new Error('file not found'); });
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation(function (filePath: string, _: string) {
             if (filePath === 'arch.json') return Promise.resolve(dummyArch);
@@ -107,7 +110,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -131,7 +134,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
-        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -159,7 +162,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedPatternPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -187,7 +190,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
-        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -211,7 +214,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -239,12 +242,35 @@ describe('runValidate', () => {
         const resolvedSchemaPath = path.resolve(process.cwd(), 'calm-timeline-schema.json');
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('timeline.json', 'timeline');
-        expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true, expect.anything());
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should pass CURIE resolver chain when calmHubUrl and assetsPath are provided', async () => {
+        const validJson = JSON.stringify({ nodes: [] });
+        mocks.readFileSync.mockReturnValue(validJson);
+
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            calmHubUrl: 'https://hub.example.com',
+            assetsPath: '/tmp/assets',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        await runValidate(options);
+
+        expect(validate).toHaveBeenCalledWith(
+            dummyArch, dummyPattern, undefined, expect.anything(), false, expect.anything()
+        );
     });
 
     it('should exit 1 when neither architecture, pattern, nor timeline is resolved', async () => {

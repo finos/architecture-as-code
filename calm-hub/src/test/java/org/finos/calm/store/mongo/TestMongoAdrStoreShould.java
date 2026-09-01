@@ -8,6 +8,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -454,5 +455,31 @@ public class TestMongoAdrStoreShould {
         // number. The loser must be told, not silently overwrite the winner.
         assertThrows(AdrRevisionExistsException.class,
                 () -> store.updateAdrStatus(adrMeta(1, null), Status.accepted));
+    }
+
+    // --- deleteAdr ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_an_adr_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteAdr(NAMESPACE, ADR_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_revisions_when_the_adr_exists() throws Exception {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteAdr(NAMESPACE, ADR_ID);
+
+        verify(versionCollection).deleteMany(any(Bson.class));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void throw_an_adr_exception_when_deleting_a_missing_adr() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThrows(AdrNotFoundException.class, () -> store.deleteAdr(NAMESPACE, ADR_ID));
     }
 }

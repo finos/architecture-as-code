@@ -238,6 +238,30 @@ public class TimelineResource {
         }
     }
 
+    @DELETE
+    @Path("{namespace}/timelines/{timelineId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a timeline",
+            description = "Deletes a timeline and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteTimeline(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("timelineId") int timelineId
+    ) {
+        try {
+            store.deleteTimeline(namespace, timelineId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting timeline", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (TimelineNotFoundException e) {
+            logger.error("Invalid timeline [{}] when deleting timeline", timelineId, e);
+            return invalidTimelineResponse(timelineId);
+        }
+        return Response.noContent().build();
+    }
+
     private Response timelineWithLocationResponse(Timeline timeline) throws URISyntaxException {
         return Response.created(new URI("/api/calm/namespaces/" + timeline.getNamespace() + "/timelines/" + timeline.getId() + "/versions/" + timeline.getDotVersion())).build();
     }

@@ -85,6 +85,7 @@ in the project.
 |---|---|
 | [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) | Roles, contribution rules, Maintainer voting, and how Maintainers are added and removed |
 | [MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) | The project-wide Maintainer roster and the Lead Maintainer |
+| [MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md) | Repository-specific maintainer guidance for review, triage, quality, releases, and onboarding in this monorepo |
 | [CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md) | Project-wide contribution guidelines |
 | [CODE_OF_CONDUCT.md](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md) | The Code of Conduct all participants are subject to |
 

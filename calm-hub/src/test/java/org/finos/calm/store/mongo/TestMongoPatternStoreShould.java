@@ -7,6 +7,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -176,6 +177,32 @@ public class TestMongoPatternStoreShould {
 
         assertThat(store.getPatternsForNamespace(NAMESPACE), contains(
                 new NamespaceResourceSummary("Pattern 7", "", 7, 0)));
+    }
+
+    // --- deletePattern ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_pattern_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deletePattern(NAMESPACE, PATTERN_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_versions_when_the_pattern_exists() throws Exception {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deletePattern(NAMESPACE, PATTERN_ID);
+
+        verify(versionCollection).deleteMany(any(Bson.class));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void throw_a_pattern_exception_when_deleting_a_missing_pattern() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThrows(PatternNotFoundException.class, () -> store.deletePattern(NAMESPACE, PATTERN_ID));
     }
 
     @Test

@@ -127,4 +127,12 @@ public class MongoStandardStore implements StandardStore {
             throw new StandardNotFoundException();
         }
     }
+
+    @Override
+    public void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
+    }
 }

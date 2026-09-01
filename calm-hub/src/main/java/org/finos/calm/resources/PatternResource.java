@@ -22,6 +22,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,6 +41,7 @@ public class PatternResource {
 
     private final PatternStore store;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(PatternResource.class);
 
@@ -47,9 +49,10 @@ public class PatternResource {
     Boolean allowPutOperations;
 
     @Inject
-    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds) {
+    public PatternResource(PatternStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -246,6 +249,31 @@ public class PatternResource {
         }
 
 
+    }
+
+    @DELETE
+    @Path("{namespace}/patterns/{patternId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a pattern",
+            description = "Deletes a pattern and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deletePattern(
+            @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("patternId") int patternId
+    ) {
+        try {
+            store.deletePattern(namespace, patternId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting pattern", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (PatternNotFoundException e) {
+            logger.error("Invalid pattern [{}] when deleting pattern", patternId, e);
+            return invalidPatternResponse(patternId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.PATTERN, patternId);
+        return Response.noContent().build();
     }
 
     private Response patternWithLocationResponse(Pattern pattern) throws URISyntaxException {

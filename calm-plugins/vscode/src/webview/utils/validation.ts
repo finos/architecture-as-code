@@ -30,9 +30,19 @@ export function validateControlConfig(
     nodeId?: string
 ): ValidationIssue[] {
     const validation = control?.metadata?.validation;
-    if (!validation) return [];
-
+    const requirementUrl = control?.requirements?.[0]?.['requirement-url'] as string | undefined;
     const value = control?.requirements?.[0]?.config?.value ?? '';
+
+    // If control has a requirement-url (CURIE) but no config value, flag as unconfigured
+    if (!validation && requirementUrl && !value) {
+        return [{
+            severity: 'error',
+            message: `Control "${controlId}" on ${scopeLabel} is not configured`,
+            nodeId,
+            controlId,
+        }];
+    }
+    if (!validation) return [];
     const allowed = validation['allowed-values'];
     const pattern = validation.pattern;
     const issues: ValidationIssue[] = [];

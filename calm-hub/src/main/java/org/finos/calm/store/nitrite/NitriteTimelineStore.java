@@ -181,4 +181,13 @@ public class NitriteTimelineStore implements TimelineStore {
         namespaceStore.requireNamespace(timeline.getNamespace());
         requireTimelineExists(timeline);
     }
+
+    @Override
+    public void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, timelineId)) {
+            throw new TimelineNotFoundException();
+        }
+        LOG.info("Deleted timeline with ID {} from namespace '{}'", timelineId, namespace);
+    }
 }

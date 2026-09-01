@@ -353,6 +353,10 @@ public class AuditRequestFilter implements ContainerResponseFilter {
                     AuditEntityType.CONTROL_CONFIGURATION, domain, outcome, responseContext);
             case "createConfigurationForVersion" -> new AuditContext(AuditEntityType.CONTROL_CONFIGURATION,
                     AuditAction.UPDATE, null, domain, uriInfo.getPathParameters().getFirst("configId"), version);
+            case "deleteControlRequirement" -> new AuditContext(AuditEntityType.CONTROL_REQUIREMENT,
+                    AuditAction.DELETE, null, domain, uriInfo.getPathParameters().getFirst("controlId"), null);
+            case "deleteControlConfiguration" -> new AuditContext(AuditEntityType.CONTROL_CONFIGURATION,
+                    AuditAction.DELETE, null, domain, uriInfo.getPathParameters().getFirst("configId"), null);
             default -> null;
         };
     }

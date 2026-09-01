@@ -5,6 +5,36 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.57.0] - 2026-08-24
+
+## [1.57.0](https://github.com/finos/architecture-as-code/compare/cli-v1.56.0...cli-v1.57.0) (2026-08-24)
+
+### chore
+
+* **deps:** update semgrep/semgrep docker digest to 6731995 ([](https://github.com/finos/architecture-as-code/commit/92ed20c6b07b93c23bc790af41738a5f193cba9d))
+* **deps:** update semgrep/semgrep docker digest to 6731995 ([](https://github.com/finos/architecture-as-code/commit/006b71634b38ff805850804a75159583b40d1885))
+
+### docs
+
+* add guidance on replying to review feedback ([](https://github.com/finos/architecture-as-code/commit/34044c3b5604f7e03f11f9198a5ecae10823c0dc))
+* correct monorepo structure in root AGENTS.md ([](https://github.com/finos/architecture-as-code/commit/fb57bcaacf32ab9650ca4ec9b76b8e0f06d6afb3))
+* correct release rules, Maven modules and CalmStudio package list ([](https://github.com/finos/architecture-as-code/commit/0da54a85c0aa8236cb5505686708c7213406c52f))
+* reword prose notes ([](https://github.com/finos/architecture-as-code/commit/0cc79cc34c83158a57b16c499e4b285b2da55a3c))
+* trim root AGENTS.md and move package guidance to its own guides ([](https://github.com/finos/architecture-as-code/commit/79cbda492b5844680639b1eee4567800fed2c3c8))
+* trim root AGENTS.md, correct structure notes, and add docs writing guidelines ([](https://github.com/finos/architecture-as-code/commit/67dab7d5907e89e796427444b462756c51d3ea1e))
+
+### feat
+
+* **cli:** add missing hub push/pull/list interface subcommands ([](https://github.com/finos/architecture-as-code/commit/88f264e8ca019ff3cdeb673f4ee276c0a63ef0f0))
+* **cli:** add missing hub push/pull/list interface subcommands ([](https://github.com/finos/architecture-as-code/commit/48f01b05261f7769b41bb3bdef30818a4d51ba28))
+* **vscode-plugin:** bug fix requirment url to be shown for free text controls (#3000) ([](https://github.com/finos/architecture-as-code/commit/86113ec509c5c16f6600afcc7ff874ba4382489a)), closes [#3000](https://github.com/finos/architecture-as-code/issues/3000)
+
+### fix
+
+* **cli:** emit POSIX-style paths in timeline references and bundle manifest ([](https://github.com/finos/architecture-as-code/commit/08c4b803851bf5283e26d241f36148c9dcdc7685))
+* **shared:** emit POSIX-style paths in generated front matter ([](https://github.com/finos/architecture-as-code/commit/d44f3a4288d357420432d097243f020e8672300b))
+* **shared:** emit POSIX-style paths in generated front matter ([](https://github.com/finos/architecture-as-code/commit/5896ec02c94cebec6b710ff332542fc9bef09ce6)), closes [#3008](https://github.com/finos/architecture-as-code/issues/3008)
+
 ## [1.56.0] - 2026-08-17
 
 ## [1.56.0](https://github.com/finos/architecture-as-code/compare/cli-v1.55.0...cli-v1.56.0) (2026-08-17)
