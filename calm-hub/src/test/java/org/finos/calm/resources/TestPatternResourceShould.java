@@ -474,4 +474,62 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(403);
     }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_namespace_is_provided_on_delete_pattern() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/fin_os/patterns/12")
+                .then()
+                .statusCode(400)
+                .body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeletePatternTests() {
+        return Stream.of(
+                Arguments.of("invalid", new NamespaceNotFoundException(), 404),
+                Arguments.of("valid", new PatternNotFoundException(), 404),
+                Arguments.of("valid", null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeletePatternTests")
+    void respond_correctly_to_delete_pattern(String namespace, Throwable exceptionToThrow, int expectedStatusCode) throws PatternNotFoundException, NamespaceNotFoundException {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockPatternStore).deletePattern(namespace, 12);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/" + namespace + "/patterns/12")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockPatternStore, times(1)).deletePattern(namespace, 12);
+    }
+
+    @Test
+    void delete_pattern_also_cleans_up_its_resource_mapping() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(204);
+
+        verify(mockResourceMappingStore, times(1)).deleteMappingByNumericId("valid", ResourceType.PATTERN, 12);
+    }
+
+    @Test
+    void not_clean_up_the_resource_mapping_when_deleting_a_missing_pattern() throws Exception {
+        doThrow(new PatternNotFoundException()).when(mockPatternStore).deletePattern("valid", 12);
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/valid/patterns/12")
+                .then()
+                .statusCode(404);
+
+        verifyNoInteractions(mockResourceMappingStore);
+    }
 }

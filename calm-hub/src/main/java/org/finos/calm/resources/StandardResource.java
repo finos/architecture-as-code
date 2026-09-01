@@ -16,6 +16,7 @@ import org.finos.calm.domain.exception.StandardVersionNotFoundException;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
+import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.StandardStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,12 +32,14 @@ public class StandardResource {
 
     private final StandardStore standardStore;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(StandardResource.class);
 
-    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds) {
+    public StandardResource(StandardStore standardStore, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.standardStore = standardStore;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -140,6 +143,27 @@ public class StandardResource {
             logger.error("Invalid namespace [{}] when retrieving standard versions", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/standards/{standardId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteStandard(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("standardId") Integer standardId
+    ) {
+        try {
+            standardStore.deleteStandard(namespace, standardId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting standard", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (StandardNotFoundException e) {
+            logger.error("Invalid standard [{}] when deleting standard", standardId, e);
+            return invalidStandardResponse(standardId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.STANDARD, standardId);
+        return Response.noContent().build();
     }
 
     private Response invalidStandardResponse(int standardId) {

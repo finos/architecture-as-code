@@ -180,4 +180,35 @@ public class MongoArchitectureIntegration {
                 .statusCode(200)
                 .body("values", hasSize(2));
     }
+
+    @Test
+    @Order(9)
+    void end_to_end_delete_an_architecture() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/1")
+                .then()
+                .statusCode(204);
+
+        // Deleting removes the whole resource, all versions included — not just the latest.
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .then()
+                .statusCode(404);
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].id", equalTo(2));
+    }
+
+    @Test
+    @Order(10)
+    void end_to_end_delete_a_missing_architecture_returns_404() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/999")
+                .then()
+                .statusCode(404);
+    }
 }

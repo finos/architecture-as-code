@@ -2,6 +2,9 @@ import axios, { Axios } from 'axios';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
 import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
+import { ResourceType } from './resource-types.js';
+
+export { ResourceType, RESOURCE_TYPES, isValidResourceType } from './resource-types.js';
 
 export interface CalmHubOptions {
     calmHubUrl?: string;
@@ -38,13 +41,6 @@ export interface HubControlSummary {
 }
 
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
-
-export type ResourceType = 'patterns' | 'architectures' | 'standards' | 'interfaces';
-export const RESOURCE_TYPES = ['patterns', 'architectures', 'standards', 'interfaces'];
-
-export function isValidResourceType(input: string): input is ResourceType {
-    return RESOURCE_TYPES.includes(input);
-}
 
 export class HubClientError extends Error {
     /**
