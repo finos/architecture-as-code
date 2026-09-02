@@ -1374,7 +1374,7 @@ create_flows() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
             "unique-id": "flow-add-update-account",
             "name": "Add or Update Account",
@@ -1383,17 +1383,17 @@ create_flows() {
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Submit Account Create/Update"
+                    "description": "Submit Account Create/Update"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "inserts or updates account"
+                    "description": "inserts or updates account"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 3,
-                    "summary": "Returns Account Create/Update Response Status",
+                    "description": "Returns Account Create/Update Response Status",
                     "direction": "destination-to-source"
                 }
             ],
@@ -1418,7 +1418,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
             "unique-id": "flow-load-list-of-accounts",
             "name": "Load List of Accounts",
@@ -1427,23 +1427,23 @@ CALMDOC
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Load list of accounts"
+                    "description": "Load list of accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "Query for all Accounts"
+                    "description": "Query for all Accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 3,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 4,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 }
             ]
