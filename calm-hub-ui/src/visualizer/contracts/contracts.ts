@@ -50,15 +50,6 @@ export type {
     ConfigSectionProps,
     AppliesToSectionProps,
 } from './controls-panel-contracts.js';
-export type {
-    FlowsPanelHeaderProps,
-    FlowCardProps,
-    FlowCardHeaderProps,
-    TransitionsListProps,
-    FlowTransitionItemProps,
-    TransitionContentProps,
-    AIGFGovernanceSectionProps,
-} from './flows-panel-contracts.js';
 
 export type {
     Decorator,
