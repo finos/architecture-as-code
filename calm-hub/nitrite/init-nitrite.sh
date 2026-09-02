@@ -1451,6 +1451,54 @@ CALMDOC
 CALMDOC
 )
     post_document "finos.traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
+
+    # FluxNova flows (namespace finos.fluxnova, drawn over the fluxnova-microservices architecture).
+    # Source of truth: examples/fluxnova/*.flow.json - keep these heredocs in sync.
+    print_status "Creating FluxNova flow: Payment Processing..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/payment-processing.json",
+  "unique-id": "flow-payment-processing",
+  "name": "Payment Processing",
+  "description": "End-to-end payment flow - API gateway receives a payment request, the engine fans out to fraud check and payment execution, then publishes a completion event.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits payment request via API gateway" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts the payment process in the engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud check worker scores the payment" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 3, "description": "Payment worker executes settlement" },
+    { "relationship-unique-id": "ms-payment-worker-to-broker", "sequence-number": 4, "description": "Payment worker publishes payment-completed event" },
+    { "relationship-unique-id": "ms-notification-worker-to-broker", "sequence-number": 5, "description": "Notification worker consumes the event and alerts the customer", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 6, "description": "Engine persists the completed process state" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Processing" "End-to-end payment flow with parallel fraud check and payment execution." "$doc"
+
+    print_status "Creating FluxNova flow: Payment Exception Handling..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/exception-handling.json",
+  "unique-id": "flow-exception-handling",
+  "name": "Payment Exception Handling",
+  "description": "A payment fails fraud scoring - the engine escalates to a human reviewer via the tasklist while simultaneously notifying the customer and logging the incident.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits high-value payment request" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts payment process in engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud worker returns HIGH risk score", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 4, "description": "Engine raises a human review task" },
+    { "relationship-unique-id": "ms-notification-worker-to-rest-api", "sequence-number": 4, "description": "Notification worker alerts the customer" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 4, "description": "Engine logs the fraud incident" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 5, "description": "Reviewer approves the payment", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 6, "description": "Payment worker settles the approved payment" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 7, "description": "Engine persists the review decision" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Exception Handling" "Fraud escalation flow with parallel human review, notification, and incident logging." "$doc"
 }
 
 # Function to create architectures

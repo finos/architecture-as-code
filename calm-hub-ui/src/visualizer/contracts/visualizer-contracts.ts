@@ -104,6 +104,13 @@ export interface ArchitectureGraphProps {
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
     onPositionsChange?: PositionsChangeHandler;
+    /**
+     * Always show the whole graph: fit on mount, fit again when the pane resizes, and
+     * lower the desktop zoom floor so a narrow pane can contain the graph. Use it for
+     * an embedded pane that sibling UI sizes, for example the flow commentary panel.
+     * Do not use it where a viewport is persisted: it discards saved pan and zoom.
+     */
+    fitToPane?: boolean;
 }
 
 /**

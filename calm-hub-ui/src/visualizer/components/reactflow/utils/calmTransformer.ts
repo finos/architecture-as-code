@@ -1,5 +1,5 @@
 import { Node, Edge } from 'reactflow';
-import { CalmArchitectureSchema, CalmNodeSchema } from '@finos/calm-models/types';
+import { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import {
     getLayoutedElements,
     createTopLevelLayout,
@@ -38,7 +38,9 @@ export function parseCALMData(
         const flowTransitions = extractFlowTransitions(flows);
         const edges = parseRelationships(relationships, flowTransitions);
 
-        return applyLayout(regularNodes, systemNodes, edges);
+        const result = applyLayout(regularNodes, systemNodes, edges);
+
+        return applyFlowStyling(result, relationships);
     } catch (error) {
         console.error('Error parsing CALM data:', error);
         return { nodes: [], edges: [] };
@@ -212,4 +214,105 @@ function combineNodes(
         ...nodesWithoutParents.filter((n) => !systemNodes.includes(n)),
         ...nodesWithParents,
     ]);
+}
+
+/**
+ * Explicit per-element flow-animation state. Set by the flow architecture view
+ * and consumed here to drive styling. State is passed explicitly rather than
+ * inferred from opacity, so opacity stays a purely visual concern.
+ */
+export type FlowVizState = 'active' | 'visited' | 'in-flow' | 'dimmed';
+
+/** A relationship augmented with the flow-animation fields the overlay adds. */
+type FlowStyledRelationship = CalmRelationshipSchema & {
+    'flow-opacity'?: number;
+    'flow-state'?: FlowVizState;
+    'flow-active-direction'?: string;
+};
+
+// Non-matching direction of a bidirectional edge is dimmed to this opacity.
+const DIMMED_DIRECTION_OPACITY = 0.15;
+const OPACITY_TRANSITION = 'opacity 0.4s ease';
+
+/** CALM's default transition direction, used when a transition omits one. */
+export const FORWARD_DIRECTION = 'source-to-destination';
+
+/**
+ * Applies flow-animation styling when the source CALM data carries a `flow-state`
+ * on its nodes/relationships, to highlight the active step and dim the rest.
+ *
+ * Direction-aware: bidirectional relationships produce a forward and a backward
+ * edge, so the active step's direction decides which of the two is highlighted.
+ */
+function applyFlowStyling(
+    result: ParsedCALMData,
+    relationships: FlowStyledRelationship[]
+): ParsedCALMData {
+    const hasFlowState = result.nodes.some(n => n.data?.['flow-state'] !== undefined);
+    if (!hasFlowState) return result;
+
+    const relMeta = new Map<string, { opacity: number; state: FlowVizState; activeDirection?: string }>();
+    relationships.forEach((r) => {
+        const state = r['flow-state'];
+        if (state !== undefined) {
+            relMeta.set(r['unique-id'] ?? '', {
+                opacity: r['flow-opacity'] ?? 1,
+                state,
+                activeDirection: r['flow-active-direction'],
+            });
+        }
+    });
+
+    const nodes = result.nodes.map(n => {
+        const state = n.data?.['flow-state'] as FlowVizState | undefined;
+        if (state === undefined) return n;
+        const opacity = (n.data?.['flow-opacity'] as number | undefined) ?? 1;
+        const isActive = state === 'active';
+        const isVisited = state === 'visited';
+        return {
+            ...n,
+            className: [n.className, isActive ? 'flow-node-active' : isVisited ? 'flow-node-visited' : ''].filter(Boolean).join(' ') || undefined,
+            data: { ...n.data, flowActive: isActive, flowVisited: isVisited },
+            style: {
+                ...n.style,
+                opacity,
+                transition: OPACITY_TRANSITION,
+            },
+        };
+    });
+
+    const edges = result.edges.map(e => {
+        const relId = e.data?.['unique-id'] ?? e.id;
+        const meta = relMeta.get(relId);
+        if (!meta) return e;
+
+        let opacity = meta.opacity;
+        let state = meta.state;
+
+        const edgeDirection = e.data?.direction;
+        if (edgeDirection && meta.activeDirection && state === 'active') {
+            const edgeIsForward = edgeDirection === 'forward';
+            const stepIsForward = meta.activeDirection === FORWARD_DIRECTION;
+            if (edgeIsForward !== stepIsForward) {
+                opacity = Math.min(opacity, DIMMED_DIRECTION_OPACITY);
+                state = 'dimmed';
+            }
+        }
+
+        const isActive = state === 'active';
+        const isVisited = state === 'visited';
+
+        return {
+            ...e,
+            className: isActive ? 'flow-edge-active' : isVisited ? 'flow-edge-visited' : undefined,
+            data: { ...e.data, flowActive: isActive, flowVisited: isVisited },
+            style: {
+                ...e.style,
+                opacity,
+                transition: OPACITY_TRANSITION,
+            },
+        };
+    });
+
+    return { nodes, edges };
 }

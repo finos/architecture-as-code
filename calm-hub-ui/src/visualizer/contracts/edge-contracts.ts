@@ -48,6 +48,10 @@ export interface EdgeData {
     direction?: 'forward' | 'backward';
     flowTransitions?: FlowTransitionEdge[];
     controls?: CalmControlsSchema;
+    /** Set by flow animation - true when this edge is in the active step. */
+    flowActive?: boolean;
+    /** Set by flow animation - true when this edge has already been visited. */
+    flowVisited?: boolean;
     metadata?: {
         aigf?: {
             'controls-applied'?: string[];

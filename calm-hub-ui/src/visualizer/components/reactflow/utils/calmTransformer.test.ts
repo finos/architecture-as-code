@@ -383,7 +383,7 @@ describe('parseCALMData', () => {
 
     describe('nested container ordering', () => {
         // 4-level deployed-in stack A > B > C > system, with the nested containers
-        // listed out of parent-first order (A, C, B, system) — the case that drops C.
+        // listed out of parent-first order (A, C, B, system) - the case that drops C.
         const data: CalmArchitectureSchema = {
             nodes: [
                 { 'unique-id': 'A', name: 'A', 'node-type': 'system' },
@@ -412,3 +412,42 @@ describe('parseCALMData', () => {
         });
     });
 });
+
+describe('parseCALMData flow animation state', () => {
+    it('drives active/visited styling from explicit flow-state, not opacity', () => {
+        const data = {
+            nodes: [
+                { 'unique-id': 'a', name: 'A', 'node-type': 'service', 'flow-state': 'active', 'flow-opacity': 1 },
+                { 'unique-id': 'b', name: 'B', 'node-type': 'service', 'flow-state': 'visited', 'flow-opacity': 0.85 },
+                { 'unique-id': 'c', name: 'C', 'node-type': 'service', 'flow-state': 'in-flow', 'flow-opacity': 1 },
+                { 'unique-id': 'd', name: 'D', 'node-type': 'service', 'flow-state': 'dimmed', 'flow-opacity': 0.1 },
+            ],
+        } as unknown as CalmArchitectureSchema;
+
+        const byId = Object.fromEntries(parseCALMData(data).nodes.map((n) => [n.id, n]));
+
+        expect(byId.a.className).toContain('flow-node-active');
+        expect(byId.a.data.flowActive).toBe(true);
+        expect(byId.b.className).toContain('flow-node-visited');
+        expect(byId.b.data.flowVisited).toBe(true);
+
+        // Regression: an in-flow node at full opacity must NOT be marked active.
+        // Previously state was inferred from opacity === 1, so idle in-flow nodes pulsed.
+        expect(byId.c.className ?? '').not.toContain('flow-node-active');
+        expect(byId.c.data.flowActive).toBe(false);
+
+        expect(byId.d.data.flowActive).toBe(false);
+        expect(byId.d.data.flowVisited).toBe(false);
+    });
+
+    it('leaves elements untouched when no flow-state is present', () => {
+        const data = {
+            nodes: [{ 'unique-id': 'a', name: 'A', 'node-type': 'service' }],
+        } as unknown as CalmArchitectureSchema;
+
+        const [node] = parseCALMData(data).nodes;
+        expect(node.data.flowActive).toBeUndefined();
+        expect(node.className).toBeUndefined();
+    });
+});
+
