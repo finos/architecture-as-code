@@ -34,7 +34,7 @@ function stepOneCompleted() {
     return screen.queryByRole('button', {name: /Look around \(completed\)/}) !== null;
 }
 
-async function runCommand(command) {
+async function runCommand(command: string) {
     const input = screen.getByLabelText('Terminal input');
     fireEvent.change(input, {target: {value: command}});
     await act(async () => {
@@ -111,7 +111,7 @@ describe('Lab', () => {
             render(<Lab />);
         });
 
-        const inFlight = {resolve: null};
+        const inFlight: {resolve: (() => void) | null} = {resolve: null};
         engine.validateArchitecture.mockImplementationOnce(
             () => new Promise((resolve) => {
                 inFlight.resolve = () => resolve(engine.okResult());
@@ -128,7 +128,7 @@ describe('Lab', () => {
         });
 
         await act(async () => {
-            inFlight.resolve();
+            inFlight.resolve!();
         });
 
         await waitFor(() => expect(screen.getByLabelText('Terminal input')).not.toBeDisabled());

@@ -9,7 +9,7 @@ export default tseslint.config(
     { ignores: ['dist', 'coverage'] },
     {
         extends: [js.configs.recommended, ...tseslint.configs.recommended],
-        files: ['**/*.{ts,tsx,js,jsx}'],
+        files: ['**/*.{ts,tsx}'],
         languageOptions: {
             ecmaVersion: 2020,
             globals: globals.browser,
@@ -24,25 +24,14 @@ export default tseslint.config(
         },
     },
     {
-        // The lab components moved over from the docs site are plain JS/JSX; the TypeScript-aware
-        // unused-vars rule does not apply to them, and only ESLint can check their JSX — there is
-        // no `checkJs`, so nothing else looks at them at all.
-        files: ['**/*.{js,jsx}'],
-        languageOptions: {
-            parserOptions: {
-                ecmaFeatures: { jsx: true },
-            },
-        },
+        files: ['**/*.tsx'],
         plugins: { react },
         settings: { react: { version: 'detect' } },
         rules: {
             ...react.configs.flat.recommended.rules,
             ...react.configs.flat['jsx-runtime'].rules,
-            // These components take plain CALM/lesson objects; TypeScript covers the new modules
-            // and prop-types would only add ceremony to the ported ones.
+            // Props are typed by TypeScript interfaces; prop-types would duplicate them.
             'react/prop-types': 'off',
-            '@typescript-eslint/no-unused-vars': 'off',
-            'no-unused-vars': 'error',
         },
     }
 );

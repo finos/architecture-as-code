@@ -76,9 +76,10 @@ export const THEME = {
  * Get the color for a specific node type
  * (ported from calm-hub-ui/src/theme/helpers.ts)
  */
-export function getNodeTypeColor(nodeType) {
+export function getNodeTypeColor(nodeType: unknown): string {
     // A live editor buffer can put a number or an object in `node-type`, so the
     // string check is load-bearing here, not defensive typing.
     const type = typeof nodeType === 'string' ? nodeType.toLowerCase() : '';
-    return THEME.colors.nodeTypes[type] || THEME.colors.nodeTypes.default;
+    const palette: Record<string, string> = THEME.colors.nodeTypes;
+    return palette[type] || THEME.colors.nodeTypes.default;
 }

@@ -1,13 +1,30 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/edgeFactory.ts (commit 705f4a14).
 // Keep logic in sync until the shared renderer package extraction.
 
-import { MarkerType } from 'reactflow';
+import { Edge, MarkerType } from 'reactflow';
 import { toDisplayText } from './calmHelpers';
+
+/**
+ * Configuration for creating a ReactFlow edge. `label` is `unknown` where the
+ * Hub original says `string`: the lab feeds it values read straight from the
+ * live editor buffer, and coerces below.
+ */
+export interface EdgeConfig {
+    id: string;
+    source: string;
+    target: string;
+    label: unknown;
+    color: string;
+    animated?: boolean;
+    dashed?: boolean;
+    markerPosition?: 'end' | 'start';
+    data: Record<string, unknown>;
+}
 
 /**
  * Creates a ReactFlow edge with consistent styling
  */
-export function createEdge(config) {
+export function createEdge(config: EdgeConfig): Edge {
     const {
         id,
         source,
@@ -28,7 +45,7 @@ export function createEdge(config) {
         edgeData.protocol = toDisplayText(edgeData.protocol);
     }
 
-    const edge = {
+    const edge: Edge = {
         id,
         source,
         target,
@@ -59,7 +76,7 @@ export function createEdge(config) {
             height: 25,
             // ReactFlow types don't include 'orient' but it's valid SVG
             orient: 'auto-start-reverse',
-        };
+        } as typeof edge.markerStart;
     }
 
     return edge;

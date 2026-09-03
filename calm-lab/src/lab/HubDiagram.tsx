@@ -6,8 +6,8 @@
  * canvas always mounts at a measurable size and fits itself on open.
  */
 
-import React, {useEffect, useMemo, useRef} from 'react';
-import ReactFlow, {Background, Controls, useNodesState, useEdgesState} from 'reactflow';
+import {useEffect, useMemo, useRef} from 'react';
+import ReactFlow, {Background, Controls, useNodesState, useEdgesState, type ReactFlowInstance} from 'reactflow';
 import 'reactflow/dist/style.css';
 import clsx from 'clsx';
 import styles from './lab.module.css';
@@ -24,7 +24,7 @@ const edgeTypes = {custom: HubFloatingEdge};
 // a dense graph (TraderX) must be allowed to fit fully zoomed-out.
 const FIT_VIEW_OPTIONS = {padding: 0.2, minZoom: 0.1, maxZoom: 1.2};
 
-export default function HubDiagram({jsonText}) {
+export default function HubDiagram({jsonText}: {jsonText: string}) {
     const doc = useMemo(() => {
         try {
             return JSON.parse(jsonText);
@@ -37,7 +37,7 @@ export default function HubDiagram({jsonText}) {
 
     const [nodes, setNodes, onNodesChange] = useNodesState(parsed.nodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(parsed.edges);
-    const flowRef = useRef(null);
+    const flowRef = useRef<ReactFlowInstance | null>(null);
 
     useEffect(() => {
         setNodes(parsed.nodes);

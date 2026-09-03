@@ -5,11 +5,18 @@
 // showing the relationship description plus a mono protocol chip.
 // Keep logic in sync until the shared renderer package extraction.
 
-import React, {useCallback} from 'react';
-import {getBezierPath, EdgeLabelRenderer, useStore} from 'reactflow';
+import {useCallback} from 'react';
+import {getBezierPath, EdgeLabelRenderer, useStore, type EdgeProps} from 'reactflow';
 import clsx from 'clsx';
 import styles from './lab.module.css';
 import {getEdgeParams} from './hubRenderer/floatingEdges';
+
+/** What edgeFactory puts on `edge.data` (the Hub's EdgeData lives in its contracts module). */
+interface LabEdgeData {
+    description?: string;
+    protocol?: string;
+    direction?: 'forward' | 'backward';
+}
 
 export default function HubFloatingEdge({
     id,
@@ -19,7 +26,7 @@ export default function HubFloatingEdge({
     markerEnd,
     markerStart,
     data,
-}) {
+}: EdgeProps<LabEdgeData>) {
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
     const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
 
@@ -77,7 +84,7 @@ export default function HubFloatingEdge({
 /**
  * Calculate offset positions for bidirectional edges
  */
-function calculateOffsetPositions(sx, sy, tx, ty, offset, direction) {
+function calculateOffsetPositions(sx: number, sy: number, tx: number, ty: number, offset: number, direction: string | undefined) {
     if (offset === 0) {
         return {
             adjustedSourceX: sx,

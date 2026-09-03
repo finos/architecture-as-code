@@ -2,6 +2,7 @@
 // Keep logic in sync until the shared renderer package extraction.
 
 import dagre from '@dagrejs/dagre';
+import type { Node, Edge } from 'reactflow';
 import { GRAPH_LAYOUT } from './constants';
 
 /**
@@ -10,15 +11,15 @@ import { GRAPH_LAYOUT } from './constants';
  * This lets nested container nodes be laid out at their true size rather than
  * being treated as a standard 250x100 node.
  */
-export function getNodeWidth(node) {
-    return node.width ?? node.style?.width ?? GRAPH_LAYOUT.NODE_WIDTH;
+export function getNodeWidth(node: Node): number {
+    return (node.width as number) ?? (node.style?.width as number) ?? GRAPH_LAYOUT.NODE_WIDTH;
 }
 
 /**
  * Returns the effective height of a node (see {@link getNodeWidth}).
  */
-export function getNodeHeight(node) {
-    return node.height ?? node.style?.height ?? GRAPH_LAYOUT.NODE_HEIGHT;
+export function getNodeHeight(node: Node): number {
+    return (node.height as number) ?? (node.style?.height as number) ?? GRAPH_LAYOUT.NODE_HEIGHT;
 }
 
 /**
@@ -26,10 +27,10 @@ export function getNodeHeight(node) {
  * `parentId` chain (0 for a top-level node). `byId` must map every id that can
  * appear in a chain. Cycle-safe via the `seen` guard.
  */
-function nodeDepth(node, byId) {
+function nodeDepth(node: Node, byId: Map<string, Node>): number {
     let d = 0;
-    let current = node;
-    const seen = new Set();
+    let current: Node | undefined = node;
+    const seen = new Set<string>();
     while (current?.parentId && byId.has(current.parentId) && !seen.has(current.id)) {
         seen.add(current.id);
         d++;
@@ -44,7 +45,7 @@ function nodeDepth(node, byId) {
  * container can only be sized correctly once its inner container children
  * already know their own dimensions.
  */
-export function sortContainersDeepestFirst(containers) {
+export function sortContainersDeepestFirst(containers: Node[]): Node[] {
     const byId = new Map(containers.map((c) => [c.id, c]));
     return [...containers].sort((a, b) => nodeDepth(b, byId) - nodeDepth(a, byId));
 }
@@ -55,7 +56,7 @@ export function sortContainersDeepestFirst(containers) {
  * the array, otherwise nested group children are dropped or mispositioned.
  * Returns a new array; the input is not mutated. Stable for equal depths.
  */
-export function sortNodesParentsBeforeChildren(nodes) {
+export function sortNodesParentsBeforeChildren(nodes: Node[]): Node[] {
     const byId = new Map(nodes.map((n) => [n.id, n]));
     return [...nodes].sort((a, b) => nodeDepth(a, byId) - nodeDepth(b, byId));
 }
@@ -64,7 +65,7 @@ export function sortNodesParentsBeforeChildren(nodes) {
  * Calculates the bounding box of child nodes, respecting each child's actual
  * dimensions so that nested container children are fully enclosed.
  */
-export function calculateChildBounds(children) {
+export function calculateChildBounds(children: Node[]): { minX: number; minY: number; maxX: number; maxY: number } {
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -83,7 +84,7 @@ export function calculateChildBounds(children) {
 /**
  * Applies Dagre layout to nodes and edges
  */
-export function getLayoutedElements(nodes, edges) {
+export function getLayoutedElements(nodes: Node[], edges: Edge[]): { nodes: Node[]; edges: Edge[] } {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
@@ -124,7 +125,7 @@ export function getLayoutedElements(nodes, edges) {
 /**
  * Creates a top-level layout for nodes including system nodes
  */
-export function createTopLevelLayout(topLevelNodes, topLevelEdges) {
+export function createTopLevelLayout(topLevelNodes: Node[], topLevelEdges: Edge[]): Map<string, { x: number; y: number }> {
     const dagreGraph = new dagre.graphlib.Graph();
     dagreGraph.setDefaultEdgeLabel(() => ({}));
     dagreGraph.setGraph({
@@ -146,7 +147,7 @@ export function createTopLevelLayout(topLevelNodes, topLevelEdges) {
 
     dagre.layout(dagreGraph);
 
-    const positions = new Map();
+    const positions = new Map<string, { x: number; y: number }>();
     topLevelNodes.forEach((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
         positions.set(node.id, {
@@ -174,7 +175,7 @@ export function createTopLevelLayout(topLevelNodes, topLevelEdges) {
  * Used by both ArchitectureGraph and PatternGraph to reflow groups during and
  * after a drag. Returns a new array; the input nodes are not mutated.
  */
-export function reflowContainersToFitChildren(nodes) {
+export function reflowContainersToFitChildren(nodes: Node[]): Node[] {
     const padding = GRAPH_LAYOUT.SYSTEM_NODE_PADDING;
 
     // Shallow-clone nodes (and the fields we mutate) so callers' state is untouched.
@@ -188,7 +189,7 @@ export function reflowContainersToFitChildren(nodes) {
     // overall rather than filtering all nodes per container (this runs on every
     // drag frame). The arrays hold the same working-node references, so an inner
     // container's mutations are seen when its parent is reflowed.
-    const childrenByParent = new Map();
+    const childrenByParent = new Map<string, Node[]>();
     working.forEach((n) => {
         if (!n.parentId) return;
         const siblings = childrenByParent.get(n.parentId);

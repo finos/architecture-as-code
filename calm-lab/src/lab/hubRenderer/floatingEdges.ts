@@ -1,11 +1,11 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/floatingEdges.ts (commit f0597f8d).
 // Keep logic in sync until the shared renderer package extraction.
 
-import { Position } from 'reactflow';
+import { Position, Node } from 'reactflow';
 
 // Helper function to calculate the intersection point of a line from the center of one node to another
 // with the node's bounding box
-function getNodeIntersection(intersectionNode, targetNode) {
+function getNodeIntersection(intersectionNode: Node, targetNode: Node) {
     const {
         width: intersectionNodeWidth,
         height: intersectionNodeHeight,
@@ -37,7 +37,7 @@ function getNodeIntersection(intersectionNode, targetNode) {
 }
 
 // Get the position (top, right, bottom, left) of the intersection point on the node
-function getEdgePosition(node, intersectionPoint) {
+function getEdgePosition(node: Node, intersectionPoint: { x: number; y: number } | null) {
     if (!intersectionPoint || !node.positionAbsolute) return Position.Top;
 
     const nx = node.positionAbsolute.x;
@@ -56,12 +56,14 @@ function getEdgePosition(node, intersectionPoint) {
     };
 
     return Object.keys(distances).reduce((minPos, pos) => {
-        return distances[pos] < distances[minPos] ? pos : minPos;
-    }, Position.Top);
+        const currentPos = pos as unknown as Position;
+        const minPosition = minPos as Position;
+        return distances[currentPos] < distances[minPosition] ? currentPos : minPos;
+    }, Position.Top) as Position;
 }
 
 // Main function to calculate edge parameters for floating edges
-export function getEdgeParams(source, target) {
+export function getEdgeParams(source: Node, target: Node) {
     const sourceIntersectionPoint = getNodeIntersection(source, target);
     const targetIntersectionPoint = getNodeIntersection(target, source);
 

@@ -1,6 +1,6 @@
 /**
  * Lesson content and progress checks for the learning lab.
- * Checks are pure functions of a state snapshot assembled by Lab.jsx:
+ * Checks are pure functions of a state snapshot assembled by Lab.tsx:
  *   {doc, validation, hasValidatedOk}
  * They are deliberately state-based rather than event-ordered: they
  * look at what the SAVED workspace contains right now, so the order in

@@ -4,13 +4,12 @@
 // and control chrome; node-type colour accents come from the ported THEME.
 // Keep logic in sync until the shared renderer package extraction.
 
-import React from 'react';
-import {Handle, Position} from 'reactflow';
+import {Handle, Position, type NodeProps} from 'reactflow';
 import styles from './lab.module.css';
 import {extractNodeType, toDisplayText} from './hubRenderer/calmHelpers';
 import {getNodeTypeColor} from './hubRenderer/theme';
 
-export default function HubCustomNode({data}) {
+export default function HubCustomNode({data}: NodeProps) {
     const nodeType = toDisplayText(extractNodeType(data)) || 'unknown';
     const color = getNodeTypeColor(nodeType);
 

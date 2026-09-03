@@ -1,16 +1,32 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, type KeyboardEvent} from 'react';
 import styles from './lab.module.css';
+import type {Line, CompletionResult} from '../shell';
 
-const WELCOME_LINE = {text: 'CALM learning lab — type `help` to get started.', kind: 'dim'};
+/** A shell Line plus the terminal's own kinds: the echoed command row and its pending marker. */
+interface TermLine {
+    text: string;
+    kind: Line['kind'] | 'cmd';
+    promptCwd?: string;
+    pending?: boolean;
+}
 
-function shortPath(cwd) {
+interface TerminalProps {
+    cwd: string;
+    onRun(input: string): Promise<Line[] | undefined> | Line[] | undefined;
+    onComplete?(input: string, caret: number | undefined): CompletionResult | null;
+    chromeless?: boolean;
+}
+
+const WELCOME_LINE: TermLine = {text: 'CALM learning lab — type `help` to get started.', kind: 'dim'};
+
+function shortPath(cwd: string): string {
     if (cwd === '/workspace') {
         return '~';
     }
     return cwd.startsWith('/workspace/') ? '~' + cwd.slice('/workspace'.length) : cwd;
 }
 
-function Prompt({cwd}) {
+function Prompt({cwd}: {cwd: string}) {
     return (
         <>
             <span className={styles.promptUser}>learner@calm-lab</span>
@@ -21,15 +37,15 @@ function Prompt({cwd}) {
     );
 }
 
-export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
-    const [lines, setLines] = useState([WELCOME_LINE]);
+export default function Terminal({cwd, onRun, onComplete, chromeless = false}: TerminalProps) {
+    const [lines, setLines] = useState<TermLine[]>([WELCOME_LINE]);
     const [input, setInput] = useState('');
-    const [history, setHistory] = useState([]);
+    const [history, setHistory] = useState<string[]>([]);
     const [busy, setBusy] = useState(false);
     const historyPos = useRef(-1);
-    const scrollRef = useRef(null);
-    const inputRef = useRef(null);
-    const paneRef = useRef(null);
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    const inputRef = useRef<HTMLInputElement | null>(null);
+    const paneRef = useRef<HTMLDivElement | null>(null);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -68,12 +84,12 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
         historyPos.current = -1;
         setInput('');
         setBusy(true);
-        let result = [];
+        let result: Line[] = [];
         try {
             result = (await onRun(value)) || [];
         } catch (error) {
             // Without this the `…` placeholder would stay on screen forever.
-            result = [{text: 'error: ' + (error?.message ?? String(error)), kind: 'err'}];
+            result = [{text: 'error: ' + ((error as {message?: string})?.message ?? String(error)), kind: 'err'}];
         } finally {
             setBusy(false);
         }
@@ -84,7 +100,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
         }
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
         if (event.key === 'Enter') {
             event.preventDefault();
             if (busy) {
@@ -96,12 +112,12 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
             if (!onComplete) {
                 return;
             }
-            const el = event.target;
+            const el = event.target as HTMLInputElement;
             const result = onComplete(input, el.selectionStart ?? input.length);
             if (!result) {
                 return;
             }
-            if (result.value != null) {
+            if ('value' in result) {
                 setInput(result.value);
                 const caret = result.caret;
                 requestAnimationFrame(() => el.setSelectionRange(caret, caret));
@@ -160,7 +176,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
                 {lines.map((line, index) =>
                     line.kind === 'cmd' ? (
                         <div className={styles.termLine} key={index}>
-                            <Prompt cwd={line.promptCwd} />
+                            <Prompt cwd={line.promptCwd!} />
                             <span className={styles.lineCmd}> {line.text}</span>
                         </div>
                     ) : (
@@ -192,7 +208,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}) {
     );
 }
 
-function lineClass(kind) {
+function lineClass(kind: TermLine['kind']): string {
     switch (kind) {
         case 'ok':
             return 'lineOk';

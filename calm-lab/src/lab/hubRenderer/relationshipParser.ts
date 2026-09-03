@@ -1,15 +1,27 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/relationshipParser.ts (commit 705f4a14).
 // Keep logic in sync until the shared renderer package extraction.
 
+import type { Edge } from 'reactflow';
 import { createEdge } from './edgeFactory';
 import { extractId } from './calmHelpers';
 import { THEME } from './theme';
+import type { LabCalmFlow, LabCalmRelationship } from './types';
+
+export interface FlowTransition {
+    sequence: number;
+    direction: string;
+    description: string;
+    flowName: string;
+}
+
+/** Keyed `string | undefined` (not the Hub's `string`): a mid-edit relationship or transition can be missing its id. */
+export type FlowTransitionMap = Map<string | undefined, FlowTransition[]>;
 
 /**
  * Extracts flow transitions from CALM flows data
  */
-export function extractFlowTransitions(flows) {
-    const flowTransitions = new Map();
+export function extractFlowTransitions(flows: LabCalmFlow[]): FlowTransitionMap {
+    const flowTransitions: FlowTransitionMap = new Map();
 
     flows.forEach((flow) => {
         const flowName = flow.name || 'Unnamed Flow';
@@ -24,7 +36,7 @@ export function extractFlowTransitions(flows) {
             if (!flowTransitions.has(relId)) {
                 flowTransitions.set(relId, []);
             }
-            flowTransitions.get(relId).push({ sequence, direction, description, flowName });
+            flowTransitions.get(relId)!.push({ sequence, direction, description, flowName });
         });
     });
 
@@ -34,12 +46,13 @@ export function extractFlowTransitions(flows) {
 /**
  * Parses an interacts relationship into edges
  */
-function parseInteractsRelationship(rel, index) {
-    const edges = [];
+function parseInteractsRelationship(rel: LabCalmRelationship, index: number): Edge[] {
+    const edges: Edge[] = [];
     const interacts = rel['relationship-type']?.interacts;
     if (!interacts) return edges;
 
-    const actorId = interacts.actor;
+    // May be missing mid-edit; ReactFlow drops an edge whose source matches no node.
+    const actorId = interacts.actor as string;
     const targetNodeIds = interacts.nodes || [];
     const label = rel.description || 'interacts';
 
@@ -66,8 +79,8 @@ function parseInteractsRelationship(rel, index) {
 /**
  * Parses a connects relationship into edges
  */
-function parseConnectsRelationship(rel, index, flowTransitions) {
-    const edges = [];
+function parseConnectsRelationship(rel: LabCalmRelationship, index: number, flowTransitions: FlowTransitionMap): Edge[] {
+    const edges: Edge[] = [];
     const connects = rel['relationship-type']?.connects;
     if (!connects) return edges;
 
@@ -138,15 +151,15 @@ function parseConnectsRelationship(rel, index, flowTransitions) {
 /**
  * Checks if a relationship is a containment relationship (deployed-in or composed-of)
  */
-function isContainmentRelationship(rel) {
+function isContainmentRelationship(rel: LabCalmRelationship): boolean {
     return !!(rel['relationship-type']?.['deployed-in'] || rel['relationship-type']?.['composed-of']);
 }
 
 /**
  * Parses all relationships into edges
  */
-export function parseRelationships(relationships, flowTransitions) {
-    const edges = [];
+export function parseRelationships(relationships: LabCalmRelationship[], flowTransitions: FlowTransitionMap): Edge[] {
+    const edges: Edge[] = [];
 
     relationships.forEach((rel, index) => {
         if (isContainmentRelationship(rel)) {

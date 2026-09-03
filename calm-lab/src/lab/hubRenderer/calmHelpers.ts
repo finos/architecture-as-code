@@ -1,7 +1,10 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmHelpers.ts (commit 8319a8f0).
-// Types stripped; Hub-navigation helpers omitted (they resolve CALM Hub resource
-// paths, which have no meaning inside the lab). Keep logic in sync until the
-// shared renderer package extraction.
+// Typed against the lab's loose shapes (see ./types.ts) instead of
+// @finos/calm-models; Hub-navigation helpers omitted (they resolve CALM Hub
+// resource paths, which have no meaning inside the lab). Keep logic in sync
+// until the shared renderer package extraction.
+
+import type { LabCalmNode, LabCalmRelationship, LabRelationshipType } from './types';
 
 /**
  * Utility functions for working with CALM (Common Architecture Language Model) data
@@ -16,7 +19,7 @@
  * @param obj - A CALM node or relationship object
  * @returns The unique-id string if found, undefined otherwise
  */
-export function extractId(obj) {
+export function extractId(obj: LabCalmNode | LabCalmRelationship | null | undefined): string | undefined {
     return obj?.['unique-id'];
 }
 
@@ -26,7 +29,7 @@ export function extractId(obj) {
  * @param node - A CALM node object
  * @returns The node-type string if found, undefined otherwise
  */
-export function extractNodeType(node) {
+export function extractNodeType(node: LabCalmNode | null | undefined): unknown {
     return node?.['node-type'];
 }
 
@@ -36,7 +39,7 @@ export function extractNodeType(node) {
  * @param relationship - A CALM relationship object
  * @returns The relationship-type object if found, undefined otherwise
  */
-export function extractRelationshipType(relationship) {
+export function extractRelationshipType(relationship: LabCalmRelationship | null | undefined): LabRelationshipType | undefined {
     return relationship?.['relationship-type'];
 }
 
@@ -51,11 +54,11 @@ export function extractRelationshipType(relationship) {
  * @param value - Any value read off a CALM node or relationship
  * @returns The value as a string; '' for null/undefined
  */
-export function toDisplayText(value) {
+export function toDisplayText(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
 }
 
-export function getRelationshipTypeDisplayString(relType) {
+export function getRelationshipTypeDisplayString(relType: LabRelationshipType | null | undefined): string {
     if (!relType) return 'unknown';
     if ('connects' in relType) return 'connects';
     if ('interacts' in relType) return 'interacts';

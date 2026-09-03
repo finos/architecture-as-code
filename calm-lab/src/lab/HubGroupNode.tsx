@@ -3,11 +3,10 @@
 // pass-through pointer events; colours from the lab chassis palette.
 // Keep logic in sync until the shared renderer package extraction.
 
-import React from 'react';
-import {Handle, Position} from 'reactflow';
+import {Handle, Position, type NodeProps} from 'reactflow';
 import styles from './lab.module.css';
 
-export default function HubGroupNode({data}) {
+export default function HubGroupNode({data}: NodeProps) {
     return (
         <div className={styles.flowGroup}>
             {/* Hidden handles to satisfy React Flow; floating edge computes actual attachment */}

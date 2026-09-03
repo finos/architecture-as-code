@@ -1,7 +1,9 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/nodeParser.ts (commit c4f983cc).
 // Keep logic in sync until the shared renderer package extraction.
 
+import type { Node } from 'reactflow';
 import { toDisplayText } from './calmHelpers';
+import type { LabCalmNode, LabCalmRelationship, LabContainment } from './types';
 
 /**
  * Records `childId`'s parent, unless doing so would produce a parent ReactFlow
@@ -12,14 +14,14 @@ import { toDisplayText } from './calmHelpers';
  * added to `nodes` yet — ReactFlow throws on a `parentId` with no matching
  * node — or close a loop (A in B, B in A), which the layout walks forever.
  */
-function assignParent(parentMap, childId, containerId, knownNodeIds) {
+function assignParent(parentMap: Map<string, string>, childId: string | undefined, containerId: string, knownNodeIds: Set<string>): void {
     if (!childId || childId === containerId || !knownNodeIds.has(containerId)) {
         return;
     }
     // Walk the container's own ancestry: if the child is already above the
     // container, this assignment would close a cycle.
-    const seen = new Set();
-    let ancestor = containerId;
+    const seen = new Set<string>();
+    let ancestor: string | undefined = containerId;
     while (ancestor && !seen.has(ancestor)) {
         if (ancestor === childId) {
             return;
@@ -36,13 +38,18 @@ function assignParent(parentMap, childId, containerId, knownNodeIds) {
  * `nodes` is the document's node list: only containers that are actually
  * present in it can parent a node (see assignParent).
  */
-export function identifyContainerNodes(relationships, nodes = []) {
-    const containerNodeIds = new Set();
-    const parentMap = new Map();
-    const knownNodeIds = new Set(nodes.map((node) => node?.['unique-id']).filter(Boolean));
+export interface ContainerInfo {
+    containerNodeIds: Set<string>;
+    parentMap: Map<string, string>;
+}
+
+export function identifyContainerNodes(relationships: LabCalmRelationship[], nodes: LabCalmNode[] = []): ContainerInfo {
+    const containerNodeIds = new Set<string>();
+    const parentMap = new Map<string, string>();
+    const knownNodeIds = new Set(nodes.map((node) => node?.['unique-id']).filter((id): id is string => Boolean(id)));
 
     relationships.forEach((rel) => {
-        const deployedIn = rel['relationship-type']?.['deployed-in'];
+        const deployedIn: LabContainment | undefined = rel['relationship-type']?.['deployed-in'];
         if (deployedIn) {
             const containerId = deployedIn.container;
             const childNodeIds = deployedIn.nodes || [];
@@ -54,7 +61,7 @@ export function identifyContainerNodes(relationships, nodes = []) {
             }
         }
 
-        const composedOf = rel['relationship-type']?.['composed-of'];
+        const composedOf: LabContainment | undefined = rel['relationship-type']?.['composed-of'];
         if (composedOf) {
             const containerId = composedOf.container;
             const childNodeIds = composedOf.nodes || [];
@@ -73,8 +80,8 @@ export function identifyContainerNodes(relationships, nodes = []) {
 /**
  * Creates a system/group node from a CALM node
  */
-function createSystemNode(node, parentId) {
-    const id = node['unique-id'];
+function createSystemNode(node: LabCalmNode, parentId: string | undefined): Node {
+    const id = node['unique-id']!; // parseNodes only calls this for nodes with an id
 
     return {
         id,
@@ -94,8 +101,8 @@ function createSystemNode(node, parentId) {
 /**
  * Creates a regular custom node from a CALM node
  */
-function createRegularNode(node, parentId, onShowDetailsCallback) {
-    const id = node['unique-id'];
+function createRegularNode(node: LabCalmNode, parentId: string | undefined, onShowDetailsCallback?: (node: LabCalmNode) => void): Node {
+    const id = node['unique-id']!; // parseNodes only calls this for nodes with an id
 
     return {
         id,
@@ -115,9 +122,14 @@ function createRegularNode(node, parentId, onShowDetailsCallback) {
 /**
  * Parses CALM nodes into ReactFlow nodes
  */
-export function parseNodes(nodes, containerInfo, onShowDetailsCallback) {
-    const regularNodes = [];
-    const systemNodes = [];
+export interface ParsedNodes {
+    regularNodes: Node[];
+    systemNodes: Node[];
+}
+
+export function parseNodes(nodes: LabCalmNode[], containerInfo: ContainerInfo, onShowDetailsCallback?: (node: LabCalmNode) => void): ParsedNodes {
+    const regularNodes: Node[] = [];
+    const systemNodes: Node[] = [];
     const { containerNodeIds, parentMap } = containerInfo;
 
     nodes.forEach((node) => {

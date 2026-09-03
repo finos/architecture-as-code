@@ -2,9 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { parseCALMData } from './calmTransformer';
 
-const node = (id, extra = {}) => ({ 'unique-id': id, 'node-type': 'service', name: id, ...extra });
+const node = (id: string, extra: Record<string, unknown> = {}) => ({ 'unique-id': id, 'node-type': 'service', name: id, ...extra });
 
-const composedOf = (container, nodes) => ({
+const composedOf = (container: string, nodes: string[]) => ({
     'unique-id': `${container}-contains`,
     'relationship-type': { 'composed-of': { container, nodes } },
 });

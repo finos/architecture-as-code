@@ -1,7 +1,10 @@
-import React, {useMemo, useRef} from 'react';
+import {useMemo, useRef, type KeyboardEvent} from 'react';
 import styles from './lab.module.css';
 
-const TOKEN_CLASS = {
+type TokenType = 'plain' | 'key' | 'string' | 'number' | 'literal' | 'punct';
+interface Token { text: string; type: TokenType }
+
+const TOKEN_CLASS: Record<Exclude<TokenType, 'plain'>, string> = {
     key: 'tokKey',
     string: 'tokString',
     number: 'tokNumber',
@@ -19,11 +22,11 @@ const KEY_LOOKAHEAD_RE = /\s*:/y;
  * never throws (the textarea, not this layer, is the source of truth).
  * A string is a "key" when the next non-space character is `:`.
  */
-function tokenizeJson(text) {
+function tokenizeJson(text: string): Token[] {
     try {
-        const tokens = [];
+        const tokens: Token[] = [];
         let last = 0;
-        let match;
+        let match: RegExpExecArray | null;
         TOKEN_RE.lastIndex = 0;
         while ((match = TOKEN_RE.exec(text)) !== null) {
             if (match.index > last) {
@@ -52,10 +55,19 @@ function tokenizeJson(text) {
     }
 }
 
-export default function Editor({fileName, value, dirty, onChange, onSave, chromeless = false}) {
-    const gutterRef = useRef(null);
-    const highlightRef = useRef(null);
-    const textareaRef = useRef(null);
+interface EditorProps {
+    fileName: string;
+    value: string;
+    dirty?: boolean;
+    onChange(value: string): void;
+    onSave(): void;
+    chromeless?: boolean;
+}
+
+export default function Editor({fileName, value, dirty, onChange, onSave, chromeless = false}: EditorProps) {
+    const gutterRef = useRef<HTMLDivElement | null>(null);
+    const highlightRef = useRef<HTMLPreElement | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const lineCount = value.split('\n').length;
     const tokens = useMemo(() => tokenizeJson(value), [value]);
 
@@ -73,7 +85,7 @@ export default function Editor({fileName, value, dirty, onChange, onSave, chrome
         }
     };
 
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
         if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 's') {
             event.preventDefault();
             onSave();
@@ -81,7 +93,7 @@ export default function Editor({fileName, value, dirty, onChange, onSave, chrome
         }
         if (event.key === 'Tab') {
             event.preventDefault();
-            const el = event.target;
+            const el = event.target as HTMLTextAreaElement;
             const {selectionStart, selectionEnd} = el;
             onChange(value.slice(0, selectionStart) + '  ' + value.slice(selectionEnd));
             requestAnimationFrame(() => {

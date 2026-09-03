@@ -1,6 +1,7 @@
 // Ported from calm-hub-ui/src/visualizer/components/reactflow/utils/calmTransformer.ts (commit 56c9ee8f).
 // Keep logic in sync until the shared renderer package extraction.
 
+import type { Node, Edge } from 'reactflow';
 import {
     getLayoutedElements,
     createTopLevelLayout,
@@ -11,11 +12,20 @@ import {
 import { identifyContainerNodes, parseNodes } from './nodeParser';
 import { extractFlowTransitions, parseRelationships } from './relationshipParser';
 import { GRAPH_LAYOUT } from './constants';
+import type { LabCalmDoc, LabCalmNode } from './types';
+
+/**
+ * Result of parsing CALM data into ReactFlow elements
+ */
+export interface ParsedCALMData {
+    nodes: Node[];
+    edges: Edge[];
+}
 
 /**
  * Parses CALM architecture data into ReactFlow nodes and edges
  */
-export function parseCALMData(data, onShowDetailsCallback) {
+export function parseCALMData(data: LabCalmDoc | null | undefined, onShowDetailsCallback?: (node: LabCalmNode) => void): ParsedCALMData {
     if (!data) return { nodes: [], edges: [] };
 
     try {
@@ -38,7 +48,7 @@ export function parseCALMData(data, onShowDetailsCallback) {
 /**
  * Applies layout to nodes, handling system nodes and their children
  */
-function applyLayout(regularNodes, systemNodes, edges) {
+function applyLayout(regularNodes: Node[], systemNodes: Node[], edges: Edge[]): ParsedCALMData {
     const { nodesWithParents, nodesWithoutParents, topLevelSystemNodes } = separateNodesByParent(
         regularNodes,
         systemNodes
@@ -58,10 +68,10 @@ function applyLayout(regularNodes, systemNodes, edges) {
 /**
  * Separates nodes into groups based on whether they have a parent
  */
-function separateNodesByParent(regularNodes, systemNodes) {
-    const nodesWithParents = [];
-    const nodesWithoutParents = [];
-    const topLevelSystemNodes = [];
+function separateNodesByParent(regularNodes: Node[], systemNodes: Node[]): { nodesWithParents: Node[]; nodesWithoutParents: Node[]; topLevelSystemNodes: Node[] } {
+    const nodesWithParents: Node[] = [];
+    const nodesWithoutParents: Node[] = [];
+    const topLevelSystemNodes: Node[] = [];
 
     regularNodes.forEach((node) => {
         if (node.parentId) {
@@ -86,7 +96,7 @@ function separateNodesByParent(regularNodes, systemNodes) {
 /**
  * Layouts children within each system node and calculates system dimensions
  */
-function layoutChildrenWithinSystems(systemNodes, nodesWithParents, edges) {
+function layoutChildrenWithinSystems(systemNodes: Node[], nodesWithParents: Node[], edges: Edge[]): void {
     // Lay out the most deeply nested containers first so that an outer
     // container is sized once its inner container children already know their
     // own dimensions.
@@ -104,7 +114,7 @@ function layoutChildrenWithinSystems(systemNodes, nodesWithParents, edges) {
 /**
  * Layouts a system node with its children
  */
-function layoutSystemWithChildren(systemNode, childNodes, nodesWithParents, edges) {
+function layoutSystemWithChildren(systemNode: Node, childNodes: Node[], nodesWithParents: Node[], edges: Edge[]): void {
     const systemEdges = edges.filter(
         (e) => childNodes.some((n) => n.id === e.source) && childNodes.some((n) => n.id === e.target)
     );
@@ -134,7 +144,7 @@ function layoutSystemWithChildren(systemNode, childNodes, nodesWithParents, edge
 /**
  * Sets default dimensions for a system node without children
  */
-function setDefaultSystemDimensions(systemNode) {
+function setDefaultSystemDimensions(systemNode: Node): void {
     const width = GRAPH_LAYOUT.SYSTEM_NODE_DEFAULT_WIDTH;
     const height = GRAPH_LAYOUT.SYSTEM_NODE_DEFAULT_HEIGHT;
 
@@ -146,7 +156,7 @@ function setDefaultSystemDimensions(systemNode) {
 /**
  * Creates the top-level layout for nodes not inside systems
  */
-function layoutTopLevelNodes(nodesWithoutParents, topLevelSystemNodes, nodesWithParents, edges) {
+function layoutTopLevelNodes(nodesWithoutParents: Node[], topLevelSystemNodes: Node[], nodesWithParents: Node[], edges: Edge[]): Map<string, { x: number; y: number }> {
     const systemNodesForLayout = topLevelSystemNodes.map((s) => ({ ...s }));
 
     const topLevelEdges = edges.filter((e) => {
@@ -162,7 +172,7 @@ function layoutTopLevelNodes(nodesWithoutParents, topLevelSystemNodes, nodesWith
 /**
  * Applies positions from layout to nodes
  */
-function applyPositionsToNodes(nodes, positions) {
+function applyPositionsToNodes(nodes: Node[], positions: Map<string, { x: number; y: number }>): void {
     nodes.forEach((node) => {
         const pos = positions.get(node.id);
         if (pos) {
@@ -174,7 +184,7 @@ function applyPositionsToNodes(nodes, positions) {
 /**
  * Combines all nodes in the correct order for ReactFlow
  */
-function combineNodes(topLevelSystemNodes, nodesWithoutParents, nodesWithParents, systemNodes) {
+function combineNodes(topLevelSystemNodes: Node[], nodesWithoutParents: Node[], nodesWithParents: Node[], systemNodes: Node[]): Node[] {
     return sortNodesParentsBeforeChildren([
         ...topLevelSystemNodes,
         ...nodesWithoutParents.filter((n) => !systemNodes.includes(n)),

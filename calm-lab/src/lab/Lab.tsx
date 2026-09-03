@@ -1,19 +1,21 @@
-import React, {useEffect, useRef, useState} from 'react';
+import {useEffect, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent} from 'react';
 import clsx from 'clsx';
 import styles from './lab.module.css';
 import Terminal from './Terminal';
 import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
-import {createVfs} from './vfs';
-import {validateArchitecture, ENGINE_VERSION} from '../engine';
-import {completeCommand, runCommand} from '../shell';
+import {createVfs, type Vfs} from './vfs';
+import {validateArchitecture, ENGINE_VERSION, type LabValidation} from '../engine';
+import {completeCommand, runCommand, type Line} from '../shell';
 import {
     ARCHITECTURE_FILE,
     COMPLETION,
     HOME_DIR,
     SEED_FILES,
     STEPS,
+    type LessonState,
+    type LessonStep,
 } from './lesson';
 
 const PROGRESS_KEY = 'calm-lab-progress-v1';
@@ -23,13 +25,13 @@ const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
 const AUTO_EXPAND = 'auto';
 
-function loadProgress() {
+function loadProgress(): Set<string> {
     try {
         const raw = window.localStorage?.getItem(PROGRESS_KEY);
         if (raw) {
-            const ids = JSON.parse(raw);
+            const ids: unknown = JSON.parse(raw);
             if (Array.isArray(ids)) {
-                return new Set(ids.filter((id) => STEPS.some((step) => step.id === id)));
+                return new Set(ids.filter((id): id is string => STEPS.some((step) => step.id === id)));
             }
         }
     } catch {
@@ -38,7 +40,7 @@ function loadProgress() {
     return new Set();
 }
 
-function saveProgress(completed) {
+function saveProgress(completed: Set<string>): void {
     try {
         window.localStorage?.setItem(PROGRESS_KEY, JSON.stringify([...completed]));
     } catch {
@@ -54,13 +56,13 @@ function clearProgress() {
     }
 }
 
-function loadUiPrefs() {
+function loadUiPrefs(): Record<string, unknown> {
     try {
         const raw = window.localStorage?.getItem(UI_PREFS_KEY);
         if (raw) {
-            const prefs = JSON.parse(raw);
+            const prefs: unknown = JSON.parse(raw);
             if (prefs && typeof prefs === 'object') {
-                return prefs;
+                return prefs as Record<string, unknown>;
             }
         }
     } catch {
@@ -69,7 +71,7 @@ function loadUiPrefs() {
     return {};
 }
 
-function saveUiPrefs(prefs) {
+function saveUiPrefs(prefs: Record<string, unknown>): void {
     try {
         window.localStorage?.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
     } catch {
@@ -78,17 +80,17 @@ function saveUiPrefs(prefs) {
 }
 
 /** Render `code` spans in lesson copy. */
-function inline(text) {
+function inline(text: string) {
     return text
         .split('`')
         .map((part, index) => (index % 2 ? <code key={index}>{part}</code> : part));
 }
 
-function CopyButton({text}) {
-    const [state, setState] = useState('idle');
-    const timerRef = useRef(null);
+function CopyButton({text}: {text: string}) {
+    const [state, setState] = useState<'idle' | 'copied' | 'failed'>('idle');
+    const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
     useEffect(() => () => clearTimeout(timerRef.current), []);
-    const flash = (next) => {
+    const flash = (next: 'copied' | 'failed') => {
         setState(next);
         clearTimeout(timerRef.current);
         timerRef.current = setTimeout(() => setState('idle'), 1800);
@@ -129,7 +131,16 @@ function CopyButton({text}) {
     );
 }
 
-function StepItem({step, index, done, current, open, onToggle}) {
+interface StepItemProps {
+    step: LessonStep;
+    index: number;
+    done: boolean;
+    current: boolean;
+    open: boolean;
+    onToggle(): void;
+}
+
+function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
     return (
         <li className={styles.step}>
@@ -178,7 +189,7 @@ function StepItem({step, index, done, current, open, onToggle}) {
     );
 }
 
-function ProgressDots({completed, currentId, vertical}) {
+function ProgressDots({completed, currentId, vertical}: {completed: Set<string>; currentId?: string; vertical?: boolean}) {
     return (
         <span
             className={clsx(styles.titleDots, vertical && styles.titleDotsVertical)}
@@ -201,7 +212,7 @@ function ProgressDots({completed, currentId, vertical}) {
 }
 
 export default function Lab() {
-    const vfsRef = useRef(null);
+    const vfsRef = useRef<Vfs | null>(null);
     if (!vfsRef.current) {
         vfsRef.current = createVfs(SEED_FILES);
     }
@@ -217,21 +228,21 @@ export default function Lab() {
     const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
-    const [validation, setValidation] = useState(null);
+    const [validation, setValidation] = useState<LabValidation | null>(null);
 
     // completedRef mirrors the completed state so progress can be
     // computed and persisted synchronously inside event handlers (a
     // reload right after completing a step must never lose the tick).
-    const completedRef = useRef(null);
+    const completedRef = useRef<Set<string> | null>(null);
     if (completedRef.current === null) {
         completedRef.current = loadProgress();
     }
-    const [completed, setCompleted] = useState(() => completedRef.current);
+    const [completed, setCompleted] = useState<Set<string>>(() => completedRef.current!);
     const [terminalNonce, setTerminalNonce] = useState(0);
 
     // Pane tabs.
-    const [topTab, setTopTab] = useState('editor');
-    const [bottomTab, setBottomTab] = useState('terminal');
+    const [topTab, setTopTab] = useState<'editor' | 'diagram'>('editor');
+    const [bottomTab, setBottomTab] = useState<'terminal' | 'problems'>('terminal');
 
     // True while the saved architecture has changed since the diagram
     // was last on screen — drives the "updated" dot on the Diagram tab.
@@ -239,7 +250,7 @@ export default function Lab() {
 
     // Guide accordion: AUTO_EXPAND follows the current step; a step id
     // is a manual selection; null means everything is collapsed.
-    const [expandedId, setExpandedId] = useState(AUTO_EXPAND);
+    const [expandedId, setExpandedId] = useState<string | null>(AUTO_EXPAND);
 
     // Guide panel visibility (persisted UI preference; desktop only —
     // the stored field keeps its original name for compatibility).
@@ -248,14 +259,14 @@ export default function Lab() {
     );
 
     // Splitter state (desktop IDE layout only).
-    const [termHeight, setTermHeight] = useState(null);
-    const centerRef = useRef(null);
-    const termSlotRef = useRef(null);
-    const dragCleanupRef = useRef(null);
+    const [termHeight, setTermHeight] = useState<number | null>(null);
+    const centerRef = useRef<HTMLDivElement | null>(null);
+    const termSlotRef = useRef<HTMLDivElement | null>(null);
+    const dragCleanupRef = useRef<(() => void) | null>(null);
 
     useEffect(() => () => dragCleanupRef.current?.(), []);
 
-    const beginDrag = (event, onMove) => {
+    const beginDrag = (event: ReactPointerEvent, onMove: (moveEvent: globalThis.PointerEvent) => void) => {
         event.preventDefault();
         const stop = () => {
             window.removeEventListener('pointermove', onMove);
@@ -269,7 +280,7 @@ export default function Lab() {
         dragCleanupRef.current = stop;
     };
 
-    const startTermDrag = (event) => {
+    const startTermDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
         const startY = event.clientY;
         const startHeight = termSlotRef.current?.offsetHeight ?? 0;
         const columnHeight = centerRef.current?.offsetHeight ?? 0;
@@ -286,7 +297,7 @@ export default function Lab() {
     const recompute = async () => {
         const text = vfs.read(ARCHITECTURE_FILE) ?? '';
         const seq = ++validationSeq.current;
-        let result;
+        let result: LabValidation;
         try {
             result = await validateArchitecture(text);
         } catch (error) {
@@ -297,7 +308,7 @@ export default function Lab() {
             // than leaving the status bar on "checking…" forever.
             setValidation({
                 ok: false,
-                parseError: 'Validation failed: ' + (error?.message ?? String(error)),
+                parseError: 'Validation failed: ' + ((error as {message?: string})?.message ?? String(error)),
                 issues: [],
                 errors: [],
                 issueCount: 1,
@@ -310,8 +321,8 @@ export default function Lab() {
             return; // a newer recompute has superseded this one
         }
         setValidation(result);
-        const state = {
-            doc: result.doc || null,
+        const state: LessonState = {
+            doc: (result.doc as Record<string, unknown> | undefined) || null,
             validation: result,
             hasValidatedOk: flagsRef.current.hasValidatedOk,
         };
@@ -339,7 +350,7 @@ export default function Lab() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleEvent = (event) => {
+    const handleEvent = (event: {type: 'validate'; file: string; ok: boolean}) => {
         if (event.type !== 'validate' || !event.ok) {
             return;
         }
@@ -353,7 +364,7 @@ export default function Lab() {
         }
     };
 
-    const runShell = async (input) => {
+    const runShell = async (input: string): Promise<Line[]> => {
         // A reset while `calm validate` is in flight starts a fresh lesson —
         // the in-flight command's output, its event and its recompute all
         // belong to the session the learner threw away.
@@ -380,7 +391,7 @@ export default function Lab() {
         return lines;
     };
 
-    const completeShell = (input, cursor) =>
+    const completeShell = (input: string, cursor: number | undefined) =>
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
     const handleSave = () => {
@@ -436,7 +447,9 @@ export default function Lab() {
     const lineCount = editorText.split('\n').length;
     const savedArchitecture = vfs.read(ARCHITECTURE_FILE) ?? '';
     const cssVars =
-        termHeight != null ? {'--lab-term-height': `${termHeight}px`} : undefined;
+        termHeight != null
+            ? ({'--lab-term-height': `${termHeight}px`} as CSSProperties)
+            : undefined;
 
     return (
         <main className={styles.workspace} style={cssVars}>

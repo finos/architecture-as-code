@@ -12,10 +12,11 @@ block sites that accept free-text input can allow-list it separately from the do
 - **Engine**: `@finos/calm-shared/browser`
 - **Diagram**: `reactflow` + `@dagrejs/dagre`
 
-New modules are TypeScript. The React components moved over from the docs site (`Lab.jsx`,
-`Terminal.jsx`, `Editor.jsx`, the `Hub*` diagram components) are still JSX — converting them to TSX
-means typing their props/refs/hooks, which is real work and stays a follow-up. Plain logic modules
-with no JSX (`vfs.ts`, `lesson.ts`) have no such cost and are TypeScript.
+Everything is TypeScript, matching the rest of the repo's frontends. The files ported from
+`calm-hub-ui` keep their original formatting and `Ported from …` headers — do not reformat them,
+so future diffs against the Hub originals stay readable. The diagram pipeline types live in
+`src/lab/hubRenderer/types.ts`: loose, all-optional CALM shapes, because the lab parses the live
+editor buffer rather than schema-valid documents.
 
 ## Key Commands
 
@@ -63,7 +64,7 @@ repo, so the lab and the spec can never drift.
 
 ## The async rule
 
-`validate()` is async (Spectral), so `Lab.jsx`'s `recompute` is too. Every result is published
+`validate()` is async (Spectral), so `Lab.tsx`'s `recompute` is too. Every result is published
 behind a `validationSeq` guard: a recompute that is no longer the newest returns without calling
 `setValidation`. Keep that guard if you touch the validation path — saving and running
 `calm validate` can both be in flight at once, and without it the older result wins at random.

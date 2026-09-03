@@ -1,21 +1,22 @@
 import {describe, it, expect, vi} from 'vitest';
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import Terminal from './Terminal';
+import type {Line} from '../shell';
 
 function deferred() {
-    let settle;
-    const promise = new Promise((resolve, reject) => {
+    let settle!: {resolve: (lines: Line[]) => void; reject: (reason: unknown) => void};
+    const promise = new Promise<Line[]>((resolve, reject) => {
         settle = {resolve, reject};
     });
     return {promise, ...settle};
 }
 
-function renderTerminal(onRun) {
+function renderTerminal(onRun: (input: string) => Promise<Line[] | undefined> | Line[] | undefined) {
     render(<Terminal cwd="/workspace" onRun={onRun} />);
     return screen.getByLabelText('Terminal input');
 }
 
-function type(input, value) {
+function type(input: HTMLElement, value: string) {
     fireEvent.change(input, {target: {value}});
     fireEvent.keyDown(input, {key: 'Enter'});
 }
