@@ -5,6 +5,51 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.58.0] - 2026-08-31
+
+## [1.58.0](https://github.com/finos/architecture-as-code/compare/cli-v1.57.0...cli-v1.58.0) (2026-08-31)
+
+* Merge branch 'main' into feat/issue-2953-Layout-Parity-Between-Calm-Hub-and-Code-Plugin ([](https://github.com/finos/architecture-as-code/commit/a93194838a57e8f4d07e0de2325dba5229b586e5))
+* Merge branch 'main' into feat/issue-2953-Layout-Parity-Between-Calm-Hub-and-Code-Plugin ([](https://github.com/finos/architecture-as-code/commit/3880b9553c4a5a92f07c5362b08f40330387f055))
+* Merge branch 'main' into iss-2979 ([](https://github.com/finos/architecture-as-code/commit/c9146513d93192900b76be6eb3620961872fac19))
+* Merge branch 'main' into iss-2979 ([](https://github.com/finos/architecture-as-code/commit/d35e74f637691c90344c8fe9bdf4328d9eb29657))
+* Merge branch 'main' into iss-2979 ([](https://github.com/finos/architecture-as-code/commit/d9adc7afbd40bb06be733487154609de97b7ebd0))
+* Merge branch 'main' into iss-2979 ([](https://github.com/finos/architecture-as-code/commit/0e0d38cd361953177aa425fd2d8cca00d87e2f2f))
+* Merge pull request #2987 from fidelity-contributions/feat/issue-2953-Layout-Parity-Between-Calm-Hub-and-Code-Plugin ([](https://github.com/finos/architecture-as-code/commit/8b0c3c77b3928d4c620fdbb7ea606e1c5d5018b7))
+* Merge pull request #2988 from jimthompson5802/iss-2979 ([](https://github.com/finos/architecture-as-code/commit/22edc17ea02379096167e111eb687bc6a43d3c9a))
+
+### chore
+
+* **deps:** update semgrep/semgrep docker digest to f1f7b71 ([](https://github.com/finos/architecture-as-code/commit/d45b0aeec4147929276eec842aa04ebbfee19426))
+* **deps:** update semgrep/semgrep docker digest to f1f7b71 ([](https://github.com/finos/architecture-as-code/commit/24d6a199714c81241b26ed0720043fe27272a771))
+
+### ci
+
+* pass PR head ref via env and validate release version in calm-models publish workflow (#3021) ([](https://github.com/finos/architecture-as-code/commit/b48813691a59eadbce52d3c053633e2a33a05df7)), closes [#3021](https://github.com/finos/architecture-as-code/issues/3021)
+
+### docs
+
+* state FINOS meetings are recorded in issue templates (#3033) ([](https://github.com/finos/architecture-as-code/commit/c56571592a33aa547a11a1bd87dfcaaa9800e04b)), closes [#3033](https://github.com/finos/architecture-as-code/issues/3033)
+
+### feat
+
+* **calm-hub:** add GLOBAL_ADMIN-gated delete endpoints for all resource types (#3020) ([](https://github.com/finos/architecture-as-code/commit/565251ef0edb60daeafcbbf4bbba5eb1ab372622)), closes [#3020](https://github.com/finos/architecture-as-code/issues/3020)
+* **calmhub-ui:** issue 2953 layout parity between calm hub and code plugin ([](https://github.com/finos/architecture-as-code/commit/8c8be9cdec436faf495c709847ad440c21978f25))
+* **calmhub-ui:** issue 2953 layout parity between calm hub and code plugin ([](https://github.com/finos/architecture-as-code/commit/3350c9bd87593736f25d73580592a2d09c98d98e))
+* **calmhub-ui:** wrap async spy assertion in waitFor to fix flaky CI test ([](https://github.com/finos/architecture-as-code/commit/22d21a9839ef292fca7a428c4d13ee6bd9f224b8))
+* **calmhub:** Disable demo seeder for IT ([](https://github.com/finos/architecture-as-code/commit/2a324e1ad3088bd71416fb85c36d96e396bb57df))
+* **calmhub:** do not seed by default ([](https://github.com/finos/architecture-as-code/commit/61cb718dbae9ce7049db9b9c888f87db806dd1f7))
+* **calmhub:** fix build issues ([](https://github.com/finos/architecture-as-code/commit/28c044a018956ce07c0586a2eca618dde415e305))
+* **guidelines:** add GitHub Actions maintenance guidelines and workflow expectations ([](https://github.com/finos/architecture-as-code/commit/f5b75f1f763bf07bc1064a3a211000a1fb251b9b))
+* **guidelines:** add maintainers guidelines for repository-specific processes ([](https://github.com/finos/architecture-as-code/commit/0211f46d53607a08892c2493003275fe2f21cd89))
+* **guidelines:** clarify CODEOWNERS role and review expectations in maintainer guidelines ([](https://github.com/finos/architecture-as-code/commit/bb3424ddad4feef1ab681761698681bc376b13eb))
+* **guidelines:** enhance maintainer review expectations and documentation clarity ([](https://github.com/finos/architecture-as-code/commit/ac4d949c0c096ccce0170382adf0508d3f737f7d))
+* **shared:** add a browser-safe @finos/calm-shared/browser entry point (#3022) ([](https://github.com/finos/architecture-as-code/commit/4663e960cee0e1d3bc605aab31d66bb538cdcf37)), closes [#3022](https://github.com/finos/architecture-as-code/issues/3022)
+
+### fix
+
+* **guidelines:** require two maintainer approvals from different organizations for significant enhancements ([](https://github.com/finos/architecture-as-code/commit/3826033fa6809afe0cd60df74da6126e045ea692))
+
 ## [1.57.0] - 2026-08-24
 
 ## [1.57.0](https://github.com/finos/architecture-as-code/compare/cli-v1.56.0...cli-v1.57.0) (2026-08-24)
