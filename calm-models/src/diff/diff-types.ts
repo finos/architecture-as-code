@@ -1,6 +1,7 @@
 import type {
     CalmControlDetailSchema,
     CalmControlsSchema,
+    CalmFlowSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -13,6 +14,11 @@ export interface NodeChange {
 export interface RelationshipChange {
     original: CalmRelationshipSchema;
     updated: CalmRelationshipSchema;
+}
+
+export interface FlowChange {
+    original: CalmFlowSchema;
+    updated: CalmFlowSchema;
 }
 
 export interface RenameMapping {
@@ -105,7 +111,14 @@ export interface ControlDiffResult {
     controlItemsModified: { [controlId: string]: ControlItemDiffResult };
 }
 
+export interface FlowDiffResult {
+    flowsAdded: CalmFlowSchema[];
+    flowsRemoved: CalmFlowSchema[];
+    flowsModified: FlowChange[];
+    flowsSame: CalmFlowSchema[];
+}
+
 /**
- * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs and controls. TODO: incorporate flows and metadata.
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, flows, ADRs and controls. TODO: incorporate metadata.
  */
-export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult;
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & FlowDiffResult;
