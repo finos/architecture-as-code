@@ -1,0 +1,1107 @@
+/**
+ * Learning-lab styles. The whole lab lives inside one continuous,
+ * theme-invariant dark application frame — the "chassis" — that looks
+ * identical in the site's light and dark modes; only the page chrome
+ * around it changes (light mode adds an elevation shadow so it reads
+ * as a docked app window).
+ *
+ * Chassis palette (fixed, never the site tokens):
+ *   bg #0b1030 · panel-alt #0d1436 · border #1b2350 / outer #222a5c
+ *   text #c7d0f0 · dim #8b96c9 · accent #4da3ff · ok #22d3a7
+ *   err #ff7b8a · hint-amber #e8a13c · chips #16204a
+ * Fonts: IBM Plex Mono (panel labels/terminal/status) and IBM Plex
+ * Sans (guide prose) via the site's --ifm font variables.
+ *
+ * Layout: mobile-first stacked flow; from 997px the chassis docks to
+ * the full viewport under the navbar (page never scrolls; each panel
+ * scrolls independently; draggable editor/terminal splitter).
+ */
+
+/* ---------- page shell & chassis ---------- */
+.workspace {
+    padding: 12px;
+}
+
+.chassis {
+    display: flex;
+    flex-direction: column;
+    background: #0b1030;
+    border: 1px solid #222a5c;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+:global([data-theme='light']) .chassis {
+    box-shadow: 0 22px 48px -20px rgba(11, 16, 32, 0.45);
+}
+
+/* ---------- titlebar ---------- */
+.titlebar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    height: 36px;
+    flex-shrink: 0;
+    padding: 0 12px;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+}
+
+.titleLabel {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #8b96c9;
+}
+
+.titleDots {
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+}
+
+.titleDotsVertical {
+    flex-direction: column;
+}
+
+.titleDot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    box-sizing: border-box;
+}
+
+.dotDone {
+    background: #22d3a7;
+}
+
+.dotCurrent {
+    background: transparent;
+    border: 2px solid #4da3ff;
+}
+
+.dotPending {
+    background: #2b3453;
+}
+
+.resetBtn {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid #222a5c;
+    border-radius: 7px;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    padding: 4px 11px;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.resetBtn:hover {
+    color: #c7d0f0;
+    border-color: #4da3ff;
+}
+
+/* ---------- chassis body ---------- */
+.chassisBody {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* ---------- guide panel ---------- */
+.guide {
+    display: flex;
+    flex-direction: column;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+    min-height: 0;
+}
+
+.guideHeader {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px 8px;
+    border-bottom: 1px solid #1b2350;
+    flex-shrink: 0;
+}
+
+.guideTitle {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    color: #8b96c9;
+}
+
+.guideProgress {
+    margin-left: auto;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: #4da3ff;
+}
+
+.guideCollapseBtn {
+    display: none;
+    background: transparent;
+    border: none;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 6px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.guideCollapseBtn:hover {
+    color: #4da3ff;
+    background: #16204a;
+}
+
+.guideScroll {
+    padding: 8px 10px 14px;
+    min-height: 0;
+}
+
+/* collapsed-guide rail (desktop only) */
+.guideRail {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    width: 28px;
+    flex-shrink: 0;
+    padding: 10px 0;
+    background: #0d1436;
+    border-right: 1px solid #1b2350;
+}
+
+.guideRailBtn {
+    background: transparent;
+    border: none;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    cursor: pointer;
+    padding: 6px 2px;
+    writing-mode: vertical-rl;
+    border-radius: 5px;
+}
+
+.guideRailBtn:hover {
+    color: #4da3ff;
+    background: #16204a;
+}
+
+/* ---------- guide accordion ---------- */
+.stepsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.step {
+    border-bottom: 1px solid #1b2350;
+}
+
+.stepRow {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    width: 100%;
+    background: transparent;
+    border: none;
+    padding: 10px 6px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.stepRow:hover {
+    background: #101a44;
+}
+
+.stepIndex {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10.5px;
+    color: #5a648c;
+    flex-shrink: 0;
+}
+
+.stepGlyph {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    color: #5a648c;
+    flex-shrink: 0;
+    width: 14px;
+    text-align: center;
+}
+
+.stepGlyphDone {
+    color: #22d3a7;
+}
+
+.stepGlyphCurrent {
+    color: #4da3ff;
+}
+
+.stepTitle {
+    font-family: var(--ifm-font-family-base);
+    font-size: 14px;
+    font-weight: 600;
+    color: #c7d0f0;
+}
+
+.stepBodyWrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transition:
+        grid-template-rows 200ms ease,
+        opacity 200ms ease;
+}
+
+.stepBodyOpen {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .stepBodyWrap {
+        transition: none;
+    }
+}
+
+.stepBodyInner {
+    overflow: hidden;
+    min-height: 0;
+    padding: 0 6px;
+}
+
+.stepBody {
+    font-family: var(--ifm-font-family-base);
+    font-size: 13px;
+    line-height: 1.6;
+    color: #c7d0f0;
+    margin: 2px 0 0;
+}
+
+.stepBody code {
+    background: #16204a;
+    border: 1px solid #222a5c;
+    border-radius: 5px;
+    color: #c7d0f0;
+    font-size: 11.5px;
+    padding: 1px 5px;
+}
+
+.hintBtn {
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 10px 0 12px;
+    color: #e8a13c;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.hintBtn:hover {
+    text-decoration: underline;
+}
+
+.hintBlock {
+    margin: 0 0 14px;
+    border: 1px solid #222a5c;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0b1030;
+}
+
+.hintHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px 5px 10px;
+    background: #16204a;
+    border-bottom: 1px solid #222a5c;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #8b96c9;
+}
+
+.copyBtn {
+    background: #0d1436;
+    border: 1px solid #222a5c;
+    border-radius: 5px;
+    color: #c7d0f0;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 10.5px;
+    padding: 2px 9px;
+    cursor: pointer;
+}
+
+.copyBtn:hover {
+    border-color: #4da3ff;
+    color: #fff;
+}
+
+.hintPre {
+    margin: 0;
+    padding: 10px 12px;
+    /* Explicit surface: Infima's global `pre` background is near-white in
+       the site's light theme and would swallow the light text. */
+    background: #0b1030;
+    color: #c7d0f0;
+    border-radius: 0;
+    font-size: 11.5px;
+    line-height: 1.5;
+    overflow: auto;
+    max-height: 240px;
+    white-space: pre;
+}
+
+/* completion card */
+.doneCard {
+    margin: 14px 2px 4px;
+    padding: 14px;
+    border: 1px solid rgba(34, 211, 167, 0.55);
+    border-radius: 10px;
+    background: rgba(34, 211, 167, 0.12);
+}
+
+.doneCard h3 {
+    font-family: var(--ifm-font-family-base);
+    font-size: 14px;
+    color: #e6ecff;
+    margin: 0 0 6px;
+}
+
+.doneCard p {
+    font-family: var(--ifm-font-family-base);
+    font-size: 13px;
+    line-height: 1.55;
+    color: #c7d0f0;
+    margin: 0 0 10px;
+}
+
+.doneLinks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+/* Chassis is theme-invariant — links must not follow the site theme. */
+.doneLinks a {
+    color: #4da3ff;
+}
+
+.doneLinks a:hover {
+    color: #7cbcff;
+    text-decoration: none;
+}
+
+/* ---------- center column ---------- */
+.centerCol {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    min-height: 0;
+    padding: 12px;
+}
+
+.editorSlot {
+    display: flex;
+    flex-direction: column;
+    height: 400px;
+    min-height: 0;
+}
+
+.termSlot {
+    display: flex;
+    flex-direction: column;
+    height: 300px;
+    min-height: 0;
+    margin-top: 12px;
+}
+
+.hSplitter {
+    display: none;
+}
+
+/* ---------- tabbed panes ---------- */
+.tabbedPane {
+    background: #0b1030;
+    border: 1px solid #1b2350;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.tabBar {
+    display: flex;
+    align-items: stretch;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+    flex-shrink: 0;
+    overflow-x: auto;
+}
+
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 16px;
+    background: transparent;
+    border: none;
+    border-right: 1px solid #1b2350;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.tab:hover {
+    color: #c7d0f0;
+}
+
+.tabActive {
+    background: #0b1030;
+    color: #e6ecff;
+    box-shadow: inset 0 2px 0 0 #4da3ff;
+}
+
+.tabBadge {
+    background: #ff7b8a;
+    color: #0b1030;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 3px 7px;
+}
+
+/* Unviewed-changes dot on the Diagram tab. */
+.staleDot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #4da3ff;
+    flex-shrink: 0;
+    animation: stalePulse 1.6s ease infinite;
+}
+
+@keyframes stalePulse {
+    0%,
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 0.55;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .staleDot {
+        animation: none;
+    }
+}
+
+.tabBarActions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    padding-right: 8px;
+}
+
+.tabPanel {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.tabPanel[hidden] {
+    display: none;
+}
+
+/* Chromeless fill for components hosted inside a tab panel. */
+.paneFill {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* ---------- desktop (docked IDE) ---------- */
+@media (min-width: 997px) {
+    .workspace {
+        height: calc(100vh - var(--ifm-navbar-height));
+        overflow: hidden;
+        padding: 14px 18px;
+    }
+
+    .chassis {
+        height: 100%;
+    }
+
+    .chassisBody {
+        flex: 1;
+        flex-direction: row;
+    }
+
+    .guide {
+        width: 300px;
+        flex-shrink: 0;
+        border-bottom: none;
+        border-right: 1px solid #1b2350;
+    }
+
+    .guideScroll {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .guideCollapseBtn {
+        display: inline-flex;
+    }
+
+    .guide.guideHiddenDesktop {
+        display: none;
+    }
+
+    .guideRail {
+        display: flex;
+    }
+
+    .guideRail.guideRailHidden {
+        display: none;
+    }
+
+    .centerCol {
+        flex: 1;
+    }
+
+    .editorSlot {
+        flex: 1 1 0;
+        height: auto;
+    }
+
+    .termSlot {
+        flex: 0 0 auto;
+        height: var(--lab-term-height, 35%);
+        margin-top: 0;
+    }
+
+    .hSplitter {
+        display: block;
+        position: relative;
+        touch-action: none;
+        flex-shrink: 0;
+        height: 8px;
+        cursor: row-resize;
+    }
+
+    .hSplitter::after {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: 44px;
+        height: 3px;
+        border-radius: 2px;
+        background: #222a5c;
+    }
+
+    .hSplitter:hover::after {
+        background: #4da3ff;
+    }
+}
+
+/* ---------- legacy pane chrome (standalone component use) ---------- */
+.editorPane,
+.terminalPane {
+    background: #0b1030;
+    border: 1px solid #1b2350;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 0;
+    min-height: 0;
+}
+
+.paneHeader {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #0d1436;
+    border-bottom: 1px solid #1b2350;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+    flex-shrink: 0;
+}
+
+.paneDots {
+    display: inline-flex;
+    gap: 5px;
+    margin-right: 2px;
+}
+
+.paneDots i {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #222a5c;
+}
+
+/* ---------- terminal ---------- */
+.termScroll {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    cursor: text;
+}
+
+.termLine {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.lineOut {
+    color: #c7d0f0;
+}
+
+.lineOk {
+    color: #22d3a7;
+}
+
+.lineErr {
+    color: #ff7b8a;
+}
+
+.lineDim {
+    color: #8b96c9;
+}
+
+.lineCmd {
+    color: #e6ecff;
+}
+
+.promptRow {
+    display: flex;
+    align-items: center;
+}
+
+.promptUser {
+    color: #22d3a7;
+    font-weight: 600;
+}
+
+.promptPath {
+    color: #4da3ff;
+}
+
+.promptSep {
+    color: #8b96c9;
+}
+
+.termInput {
+    flex: 1;
+    min-width: 40px;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e6ecff;
+    font: inherit;
+    padding: 0 0 0 8px;
+    caret-color: #22d3a7;
+}
+
+/* ---------- editor ---------- */
+.editorFileName {
+    color: #c7d0f0;
+}
+
+.dirtyDot {
+    color: #e8a13c;
+    font-size: 10px;
+}
+
+.saveBtn {
+    margin-left: auto;
+    background: #16204a;
+    color: #c7d0f0;
+    border: 1px solid #222a5c;
+    border-radius: 7px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    padding: 5px 12px;
+    cursor: pointer;
+}
+
+.saveBtn:hover {
+    border-color: #4da3ff;
+    color: #fff;
+}
+
+.editorBody {
+    flex: 1;
+    display: flex;
+    min-height: 0;
+}
+
+.gutter {
+    flex-shrink: 0;
+    width: 46px;
+    padding: 12px 0;
+    overflow: hidden;
+    text-align: right;
+    color: #4a5578;
+    background: #0d1436;
+    border-right: 1px solid #1b2350;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    user-select: none;
+}
+
+.gutter div {
+    padding-right: 10px;
+}
+
+/* Positioning context for the highlight layer + textarea pair. */
+.editorStack {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+/* The textarea stays the source of truth (native caret/undo/IME); its
+   text is transparent and this pre paints the colours behind it. The
+   two MUST share identical text metrics and padding, or the layers
+   drift apart. The pre never scrolls itself — its scrollTop/scrollLeft
+   are driven from the textarea's onScroll (same pattern as the gutter). */
+.highlightLayer,
+.editorTextarea {
+    margin: 0;
+    padding: 12px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 13px;
+    line-height: 1.55;
+    letter-spacing: normal;
+    font-variant-ligatures: none;
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
+    tab-size: 4;
+}
+
+.highlightLayer {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    /* Infima styles bare `pre` elements — keep this one invisible chrome. */
+    background: transparent;
+    border-radius: 0;
+    color: #c7d0f0;
+    pointer-events: none;
+}
+
+.tokKey {
+    color: #6ea8ff;
+}
+
+.tokString {
+    color: #8ee6c8;
+}
+
+.tokNumber {
+    color: #e8a13c;
+}
+
+.tokLiteral {
+    color: #4da3ff;
+}
+
+.tokPunct {
+    color: #8b96c9;
+}
+
+.editorTextarea {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    background: transparent;
+    color: transparent;
+    caret-color: #c7d0f0;
+    border: none;
+    outline: none;
+    resize: none;
+    overflow: auto;
+}
+
+.editorTextarea::selection {
+    background: rgba(77, 163, 255, 0.35);
+    color: transparent;
+}
+
+/* ---------- diagram (CALM Hub visualizer pipeline) ---------- */
+.flowCanvas {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Dark-chassis ReactFlow chrome. Scoped under .flowCanvas so these rules beat
+   reactflow/dist/style.css regardless of bundle order (specificity, not order). */
+.flowCanvas :global(.react-flow) {
+    width: 100%;
+    height: 100%;
+}
+
+.flowCanvas :global(.react-flow__controls) {
+    background: #0d1436;
+    border: 1px solid #222a5c;
+    border-radius: 8px;
+    box-shadow: none;
+    overflow: hidden;
+}
+
+.flowCanvas :global(.react-flow__controls-button) {
+    background: #0d1436;
+    border-bottom: 1px solid #222a5c;
+}
+
+.flowCanvas :global(.react-flow__controls-button svg) {
+    fill: #c7d0f0;
+}
+
+.flowCanvas :global(.react-flow__controls-button:hover) {
+    background: #16204a;
+}
+
+.flowCanvas :global(.react-flow__attribution) {
+    background: transparent;
+}
+
+.flowCanvas :global(.react-flow__attribution a) {
+    color: #5a648c;
+}
+
+/* reactflow's stylesheet paints .react-flow__node-group with a light default
+   background/border; neutralise it so only the lab-skinned group shows. */
+.flowCanvas :global(.react-flow__node-group) {
+    background: transparent;
+    border: none;
+    padding: 0;
+}
+
+.flowNode {
+    width: 220px;
+    background: #0d1436;
+    border: 2px solid #4da3ff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    color: #c7d0f0;
+    font-family: var(--ifm-font-family-base);
+    box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.25);
+}
+
+.flowNodeLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: #e6ecff;
+    line-height: 1.35;
+}
+
+.flowNodeDot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.flowNodeType {
+    margin-top: 5px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+    color: #8b96c9;
+}
+
+.flowGroup {
+    background: rgba(77, 163, 255, 0.06);
+    border: 2px dashed rgba(77, 163, 255, 0.45);
+    border-radius: 12px;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Allow clicks to pass through to child nodes */
+}
+
+.flowGroupLabel {
+    position: absolute;
+    top: 12px;
+    left: 16px;
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 12px;
+    font-family: var(--ifm-font-family-monospace);
+    background: #0d1436;
+    color: #c7d0f0;
+    border: 1px solid #222a5c;
+    pointer-events: auto; /* Re-enable pointer events for the label */
+}
+
+.flowEdgeLabel {
+    position: absolute;
+    pointer-events: all;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 200px;
+    background: rgba(11, 16, 48, 0.9);
+    border: 1px solid #222a5c;
+    border-radius: 6px;
+    padding: 2px 7px;
+    font-family: var(--ifm-font-family-base);
+    font-size: 10.5px;
+    color: #c7d0f0;
+}
+
+.flowEdgeProtocol {
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 9.5px;
+    font-weight: 600;
+    color: #4da3ff;
+    background: #16204a;
+    border-radius: 4px;
+    padding: 1px 5px;
+    flex-shrink: 0;
+}
+
+.diagramEmpty {
+    padding: 26px 14px;
+    text-align: center;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12.5px;
+}
+
+.diagramCaption {
+    padding: 0 14px 12px;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+}
+
+/* ---------- problems panel ---------- */
+.problemsPanel {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 14px;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.problemsEmpty {
+    color: #8b96c9;
+}
+
+.problemsList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #ff7b8a;
+    word-break: break-word;
+}
+
+/* ---------- status bar (chassis bottom edge) ---------- */
+.statusBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    height: 28px;
+    flex-shrink: 0;
+    padding: 0 14px;
+    background: #0d1436;
+    border-top: 1px solid #1b2350;
+    color: #8b96c9;
+    font-family: var(--ifm-font-family-monospace);
+    font-size: 11px;
+}
+
+.statusBar > span {
+    white-space: nowrap;
+}
+
+.statusOk {
+    color: #22d3a7;
+}
+
+.statusErr {
+    color: #ff7b8a;
+}
+
+.statusErrBtn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.statusFile {
+    color: #c7d0f0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- a11y ---------- */
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
