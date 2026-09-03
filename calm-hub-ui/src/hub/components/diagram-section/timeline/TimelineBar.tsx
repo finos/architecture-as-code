@@ -73,7 +73,7 @@ interface TimelineBarProps {
     /** Navigate the main area to a moment's version (single view). */
     onNavigate: (version: string) => void;
     /** Start a diff with the given baseline (from) and comparison (to) versions. */
-    onCompare: (from: string, to: string) => void;
+    onCompare?: (from: string, to: string) => void;
     /**
      * Compute the list of changes between two versions of this resource, for
      * the expanded panel's WHAT CHANGED section. Returns [] when no predecessor
@@ -171,10 +171,12 @@ export function TimelineBar({
         setExpanded(false);
     };
 
-    const handleMomentCompare = (from: string, to: string) => {
-        markSeen();
-        onCompare(from, to);
-    };
+    const handleMomentCompare = onCompare
+        ? (from: string, to: string) => {
+              markSeen();
+              onCompare(from, to);
+          }
+        : undefined;
 
     const handleMomentNavigate = (version: string) => {
         markSeen();
@@ -197,10 +199,7 @@ export function TimelineBar({
                         markSeen();
                         onNavigate(version);
                     }}
-                    onCompare={(from, to) => {
-                        markSeen();
-                        onCompare(from, to);
-                    }}
+                    onCompare={handleMomentCompare}
                     onExpand={() => {
                         markSeen();
                         setExpanded(true);

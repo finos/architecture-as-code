@@ -10,7 +10,7 @@ interface SparklineProps {
     compareFrom?: string | null;
     compareTo?: string | null;
     onNavigate: (version: string) => void;
-    onCompare: (from: string, to: string) => void;
+    onCompare?: (from: string, to: string) => void;
     onExpand: () => void;
     /** Show the red NEW pill until the user has interacted with the timeline once. */
     showNewPill: boolean;
@@ -92,6 +92,7 @@ export function Sparkline({
     };
 
     const handleDotContextMenu = (e: React.MouseEvent, moment: TimelineMoment) => {
+        if (!onCompare) return;
         e.preventDefault();
         onInteract();
         setMenu({ moment, x: e.clientX, y: e.clientY });
@@ -103,13 +104,13 @@ export function Sparkline({
     };
 
     const handleCompareFrom = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(menu.moment.version, currentVersion);
         setMenu(null);
     };
 
     const handleCompareTo = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(currentVersion, menu.moment.version);
         setMenu(null);
     };

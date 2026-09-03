@@ -22,12 +22,14 @@ vi.mock('@monaco-editor/react', () => ({
 const mockFetchStandardVersions = vi.fn();
 const mockFetchFlowVersions = vi.fn();
 const mockFetchVersionsByCustomId = vi.fn();
+const mockFetchArchitectureSummaries = vi.fn();
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
         fetchStandardVersions: mockFetchStandardVersions,
         fetchFlowVersions: mockFetchFlowVersions,
         fetchVersionsByCustomId: mockFetchVersionsByCustomId,
+        fetchArchitectureSummaries: mockFetchArchitectureSummaries,
     }; }),
 }));
 
@@ -37,6 +39,7 @@ describe('DocumentDetailSection', () => {
         mockFetchStandardVersions.mockClear().mockResolvedValue([]);
         mockFetchFlowVersions.mockClear().mockResolvedValue([]);
         mockFetchVersionsByCustomId.mockClear().mockResolvedValue([]);
+        mockFetchArchitectureSummaries.mockClear().mockResolvedValue([]);
     });
 
     it('renders null when data is undefined', () => {
@@ -46,6 +49,44 @@ describe('DocumentDetailSection', () => {
             </MemoryRouter>
         );
         expect(container.firstChild).toBeNull();
+    });
+
+    // Regression: the live page mounts this component with data=undefined while
+    // the resource loads, then re-renders the SAME instance with data. A hook
+    // placed after the `if (!data) return null` guard changes the hook count
+    // between those two renders and crashes React. This exercises that transition.
+    it('does not crash when data changes from undefined to a Flow', async () => {
+        const flowData: Data = {
+            id: '4',
+            version: '1.0.0',
+            name: 'finos',
+            calmType: 'Flows',
+            data: {
+                'unique-id': 'flow-4',
+                name: 'Payment Flow',
+                description: 'Test flow',
+                transitions: [
+                    { 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' },
+                ],
+            },
+        };
+
+        const { rerender } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={undefined} />
+            </MemoryRouter>
+        );
+
+        expect(() =>
+            rerender(
+                <MemoryRouter>
+                    <DocumentDetailSection data={flowData} />
+                </MemoryRouter>
+            )
+        ).not.toThrow();
+
+        // The name shows in the breadcrumb. The diagram no longer repeats it.
+        await waitFor(() => expect(screen.getAllByText('Payment Flow').length).toBeGreaterThan(0));
     });
 
     it('renders Patterns with correct icon', () => {
@@ -66,7 +107,7 @@ describe('DocumentDetailSection', () => {
         const heading = screen.getByRole('heading');
         expect(heading).toHaveTextContent('my-namespace');
         expect(heading).toHaveTextContent('test-pattern');
-        expect(heading).toHaveTextContent('1.0.0');
+        // The version is no longer in the header. The timeline bar shows it.
     });
 
     it('renders Flows with correct icon', () => {
@@ -87,7 +128,34 @@ describe('DocumentDetailSection', () => {
         const heading = screen.getByRole('heading');
         expect(heading).toHaveTextContent('flow-namespace');
         expect(heading).toHaveTextContent('test-flow');
-        expect(heading).toHaveTextContent('2.0.0');
+        // The version is no longer in the header. The timeline bar shows it.
+    });
+
+    it('shows the flow name and a "Flow" type label in the breadcrumb', () => {
+        const data: Data = {
+            id: '4',
+            version: '1.0.0',
+            name: 'finos',
+            calmType: 'Flows',
+            data: {
+                'unique-id': 'flow-4',
+                name: 'Payment Processing',
+                description: 'Test flow',
+                transitions: [],
+            },
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        const heading = screen.getByRole('heading');
+        expect(heading).toHaveTextContent('finos');
+        expect(heading).toHaveTextContent('Flow');
+        // The human-readable flow name replaces the numeric id in the trail.
+        expect(heading).toHaveTextContent('Payment Processing');
     });
 
     it('renders JsonRenderer with correct data', () => {
@@ -109,7 +177,7 @@ describe('DocumentDetailSection', () => {
         expect(textarea).toHaveValue(JSON.stringify(data, null, 2));
     });
 
-    it('shows version dropdown for Standards when multiple versions are available', async () => {
+    it('shows the version timeline for Standards when multiple versions are available', async () => {
         mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
 
         const data: Data = {
@@ -126,17 +194,16 @@ describe('DocumentDetailSection', () => {
             </MemoryRouter>
         );
 
+        // Version browsing moved to the timeline bar, matching the architecture
+        // view. The header no longer renders a version dropdown.
         await waitFor(() => {
-            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Moment 2.0.0' })).toBeInTheDocument();
         });
-
-        const select = screen.getByRole('combobox', { name: 'Version' });
-        expect(select).toHaveValue('2.0.0');
-        const options = screen.getAllByRole('option');
-        expect(options.map((o) => o.textContent)).toEqual(['2.0.0', '1.0.0']);
+        expect(screen.getByRole('button', { name: 'Moment 1.0.0' })).toBeInTheDocument();
+        expect(screen.queryByRole('combobox', { name: 'Version' })).not.toBeInTheDocument();
     });
 
-    it('navigates to the selected version when version changes for Standards', async () => {
+    it('navigates to the selected version when a timeline moment is clicked for Standards', async () => {
         mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
 
         const data: Data = {
@@ -154,15 +221,15 @@ describe('DocumentDetailSection', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Moment 1.0.0' })).toBeInTheDocument();
         });
 
-        await userEvent.selectOptions(screen.getByRole('combobox', { name: 'Version' }), '1.0.0');
+        await userEvent.click(screen.getByRole('button', { name: 'Moment 1.0.0' }));
 
         expect(mockNavigate).toHaveBeenCalledWith('/test-ns/standards/42/1.0.0');
     });
 
-    it('shows version dropdown for Flows when multiple versions are available', async () => {
+    it('shows the version timeline for Flows when multiple versions are available', async () => {
         mockFetchFlowVersions.mockResolvedValue(['3.0.0', '2.0.0', '1.0.0']);
 
         const data: Data = {
@@ -180,11 +247,10 @@ describe('DocumentDetailSection', () => {
         );
 
         await waitFor(() => {
-            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Moment 3.0.0' })).toBeInTheDocument();
         });
-
-        const options = screen.getAllByRole('option');
-        expect(options.map((o) => o.textContent)).toEqual(['3.0.0', '2.0.0', '1.0.0']);
+        expect(screen.getByRole('button', { name: 'Moment 2.0.0' })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: 'Moment 1.0.0' })).toBeInTheDocument();
     });
 
     it('uses fetchVersionsByCustomId when the resource ID is a slug', async () => {
@@ -204,8 +270,10 @@ describe('DocumentDetailSection', () => {
             </MemoryRouter>
         );
 
+        // isSlug ids still fetch via fetchVersionsByCustomId; assert on the
+        // timeline moment now that the header dropdown is gone.
         await waitFor(() => {
-            expect(screen.getByRole('combobox', { name: 'Version' })).toBeInTheDocument();
+            expect(screen.getByRole('button', { name: 'Moment 2.0.0' })).toBeInTheDocument();
         });
 
         expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard', 'Standards');

@@ -45,16 +45,16 @@ const GROUP_NODE_TYPES = ['group'];
 const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
 
 /**
- * Mobile fit-to-view (redesign problem #10): the whole graph must fit a ~390px
- * viewport on load, so the floor drops to the pane-level minZoom (0.1) — far below
- * the desktop 0.6. A wide/dense graph genuinely needs to zoom out this far to fit a
- * phone: the seeded TraderX architecture (14 nodes inside a wide boundary group)
- * fits 390px only at ~0.16, so any higher floor leaves it clipped left/right
- * (verified live). Pinch-to-zoom is the native way to then read small labels.
- * Tighter padding (0.1) reclaims width on the narrow screen; maxZoom matches
- * desktop so a sparse graph isn't blown up.
+ * Contain-first fit: the whole graph must fit the pane. The floor drops to the
+ * pane-level minZoom of 0.1, far below the desktop 0.6. The desktop value is a
+ * legibility guard for a pane that owns the full window.
+ *
+ * Used on mobile, where the seeded TraderX architecture fits 390px only at about
+ * 0.16, and by `fitToPane`, where sibling UI narrows the pane. At 0.6 the graph
+ * cannot shrink more and overflows to the left and right. Tighter padding gives
+ * back width. maxZoom matches desktop, so a sparse graph is not enlarged.
  */
-const MOBILE_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
+const CONTAIN_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
 
 /** Persist the minimap show/hide choice so it survives a refresh. */
 const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
@@ -75,6 +75,7 @@ export function ArchitectureGraph({
     defaultLayout,
     layoutEpoch,
     onPositionsChange,
+    fitToPane,
 }: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
 
@@ -124,6 +125,9 @@ export function ArchitectureGraph({
     // Captured via onInit on both devices so the ref exists even if the app started
     // on desktop and only later crossed into mobile.
     const flowInstanceRef = useRef<ReactFlowInstance | null>(null);
+
+    // The pane element, watched by the optional refit-on-resize observer below.
+    const containerRef = useRef<HTMLDivElement | null>(null);
 
     // Minimap is a help on dense graphs but clutter on sparse ones, so let the
     // user hide it; the choice persists for the session. Desktop-only — mobile
@@ -236,11 +240,33 @@ export function ArchitectureGraph({
     // graph un-fit (redesign problem #10). refit() is a no-op until onInit has run.
     useEffect(() => {
         if (!isMobile) return;
-        const refit = () => flowInstanceRef.current?.fitView(MOBILE_FIT_VIEW_OPTIONS);
+        const refit = () => flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
         refit();
         window.addEventListener('resize', refit);
         return () => window.removeEventListener('resize', refit);
     }, [isMobile]);
+
+    // fitView otherwise runs only at ReactFlow's initial mount. An embedded pane that
+    // sibling UI resizes later then keeps a viewport scaled for its old size. Watch
+    // the container, not window 'resize', to catch a change to the pane alone. The
+    // callback is rAF-batched, because a synchronous fitView re-triggers the observer.
+    useEffect(() => {
+        const container = containerRef.current;
+        if (!fitToPane || !container) return;
+
+        let frame = 0;
+        const observer = new ResizeObserver(() => {
+            cancelAnimationFrame(frame);
+            frame = requestAnimationFrame(() => {
+                flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
+            });
+        });
+        observer.observe(container);
+        return () => {
+            cancelAnimationFrame(frame);
+            observer.disconnect();
+        };
+    }, [fitToPane, nodes.length]);
 
     if (awaitingDefaultLayout) {
         return <EmptyGraphState message="Loading saved layout…" />;
@@ -250,16 +276,15 @@ export function ArchitectureGraph({
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
 
-    // One derived config so the device-dependent fit props can't drift out of sync.
-    // Mobile always fits on load (ignoring any persisted viewport) so the whole graph
-    // fits 390px (redesign problem #10); desktop restores its saved viewport, or fits
-    // when there's none.
-    const flowConfig = isMobile
-        ? { fitView: true, defaultViewport: undefined, fitViewOptions: MOBILE_FIT_VIEW_OPTIONS }
+    // One derived config, so the fit props stay in agreement. Mobile and an embedded
+    // pane always fit on load and ignore a persisted viewport, because the user does
+    // not size either one. Desktop restores its saved viewport, or fits if it has none.
+    const flowConfig = fitToPane || isMobile
+        ? { fitView: true, defaultViewport: undefined, fitViewOptions: CONTAIN_FIT_VIEW_OPTIONS }
         : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
 
     return (
-        <div style={{ height: '100%', width: '100%' }}>
+        <div ref={containerRef} style={{ height: '100%', width: '100%' }}>
             <ReactFlow
                 // Remount when the diagram (resource) changes so a new architecture fits
                 // afresh; switching versions/moments keeps the same key and preserves the
@@ -332,7 +357,7 @@ export function ArchitectureGraph({
                         showInteractive={false}
                         // Match the on-load fit cap so the "fit" button doesn't
                         // over-zoom a sparse graph (reactflow's default maxZoom is 2).
-                        fitViewOptions={MOBILE_FIT_VIEW_OPTIONS}
+                        fitViewOptions={CONTAIN_FIT_VIEW_OPTIONS}
                     />
                 )}
                 {!isMobile && !minimapHidden && (
