@@ -11,10 +11,12 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.util.NamespaceAccessFilter;
 import org.finos.calm.store.github.util.RegistryEntry;
 
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Domains are derived from the controls/ directory structure in each namespace's repo.
@@ -30,15 +32,20 @@ public class GitHubDomainStore implements DomainStore {
     private final InMemoryRegistryService registryService;
 
     @Inject
+    NamespaceAccessFilter accessFilter;
+
+    @Inject
     public GitHubDomainStore(InMemoryRegistryService registryService) {
         this.registryService = registryService;
     }
 
     @Override
     public List<String> getDomains() {
-        return registryService.getSnapshot().entriesByType()
-                .getOrDefault(CalmResourceType.CONTROL, List.of())
-                .stream()
+        Set<String> accessible = resolveAccessibleNamespaces();
+        return registryService.getSnapshot().entriesByNamespace().entrySet().stream()
+                .filter(e -> accessible.contains(e.getKey()))
+                .flatMap(e -> e.getValue().stream())
+                .filter(entry -> entry.type() == CalmResourceType.CONTROL)
                 .map(this::extractDomain)
                 .distinct()
                 .toList();
@@ -68,5 +75,12 @@ public class GitHubDomainStore implements DomainStore {
             }
         }
         return "default";
+    }
+
+    private Set<String> resolveAccessibleNamespaces() {
+        if (accessFilter == null) {
+            return new java.util.HashSet<>(registryService.getSnapshot().getNamespaces());
+        }
+        return accessFilter.getAccessibleNamespaces();
     }
 }

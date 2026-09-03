@@ -2,6 +2,7 @@ package org.finos.calm.store.github;
 
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.util.NamespaceAccessFilter;
 import org.finos.calm.store.github.util.RegistryEntry;
 import org.finos.calm.store.github.util.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
@@ -28,11 +30,15 @@ class TestGitHubDomainStoreShould {
     @Mock
     private InMemoryRegistryService registryService;
 
+    @Mock
+    private NamespaceAccessFilter accessFilter;
+
     private GitHubDomainStore store;
 
     @BeforeEach
     void setup() {
         store = new GitHubDomainStore(registryService);
+        store.accessFilter = accessFilter;
     }
 
     @Test
@@ -45,6 +51,7 @@ class TestGitHubDomainStoreShould {
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<String> domains = store.getDomains();
 
@@ -54,6 +61,7 @@ class TestGitHubDomainStoreShould {
     @Test
     void return_empty_when_no_controls_exist() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of());
 
         List<String> domains = store.getDomains();
 
@@ -70,6 +78,7 @@ class TestGitHubDomainStoreShould {
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         assertThat(store.domainExists("security"), is(true));
     }
@@ -77,8 +86,28 @@ class TestGitHubDomainStoreShould {
     @Test
     void return_false_when_domain_does_not_exist() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of());
 
         assertThat(store.domainExists("nonexistent"), is(false));
+    }
+
+    @Test
+    void hide_domains_from_inaccessible_namespaces() {
+        RegistryEntry accessibleEntry = new RegistryEntry("ctrl-a", Path.of("controls/security/ctrl-a.json"),
+                CalmResourceType.CONTROL, "Control A", Instant.now());
+        RegistryEntry restrictedEntry = new RegistryEntry("ctrl-b", Path.of("controls/compliance/ctrl-b.json"),
+                CalmResourceType.CONTROL, "Control B", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)),
+                Map.of("finos:ctrl-a", accessibleEntry, "private:ctrl-b", restrictedEntry),
+                Map.of(CalmResourceType.CONTROL, List.of(accessibleEntry, restrictedEntry))
+        );
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        List<String> domains = store.getDomains();
+
+        assertThat(domains, contains("security"));
     }
 
     @Test

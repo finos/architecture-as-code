@@ -23,6 +23,7 @@ import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.util.NamespaceAccessFilter;
 import org.finos.calm.store.github.util.RegistryEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @ApplicationScoped
 @Typed(GitHubControlStore.class)
@@ -55,16 +57,21 @@ public class GitHubControlStore implements ControlStore {
     GitHubVersionService versionService;
 
     @Inject
+    NamespaceAccessFilter accessFilter;
+
+    @Inject
     public GitHubControlStore(InMemoryRegistryService registryService) {
         this.registryService = registryService;
     }
 
     @Override
     public List<ControlDetail> getControlsForDomain(String domain) throws DomainNotFoundException {
-        // In GitHub mode, "domain" is a subfolder under controls/ within any namespace
-        // Search all namespaces for controls whose file path contains controls/{domain}/
+        Set<String> accessible = resolveAccessibleNamespaces();
         List<ControlDetail> results = new java.util.ArrayList<>();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
+            if (!accessible.contains(namespace)) {
+                continue;
+            }
             List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
                 String path = entry.filePath().toString();
@@ -172,8 +179,12 @@ public class GitHubControlStore implements ControlStore {
     }
 
     private RegistryEntry findControlEntry(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
+        Set<String> accessible = resolveAccessibleNamespaces();
         boolean domainExists = false;
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
+            if (!accessible.contains(namespace)) {
+                continue;
+            }
             List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
                 String path = entry.filePath().toString();
@@ -187,8 +198,10 @@ public class GitHubControlStore implements ControlStore {
             }
         }
         if (!domainExists) {
-            // Fallback: search by ID across all controls (for namespace-scoped access)
             for (String namespace : registryService.getSnapshot().getNamespaces()) {
+                if (!accessible.contains(namespace)) {
+                    continue;
+                }
                 List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
                 Optional<RegistryEntry> found = entries.stream()
                         .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == controlId)
@@ -201,10 +214,21 @@ public class GitHubControlStore implements ControlStore {
     }
 
     private String findNamespaceForControl(RegistryEntry entry) {
+        Set<String> accessible = resolveAccessibleNamespaces();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
+            if (!accessible.contains(namespace)) {
+                continue;
+            }
             List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
             if (entries.contains(entry)) return namespace;
         }
         return null;
+    }
+
+    private Set<String> resolveAccessibleNamespaces() {
+        if (accessFilter == null) {
+            return new java.util.HashSet<>(registryService.getSnapshot().getNamespaces());
+        }
+        return accessFilter.getAccessibleNamespaces();
     }
 }
