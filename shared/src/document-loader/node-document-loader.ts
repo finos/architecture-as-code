@@ -43,7 +43,12 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
         docLoaderOpts.basePath ?? process.cwd()
     ));
 
-    loaders.push(new DirectUrlDocumentLoader(debug, undefined, docLoaderOpts.allowedRemoteHosts));
+    loaders.push(new DirectUrlDocumentLoader(
+        debug,
+        undefined,
+        docLoaderOpts.allowedRemoteHosts,
+        docLoaderOpts.directUrlAuthPlugin
+    ));
 
     return new MultiStrategyDocumentLoader(loaders, debug);
 }
