@@ -14,8 +14,7 @@ let templateModule: typeof import('./command-helpers/template');
 let optionsModule: typeof import('./command-helpers/generate-options');
 let diffModule: typeof import('./command-helpers/diff');
 let hubCommandsModule: typeof import('./command-helpers/hub-commands');
-let _fileSystemDocLoaderModule: typeof import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
-let documentLoaderModule: typeof import('../../shared/src/document-loader/document-loader');
+let documentLoaderModule: typeof import('../../shared/src/document-loader/node-document-loader');
 let setupCLI: typeof import('./cli').setupCLI;
 let cliConfigModule: typeof import('./cli-config');
 
@@ -32,8 +31,7 @@ describe('CLI Commands', () => {
         templateModule = await import('./command-helpers/template');
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
-        _fileSystemDocLoaderModule = await import('@finos/calm-shared/dist/document-loader/file-system-document-loader');
-        documentLoaderModule = await import('../../shared/src/document-loader/document-loader');
+        documentLoaderModule = await import('../../shared/src/document-loader/node-document-loader');
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -1491,6 +1489,116 @@ describe('CLI Commands', () => {
             ]);
 
             expect(hubCommandsModule.runListStandards).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'default',
+            }));
+        });
+    });
+
+    describe('push interface command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushInterface').mockResolvedValue(undefined);
+        });
+
+        it('calls runPushInterface with file and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'interface', 'interface.json',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushInterface).toHaveBeenCalledWith(expect.objectContaining({
+                file: 'interface.json',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes the change type through for a versioned push', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'interface', 'interface.json',
+                '--change-type', 'major',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushInterface).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'MAJOR',
+            }));
+        });
+
+        it('defaults the change type to PATCH when not provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'interface', 'interface.json',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushInterface).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'PATCH',
+            }));
+        });
+    });
+
+    describe('pull interface command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullInterface').mockResolvedValue(undefined);
+        });
+
+        it('calls runPullInterface with namespace, mapping, version and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'interface',
+                '--namespace', 'finos',
+                '--mapping', 'my-interface',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullInterface).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                mapping: 'my-interface',
+                version: '1.0.0',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --output when provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'interface',
+                '--namespace', 'finos',
+                '--mapping', 'my-interface',
+                '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullInterface).toHaveBeenCalledWith(expect.objectContaining({
+                output: 'out.json',
+            }));
+        });
+    });
+
+    describe('list interfaces command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListInterfaces').mockResolvedValue(undefined);
+        });
+
+        it('calls runListInterfaces with namespace and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'interfaces',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListInterfaces).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('defaults namespace to "default"', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'interfaces',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListInterfaces).toHaveBeenCalledWith(expect.objectContaining({
                 namespace: 'default',
             }));
         });

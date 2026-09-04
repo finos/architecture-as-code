@@ -11,11 +11,9 @@ import { detectChangedResources, bumpWorkspace } from './bump';
 import { runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
-import { initLogger, Logger } from '@finos/calm-shared/src/logger';
+import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-models/types';
-import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
-import { isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared/src/hub/document-id-utils';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
 

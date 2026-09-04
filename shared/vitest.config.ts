@@ -11,7 +11,7 @@ const v8CoverageSettings: CoverageV8Options = {
         lines: 75,
         statements: 75
     },
-    exclude: ['test_fixtures/**', '*.config.ts'],
+    exclude: ['test_fixtures/**', '*.config.ts', 'scripts/**'],
     include: ['**/*.ts']
 };
 

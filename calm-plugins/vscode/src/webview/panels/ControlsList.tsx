@@ -128,9 +128,14 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                                             </div>
                                         )}
                                         {valueOnly && control.description && <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>{control.description}</p>}
-                                        {valueOnly && control.requirements?.map((req, idx) => (
-                                            req['requirement-url'] && <button key={idx} type="button" onClick={() => onControlFocused?.(req['requirement-url']!)} style={{ fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{req['requirement-url']}</button>
-                                        ))}
+                                        {control.requirements?.some((req) => req['requirement-url']) && (
+                                            <div>
+                                                {!valueOnly && <span style={fieldLabelStyle}>Requirement</span>}
+                                                {control.requirements?.map((req, idx) => (
+                                                    req['requirement-url'] && <button key={idx} type="button" onClick={() => onControlFocused?.(req['requirement-url']!)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{req['requirement-url']}</button>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>

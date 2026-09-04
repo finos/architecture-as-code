@@ -8,16 +8,13 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     runCreateDomain, runListDomains, runListControls,
     runPushControlRequirement, runPullControlRequirement, runPushControlConfiguration, runPullControlConfiguration,
     printIdCreateResult,
-    runListControlConfigurations } from './hub-commands';
+    runListControlConfigurations,
+    runPushInterface, runPullInterface, runListInterfaces } from './hub-commands';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
 vi.mock('@finos/calm-shared', async () => {
-    const documentIdUtils = await vi.importActual<Record<string, unknown>>('@finos/calm-shared/dist/hub/document-id-utils');
-    // Real (pure) semver helpers used by pushDocument's version-bump path.
-    const semver = await vi.importActual('@finos/calm-shared/dist/hub/semver');
-    // Real (pure) canonical-equality helper used by pushDocument's fail-if-modified path.
-    const canonical = await vi.importActual('@finos/calm-shared/dist/hub/canonical');
+    const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
     const mockClient = {
         createNamespace: vi.fn(),
         listNamespaces: vi.fn(),
@@ -40,10 +37,11 @@ vi.mock('@finos/calm-shared', async () => {
         createControlConfigurationVersion: vi.fn()
     };
     return {
-        ...documentIdUtils,
-        extractDocumentMetadata: vi.fn(documentIdUtils['extractDocumentMetadata'] as (...args: unknown[]) => unknown),
-        ...semver,
-        ...canonical,
+        // Keep all the real (pure) helpers — document-id-utils, semver and canonical — that
+        // orchestratePush relies on, then override just the HTTP-touching pieces below. The
+        // vi.fn(...) overrides must come after this spread, or the spread would clobber them.
+        ...actual,
+        extractDocumentMetadata: vi.fn(actual.extractDocumentMetadata),
         CalmHubClient: vi.fn(function () { return mockClient; }),
         HubClientError: class HubClientError extends Error {
             constructor(public status: number, public error: string, public request: string) {
@@ -1044,6 +1042,179 @@ describe('hub-commands', () => {
         it('exits when no hub URL is available', async () => {
             const { runListStandards } = await import('./hub-commands');
             await expect(runListStandards({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+    });
+
+    // ── runPushInterface ───────────────────────────────────────────────────
+
+    describe('runPushInterface', () => {
+        it('creates a new mapped interface version when the mapping has no versions yet', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-interface', 'interfaces') as unknown as Uint8Array);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/interfaces/my-interface/versions/1.0.0'
+            );
+
+            await runPushInterface({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                name: 'my-interface',
+                description: 'desc',
+                file: 'interface.json'
+            });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-interface', 'interfaces');
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    namespace: 'finos', mapping: 'my-interface', type: 'interfaces', version: '1.0.0', name: 'my-interface', description: 'desc'
+                }),
+                expect.any(String)
+            );
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'my-interface', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('creates a bumped interface version when versions already exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-interface', 'interfaces') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/interfaces/my-interface/versions/2.0.0'
+            );
+
+            await runPushInterface({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                changeType: 'MAJOR',
+                file: 'interface.json'
+            });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    namespace: 'finos', mapping: 'my-interface', type: 'interfaces', version: '2.0.0', name: 'my-interface', description: ''
+                }),
+                expect.any(String)
+            );
+        });
+
+        it('exits when the interface file is not valid JSON', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue('not valid json content' as unknown as Uint8Array);
+
+            await expect(runPushInterface({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                name: 'my-interface',
+                description: 'desc',
+                file: 'interface.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'File is not valid JSON: interface.json', 'push interfaces interface.json', 'json'
+            );
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits when file cannot be read', async () => {
+            vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+            await expect(runPushInterface({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                name: 'my-interface',
+                description: 'desc',
+                file: 'missing.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-interface', 'interfaces') as unknown as Uint8Array);
+            vi.mocked(mockClient.createMappedResourceVersion).mockRejectedValue(
+                new shared.HubClientError(409, 'Interface already exists', 'POST /calm/namespaces/finos/interfaces/my-interface/versions/1.0.0')
+            );
+
+            await expect(runPushInterface({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                name: 'my-interface',
+                description: 'desc',
+                file: 'interface.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(409, 'Interface already exists', expect.any(String), 'json');
+        });
+    });
+
+    // ── runPullInterface ───────────────────────────────────────────────────
+
+    describe('runPullInterface', () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 30, interfaceJson: 'raw' });
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
+
+            await runPullInterface({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-interface', version: '1.0.0' });
+
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-interface', '1.0.0', 'interfaces');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"id": 30'));
+            consoleSpy.mockRestore();
+        });
+
+        it('pulls the latest version when no version is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ id: 30 });
+
+            await runPullInterface({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-interface' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-interface', 'interfaces');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('writes to file when --output is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ id: 30 });
+
+            await runPullInterface({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-interface', version: '1.0.0', output: 'out.txt' });
+
+            expect(fs.writeFile).toHaveBeenCalledWith('out.txt', expect.any(String), 'utf-8');
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Interface not found', 'GET /calm/namespaces/finos/mappings/my-interface/versions/1.0.0')
+            );
+
+            await expect(runPullInterface({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-interface', version: '1.0.0' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Interface not found', expect.any(String), 'json');
+        });
+    });
+
+    // ── runListInterfaces ──────────────────────────────────────────────────
+
+    describe('runListInterfaces', () => {
+        it('prints JSON array of interface ids', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['interface-a', 'interface-b']);
+
+            await runListInterfaces({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
+
+            expect(mockClient.getNamespaceMappings).toHaveBeenCalledWith('finos', 'interfaces');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(['interface-a', 'interface-b']);
+        });
+
+        it('renders a single ID column when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['interface-a']);
+
+            await runListInterfaces({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ MAPPING: 'interface-a' }],
+                [{ key: 'MAPPING', header: 'MAPPING' }]
+            );
+        });
+
+        it('exits when no hub URL is available', async () => {
+            await expect(runListInterfaces({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });

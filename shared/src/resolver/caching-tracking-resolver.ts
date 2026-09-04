@@ -1,4 +1,4 @@
-import { CalmReferenceResolver } from './calm-reference-resolver.js';
+import type { CalmReferenceResolver } from './calm-reference-resolver.js';
 
 /**
  * A caching, tracking {@link CalmReferenceResolver} decorator.

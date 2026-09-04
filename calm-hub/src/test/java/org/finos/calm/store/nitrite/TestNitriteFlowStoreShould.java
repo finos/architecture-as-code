@@ -389,4 +389,33 @@ public class TestNitriteFlowStoreShould {
 
         verify(versionCollection).insert(any(Document.class));
     }
+
+    // --- deleteFlow ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_flow_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
+    }
+
+    @Test
+    public void delete_the_header_and_all_versions_when_the_flow_exists() throws Exception {
+        flowExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.0.0"),
+                Document.createDocument().put("version", "1.0.1")));
+
+        store.deleteFlow(NAMESPACE, FLOW_ID);
+
+        verify(versionCollection, org.mockito.Mockito.times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void throw_a_flow_exception_when_deleting_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
+    }
 }
