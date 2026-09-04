@@ -210,37 +210,6 @@ export default function Hub() {
         setSelectedItem(null);
     }, []);
 
-    // Closes the control detail panel. On the detail route (a control reached via a
-    // deep-link or the mobile drill-down, which navigates to /:domain/controls/:id/
-    // detail) navigate to the domain grid so closing lands on the cards, not a blank
-    // detail route. For an in-place selection on /domain/:domain the grid is already
-    // the backdrop, so just clear the control.
-    const handleControlClose = useCallback(() => {
-        if (isDetailRoute && controlData) {
-            navigate(`/domain/${encodeURIComponent(controlData.domain)}`);
-        } else {
-            setControlData(undefined);
-        }
-    }, [isDetailRoute, controlData, navigate]);
-
-    // Activating a card from the backdrop grid. On the detail route the URL owns the
-    // selected control, so navigate to the new control's detail route (which reloads
-    // it via useResourceFromRoute) rather than swapping it in place — otherwise the
-    // URL and panel desync and Back/refresh reverts to the deep-linked control. Off
-    // the detail route (/domain/:domain) load in place as before. For controls the
-    // domain segment is the namespace (see useResourceFromRoute), so the route is
-    // /<domain>/controls/<id>/detail.
-    const handleControlActivate = useCallback(
-        (control: ControlData) => {
-            if (isDetailRoute) {
-                navigate(`/${encodeURIComponent(control.domain)}/controls/${control.controlId}/detail`);
-            } else {
-                handleControlLoad(control);
-            }
-        },
-        [isDetailRoute, navigate, handleControlLoad]
-    );
-
     // The resource's display name is fetched by DiagramSection (it owns the
     // summaries fetch) and mirrored here so the crumb pushed on navigation can
     // carry it. A ref, not state: it is only read imperatively at navigate time,
@@ -347,15 +316,6 @@ export default function Hub() {
         () => (domainCountsLoaded ? (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0) : undefined),
         [domainCounts, domainCountsLoaded, activeDomain]
     );
-    // Count for the grid shown behind a selected control's panel — the control's own
-    // domain, which may differ from the route's activeDomain when reached via the
-    // detail route (deep-link / mobile drill-down).
-    const controlDomain = controlData?.domain;
-    const controlDomainCount = useMemo(
-        () => (domainCountsLoaded ? (domainCounts.find((c) => c.domain === controlDomain)?.controlCount ?? 0) : undefined),
-        [domainCounts, domainCountsLoaded, controlDomain]
-    );
-
     // Chrome-free intro / front door (`/` with nothing else active): early-returns
     // before Hub's navbar + rail layout. Below every hook above, so none is skipped.
     if (
@@ -398,21 +358,13 @@ export default function Hub() {
 
     // Route decides the content pane. A loaded resource (including an in-place
     // interface selected from the namespace page) takes precedence over the
-    // route-driven page so its detail view shows. A selected control is the
-    // exception: it keeps its domain's card grid as the backdrop and opens the
-    // ControlPanel beside it (below) rather than replacing the pane — this holds
-    // whether the control was selected in-place on /domain/:domain OR reached via
-    // the detail route (deep-link / mobile drill-down), so the grid is never blank
-    // behind the panel and closing returns to it. With nothing loaded and no
-    // namespace/domain route (i.e. `/`), the first-run landing fills what was the
-    // ~75% blank canvas (redesign problem #7).
+    // route-driven page so its detail view shows. A selected control fills the
+    // whole pane like an architecture or document detail view — the ControlPanel
+    // carries its own breadcrumb (Explore / <domain> / <control>) back to the
+    // domain's control list. The key resets the panel's view mode when the
+    // selected control changes.
     const content = controlData ? (
-        <DomainPage
-            domain={controlData.domain}
-            controlCount={controlDomainCount}
-            onControlLoad={handleControlActivate}
-            selectedControlId={controlData.controlId}
-        />
+        <ControlPanel key={controlData.controlId} controlData={controlData} />
     ) : isBrokenRefRoute ? (
         // A malformed detailed-architecture ref (missing/extra segments): the
         // raw ref cannot be split into route segments, so echo it verbatim.
@@ -518,33 +470,6 @@ export default function Hub() {
                         <Sidebar selectedData={selectedItem.data} closeSidebar={closeSidebar} />
                     ))}
 
-                {/* Selected control opens a detail panel beside the domain card grid
-                    — the control-domain counterpart of the diagram's node Sidebar.
-                    Desktop: inline right column. Mobile: full-screen takeover. The
-                    grid stays mounted, so closing returns to it (not "back"). */}
-                {controlData && (
-                    // One stable element type across the breakpoint so a resize past it
-                    // doesn't remount the panel (which would reset the view mode / refetch).
-                    // On desktop the wrapper is layout-transparent (display:contents); on
-                    // mobile it's the full-screen overlay dialog. The key resets the panel's
-                    // view mode when the selected control changes.
-                    <div
-                        className={
-                            isMobile
-                                ? 'fixed inset-0 z-40 bg-base-100 animate-slide-in-right flex flex-col'
-                                : 'contents'
-                        }
-                        {...(isMobile
-                            ? { role: 'dialog', 'aria-modal': true, 'aria-label': 'Control details' }
-                            : {})}
-                    >
-                        <ControlPanel
-                            key={controlData.controlId}
-                            controlData={controlData}
-                            onClose={handleControlClose}
-                        />
-                    </div>
-                )}
             </div>
         </div>
         </DiagramActionsContext.Provider>

@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ControlPanel } from './ControlPanel.js';
 
@@ -23,30 +24,43 @@ const controlData = {
     controlDescription: 'Encrypt data',
 };
 
+function renderPanel(props = controlData) {
+    return render(
+        <MemoryRouter>
+            <ControlPanel controlData={props} />
+        </MemoryRouter>,
+    );
+}
+
 describe('ControlPanel', () => {
-    it('renders Sidebar-style chrome with a close affordance', () => {
-        render(<ControlPanel controlData={controlData} onClose={vi.fn()} />);
-        expect(screen.getByRole('heading', { name: /control/i })).toBeInTheDocument();
-        expect(screen.getByLabelText('Close control details')).toBeInTheDocument();
+    it('renders a breadcrumb back to Explore and the domain control list', () => {
+        renderPanel();
+        expect(screen.getByRole('link', { name: 'Explore' })).toHaveAttribute('href', '/');
+        expect(screen.getByRole('link', { name: 'security' })).toHaveAttribute(
+            'href',
+            '/domain/security',
+        );
     });
 
-    it('calls onClose when the close button is clicked', () => {
-        const onClose = vi.fn();
-        render(<ControlPanel controlData={controlData} onClose={onClose} />);
-        fireEvent.click(screen.getByLabelText('Close control details'));
-        expect(onClose).toHaveBeenCalledTimes(1);
+    it('shows the control name as the heading', () => {
+        renderPanel();
+        expect(screen.getByRole('heading', { name: 'Encryption' })).toBeInTheDocument();
     });
 
-    it('shows a single readable/raw toggle in the title bar, defaulting to readable', () => {
-        render(<ControlPanel controlData={controlData} onClose={vi.fn()} />);
-        // The controlled section hides its per-panel toggles, so these are the only
-        // Readable/Raw tabs — and they live in the title bar (one toggle each).
+    it('prefers the control title over the name', () => {
+        renderPanel({ ...controlData, controlTitle: 'Pretty Title' });
+        expect(screen.getByRole('heading', { name: 'Pretty Title' })).toBeInTheDocument();
+        expect(screen.queryByText('Encryption')).not.toBeInTheDocument();
+    });
+
+    it('shows a single readable/raw toggle in the header, defaulting to readable', () => {
+        renderPanel();
         expect(screen.getByRole('tab', { name: 'Readable' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: 'Raw JSON' })).toHaveAttribute('aria-selected', 'false');
     });
 
-    it('switches the view mode from the title-bar toggle', () => {
-        render(<ControlPanel controlData={controlData} onClose={vi.fn()} />);
+    it('switches the view mode from the header toggle', () => {
+        renderPanel();
         fireEvent.click(screen.getByRole('tab', { name: 'Raw JSON' }));
         expect(screen.getByRole('tab', { name: 'Raw JSON' })).toHaveAttribute('aria-selected', 'true');
         expect(screen.getByRole('tab', { name: 'Readable' })).toHaveAttribute('aria-selected', 'false');
