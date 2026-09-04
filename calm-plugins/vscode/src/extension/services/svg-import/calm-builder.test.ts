@@ -195,6 +195,40 @@ describe('buildCalmJson', () => {
         expect(deployedIn['relationship-type']['deployed-in'].nodes).toContain('database-db');
     });
 
+    it('deduplicates IDs for nodes with the same label', () => {
+        const graph: ParsedSvgGraph = {
+            sourceFormat: 'drawio',
+            nodes: [
+                { id: 'v1', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 100, height: 50 }, styleProps: {} },
+                { id: 'v2', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 200, y: 0, width: 100, height: 50 }, styleProps: {} },
+            ],
+            edges: [],
+        };
+
+        const result = buildCalmJson(graph);
+        const doc = JSON.parse(result.json);
+        expect(doc.nodes[0]['unique-id']).toBe('service-service');
+        expect(doc.nodes[1]['unique-id']).toBe('service-service-2');
+    });
+
+    it('deduplicates IDs for multiple collisions', () => {
+        const graph: ParsedSvgGraph = {
+            sourceFormat: 'drawio',
+            nodes: [
+                { id: 'v1', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 0, y: 0, width: 100, height: 50 }, styleProps: {} },
+                { id: 'v2', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 200, y: 0, width: 100, height: 50 }, styleProps: {} },
+                { id: 'v3', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 400, y: 0, width: 100, height: 50 }, styleProps: {} },
+            ],
+            edges: [],
+        };
+
+        const result = buildCalmJson(graph);
+        const doc = JSON.parse(result.json);
+        expect(doc.nodes[0]['unique-id']).toBe('service-service');
+        expect(doc.nodes[1]['unique-id']).toBe('service-service-2');
+        expect(doc.nodes[2]['unique-id']).toBe('service-service-3');
+    });
+
     it('splits multi-line labels into name and description', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',

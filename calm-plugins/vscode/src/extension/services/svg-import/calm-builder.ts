@@ -4,12 +4,13 @@ import { mapShapeToNodeType } from './shape-mapper';
 export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
     const warnings: string[] = [];
     const nodeIdMap = new Map<string, string>();
+    const usedIds = new Set<string>();
 
     const nodes = graph.nodes.map((n, i) => {
         const { name, description } = splitLabel(n.label);
         const isContainer = isContainerNode(n);
         const nodeType = isContainer ? 'network' : mapShapeToNodeType(n.shapeHint, name);
-        const calmId = generateCalmId(nodeType, name, i);
+        const calmId = generateCalmId(nodeType, name, i, usedIds);
         nodeIdMap.set(n.id, calmId);
 
         const node: Record<string, unknown> = {
@@ -141,14 +142,24 @@ function extractNodeStyle(styleProps: SvgNode['styleProps']): { background?: str
     return Object.keys(style).length > 0 ? style : null;
 }
 
-function generateCalmId(nodeType: string, label: string, index: number): string {
+function generateCalmId(nodeType: string, label: string, index: number, usedIds: Set<string>): string {
     const slug = label
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
 
-    if (slug) return `${nodeType}-${slug}`;
-    return `${nodeType}-${index + 1}`;
+    const candidate = slug ? `${nodeType}-${slug}` : `${nodeType}-${index + 1}`;
+
+    if (!usedIds.has(candidate)) {
+        usedIds.add(candidate);
+        return candidate;
+    }
+
+    let counter = 2;
+    while (usedIds.has(`${candidate}-${counter}`)) counter++;
+    const uniqueId = `${candidate}-${counter}`;
+    usedIds.add(uniqueId);
+    return uniqueId;
 }
 
 function isContainerNode(node: SvgNode): boolean {

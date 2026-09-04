@@ -64,7 +64,12 @@ export class SvgImportService {
             currentDocument.positionAt(currentDocument.getText().length)
         );
         edit.replace(currentDocument.uri, fullRange, result.json);
-        await vscode.workspace.applyEdit(edit);
+        const applied = await vscode.workspace.applyEdit(edit);
+        if (!applied) {
+            vscode.window.showErrorMessage('Failed to apply the imported CALM JSON to the document.');
+            this.log.appendLine('[SvgImport] ERROR: workspace.applyEdit returned false');
+            return null;
+        }
 
         vscode.window.showInformationMessage(
             `Imported ${result.nodeCount} nodes and ${result.relationshipCount} relationships from SVG.`

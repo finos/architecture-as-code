@@ -14,7 +14,8 @@ export function parseGenericSvg(svgContent: string): ParsedSvgGraph {
     const nodes: SvgNode[] = [];
     const edges: SvgEdge[] = [];
 
-    extractNodesFromElement(svg, nodes);
+    const svgTranslate = parseTranslate(String(svg.properties.transform ?? ''));
+    extractNodesFromElement(svg, nodes, svgTranslate);
     extractEdgesFromElement(svg, nodes, edges);
     detectContainment(nodes);
 
@@ -31,19 +32,27 @@ function findElement(children: HastNode[], tagName: string): ElementNode | null 
     return null;
 }
 
-function extractNodesFromElement(element: ElementNode, nodes: SvgNode[]): void {
+function extractNodesFromElement(
+    element: ElementNode,
+    nodes: SvgNode[],
+    accTransform: { tx: number; ty: number } = { tx: 0, ty: 0 }
+): void {
     const children = element.children;
 
     for (const child of children) {
         if (child.type !== 'element') continue;
 
         if (child.tagName === 'g') {
-            const node = tryExtractNodeFromGroup(child, nodes.length);
+            const groupTranslate = parseTranslate(String(child.properties.transform ?? ''));
+            const childTransform = {
+                tx: accTransform.tx + groupTranslate.tx,
+                ty: accTransform.ty + groupTranslate.ty,
+            };
+            const node = tryExtractNodeFromGroup(child, nodes.length, childTransform);
             if (node) {
                 nodes.push(node);
-            } else {
-                extractNodesFromElement(child, nodes);
             }
+            extractNodesFromElement(child, nodes, childTransform);
         }
     }
 
@@ -55,6 +64,11 @@ function extractNodesFromElement(element: ElementNode, nodes: SvgNode[]): void {
         if (tag === 'rect' || tag === 'ellipse' || tag === 'circle') {
             const geo = getShapeGeometry(tag, child.properties);
             if (!geo || geo.width < MIN_SHAPE_SIZE || geo.height < MIN_SHAPE_SIZE) continue;
+
+            const elTranslate = parseTranslate(String(child.properties.transform ?? ''));
+            geo.x += accTransform.tx + elTranslate.tx;
+            geo.y += accTransform.ty + elTranslate.ty;
+
             if (overlapsExisting(geo, capturedBounds)) continue;
 
             const label = findNearbyTextInElement(element, geo);
@@ -71,7 +85,11 @@ function extractNodesFromElement(element: ElementNode, nodes: SvgNode[]): void {
     }
 }
 
-function tryExtractNodeFromGroup(g: ElementNode, index: number): SvgNode | null {
+function tryExtractNodeFromGroup(
+    g: ElementNode,
+    index: number,
+    accTransform: { tx: number; ty: number }
+): SvgNode | null {
     let shapeGeo: SvgNodeGeometry | null = null;
     let shapeHint: ShapeHint = 'unknown';
     let label = '';
@@ -93,6 +111,9 @@ function tryExtractNodeFromGroup(g: ElementNode, index: number): SvgNode | null 
     if (!shapeGeo || shapeGeo.width < MIN_SHAPE_SIZE || shapeGeo.height < MIN_SHAPE_SIZE) {
         return null;
     }
+
+    shapeGeo.x += accTransform.tx;
+    shapeGeo.y += accTransform.ty;
 
     const id = String(g.properties.id ?? `node-${index}`);
     return { id, label, shapeHint, geometry: shapeGeo, styleProps: {} };
@@ -181,7 +202,7 @@ function detectContainment(nodes: SvgNode[]): void {
     const byArea = [...nodes].sort((a, b) => {
         const aArea = a.geometry.width * a.geometry.height;
         const bArea = b.geometry.width * b.geometry.height;
-        return bArea - aArea;
+        return aArea - bArea;
     });
 
     for (const child of nodes) {
@@ -195,6 +216,18 @@ function detectContainment(nodes: SvgNode[]): void {
             }
         }
     }
+
+    const absoluteGeo = new Map(nodes.map(n => [n.id, { ...n.geometry }]));
+    for (const child of nodes) {
+        if (!child.parentId) continue;
+        const parentGeo = absoluteGeo.get(child.parentId);
+        if (!parentGeo) continue;
+        child.geometry = {
+            ...child.geometry,
+            x: child.geometry.x - parentGeo.x,
+            y: child.geometry.y - parentGeo.y,
+        };
+    }
 }
 
 function isFullyContained(inner: SvgNodeGeometry, outer: SvgNodeGeometry): boolean {
@@ -205,6 +238,15 @@ function isFullyContained(inner: SvgNodeGeometry, outer: SvgNodeGeometry): boole
         inner.x + inner.width <= outer.x + outer.width - margin &&
         inner.y + inner.height <= outer.y + outer.height - margin
     );
+}
+
+function parseTranslate(transform: string | undefined): { tx: number; ty: number } {
+    if (!transform) return { tx: 0, ty: 0 };
+    const match = transform.match(/translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
+    if (match) return { tx: parseFloat(match[1]!), ty: parseFloat(match[2]!) };
+    const single = transform.match(/translate\(\s*([-\d.]+)\s*\)/);
+    if (single) return { tx: parseFloat(single[1]!), ty: 0 };
+    return { tx: 0, ty: 0 };
 }
 
 function getShapeGeometry(tag: string, props: Record<string, string | number>): SvgNodeGeometry | null {

@@ -56,7 +56,7 @@ describe('parseGenericSvg', () => {
         expect(result.nodes).toHaveLength(0);
     });
 
-    it('detects containment from bounding boxes', () => {
+    it('detects containment and converts child coordinates to parent-relative', () => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg">
             <g id="outer"><rect x="10" y="10" width="400" height="300"/><text x="30" y="30">Container</text></g>
             <g id="inner"><rect x="50" y="50" width="100" height="60"/><text x="100" y="80">Child</text></g>
@@ -66,6 +66,7 @@ describe('parseGenericSvg', () => {
         const child = result.nodes.find(n => n.label === 'Child');
         const container = result.nodes.find(n => n.label === 'Container');
         expect(child?.parentId).toBe(container?.id);
+        expect(child?.geometry).toEqual({ x: 40, y: 40, width: 100, height: 60 });
     });
 
     it('handles tspan text elements', () => {
@@ -162,5 +163,77 @@ describe('parseGenericSvg', () => {
 
         expect(result.nodes).toHaveLength(1);
         expect(result.nodes[0]?.label).toBe('Standalone');
+    });
+
+    it('extracts nodes from nested groups', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="outer">
+                <rect x="0" y="0" width="500" height="400"/>
+                <text x="250" y="30">Outer</text>
+                <g id="inner">
+                    <rect x="50" y="50" width="150" height="60"/>
+                    <text x="125" y="80">Inner</text>
+                </g>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        const labels = result.nodes.map(n => n.label);
+        expect(labels).toContain('Outer');
+        expect(labels).toContain('Inner');
+    });
+
+    it('assigns child to nearest container, not outermost', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="grand"><rect x="0" y="0" width="600" height="400"/><text x="10" y="20">Grand</text></g>
+            <g id="mid"><rect x="50" y="50" width="400" height="300"/><text x="60" y="70">Mid</text></g>
+            <g id="leaf"><rect x="100" y="100" width="100" height="60"/><text x="150" y="130">Leaf</text></g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        const leaf = result.nodes.find(n => n.label === 'Leaf');
+        const mid = result.nodes.find(n => n.label === 'Mid');
+        expect(leaf?.parentId).toBe(mid?.id);
+    });
+
+    it('applies translate transform on group to child geometry', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="shifted" transform="translate(100, 200)">
+                <rect x="10" y="10" width="150" height="60"/>
+                <text x="85" y="45">Shifted</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 110, y: 210, width: 150, height: 60 });
+    });
+
+    it('accumulates nested translate transforms', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(50, 0)">
+                <g id="n1" transform="translate(0, 100)">
+                    <rect x="10" y="10" width="150" height="60"/>
+                    <text x="85" y="45">Deep</text>
+                </g>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 60, y: 110, width: 150, height: 60 });
+    });
+
+    it('ignores non-translate transforms gracefully', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="rotated" transform="rotate(45)">
+                <rect x="10" y="10" width="150" height="60"/>
+                <text x="85" y="45">Rotated</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 10, y: 10, width: 150, height: 60 });
     });
 });
