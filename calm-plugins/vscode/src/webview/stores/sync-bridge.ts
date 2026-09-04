@@ -124,3 +124,7 @@ export function notifySaveBuildingBlock(
 ): void {
     postMessage({ type: 'saveBuildingBlock', filename, content });
 }
+
+export function notifyRequestImportSvg(): void {
+    postMessage({ type: 'requestImportSvg' });
+}
