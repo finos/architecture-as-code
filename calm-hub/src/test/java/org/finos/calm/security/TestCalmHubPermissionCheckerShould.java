@@ -358,12 +358,12 @@ class TestCalmHubPermissionCheckerShould {
     }
 
     @Test
-    void namespace_grant_does_not_satisfy_domain_read() {
+    void namespace_grant_satisfies_domain_read() {
         givenAuthenticatedUser("alice");
         when(mockUserAccessStore.getGrantsForUser("alice"))
                 .thenReturn(List.of(grant("alice", UserAccess.Permission.read, "payments")));
 
-        assertFalse(checker.canReadByDomain(mockIdentity, "payments"));
+        assertTrue(checker.canReadByDomain(mockIdentity, "payments"));
     }
 
     @Test

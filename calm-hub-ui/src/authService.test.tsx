@@ -6,6 +6,7 @@ import {
     getAuthHeaders,
     isAuthServiceEnabled,
 } from './authService.js';
+import * as authConfig from './authConfig.js';
 
 vi.mock('axios');
 
@@ -16,6 +17,11 @@ describe('authService', () => {
 
     describe('checkAuthorityService', () => {
         it('should return true when the authority service responds successfully', async () => {
+            vi.spyOn(authConfig, 'getAuthConfig').mockReturnValue({
+                oidc: { enabled: true, authority: 'https://auth.example.com' },
+                github: { enabled: false },
+                databaseMode: 'mongo',
+            });
             vi.mocked(axios.head).mockResolvedValue({ status: 200 });
             const result = await checkAuthorityService();
             expect(result).toBe(true);

@@ -465,6 +465,7 @@ export default function Hub() {
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
+                                loading={!namespaceCountsLoaded || !domainCountsLoaded}
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
@@ -498,6 +499,7 @@ export default function Hub() {
                             <MobileNavMenu
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
+                                countsLoading={!namespaceCountsLoaded || !domainCountsLoaded}
                                 onClose={() => setIsMobileNavOpen(false)}
                             />
                         </div>

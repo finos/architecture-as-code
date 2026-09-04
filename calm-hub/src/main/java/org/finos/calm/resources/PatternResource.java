@@ -33,6 +33,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
@@ -142,7 +143,7 @@ public class PatternResource {
     public Response getPattern(
             @PathParam("namespace") @jakarta.validation.constraints.Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("patternId") int patternId,
-            @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @jakarta.validation.constraints.Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_MESSAGE) String version
     ) {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace(namespace)

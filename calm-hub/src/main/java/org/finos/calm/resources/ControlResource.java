@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import io.quarkus.security.Authenticated;
 import io.quarkus.security.PermissionsAllowed;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -30,6 +31,7 @@ import static org.finos.calm.resources.ResourceValidationConstants.*;
  */
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/domains")
+@Authenticated
 public class ControlResource {
 
     private final ControlStore store;
@@ -122,7 +124,7 @@ public class ControlResource {
             String domain,
             @PathParam("controlId") int controlId,
             @PathParam("version")
-            @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
+            @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE)
             String version) {
         try {
             return Response.ok(store.getRequirementForVersion(domain, controlId, version)).build();

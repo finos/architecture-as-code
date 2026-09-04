@@ -12,10 +12,12 @@ public class ResourceValidationConstants {
     public static final String DOMAIN_REGEX = "^[A-Za-z0-9-]+$";
     public static final String DOMAIN_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";
+    public static final String VERSION_OR_SHA_REGEX = "^((0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)|[0-9a-f]{7,40}|latest)$";
     public static final String VERSION_MESSAGE = "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$'";
+    public static final String VERSION_OR_SHA_MESSAGE = "version must be semver (e.g. 1.0.0), a hex SHA (7-40 chars), or 'latest'";
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).
-    public static final String CUSTOM_ID_REGEX = "^[a-z][a-z0-9]*(-[a-z0-9]+)*$";
-    public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'";
+    public static final String CUSTOM_ID_REGEX = "^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$";
+    public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-zA-Z][a-zA-Z0-9]*(-[a-zA-Z0-9]+)*$'";
     public static final String QUERY_PARAM_NO_WHITESPACE_REGEX = "^[A-Za-z0-9_/.-]+$";
     public static final String QUERY_PARAM_NO_WHITESPACE_MESSAGE = "Query parameter must match pattern '^[A-Za-z0-9_/.-]+$'";
     public static final String LIMIT_MESSAGE = "limit must be greater than or equal to 1";

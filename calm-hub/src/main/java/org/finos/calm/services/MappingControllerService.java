@@ -46,6 +46,7 @@ public class MappingControllerService {
     private final InterfaceStore interfaceStore;
     private final DomainStore domainStore;
     private final ControlStore controlStore;
+    private final BuildingBlockStore buildingBlockStore;
     private final CalmDocumentParser documentParser;
 
     @Inject
@@ -57,6 +58,7 @@ public class MappingControllerService {
                                     InterfaceStore interfaceStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
+                                    BuildingBlockStore buildingBlockStore,
                                     CalmDocumentParser documentParser) {
         this.mappingStore = mappingStore;
         this.patternStore = patternStore;
@@ -66,6 +68,7 @@ public class MappingControllerService {
         this.interfaceStore = interfaceStore;
         this.domainStore = domainStore;
         this.controlStore = controlStore;
+        this.buildingBlockStore = buildingBlockStore;
         this.documentParser = documentParser;
     }
 
@@ -153,6 +156,8 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockVersions(mapping.getNamespace(), mapping.getNumericId());
+            case CONTROL -> controlStore.getRequirementVersions(mapping.getNamespace(), mapping.getNumericId());
         };
     }
 
@@ -184,6 +189,8 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
+            case CONTROL -> controlStore.getRequirementForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
         };
     }
 
@@ -554,6 +561,8 @@ public class MappingControllerService {
                 CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
                 yield created.getId();
             }
+            case BUILDING_BLOCK -> buildingBlockStore.createBuildingBlockForNamespace(namespace, json);
+            case CONTROL -> { throw new UnsupportedOperationException("Control creation via name-based API is not supported"); }
         };
     }
 
@@ -606,6 +615,8 @@ public class MappingControllerService {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
             }
+            case BUILDING_BLOCK -> buildingBlockStore.createBuildingBlockForVersion(namespace, numericId, version, json);
+            case CONTROL -> { throw new UnsupportedOperationException("Control version creation via name-based API is not supported"); }
         }
     }
 

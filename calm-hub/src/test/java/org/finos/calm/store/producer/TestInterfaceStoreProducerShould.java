@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.InterfaceStore;
+import org.finos.calm.store.github.GitHubInterfaceStore;
 import org.finos.calm.store.mongo.MongoInterfaceStore;
 import org.finos.calm.store.nitrite.NitriteInterfaceStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestInterfaceStoreProducerShould {
     @Mock
     Instance<NitriteInterfaceStore> nitriteInterfaceStoreInstance;
 
+
+    @Mock
+    GitHubInterfaceStore gitHubInterfaceStore;
+
+    @Mock
+    Instance<GitHubInterfaceStore> gitHubInterfaceStoreInstance;
     private InterfaceStoreProducer interfaceStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestInterfaceStoreProducerShould {
         interfaceStoreProducer.mongoInterfaceStore = mongoInterfaceStoreInstance;
         when(nitriteInterfaceStoreInstance.get()).thenReturn(nitriteInterfaceStore);
         interfaceStoreProducer.standaloneInterfaceStore = nitriteInterfaceStoreInstance;
+        when(gitHubInterfaceStoreInstance.get()).thenReturn(gitHubInterfaceStore);
+        interfaceStoreProducer.gitHubInterfaceStore = gitHubInterfaceStoreInstance;
     }
 
     @Test
@@ -69,5 +79,14 @@ public class TestInterfaceStoreProducerShould {
         InterfaceStore result = interfaceStoreProducer.produceInterfaceStore();
 
         assertThat(result, is(sameInstance(mongoInterfaceStore)));
+    }
+
+    @Test
+    void return_github_interface_store_when_database_mode_is_github() {
+        interfaceStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        InterfaceStore result = interfaceStoreProducer.produceInterfaceStore();
+
+        assertThat(result, is(sameInstance(gitHubInterfaceStore)));
     }
 }
