@@ -248,7 +248,8 @@ function applyFlowStyling(
     result: ParsedCALMData,
     relationships: FlowStyledRelationship[]
 ): ParsedCALMData {
-    const hasFlowState = result.nodes.some(n => n.data?.['flow-state'] !== undefined);
+    const hasFlowState = result.nodes.some(n => n.data?.['flow-state'] !== undefined)
+        || relationships.some(r => r['flow-state'] !== undefined);
     if (!hasFlowState) return result;
 
     const relMeta = new Map<string, { opacity: number; state: FlowVizState; activeDirection?: string }>();

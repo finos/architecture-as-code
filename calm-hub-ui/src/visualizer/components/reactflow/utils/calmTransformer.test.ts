@@ -449,5 +449,23 @@ describe('parseCALMData flow animation state', () => {
         expect(node.data.flowActive).toBeUndefined();
         expect(node.className).toBeUndefined();
     });
+
+    it('styles relationships when nodes have no flow-state', () => {
+        const data = {
+            nodes: [
+                { 'unique-id': 'a', name: 'A', 'node-type': 'service' },
+                { 'unique-id': 'b', name: 'B', 'node-type': 'service' },
+            ],
+            relationships: [{
+                'unique-id': 'a-to-b',
+                'flow-state': 'active',
+                'relationship-type': { connects: { source: { node: 'a' }, destination: { node: 'b' } } },
+            }],
+        } as unknown as CalmArchitectureSchema;
+
+        const [edge] = parseCALMData(data).edges;
+        expect(edge.className).toBe('flow-edge-active');
+        expect(edge.data.flowActive).toBe(true);
+    });
 });
 

@@ -70,14 +70,14 @@ export function useFlowPlayback(
             setPlaying(false);
             return;
         }
-        // Start again from the beginning if playback is at or after the end.
-        setStep(prev => (prev >= maxStep ? IDLE_STEP : prev));
+        // Start again from the beginning only after playback has completed.
+        setStep(prev => (prev > maxStep ? IDLE_STEP : prev));
         setPlaying(true);
     }, [playing, maxStep]);
 
     const stepFwd = useCallback(() => {
         setPlaying(false);
-        setStep(s => Math.min(s + 1, maxStep));
+        setStep(s => Math.min(s + 1, maxStep + 1));
     }, [maxStep]);
 
     const stepBk = useCallback(() => {

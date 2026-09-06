@@ -141,9 +141,15 @@ export function FlowArchitectureDiagram({ flowJson, architectureJson, architectu
             <div className="flex-1 flex min-h-0">
                 <div className="flex-1 min-h-0 min-w-0 px-6 pb-2">
                     <div className={DIAGRAM_CARD_CLASS}>
-                        <NodeSearchProvider value={null}>
-                            {styledArchJson && <ArchitectureGraph jsonData={styledArchJson} fitToPane />}
-                        </NodeSearchProvider>
+                        {styledArchJson ? (
+                            <NodeSearchProvider value={null}>
+                                <ArchitectureGraph jsonData={styledArchJson} fitToPane />
+                            </NodeSearchProvider>
+                        ) : (
+                            <div className="flex items-center justify-center h-full text-base-content/50">
+                                Architecture data is not available
+                            </div>
+                        )}
                     </div>
                 </div>
 

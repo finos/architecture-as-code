@@ -36,12 +36,14 @@ describe('useFlowPlayback', () => {
         expect(result.current.step).toBe(-1);
     });
 
-    it('stepFwd clamps at maxStep', () => {
+    it('stepFwd can reach the completed state (maxStep + 1)', () => {
         const { result } = renderHook(() => useFlowPlayback({ maxStep: 1 }));
         act(() => result.current.stepFwd());
         act(() => result.current.stepFwd());
         act(() => result.current.stepFwd());
-        expect(result.current.step).toBe(1);
+        // Should reach maxStep + 1 (completion state)
+        expect(result.current.step).toBe(2);
+        expect(result.current.isCompleted).toBe(true);
     });
 
     it('reset returns to -1', () => {
@@ -90,6 +92,17 @@ describe('useFlowPlayback', () => {
         expect(result.current.playing).toBe(true);
 
         act(() => result.current.togglePlay());
+        expect(result.current.playing).toBe(false);
+    });
+
+    it('completes when playback resumes from the final step', () => {
+        const { result } = renderHook(() => useFlowPlayback({ maxStep: 2, baseIntervalMs: 1000 }));
+        act(() => result.current.setStep(2));
+        act(() => result.current.togglePlay());
+        act(() => { vi.advanceTimersByTime(1000); });
+
+        expect(result.current.step).toBe(3);
+        expect(result.current.isCompleted).toBe(true);
         expect(result.current.playing).toBe(false);
     });
 

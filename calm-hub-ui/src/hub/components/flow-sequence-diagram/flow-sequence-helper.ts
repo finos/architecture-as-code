@@ -30,6 +30,14 @@ export class FlowSequenceHelper {
     }
 
     public getSourceFromRelationship(relationshipId: string, architecture: Architecture): string {
+        return this.resolveNodeName(this.getSourceNodeIdFromRelationship(relationshipId, architecture), architecture);
+    }
+
+    public getTargetFromRelationship(relationshipId: string, architecture: Architecture): string {
+        return this.resolveNodeName(this.getTargetNodeIdFromRelationship(relationshipId, architecture), architecture);
+    }
+
+    public getSourceNodeIdFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
         if (!relationship) return FlowSequenceHelper.UNKNOWN_NODE;
 
@@ -38,26 +46,26 @@ export class FlowSequenceHelper {
         switch (type.kind) {
         case 'interacts': {
             const typed = type as CalmInteractsType;
-            return this.resolveNodeName(typed.actor, architecture);
+            return typed.actor;
         }
         case 'connects': {
             const typed = type as CalmConnectsType;
-            return this.resolveNodeName(typed.source.node, architecture);
+            return typed.source.node;
         }
         case 'composed-of': {
             const typed = type as CalmComposedOfType;
-            return this.resolveNodeName(typed.container, architecture);
+            return typed.container;
         }
         case 'deployed-in': {
             const typed = type as CalmDeployedInType;
-            return this.resolveNodeName(typed.container, architecture);
+            return typed.container;
         }
         default:
             return FlowSequenceHelper.UNKNOWN_NODE;
         }
     }
 
-    public getTargetFromRelationship(relationshipId: string, architecture: Architecture): string {
+    public getTargetNodeIdFromRelationship(relationshipId: string, architecture: Architecture): string {
         const relationship = this.findRelationshipById(relationshipId, architecture);
         if (!relationship) return FlowSequenceHelper.UNKNOWN_NODE;
 
@@ -66,19 +74,19 @@ export class FlowSequenceHelper {
         switch (type.kind) {
         case 'interacts': {
             const typed = type as CalmInteractsType;
-            return this.resolveNodeName(typed.nodes[0] || '', architecture);
+            return typed.nodes[0] || FlowSequenceHelper.UNKNOWN_NODE;
         }
         case 'connects': {
             const typed = type as CalmConnectsType;
-            return this.resolveNodeName(typed.destination.node, architecture);
+            return typed.destination.node;
         }
         case 'composed-of': {
             const typed = type as CalmComposedOfType;
-            return this.resolveNodeName(typed.nodes[0] || '', architecture);
+            return typed.nodes[0] || FlowSequenceHelper.UNKNOWN_NODE;
         }
         case 'deployed-in': {
             const typed = type as CalmDeployedInType;
-            return this.resolveNodeName(typed.nodes[0] || '', architecture);
+            return typed.nodes[0] || FlowSequenceHelper.UNKNOWN_NODE;
         }
         default:
             return FlowSequenceHelper.UNKNOWN_NODE;

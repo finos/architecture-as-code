@@ -13,7 +13,7 @@ import {
     describeStep,
     visitedSequenceNumbers,
 } from './flow-step.js';
-import { COMMENTARY_PANEL_WIDTH, DIAGRAM_CARD_CLASS } from './flow-layout.js';
+import { COMMENTARY_PANEL_WIDTH, DIAGRAM_CARD_CLASS, STROKE_WIDTH, TIMING } from './flow-layout.js';
 import './flow-animation.css';
 import type { Architecture } from '@finos/calm-models/model';
 import type { CalmFlowSchema, CalmFlowTransitionSchema } from '@finos/calm-models/types';
@@ -30,6 +30,11 @@ interface SequenceMessage {
     isReturn: boolean;
     seq: number;
     desc?: string;
+}
+
+interface Participant {
+    id: string;
+    label: string;
 }
 
 const COL_WIDTH = 150;
@@ -76,25 +81,25 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
 
         const seqNumbers = [...new Set(transitions.map(t => t['sequence-number']))].sort((a, b) => a - b);
 
-        const participantSet = new Set<string>();
+        const participantMap = new Map<string, string>();
         transitions.forEach((t) => {
             if (architecture) {
-                const src = flowHelper.getSourceFromRelationship(t['relationship-unique-id'], architecture);
-                const dst = flowHelper.getTargetFromRelationship(t['relationship-unique-id'], architecture);
-                if (src !== FlowSequenceHelper.UNKNOWN_NODE) participantSet.add(src);
-                if (dst !== FlowSequenceHelper.UNKNOWN_NODE) participantSet.add(dst);
+                const src = flowHelper.getSourceNodeIdFromRelationship(t['relationship-unique-id'], architecture);
+                const dst = flowHelper.getTargetNodeIdFromRelationship(t['relationship-unique-id'], architecture);
+                if (src !== FlowSequenceHelper.UNKNOWN_NODE) participantMap.set(src, flowHelper.getNodeNameById(src, architecture) || src);
+                if (dst !== FlowSequenceHelper.UNKNOWN_NODE) participantMap.set(dst, flowHelper.getNodeNameById(dst, architecture) || dst);
             } else {
-                participantSet.add(t['relationship-unique-id']);
+                participantMap.set(t['relationship-unique-id'], t['relationship-unique-id']);
             }
         });
-        const participants = Array.from(participantSet);
+        const participants: Participant[] = Array.from(participantMap, ([id, label]) => ({ id, label }));
 
         const totalW = participants.length * (COL_WIDTH + COL_GAP) + CANVAS_PAD_X;
         const totalH = HEADER_HEIGHT + transitions.length * ROW_HEIGHT + CANVAS_PAD_Y;
 
         const pPositions: Record<string, number> = {};
-        participants.forEach((p, i) => {
-            pPositions[p] = FIRST_COL_X + i * (COL_WIDTH + COL_GAP) + COL_WIDTH / 2;
+        participants.forEach(({ id }, i) => {
+            pPositions[id] = FIRST_COL_X + i * (COL_WIDTH + COL_GAP) + COL_WIDTH / 2;
         });
 
         // flatMap, not map+filter. Unresolvable transitions drop out and the element
@@ -105,11 +110,11 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
             let rawDst: string;
 
             if (architecture) {
-                rawSrc = flowHelper.getSourceFromRelationship(t['relationship-unique-id'], architecture);
-                rawDst = flowHelper.getTargetFromRelationship(t['relationship-unique-id'], architecture);
+                rawSrc = flowHelper.getSourceNodeIdFromRelationship(t['relationship-unique-id'], architecture);
+                rawDst = flowHelper.getTargetNodeIdFromRelationship(t['relationship-unique-id'], architecture);
             } else {
                 rawSrc = t['relationship-unique-id'];
-                rawDst = participants[(participants.indexOf(rawSrc) + 1) % participants.length];
+                rawDst = participants[(participants.findIndex(p => p.id === rawSrc) + 1) % participants.length].id;
             }
 
             const [srcName, dstName] = orientEndpoints(rawSrc, rawDst, isReturn);
@@ -172,8 +177,8 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
     const activeParticipants = new Set<string>();
     if (activeSeqNum != null && architecture) {
         transitions.filter(t => t['sequence-number'] === activeSeqNum).forEach(t => {
-            const src = flowHelper.getSourceFromRelationship(t['relationship-unique-id'], architecture);
-            const dst = flowHelper.getTargetFromRelationship(t['relationship-unique-id'], architecture);
+            const src = flowHelper.getSourceNodeIdFromRelationship(t['relationship-unique-id'], architecture);
+            const dst = flowHelper.getTargetNodeIdFromRelationship(t['relationship-unique-id'], architecture);
             if (src !== FlowSequenceHelper.UNKNOWN_NODE) activeParticipants.add(src);
             if (dst !== FlowSequenceHelper.UNKNOWN_NODE) activeParticipants.add(dst);
         });
@@ -217,25 +222,25 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                     </marker>
                                 </defs>
 
-                                {participants.map((p) => {
-                                    const cx = pPositions[p];
+                                {participants.map(({ id }) => {
+                                    const cx = pPositions[id];
                                     return (
                                         <line
-                                            key={`life-${p}`}
+                                            key={`life-${id}`}
                                             x1={cx} y1={HEADER_HEIGHT - LIFELINE_INSET}
                                             x2={cx} y2={totalH - LIFELINE_INSET}
                                             className="stroke-base-content/40"
-                                            strokeWidth={1.5}
+                                            strokeWidth={STROKE_WIDTH.THIN}
                                             strokeDasharray={LIFELINE_DASH}
                                         />
                                     );
                                 })}
 
-                                {participants.map((p) => {
-                                    const cx = pPositions[p];
-                                    const isActive = activeParticipants.has(p);
+                                {participants.map(({ id, label }) => {
+                                    const cx = pPositions[id];
+                                    const isActive = activeParticipants.has(id);
                                     return (
-                                        <g key={`part-${p}`}>
+                                        <g key={`part-${id}`}>
                                             <rect
                                                 x={cx - COL_WIDTH / 2}
                                                 y={PARTICIPANT_BOX_Y}
@@ -243,8 +248,8 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                                 height={PARTICIPANT_BOX_HEIGHT}
                                                 rx={PARTICIPANT_BOX_RADIUS}
                                                 className={isActive ? 'fill-info/15 stroke-info' : 'fill-primary/10 stroke-primary'}
-                                                strokeWidth={isActive ? 2 : 1.5}
-                                                style={{ transition: 'stroke-width 0.3s ease' }}
+                                                strokeWidth={isActive ? STROKE_WIDTH.NORMAL : STROKE_WIDTH.THIN}
+                                                style={{ transition: TIMING.TRANSITION }}
                                             />
                                             <text
                                                 x={cx}
@@ -254,7 +259,7 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                                 fontSize={PARTICIPANT_FONT_SIZE}
                                                 fontWeight={600}
                                             >
-                                                {p}
+                                                {label}
                                             </text>
                                         </g>
                                     );
@@ -272,13 +277,13 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                         <g
                                             key={`msg-${i}`}
                                             data-active-step={isCurrent || undefined}
-                                            style={{ opacity, transition: 'opacity 0.3s ease' }}
+                                            style={{ opacity, transition: `opacity ${TIMING.TRANSITION}` }}
                                         >
                                             <line
                                                 x1={sx} y1={y}
                                                 x2={dx} y2={y}
                                                 className={isCurrent ? 'stroke-info' : isReturn ? 'stroke-success' : 'stroke-primary'}
-                                                strokeWidth={isReturn ? 1.5 : 2}
+                                                strokeWidth={isReturn ? STROKE_WIDTH.THIN : STROKE_WIDTH.NORMAL}
                                                 strokeDasharray={isReturn && !isCurrent ? RETURN_DASH : undefined}
                                                 markerEnd={isCurrent ? 'url(#arrow-active)' : isReturn ? 'url(#arrow-ret)' : 'url(#arrow-fwd)'}
                                             />
@@ -342,7 +347,7 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
 
                         {!minimapHidden && (
                             <SequenceMinimap
-                                participantXs={participants.map((p) => pPositions[p])}
+                                participantXs={participants.map(({ id }) => pPositions[id])}
                                 messages={messages}
                                 totalW={totalW}
                                 totalH={totalH}

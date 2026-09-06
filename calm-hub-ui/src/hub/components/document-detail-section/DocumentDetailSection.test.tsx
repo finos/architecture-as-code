@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { DocumentDetailSection } from './DocumentDetailSection.js';
@@ -23,6 +23,8 @@ const mockFetchStandardVersions = vi.fn();
 const mockFetchFlowVersions = vi.fn();
 const mockFetchVersionsByCustomId = vi.fn();
 const mockFetchArchitectureSummaries = vi.fn();
+const mockFetchArchitectureVersions = vi.fn();
+const mockFetchArchitecture = vi.fn();
 
 vi.mock('../../../service/calm-service.js', () => ({
     CalmService: vi.fn().mockImplementation(function () { return {
@@ -30,6 +32,8 @@ vi.mock('../../../service/calm-service.js', () => ({
         fetchFlowVersions: mockFetchFlowVersions,
         fetchVersionsByCustomId: mockFetchVersionsByCustomId,
         fetchArchitectureSummaries: mockFetchArchitectureSummaries,
+        fetchArchitectureVersions: mockFetchArchitectureVersions,
+        fetchArchitecture: mockFetchArchitecture,
     }; }),
 }));
 
@@ -40,6 +44,8 @@ describe('DocumentDetailSection', () => {
         mockFetchFlowVersions.mockClear().mockResolvedValue([]);
         mockFetchVersionsByCustomId.mockClear().mockResolvedValue([]);
         mockFetchArchitectureSummaries.mockClear().mockResolvedValue([]);
+        mockFetchArchitectureVersions.mockClear().mockResolvedValue([]);
+        mockFetchArchitecture.mockClear();
     });
 
     it('renders null when data is undefined', () => {
@@ -156,6 +162,64 @@ describe('DocumentDetailSection', () => {
         expect(heading).toHaveTextContent('Flow');
         // The human-readable flow name replaces the numeric id in the trail.
         expect(heading).toHaveTextContent('Payment Processing');
+    });
+
+    it('reports when a flow namespace has no architectures', async () => {
+        const data: Data = {
+            id: '4',
+            version: '1.0.0',
+            name: 'finos',
+            calmType: 'Flows',
+            data: {
+                'unique-id': 'flow-4',
+                name: 'Payment Processing',
+                description: 'Test flow',
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'Call service' }],
+            },
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        fireEvent.click(screen.getByRole('tab', { name: 'Architecture View' }));
+
+        expect(await screen.findByText('No architectures found in this namespace')).toBeInTheDocument();
+    });
+
+    it('reports when no architecture matches the flow relationships', async () => {
+        mockFetchArchitectureSummaries.mockResolvedValue([{ id: 1 }]);
+        mockFetchArchitecture.mockResolvedValue({ data: { relationships: [{ 'unique-id': 'other' }] } });
+        const data: Data = {
+            id: '4', version: '1.0.0', name: 'finos', calmType: 'Flows',
+            data: {
+                'unique-id': 'flow-4', name: 'Payment Processing', description: 'Test flow',
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'Call service' }],
+            },
+        };
+
+        render(<MemoryRouter><DocumentDetailSection data={data} /></MemoryRouter>);
+        fireEvent.click(screen.getByRole('tab', { name: 'Architecture View' }));
+
+        expect(await screen.findByText('No matching architecture found for this flow')).toBeInTheDocument();
+    });
+
+    it('reports when the architecture lookup fails', async () => {
+        mockFetchArchitectureSummaries.mockRejectedValue(new Error('Network failure'));
+        const data: Data = {
+            id: '4', version: '1.0.0', name: 'finos', calmType: 'Flows',
+            data: {
+                'unique-id': 'flow-4', name: 'Payment Processing', description: 'Test flow',
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'Call service' }],
+            },
+        };
+
+        render(<MemoryRouter><DocumentDetailSection data={data} /></MemoryRouter>);
+        fireEvent.click(screen.getByRole('tab', { name: 'Architecture View' }));
+
+        expect(await screen.findByText('Failed to load architecture')).toBeInTheDocument();
     });
 
     it('renders JsonRenderer with correct data', () => {

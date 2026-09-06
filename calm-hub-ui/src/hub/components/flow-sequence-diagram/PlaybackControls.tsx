@@ -59,7 +59,7 @@ export function PlaybackControls({ playback, totalSteps, statusText }: PlaybackC
                 className="range range-xs flex-1 mx-2"
                 aria-label="Flow step"
             />
-            <span className="text-xs text-base-content/60 min-w-45 truncate text-right">
+            <span className="text-xs text-base-content/60 min-w-[45px] truncate text-right">
                 {Math.min(step + 1, totalSteps)} / {totalSteps}
                 {statusText ? ` - ${statusText}` : ''}
             </span>

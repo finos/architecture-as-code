@@ -16,6 +16,12 @@ import { FlowArchitectureDiagram } from '../flow-sequence-diagram/FlowArchitectu
 
 type FlowViewMode = 'sequence' | 'architecture' | 'raw';
 
+type ArchitectureViewState =
+    | { status: 'loading' }
+    | { status: 'ready'; data: CalmCoreSchema }
+    | { status: 'not-matching'; message: string }
+    | { status: 'error'; message: string };
+
 const DEFAULT_ARCHITECTURE_VERSION = '1.0.0';
 
 interface DocumentDetailSectionProps {
@@ -35,7 +41,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     const calmService = useMemo(() => new CalmService(), []);
     const [versions, setVersions] = useState<string[]>([]);
     const [flowView, setFlowView] = useState<FlowViewMode>('sequence');
-    const [architectureData, setArchitectureData] = useState<CalmCoreSchema | null>(null);
+    const [architectureViewState, setArchitectureViewState] = useState<ArchitectureViewState>({ status: 'loading' });
 
     useEffect(() => {
         if (!data) return;
@@ -63,12 +69,16 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     // heuristic and can select the wrong architecture. See #2950 for the schema work.
     useEffect(() => {
         if (!data || data.calmType !== 'Flows') return;
-        setArchitectureData(null);
+        setArchitectureViewState({ status: 'loading' });
         let cancelled = false;
         (async () => {
             try {
                 const archs = await calmService.fetchArchitectureSummaries(data.name);
-                if (cancelled || !archs || archs.length === 0) return;
+                if (cancelled) return;
+                if (!archs || archs.length === 0) {
+                    setArchitectureViewState({ status: 'not-matching', message: 'No architectures found in this namespace' });
+                    return;
+                }
                 const flowData = data.data as { transitions?: { 'relationship-unique-id': string }[] } | undefined;
                 const flowRelIds = new Set((flowData?.transitions || []).map(t => t['relationship-unique-id']));
 
@@ -101,10 +111,15 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                 }
 
                 if (!cancelled) {
-                    setArchitectureData(bestArch);
+                    setArchitectureViewState(bestArch
+                        ? { status: 'ready', data: bestArch }
+                        : { status: 'not-matching', message: 'No matching architecture found for this flow' });
                 }
             } catch (err) {
-                console.error('Failed to fetch architecture for flow overlay:', err);
+                if (!cancelled) {
+                    console.error('Failed to fetch architecture for flow overlay:', err);
+                    setArchitectureViewState({ status: 'error', message: 'Failed to load architecture' });
+                }
             }
         })();
         return () => { cancelled = true; };
@@ -112,6 +127,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
 
     // This hook must stay above any early return. The hook count must not change
     // between renders.
+    const architectureData = architectureViewState.status === 'ready' ? architectureViewState.data : null;
     const architecture: Architecture | null = useMemo(() => {
         if (!architectureData) return null;
         try {
@@ -192,9 +208,11 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                     {isFlow && flowView === 'sequence' ? (
                         <FlowSequenceDiagram flowJson={data.data ?? {}} architecture={architecture} />
                     ) : isFlow && flowView === 'architecture' ? (
-                        architecture
-                            ? <FlowArchitectureDiagram flowJson={data.data ?? {}} architectureJson={architectureData} architecture={architecture} />
-                            : <div className="flex items-center justify-center h-full text-base-content/50">Loading architecture...</div>
+                        architectureViewState.status === 'loading'
+                            ? <div className="flex items-center justify-center h-full text-base-content/50">Loading architecture...</div>
+                            : architectureViewState.status === 'ready'
+                                ? <FlowArchitectureDiagram flowJson={data.data ?? {}} architectureJson={architectureData} architecture={architecture} />
+                                : <div className="flex items-center justify-center h-full text-base-content/50">{architectureViewState.message}</div>
                     ) : (
                         <JsonRenderer json={data} />
                     )}

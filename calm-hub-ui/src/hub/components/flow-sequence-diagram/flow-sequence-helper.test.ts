@@ -30,6 +30,11 @@ describe('FlowSequenceHelper', () => {
         expect(helper.getTargetFromRelationship('upload-to-storage', architecture)).toBe('Storage Service');
     });
 
+    it('resolves connects source/target to stable node ids', () => {
+        expect(helper.getSourceNodeIdFromRelationship('upload-to-storage', architecture)).toBe('svc-upload');
+        expect(helper.getTargetNodeIdFromRelationship('upload-to-storage', architecture)).toBe('svc-storage');
+    });
+
     it('resolves interacts actor/first-node to names', () => {
         expect(helper.getSourceFromRelationship('actor-uses', architecture)).toBe('Upload Service');
         expect(helper.getTargetFromRelationship('actor-uses', architecture)).toBe('Storage Service');
@@ -48,6 +53,8 @@ describe('FlowSequenceHelper', () => {
     it('returns UNKNOWN_NODE for a missing relationship', () => {
         expect(helper.getSourceFromRelationship('missing', architecture)).toBe(FlowSequenceHelper.UNKNOWN_NODE);
         expect(helper.getTargetFromRelationship('missing', architecture)).toBe(FlowSequenceHelper.UNKNOWN_NODE);
+        expect(helper.getSourceNodeIdFromRelationship('missing', architecture)).toBe(FlowSequenceHelper.UNKNOWN_NODE);
+        expect(helper.getTargetNodeIdFromRelationship('missing', architecture)).toBe(FlowSequenceHelper.UNKNOWN_NODE);
     });
 
     it('lists all participant node ids for each relationship kind', () => {
