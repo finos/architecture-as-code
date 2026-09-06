@@ -164,6 +164,20 @@ jobs:
         needs: build
 
         steps:
+            - name: Checkout
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Set up JDK
+              uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            - name: Resolve CALM Hub version
+              id: version
+              working-directory: calm-hub
+              run: echo "value=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+
             - name: Download digests
               uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
               with:
@@ -187,6 +201,7 @@ jobs:
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
                   tags: |
                       type=raw,value=${{ github.event.inputs.tag || 'latest-read-only-native' }}
+                      type=raw,value=${{ steps.version.outputs.value }}-read-only-native
                       type=sha,format=short,suffix=-read-only-native
                       type=ref,event=tag,suffix=-read-only-native
 
