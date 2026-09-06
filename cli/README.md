@@ -649,7 +649,7 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
 
 ## Direct URL authentication modules
 
-Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`. The required `supportedRepos` list identifies the hosts that use this module and automatically adds them to the direct URL allowlist.
+Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`. The required `authenticatedHosts` list identifies the hosts that use this module and automatically adds them to the direct URL allowlist.
 
 Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.  See [Direct URL Document Loader - Custom Authentication Plugin](#direct-url-document-loader---custom-authentication-plugin) for details.
 
@@ -662,7 +662,7 @@ Example `~/.calm.json`:
   "directUrlAuth": {
     "module": "~/plugins/direct-url-auth.js",
     "configPath": "~/plugins/direct-url-auth.config.json",
-    "supportedRepos": ["protected.example.com"]
+    "authenticatedHosts": ["protected.example.com"]
   }
 }
 ```
@@ -1141,7 +1141,7 @@ What each part means:
   It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
 - The constructor may accept an optional `configPath: string | undefined`.
   If the user sets `directUrlAuth.configPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
-- `directUrlAuth.supportedRepos` is required. The CLI calls the module only for URLs whose hostname is in this list, and adds those hosts to the effective direct URL allowlist.
+- `directUrlAuth.authenticatedHosts` is required. The CLI calls the module only for URLs whose hostname is in this list, and adds those hosts to the effective direct URL allowlist.
 - TLS trust is not configurable through the module.
   Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
 

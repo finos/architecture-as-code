@@ -8,7 +8,7 @@ import { pathToFileURL } from 'url';
 export interface DirectUrlAuthConfig {
     module: string
     configPath?: string
-    supportedRepos: string[]
+    authenticatedHosts: string[]
 }
 
 export interface CLIConfig {
@@ -88,18 +88,18 @@ export function validateDirectUrlAuthConfig(config: unknown): asserts config is 
         throw new Error('directUrlAuth must be an object.');
     }
 
-    const candidate = config as { module?: unknown; configPath?: unknown; supportedRepos?: unknown };
+    const candidate = config as { module?: unknown; configPath?: unknown; authenticatedHosts?: unknown };
     if (typeof candidate.module !== 'string' || !candidate.module.trim()) {
         throw new Error('directUrlAuth.module must be a non-empty string.');
     }
     if (candidate.configPath !== undefined && (typeof candidate.configPath !== 'string' || !candidate.configPath.trim())) {
         throw new Error('directUrlAuth.configPath must be a non-empty string when specified.');
     }
-    if (!Array.isArray(candidate.supportedRepos) || candidate.supportedRepos.length === 0) {
-        throw new Error('directUrlAuth.supportedRepos must be a non-empty array of hostnames.');
+    if (!Array.isArray(candidate.authenticatedHosts) || candidate.authenticatedHosts.length === 0) {
+        throw new Error('directUrlAuth.authenticatedHosts must be a non-empty array of hostnames.');
     }
-    if (!candidate.supportedRepos.every(repo => typeof repo === 'string' && isHost(repo))) {
-        throw new Error('directUrlAuth.supportedRepos must contain hostnames only; URLs, ports, paths, and wildcards are not supported.');
+    if (!candidate.authenticatedHosts.every(host => typeof host === 'string' && isHost(host))) {
+        throw new Error('directUrlAuth.authenticatedHosts must contain hostnames only; URLs, ports, paths, and wildcards are not supported.');
     }
 }
 

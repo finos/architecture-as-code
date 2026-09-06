@@ -1714,7 +1714,7 @@ describe('parseDocumentLoaderConfig', () => {
             allowedRemoteHosts: ['config.example.com'],
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
-                supportedRepos: ['protected.example.com']
+                authenticatedHosts: ['protected.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1772,7 +1772,7 @@ describe('parseDocumentLoaderConfig', () => {
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
                 configPath: '/configs/direct-url-auth.json',
-                supportedRepos: ['schemas.example.com']
+                authenticatedHosts: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1782,7 +1782,7 @@ describe('parseDocumentLoaderConfig', () => {
         expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
             module: '/fake/direct-url-auth.js',
             configPath: '/configs/direct-url-auth.json',
-            supportedRepos: ['schemas.example.com']
+            authenticatedHosts: ['schemas.example.com']
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
         expect(options.directUrlAuthSupportedRepos).toEqual(['schemas.example.com']);
@@ -1805,7 +1805,7 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
-                supportedRepos: ['schemas.example.com']
+                authenticatedHosts: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1828,7 +1828,7 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/bad/direct-url-auth.js',
-                supportedRepos: ['schemas.example.com']
+                authenticatedHosts: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockRejectedValue(new Error('module not found'));

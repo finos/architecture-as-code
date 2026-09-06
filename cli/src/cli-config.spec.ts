@@ -110,7 +110,7 @@ describe('cli-config', () => {
                 directUrlAuth: {
                     module: DIRECT_URL_JS_FIXTURE,
                     configPath: '/configs/direct-url-auth.json',
-                    supportedRepos: ['schemas.example.com']
+                    authenticatedHosts: ['schemas.example.com']
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -121,7 +121,7 @@ describe('cli-config', () => {
             directUrlAuth: {
                 module: DIRECT_URL_JS_FIXTURE,
                 configPath: '/configs/direct-url-auth.json',
-                supportedRepos: ['schemas.example.com']
+                authenticatedHosts: ['schemas.example.com']
             }
         });
     });
@@ -132,7 +132,7 @@ describe('cli-config', () => {
                 directUrlAuth: {
                     module: DIRECT_URL_JS_FIXTURE,
                     configPath: '/configs/direct-url-auth.json',
-                    supportedRepos: ['schemas.example.com']
+                    authenticatedHosts: ['schemas.example.com']
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -154,7 +154,7 @@ describe('cli-config', () => {
             [resolve(FIXTURES_DIR, '.calm.json')]: JSON.stringify({
                 directUrlAuth: {
                     module: '~/test-direct-url-auth-plugin.js',
-                    supportedRepos: ['schemas.example.com']
+                    authenticatedHosts: ['schemas.example.com']
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -173,7 +173,7 @@ describe('cli-config', () => {
                 directUrlAuth: {
                     module: '~/test-direct-url-auth-plugin.js',
                     configPath: '~/direct-url-auth.config.json',
-                    supportedRepos: ['schemas.example.com']
+                    authenticatedHosts: ['schemas.example.com']
                 }
             }),
             [DIRECT_URL_JS_FIXTURE]: '',
@@ -235,23 +235,23 @@ describe('cli-config', () => {
         const nonJsPath = resolve(FIXTURES_DIR, 'something.txt');
         vol.fromJSON({ [nonJsPath]: '' });
 
-        await expect(loadDirectUrlAuthPlugin({ module: nonJsPath, supportedRepos: ['schemas.example.com'] }, false)).rejects.toThrow(/must have a .js extension/i);
+        await expect(loadDirectUrlAuthPlugin({ module: nonJsPath, authenticatedHosts: ['schemas.example.com'] }, false)).rejects.toThrow(/must have a .js extension/i);
     });
 
     it.each([
-        [{ supportedRepos: ['schemas.example.com'] }, /directUrlAuth\.module must be a non-empty string/],
-        [{ module: DIRECT_URL_JS_FIXTURE }, /directUrlAuth\.supportedRepos must be a non-empty array/],
-        [{ module: DIRECT_URL_JS_FIXTURE, supportedRepos: [] }, /directUrlAuth\.supportedRepos must be a non-empty array/],
-        [{ module: DIRECT_URL_JS_FIXTURE, supportedRepos: ['https://schemas.example.com'] }, /must contain hostnames only/],
-        [{ module: DIRECT_URL_JS_FIXTURE, supportedRepos: ['schemas.example.com:8443'] }, /must contain hostnames only/],
-        [{ module: DIRECT_URL_JS_FIXTURE, supportedRepos: ['*.example.com'] }, /must contain hostnames only/],
-        [{ module: DIRECT_URL_JS_FIXTURE, configPath: '', supportedRepos: ['schemas.example.com'] }, /directUrlAuth\.configPath must be a non-empty string/],
+        [{ authenticatedHosts: ['schemas.example.com'] }, /directUrlAuth\.module must be a non-empty string/],
+        [{ module: DIRECT_URL_JS_FIXTURE }, /directUrlAuth\.authenticatedHosts must be a non-empty array/],
+        [{ module: DIRECT_URL_JS_FIXTURE, authenticatedHosts: [] }, /directUrlAuth\.authenticatedHosts must be a non-empty array/],
+        [{ module: DIRECT_URL_JS_FIXTURE, authenticatedHosts: ['https://schemas.example.com'] }, /must contain hostnames only/],
+        [{ module: DIRECT_URL_JS_FIXTURE, authenticatedHosts: ['schemas.example.com:8443'] }, /must contain hostnames only/],
+        [{ module: DIRECT_URL_JS_FIXTURE, authenticatedHosts: ['*.example.com'] }, /must contain hostnames only/],
+        [{ module: DIRECT_URL_JS_FIXTURE, configPath: '', authenticatedHosts: ['schemas.example.com'] }, /directUrlAuth\.configPath must be a non-empty string/],
     ])('rejects invalid direct URL auth configuration: %o', async (config, expectedError) => {
         await expect(loadDirectUrlAuthPlugin(config as never, false)).rejects.toThrow(expectedError);
     });
 
     it('rejects when the direct URL auth module file does not exist', async () => {
-        await expect(loadDirectUrlAuthPlugin({ module: '/does-not-exist.js', supportedRepos: ['schemas.example.com'] }, false)).rejects.toThrow(/direct URL auth module file not found/i);
+        await expect(loadDirectUrlAuthPlugin({ module: '/does-not-exist.js', authenticatedHosts: ['schemas.example.com'] }, false)).rejects.toThrow(/direct URL auth module file not found/i);
     });
 
     it('wraps any error from the dynamic import in a friendly message', async () => {
@@ -266,7 +266,7 @@ describe('cli-config', () => {
         const emptyJs = resolve(FIXTURES_DIR, 'empty-direct-url-plugin.js');
         vol.fromJSON({ [emptyJs]: '' });
 
-        await expect(loadDirectUrlAuthPlugin({ module: emptyJs, supportedRepos: ['schemas.example.com'] }, false)).rejects.toThrow(/Error loading direct URL auth module/i);
+        await expect(loadDirectUrlAuthPlugin({ module: emptyJs, authenticatedHosts: ['schemas.example.com'] }, false)).rejects.toThrow(/Error loading direct URL auth module/i);
     });
 
     it('overrides config file with config props from environment variables', async () => {
@@ -281,7 +281,7 @@ describe('cli-config', () => {
                 authPluginPath: './bad-auth-plugin.js',
                 directUrlAuth: {
                     module: DIRECT_URL_JS_FIXTURE,
-                    supportedRepos: ['protected.example.com']
+                    authenticatedHosts: ['protected.example.com']
                 }
             })
         });
@@ -293,7 +293,7 @@ describe('cli-config', () => {
             authPluginPath: './env-auth-plugin.js',
             directUrlAuth: {
                 module: DIRECT_URL_JS_FIXTURE,
-                supportedRepos: ['protected.example.com']
+                authenticatedHosts: ['protected.example.com']
             }
         });
     });
