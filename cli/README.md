@@ -1116,6 +1116,8 @@ For `push` to work, each document must have a namespace recorded in the manifest
 
 ## Direct URL Document Loader - Custom Authentication Plugin
 
+Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer <token>). The token can be used to authenticate the request and/or determine authorization.
+
 `directUrlAuth.module` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
 
 ```ts
@@ -1142,12 +1144,20 @@ What each part means:
 A minimal example:
 
 ```js
+const AUTHORIZED_URL = 'https://<repo-with-authentication>/';
+
 export default class MyDirectUrlAuth {
   constructor(configPath) {
     this.configPath = configPath;
   }
 
   async getAuthHeaders(url, requestBody) {
+    if (!url.startsWith(AUTHORIZED_URL)) {
+        return {};
+    }
+
+    // code to generate Bearer token
+
     return {
       Authorization: "Bearer my-token"
     };
@@ -1155,4 +1165,6 @@ export default class MyDirectUrlAuth {
 }
 ```
 
-One important nuance: the module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+IMPORTANT NOTES: 
+- If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+- If there is a mix of authenticated and unauthenticated repositories, the plugin in should return the `Authorization` header only for the repositories requiring authentication.  All other repositories, return an empty object.
