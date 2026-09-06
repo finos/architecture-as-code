@@ -8,6 +8,7 @@ import { pathToFileURL } from 'url';
 export interface DirectUrlAuthConfig {
     module: string
     configPath?: string
+    supportedRepos: string[]
 }
 
 export interface CLIConfig {
@@ -69,6 +70,39 @@ export function resolveHomeDir(path: string): string {
     return path;
 }
 
+function isHost(value: string): boolean {
+    if (!value || value !== value.trim() || value.includes('*')) {
+        return false;
+    }
+
+    try {
+        const url = new URL(`http://${value}`);
+        return url.hostname.toLowerCase() === value.toLowerCase();
+    } catch {
+        return false;
+    }
+}
+
+export function validateDirectUrlAuthConfig(config: unknown): asserts config is DirectUrlAuthConfig {
+    if (!config || typeof config !== 'object') {
+        throw new Error('directUrlAuth must be an object.');
+    }
+
+    const candidate = config as { module?: unknown; configPath?: unknown; supportedRepos?: unknown };
+    if (typeof candidate.module !== 'string' || !candidate.module.trim()) {
+        throw new Error('directUrlAuth.module must be a non-empty string.');
+    }
+    if (candidate.configPath !== undefined && (typeof candidate.configPath !== 'string' || !candidate.configPath.trim())) {
+        throw new Error('directUrlAuth.configPath must be a non-empty string when specified.');
+    }
+    if (!Array.isArray(candidate.supportedRepos) || candidate.supportedRepos.length === 0) {
+        throw new Error('directUrlAuth.supportedRepos must be a non-empty array of hostnames.');
+    }
+    if (!candidate.supportedRepos.every(repo => typeof repo === 'string' && isHost(repo))) {
+        throw new Error('directUrlAuth.supportedRepos must contain hostnames only; URLs, ports, paths, and wildcards are not supported.');
+    }
+}
+
 async function loadPluginClassInstance<T>(
     filename: string,
     debug: boolean,
@@ -120,6 +154,7 @@ export async function loadAuthPlugin(filename: string, debug: boolean): Promise<
 }
 
 export async function loadDirectUrlAuthPlugin(config: DirectUrlAuthConfig, debug: boolean): Promise<DirectUrlAuthPlugin> {
+    validateDirectUrlAuthConfig(config);
     return loadPluginClassInstance<DirectUrlAuthPlugin>(
         config.module,
         debug,

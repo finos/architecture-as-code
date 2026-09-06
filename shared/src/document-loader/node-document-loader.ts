@@ -47,7 +47,8 @@ export function buildDocumentLoader(docLoaderOpts: DocumentLoaderOptions): Docum
         debug,
         undefined,
         docLoaderOpts.allowedRemoteHosts,
-        docLoaderOpts.directUrlAuthPlugin
+        docLoaderOpts.directUrlAuthPlugin,
+        docLoaderOpts.directUrlAuthSupportedRepos
     ));
 
     return new MultiStrategyDocumentLoader(loaders, debug);

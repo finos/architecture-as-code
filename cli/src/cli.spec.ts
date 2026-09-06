@@ -32,6 +32,8 @@ describe('CLI Commands', () => {
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
         documentLoaderModule = await import('../../shared/src/document-loader/node-document-loader');
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -1624,6 +1626,11 @@ describe('parseDocumentLoaderConfig', () => {
         warn: vi.fn(),
     });
 
+    beforeEach(async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
+    });
+
     it('should parse calmhub url when provided', async () => {
         const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub'
@@ -1700,6 +1707,26 @@ describe('parseDocumentLoaderConfig', () => {
         expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
     });
 
+    it('keeps supported repositories when CLI allowedRemoteHosts override the config list', async () => {
+        cliConfigModule = await import('./cli-config');
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com'],
+            directUrlAuth: {
+                module: '/fake/direct-url-auth.js',
+                supportedRepos: ['protected.example.com']
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['cli.example.com']
+        });
+
+        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
+        expect(options.directUrlAuthSupportedRepos).toEqual(['protected.example.com']);
+    });
+
     it('should set debug to true when verbose passed along', async () => {
         const options = await parseDocLoaderConfigForTest({
             verbose: true
@@ -1744,7 +1771,8 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
-                configPath: '/configs/direct-url-auth.json'
+                configPath: '/configs/direct-url-auth.json',
+                supportedRepos: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1753,9 +1781,11 @@ describe('parseDocumentLoaderConfig', () => {
 
         expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
             module: '/fake/direct-url-auth.js',
-            configPath: '/configs/direct-url-auth.json'
+            configPath: '/configs/direct-url-auth.json',
+            supportedRepos: ['schemas.example.com']
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(options.directUrlAuthSupportedRepos).toEqual(['schemas.example.com']);
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             1,
             'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
@@ -1775,6 +1805,7 @@ describe('parseDocumentLoaderConfig', () => {
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
                 module: '/fake/direct-url-auth.js',
+                supportedRepos: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
@@ -1792,17 +1823,16 @@ describe('parseDocumentLoaderConfig', () => {
         );
     });
 
-    it('logs an error and continues when direct URL auth module loading throws', async () => {
+    it('fails when direct URL auth module loading throws', async () => {
         cliConfigModule = await import('./cli-config');
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuth: {
-                module: '/bad/direct-url-auth.js'
+                module: '/bad/direct-url-auth.js',
+                supportedRepos: ['schemas.example.com']
             }
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockRejectedValue(new Error('module not found'));
 
-        const options = await parseDocLoaderConfigForTest({});
-
-        expect(options.directUrlAuthPlugin).toBeUndefined();
+        await expect(parseDocLoaderConfigForTest({})).rejects.toThrow(/Direct URL authentication setup failed: module not found/);
     });
 });

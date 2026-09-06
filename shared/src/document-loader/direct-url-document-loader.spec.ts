@@ -148,7 +148,7 @@ describe('direct-url-document-loader', () => {
         expect(document).toEqual({ '$id': url });
     });
 
-    it('adds auth headers from the direct URL auth plugin for allowlisted hosts', async () => {
+    it('adds auth headers from the direct URL auth plugin for supported repositories', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `https://${allowlistedHost}/protected.json`;
         const directUrlAuthPlugin = {
@@ -158,7 +158,7 @@ describe('direct-url-document-loader', () => {
             })
         };
         mock.onGet('/protected.json').reply(200, { '$id': url, 'title': 'schema' });
-        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin, [allowlistedHost]);
 
         const document = await allowlistedLoader.loadMissingDocument(url, 'schema');
 
@@ -167,6 +167,78 @@ describe('direct-url-document-loader', () => {
         const lastRequest = mock.history.get[mock.history.get.length - 1];
         expect(lastRequest.headers?.Authorization).toBe('Bearer test-token');
         expect(lastRequest.headers?.['X-Trace-Id']).toBe('trace-123');
+    });
+
+    it('does not call the auth plugin for an allowlisted but unsupported repository', async () => {
+        const supportedRepo = 'schemas.example.com';
+        const unauthenticatedRepo = 'public.example.com';
+        const url = `https://${unauthenticatedRepo}/public.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer test-token' })
+        };
+        mock.onGet('/public.json').reply(200, { '$id': url, 'title': 'schema' });
+        const loader = new DirectUrlDocumentLoader(
+            false,
+            ax,
+            [supportedRepo, unauthenticatedRepo],
+            directUrlAuthPlugin,
+            [supportedRepo]
+        );
+
+        await expect(loader.loadMissingDocument(url, 'schema')).resolves.toEqual({ '$id': url, 'title': 'schema' });
+        expect(directUrlAuthPlugin.getAuthHeaders).not.toHaveBeenCalled();
+        expect(mock.history.get[mock.history.get.length - 1].headers?.Authorization).toBeUndefined();
+    });
+
+    it('allows and authenticates a supported repository that is absent from allowedRemoteHosts', async () => {
+        const supportedRepo = 'schemas.example.com';
+        const url = `https://${supportedRepo}/supported.json`;
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockResolvedValue({ 'Authorization': 'Bearer test-token' })
+        };
+        mock.onGet('/supported.json').reply(200, { '$id': url, 'title': 'schema' });
+        const loader = new DirectUrlDocumentLoader(false, ax, ['calm.finos.org'], directUrlAuthPlugin, [supportedRepo]);
+
+        await expect(loader.loadMissingDocument(url, 'schema')).resolves.toEqual({ '$id': url, 'title': 'schema' });
+        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(url, undefined);
+        expect(mock.history.get[mock.history.get.length - 1].headers?.Authorization).toBe('Bearer test-token');
+    });
+
+    it('preserves the default allowlist when supported repositories are configured', async () => {
+        const directUrlAuthPlugin = { getAuthHeaders: vi.fn().mockResolvedValue({}) };
+        const loader = new DirectUrlDocumentLoader(
+            false,
+            ax,
+            undefined,
+            directUrlAuthPlugin,
+            ['schemas.example.com']
+        );
+        const url = 'https://calm.finos.org/calm/schemas/2025-03/meta/core.json';
+
+        await expect(loader.loadMissingDocument(url, 'schema')).resolves.toEqual({
+            '$id': url,
+            'value': 'test'
+        });
+        expect(directUrlAuthPlugin.getAuthHeaders).not.toHaveBeenCalled();
+    });
+
+    it('normalizes and deduplicates supported repositories in the allowlist', async () => {
+        const url = 'https://SCHEMAS.EXAMPLE.COM/normalized-supported.json';
+        const directUrlAuthPlugin = { getAuthHeaders: vi.fn().mockResolvedValue({}) };
+        mock.onGet('/normalized-supported.json').reply(200, { '$id': url });
+        const loader = new DirectUrlDocumentLoader(
+            false,
+            ax,
+            ['schemas.example.com'],
+            directUrlAuthPlugin,
+            ['SCHEMAS.EXAMPLE.COM', 'schemas.example.com']
+        );
+
+        await expect(loader.loadMissingDocument(url, 'schema')).resolves.toEqual({ '$id': url });
+        expect(directUrlAuthPlugin.getAuthHeaders).toHaveBeenCalledWith(
+            'https://schemas.example.com/normalized-supported.json',
+            undefined
+        );
     });
 
     it('does not create a custom HTTPS agent for direct URL auth plugins', async () => {

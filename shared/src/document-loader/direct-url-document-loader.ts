@@ -157,12 +157,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     private logger: Logger;
     private readonly allowedRemoteHosts: Set<string>;
     private readonly directUrlAuthPlugin?: DirectUrlAuthPlugin;
+    private readonly directUrlAuthSupportedRepos?: Set<string>;
 
     constructor(
         debug: boolean,
         axiosInstance?: Axios,
         allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS,
-        directUrlAuthPlugin?: DirectUrlAuthPlugin
+        directUrlAuthPlugin?: DirectUrlAuthPlugin,
+        directUrlAuthSupportedRepos?: readonly string[]
     ) {
         if (axiosInstance) {
             this.ax = axiosInstance;
@@ -174,7 +176,13 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         }
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
-        this.allowedRemoteHosts = new Set(allowedRemoteHosts.map(host => normalizeHost(host)));
+        this.directUrlAuthSupportedRepos = directUrlAuthSupportedRepos
+            ? new Set(directUrlAuthSupportedRepos.map(host => normalizeHost(host)))
+            : undefined;
+        this.allowedRemoteHosts = new Set([
+            ...allowedRemoteHosts.map(host => normalizeHost(host)),
+            ...(this.directUrlAuthSupportedRepos ?? []),
+        ]);
         this.directUrlAuthPlugin = directUrlAuthPlugin;
         if (debug) {
             this.addAxiosDebug();
@@ -291,7 +299,9 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
             let authHeaders: Record<string, string> | undefined;
             const authHeaderNames: string[] = [];
-            if (this.directUrlAuthPlugin) {
+            if (this.directUrlAuthPlugin && (
+                !this.directUrlAuthSupportedRepos || this.directUrlAuthSupportedRepos.has(normalizedHost)
+            )) {
                 try {
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
                     authHeaderNames.push(...Object.keys(authHeaders));
