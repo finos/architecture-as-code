@@ -29,6 +29,27 @@ const PRIVATE_IPV6_PATTERNS = [
 // path, checked in addition to (not instead of) the host allowlist below.
 const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_.-]+$/;
 
+const TLS_CERTIFICATE_ERROR_CODES = new Set([
+    'ERR_TLS_CERT_ALTNAME_INVALID',
+    'CERT_HAS_EXPIRED',
+    'CERT_NOT_YET_VALID',
+    'DEPTH_ZERO_SELF_SIGNED_CERT',
+    'SELF_SIGNED_CERT_IN_CHAIN',
+    'UNABLE_TO_GET_ISSUER_CERT',
+    'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+    'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+]);
+
+const TLS_CERTIFICATE_ERROR_MESSAGES = [
+    /Hostname\/IP does not match certificate's altnames/,
+    /self-signed certificate/i,
+    /certificate has expired/i,
+    /certificate is not yet valid/i,
+    /unable to verify the first certificate/i,
+    /unable to get local issuer certificate/i,
+    /unable to verify leaf signature/i,
+];
+
 function isPrivateHost(hostname: string): boolean {
     if (/^localhost$/i.test(hostname)) return true;
     // URL.hostname wraps IPv6 in brackets; strip them for ipLiteralVersion/pattern checks
@@ -105,6 +126,30 @@ function resolveLoggedUrl(baseURL: unknown, url: unknown): string | undefined {
         }
     }
     return base ?? path;
+}
+
+function sanitizeTlsCertificateError(error: unknown, hostname: string): Error | undefined {
+    const visited = new Set<unknown>();
+    let current = error;
+
+    while (current instanceof Error && !visited.has(current)) {
+        const currentError = current;
+        visited.add(currentError);
+        const code = 'code' in currentError ? currentError.code : undefined;
+        if (
+            (typeof code === 'string' && TLS_CERTIFICATE_ERROR_CODES.has(code))
+            || TLS_CERTIFICATE_ERROR_MESSAGES.some(pattern => pattern.test(currentError.message))
+        ) {
+            return new Error(`TLS certificate verification failed for ${hostname}.`);
+        }
+        current = 'cause' in currentError ? currentError.cause : undefined;
+    }
+
+    return undefined;
+}
+
+function documentLoadCause(error: unknown, hostname: string): Error | undefined {
+    return sanitizeTlsCertificateError(error, hostname) ?? (error instanceof Error ? error : undefined);
 }
 
 export class DirectUrlDocumentLoader implements DocumentLoader {
@@ -254,7 +299,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                     throw new DocumentLoadError({
                         name: 'AUTHENTICATION_FAILED',
                         message: `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
-                        cause: error instanceof Error ? error : undefined,
+                        cause: documentLoadCause(error, parsedUrl.hostname),
                         recoverable: false
                     });
                 }
@@ -285,7 +330,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load document from URL: ${documentId}`,
-                cause: error instanceof Error ? error : undefined,
+                cause: documentLoadCause(error, parsedUrl.hostname),
                 recoverable: false
             });
         }

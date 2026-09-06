@@ -277,18 +277,54 @@ describe('direct-url-document-loader', () => {
     it('treats direct URL auth plugin runtime failures as fatal', async () => {
         const allowlistedHost = 'schemas.example.com';
         const url = `https://${allowlistedHost}/protected.json`;
+        const authError = new Error('token exchange failed: super-secret-token');
         const directUrlAuthPlugin = {
-            getAuthHeaders: vi.fn().mockRejectedValue(new Error('token exchange failed: super-secret-token'))
+            getAuthHeaders: vi.fn().mockRejectedValue(authError)
         };
         const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
 
-        const promise = allowlistedLoader.loadMissingDocument(url, 'schema');
+        let thrown: unknown;
+        try {
+            await allowlistedLoader.loadMissingDocument(url, 'schema');
+        } catch (error) {
+            thrown = error;
+        }
 
-        await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
-        await expect(promise).rejects.toMatchObject({ recoverable: false });
-        await expect(promise).rejects.toMatchObject({ name: 'AUTHENTICATION_FAILED' });
-        await expect(promise).rejects.toThrow(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
-        await expect(promise).rejects.not.toThrow('super-secret-token');
+        expect(thrown).toBeInstanceOf(DocumentLoadError);
+        expect(thrown).toMatchObject({ recoverable: false, name: 'AUTHENTICATION_FAILED' });
+        expect((thrown as Error).message)
+            .toBe(`Direct URL authentication failed for ${url}. Check direct URL auth configuration and remote credentials.`);
+        expect((thrown as Error).message).not.toContain('super-secret-token');
+        expect((thrown as DocumentLoadError).cause).toBe(authError);
+        expect(mock.history.get).toHaveLength(0);
+    });
+
+    it('sanitizes TLS certificate errors from a direct URL auth plugin', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/protected.json`;
+        const certificateDetails = 'Hostname/IP does not match certificate\'s altnames: DNS:internal.example.com, IP Address:10.0.0.1';
+        const tlsError = Object.assign(new Error(`Direct URL auth token request failed: ${certificateDetails}`), {
+            cause: new Error(certificateDetails),
+        });
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn().mockRejectedValue(tlsError)
+        };
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, ax, [allowlistedHost], directUrlAuthPlugin);
+
+        let thrown: unknown;
+        try {
+            await allowlistedLoader.loadMissingDocument(url, 'schema');
+        } catch (error) {
+            thrown = error;
+        }
+
+        expect(thrown).toMatchObject({ name: 'AUTHENTICATION_FAILED', recoverable: false });
+        expect((thrown as DocumentLoadError).cause?.message)
+            .toBe(`TLS certificate verification failed for ${allowlistedHost}.`);
+        expect((thrown as DocumentLoadError).cause?.cause).toBeUndefined();
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain(certificateDetails);
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain('internal.example.com');
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain('10.0.0.1');
         expect(mock.history.get).toHaveLength(0);
     });
 
@@ -342,6 +378,35 @@ describe('direct-url-document-loader', () => {
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toMatchObject({ name: 'UNKNOWN', recoverable: false });
         await expect(promise).rejects.toThrow(`Failed to load document from URL: ${url}`);
+    });
+
+    it('sanitizes TLS certificate errors from direct document requests', async () => {
+        const allowlistedHost = 'schemas.example.com';
+        const url = `https://${allowlistedHost}/tls-error.json`;
+        const certificateDetails = 'Hostname/IP does not match certificate\'s altnames: DNS:internal.example.com, IP Address:10.0.0.1';
+        const tlsError = Object.assign(new Error(certificateDetails), {
+            code: 'ERR_TLS_CERT_ALTNAME_INVALID',
+            cause: new Error(certificateDetails),
+        });
+        const tlsAxios = axios.create({});
+        vi.spyOn(tlsAxios, 'get').mockRejectedValue(tlsError);
+        const allowlistedLoader = new DirectUrlDocumentLoader(false, tlsAxios, [allowlistedHost]);
+
+        let thrown: unknown;
+        try {
+            await allowlistedLoader.loadMissingDocument(url, 'schema');
+        } catch (error) {
+            thrown = error;
+        }
+
+        expect(thrown).toMatchObject({ name: 'UNKNOWN', recoverable: false });
+        expect((thrown as Error).message).toBe(`Failed to load document from URL: ${url}`);
+        expect((thrown as DocumentLoadError).cause?.message)
+            .toBe(`TLS certificate verification failed for ${allowlistedHost}.`);
+        expect((thrown as DocumentLoadError).cause?.cause).toBeUndefined();
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain(certificateDetails);
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain('internal.example.com');
+        expect((thrown as DocumentLoadError).cause?.message).not.toContain('10.0.0.1');
     });
 
     it('throws DocumentLoadError for disallowed host', async () => {
