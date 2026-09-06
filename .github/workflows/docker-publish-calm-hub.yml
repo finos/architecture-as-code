@@ -55,6 +55,11 @@ jobs:
               working-directory: calm-hub
               run: mvn -P integration clean package -Ddependency-check.skip=true
 
+            - name: Resolve CALM Hub version
+              id: version
+              working-directory: calm-hub
+              run: echo "value=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
+
             # Step 5: Set up Docker Buildx for multi-architecture builds
             - name: Set up Docker Buildx
               uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
@@ -74,6 +79,7 @@ jobs:
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
                   tags: |
                       type=raw,value=${{ github.event.inputs.tag || 'latest' }}
+                      type=raw,value=${{ steps.version.outputs.value }}
                       type=sha,format=short
                       type=ref,event=branch
                       type=ref,event=tag
