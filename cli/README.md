@@ -1167,4 +1167,4 @@ export default class MyDirectUrlAuth {
 
 IMPORTANT NOTES: 
 - If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
-- If there is a mix of authenticated and unauthenticated repositories, the plugin in should return the `Authorization` header only for the repositories requiring authentication.  All other repositories, return an empty object.
+- If there is a mix of authenticated and unauthenticated repositories, the plugin in should return the `Authorization` header only for the repositories requiring authentication.  For all other repositories, return an empty object.
