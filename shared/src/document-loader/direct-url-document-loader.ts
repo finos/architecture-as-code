@@ -157,14 +157,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
     private logger: Logger;
     private readonly allowedRemoteHosts: Set<string>;
     private readonly directUrlAuthPlugin?: DirectUrlAuthPlugin;
-    private readonly directUrlAuthSupportedRepos?: Set<string>;
+    private readonly directUrlAuthAuthenticatedHosts?: Set<string>;
 
     constructor(
         debug: boolean,
         axiosInstance?: Axios,
         allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS,
         directUrlAuthPlugin?: DirectUrlAuthPlugin,
-        directUrlAuthSupportedRepos?: readonly string[]
+        directUrlAuthAuthenticatedHosts?: readonly string[]
     ) {
         if (axiosInstance) {
             this.ax = axiosInstance;
@@ -176,12 +176,12 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         }
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
-        this.directUrlAuthSupportedRepos = directUrlAuthSupportedRepos
-            ? new Set(directUrlAuthSupportedRepos.map(host => normalizeHost(host)))
+        this.directUrlAuthAuthenticatedHosts = directUrlAuthAuthenticatedHosts
+            ? new Set(directUrlAuthAuthenticatedHosts.map(host => normalizeHost(host)))
             : undefined;
         this.allowedRemoteHosts = new Set([
             ...allowedRemoteHosts.map(host => normalizeHost(host)),
-            ...(this.directUrlAuthSupportedRepos ?? []),
+            ...(this.directUrlAuthAuthenticatedHosts ?? []),
         ]);
         this.directUrlAuthPlugin = directUrlAuthPlugin;
         if (debug) {
@@ -300,7 +300,7 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             let authHeaders: Record<string, string> | undefined;
             const authHeaderNames: string[] = [];
             if (this.directUrlAuthPlugin && (
-                !this.directUrlAuthSupportedRepos || this.directUrlAuthSupportedRepos.has(normalizedHost)
+                !this.directUrlAuthAuthenticatedHosts || this.directUrlAuthAuthenticatedHosts.has(normalizedHost)
             )) {
                 try {
                     authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);

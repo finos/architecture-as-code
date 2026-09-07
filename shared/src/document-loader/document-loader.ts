@@ -19,7 +19,7 @@ export type DocumentLoaderOptions = {
     calmHubUrl?: string;
     authPlugin?: AuthPlugin;
     directUrlAuthPlugin?: DirectUrlAuthPlugin;
-    directUrlAuthSupportedRepos?: string[];
+    directUrlAuthAuthenticatedHosts?: string[];
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;

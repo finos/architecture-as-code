@@ -931,7 +931,7 @@ export async function parseDocumentLoaderConfig(
             logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
             const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(userConfig.directUrlAuth, !!options.verbose);
             docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
-            docLoaderOpts.directUrlAuthSupportedRepos = userConfig.directUrlAuth.authenticatedHosts;
+            docLoaderOpts.directUrlAuthAuthenticatedHosts = userConfig.directUrlAuth.authenticatedHosts;
             logger.debug('Direct URL auth module loaded successfully');
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);

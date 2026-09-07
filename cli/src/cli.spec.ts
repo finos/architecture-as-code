@@ -1724,7 +1724,7 @@ describe('parseDocumentLoaderConfig', () => {
         });
 
         expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
-        expect(options.directUrlAuthSupportedRepos).toEqual(['protected.example.com']);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['protected.example.com']);
     });
 
     it('should set debug to true when verbose passed along', async () => {
@@ -1785,7 +1785,7 @@ describe('parseDocumentLoaderConfig', () => {
             authenticatedHosts: ['schemas.example.com']
         }, false);
         expect(options.directUrlAuthPlugin).toBe(fakePlugin);
-        expect(options.directUrlAuthSupportedRepos).toEqual(['schemas.example.com']);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['schemas.example.com']);
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             1,
             'Loading direct URL auth module from config file: /fake/direct-url-auth.js'

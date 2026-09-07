@@ -136,7 +136,7 @@ describe('DocumentLoader', () => {
 
         const docLoaderOpts: DocumentLoaderOptions = {
             directUrlAuthPlugin,
-            directUrlAuthSupportedRepos: ['schemas.example.com']
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
         };
 
         buildDocumentLoader(docLoaderOpts);
