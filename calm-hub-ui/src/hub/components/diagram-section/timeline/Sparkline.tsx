@@ -151,12 +151,13 @@ export function Sparkline({
 
             {/* Track row. A single-version resource has nothing to scrub, so the
                 track is suppressed (the version pill already states what's shown).
-                overflow-hidden clips long labels at the track edge (#2728). */}
+                Individual labels are bounded by maxWidth + ellipsis (#2728); the
+                track itself uses overflow-visible so the last label isn't clipped. */}
             {!singleVersion && (
                 <div
                     data-testid="timeline-sparkline-track"
                     className="relative"
-                    style={{ height: 72, overflow: 'hidden' }}
+                    style={{ height: 72 }}
                 >
                     {/* Inner track wrapper inset 10px each side so dot percentages map directly */}
                     <div className="absolute" style={{ left: 10, right: 10, top: 0, bottom: 0 }}>

@@ -27,6 +27,8 @@ interface MobileNavMenuProps {
     namespaceCounts: NamespaceCounts[];
     /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
     domainCounts: DomainControlCount[];
+    /** True while the counts are still being fetched from the backend. */
+    countsLoading?: boolean;
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
 }
@@ -66,7 +68,7 @@ interface LeafItem {
  * {@link Hub} (fetched once and shared) and passed in as props rather than
  * re-fetched here.
  */
-export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: MobileNavMenuProps) {
+export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, onClose }: MobileNavMenuProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -287,7 +289,8 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         }
     })();
 
-    const isEmpty = !loading && rows.length === 0;
+    const showLoading = loading || (countsLoading && (view.level === 'root' || view.level === 'namespaces' || view.level === 'domains'));
+    const isEmpty = !showLoading && rows.length === 0;
 
     return (
         <div className="h-full w-full flex flex-col">
@@ -309,7 +312,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
 
             {!searching && (
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
-                    {loading && (
+                    {showLoading && (
                         <li className="flex items-center justify-center py-8">
                             <span className="loading loading-spinner loading-md text-base-content/50" />
                         </li>
@@ -317,7 +320,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
                     {isEmpty && (
                         <li className="px-4 py-8 text-center text-base-content/50 text-sm">Nothing here</li>
                     )}
-                    {!loading &&
+                    {!showLoading &&
                         rows.map((row) => (
                             <li key={row.key}>
                                 <button

@@ -185,4 +185,26 @@ describe('MobileNavMenu', () => {
         expect(await screen.findByText('traderx')).toBeInTheDocument();
         expect(screen.queryByText('Architectures')).not.toBeInTheDocument();
     });
+
+    it('shows a spinner at the root level when countsLoading is true', () => {
+        render(
+            <MemoryRouter>
+                <MobileNavMenu {...props} countsLoading={true} />
+            </MemoryRouter>
+        );
+        const spinner = document.querySelector('.loading-spinner');
+        expect(spinner).toBeInTheDocument();
+        expect(screen.queryByText('Namespaces')).not.toBeInTheDocument();
+    });
+
+    it('shows rows at the root level when countsLoading is false', () => {
+        render(
+            <MemoryRouter>
+                <MobileNavMenu {...props} countsLoading={false} />
+            </MemoryRouter>
+        );
+        expect(document.querySelector('.loading-spinner')).not.toBeInTheDocument();
+        expect(screen.getByText('Namespaces')).toBeInTheDocument();
+        expect(screen.getByText('Control Domains')).toBeInTheDocument();
+    });
 });
