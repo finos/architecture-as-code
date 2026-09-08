@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
@@ -204,7 +205,7 @@ public class TestControlResourceShould {
                 .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetRequirementTests() {

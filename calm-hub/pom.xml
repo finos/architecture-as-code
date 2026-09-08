@@ -335,6 +335,10 @@
                         <exclude>**/*ArchitectureRequest.*</exclude>
                         <exclude>**/config/**/*</exclude>
                         <exclude>**/domain/**/*</exclude>
+                        <!-- I/O-bound classes whose success paths require real infrastructure (integration test coverage) -->
+                        <exclude>**/store/github/util/GitHubRepoSync.*</exclude>
+                        <exclude>**/store/github/util/GitHubVersionService.*</exclude>
+                        <exclude>**/store/classpath/ClasspathCoreSchemaStore.*</exclude>
                     </excludes>
                 </configuration>
                 <executions>

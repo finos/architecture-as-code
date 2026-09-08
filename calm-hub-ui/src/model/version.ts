@@ -33,8 +33,13 @@ export function compareVersions(a: string, b: string): number {
 
 /**
  * Return versions sorted newest-first.
+ * For commit SHAs, the backend returns chronological (oldest first) —
+ * reverse to get newest-first, matching semver sort behavior.
  */
 export function sortVersionsDescending(versions: string[]): string[] {
+    if (versions.length > 0 && /^[0-9a-f]{5,40}$/.test(versions[0])) {
+        return [...versions].reverse();
+    }
     return [...versions].sort((a, b) => compareVersions(b, a));
 }
 

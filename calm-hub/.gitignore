@@ -128,6 +128,8 @@ META-INF/
 src/main/resources/META-INF/*
 !src/main/resources/META-INF/native-image/
 !src/main/resources/META-INF/native-image/**
+!src/test/resources/META-INF/
+!src/test/resources/META-INF/**
 
 # Compiled class file
 *.class

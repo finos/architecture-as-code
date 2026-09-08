@@ -7,6 +7,7 @@ public enum AuditEntityType {
     NAMESPACE,
     ARCHITECTURE,
     PATTERN,
+    CONTROL,
     CONTROL_REQUIREMENT,
     CONTROL_CONFIGURATION,
     ADR,
@@ -19,5 +20,6 @@ public enum AuditEntityType {
     USER_ACCESS,
     SCHEMA,
     LAYOUT,
-    PATTERN_LAYOUT
+    PATTERN_LAYOUT,
+    BUILDING_BLOCK
 }

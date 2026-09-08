@@ -1,18 +1,16 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.github.GitHubArchitectureStore;
 import org.finos.calm.store.mongo.MongoArchitectureStore;
 import org.finos.calm.store.nitrite.NitriteArchitectureStore;
-import jakarta.enterprise.inject.Instance;
 
-/**
- * Producer for ArchitectureStore implementations.
- * This class provides either the MongoDB or NitriteDB implementation based on configuration.
- */
 @ApplicationScoped
 public class ArchitectureStoreProducer {
 
@@ -26,15 +24,15 @@ public class ArchitectureStoreProducer {
     @Inject
     Instance<NitriteArchitectureStore> standaloneArchitectureStore;
 
-    /**
-     * Produces the appropriate ArchitectureStore implementation based on the configured database mode.
-     *
-     * @return the ArchitectureStore implementation
-     */
+    @Inject
+    Instance<GitHubArchitectureStore> gitHubArchitectureStore;
+
     @Produces
     @ApplicationScoped
     public ArchitectureStore produceArchitectureStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubArchitectureStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneArchitectureStore.get();
         } else {
             return mongoArchitectureStore.get();
