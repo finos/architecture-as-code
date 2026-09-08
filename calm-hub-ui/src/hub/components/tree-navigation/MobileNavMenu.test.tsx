@@ -212,7 +212,9 @@ describe('MobileNavMenu', () => {
 
         fireEvent.click(screen.getByLabelText('Back'));
         fireEvent.click(screen.getByText('Control Domains'));
-        expect(screen.getByRole('status')).toBeInTheDocument();
+        // Section-specific, matching ExploreRail's equivalent spinner labels —
+        // not a bare "Loading" that doesn't say which section to a screen reader.
+        expect(screen.getByRole('status', { name: 'Loading control domains' })).toBeInTheDocument();
         expect(screen.queryByText('security')).not.toBeInTheDocument();
     });
 

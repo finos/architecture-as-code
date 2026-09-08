@@ -256,7 +256,19 @@ export function Sparkline({
                                         {moment.validFrom && (
                                             <div
                                                 className="font-mono-jb"
-                                                style={{ fontSize: 10, color: colors.ink[400], textAlign: labelTextAlign }}
+                                                style={{
+                                                    fontSize: 10,
+                                                    color: colors.ink[400],
+                                                    textAlign: labelTextAlign,
+                                                    // The track's own overflow was removed in favour of
+                                                    // clamp()-based horizontal containment (#2728) — this
+                                                    // row still needs its own vertical/horizontal bound so
+                                                    // it can't grow past the track height that clip used
+                                                    // to provide.
+                                                    overflow: 'hidden',
+                                                    textOverflow: 'ellipsis',
+                                                    whiteSpace: 'nowrap',
+                                                }}
                                             >
                                                 {moment.validFrom}
                                             </div>

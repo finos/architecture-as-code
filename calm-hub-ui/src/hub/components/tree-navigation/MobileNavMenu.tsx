@@ -311,6 +311,10 @@ export function MobileNavMenu({
         leafLoading ||
         (view.level === 'namespaces' && namespacesLoading) ||
         (view.level === 'domains' && domainsLoading);
+    // Matches ExploreRail's section-specific spinner labels, rather than a bare
+    // "Loading" that doesn't tell a screen-reader user which section.
+    const loadingLabel =
+        view.level === 'namespaces' ? 'Loading namespaces' : view.level === 'domains' ? 'Loading control domains' : 'Loading';
     const isEmpty = !showLoading && rows.length === 0;
     // Distinguish "the fetch failed" from "there's genuinely nothing here" — a
     // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
@@ -345,7 +349,7 @@ export function MobileNavMenu({
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
                     {showLoading && (
                         <li className="flex items-center justify-center py-8">
-                            <LoadingSpinner label="Loading" />
+                            <LoadingSpinner label={loadingLabel} />
                         </li>
                     )}
                     {isEmpty && (
