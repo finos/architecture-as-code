@@ -215,4 +215,27 @@ describe('MobileNavMenu', () => {
         expect(screen.getByRole('status')).toBeInTheDocument();
         expect(screen.queryByText('security')).not.toBeInTheDocument();
     });
+
+    it('shows a distinct message when a counts fetch fails, rather than an ambiguous empty state', async () => {
+        // Hub clears counts to [] on a failed fetch, so the failure looks
+        // identical to a genuinely empty namespace/domain list unless the
+        // *Failed flag is threaded through to distinguish "unknown" from "zero".
+        render(
+            <MemoryRouter>
+                <MobileNavMenu
+                    {...props}
+                    namespaceCounts={[]}
+                    domainCounts={[]}
+                    namespacesFailed={true}
+                    domainsFailed={true}
+                />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByText("Couldn't load — try again")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(await screen.findByText("Couldn't load — try again")).toBeInTheDocument();
+    });
 });

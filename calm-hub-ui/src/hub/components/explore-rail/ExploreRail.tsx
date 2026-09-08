@@ -16,6 +16,10 @@ interface ExploreRailProps {
     namespacesLoading?: boolean;
     /** True while the domain control counts are still being fetched. */
     domainsLoading?: boolean;
+    /** True if the namespace counts fetch failed — distinct from "loaded and empty". */
+    namespacesFailed?: boolean;
+    /** True if the domain counts fetch failed — distinct from "loaded and empty". */
+    domainsFailed?: boolean;
     /** Collapse the rail (keeps the existing sidebar collapse affordance). */
     onCollapse?: () => void;
 }
@@ -49,6 +53,8 @@ export function ExploreRail({
     domainCounts,
     namespacesLoading,
     domainsLoading,
+    namespacesFailed,
+    domainsFailed,
     onCollapse,
 }: ExploreRailProps) {
     // `ns` comes from /namespace/:ns; on the detail route /:namespace/:type/:id/:version the
@@ -106,6 +112,8 @@ export function ExploreRail({
                 <div className="flex flex-col gap-0.5 px-1.5">
                     {namespacesLoading ? (
                         <RailSpinner label="Loading namespaces" />
+                    ) : namespacesFailed ? (
+                        <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
                     ) : filteredNamespaces.length === 0 ? (
                         <RailEmpty>Nothing here</RailEmpty>
                     ) : (
@@ -125,6 +133,8 @@ export function ExploreRail({
                 <div className="flex flex-col gap-0.5 px-1.5">
                     {domainsLoading ? (
                         <RailSpinner label="Loading control domains" />
+                    ) : domainsFailed ? (
+                        <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
                     ) : domainCounts.length === 0 ? (
                         <RailEmpty>Nothing here</RailEmpty>
                     ) : (

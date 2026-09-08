@@ -69,6 +69,8 @@ export default function Hub() {
     const [namespaceCountsFailed, setNamespaceCountsFailed] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
     const [domainCountsLoaded, setDomainCountsLoaded] = useState(false);
+    // Mirrors namespaceCountsFailed above — a failed fetch means "unknown", not "zero".
+    const [domainCountsFailed, setDomainCountsFailed] = useState(false);
     const isMobile = useIsMobile();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
@@ -112,7 +114,10 @@ export default function Hub() {
         countsService
             .fetchDomainCounts()
             .then(setDomainCounts)
-            .catch(() => setDomainCounts([]))
+            .catch(() => {
+                setDomainCounts([]);
+                setDomainCountsFailed(true);
+            })
             .finally(() => setDomainCountsLoaded(true));
     }, [countsService]);
 
@@ -467,6 +472,8 @@ export default function Hub() {
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
@@ -502,6 +509,8 @@ export default function Hub() {
                                 domainCounts={domainCounts}
                                 namespacesLoading={!namespaceCountsLoaded}
                                 domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
                                 onClose={() => setIsMobileNavOpen(false)}
                             />
                         </div>

@@ -18,6 +18,8 @@ interface RenderRailOptions {
     onCollapse?: () => void;
     namespacesLoading?: boolean;
     domainsLoading?: boolean;
+    namespacesFailed?: boolean;
+    domainsFailed?: boolean;
 }
 
 const renderRail = (path = '/', opts: RenderRailOptions = {}) =>
@@ -34,6 +36,8 @@ const renderRail = (path = '/', opts: RenderRailOptions = {}) =>
                                 domainCounts={domainCounts}
                                 namespacesLoading={opts.namespacesLoading}
                                 domainsLoading={opts.domainsLoading}
+                                namespacesFailed={opts.namespacesFailed}
+                                domainsFailed={opts.domainsFailed}
                                 onCollapse={opts.onCollapse}
                             />
                         }
@@ -126,5 +130,14 @@ describe('ExploreRail', () => {
         expect(await screen.findByRole('link', { name: /finos/ })).toBeInTheDocument();
         expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
         expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('shows a distinct message when a counts fetch fails, rather than an ambiguous empty state', async () => {
+        renderRail('/', { namespacesLoading: false, domainsLoading: false, namespacesFailed: true, domainsFailed: true });
+        // A failed fetch is "unknown", not "confirmed zero" — the empty-state text
+        // must say so rather than looking identical to a genuinely empty namespace.
+        expect(await screen.findByText("Couldn't load namespaces")).toBeInTheDocument();
+        expect(screen.getByText("Couldn't load control domains")).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
     });
 });

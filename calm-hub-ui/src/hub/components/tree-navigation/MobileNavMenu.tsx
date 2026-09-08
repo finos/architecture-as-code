@@ -31,6 +31,10 @@ interface MobileNavMenuProps {
     namespacesLoading?: boolean;
     /** True while the domain control counts are still being fetched. */
     domainsLoading?: boolean;
+    /** True if the namespace counts fetch failed — distinct from "loaded and empty". */
+    namespacesFailed?: boolean;
+    /** True if the domain counts fetch failed — distinct from "loaded and empty". */
+    domainsFailed?: boolean;
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
 }
@@ -75,6 +79,8 @@ export function MobileNavMenu({
     domainCounts,
     namespacesLoading,
     domainsLoading,
+    namespacesFailed,
+    domainsFailed,
     onClose,
 }: MobileNavMenuProps) {
     const navigate = useNavigate();
@@ -305,6 +311,11 @@ export function MobileNavMenu({
         (view.level === 'namespaces' && namespacesLoading) ||
         (view.level === 'domains' && domainsLoading);
     const isEmpty = !showLoading && rows.length === 0;
+    // Distinguish "the fetch failed" from "there's genuinely nothing here" — a
+    // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
+    const failed =
+        (view.level === 'namespaces' && namespacesFailed) || (view.level === 'domains' && domainsFailed);
+    const emptyMessage = failed ? "Couldn't load — try again" : 'Nothing here';
 
     return (
         <div className="h-full w-full flex flex-col">
@@ -332,7 +343,7 @@ export function MobileNavMenu({
                         </li>
                     )}
                     {isEmpty && (
-                        <li className="px-4 py-8 text-center text-base-content/50 text-sm">Nothing here</li>
+                        <li className="px-4 py-8 text-center text-base-content/50 text-sm">{emptyMessage}</li>
                     )}
                     {!showLoading &&
                         rows.map((row) => (

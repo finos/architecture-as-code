@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { IoChevronUpOutline } from 'react-icons/io5';
 import { colors } from '../../../../theme/colors.js';
 import { TimelineHeader } from './TimelineHeader.js';
@@ -24,7 +24,7 @@ interface ContextMenuState {
     y: number;
 }
 
-/** Label box width; edge labels are anchored so this can never leave the card (#2728). */
+/** Label box width; labels are clamped to the track so this can never leave the card (#2728). */
 const LABEL_WIDTH = 120;
 
 /**
@@ -65,11 +65,7 @@ export function Sparkline({
     // Progress overlay: left edge to the viewed dot in single mode; between
     // FROM and TO in compare mode.
     const progressLeft = comparing && fromIdx >= 0 && toIdx >= 0 ? pct(Math.min(fromIdx, toIdx)) : 0;
-    const progressRight = comparing && fromIdx >= 0 && toIdx >= 0
-        ? pct(Math.max(fromIdx, toIdx))
-        : viewedIdx >= 0
-            ? pct(viewedIdx)
-            : 0;
+    const progressRight = comparing && fromIdx >= 0 && toIdx >= 0 ? pct(Math.max(fromIdx, toIdx)) : viewedIdx >= 0 ? pct(viewedIdx) : 0;
 
     useEffect(() => {
         if (!menu) return;
@@ -154,21 +150,14 @@ export function Sparkline({
 
             {/* Track row. A single-version resource has nothing to scrub, so the
                 track is suppressed (the version pill already states what's shown).
-                Labels are bounded by LABEL_WIDTH + ellipsis, and the first/last are
-                anchored to their column so they stay inside DiagramSection's
-                overflow-hidden card rather than being sliced (#2728). */}
+                Labels are bounded by LABEL_WIDTH + ellipsis, and clamped to stay
+                inside the track — and so inside DiagramSection's overflow-hidden
+                card — for any dot, not just the true first/last (#2728). */}
             {!singleVersion && (
-                <div
-                    data-testid="timeline-sparkline-track"
-                    className="relative"
-                    style={{ height: 72 }}
-                >
+                <div data-testid="timeline-sparkline-track" className="relative" style={{ height: 72 }}>
                     {/* Inner track wrapper inset 10px each side so dot percentages map directly */}
                     <div className="absolute" style={{ left: 10, right: 10, top: 0, bottom: 0 }}>
-                        <div
-                            className="absolute"
-                            style={{ left: 0, right: 0, top: 15, height: 2, backgroundColor: colors.ink[200] }}
-                        />
+                        <div className="absolute" style={{ left: 0, right: 0, top: 15, height: 2, backgroundColor: colors.ink[200] }} />
                         {progressRight > progressLeft && (
                             <div
                                 data-testid="timeline-progress"
@@ -193,59 +182,66 @@ export function Sparkline({
                             // Active = filled 12px blue dot with a halo; others = 9px white
                             // dots with a slate ring (redesign #4 anatomy).
                             const dotSize = isActive ? 12 : 9;
-                            // The first/last dot sit 30px from the card edge, so a centred
-                            // label would hang outside DiagramSection's rounded,
-                            // overflow-hidden card and be sliced (#2728). Anchor the edge
-                            // labels to their column so the text grows inwards instead.
-                            const labelBox =
-                                i === 0
-                                    ? { left: 0, textAlign: 'left' as const }
-                                    : i === total - 1
-                                      ? { right: 0, textAlign: 'right' as const }
-                                      : { left: '50%', transform: 'translateX(-50%)', textAlign: 'center' as const };
+                            const dotPct = pct(i);
+                            // A centred label can hang past the track edge and be sliced by
+                            // DiagramSection's overflow-hidden card (#2728) — not just for the
+                            // true first/last dot, but for ANY dot close enough to an edge that
+                            // its label's half-width doesn't fit (e.g. the 2nd dot of many in a
+                            // narrow track). clamp() keeps the label's left edge within
+                            // [0, trackWidth - LABEL_WIDTH] for every dot, regardless of dot
+                            // count or track width, rather than special-casing just the ends.
+                            const labelLeft = `clamp(0px, calc(${dotPct}% - ${LABEL_WIDTH / 2}px), calc(100% - ${LABEL_WIDTH}px))`;
+                            // i===0 and i===total-1 always hit the clamp's lower/upper bound
+                            // respectively (0% - half-width is always negative; 100% - half-width
+                            // always exceeds the upper bound) — so anchoring their text in the
+                            // direction the clamp pushes them keeps it hugging the dot instead of
+                            // drifting toward track-center. Interior dots are only clamped in the
+                            // rare narrow-track case, where centered text is an acceptable
+                            // compromise since it's no longer the overflow that mattered (#2728).
+                            const labelTextAlign: 'left' | 'center' | 'right' = i === 0 ? 'left' : i === total - 1 ? 'right' : 'center';
                             return (
-                                <div
-                                    key={moment.key}
-                                    className="absolute top-0"
-                                    style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)', width: 32 }}
-                                >
-                                    <button
-                                        type="button"
-                                        aria-label={`Moment ${moment.label}`}
-                                        aria-current={isCurrent ? 'true' : undefined}
-                                        aria-pressed={isFrom || isTo ? true : undefined}
-                                        onClick={() => handleDotClick(moment)}
-                                        onContextMenu={(e) => handleDotContextMenu(e, moment)}
-                                        className="bg-transparent p-0 border-0 cursor-pointer flex items-center justify-center"
-                                        style={{ width: 32, height: 32 }}
-                                    >
-                                        <div
-                                            data-active={isActive ? 'true' : undefined}
-                                            style={{
-                                                width: dotSize,
-                                                height: dotSize,
-                                                borderRadius: 999,
-                                                backgroundColor: isActive ? colors.redesign.primary : '#ffffff',
-                                                border: isActive
-                                                    ? `2px solid ${colors.redesign.primary}`
-                                                    : `1.5px solid ${colors.ink[400]}`,
-                                                boxShadow: isActive
-                                                    ? `0 0 0 4px ${colors.redesign.primary}33`
-                                                    : 'none',
-                                            }}
-                                        />
-                                    </button>
+                                <Fragment key={moment.key}>
                                     <div
-                                        className="absolute"
-                                        style={{ top: 36, width: LABEL_WIDTH, ...labelBox }}
+                                        className="absolute top-0"
+                                        style={{ left: `${dotPct}%`, transform: 'translateX(-50%)', width: 32 }}
                                     >
+                                        <button
+                                            type="button"
+                                            aria-label={`Moment ${moment.label}`}
+                                            aria-current={isCurrent ? 'true' : undefined}
+                                            aria-pressed={isFrom || isTo ? true : undefined}
+                                            onClick={() => handleDotClick(moment)}
+                                            onContextMenu={(e) => handleDotContextMenu(e, moment)}
+                                            className="bg-transparent p-0 border-0 cursor-pointer flex items-center justify-center"
+                                            style={{ width: 32, height: 32 }}
+                                        >
+                                            <div
+                                                data-active={isActive ? 'true' : undefined}
+                                                style={{
+                                                    width: dotSize,
+                                                    height: dotSize,
+                                                    borderRadius: 999,
+                                                    backgroundColor: isActive ? colors.redesign.primary : '#ffffff',
+                                                    border: isActive
+                                                        ? `2px solid ${colors.redesign.primary}`
+                                                        : `1.5px solid ${colors.ink[400]}`,
+                                                    boxShadow: isActive ? `0 0 0 4px ${colors.redesign.primary}33` : 'none',
+                                                }}
+                                            />
+                                        </button>
+                                    </div>
+                                    {/* Positioned relative to the same inset wrapper as the dots (not
+                                    the 32px dot column) so clamp()'s percentages resolve against
+                                    the full track width — required for the clamp to be able to
+                                    keep the label inside the track for any dot, not just i===0/total-1. */}
+                                    <div className="absolute" style={{ top: 36, left: labelLeft, width: LABEL_WIDTH }}>
                                         <div
                                             className="font-inter"
                                             style={{
                                                 fontSize: 12,
                                                 fontWeight: isActive ? 600 : 500,
                                                 color: isActive ? colors.ink[900] : colors.ink[700],
-                                                textAlign: labelBox.textAlign,
+                                                textAlign: labelTextAlign,
                                                 // Bound + truncate long names so the strip stays
                                                 // readable; the title tooltip shows the full name (#2728).
                                                 maxWidth: LABEL_WIDTH,
@@ -260,13 +256,13 @@ export function Sparkline({
                                         {moment.validFrom && (
                                             <div
                                                 className="font-mono-jb"
-                                                style={{ fontSize: 10, color: colors.ink[400], textAlign: labelBox.textAlign }}
+                                                style={{ fontSize: 10, color: colors.ink[400], textAlign: labelTextAlign }}
                                             >
                                                 {moment.validFrom}
                                             </div>
                                         )}
                                     </div>
-                                </div>
+                                </Fragment>
                             );
                         })}
                     </div>

@@ -53,6 +53,50 @@ describe('SectionHeader', () => {
         expect(heading).not.toHaveTextContent('42');
     });
 
+    it('links the namespace and type label to the correct namespace/filtered-type routes', () => {
+        render(
+            <SectionHeader
+                icon={<span>Icon</span>}
+                namespace="my-namespace"
+                id="42"
+                version="1.0.0"
+                typeSegment="architectures"
+                typeLabel="Architecture"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'my-namespace' })).toHaveAttribute(
+            'href',
+            '/namespace/my-namespace'
+        );
+        expect(screen.getByRole('link', { name: 'Architecture' })).toHaveAttribute(
+            'href',
+            '/namespace/my-namespace?type=architectures'
+        );
+    });
+
+    it('encodes namespace and type segments containing reserved URL characters', () => {
+        render(
+            <SectionHeader
+                icon={<span>Icon</span>}
+                namespace="my namespace"
+                id="42"
+                version="1.0.0"
+                typeSegment="building blocks"
+                typeLabel="Building Block"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'my namespace' })).toHaveAttribute(
+            'href',
+            '/namespace/my%20namespace'
+        );
+        expect(screen.getByRole('link', { name: 'Building Block' })).toHaveAttribute(
+            'href',
+            '/namespace/my%20namespace?type=building%20blocks'
+        );
+    });
+
     it('renders right content when provided', () => {
         const icon = <span>Icon</span>;
         const rightContent = <div data-testid="right-content">Right Content</div>;
