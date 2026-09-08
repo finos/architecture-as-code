@@ -116,7 +116,9 @@ export function ExploreRail({
                     ) : namespacesFailed ? (
                         <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
                     ) : filteredNamespaces.length === 0 ? (
-                        <RailEmpty>Nothing here</RailEmpty>
+                        <RailEmpty>
+                            {namespaceCounts.length === 0 ? 'Nothing here' : 'No namespaces match your filter'}
+                        </RailEmpty>
                     ) : (
                         filteredNamespaces.map((nc) => (
                             <RailItem

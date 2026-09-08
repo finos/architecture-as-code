@@ -232,10 +232,11 @@ describe('MobileNavMenu', () => {
             </MemoryRouter>
         );
         fireEvent.click(screen.getByText('Namespaces'));
-        expect(await screen.findByText("Couldn't load — try again")).toBeInTheDocument();
+        // No retry action exists here, so the copy must not promise one.
+        expect(await screen.findByText("Couldn't load namespaces")).toBeInTheDocument();
 
         fireEvent.click(screen.getByLabelText('Back'));
         fireEvent.click(screen.getByText('Control Domains'));
-        expect(await screen.findByText("Couldn't load — try again")).toBeInTheDocument();
+        expect(await screen.findByText("Couldn't load control domains")).toBeInTheDocument();
     });
 });

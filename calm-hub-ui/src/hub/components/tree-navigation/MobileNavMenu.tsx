@@ -314,9 +314,14 @@ export function MobileNavMenu({
     const isEmpty = !showLoading && rows.length === 0;
     // Distinguish "the fetch failed" from "there's genuinely nothing here" — a
     // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
-    const failed =
-        (view.level === 'namespaces' && namespacesFailed) || (view.level === 'domains' && domainsFailed);
-    const emptyMessage = failed ? "Couldn't load — try again" : 'Nothing here';
+    // No retry action exists here (Hub fetches counts once on mount), so the copy
+    // must not promise one — matches ExploreRail's equivalent desktop wording.
+    const emptyMessage =
+        view.level === 'namespaces' && namespacesFailed
+            ? "Couldn't load namespaces"
+            : view.level === 'domains' && domainsFailed
+              ? "Couldn't load control domains"
+              : 'Nothing here';
 
     return (
         <div className="h-full w-full flex flex-col">

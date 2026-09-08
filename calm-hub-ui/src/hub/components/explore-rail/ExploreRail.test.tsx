@@ -83,6 +83,14 @@ describe('ExploreRail', () => {
         expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
     });
 
+    it('tells a filter matching nothing apart from a genuinely empty namespace list', async () => {
+        renderRail();
+        await screen.findByRole('link', { name: /finos/ });
+
+        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'no-such-namespace' } });
+        expect(screen.getByText('No namespaces match your filter')).toBeInTheDocument();
+    });
+
     it('marks the namespace row matching the URL as active', async () => {
         renderRail('/namespace/traderx');
         const active = await screen.findByRole('link', { name: /traderx/ });
