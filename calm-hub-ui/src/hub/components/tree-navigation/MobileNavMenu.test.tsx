@@ -186,25 +186,33 @@ describe('MobileNavMenu', () => {
         expect(screen.queryByText('Architectures')).not.toBeInTheDocument();
     });
 
-    it('shows a spinner at the root level when countsLoading is true', () => {
+    it('shows the static root rows immediately, even while counts are still loading', () => {
         render(
             <MemoryRouter>
-                <MobileNavMenu {...props} countsLoading={true} />
+                <MobileNavMenu {...props} namespacesLoading={true} domainsLoading={true} />
             </MemoryRouter>
         );
-        const spinner = document.querySelector('.loading-spinner');
-        expect(spinner).toBeInTheDocument();
-        expect(screen.queryByText('Namespaces')).not.toBeInTheDocument();
-    });
-
-    it('shows rows at the root level when countsLoading is false', () => {
-        render(
-            <MemoryRouter>
-                <MobileNavMenu {...props} countsLoading={false} />
-            </MemoryRouter>
-        );
-        expect(document.querySelector('.loading-spinner')).not.toBeInTheDocument();
+        // The root rows are static labels, not derived from counts, so they must
+        // never be hidden behind a counts spinner.
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
         expect(screen.getByText('Namespaces')).toBeInTheDocument();
         expect(screen.getByText('Control Domains')).toBeInTheDocument();
+    });
+
+    it('shows a spinner only for the section whose own counts are still loading', async () => {
+        render(
+            <MemoryRouter>
+                <MobileNavMenu {...props} namespacesLoading={false} domainsLoading={true} />
+            </MemoryRouter>
+        );
+        // A single OR'd flag couldn't tell these two cases apart.
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByText('traderx')).toBeInTheDocument();
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(screen.getByRole('status')).toBeInTheDocument();
+        expect(screen.queryByText('security')).not.toBeInTheDocument();
     });
 });

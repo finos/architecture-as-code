@@ -51,7 +51,7 @@ export function SectionHeader({ icon, namespace, id, version, typeSegment, right
                         <>
                             {' '}
                             <span className="text-base-content/40">/</span>{' '}
-                            <Link to={`/namespace/${encodeURIComponent(namespace)}?type=${typeSegment}`} className="text-accent hover:underline">{typeLabel}</Link>
+                            <Link to={`/namespace/${encodeURIComponent(namespace)}?type=${encodeURIComponent(typeSegment)}`} className="text-accent hover:underline">{typeLabel}</Link>
                         </>
                     )}{' '}
                     <span className="text-base-content/40">/</span>{' '}

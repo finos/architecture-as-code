@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
@@ -12,10 +12,24 @@ interface ExploreRailProps {
     namespaceCounts: NamespaceCounts[];
     /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
     domainCounts: DomainControlCount[];
-    /** True while the counts are still being fetched from the backend. */
-    loading?: boolean;
+    /** True while the namespace counts are still being fetched. */
+    namespacesLoading?: boolean;
+    /** True while the domain control counts are still being fetched. */
+    domainsLoading?: boolean;
     /** Collapse the rail (keeps the existing sidebar collapse affordance). */
     onCollapse?: () => void;
+}
+
+function RailSpinner({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center py-6">
+            <span role="status" aria-label={label} className="loading loading-spinner loading-md text-base-content/50" />
+        </div>
+    );
+}
+
+function RailEmpty({ children }: { children: ReactNode }) {
+    return <div className="px-2 py-6 text-center text-base-content/50 text-sm">{children}</div>;
 }
 
 type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
@@ -30,7 +44,13 @@ type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
  * once there and shared), so this component takes them as props rather than
  * re-fetching them itself.
  */
-export function ExploreRail({ namespaceCounts, domainCounts, loading, onCollapse }: ExploreRailProps) {
+export function ExploreRail({
+    namespaceCounts,
+    domainCounts,
+    namespacesLoading,
+    domainsLoading,
+    onCollapse,
+}: ExploreRailProps) {
     // `ns` comes from /namespace/:ns; on the detail route /:namespace/:type/:id/:version the
     // param is `namespace`. Fall back to it so the rail keeps its highlight during a detail session.
     const { ns, domain: activeDomain, namespace } = useParams<RailRouteParams>();
@@ -84,10 +104,10 @@ export function ExploreRail({ namespaceCounts, domainCounts, loading, onCollapse
             <div className="flex-1 overflow-auto pb-3">
                 <RailSectionLabel>NAMESPACES</RailSectionLabel>
                 <div className="flex flex-col gap-0.5 px-1.5">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-6">
-                            <span className="loading loading-spinner loading-md text-base-content/50" />
-                        </div>
+                    {namespacesLoading ? (
+                        <RailSpinner label="Loading namespaces" />
+                    ) : filteredNamespaces.length === 0 ? (
+                        <RailEmpty>Nothing here</RailEmpty>
                     ) : (
                         filteredNamespaces.map((nc) => (
                             <RailItem
@@ -103,10 +123,10 @@ export function ExploreRail({ namespaceCounts, domainCounts, loading, onCollapse
 
                 <RailSectionLabel>CONTROL DOMAINS</RailSectionLabel>
                 <div className="flex flex-col gap-0.5 px-1.5">
-                    {loading ? (
-                        <div className="flex items-center justify-center py-6">
-                            <span className="loading loading-spinner loading-md text-base-content/50" />
-                        </div>
+                    {domainsLoading ? (
+                        <RailSpinner label="Loading control domains" />
+                    ) : domainCounts.length === 0 ? (
+                        <RailEmpty>Nothing here</RailEmpty>
                     ) : (
                         domainCounts.map((dc) => (
                             <RailItem

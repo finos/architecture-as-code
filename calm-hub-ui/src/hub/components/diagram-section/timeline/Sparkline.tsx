@@ -24,6 +24,9 @@ interface ContextMenuState {
     y: number;
 }
 
+/** Label box width; edge labels are anchored so this can never leave the card (#2728). */
+const LABEL_WIDTH = 120;
+
 /**
  * Collapsed timeline strip — a "Browse versions" header (with the current-version
  * pill) above a sparkline of version dots with title + date below each. Single
@@ -151,8 +154,9 @@ export function Sparkline({
 
             {/* Track row. A single-version resource has nothing to scrub, so the
                 track is suppressed (the version pill already states what's shown).
-                Individual labels are bounded by maxWidth + ellipsis (#2728); the
-                track itself uses overflow-visible so the last label isn't clipped. */}
+                Labels are bounded by LABEL_WIDTH + ellipsis, and the first/last are
+                anchored to their column so they stay inside DiagramSection's
+                overflow-hidden card rather than being sliced (#2728). */}
             {!singleVersion && (
                 <div
                     data-testid="timeline-sparkline-track"
@@ -189,11 +193,21 @@ export function Sparkline({
                             // Active = filled 12px blue dot with a halo; others = 9px white
                             // dots with a slate ring (redesign #4 anatomy).
                             const dotSize = isActive ? 12 : 9;
+                            // The first/last dot sit 30px from the card edge, so a centred
+                            // label would hang outside DiagramSection's rounded,
+                            // overflow-hidden card and be sliced (#2728). Anchor the edge
+                            // labels to their column so the text grows inwards instead.
+                            const labelBox =
+                                i === 0
+                                    ? { left: 0, textAlign: 'left' as const }
+                                    : i === total - 1
+                                      ? { right: 0, textAlign: 'right' as const }
+                                      : { left: '50%', transform: 'translateX(-50%)', textAlign: 'center' as const };
                             return (
                                 <div
                                     key={moment.key}
-                                    className="absolute top-0 flex flex-col items-center"
-                                    style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)' }}
+                                    className="absolute top-0"
+                                    style={{ left: `${pct(i)}%`, transform: 'translateX(-50%)', width: 32 }}
                                 >
                                     <button
                                         type="button"
@@ -222,32 +236,36 @@ export function Sparkline({
                                         />
                                     </button>
                                     <div
-                                        className="font-inter"
-                                        style={{
-                                            marginTop: 4,
-                                            fontSize: 12,
-                                            fontWeight: isActive ? 600 : 500,
-                                            color: isActive ? colors.ink[900] : colors.ink[700],
-                                            textAlign: 'center',
-                                            // Bound + truncate long names so the strip stays
-                                            // readable; the title tooltip shows the full name (#2728).
-                                            maxWidth: 120,
-                                            overflow: 'hidden',
-                                            textOverflow: 'ellipsis',
-                                            whiteSpace: 'nowrap',
-                                        }}
-                                        title={moment.label}
+                                        className="absolute"
+                                        style={{ top: 36, width: LABEL_WIDTH, ...labelBox }}
                                     >
-                                        {moment.label}
-                                    </div>
-                                    {moment.validFrom && (
                                         <div
-                                            className="font-mono-jb"
-                                            style={{ fontSize: 10, color: colors.ink[400] }}
+                                            className="font-inter"
+                                            style={{
+                                                fontSize: 12,
+                                                fontWeight: isActive ? 600 : 500,
+                                                color: isActive ? colors.ink[900] : colors.ink[700],
+                                                textAlign: labelBox.textAlign,
+                                                // Bound + truncate long names so the strip stays
+                                                // readable; the title tooltip shows the full name (#2728).
+                                                maxWidth: LABEL_WIDTH,
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis',
+                                                whiteSpace: 'nowrap',
+                                            }}
+                                            title={moment.label}
                                         >
-                                            {moment.validFrom}
+                                            {moment.label}
                                         </div>
-                                    )}
+                                        {moment.validFrom && (
+                                            <div
+                                                className="font-mono-jb"
+                                                style={{ fontSize: 10, color: colors.ink[400], textAlign: labelBox.textAlign }}
+                                            >
+                                                {moment.validFrom}
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             );
                         })}

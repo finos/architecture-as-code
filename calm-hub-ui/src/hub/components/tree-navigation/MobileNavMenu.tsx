@@ -27,8 +27,10 @@ interface MobileNavMenuProps {
     namespaceCounts: NamespaceCounts[];
     /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
     domainCounts: DomainControlCount[];
-    /** True while the counts are still being fetched from the backend. */
-    countsLoading?: boolean;
+    /** True while the namespace counts are still being fetched. */
+    namespacesLoading?: boolean;
+    /** True while the domain control counts are still being fetched. */
+    domainsLoading?: boolean;
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
 }
@@ -68,7 +70,13 @@ interface LeafItem {
  * {@link Hub} (fetched once and shared) and passed in as props rather than
  * re-fetched here.
  */
-export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, onClose }: MobileNavMenuProps) {
+export function MobileNavMenu({
+    namespaceCounts,
+    domainCounts,
+    namespacesLoading,
+    domainsLoading,
+    onClose,
+}: MobileNavMenuProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -79,7 +87,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, on
 
     const [view, setView] = useState<View>({ level: 'root' });
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [leafLoading, setLeafLoading] = useState(false);
     const [searching, setSearching] = useState(false);
 
     // Derive the namespace/domain lists from the counts Hub already fetched, rather than
@@ -113,10 +121,10 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, on
         (namespace: string, type: TypeInUI) => {
             setView({ level: 'resources', namespace, type });
             setLeafItems([]);
-            setLoading(true);
+            setLeafLoading(true);
             const finish = (items: LeafItem[]) => {
                 setLeafItems(items);
-                setLoading(false);
+                setLeafLoading(false);
             };
             if (type === 'Interfaces') {
                 interfaceService
@@ -151,14 +159,14 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, on
         (domain: string) => {
             setView({ level: 'controls', domain });
             setLeafItems([]);
-            setLoading(true);
+            setLeafLoading(true);
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
                     setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.title ?? c.name })))
                 )
                 .catch(() => setLeafItems([]))
-                .finally(() => setLoading(false));
+                .finally(() => setLeafLoading(false));
         },
         [controlService]
     );
@@ -289,7 +297,13 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, on
         }
     })();
 
-    const showLoading = loading || (countsLoading && (view.level === 'root' || view.level === 'namespaces' || view.level === 'domains'));
+    // The root rows ('Namespaces', 'Control Domains') are static labels, not
+    // count-derived, so they render immediately — only the level whose data is
+    // actually in flight shows a spinner.
+    const showLoading =
+        leafLoading ||
+        (view.level === 'namespaces' && namespacesLoading) ||
+        (view.level === 'domains' && domainsLoading);
     const isEmpty = !showLoading && rows.length === 0;
 
     return (
@@ -314,7 +328,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, countsLoading, on
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
                     {showLoading && (
                         <li className="flex items-center justify-center py-8">
-                            <span className="loading loading-spinner loading-md text-base-content/50" />
+                            <span role="status" aria-label="Loading" className="loading loading-spinner loading-md text-base-content/50" />
                         </li>
                     )}
                     {isEmpty && (
