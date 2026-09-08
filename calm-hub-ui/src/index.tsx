@@ -2,27 +2,31 @@ import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import ProtectedRoute from './ProtectedRoute.js';
-import { isAuthServiceEnabled } from './authService.js';
+import { initAuthService, isAuthServiceEnabled } from './authService.js';
 import App from './App.js';
-import { LogoutButton } from './components/logout-button/LogoutButton.js';
 import { AuthErrorModal } from './AuthModalError.js';
 import { MigrationErrorModal } from './MigrationModalError.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
-const isAuthenticationEnabled = isAuthServiceEnabled();
+async function bootstrap() {
+    await initAuthService();
 
-root.render(
-    <React.StrictMode>
-        {isAuthenticationEnabled ? (
-            <ProtectedRoute>
+    const isAuthenticationEnabled = isAuthServiceEnabled();
+
+    root.render(
+        <React.StrictMode>
+            {isAuthenticationEnabled ? (
+                <ProtectedRoute>
+                    <App />
+                </ProtectedRoute>
+            ) : (
                 <App />
-                <LogoutButton />
-            </ProtectedRoute>
-        ) : (
-            <App />
-        )}
-        <AuthErrorModal />
-        <MigrationErrorModal />
-    </React.StrictMode>
-);
+            )}
+            <AuthErrorModal />
+            <MigrationErrorModal />
+        </React.StrictMode>
+    );
+}
+
+bootstrap();

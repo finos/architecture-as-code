@@ -1,8 +1,10 @@
 package org.finos.calm.security;
 
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.security.PermissionChecker;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.UserAccess;
@@ -32,6 +34,9 @@ public class CalmHubPermissionChecker {
 
     public CalmHubPermissionChecker(UserAccessStore userAccessStore) {
         this.userAccessStore = userAccessStore;
+    }
+
+    void onStartup(@Observes StartupEvent event) {
         if (!authEnabled) {
             logger.warn("Caution: CalmHub is starting with authentication disabled. All user access will be granted by default.");
         }
@@ -70,7 +75,15 @@ public class CalmHubPermissionChecker {
     public boolean canReadByDomain(SecurityIdentity identity, String domain) {
         return isAuthDisabled()
                 || isAllowPublicRead()
-                || hasDomainAccess(identity, domain, UserAction.READ);
+                || hasDomainAccess(identity, domain, UserAction.READ)
+                || hasAnyNamespaceAccess(identity, UserAction.READ);
+    }
+
+    private boolean hasAnyNamespaceAccess(SecurityIdentity identity, UserAction action) {
+        String username = identity.getPrincipal().getName();
+        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
+        return grants.stream().anyMatch(g ->
+                g.getNamespace() != null && permissionSufficient(g, action));
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)
