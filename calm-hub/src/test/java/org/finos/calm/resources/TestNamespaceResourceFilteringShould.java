@@ -13,6 +13,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.finos.calm.domain.UserAccess;
+import org.finos.calm.domain.namespaces.NamespaceInfo;
+import org.finos.calm.store.UserAccessStore;
+
 import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
@@ -22,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -103,6 +108,51 @@ class TestNamespaceResourceFilteringShould {
         ArgumentCaptor<Optional<Set<String>>> captor = namespacesCaptor();
         verify(mockCountsService).getNamespaceCounts(captor.capture());
         assertFalse(captor.getValue().isPresent());
+    }
+
+    @Test
+    void filter_namespaces_via_store_fallback_when_validator_not_resolvable() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(false);
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+        when(mockIdentity.getPrincipal()).thenReturn(mockPrincipal);
+        when(mockPrincipal.getName()).thenReturn("testuser");
+
+        UserAccessStore mockUserAccessStore = mock(UserAccessStore.class);
+        UserAccess grant = new UserAccess("testuser", UserAccess.Permission.read, "finos");
+        when(mockUserAccessStore.getGrantsForUser("testuser")).thenReturn(List.of(grant));
+
+        when(mockNamespaceService.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("finos", "FINOS"),
+                new NamespaceInfo("private", "Private")
+        ));
+
+        NamespaceResource resource = new NamespaceResource(mockNamespaceService, mockCountsService, mockValidatorInstance);
+        resource.identity = mockIdentity;
+        resource.authEnabled = true;
+        resource.userAccessStore = mockUserAccessStore;
+
+        var result = resource.namespaces();
+        assertEquals(1, result.getValues().size());
+        assertEquals("finos", result.getValues().get(0).getName());
+    }
+
+    @Test
+    void return_all_namespaces_when_store_fallback_has_null_store() {
+        when(mockValidatorInstance.isResolvable()).thenReturn(false);
+        when(mockIdentity.isAnonymous()).thenReturn(false);
+        when(mockIdentity.getPrincipal()).thenReturn(mockPrincipal);
+
+        when(mockNamespaceService.getNamespaces()).thenReturn(List.of(
+                new NamespaceInfo("finos", "FINOS")
+        ));
+
+        NamespaceResource resource = new NamespaceResource(mockNamespaceService, mockCountsService, mockValidatorInstance);
+        resource.identity = mockIdentity;
+        resource.authEnabled = true;
+        resource.userAccessStore = null;
+
+        var result = resource.namespaces();
+        assertEquals(1, result.getValues().size());
     }
 
     @Test

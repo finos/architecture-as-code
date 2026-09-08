@@ -18,7 +18,10 @@ interface TimelineHeaderProps {
  * explanatory copy makes it obvious that clicking a moment re-renders both the
  * Diagram and JSON views.
  */
+const isCommitSha = (v: string) => /^[0-9a-f]{5,40}$/.test(v);
+
 export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps) {
+    const displayVersion = isCommitSha(currentVersion) ? currentVersion : `v${currentVersion}`;
     return (
         <div className="flex items-center gap-2 shrink-0" style={{ paddingTop: 4 }}>
             <IoTimeOutline size={14} style={{ color: colors.ink[500], strokeWidth: 2 }} />
@@ -46,7 +49,7 @@ export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps
                 }}
                 title={`Viewing version ${currentVersion}`}
             >
-                v{currentVersion}
+                {displayVersion}
             </span>
             {children}
         </div>

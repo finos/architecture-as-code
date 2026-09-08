@@ -257,13 +257,12 @@ describe('TimelineBar', () => {
 
     // #2728 — long moment names must not block the expand control or clip cards.
     describe('long moment names are bounded (#2728)', () => {
-        it('clips the collapsed sparkline track so labels cannot paint over the expand button', () => {
+        it('does not clip the sparkline track so edge labels remain fully visible', () => {
             renderBar();
-            // The centre track is clipped so an overlong label can never overflow
-            // out to cover the statically-positioned expand button.
-            expect(screen.getByTestId('timeline-sparkline-track')).toHaveStyle({
-                overflow: 'hidden',
-            });
+            // Per-label maxWidth + ellipsis bounds individual labels (#2728);
+            // the track itself must NOT clip so the last label is not cut off.
+            const track = screen.getByTestId('timeline-sparkline-track');
+            expect(track).not.toHaveStyle({ overflow: 'hidden' });
         });
 
         it('truncates each collapsed label with an ellipsis while keeping its full-name tooltip', () => {

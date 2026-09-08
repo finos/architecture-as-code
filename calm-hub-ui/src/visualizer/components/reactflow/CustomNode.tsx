@@ -95,6 +95,9 @@ export function CustomNode({ data }: NodeProps) {
   const isUnknownArch = !!detailedArchitecture && archResolution.type === 'unknown';
   const archPath = isSameOriginArch ? archResolution.path : undefined;
 
+    // Extract building-block-style colors from metadata (if present)
+    const buildingBlockStyle = data.metadata?.['building-block-style'] as { background?: string; text?: string } | undefined;
+
     // Extract AIGF data (if present in node metadata)
     const aigf = data.metadata?.aigf;
     const riskLevel = aigf?.['risk-level'] || null;
@@ -169,12 +172,12 @@ export function CustomNode({ data }: NodeProps) {
       {/* Base node - always visible, fixed size */}
       <div
         style={{
-          background: THEME.colors.card,
-          border: `2px solid ${borderColor}`,
+          background: buildingBlockStyle?.background || `${nodeTypeStyle.color}12`,
+          border: `2px solid ${buildingBlockStyle?.background || borderColor}`,
           borderRadius: '12px',
           padding: '16px',
           width: '100%',
-          color: THEME.colors.foreground,
+          color: buildingBlockStyle?.text || THEME.colors.foreground,
           fontSize: '14px',
           fontWeight: 500,
           boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
@@ -182,8 +185,10 @@ export function CustomNode({ data }: NodeProps) {
         }}
       >
       {/* Hidden handles to satisfy React Flow; floating edge computes actual attachment */}
-      <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Top} id="top-target" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="left-target" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="right-source" style={{ opacity: 0 }} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ fontWeight: 600, marginBottom: '4px', flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>

@@ -1,18 +1,16 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.StandardStore;
+import org.finos.calm.store.github.GitHubStandardStore;
 import org.finos.calm.store.mongo.MongoStandardStore;
 import org.finos.calm.store.nitrite.NitriteStandardStore;
-import jakarta.enterprise.inject.Instance;
 
-/**
- * Producer for PatternStore implementations.
- * This class provides either the MongoDB or NitriteDB implementation based on configuration.
- */
 @ApplicationScoped
 public class StandardStoreProducer {
 
@@ -26,15 +24,15 @@ public class StandardStoreProducer {
     @Inject
     Instance<NitriteStandardStore> standaloneStandardStore;
 
-    /**
-     * Produces the appropriate PatternStore implementation based on the configured database mode.
-     *
-     * @return the PatternStore implementation
-     */
+    @Inject
+    Instance<GitHubStandardStore> gitHubStandardStore;
+
     @Produces
     @ApplicationScoped
     public StandardStore produceStandardStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubStandardStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneStandardStore.get();
         } else {
             return mongoStandardStore.get();

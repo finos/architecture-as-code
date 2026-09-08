@@ -1,7 +1,9 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.inject.Instance;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.AuditLogStore;
+import org.finos.calm.store.github.GitHubAuditLogStore;
 import org.finos.calm.store.mongo.MongoAuditLogStore;
 import org.finos.calm.store.nitrite.NitriteAuditLogStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestAuditLogStoreProducerShould {
     @Mock
     Instance<NitriteAuditLogStore> nitriteAuditLogStoreInstance;
 
+    @Mock
+    GitHubAuditLogStore gitHubAuditLogStore;
+
+    @Mock
+    Instance<GitHubAuditLogStore> gitHubAuditLogStoreInstance;
+
     private AuditLogStoreProducer producer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestAuditLogStoreProducerShould {
         producer.mongoAuditLogStore = mongoAuditLogStoreInstance;
         when(nitriteAuditLogStoreInstance.get()).thenReturn(nitriteAuditLogStore);
         producer.standaloneAuditLogStore = nitriteAuditLogStoreInstance;
+        when(gitHubAuditLogStoreInstance.get()).thenReturn(gitHubAuditLogStore);
+        producer.gitHubAuditLogStore = gitHubAuditLogStoreInstance;
     }
 
     @Test
@@ -69,5 +79,14 @@ public class TestAuditLogStoreProducerShould {
         AuditLogStore result = producer.produceAuditLogStore();
 
         assertThat(result, is(sameInstance(mongoAuditLogStore)));
+    }
+
+    @Test
+    void return_github_audit_log_store_when_database_mode_is_github() {
+        producer.databaseMode = DatabaseMode.GITHUB;
+
+        AuditLogStore result = producer.produceAuditLogStore();
+
+        assertThat(result, is(sameInstance(gitHubAuditLogStore)));
     }
 }

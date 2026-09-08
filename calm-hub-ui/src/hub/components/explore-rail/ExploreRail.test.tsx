@@ -14,7 +14,7 @@ const domainCounts: DomainControlCount[] = [
     { domain: 'compliance', controlCount: 0 },
 ];
 
-const renderRail = (path = '/', onCollapse?: () => void) =>
+const renderRail = (path = '/', onCollapse?: () => void, loading?: boolean) =>
     render(
         <MemoryRouter initialEntries={[path]}>
             <Routes>
@@ -26,6 +26,7 @@ const renderRail = (path = '/', onCollapse?: () => void) =>
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
+                                loading={loading}
                                 onCollapse={onCollapse}
                             />
                         }
@@ -90,5 +91,22 @@ describe('ExploreRail', () => {
         fireEvent.click(screen.getByLabelText('Collapse sidebar'));
         expect(onCollapse).toHaveBeenCalled();
         await screen.findByRole('link', { name: /finos/ });
+    });
+
+    it('shows loading spinners instead of items when loading is true', () => {
+        renderRail('/', undefined, true);
+        const spinners = screen.getAllByClassName
+            ? document.querySelectorAll('.loading-spinner')
+            : screen.getByText('NAMESPACES').parentElement!.querySelectorAll('.loading-spinner');
+        expect(spinners.length).toBeGreaterThanOrEqual(2);
+        expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /security/ })).not.toBeInTheDocument();
+    });
+
+    it('shows items instead of spinners when loading is false', async () => {
+        renderRail('/', undefined, false);
+        expect(await screen.findByRole('link', { name: /finos/ })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(document.querySelectorAll('.loading-spinner').length).toBe(0);
     });
 });

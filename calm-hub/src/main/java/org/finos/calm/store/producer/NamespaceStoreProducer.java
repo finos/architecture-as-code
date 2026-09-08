@@ -1,18 +1,16 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.NamespaceStore;
+import org.finos.calm.store.github.GitHubNamespaceStore;
 import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.finos.calm.store.nitrite.NitriteNamespaceStore;
-import jakarta.enterprise.inject.Instance;
 
-/**
- * Producer for NamespaceStore implementations.
- * This class provides either the MongoDB or NitriteDB implementation based on configuration.
- */
 @ApplicationScoped
 public class NamespaceStoreProducer {
 
@@ -26,15 +24,15 @@ public class NamespaceStoreProducer {
     @Inject
     Instance<NitriteNamespaceStore> standaloneNamespaceStore;
 
-    /**
-     * Produces the appropriate NamespaceStore implementation based on the configured database mode.
-     *
-     * @return the NamespaceStore implementation
-     */
+    @Inject
+    Instance<GitHubNamespaceStore> gitHubNamespaceStore;
+
     @Produces
     @ApplicationScoped
     public NamespaceStore produceNamespaceStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubNamespaceStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneNamespaceStore.get();
         } else {
             return mongoNamespaceStore.get();
