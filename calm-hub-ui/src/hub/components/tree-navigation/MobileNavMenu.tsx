@@ -19,6 +19,7 @@ import {
     fetchVersionsForResource,
 } from './navigation-loaders.js';
 import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
+import { LoadingSpinner } from '../LoadingSpinner.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -339,7 +340,7 @@ export function MobileNavMenu({
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
                     {showLoading && (
                         <li className="flex items-center justify-center py-8">
-                            <span role="status" aria-label="Loading" className="loading loading-spinner loading-md text-base-content/50" />
+                            <LoadingSpinner label="Loading" />
                         </li>
                     )}
                     {isEmpty && (

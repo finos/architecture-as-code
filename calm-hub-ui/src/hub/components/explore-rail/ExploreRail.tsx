@@ -6,6 +6,7 @@ import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { RailItem } from './RailItem.js';
 import { RailSectionLabel } from './RailSectionLabel.js';
+import { LoadingSpinner } from '../LoadingSpinner.js';
 
 interface ExploreRailProps {
     /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
@@ -27,7 +28,7 @@ interface ExploreRailProps {
 function RailSpinner({ label }: { label: string }) {
     return (
         <div className="flex items-center justify-center py-6">
-            <span role="status" aria-label={label} className="loading loading-spinner loading-md text-base-content/50" />
+            <LoadingSpinner label={label} />
         </div>
     );
 }
