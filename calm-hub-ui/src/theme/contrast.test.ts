@@ -1,3 +1,10 @@
+// @vitest-environment node
+//
+// Runs under node, not jsdom, for the same reason as the sibling
+// `monaco-theme.test.ts`: this suite reads `theme.css` off disk through
+// `import.meta.url`, and under jsdom that is not a `file:` URL, so
+// `fileURLToPath` throws before a single pair is checked. Nothing here touches
+// the DOM.
 /**
  * Colour-contrast guard for the redesign text tokens.
  *
@@ -6,17 +13,20 @@
  * makes it checkable without a browser: read the two theme blocks out of
  * `theme.css`, resolve each pair, and compute the WCAG ratio.
  *
- * Every pair below is one that actually occurs in the UI. The threshold is 4.5:1
- * (WCAG 2.2 SC 1.4.3, AA) because all of this text is small: the rail section
- * labels are 10px and the count badges 11px, nowhere near the 18.66px bold /
- * 24px large-text exemption.
+ * Every pair below is one that actually occurs in the UI, added as the
+ * component using it is found. The list is written by hand rather than derived,
+ * so it grows with the UI instead of being exhaustive by construction.
+ *
+ * The threshold is 4.5:1 (WCAG 2.2 SC 1.4.3, AA) because all of this text is
+ * small: the rail section labels are 10px and the count badges 11px, nowhere
+ * near the 18.66px bold / 24px large-text exemption.
  *
  * The point is the pairing. A token that reads comfortably on the page
  * background can still fail on a badge, which is exactly how two of these were
  * missed.
  */
-import { existsSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -24,16 +34,12 @@ import { describe, expect, it } from 'vitest';
  *
  * Not `import './theme.css?raw'`: Vitest stubs the CSS transform by default, so
  * a raw import resolves to an empty string and every assertion below would pass
- * against nothing. Both candidate roots are tried because the suite runs from
- * the workspace directory but can be invoked from the repository root.
+ * against nothing. Resolved via `import.meta.url` rather than `process.cwd()`,
+ * same as the sibling `monaco-theme.test.ts`, so it works regardless of which
+ * directory the suite is invoked from.
  */
 function readThemeCss(): string {
-    const candidates = [join(process.cwd(), 'src/theme/theme.css'), join(process.cwd(), 'calm-hub-ui/src/theme/theme.css')];
-    const found = candidates.find((candidate) => existsSync(candidate));
-    if (!found) {
-        throw new Error(`Could not locate theme.css. Looked in: ${candidates.join(', ')}`);
-    }
-    return readFileSync(found, 'utf8');
+    return readFileSync(fileURLToPath(new URL('./theme.css', import.meta.url)), 'utf8');
 }
 
 const THEME_CSS = readThemeCss();
@@ -42,9 +48,9 @@ const THEME_CSS = readThemeCss();
 const AA_NORMAL_TEXT = 4.5;
 
 /**
- * The dark block's selector. Matched by pattern rather than as a literal because
- * this file is read through Vite's `?raw`, which returns the CSS after PostCSS
- * has normalised it, and PostCSS is free to change the attribute quoting.
+ * The dark block's selector. Matched by pattern rather than as a literal so that
+ * a change of attribute quoting in `theme.css` cannot silently split the file in
+ * the wrong place and leave every pair below checked against one theme twice.
  */
 const DARK_SELECTOR = /:root\[data-theme=['"]?dark['"]?\]/;
 
@@ -58,6 +64,8 @@ const PAIRS: readonly [string, string][] = [
     ['calm-redesign-muted-alt', 'calm-redesign-badge-bg'],
     ['calm-redesign-muted-alt', 'calm-redesign-badge-bg-faint'],
     ['calm-redesign-muted-alt', 'calm-bg-base'],
+    // The dropzone's format hint, on the resting dropzone panel.
+    ['calm-redesign-muted-alt', 'calm-redesign-surface'],
     // Body copy and headings on the page and the diagram stage.
     ['calm-redesign-muted', 'calm-bg-base'],
     ['calm-redesign-body', 'calm-bg-base'],
