@@ -159,4 +159,43 @@ describe('interfaceIdExistsOnNode', () => {
         expect(result[0].message).toBe(`Referenced interface with ID '${input.interfaces[1]}' was not defined on the node with ID '${input.node}'.`);
         expect(result[0].path).toEqual(['/relationships/0/connects/destination']);
     });
+
+
+
+
+    it('should check an alternative that is not the first in its prefixItems entry', () => {
+        const input = { node: 'queue', interfaces: ['missing-port'] };
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            prefixItems: [
+                                {
+                                    oneOf: [
+                                        { properties: { 'unique-id': { const: 'cache' } } },
+                                        {
+                                            properties: {
+                                                'unique-id': { const: 'queue' },
+                                                'interfaces': {
+                                                    prefixItems: [
+                                                        { properties: { 'unique-id': { const: 'queue-port' } } }
+                                                    ]
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                }
+            },
+            path: ['/relationships/0/connects/destination']
+        };
+
+        const result = interfaceIdExistsOnNode(input, null, asContext(context));
+        expect(result.length).toBe(1);
+        expect(result[0].message).toBe('Referenced interface with ID \'missing-port\' was not defined on the node with ID \'queue\'.');
+    });
 });

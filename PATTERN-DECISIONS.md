@@ -1,0 +1,63 @@
+# Pattern decisions
+
+A CALM pattern can offer a choice. This document records what each tool guarantees about
+that choice. It describes behaviour only. It does not describe how a tool is built.
+
+Each section names the tests that hold its guarantees. A guarantee below with no test is a
+gap.
+
+## Terms
+
+| Term | Meaning |
+|---|---|
+| alternative | One entry in a `oneOf` or an `anyOf` array. |
+| decision | A relationship that carries `relationship-type.properties.options`. A decision asks which alternatives to include. |
+
+A pattern declares a node at three kinds of site:
+
+| Site | Meaning |
+|---|---|
+| a `prefixItems` entry | one node, at that position |
+| `prefixItems[i].oneOf` | alternatives for that position |
+| `prefixItems[i].anyOf` | alternatives for that position |
+
+A pattern declares a relationship at the same three sites.
+
+## Rules that hold across all tools
+
+A decision names a node or a relationship by its `unique-id`. Two declarations must
+therefore never share a `unique-id`. If they did, no answer could select one and not the
+other.
+
+Declare one keyword, not both. An element must satisfy every keyword declared beside it, so
+declaring both `oneOf` and `anyOf` makes some alternatives impossible to select.
+
+Neither keyword controls how many alternatives an architecture includes. A `prefixItems`
+entry is one position, so it takes one alternative. `minItems` and `maxItems` on the array
+set the bounds.
+
+`oneOf` and `anyOf` do not differ for CALM alternatives. Each alternative pins a distinct
+`unique-id`, so an element matches at most one of them, and "exactly one" and "at least one"
+become the same test. The visualiser prints the keyword as the label on the decision box, so
+the choice is visible to a reader. It changes no validation.
+
+## What validation guarantees
+
+Tests: [`shared/src/spectral/rules-pattern.spec.ts`](shared/src/spectral/rules-pattern.spec.ts)
+and the rule tests beside it in `shared/src/spectral/functions/pattern/`.
+
+`calm validate` reads every node and every relationship a pattern declares. It reads all
+three declaration sites listed above.
+
+`calm validate` reports these faults:
+
+| Fault | Severity |
+|---|---|
+| Two declarations share a `unique-id` | error |
+| A relationship refers to a node that the pattern does not declare | error |
+| A connects relationship refers to an interface that the named node does not declare | error |
+| A `prefixItems` entry declares both `oneOf` and `anyOf` | error |
+| No relationship and no decision refers to a declared node | warning |
+
+A pattern that declares alternatives inside an `allOf` branch is not supported. Two `allOf`
+branches that declare the same property discard one of the two declarations.

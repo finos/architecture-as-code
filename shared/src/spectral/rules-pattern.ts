@@ -7,6 +7,8 @@ import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
+import { prefixItemsDeclaresOneKeyword } from './functions/pattern/prefix-items-declares-one-keyword';
+import { declaredIdPaths } from './functions/pattern/declaration-paths';
 
 
 const patternRules: RulesetDefinition = {
@@ -134,7 +136,7 @@ const patternRules: RulesetDefinition = {
             description: 'Nodes must be referenced by at least one relationship',
             severity: 'warn',
             message: '{{error}}',
-            given: '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+            given: declaredIdPaths('nodes'),
             then: {
                 function: nodeHasRelationship,
             },
@@ -185,6 +187,15 @@ const patternRules: RulesetDefinition = {
                         'anyOf',
                     ]
                 },
+            },
+        },
+        'pattern-prefix-items-must-declare-one-keyword': {
+            description: 'A prefixItems entry must declare either oneOf or anyOf, not both',
+            severity: 'error',
+            message: '{{error}}',
+            given: '$',
+            then: {
+                function: prefixItemsDeclaresOneKeyword,
             },
         },
         'pattern-option-relationship-must-have-max-one-item': {
