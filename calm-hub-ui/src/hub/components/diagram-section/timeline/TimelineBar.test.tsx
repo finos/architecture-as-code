@@ -257,12 +257,38 @@ describe('TimelineBar', () => {
 
     // #2728 — long moment names must not block the expand control or clip cards.
     describe('long moment names are bounded (#2728)', () => {
-        it('clips the collapsed sparkline track so labels cannot paint over the expand button', () => {
+        it('anchors the first and last collapsed labels so they cannot leave the card', () => {
             renderBar();
-            // The centre track is clipped so an overlong label can never overflow
-            // out to cover the statically-positioned expand button.
-            expect(screen.getByTestId('timeline-sparkline-track')).toHaveStyle({
-                overflow: 'hidden',
+            // The first/last dots sit close to the card edge, so a centred label
+            // would overflow the ancestor card's overflow-hidden boundary and be
+            // sliced. Edge labels grow inward instead of centering (#2728).
+            expect(screen.getByText('1.0.0')).toHaveStyle({ textAlign: 'left' });
+            expect(screen.getByText('1.5.0')).toHaveStyle({ textAlign: 'center' });
+            expect(screen.getByText('2.0.0')).toHaveStyle({ textAlign: 'right' });
+        });
+
+        it('clamps every label to the track, not just the true first/last dot', () => {
+            // With enough versions, a *non-edge* dot (e.g. the 2nd of many) can sit
+            // close enough to the edge that centering its label would still overflow
+            // the card. A fixed set of 3 moments can't exercise this — the fix must
+            // hold for any dot count and track width, which a per-dot clamp() gives us
+            // (rather than only special-casing i===0/total-1).
+            const many: TimelineMoment[] = Array.from({ length: 12 }, (_, i) => ({
+                key: `m${i}`,
+                label: `${i}.0.0`,
+                version: `${i}.0.0`,
+            }));
+            render(
+                <TimelineBar moments={many} currentVersion="0.0.0" compareFrom={null} compareTo={null} onNavigate={vi.fn()} onCompare={vi.fn()} />
+            );
+            // Dot 1 of 12 sits at 1/11 ≈ 9.09% along the track — close enough to the
+            // left edge that a centred 120px-wide label would still overflow. Its
+            // clamp() expression must reflect that dot's own position, not the
+            // static 50%-centered value the old per-index special case fell back to
+            // for every non-edge dot.
+            const secondLabel = screen.getByText('1.0.0');
+            expect(secondLabel.parentElement).toHaveStyle({
+                left: 'clamp(0px, calc(9.090909090909092% - 60px), calc(100% - 120px))',
             });
         });
 

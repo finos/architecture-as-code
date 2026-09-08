@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
@@ -6,14 +6,35 @@ import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { RailItem } from './RailItem.js';
 import { RailSectionLabel } from './RailSectionLabel.js';
+import { LoadingSpinner } from '../LoadingSpinner.js';
 
 interface ExploreRailProps {
     /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
     namespaceCounts: NamespaceCounts[];
     /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
     domainCounts: DomainControlCount[];
+    /** True while the namespace counts are still being fetched. */
+    namespacesLoading?: boolean;
+    /** True while the domain control counts are still being fetched. */
+    domainsLoading?: boolean;
+    /** True if the namespace counts fetch failed — distinct from "loaded and empty". */
+    namespacesFailed?: boolean;
+    /** True if the domain counts fetch failed — distinct from "loaded and empty". */
+    domainsFailed?: boolean;
     /** Collapse the rail (keeps the existing sidebar collapse affordance). */
     onCollapse?: () => void;
+}
+
+function RailSpinner({ label }: { label: string }) {
+    return (
+        <div className="flex items-center justify-center py-6">
+            <LoadingSpinner label={label} />
+        </div>
+    );
+}
+
+function RailEmpty({ children }: { children: ReactNode }) {
+    return <div className="px-2 py-6 text-center text-base-content/50 text-sm">{children}</div>;
 }
 
 type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
@@ -28,7 +49,15 @@ type RailRouteParams = { ns?: string; domain?: string; namespace?: string };
  * once there and shared), so this component takes them as props rather than
  * re-fetching them itself.
  */
-export function ExploreRail({ namespaceCounts, domainCounts, onCollapse }: ExploreRailProps) {
+export function ExploreRail({
+    namespaceCounts,
+    domainCounts,
+    namespacesLoading,
+    domainsLoading,
+    namespacesFailed,
+    domainsFailed,
+    onCollapse,
+}: ExploreRailProps) {
     // `ns` comes from /namespace/:ns; on the detail route /:namespace/:type/:id/:version the
     // param is `namespace`. Fall back to it so the rail keeps its highlight during a detail session.
     const { ns, domain: activeDomain, namespace } = useParams<RailRouteParams>();
@@ -82,28 +111,46 @@ export function ExploreRail({ namespaceCounts, domainCounts, onCollapse }: Explo
             <div className="flex-1 overflow-auto pb-3">
                 <RailSectionLabel>NAMESPACES</RailSectionLabel>
                 <div className="flex flex-col gap-0.5 px-1.5">
-                    {filteredNamespaces.map((nc) => (
-                        <RailItem
-                            key={nc.namespace}
-                            label={nc.namespace}
-                            count={nc.total}
-                            active={nc.namespace === activeNamespace}
-                            to={`/namespace/${nc.namespace}`}
-                        />
-                    ))}
+                    {namespacesLoading ? (
+                        <RailSpinner label="Loading namespaces" />
+                    ) : namespacesFailed ? (
+                        <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
+                    ) : filteredNamespaces.length === 0 ? (
+                        <RailEmpty>
+                            {namespaceCounts.length === 0 ? 'Nothing here' : 'No namespaces match your filter'}
+                        </RailEmpty>
+                    ) : (
+                        filteredNamespaces.map((nc) => (
+                            <RailItem
+                                key={nc.namespace}
+                                label={nc.namespace}
+                                count={nc.total}
+                                active={nc.namespace === activeNamespace}
+                                to={`/namespace/${nc.namespace}`}
+                            />
+                        ))
+                    )}
                 </div>
 
                 <RailSectionLabel>CONTROL DOMAINS</RailSectionLabel>
                 <div className="flex flex-col gap-0.5 px-1.5">
-                    {domainCounts.map((dc) => (
-                        <RailItem
-                            key={dc.domain}
-                            label={dc.domain}
-                            count={dc.controlCount}
-                            active={dc.domain === activeDomain}
-                            to={`/domain/${dc.domain}`}
-                        />
-                    ))}
+                    {domainsLoading ? (
+                        <RailSpinner label="Loading control domains" />
+                    ) : domainsFailed ? (
+                        <RailEmpty>Couldn&apos;t load control domains</RailEmpty>
+                    ) : domainCounts.length === 0 ? (
+                        <RailEmpty>Nothing here</RailEmpty>
+                    ) : (
+                        domainCounts.map((dc) => (
+                            <RailItem
+                                key={dc.domain}
+                                label={dc.domain}
+                                count={dc.controlCount}
+                                active={dc.domain === activeDomain}
+                                to={`/domain/${dc.domain}`}
+                            />
+                        ))
+                    )}
                 </div>
             </div>
         </div>
