@@ -110,6 +110,15 @@ public class PluginAuthResource {
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
     String hubBaseUrl;
 
+    // Secure-by-default regardless of what calm.hub.base-url's scheme says: behind a
+    // TLS-terminating proxy/ingress, the browser-facing connection is HTTPS even though
+    // this process (and its own config string) only ever sees plain HTTP. Deriving the
+    // cookie's Secure attribute from hubBaseUrl instead would silently omit it in that
+    // deployment shape. Relaxed only for local dev's genuine plain-HTTP testing.
+    @Inject
+    @ConfigProperty(name = "calm.hub.plugin-auth.cookie-secure", defaultValue = "true")
+    boolean cookieSecure;
+
     record PendingSession(String port, String redirectPath, String codeVerifier, String replayGuard,
                           String correlator, long expiresAtEpochMillis) {
         boolean isExpired(long nowEpochMillis) {
@@ -212,7 +221,7 @@ public class PluginAuthResource {
                 .path("/api/calm/auth")
                 .maxAge(SESSION_TTL_SECONDS)
                 .httpOnly(true)
-                .secure(hubBaseUrl.startsWith("https://"))
+                .secure(cookieSecure)
                 .sameSite(NewCookie.SameSite.LAX)
                 .build();
 

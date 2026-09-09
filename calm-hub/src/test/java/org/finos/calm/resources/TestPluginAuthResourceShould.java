@@ -53,6 +53,7 @@ class TestPluginAuthResourceShould {
 
         setField("oidcScopes", SCOPES);
         setField("hubBaseUrl", HUB_BASE_URL);
+        setField("cookieSecure", true);
     }
 
     private void setField(String name, Object value) throws Exception {
@@ -247,7 +248,7 @@ class TestPluginAuthResourceShould {
     }
 
     @Test
-    void set_a_httponly_samesite_lax_session_cookie_on_login() {
+    void set_a_httponly_secure_samesite_lax_session_cookie_on_login() {
         stubDiscovery();
 
         Response response = resource.pluginLogin("63348", null, "test-nonce");
@@ -258,8 +259,23 @@ class TestPluginAuthResourceShould {
         assertThat(header, allOf(
                 containsString("calm_plugin_auth_session="),
                 containsString("HttpOnly"),
+                containsString("Secure"),
                 containsString("SameSite=Lax")));
         assertThat(cookie.getMaxAge(), equalTo(PluginAuthResource.SESSION_TTL_SECONDS));
+    }
+
+    @Test
+    void omit_secure_from_the_session_cookie_when_cookie_secure_is_configured_false() throws Exception {
+        // Mirrors the %dev. override in application-oidc.properties: cookieSecure is not
+        // derived from hubBaseUrl's scheme (that was the bug), it's its own config property,
+        // relaxed only for local dev's genuine plain-HTTP testing.
+        setField("cookieSecure", false);
+        stubDiscovery();
+
+        Response response = resource.pluginLogin("63348", null, "test-nonce");
+
+        NewCookie cookie = (NewCookie) response.getMetadata().getFirst("Set-Cookie");
+        assertThat(cookie.toString(), not(containsString("Secure")));
     }
 
     @Test
