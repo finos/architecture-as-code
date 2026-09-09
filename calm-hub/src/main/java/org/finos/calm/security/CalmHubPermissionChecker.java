@@ -1,8 +1,10 @@
 package org.finos.calm.security;
 
+import io.quarkus.runtime.StartupEvent;
 import io.quarkus.security.PermissionChecker;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.UserAccess;
@@ -32,6 +34,13 @@ public class CalmHubPermissionChecker {
 
     public CalmHubPermissionChecker(UserAccessStore userAccessStore) {
         this.userAccessStore = userAccessStore;
+    }
+
+    // "event" is unused but must stay in the signature: it's what makes this an
+    // @Observes CDI startup callback (invoked after field injection completes) rather
+    // than constructor logic, which is the actual fix this method exists to make — the
+    // old constructor-based check read authEnabled before @ConfigProperty injection ran.
+    void onStartup(@Observes StartupEvent event) {
         if (!authEnabled) {
             logger.warn("Caution: CalmHub is starting with authentication disabled. All user access will be granted by default.");
         }
