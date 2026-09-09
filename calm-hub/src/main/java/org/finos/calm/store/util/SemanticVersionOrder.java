@@ -1,7 +1,6 @@
 package org.finos.calm.store.util;
 
-import org.finos.calm.domain.Semver;
-
+import java.math.BigInteger;
 import java.util.Comparator;
 
 /**
@@ -13,15 +12,8 @@ import java.util.Comparator;
  * explicit sort has no defined order at all, so the version-document stores must
  * impose one — this is it.
  *
- * <h2>Separators</h2>
- * Parsing is delegated to {@link Semver#tryParse}, so both the canonical
- * dot-separated form and the dash-encoded form order identically. ADR 0002 has
- * the new {@code <type>Versions} collections storing dots only, so dashes should
- * never reach here — but {@code VERSION_REGEX} accepts either from the API, and a
- * comparator silently demoting {@code "1-10-0"} to {@code 0.0.0} would be a
- * confusing way to find that out. Accepting both costs nothing and keeps this
- * consistent with every other version comparison in the codebase, all of which
- * already go through {@code Semver}.
+ * Accepts dot and dash separators. Components use BigInteger so versions
+ * accepted by the API can exceed the Java integer range without losing order.
  *
  * <h2>Malformed input</h2>
  * A version that isn't three numeric segments — including {@code null} — sorts as
@@ -42,7 +34,7 @@ public final class SemanticVersionOrder {
     private static int compare(String left, String right) {
         String leftVersion = orEmpty(left);
         String rightVersion = orEmpty(right);
-        int comparison = Semver.tryParse(leftVersion).compareTo(Semver.tryParse(rightVersion));
+        int comparison = parseOrZero(leftVersion).compareTo(parseOrZero(rightVersion));
         if (comparison != 0) {
             return comparison;
         }
@@ -52,10 +44,35 @@ public final class SemanticVersionOrder {
     }
 
     /**
-     * Maps {@code null} onto a value {@link Semver#tryParse} treats as malformed, so a
+     * Maps {@code null} onto an empty string, so a
      * missing version field sorts with the other unparseable values instead of throwing.
      */
     private static String orEmpty(String version) {
         return version == null ? "" : version;
+    }
+
+    private static ComparableVersion parseOrZero(String version) {
+        String[] parts = version.replace('-', '.').split("\\.");
+        if (parts.length != 3) {
+            return ComparableVersion.ZERO;
+        }
+        try {
+            return new ComparableVersion(new BigInteger(parts[0]), new BigInteger(parts[1]), new BigInteger(parts[2]));
+        } catch (NumberFormatException exception) {
+            return ComparableVersion.ZERO;
+        }
+    }
+
+    private record ComparableVersion(BigInteger major, BigInteger minor, BigInteger patch)
+            implements Comparable<ComparableVersion> {
+        private static final ComparableVersion ZERO = new ComparableVersion(BigInteger.ZERO, BigInteger.ZERO, BigInteger.ZERO);
+
+        @Override
+        public int compareTo(ComparableVersion other) {
+            int comparison = major.compareTo(other.major);
+            if (comparison != 0) return comparison;
+            comparison = minor.compareTo(other.minor);
+            return comparison != 0 ? comparison : patch.compareTo(other.patch);
+        }
     }
 }
