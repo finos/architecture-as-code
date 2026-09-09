@@ -263,4 +263,33 @@ public class TestNitriteStandardStoreShould {
         // Unconditional, unlike Pattern and Flow — Standard's old shape did not guard these.
         verify(headerCollection, times(2)).update(any(Filter.class), any(Document.class));
     }
+
+    // --- deleteStandard ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_standard_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteStandard(NAMESPACE, STANDARD_ID));
+    }
+
+    @Test
+    public void delete_the_header_and_all_versions_when_the_standard_exists() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.0.0"),
+                Document.createDocument().put("version", "1.0.1")));
+
+        store.deleteStandard(NAMESPACE, STANDARD_ID);
+
+        verify(versionCollection, times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void throw_a_standard_exception_when_deleting_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class, () -> store.deleteStandard(NAMESPACE, STANDARD_ID));
+    }
 }

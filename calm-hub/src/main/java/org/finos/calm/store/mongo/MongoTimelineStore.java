@@ -151,4 +151,12 @@ public class MongoTimelineStore implements TimelineStore {
             throw new TimelineNotFoundException();
         }
     }
+
+    @Override
+    public void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, timelineId)) {
+            throw new TimelineNotFoundException();
+        }
+    }
 }

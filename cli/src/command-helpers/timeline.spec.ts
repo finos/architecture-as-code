@@ -74,8 +74,9 @@ describe('buildImpliedTimeline', () => {
 
         const timeline = buildImpliedTimeline([a], outputPath);
 
+        // Not path.join: that would assert the host separator.
         expect(timeline.moments[0].details['detailed-architecture']).toBe(
-            path.join('..', 'archs', 'v1.json'),
+            '../archs/v1.json',
         );
     });
 

@@ -1,4 +1,4 @@
-import { isValidResourceType, ResourceType } from './calm-hub-client';
+import { isValidResourceType, ResourceType } from './resource-types.js';
 
 // Namespace documents: namespace-scoped
 //

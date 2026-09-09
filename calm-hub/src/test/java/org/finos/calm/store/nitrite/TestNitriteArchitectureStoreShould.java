@@ -428,4 +428,33 @@ public class TestNitriteArchitectureStoreShould {
 
         verify(versionCollection).insert(any(Document.class));
     }
+
+    // --- deleteArchitecture ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_an_architecture_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteArchitecture(NAMESPACE, ARCHITECTURE_ID));
+    }
+
+    @Test
+    public void delete_the_header_and_all_versions_when_the_architecture_exists() throws Exception {
+        architectureExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.0.0"),
+                Document.createDocument().put("version", "1.0.1")));
+
+        store.deleteArchitecture(NAMESPACE, ARCHITECTURE_ID);
+
+        verify(versionCollection, org.mockito.Mockito.times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void throw_an_architecture_exception_when_deleting_a_missing_architecture() {
+        architectureDoesNotExist();
+
+        assertThrows(ArchitectureNotFoundException.class, () -> store.deleteArchitecture(NAMESPACE, ARCHITECTURE_ID));
+    }
 }

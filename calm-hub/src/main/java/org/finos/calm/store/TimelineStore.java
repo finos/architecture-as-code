@@ -17,4 +17,9 @@ public interface TimelineStore {
     String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException;
     Timeline createTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionExistsException;
     Timeline updateTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException;
+
+    /**
+     * Deletes a timeline and all of its versions.
+     */
+    void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException;
 }

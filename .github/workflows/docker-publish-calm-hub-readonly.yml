@@ -43,7 +43,7 @@ jobs:
 
             # Step 3: Cache Maven Dependencies
             - name: Cache Maven Dependencies
-              uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
               with:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
@@ -55,6 +55,11 @@ jobs:
             # for a multi-arch push.  The same script is used for local builds.
             - name: Build and stage seed content
               run: bash calm-hub/build-readonly-image.sh --no-docker
+
+            - name: Resolve CALM Hub version
+              id: version
+              working-directory: calm-hub
+              run: echo "value=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> "$GITHUB_OUTPUT"
 
             # Step 5: Set up Docker Buildx for multi-architecture builds
             - name: Set up Docker Buildx
@@ -75,6 +80,7 @@ jobs:
                   images: ${{ secrets.DOCKER_USERNAME }}/calm-hub
                   tags: |
                       type=raw,value=${{ github.event.inputs.tag || 'latest-read-only-static' }}
+                      type=raw,value=${{ steps.version.outputs.value }}-read-only-static
                       type=sha,format=short,suffix=-read-only-static
                       type=ref,event=tag,suffix=-read-only-static
 

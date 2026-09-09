@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { detectChangedResources, bumpWorkspace, canonicalEqual, maxIncrement } from './bump';
 import { loadManifest, saveManifest } from './bundle';
-import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
 
-vi.mock('@finos/calm-shared/src/logger', () => ({
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
     initLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 
@@ -99,6 +100,26 @@ describe('bump', () => {
             await saveManifest(bundlePath, { payments: { ...entry, namespace: 'com.example' } });
             await expect(detectChangedResources(bundlePath, validClient)).resolves.toEqual([]);
             expect(validClient.getNarrativeDocumentVersions).toHaveBeenCalledWith('com.example', 'sad', 42);
+        });
+
+        it('preserves files and manifest when a later narrative entry fails the scan', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+                missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            });
+            const before = await readFile(path.join(bundlePath, 'workspace-manifest.json'), 'utf8');
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            await expect(bumpWorkspace(bundlePath, client, { increment: 'MINOR' })).rejects.toThrow(/file not found/);
+
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalled();
+            expect(await readFile(path.join(bundlePath, 'workspace-manifest.json'), 'utf8')).toBe(before);
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
         });
 
         it('fails narrative checks when Hub version retrieval fails', async () => {

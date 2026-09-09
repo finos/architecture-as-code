@@ -1,5 +1,5 @@
 import { SchemaDirectory } from '../schema-directory.js';
-import { CalmReferenceResolver } from './calm-reference-resolver.js';
+import type { CalmReferenceResolver } from './calm-reference-resolver.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 /**

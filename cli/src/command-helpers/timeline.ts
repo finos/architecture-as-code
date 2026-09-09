@@ -77,7 +77,11 @@ export function buildImpliedTimeline(architecturePaths: string[], outputPath?: s
         }
         seenIds.add(uniqueId);
 
-        const relativeRef = path.relative(refBaseDir, path.resolve(archPath));
+        // Forward slashes: this reference is read on other machines.
+        const relativeRef = path
+            .relative(refBaseDir, path.resolve(archPath))
+            .split(path.sep)
+            .join('/');
 
         return {
             'unique-id': uniqueId,

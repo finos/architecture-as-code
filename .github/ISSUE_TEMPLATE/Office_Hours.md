@@ -21,7 +21,7 @@ https://zoom-lfx.platform.linuxfoundation.org/meeting/98579493833?password=2af32
 
 - FINOS meetings involve participation by industry competitors, and it is the intention of FINOS and the Linux Foundation to conduct all of its activities in accordance with applicable antitrust and competition laws. It is therefore extremely important that attendees adhere to meeting agendas, and be aware of, and not participate in, any activities that are prohibited under applicable US state, federal or foreign antitrust and competition laws. Please contact legal@finos.org with any questions.
 
-- FINOS project meetings may be recorded for use solely by the FINOS team for administration purposes. In very limited instances, and with explicit approval, recordings may be made more widely available.
+- FINOS project meetings are recorded for use solely by the FINOS team for administration purposes. In very limited instances, and with explicit approval, recordings may be made more widely available.
 
 ## Agenda
 

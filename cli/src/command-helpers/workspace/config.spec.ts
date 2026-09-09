@@ -24,7 +24,7 @@ describe('workspace config', () => {
         writeFile(getWorkspaceConfigPath(gitRoot), content, 'utf8');
 
     it('getWorkspaceConfigPath points at .calm-workspace/config.json', () => {
-        expect(getWorkspaceConfigPath('/repo')).toBe('/repo/.calm-workspace/config.json');
+        expect(getWorkspaceConfigPath('/repo')).toBe(path.join('/repo', '.calm-workspace', 'config.json'));
     });
 
     it('returns defaults when the config file is absent', async () => {

@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { Command } from 'commander';
+import path from 'path';
 import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST } from '@finos/calm-models/types';
 import { setupWorkspaceCommands } from './commands';
 
@@ -99,17 +100,8 @@ vi.mock('../../cli-config', () => ({
     loadAuthPlugin: mocks.loadAuthPlugin,
 }));
 
-vi.mock('@finos/calm-shared/src/hub/calm-hub-client', () => ({
-    CalmHubClient: mocks.CalmHubClient,
-}));
-
 vi.mock('./document-id-prompt', () => ({
     promptForDocumentId: mocks.promptForDocumentId,
-}));
-
-vi.mock('@finos/calm-shared/src/hub/document-id-utils', () => ({
-    isConformantDocumentId: mocks.isConformantDocumentId,
-    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
 }));
 
 vi.mock('fs/promises', async (importOriginal) => {
@@ -122,7 +114,11 @@ vi.mock('@inquirer/prompts', () => ({
     input: mocks.input,
 }));
 
-vi.mock('@finos/calm-shared/src/logger', () => ({
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
+    CalmHubClient: mocks.CalmHubClient,
+    isConformantDocumentId: mocks.isConformantDocumentId,
+    namespaceFromDocumentId: mocks.namespaceFromDocumentId,
     initLogger: () => ({
         info: vi.fn(),
         warn: vi.fn(),
@@ -159,7 +155,7 @@ describe('setupWorkspaceCommands', () => {
         it('should call ensureWorkspaceBundle with custom dir', async () => {
             await program.parseAsync(['node', 'test', 'workspace', 'init', 'my-ws', '--dir', '/custom/dir']);
             expect(mocks.ensureWorkspaceBundle).toHaveBeenCalledWith(
-                '/custom/dir',
+                path.resolve('/custom/dir'),
                 'my-ws'
             );
         });

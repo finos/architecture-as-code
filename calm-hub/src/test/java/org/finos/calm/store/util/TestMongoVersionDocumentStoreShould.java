@@ -7,6 +7,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.BsonDocument;
 import org.bson.BsonObjectId;
@@ -177,6 +178,39 @@ class TestMongoVersionDocumentStoreShould {
         // The only caller is already failing a create. Propagating this would replace the
         // real write failure with a misleading one about the cleanup.
         assertDoesNotThrow(() -> store.deleteHeader(NAMESPACE, RESOURCE_ID));
+    }
+
+    // --- deleteResource ---
+
+    @Test
+    void delete_the_header_and_all_versions_of_a_resource() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        boolean deleted = store.deleteResource(NAMESPACE, RESOURCE_ID);
+
+        assertThat(deleted, is(true));
+        ArgumentCaptor<Bson> versionFilterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).deleteMany(versionFilterCaptor.capture());
+        assertThat(asJson(versionFilterCaptor.getValue()), containsString(NAMESPACE));
+        ArgumentCaptor<Bson> headerFilterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).deleteOne(headerFilterCaptor.capture());
+        assertThat(asJson(headerFilterCaptor.getValue()), containsString(NAMESPACE));
+    }
+
+    @Test
+    void report_false_when_deleting_a_resource_that_does_not_exist() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThat(store.deleteResource(NAMESPACE, RESOURCE_ID), is(false));
+    }
+
+    @Test
+    void translate_a_write_failure_when_deleting_a_resource() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenThrow(new MongoTimeoutException("no server"));
+
+        // Unlike deleteHeader, this backs a real DELETE endpoint — a failure here must be
+        // reported, not swallowed as best-effort cleanup.
+        assertThrows(StorageWriteException.class, () -> store.deleteResource(NAMESPACE, RESOURCE_ID));
     }
 
     // --- createVersion ---

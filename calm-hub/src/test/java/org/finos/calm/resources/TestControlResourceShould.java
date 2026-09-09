@@ -620,4 +620,74 @@ public class TestControlResourceShould {
                     .statusCode(expectedStatusCode);
         }
     }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_domain_is_provided_on_delete_control_requirement() {
+        given()
+                .when()
+                .delete("/api/calm/domains/invalid_domain/controls/1")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteControlRequirementTests() {
+        return Stream.of(
+                Arguments.of(new DomainNotFoundException(INVALID_DOMAIN), 404),
+                Arguments.of(new ControlNotFoundException(), 404),
+                Arguments.of(new ControlHasConfigurationsException(1, 2), 409),
+                Arguments.of(null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteControlRequirementTests")
+    void respond_correctly_to_delete_control_requirement(Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockControlStore).deleteControlRequirement(VALID_DOMAIN, 1);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/1")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockControlStore, times(1)).deleteControlRequirement(VALID_DOMAIN, 1);
+    }
+
+    @Test
+    void return_a_400_when_an_invalid_format_of_domain_is_provided_on_delete_control_configuration() {
+        given()
+                .when()
+                .delete("/api/calm/domains/invalid_domain/controls/1/configurations/10")
+                .then()
+                .statusCode(400)
+                .body(containsString(DOMAIN_MESSAGE));
+    }
+
+    static Stream<Arguments> provideParametersForDeleteControlConfigurationTests() {
+        return Stream.of(
+                Arguments.of(new DomainNotFoundException(INVALID_DOMAIN), 404),
+                Arguments.of(new ControlNotFoundException(), 404),
+                Arguments.of(new ControlConfigurationNotFoundException(), 404),
+                Arguments.of(null, 204)
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideParametersForDeleteControlConfigurationTests")
+    void respond_correctly_to_delete_control_configuration(Throwable exceptionToThrow, int expectedStatusCode) throws Exception {
+        if (exceptionToThrow != null) {
+            doThrow(exceptionToThrow).when(mockControlStore).deleteControlConfiguration(VALID_DOMAIN, 1, 10);
+        }
+
+        given()
+                .when()
+                .delete("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10")
+                .then()
+                .statusCode(expectedStatusCode);
+
+        verify(mockControlStore, times(1)).deleteControlConfiguration(VALID_DOMAIN, 1, 10);
+    }
 }

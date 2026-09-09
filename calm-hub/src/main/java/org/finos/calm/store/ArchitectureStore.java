@@ -35,4 +35,9 @@ public interface ArchitectureStore {
     String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException;
     Architecture createArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionExistsException;
     Architecture updateArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException;
+
+    /**
+     * Deletes an architecture and all of its versions.
+     */
+    void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException;
 }

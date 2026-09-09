@@ -12,7 +12,8 @@ import path from 'path';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadJson = async (p: string): Promise<any> => JSON.parse(await readFile(p, 'utf8'));
 
-vi.mock('@finos/calm-shared/src/logger', () => ({
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
     initLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
 }));
 

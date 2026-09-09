@@ -389,4 +389,33 @@ public class TestNitriteTimelineStoreShould {
 
         verify(versionCollection).insert(any(Document.class));
     }
+
+    // --- deleteTimeline ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_timeline_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteTimeline(NAMESPACE, TIMELINE_ID));
+    }
+
+    @Test
+    public void delete_the_header_and_all_versions_when_the_timeline_exists() throws Exception {
+        timelineExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.0.0"),
+                Document.createDocument().put("version", "1.0.1")));
+
+        store.deleteTimeline(NAMESPACE, TIMELINE_ID);
+
+        verify(versionCollection, org.mockito.Mockito.times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void throw_a_timeline_exception_when_deleting_a_missing_timeline() {
+        timelineDoesNotExist();
+
+        assertThrows(TimelineNotFoundException.class, () -> store.deleteTimeline(NAMESPACE, TIMELINE_ID));
+    }
 }

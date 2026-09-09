@@ -58,5 +58,15 @@ describe('workspace narrative-document POC', () => {
         await run(['workspace', 'bump', '--minor', '--calm-hub-url', SMOKE_HUB_URL]);
         await run(['workspace', 'push', '--calm-hub-url', SMOKE_HUB_URL]);
         expect(await api.getNarrativeDocument(NS, 'sad', documentId, '1.1.0')).toContain('# Updated payments');
+
+        await run(['workspace', 'rm', 'Payments SAD']);
+        await run([
+            'workspace', 'add', documentPath, '--type', 'sad', '--namespace', NS,
+            '--calm-hub-document-id', String(documentId), '--ver', '1.1.0', '--calm-hub-url', SMOKE_HUB_URL,
+        ]);
+        const recovered = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        expect(recovered['Payments SAD']).toMatchObject({ calmHubDocumentId: documentId, version: '1.1.0' });
+        await run(['workspace', 'push', '--fail-if-modified', '--calm-hub-url', SMOKE_HUB_URL]);
+        expect(await api.getNarrativeDocument(NS, 'sad', documentId, '1.0.0')).toBe(initial);
     });
 });

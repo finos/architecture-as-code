@@ -6091,6 +6091,53 @@ create_timeline_demo() {
     fi
 }
 
+create_layouts() {
+    print_status "Creating default layouts..."
+
+    # Seed a layout for the Conference Signup Architecture using the new nodes-map format.
+    # The architecture is created in create_architectures() under the "workshop" namespace;
+    # its id is resolved dynamically the same way version-seeding does.
+    local conf_arch_id
+    conf_arch_id=$(get_resource_id_by_name "workshop" "architectures" "Conference Signup Architecture")
+
+    if [[ -z "$conf_arch_id" ]]; then
+        print_warning "Could not resolve Conference Signup Architecture id; skipping layout seed"
+        return
+    fi
+
+    local layout_json
+    layout_json=$(cat <<'CALMDOC'
+{
+    "for": "/api/calm/namespaces/workshop/architectures/__ARCH_ID__",
+    "name": "Default",
+    "description": "Seeded demo layout for the Conference Signup Architecture",
+    "nodes": {
+        "conference-website":  { "x": 50,  "y": 30,  "w": 180, "h": 60 },
+        "load-balancer":       { "x": 300, "y": 30,  "w": 160, "h": 50 },
+        "attendees":           { "x": 300, "y": 150, "w": 160, "h": 60 },
+        "attendees-store":     { "x": 150, "y": 300, "w": 170, "h": 60 },
+        "attendees-cache":     { "x": 450, "y": 300, "w": 160, "h": 60 },
+        "k8s-cluster":         { "x": 100, "y": 100, "w": 560, "h": 300 }
+    }
+}
+CALMDOC
+)
+    # Replace the placeholder with the actual architecture id
+    layout_json="${layout_json//__ARCH_ID__/$conf_arch_id}"
+
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
+        "$CALM_HUB_URL/api/calm/namespaces/workshop/architectures/$conf_arch_id/layout" \
+        -H "Content-Type: application/json" \
+        -d "$layout_json")
+
+    if [[ "$http_code" == "204" ]]; then
+        print_status "Created default layout for Conference Signup Architecture (id=$conf_arch_id)"
+    else
+        print_warning "Failed to create layout for Conference Signup Architecture (HTTP $http_code)"
+    fi
+}
+
 main() {
     print_status "Starting CalmHub NitriteDB initialization..."
     print_status "Target URL: $CALM_HUB_URL"
@@ -6106,6 +6153,7 @@ main() {
     create_patterns
     create_flows
     create_architectures
+    create_layouts
     create_user_access
     create_standards
     create_interfaces

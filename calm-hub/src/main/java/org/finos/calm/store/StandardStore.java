@@ -16,4 +16,9 @@ public interface StandardStore {
     List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException;
     String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException;
     Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException;
+
+    /**
+     * Deletes a standard and all of its versions.
+     */
+    void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException;
 }

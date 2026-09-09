@@ -1,6 +1,5 @@
-import type { NarrativeDocumentRequest } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { parseYamlFrontMatterMapping, type NarrativeDocumentRequest } from '@finos/calm-shared';
 import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST, isNarrativeDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
-import { parseYamlFrontMatterMapping } from '@finos/calm-shared/src/template/front-matter';
 
 const LOCATION_PATTERN = new RegExp(
     `^/api/calm/namespaces/([^/]+)/documents/(${CALM_NARRATIVE_DOCUMENT_TYPES_LIST.join('|')})/(\\d+)/versions/` +

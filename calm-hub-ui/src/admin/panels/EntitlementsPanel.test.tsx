@@ -192,7 +192,9 @@ describe('EntitlementsPanel', () => {
             await waitFor(() =>
                 expect(screen.getByRole('region', { name: /global admin access/i })).toBeInTheDocument()
             );
-            expect(userAccessSvc.getNamespaceUserAccess).toHaveBeenCalledWith('GLOBAL');
+            await waitFor(() =>
+                expect(userAccessSvc.getNamespaceUserAccess).toHaveBeenCalledWith('GLOBAL')
+            );
         });
     });
 

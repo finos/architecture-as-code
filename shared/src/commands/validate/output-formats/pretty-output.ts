@@ -1,13 +1,14 @@
 
 
-import path from 'path';
 import { ValidationOutcome, ValidationOutput } from '../validation.output.js';
-import { ValidationFormattingOptions, ValidationDocumentContext } from '../validate.js';
+import type { ValidationFormattingOptions, ValidationDocumentContext } from '../format-output.js';
 
 type Severity = 'error' | 'warning' | 'info' | 'hint' | string;
 
 const severityOrder: Severity[] = ['error', 'warning', 'info', 'hint'];
-const supportsColor = Boolean(process?.stdout?.isTTY) && process.env.NO_COLOR !== '1';
+const supportsColor = typeof process !== 'undefined'
+    && Boolean(process.stdout?.isTTY)
+    && process.env?.NO_COLOR !== '1';
 
 const colors = {
     red: (text: string) => (supportsColor ? `\u001b[31m${text}\u001b[0m` : text),
@@ -31,6 +32,11 @@ const severityColor: Partial<Record<Severity, (text: string) => string>> = {
     info: colors.blue,
     hint: colors.gray
 };
+
+function basename(filePath: string): string {
+    const segments = filePath.split(/[\\/]/).filter(Boolean);
+    return segments.length ? segments[segments.length - 1] : filePath;
+}
 
 function formatSeverity(severity: Severity): string {
     const label = severityLabel[severity] ?? (severity ? severity.toUpperCase() : 'ISSUE');
@@ -92,7 +98,7 @@ function buildDocumentHeader(documentId: string, context?: ValidationDocumentCon
     if (!context) {
         return `- In ${documentId || 'document'}:`;
     }
-    const label = context.label || path.basename(context.filePath || context.id || '');
+    const label = context.label || basename(context.filePath || context.id || '');
     const location = context.filePath ? ` (${context.filePath})` : '';
     return `- In ${label}${location}:`;
 }

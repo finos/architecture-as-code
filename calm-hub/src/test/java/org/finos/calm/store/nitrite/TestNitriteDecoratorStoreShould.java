@@ -678,4 +678,74 @@ class TestNitriteDecoratorStoreShould {
         assertEquals(1, decoratorIds.get(2));
         verify(namespaceStore).namespaceExists(namespace);
     }
+
+    @Test
+    void should_delete_decorator_successfully() throws NamespaceNotFoundException, DecoratorNotFoundException {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decorator1 = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("unique-id", "decorator-1"));
+        Document decorator2 = Document.createDocument("decoratorId", 2)
+                .put("decorator", Document.createDocument("unique-id", "decorator-2"));
+        Document namespaceDocument = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decorator1, decorator2));
+
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+
+        // When
+        decoratorStore.deleteDecorator(namespace, 1);
+
+        // Then
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_deleting_an_id_not_present() {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        Document decorator1 = Document.createDocument("decoratorId", 1)
+                .put("decorator", Document.createDocument("unique-id", "decorator-1"));
+        Document namespaceDocument = Document.createDocument("namespace", namespace)
+                .put("decorators", List.of(decorator1));
+
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(namespaceDocument);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 99));
+
+        verify(decoratorCollection, never()).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_deleting_from_a_namespace_with_no_document() {
+        // Given
+        String namespace = "finos";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+        when(decoratorCollection.find(any(Filter.class))).thenReturn(cursor);
+        when(cursor.firstOrNull()).thenReturn(null);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+
+        verify(decoratorCollection, never()).update(any(Document.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_deleting_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class, () -> decoratorStore.deleteDecorator(namespace, 1));
+
+        verify(decoratorCollection, never()).find(any(Filter.class));
+    }
 }
