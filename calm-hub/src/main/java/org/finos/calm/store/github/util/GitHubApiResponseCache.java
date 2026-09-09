@@ -62,15 +62,15 @@ public class GitHubApiResponseCache {
     // instead of Thread.sleep, the same pattern used by SchemaMigrationInProgressFilter's
     // injectable LongSupplier.
     GitHubApiResponseCache(long maxSize, Ticker ticker) {
-        this.versionsCache = Caffeine.newBuilder()
+        this.versionsCache = buildCache(maxSize, ticker, VERSIONS_TTL);
+        this.contentCache = buildCache(maxSize, ticker, CONTENT_TTL);
+    }
+
+    private static <V> Cache<String, V> buildCache(long maxSize, Ticker ticker, Duration ttl) {
+        return Caffeine.newBuilder()
                 .maximumSize(maxSize)
                 .ticker(ticker)
-                .expireAfterWrite(VERSIONS_TTL)
-                .build();
-        this.contentCache = Caffeine.newBuilder()
-                .maximumSize(maxSize)
-                .ticker(ticker)
-                .expireAfterWrite(CONTENT_TTL)
+                .expireAfterWrite(ttl)
                 .build();
     }
 
@@ -79,25 +79,24 @@ public class GitHubApiResponseCache {
      * expired.
      */
     public Optional<List<String>> getVersions(String repoFullName, String filePath) {
-        return Optional.ofNullable(versionsCache.getIfPresent(versionsKey(repoFullName, filePath)));
+        return read(versionsCache, versionsKey(repoFullName, filePath));
     }
 
     /**
      * Caches the commit-SHA version list for a file for {@link #VERSIONS_TTL}. A
-     * {@code null} list is silently ignored.
+     * {@code null} list is silently ignored. Stores an immutable copy, so a caller
+     * mutating the list it passed in — or held onto after a {@link #getVersions}
+     * call — can never corrupt the cached entry.
      */
     public void putVersions(String repoFullName, String filePath, List<String> versions) {
-        if (versions == null) {
-            return;
-        }
-        versionsCache.put(versionsKey(repoFullName, filePath), versions);
+        write(versionsCache, versionsKey(repoFullName, filePath), versions == null ? null : List.copyOf(versions));
     }
 
     /**
      * Reads the cached file content at a commit SHA, if present and not expired.
      */
     public Optional<String> getContentAtSha(String repoFullName, String filePath, String sha) {
-        return Optional.ofNullable(contentCache.getIfPresent(contentKey(repoFullName, filePath, sha)));
+        return read(contentCache, contentKey(repoFullName, filePath, sha));
     }
 
     /**
@@ -106,10 +105,18 @@ public class GitHubApiResponseCache {
      * commit SHA is immutable — the same SHA always resolves to the same content.
      */
     public void putContentAtSha(String repoFullName, String filePath, String sha, String content) {
-        if (content == null) {
+        write(contentCache, contentKey(repoFullName, filePath, sha), content);
+    }
+
+    private static <V> Optional<V> read(Cache<String, V> cache, String key) {
+        return Optional.ofNullable(cache.getIfPresent(key));
+    }
+
+    private static <V> void write(Cache<String, V> cache, String key, V value) {
+        if (value == null) {
             return;
         }
-        contentCache.put(contentKey(repoFullName, filePath, sha), content);
+        cache.put(key, value);
     }
 
     private static String versionsKey(String repoFullName, String filePath) {

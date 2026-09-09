@@ -5,6 +5,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.ExecutorService;
@@ -17,6 +18,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class TestGitHubApiResponseCacheShould {
 
@@ -73,6 +75,25 @@ class TestGitHubApiResponseCacheShould {
     void ignore_a_null_versions_value() {
         cache.putVersions("org/repo", "path/file.json", null);
         assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+    }
+
+    @Test
+    void store_a_defensive_copy_so_a_caller_cannot_mutate_the_cached_entry() {
+        List<String> mutable = new ArrayList<>(List.of("original"));
+        cache.putVersions("org/repo", "path/file.json", mutable);
+
+        mutable.add("mutated-after-put");
+
+        assertThat(cache.getVersions("org/repo", "path/file.json").orElse(null), contains("original"));
+    }
+
+    @Test
+    void return_an_immutable_versions_list_so_a_caller_cannot_corrupt_the_cache() {
+        cache.putVersions("org/repo", "path/file.json", List.of("abc1234"));
+
+        List<String> result = cache.getVersions("org/repo", "path/file.json").orElseThrow();
+
+        assertThrows(UnsupportedOperationException.class, () -> result.add("should-fail"));
     }
 
     @Test
