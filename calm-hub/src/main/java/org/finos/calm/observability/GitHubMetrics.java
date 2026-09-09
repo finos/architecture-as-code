@@ -68,11 +68,4 @@ public class GitHubMetrics {
     public void recordRegistryRebuild(Duration duration) {
         registryRebuildTimer.record(duration);
     }
-
-    public Counter contentDetectedCounter(MeterRegistry registry, String type) {
-        return Counter.builder("calm.github.content.detected")
-                .tag("type", type)
-                .description("Number of CALM documents detected by type")
-                .register(registry);
-    }
 }

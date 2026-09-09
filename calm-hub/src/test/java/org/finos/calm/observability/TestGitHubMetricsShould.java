@@ -90,17 +90,6 @@ class TestGitHubMetricsShould {
     }
 
     @Test
-    void create_content_detected_counter() {
-        Counter counter = metrics.contentDetectedCounter(registry, "architecture");
-        assertThat(counter, is(notNullValue()));
-        counter.increment();
-
-        Counter found = registry.find("calm.github.content.detected").tag("type", "architecture").counter();
-        assertThat(found, is(notNullValue()));
-        assertThat(found.count(), equalTo(1.0));
-    }
-
-    @Test
     @SuppressWarnings("unchecked")
     void fall_back_to_an_in_memory_registry_when_no_meter_registry_bean_is_available() {
         // Simulates the CDI state under this module's test profiles, where
@@ -112,5 +101,23 @@ class TestGitHubMetricsShould {
         fallbackMetrics.recordSyncSuccess(Duration.ofMillis(100));
         // No exception means the fallback SimpleMeterRegistry accepted the write;
         // there is no shared registry here to assert against.
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void use_the_resolved_meter_registry_bean_when_one_is_available() {
+        // The production branch: a real MeterRegistry bean exists (Micrometer enabled),
+        // so Instance<MeterRegistry>.get() - not the SimpleMeterRegistry fallback -
+        // should be what metrics actually get registered against.
+        Instance<MeterRegistry> resolvable = mock(Instance.class);
+        when(resolvable.isResolvable()).thenReturn(true);
+        when(resolvable.get()).thenReturn(registry);
+
+        GitHubMetrics resolvedMetrics = new GitHubMetrics(resolvable);
+        resolvedMetrics.recordSyncSuccess(Duration.ofSeconds(1));
+
+        Counter counter = registry.find("calm.github.sync").tag("outcome", "success").counter();
+        assertThat(counter, is(notNullValue()));
+        assertThat(counter.count(), equalTo(1.0));
     }
 }
