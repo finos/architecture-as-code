@@ -80,6 +80,12 @@ class TestGitHubPatternStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_pattern() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deletePattern("finos", 1));
+    }
+
+    @Test
     void throw_unsupported_on_create_pattern_for_version() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createPatternForVersion(new Pattern.PatternBuilder().build()));

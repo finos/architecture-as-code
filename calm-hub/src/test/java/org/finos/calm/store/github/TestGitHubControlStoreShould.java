@@ -330,6 +330,12 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_control_requirement() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteControlRequirement(DOMAIN, 1));
+    }
+
+    @Test
     void throw_unsupported_on_get_configurations_for_control() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.getConfigurationsForControl(DOMAIN, 1));
@@ -345,6 +351,12 @@ class TestGitHubControlStoreShould {
     void throw_unsupported_on_create_control_configuration() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createControlConfiguration(new CreateControlConfiguration(), DOMAIN, 1));
+    }
+
+    @Test
+    void throw_unsupported_on_delete_control_configuration() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteControlConfiguration(DOMAIN, 1, 1));
     }
 
     @Test

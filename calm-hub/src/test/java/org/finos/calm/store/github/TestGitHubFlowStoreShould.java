@@ -79,6 +79,12 @@ class TestGitHubFlowStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_flow() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteFlow("finos", 1));
+    }
+
+    @Test
     void throw_namespace_not_found_on_get_flow_versions() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
         assertThrows(NamespaceNotFoundException.class,

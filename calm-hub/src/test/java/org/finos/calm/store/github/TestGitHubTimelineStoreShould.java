@@ -96,6 +96,12 @@ class TestGitHubTimelineStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_timeline() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteTimeline("finos", 1));
+    }
+
+    @Test
     void throw_namespace_not_found_on_get_timeline_versions() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
         assertThrows(NamespaceNotFoundException.class,

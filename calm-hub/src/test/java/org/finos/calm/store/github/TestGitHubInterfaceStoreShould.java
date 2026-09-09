@@ -95,6 +95,12 @@ class TestGitHubInterfaceStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_interface() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteInterface("finos", 1));
+    }
+
+    @Test
     void throw_namespace_not_found_on_get_interface_versions() {
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
         assertThrows(NamespaceNotFoundException.class,

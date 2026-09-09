@@ -74,6 +74,31 @@ class TestGitHubFileReaderShould {
     }
 
     @Test
+    void reject_a_regular_file_reached_through_a_symlinked_intermediate_directory(
+            @TempDir Path cloneDirectory) throws IOException {
+        assumeTrue(supportsSymlinks(cloneDirectory), "filesystem does not support symlinks");
+
+        // The leaf itself is a regular file - isSymbolicLink(target) is false here -
+        // so only the toRealPath().startsWith(realRoot) containment check catches
+        // this. Simulates a repo committing "standards" as a symlink to a directory
+        // outside the namespace's own clone (e.g. a sibling namespace's clone), with
+        // real files inside it.
+        Path namespaceRoot = cloneDirectory.resolve("finos");
+        Files.createDirectories(namespaceRoot);
+
+        Path otherNamespaceRoot = cloneDirectory.resolve("other-namespace");
+        Files.createDirectories(otherNamespaceRoot.resolve("standards"));
+        Path secretFile = otherNamespaceRoot.resolve("standards/leak.md");
+        Files.writeString(secretFile, "service-token-or-other-secret");
+
+        Files.createSymbolicLink(namespaceRoot.resolve("standards"), otherNamespaceRoot.resolve("standards"));
+
+        assertThrows(NoSuchFileException.class, () ->
+                GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
+                        Path.of("standards/leak.md")));
+    }
+
+    @Test
     void reject_a_missing_file(@TempDir Path cloneDirectory) throws IOException {
         Files.createDirectories(cloneDirectory.resolve("finos"));
 

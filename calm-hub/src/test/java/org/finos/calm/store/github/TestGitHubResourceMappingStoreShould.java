@@ -167,6 +167,12 @@ class TestGitHubResourceMappingStoreShould {
     }
 
     @Test
+    void throw_on_delete_mapping_by_numeric_id() {
+        assertThrows(GitHubWriteNotSupportedException.class,
+                () -> store.deleteMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, 1));
+    }
+
+    @Test
     void map_all_resource_types_correctly() {
         assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.PATTERN), equalTo(CalmResourceType.PATTERN));
         assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.ARCHITECTURE), equalTo(CalmResourceType.ARCHITECTURE));

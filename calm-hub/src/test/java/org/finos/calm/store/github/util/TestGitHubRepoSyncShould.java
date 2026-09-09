@@ -101,6 +101,51 @@ class TestGitHubRepoSyncShould {
     }
 
     @Test
+    void pull_local_repo_successfully_with_a_credentials_provider_attached() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("origin-with-token");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("test.txt"), "hello");
+            origin.add().addFilepattern("test.txt").call();
+            origin.commit().setMessage("init").call();
+        }
+
+        Path cloneDir = tempDir.resolve("clone-with-token");
+        try (Git ignored = Git.cloneRepository()
+                .setURI(originDir.toUri().toString())
+                .setDirectory(cloneDir.toFile())
+                .setBranch("main")
+                .call()) {
+            // clone done
+        }
+
+        // A local file:// remote ignores the credentials provider entirely, but this
+        // still exercises the setCredentialsProvider branch (a non-blank token) that
+        // the "" and null cases used by the other pull tests don't reach.
+        boolean result = repoSync.pullRepo(cloneDir, "a-real-looking-token");
+        assertThat(result, is(true));
+    }
+
+    @Test
+    void clone_a_real_repo_successfully_via_file_protocol() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("myrepo.git");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("test.txt"), "hello");
+            origin.add().addFilepattern("test.txt").call();
+            origin.commit().setMessage("init").call();
+        }
+
+        repoSync.githubBaseUrl = tempDir.toUri().toString().replaceAll("/$", "");
+        Path cloneTarget = tempDir.resolve("cloned-real");
+
+        boolean result = repoSync.cloneRepo("myrepo", "main", cloneTarget, null);
+
+        assertThat(result, is(true));
+        assertThat(repoSync.isValidRepo(cloneTarget), is(true));
+    }
+
+    @Test
     void pull_returns_true_when_already_up_to_date() throws GitAPIException, IOException {
         Path originDir = tempDir.resolve("origin2");
         Files.createDirectories(originDir);

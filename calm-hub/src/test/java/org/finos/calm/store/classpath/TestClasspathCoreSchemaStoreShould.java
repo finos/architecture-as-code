@@ -3,10 +3,15 @@ package org.finos.calm.store.classpath;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.anEmptyMap;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
@@ -78,5 +83,80 @@ class TestClasspathCoreSchemaStoreShould {
         Map<String, Object> first = store.getSchemasForVersion("1.0");
         Map<String, Object> second = store.getSchemasForVersion("1.0");
         assertThat(first, is(second));
+    }
+
+    @Test
+    void return_empty_versions_when_the_versions_index_resource_is_entirely_absent() {
+        withOverride(hiding("META-INF/calm-schemas/versions.txt"), () -> {
+            ClasspathCoreSchemaStore isolatedStore = new ClasspathCoreSchemaStore();
+            assertThat(isolatedStore.getVersions(), is(notNullValue()));
+            assertThat(isolatedStore.getVersions().isEmpty(), is(true));
+        });
+    }
+
+    @Test
+    void return_empty_schemas_when_a_known_versions_files_index_is_missing() {
+        withOverride(hiding("META-INF/calm-schemas/1.0/files.txt"), () -> {
+            ClasspathCoreSchemaStore isolatedStore = new ClasspathCoreSchemaStore();
+            assertThat(isolatedStore.getSchemasForVersion("1.0"), is(anEmptyMap()));
+        });
+    }
+
+    @Test
+    void skip_blank_lines_in_the_files_index() {
+        withOverride(Map.of("META-INF/calm-schemas/1.0/files.txt",
+                "\ncore.json\n".getBytes(StandardCharsets.UTF_8)), () -> {
+            ClasspathCoreSchemaStore isolatedStore = new ClasspathCoreSchemaStore();
+            assertThat(isolatedStore.getSchemasForVersion("1.0").containsKey("core"), is(true));
+        });
+    }
+
+    @Test
+    void skip_a_file_listed_in_the_index_whose_own_resource_is_missing() {
+        withOverride(hiding("META-INF/calm-schemas/1.0/meta/core.json"), () -> {
+            ClasspathCoreSchemaStore isolatedStore = new ClasspathCoreSchemaStore();
+            assertThat(isolatedStore.getSchemasForVersion("1.0").containsKey("core"), is(false));
+        });
+    }
+
+    private static Map<String, byte[]> hiding(String resourceName) {
+        Map<String, byte[]> overrides = new HashMap<>();
+        overrides.put(resourceName, null);
+        return overrides;
+    }
+
+    /**
+     * Runs {@code action} with the current thread's context classloader replaced by
+     * one that serves the given resource-name overrides (a {@code null} value hides
+     * the resource entirely; otherwise its bytes are served) and delegates everything
+     * else to the real classloader - restores the original afterwards regardless of
+     * outcome.
+     */
+    private static void withOverride(Map<String, byte[]> overrides, Runnable action) {
+        ClassLoader original = Thread.currentThread().getContextClassLoader();
+        Thread.currentThread().setContextClassLoader(new ResourceOverridingClassLoader(original, overrides));
+        try {
+            action.run();
+        } finally {
+            Thread.currentThread().setContextClassLoader(original);
+        }
+    }
+
+    private static class ResourceOverridingClassLoader extends ClassLoader {
+        private final Map<String, byte[]> overrides;
+
+        ResourceOverridingClassLoader(ClassLoader parent, Map<String, byte[]> overrides) {
+            super(parent);
+            this.overrides = new HashMap<>(overrides);
+        }
+
+        @Override
+        public InputStream getResourceAsStream(String name) {
+            if (overrides.containsKey(name)) {
+                byte[] bytes = overrides.get(name);
+                return bytes == null ? null : new ByteArrayInputStream(bytes);
+            }
+            return super.getResourceAsStream(name);
+        }
     }
 }

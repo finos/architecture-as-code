@@ -84,6 +84,12 @@ class TestGitHubAdrStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_adr() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteAdr("finos", 1));
+    }
+
+    @Test
     void throw_unsupported_on_get_adr() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.getAdr(new AdrMeta()));

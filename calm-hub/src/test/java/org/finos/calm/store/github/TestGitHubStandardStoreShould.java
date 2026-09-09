@@ -71,6 +71,12 @@ class TestGitHubStandardStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_standard() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteStandard("finos", 1));
+    }
+
+    @Test
     void throw_standard_not_found_when_id_does_not_match() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("std-x", java.nio.file.Path.of("standards/x.json"),
                 CalmResourceType.STANDARD, "X", java.time.Instant.now());

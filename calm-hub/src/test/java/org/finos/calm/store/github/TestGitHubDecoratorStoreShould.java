@@ -111,4 +111,10 @@ class TestGitHubDecoratorStoreShould {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.updateDecorator("finos", 1, "{}"));
     }
+
+    @Test
+    void throw_unsupported_on_delete_decorator() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteDecorator("finos", 1));
+    }
 }
