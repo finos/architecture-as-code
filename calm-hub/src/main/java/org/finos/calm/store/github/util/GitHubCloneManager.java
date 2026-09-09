@@ -144,5 +144,10 @@ public class GitHubCloneManager {
         return repo != null ? repo.repoFullName() : null;
     }
 
+    public String getBranchForNamespace(String namespace) {
+        NamespaceRepo repo = namespaceRepos.get(namespace);
+        return repo != null ? repo.branch() : null;
+    }
+
     record NamespaceRepo(String repoFullName, String branch, Set<String> accessGroups) {}
 }

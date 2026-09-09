@@ -145,7 +145,8 @@ class TestGitHubInterfaceStoreShould {
         store.versionService = mockVersionService;
 
         when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "interfaces/payment-api.json"))
+        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "interfaces/payment-api.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);

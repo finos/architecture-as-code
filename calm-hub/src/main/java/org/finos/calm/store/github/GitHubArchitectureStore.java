@@ -71,8 +71,9 @@ public class GitHubArchitectureStore implements ArchitectureStore {
         verifyNamespace(architecture.getNamespace());
         RegistryEntry entry = findEntryById(architecture.getNamespace(), architecture.getId());
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(architecture.getNamespace()) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(architecture.getNamespace()) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }

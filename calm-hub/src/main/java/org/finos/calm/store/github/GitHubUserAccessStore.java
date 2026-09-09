@@ -11,12 +11,15 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.UserAccessStore;
+import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubControlDomains;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -57,6 +60,14 @@ public class GitHubUserAccessStore implements UserAccessStore {
             return grants;
         }
 
+        // Domains this user can read, derived from the namespaces they have group-based
+        // access to below - not a flat "any namespace grant unlocks every domain" escape
+        // hatch (the shape CalmHubPermissionChecker's review reverted on slice 4), and
+        // not a CalmHubPermissionChecker change either: this store just starts emitting
+        // real UserAccess(domain=...) grants, which hasDomainAccess's existing
+        // domain.equals(g.getDomain()) match already knows how to consume.
+        Set<String> accessibleDomains = new HashSet<>();
+
         for (String namespace : namespaces) {
             Set<String> accessGroups = cloneManager != null ? cloneManager.getAccessGroupsForNamespace(namespace) : Set.of();
 
@@ -64,10 +75,20 @@ public class GitHubUserAccessStore implements UserAccessStore {
 
             if (level != OidcRoleResolver.AccessLevel.NONE) {
                 grants.add(new UserAccess(username, UserAccess.Permission.read, namespace));
+                registryService.getSnapshot().listByType(namespace, CalmResourceType.CONTROL).stream()
+                        .map(GitHubControlDomains::extractDomain)
+                        .forEach(accessibleDomains::add);
             } else {
                 LOG.debug("User [{}] denied access to namespace [{}] — no matching group", username, namespace);
             }
         }
+
+        for (String domain : accessibleDomains) {
+            UserAccess domainGrant = new UserAccess(username, UserAccess.Permission.read, null);
+            domainGrant.setDomain(domain);
+            grants.add(domainGrant);
+        }
+
         return grants;
     }
 

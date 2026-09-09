@@ -10,11 +10,10 @@ import org.finos.calm.domain.exception.DomainAlreadyExistsException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.util.GitHubControlDomains;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
-import org.finos.calm.store.github.util.RegistryEntry;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -46,7 +45,7 @@ public class GitHubDomainStore implements DomainStore {
                 .filter(e -> accessible.contains(e.getKey()))
                 .flatMap(e -> e.getValue().stream())
                 .filter(entry -> entry.type() == CalmResourceType.CONTROL)
-                .map(this::extractDomain)
+                .map(GitHubControlDomains::extractDomain)
                 .distinct()
                 .toList();
     }
@@ -64,17 +63,6 @@ public class GitHubDomainStore implements DomainStore {
     @Override
     public void deleteDomain(String name) throws DomainNotFoundException {
         throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
-    }
-
-    private String extractDomain(RegistryEntry entry) {
-        Path filePath = entry.filePath();
-        if (filePath.getNameCount() >= 2) {
-            String firstDir = filePath.getName(0).toString();
-            if ("controls".equals(firstDir)) {
-                return filePath.getName(1).toString();
-            }
-        }
-        return "default";
     }
 
     private Set<String> resolveAccessibleNamespaces() {

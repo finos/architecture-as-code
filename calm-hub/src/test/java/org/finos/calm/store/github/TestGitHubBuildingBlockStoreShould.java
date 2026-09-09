@@ -132,7 +132,8 @@ class TestGitHubBuildingBlockStoreShould {
         store.versionService = mockVersionService;
 
         when(mockCloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("finos/architecture-as-code");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "building-blocks/test.json"))
+        when(mockCloneManager.getBranchForNamespace(NAMESPACE)).thenReturn("main");
+        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "building-blocks/test.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         List<String> versions = store.getBuildingBlockVersions(NAMESPACE, HASH_ID);

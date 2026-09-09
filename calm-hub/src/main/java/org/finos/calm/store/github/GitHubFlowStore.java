@@ -72,8 +72,9 @@ public class GitHubFlowStore implements FlowStore {
         verifyNamespace(flow.getNamespace());
         RegistryEntry entry = findEntryById(flow.getNamespace(), flow.getId());
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(flow.getNamespace()) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(flow.getNamespace()) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }

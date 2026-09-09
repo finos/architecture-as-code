@@ -3,6 +3,7 @@ package org.finos.calm.store.github.util;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.lookup.LookupIfProperty;
+import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -11,10 +12,12 @@ import org.slf4j.LoggerFactory;
 
 import java.net.ProxySelector;
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpHeaders;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -40,12 +43,7 @@ public class GitHubVersionService {
     GitHubApiResponseCache cache;
 
     @Inject
-    @ConfigProperty(name = "calm.github.api-url", defaultValue = "https://api.github.com")
-    String apiUrl;
-
-    @Inject
-    @ConfigProperty(name = "calm.github.service-token")
-    Optional<String> serviceToken;
+    GitHubStoreConfig storeConfig;
 
     @Inject
     @ConfigProperty(name = "calm.github.http.connect-timeout", defaultValue = "10")
@@ -59,24 +57,42 @@ public class GitHubVersionService {
     @ConfigProperty(name = "calm.github.max-versions", defaultValue = "100")
     int maxVersions;
 
-    public List<String> getFileVersions(String repoFullName, String filePath) {
-        Optional<List<String>> cached = cache.getVersions(repoFullName, filePath);
+    // Built in @PostConstruct, not as a field initializer: connectTimeoutSeconds is
+    // @ConfigProperty-injected, which happens after the constructor runs but before
+    // @PostConstruct - a field initializer here would read the pre-injection default
+    // (0). Built once and reused, not per-call, so requests share a connection pool.
+    private HttpClient httpClient;
+
+    @PostConstruct
+    void init() {
+        httpClient = HttpClient.newBuilder()
+                .proxy(ProxySelector.getDefault())
+                .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
+                .build();
+    }
+
+    /**
+     * @param branch part of the cache key alongside repoFullName/filePath, and sent
+     *               as the commits API's {@code sha} parameter - without it, two
+     *               namespaces mapped to the same repo on different branches would
+     *               share one cache entry holding whichever branch's history was
+     *               fetched first, and the API call itself would always return the
+     *               default branch's history regardless of which branch is configured.
+     */
+    public List<String> getFileVersions(String repoFullName, String branch, String filePath) {
+        Optional<List<String>> cached = cache.getVersions(repoFullName, branch, filePath);
         if (cached.isPresent()) {
             return cached.get();
         }
 
         try {
-            HttpClient client = HttpClient.newBuilder()
-                    .proxy(ProxySelector.getDefault())
-                    .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
-                    .build();
-
             List<String> allShas = new ArrayList<>();
-            String url = apiUrl + "/repos/" + repoFullName + "/commits?path=" + filePath + "&per_page=100";
+            String url = storeConfig.getApiUrl() + "/repos/" + repoFullName + "/commits?path="
+                    + encodePathSegment(filePath) + "&sha=" + encodeQueryValue(branch) + "&per_page=100";
 
             while (url != null && allShas.size() < maxVersions) {
                 HttpRequest request = buildRequest(url);
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
                 if (response.statusCode() != 200) {
                     LOG.warn("GitHub API returned {} for commits on {}/{}", response.statusCode(), repoFullName, filePath);
@@ -85,7 +101,7 @@ public class GitHubVersionService {
 
                 List<String> pageShas = extractShas(response.body(), maxVersions - allShas.size());
                 allShas.addAll(pageShas);
-                url = extractNextLink(response.headers());
+                url = nextPageUrl(response.headers());
             }
 
             if (allShas.isEmpty()) {
@@ -93,7 +109,7 @@ public class GitHubVersionService {
             }
             List<String> chronological = new ArrayList<>(allShas);
             Collections.reverse(chronological);
-            cache.putVersions(repoFullName, filePath, chronological);
+            cache.putVersions(repoFullName, branch, filePath, chronological);
             return chronological;
         } catch (Exception e) {
             LOG.warn("Failed to fetch versions for {}/{}: {}", repoFullName, filePath, e.getMessage());
@@ -108,14 +124,11 @@ public class GitHubVersionService {
         }
 
         try {
-            String url = apiUrl + "/repos/" + repoFullName + "/contents/" + filePath + "?ref=" + sha;
-            HttpClient client = HttpClient.newBuilder()
-                    .proxy(ProxySelector.getDefault())
-                    .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
-                    .build();
+            String url = storeConfig.getApiUrl() + "/repos/" + repoFullName + "/contents/"
+                    + encodePathSegment(filePath) + "?ref=" + encodeQueryValue(sha);
             HttpRequest request = buildRequest(url, "application/vnd.github.raw+json");
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
 
             if (response.statusCode() != 200) {
                 LOG.warn("GitHub API returned {} for content at SHA {} for {}/{}", response.statusCode(), sha, repoFullName, filePath);
@@ -129,6 +142,22 @@ public class GitHubVersionService {
             LOG.warn("Failed to fetch content at SHA {} for {}/{}: {}", sha, repoFullName, filePath, e.getMessage());
             return null;
         }
+    }
+
+    // Percent-encodes a repo-controlled relative path as a sequence of URL path
+    // segments (preserving "/" as a separator, encoding everything else) - filePath
+    // comes from the repo's own tree (InMemoryRegistryService), not a request, so a
+    // file named e.g. "x?ref=other&y" must not be able to inject extra query
+    // parameters or alter the request the way an unencoded concatenation would.
+    private static String encodePathSegment(String relativePath) {
+        return java.util.Arrays.stream(relativePath.split("/", -1))
+                .map(segment -> URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20"))
+                .reduce((a, b) -> a + "/" + b)
+                .orElse("");
+    }
+
+    private static String encodeQueryValue(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     List<String> extractShas(String json, int limit) {
@@ -162,6 +191,29 @@ public class GitHubVersionService {
         return null;
     }
 
+    // Only follows a Link: rel="next" URL whose host matches the configured API host -
+    // extractNextLink alone would re-attach the Authorization: Bearer <service-token>
+    // header (via buildRequest) to whatever host the upstream response names.
+    private String nextPageUrl(HttpHeaders headers) {
+        String next = extractNextLink(headers);
+        if (next == null) {
+            return null;
+        }
+        try {
+            String nextHost = URI.create(next).getHost();
+            String configuredHost = URI.create(storeConfig.getApiUrl()).getHost();
+            if (nextHost == null || !nextHost.equalsIgnoreCase(configuredHost)) {
+                LOG.warn("Ignoring GitHub API Link header pointing at a different host ({}) than the configured api-url ({})",
+                        nextHost, configuredHost);
+                return null;
+            }
+        } catch (IllegalArgumentException e) {
+            LOG.warn("Ignoring unparsable GitHub API Link header: {}", e.getMessage());
+            return null;
+        }
+        return next;
+    }
+
     private HttpRequest buildRequest(String url) {
         return buildRequest(url, "application/json");
     }
@@ -173,8 +225,9 @@ public class GitHubVersionService {
                 .header("Accept", accept)
                 .GET();
 
-        if (serviceToken.isPresent() && !serviceToken.get().isBlank()) {
-            requestBuilder.header("Authorization", "Bearer " + serviceToken.get());
+        String serviceToken = storeConfig.getServiceToken();
+        if (serviceToken != null && !serviceToken.isBlank()) {
+            requestBuilder.header("Authorization", "Bearer " + serviceToken);
         }
 
         return requestBuilder.build();

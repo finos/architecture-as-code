@@ -147,7 +147,8 @@ class TestGitHubTimelineStoreShould {
         store.versionService = mockVersionService;
 
         when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "timelines/release-timeline.json"))
+        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "timelines/release-timeline.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);

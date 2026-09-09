@@ -21,6 +21,7 @@ import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
@@ -29,10 +30,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 @ApplicationScoped
@@ -100,8 +98,9 @@ public class GitHubControlStore implements ControlStore {
         RegistryEntry entry = findControlEntry(domain, controlId);
         String namespace = findNamespaceForControl(entry);
         String repo = cloneManager != null && namespace != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null && namespace != null ? cloneManager.getBranchForNamespace(namespace) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }
@@ -110,10 +109,22 @@ public class GitHubControlStore implements ControlStore {
     public String getRequirementForVersion(String domain, int controlId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlRequirementVersionNotFoundException {
         RegistryEntry entry = findControlEntry(domain, controlId);
         String namespace = findNamespaceForControl(entry);
+        if (namespace == null) {
+            // findControlEntry just found this exact entry by walking the same
+            // namespace/CONTROL listing findNamespaceForControl uses, so this only
+            // happens on a genuine registry-consistency problem (e.g. a rebuild
+            // swapped the snapshot out from under this request). Fail closed rather
+            // than fall back to using the caller-supplied domain string as a directory
+            // name - domain is not a namespace, and guessing one from the other was the
+            // bug here.
+            LOG.error("Could not resolve namespace for control [{}] in domain [{}] - registry may be mid-rebuild",
+                    entry.uniqueId(), domain);
+            throw new ControlRequirementVersionNotFoundException();
+        }
 
         // If a specific SHA is requested and version service is available, fetch from GitHub API
         if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null && namespace != null) {
+                && cloneManager != null && versionService != null) {
             String repo = cloneManager.getRepoForNamespace(namespace);
             if (repo != null) {
                 String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
@@ -125,8 +136,7 @@ public class GitHubControlStore implements ControlStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, namespace != null ? namespace : domain).resolve(entry.filePath());
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, namespace, entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read control file: {}", entry.filePath(), e);
             throw new ControlRequirementVersionNotFoundException();
@@ -198,16 +208,13 @@ public class GitHubControlStore implements ControlStore {
             }
         }
         if (!domainExists) {
-            for (String namespace : registryService.getSnapshot().getNamespaces()) {
-                if (!accessible.contains(namespace)) {
-                    continue;
-                }
-                List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
-                Optional<RegistryEntry> found = entries.stream()
-                        .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == controlId)
-                        .findFirst();
-                if (found.isPresent()) return found.get();
-            }
+            // The requested domain doesn't exist in any namespace this caller can see -
+            // do NOT fall back to scanning every accessible namespace for a coincidental
+            // controlId hash match regardless of domain. That previously let a caller
+            // pass a bogus/wrong domain alongside a real controlId from a DIFFERENT
+            // domain and get that other domain's content back instead of a 404 - a
+            // cross-domain read, and one that would become live the moment domain grants
+            // are scoped independently of namespace access (see getGrantsForUser).
             throw new DomainNotFoundException(domain);
         }
         throw new ControlNotFoundException();

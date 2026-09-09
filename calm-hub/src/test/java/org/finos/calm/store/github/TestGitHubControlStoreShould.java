@@ -167,16 +167,16 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_versions_list_for_existing_control() throws Exception {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
 
@@ -186,24 +186,25 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = mock(GitHubVersionService.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 
-        when(mockCloneManager.getRepoForNamespace(DOMAIN)).thenReturn("org/repo");
-        when(mockVersionService.getFileVersions("org/repo", "controls/my-control.json"))
+        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
+        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(mockVersionService.getFileVersions("org/repo", "main", "controls/security/my-control.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
@@ -214,20 +215,20 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_control_content_for_version(@TempDir Path tempDir) throws Exception {
-        Path controlDir = tempDir.resolve("security/controls");
+        Path controlDir = tempDir.resolve("finos/controls/security");
         Files.createDirectories(controlDir);
         Files.writeString(controlDir.resolve("my-control.json"), "{\"control\":\"data\"}");
 
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         store.cloneDirectory = tempDir.toString();
         String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0");
@@ -237,24 +238,24 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/my-control.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = mock(GitHubVersionService.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 
-        when(mockCloneManager.getRepoForNamespace(DOMAIN)).thenReturn("org/repo");
-        when(mockVersionService.getFileAtVersion("org/repo", "controls/my-control.json", "abc1234"))
+        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
+        when(mockVersionService.getFileAtVersion("org/repo", "controls/security/my-control.json", "abc1234"))
                 .thenReturn("{\"control\":\"old-data\"}");
 
         String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234");
@@ -299,16 +300,16 @@ class TestGitHubControlStoreShould {
 
     @Test
     void throw_requirement_version_not_found_when_file_missing(@TempDir Path tempDir) throws Exception {
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/nonexistent.json"),
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/nonexistent.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         store.cloneDirectory = tempDir.toString();
 
@@ -362,5 +363,26 @@ class TestGitHubControlStoreShould {
     void throw_unsupported_on_create_configuration_for_version() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createConfigurationForVersion(DOMAIN, 1, 1, "1.0.0", new CreateControlConfiguration()));
+    }
+
+    @Test
+    void throw_domain_not_found_rather_than_a_cross_domain_match_when_domain_does_not_exist() throws Exception {
+        // A control with this exact hash id genuinely exists, but only in the "payments"
+        // domain - requesting it under a domain that doesn't exist anywhere in the
+        // registry must 404 on the domain, never fall through to returning a different
+        // domain's control just because the id happened to match.
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/payments/my-control.json"),
+                CalmResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
+                Map.of(CalmResourceType.CONTROL, List.of(entry))
+        );
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThrows(DomainNotFoundException.class,
+                () -> store.getRequirementVersions("nonexistent-domain", HASH_ID));
     }
 }

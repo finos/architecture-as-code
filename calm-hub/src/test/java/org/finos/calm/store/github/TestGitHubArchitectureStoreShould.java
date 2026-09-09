@@ -126,7 +126,8 @@ class TestGitHubArchitectureStoreShould {
         store.versionService = mockVersionService;
 
         when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "architectures/test.json"))
+        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "architectures/test.json"))
                 .thenReturn(java.util.List.of("abc1234", "def5678"));
 
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);

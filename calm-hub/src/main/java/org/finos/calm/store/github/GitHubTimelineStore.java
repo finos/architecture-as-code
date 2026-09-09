@@ -72,8 +72,9 @@ public class GitHubTimelineStore implements TimelineStore {
         verifyNamespace(timeline.getNamespace());
         RegistryEntry entry = findEntryById(timeline.getNamespace(), timeline.getId());
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(timeline.getNamespace()) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(timeline.getNamespace()) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }

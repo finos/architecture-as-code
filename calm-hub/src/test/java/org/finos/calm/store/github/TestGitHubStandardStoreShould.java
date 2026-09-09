@@ -187,7 +187,8 @@ class TestGitHubStandardStoreShould {
         store.versionService = mockVersionService;
 
         when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(mockVersionService.getFileVersions("finos/repo", "standards/std.json"))
+        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(mockVersionService.getFileVersions("finos/repo", "main", "standards/std.json"))
                 .thenReturn(java.util.List.of("abc1234", "def5678"));
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);

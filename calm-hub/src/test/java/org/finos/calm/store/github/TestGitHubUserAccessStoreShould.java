@@ -4,8 +4,10 @@ import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.domain.UserAccess;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.OidcRoleResolver;
+import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.util.RegistryEntry;
 import org.finos.calm.store.github.util.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -15,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.nio.file.Path;
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -114,6 +118,55 @@ class TestGitHubUserAccessStoreShould {
 
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getNamespace(), equalTo("public"));
+    }
+
+    @Test
+    void grant_domain_read_derived_from_the_accessible_namespaces_controls() {
+        when(roleResolver.resolve(eq(identity), eq(ACCESS_GROUPS)))
+                .thenReturn(OidcRoleResolver.AccessLevel.READ);
+        RegistryEntry securityControl = new RegistryEntry("ctrl-a", Path.of("controls/security/ctrl-a.json"),
+                CalmResourceType.CONTROL, "Control A", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(securityControl), "team", List.of()),
+                Map.of(),
+                Map.of()
+        );
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        List<UserAccess> result = store.getGrantsForUser("testuser");
+
+        // Two namespace grants (finos, team) plus one derived domain grant (security) -
+        // not a namespace grant standing in for domain access, an actual UserAccess
+        // record with domain set and namespace null.
+        assertThat(result, hasSize(3));
+        List<UserAccess> domainGrants = result.stream().filter(g -> g.getDomain() != null).toList();
+        assertThat(domainGrants, hasSize(1));
+        assertThat(domainGrants.get(0).getDomain(), equalTo("security"));
+        assertThat(domainGrants.get(0).getNamespace(), is((String) null));
+    }
+
+    @Test
+    void not_grant_domain_read_for_a_domain_only_present_in_an_inaccessible_namespace() {
+        // "team" is denied (NONE); its controls/payments/... entries must not leak a
+        // domain grant for "payments" just because the user can read a DIFFERENT
+        // namespace ("finos") that happens to have no controls at all.
+        when(roleResolver.resolve(eq(identity), eq(ACCESS_GROUPS)))
+                .thenReturn(OidcRoleResolver.AccessLevel.NONE);
+        when(cloneManager.getAccessGroupsForNamespace("public")).thenReturn(Set.of("Everyone"));
+        when(roleResolver.resolve(eq(identity), eq(Set.of("Everyone"))))
+                .thenReturn(OidcRoleResolver.AccessLevel.READ);
+        RegistryEntry paymentsControl = new RegistryEntry("ctrl-b", Path.of("controls/payments/ctrl-b.json"),
+                CalmResourceType.CONTROL, "Control B", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(), "team", List.of(paymentsControl), "public", List.of()),
+                Map.of(),
+                Map.of()
+        );
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        List<UserAccess> result = store.getGrantsForUser("testuser");
+
+        assertThat(result.stream().anyMatch(g -> "payments".equals(g.getDomain())), is(false));
     }
 
     @Test

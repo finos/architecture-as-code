@@ -35,20 +35,20 @@ class TestGitHubApiResponseCacheShould {
     @Test
     void construct_via_the_config_property_constructor() {
         GitHubApiResponseCache service = new GitHubApiResponseCache(MAX_SIZE);
-        service.putVersions("org/repo", "path/file.json", List.of("abc1234"));
-        assertThat(service.getVersions("org/repo", "path/file.json").orElse(null), contains("abc1234"));
+        service.putVersions("org/repo", "main", "path/file.json", List.of("abc1234"));
+        assertThat(service.getVersions("org/repo", "main", "path/file.json").orElse(null), contains("abc1234"));
     }
 
     @Test
     void return_empty_versions_for_a_missing_key() {
-        assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isEmpty(), is(true));
     }
 
     @Test
     void store_and_retrieve_versions() {
-        cache.putVersions("org/repo", "path/file.json", List.of("abc1234", "def5678"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("abc1234", "def5678"));
 
-        Optional<List<String>> result = cache.getVersions("org/repo", "path/file.json");
+        Optional<List<String>> result = cache.getVersions("org/repo", "main", "path/file.json");
 
         assertThat(result.isPresent(), is(true));
         assertThat(result.get(), contains("abc1234", "def5678"));
@@ -56,65 +56,65 @@ class TestGitHubApiResponseCacheShould {
 
     @Test
     void keep_versions_for_different_files_independent() {
-        cache.putVersions("org/repo", "path/a.json", List.of("aaa"));
-        cache.putVersions("org/repo", "path/b.json", List.of("bbb"));
+        cache.putVersions("org/repo", "main", "path/a.json", List.of("aaa"));
+        cache.putVersions("org/repo", "main", "path/b.json", List.of("bbb"));
 
-        assertThat(cache.getVersions("org/repo", "path/a.json").orElse(null), contains("aaa"));
-        assertThat(cache.getVersions("org/repo", "path/b.json").orElse(null), contains("bbb"));
+        assertThat(cache.getVersions("org/repo", "main", "path/a.json").orElse(null), contains("aaa"));
+        assertThat(cache.getVersions("org/repo", "main", "path/b.json").orElse(null), contains("bbb"));
     }
 
     @Test
     void overwrite_existing_versions_entry() {
-        cache.putVersions("org/repo", "path/file.json", List.of("old"));
-        cache.putVersions("org/repo", "path/file.json", List.of("new"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("old"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("new"));
 
-        assertThat(cache.getVersions("org/repo", "path/file.json").orElse(null), contains("new"));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").orElse(null), contains("new"));
     }
 
     @Test
     void ignore_a_null_versions_value() {
-        cache.putVersions("org/repo", "path/file.json", null);
-        assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+        cache.putVersions("org/repo", "main", "path/file.json", null);
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isEmpty(), is(true));
     }
 
     @Test
     void store_a_defensive_copy_so_a_caller_cannot_mutate_the_cached_entry() {
         List<String> mutable = new ArrayList<>(List.of("original"));
-        cache.putVersions("org/repo", "path/file.json", mutable);
+        cache.putVersions("org/repo", "main", "path/file.json", mutable);
 
         mutable.add("mutated-after-put");
 
-        assertThat(cache.getVersions("org/repo", "path/file.json").orElse(null), contains("original"));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").orElse(null), contains("original"));
     }
 
     @Test
     void return_an_immutable_versions_list_so_a_caller_cannot_corrupt_the_cache() {
-        cache.putVersions("org/repo", "path/file.json", List.of("abc1234"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("abc1234"));
 
-        List<String> result = cache.getVersions("org/repo", "path/file.json").orElseThrow();
+        List<String> result = cache.getVersions("org/repo", "main", "path/file.json").orElseThrow();
 
         assertThrows(UnsupportedOperationException.class, () -> result.add("should-fail"));
     }
 
     @Test
     void expire_versions_after_five_minutes() {
-        cache.putVersions("org/repo", "path/file.json", List.of("abc1234"));
-        assertThat(cache.getVersions("org/repo", "path/file.json").isPresent(), is(true));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("abc1234"));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isPresent(), is(true));
 
         ticker.advance(Duration.ofMinutes(5).plusSeconds(1));
 
-        assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isEmpty(), is(true));
     }
 
     @Test
     void not_refresh_versions_ttl_on_read() {
-        cache.putVersions("org/repo", "path/file.json", List.of("abc1234"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("abc1234"));
         ticker.advance(Duration.ofMinutes(3));
-        assertThat(cache.getVersions("org/repo", "path/file.json").isPresent(), is(true));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isPresent(), is(true));
 
         ticker.advance(Duration.ofMinutes(3));
 
-        assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isEmpty(), is(true));
     }
 
     @Test
@@ -159,12 +159,12 @@ class TestGitHubApiResponseCacheShould {
 
     @Test
     void expire_versions_and_content_independently_of_each_other() {
-        cache.putVersions("org/repo", "path/file.json", List.of("abc1234"));
+        cache.putVersions("org/repo", "main", "path/file.json", List.of("abc1234"));
         cache.putContentAtSha("org/repo", "path/file.json", "abc1234", "file contents");
 
         ticker.advance(Duration.ofMinutes(5).plusSeconds(1));
 
-        assertThat(cache.getVersions("org/repo", "path/file.json").isEmpty(), is(true));
+        assertThat(cache.getVersions("org/repo", "main", "path/file.json").isEmpty(), is(true));
         assertThat(cache.getContentAtSha("org/repo", "path/file.json", "abc1234").isPresent(), is(true));
     }
 
@@ -178,8 +178,8 @@ class TestGitHubApiResponseCacheShould {
                 .<Future<?>>mapToObj(threadId -> executor.submit(() -> {
                     for (int i = 0; i < iterationsPerThread; i++) {
                         String filePath = "path/" + threadId + "/" + i + ".json";
-                        cache.putVersions("org/repo", filePath, List.of("sha-" + i));
-                        cache.getVersions("org/repo", filePath);
+                        cache.putVersions("org/repo", "main", filePath, List.of("sha-" + i));
+                        cache.getVersions("org/repo", "main", filePath);
                     }
                 }))
                 .toList();
@@ -192,7 +192,7 @@ class TestGitHubApiResponseCacheShould {
         for (int threadId = 0; threadId < threadCount; threadId++) {
             for (int i = 0; i < iterationsPerThread; i++) {
                 String filePath = "path/" + threadId + "/" + i + ".json";
-                assertThat(cache.getVersions("org/repo", filePath).orElse(null), contains("sha-" + i));
+                assertThat(cache.getVersions("org/repo", "main", filePath).orElse(null), contains("sha-" + i));
             }
         }
     }

@@ -68,8 +68,9 @@ public class GitHubBuildingBlockStore implements BuildingBlockStore {
         verifyNamespace(namespace);
         RegistryEntry entry = findEntryById(namespace, buildingBlockId);
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(namespace) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }

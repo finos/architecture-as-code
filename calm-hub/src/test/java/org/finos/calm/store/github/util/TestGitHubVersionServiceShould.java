@@ -28,33 +28,39 @@ class TestGitHubVersionServiceShould {
 
     private GitHubVersionService service;
 
+    private GitHubStoreConfig storeConfig;
+
     @BeforeEach
     void setup() {
         service = new GitHubVersionService();
         service.cache = cache;
-        service.apiUrl = "https://api.github.com";
-        service.serviceToken = Optional.of("test-token");
+        storeConfig = new GitHubStoreConfig();
+        storeConfig.apiUrl = "https://api.github.com";
+        storeConfig.serviceToken = "test-token";
+        storeConfig.cloneDirectory = "/tmp/calm-hub-clones";
+        service.storeConfig = storeConfig;
         service.maxVersions = 100;
         service.connectTimeoutSeconds = 10;
         service.requestTimeoutSeconds = 30;
+        service.init();
     }
 
     @Test
     void return_cached_versions_when_available() {
         List<String> cached = List.of("abc1234", "def5678");
-        when(cache.getVersions("org/repo", "path/file.json")).thenReturn(Optional.of(cached));
+        when(cache.getVersions("org/repo", "main", "path/file.json")).thenReturn(Optional.of(cached));
 
-        List<String> result = service.getFileVersions("org/repo", "path/file.json");
+        List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
         assertThat(result, equalTo(cached));
     }
 
     @Test
     void return_latest_when_api_fails() {
-        when(cache.getVersions(any(), any())).thenReturn(Optional.empty());
+        when(cache.getVersions(any(), any(), any())).thenReturn(Optional.empty());
 
         // API will fail since we're not running a real server
-        List<String> result = service.getFileVersions("org/repo", "path/file.json");
+        List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
         assertThat(result, hasSize(1));
         assertThat(result.get(0), equalTo("latest"));
@@ -62,10 +68,10 @@ class TestGitHubVersionServiceShould {
 
     @Test
     void return_latest_when_no_token() {
-        service.serviceToken = Optional.empty();
-        when(cache.getVersions(any(), any())).thenReturn(Optional.empty());
+        storeConfig.serviceToken = "";
+        when(cache.getVersions(any(), any(), any())).thenReturn(Optional.empty());
 
-        List<String> result = service.getFileVersions("org/repo", "path/file.json");
+        List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
         assertThat(result, hasSize(1));
         assertThat(result.get(0), equalTo("latest"));

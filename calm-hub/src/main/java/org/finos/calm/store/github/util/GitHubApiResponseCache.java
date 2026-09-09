@@ -75,21 +75,26 @@ public class GitHubApiResponseCache {
     }
 
     /**
-     * Reads the cached commit-SHA version list for a file, if present and not
-     * expired.
+     * Reads the cached commit-SHA version list for a file on a given branch, if
+     * present and not expired.
      */
-    public Optional<List<String>> getVersions(String repoFullName, String filePath) {
-        return read(versionsCache, versionsKey(repoFullName, filePath));
+    public Optional<List<String>> getVersions(String repoFullName, String branch, String filePath) {
+        return read(versionsCache, versionsKey(repoFullName, branch, filePath));
     }
 
     /**
-     * Caches the commit-SHA version list for a file for {@link #VERSIONS_TTL}. A
-     * {@code null} list is silently ignored. Stores an immutable copy, so a caller
-     * mutating the list it passed in — or held onto after a {@link #getVersions}
-     * call — can never corrupt the cached entry.
+     * Caches the commit-SHA version list for a file on a given branch for
+     * {@link #VERSIONS_TTL}. A {@code null} list is silently ignored. Stores an
+     * immutable copy, so a caller mutating the list it passed in — or held onto
+     * after a {@link #getVersions} call — can never corrupt the cached entry.
+     *
+     * <p>Branch is part of the key, not just the upstream request: two namespaces can
+     * map to the same {@code repoFullName} on different branches
+     * ({@code calm.github.namespaces} supports that), and without it in the key they'd
+     * share one cache entry holding whichever branch's history was fetched first.
      */
-    public void putVersions(String repoFullName, String filePath, List<String> versions) {
-        write(versionsCache, versionsKey(repoFullName, filePath), versions == null ? null : List.copyOf(versions));
+    public void putVersions(String repoFullName, String branch, String filePath, List<String> versions) {
+        write(versionsCache, versionsKey(repoFullName, branch, filePath), versions == null ? null : List.copyOf(versions));
     }
 
     /**
@@ -119,8 +124,8 @@ public class GitHubApiResponseCache {
         cache.put(key, value);
     }
 
-    private static String versionsKey(String repoFullName, String filePath) {
-        return "versions:" + repoFullName + ":" + filePath;
+    private static String versionsKey(String repoFullName, String branch, String filePath) {
+        return "versions:" + repoFullName + ":" + branch + ":" + filePath;
     }
 
     private static String contentKey(String repoFullName, String filePath, String sha) {

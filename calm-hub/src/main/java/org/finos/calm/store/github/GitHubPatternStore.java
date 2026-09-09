@@ -74,8 +74,9 @@ public class GitHubPatternStore implements PatternStore {
         verifyNamespace(pattern.getNamespace());
         RegistryEntry entry = findEntryById(pattern.getNamespace(), pattern.getId());
         String repo = cloneManager != null ? cloneManager.getRepoForNamespace(pattern.getNamespace()) : null;
-        if (repo != null && versionService != null) {
-            return versionService.getFileVersions(repo, entry.filePath().toString());
+        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(pattern.getNamespace()) : null;
+        if (repo != null && branch != null && versionService != null) {
+            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
         }
         return List.of("latest");
     }
