@@ -47,7 +47,7 @@ class TestGitHubVersionServiceShould {
     @Test
     void return_cached_versions_when_available() {
         List<String> cached = List.of("abc1234", "def5678");
-        when(cache.get("versions:org/repo:path/file.json", List.class)).thenReturn(Optional.of(cached));
+        when(cache.getList("versions:org/repo:path/file.json", String.class)).thenReturn(Optional.of(cached));
 
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
 
@@ -56,7 +56,7 @@ class TestGitHubVersionServiceShould {
 
     @Test
     void return_latest_when_api_fails() {
-        when(cache.get(any(), eq(List.class))).thenReturn(Optional.empty());
+        when(cache.getList(any(), eq(String.class))).thenReturn(Optional.empty());
 
         // API will fail since we're not running a real server
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
@@ -68,7 +68,7 @@ class TestGitHubVersionServiceShould {
     @Test
     void return_latest_when_no_token() {
         service.serviceToken = Optional.empty();
-        when(cache.get(any(), eq(List.class))).thenReturn(Optional.empty());
+        when(cache.getList(any(), eq(String.class))).thenReturn(Optional.empty());
 
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
 

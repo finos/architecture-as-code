@@ -3,7 +3,9 @@ package org.finos.calm.observability;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
 
 import java.time.Duration;
@@ -18,8 +20,19 @@ public class GitHubMetrics {
     private final Timer registryRebuildTimer;
     private final AtomicLong lastSyncSuccessEpoch = new AtomicLong(0);
 
+    // quarkus.micrometer.enabled is build-time-fixed and disabled under every custom
+    // test profile in this module (see application.properties), so no MeterRegistry
+    // bean exists while running plain unit tests. Instance<T> — unlike injecting
+    // MeterRegistry directly — defers resolution to runtime instead of failing CDI's
+    // build-time validation, and falls back to an unregistered in-memory registry so
+    // this bean still works there, it just doesn't export anything.
     @Inject
-    public GitHubMetrics(MeterRegistry registry) {
+    public GitHubMetrics(Instance<MeterRegistry> registryInstance) {
+        this(registryInstance.isResolvable() ? registryInstance.get() : new SimpleMeterRegistry());
+    }
+
+    // Package-private: lets tests supply a MeterRegistry directly.
+    GitHubMetrics(MeterRegistry registry) {
         this.syncSuccessCounter = Counter.builder("calm.github.sync")
                 .tag("outcome", "success")
                 .description("Number of successful GitHub sync operations")

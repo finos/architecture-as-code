@@ -2,8 +2,10 @@ package org.finos.calm.observability;
 
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Timer;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.enterprise.inject.Instance;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +17,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class TestGitHubMetricsShould {
 
@@ -94,5 +98,19 @@ class TestGitHubMetricsShould {
         Counter found = registry.find("calm.github.content.detected").tag("type", "architecture").counter();
         assertThat(found, is(notNullValue()));
         assertThat(found.count(), equalTo(1.0));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void fall_back_to_an_in_memory_registry_when_no_meter_registry_bean_is_available() {
+        // Simulates the CDI state under this module's test profiles, where
+        // quarkus.micrometer.enabled=false means no MeterRegistry bean exists.
+        Instance<MeterRegistry> unresolvable = mock(Instance.class);
+        when(unresolvable.isResolvable()).thenReturn(false);
+
+        GitHubMetrics fallbackMetrics = new GitHubMetrics(unresolvable);
+        fallbackMetrics.recordSyncSuccess(Duration.ofMillis(100));
+        // No exception means the fallback SimpleMeterRegistry accepted the write;
+        // there is no shared registry here to assert against.
     }
 }

@@ -61,11 +61,9 @@ public class GitHubVersionService {
 
     public List<String> getFileVersions(String repoFullName, String filePath) {
         String cacheKey = "versions:" + repoFullName + ":" + filePath;
-        Optional<List> cached = cache.get(cacheKey, List.class);
+        Optional<List<String>> cached = cache.getList(cacheKey, String.class);
         if (cached.isPresent()) {
-            @SuppressWarnings("unchecked")
-            List<String> result = cached.get();
-            return result;
+            return cached.get();
         }
 
         try {
