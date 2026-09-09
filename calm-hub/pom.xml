@@ -204,6 +204,29 @@
         </dependency>
     </dependencies>
     <build>
+        <!-- The default src/main/resources binding is replaced once <resources> is
+             declared explicitly, so it's re-added here alongside the calm-schemas
+             resource: ClasspathCoreSchemaStore (GitHub storage mode's CoreSchemaStore)
+             reads META-INF/calm-schemas/<version>/meta/<file>.json from the classpath,
+             and this copies that content straight from the repo's own canonical CALM
+             schema tree instead of duplicating it by hand. Only released (non-rc,
+             non-draft) versions are bundled; versions.txt and each version's files.txt
+             are hand-authored under src/main/resources/META-INF/calm-schemas/ and kept
+             in sync with calm/release/ by TestClasspathCoreSchemaStoreShould. -->
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../calm/release</directory>
+                <targetPath>META-INF/calm-schemas</targetPath>
+                <includes>
+                    <include>1.0/meta/*.json</include>
+                    <include>1.1/meta/*.json</include>
+                    <include>1.2/meta/*.json</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
             <!-- Quarkus Maven Plugin -->
             <plugin>
