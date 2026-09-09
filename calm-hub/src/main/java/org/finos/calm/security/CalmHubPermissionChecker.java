@@ -36,6 +36,10 @@ public class CalmHubPermissionChecker {
         this.userAccessStore = userAccessStore;
     }
 
+    // "event" is unused but must stay in the signature: it's what makes this an
+    // @Observes CDI startup callback (invoked after field injection completes) rather
+    // than constructor logic, which is the actual fix this method exists to make — the
+    // old constructor-based check read authEnabled before @ConfigProperty injection ran.
     void onStartup(@Observes StartupEvent event) {
         if (!authEnabled) {
             logger.warn("Caution: CalmHub is starting with authentication disabled. All user access will be granted by default.");
@@ -75,15 +79,7 @@ public class CalmHubPermissionChecker {
     public boolean canReadByDomain(SecurityIdentity identity, String domain) {
         return isAuthDisabled()
                 || isAllowPublicRead()
-                || hasDomainAccess(identity, domain, UserAction.READ)
-                || hasAnyNamespaceAccess(identity, UserAction.READ);
-    }
-
-    private boolean hasAnyNamespaceAccess(SecurityIdentity identity, UserAction action) {
-        String username = identity.getPrincipal().getName();
-        List<UserAccess> grants = userAccessStore.getGrantsForUser(username);
-        return grants.stream().anyMatch(g ->
-                g.getNamespace() != null && permissionSufficient(g, action));
+                || hasDomainAccess(identity, domain, UserAction.READ);
     }
 
     @PermissionChecker(CalmHubScopes.WRITE)

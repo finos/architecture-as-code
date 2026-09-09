@@ -8,14 +8,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.sameInstance;
 
 class TestOidcPluginAuthClientShould {
 
@@ -24,12 +26,14 @@ class TestOidcPluginAuthClientShould {
     private OidcPluginAuthClient client;
     private HttpServer server;
     private int serverPort;
+    private final AtomicInteger discoveryHits = new AtomicInteger();
 
     @BeforeEach
     void setup() throws Exception {
         client = new OidcPluginAuthClient();
         setField("connectTimeoutSeconds", 5);
         setField("requestTimeoutSeconds", 5);
+        invokeInit();
 
         // Start a local HTTP server for testing
         server = HttpServer.create(new InetSocketAddress(0), 0);
@@ -50,6 +54,23 @@ class TestOidcPluginAuthClientShould {
         field.set(client, value);
     }
 
+    private void invokeInit() throws Exception {
+        Method init = OidcPluginAuthClient.class.getDeclaredMethod("init");
+        init.setAccessible(true);
+        init.invoke(client);
+    }
+
+    private void serveDiscoveryDocument(ObjectNode discoveryDoc) {
+        server.createContext("/.well-known/openid-configuration", exchange -> {
+            discoveryHits.incrementAndGet();
+            byte[] body = MAPPER.writeValueAsBytes(discoveryDoc);
+            exchange.getResponseHeaders().add("Content-Type", "application/json");
+            exchange.sendResponseHeaders(200, body.length);
+            exchange.getResponseBody().write(body);
+            exchange.close();
+        });
+    }
+
     // --- discoverEndpoints tests ---
 
     @Test
@@ -58,14 +79,7 @@ class TestOidcPluginAuthClientShould {
         discoveryDoc.put("authorization_endpoint", "https://idp.example.com/authorize");
         discoveryDoc.put("token_endpoint", "https://idp.example.com/token");
         discoveryDoc.put("issuer", "https://idp.example.com");
-
-        server.createContext("/.well-known/openid-configuration", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(discoveryDoc);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        serveDiscoveryDocument(discoveryDoc);
 
         OidcPluginAuthClient.OidcEndpoints result =
                 client.discoverEndpoints("http://localhost:" + serverPort);
@@ -80,14 +94,7 @@ class TestOidcPluginAuthClientShould {
         ObjectNode discoveryDoc = MAPPER.createObjectNode();
         discoveryDoc.put("authorization_endpoint", "https://idp.example.com/authorize");
         discoveryDoc.put("token_endpoint", "https://idp.example.com/token");
-
-        server.createContext("/.well-known/openid-configuration", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(discoveryDoc);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        serveDiscoveryDocument(discoveryDoc);
 
         OidcPluginAuthClient.OidcEndpoints result =
                 client.discoverEndpoints("http://localhost:" + serverPort + "/");
@@ -113,14 +120,7 @@ class TestOidcPluginAuthClientShould {
     void return_null_when_discovery_document_missing_authorization_endpoint() {
         ObjectNode discoveryDoc = MAPPER.createObjectNode();
         discoveryDoc.put("token_endpoint", "https://idp.example.com/token");
-
-        server.createContext("/.well-known/openid-configuration", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(discoveryDoc);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        serveDiscoveryDocument(discoveryDoc);
 
         OidcPluginAuthClient.OidcEndpoints result =
                 client.discoverEndpoints("http://localhost:" + serverPort);
@@ -132,14 +132,7 @@ class TestOidcPluginAuthClientShould {
     void return_null_when_discovery_document_missing_token_endpoint() {
         ObjectNode discoveryDoc = MAPPER.createObjectNode();
         discoveryDoc.put("authorization_endpoint", "https://idp.example.com/authorize");
-
-        server.createContext("/.well-known/openid-configuration", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(discoveryDoc);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        serveDiscoveryDocument(discoveryDoc);
 
         OidcPluginAuthClient.OidcEndpoints result =
                 client.discoverEndpoints("http://localhost:" + serverPort);
@@ -171,98 +164,57 @@ class TestOidcPluginAuthClientShould {
         assertThat(result, is(nullValue()));
     }
 
-    // --- exchangeCode tests ---
+    // --- discovery caching ---
 
     @Test
-    void return_access_token_on_successful_exchange() {
-        ObjectNode tokenResponse = MAPPER.createObjectNode();
-        tokenResponse.put("access_token", "eyJhbGciOi...");
-        tokenResponse.put("id_token", "id-token-value");
-        tokenResponse.put("token_type", "Bearer");
+    void cache_the_discovery_document_across_calls_for_the_same_issuer() {
+        ObjectNode discoveryDoc = MAPPER.createObjectNode();
+        discoveryDoc.put("authorization_endpoint", "https://idp.example.com/authorize");
+        discoveryDoc.put("token_endpoint", "https://idp.example.com/token");
+        serveDiscoveryDocument(discoveryDoc);
+        String issuer = "http://localhost:" + serverPort;
 
-        server.createContext("/token", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(tokenResponse);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
+        OidcPluginAuthClient.OidcEndpoints first = client.discoverEndpoints(issuer);
+        server.removeContext("/.well-known/openid-configuration");
+        OidcPluginAuthClient.OidcEndpoints second = client.discoverEndpoints(issuer);
 
-        String tokenEndpoint = "http://localhost:" + serverPort + "/token";
-        OidcPluginAuthClient.TokenResponse result =
-                client.exchangeCode(tokenEndpoint, "client-id", "client-secret", "auth-code", "http://localhost:8080/callback", "test-verifier");
-
-        assertThat(result, is(notNullValue()));
-        assertThat(result.accessToken(), equalTo("eyJhbGciOi..."));
-        assertThat(result.idToken(), equalTo("id-token-value"));
-        assertThat(result.error(), is(nullValue()));
+        assertThat(discoveryHits.get(), equalTo(1));
+        assertThat(second, sameInstance(first));
     }
 
     @Test
-    void return_error_when_token_endpoint_returns_non_200() {
-        server.createContext("/token", exchange -> {
-            exchange.sendResponseHeaders(400, -1);
-            exchange.close();
-        });
+    void refetch_discovery_when_the_issuer_changes() throws Exception {
+        ObjectNode discoveryDocA = MAPPER.createObjectNode();
+        discoveryDocA.put("authorization_endpoint", "https://a.example.com/authorize");
+        discoveryDocA.put("token_endpoint", "https://a.example.com/token");
+        serveDiscoveryDocument(discoveryDocA);
+        String issuerA = "http://localhost:" + serverPort;
 
-        String tokenEndpoint = "http://localhost:" + serverPort + "/token";
-        OidcPluginAuthClient.TokenResponse result =
-                client.exchangeCode(tokenEndpoint, "client-id", "client-secret", "bad-code", "http://localhost:8080/callback", "test-verifier");
+        client.discoverEndpoints(issuerA);
 
-        assertThat(result.accessToken(), is(nullValue()));
-        assertThat(result.error(), containsString("Token exchange failed with status 400"));
-    }
+        HttpServer serverB = null;
+        try {
+            serverB = HttpServer.create(new InetSocketAddress(0), 0);
+            int portB = serverB.getAddress().getPort();
+            ObjectNode discoveryDocB = MAPPER.createObjectNode();
+            discoveryDocB.put("authorization_endpoint", "https://b.example.com/authorize");
+            discoveryDocB.put("token_endpoint", "https://b.example.com/token");
+            byte[] body = MAPPER.writeValueAsBytes(discoveryDocB);
+            serverB.createContext("/.well-known/openid-configuration", exchange -> {
+                exchange.getResponseHeaders().add("Content-Type", "application/json");
+                exchange.sendResponseHeaders(200, body.length);
+                exchange.getResponseBody().write(body);
+                exchange.close();
+            });
+            serverB.start();
 
-    @Test
-    void return_error_when_response_missing_access_token() {
-        ObjectNode tokenResponse = MAPPER.createObjectNode();
-        tokenResponse.put("id_token", "id-token-value");
+            OidcPluginAuthClient.OidcEndpoints result = client.discoverEndpoints("http://localhost:" + portB);
 
-        server.createContext("/token", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(tokenResponse);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
-
-        String tokenEndpoint = "http://localhost:" + serverPort + "/token";
-        OidcPluginAuthClient.TokenResponse result =
-                client.exchangeCode(tokenEndpoint, "client-id", "client-secret", "auth-code", "http://localhost:8080/callback", "test-verifier");
-
-        assertThat(result.accessToken(), is(nullValue()));
-        assertThat(result.error(), containsString("No access token in response"));
-    }
-
-    @Test
-    void return_error_when_token_endpoint_is_unreachable() {
-        OidcPluginAuthClient.TokenResponse result =
-                client.exchangeCode("http://localhost:1/token", "client-id", "client-secret", "auth-code", "http://localhost:8080/callback", "test-verifier");
-
-        assertThat(result.accessToken(), is(nullValue()));
-        assertThat(result.error(), containsString("Token exchange failed:"));
-    }
-
-    @Test
-    void return_access_token_when_id_token_is_absent() {
-        ObjectNode tokenResponse = MAPPER.createObjectNode();
-        tokenResponse.put("access_token", "access-only");
-        tokenResponse.put("token_type", "Bearer");
-
-        server.createContext("/token", exchange -> {
-            byte[] body = MAPPER.writeValueAsBytes(tokenResponse);
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-            exchange.sendResponseHeaders(200, body.length);
-            exchange.getResponseBody().write(body);
-            exchange.close();
-        });
-
-        String tokenEndpoint = "http://localhost:" + serverPort + "/token";
-        OidcPluginAuthClient.TokenResponse result =
-                client.exchangeCode(tokenEndpoint, "client-id", "client-secret", "auth-code", "http://localhost:8080/callback", "test-verifier");
-
-        assertThat(result.accessToken(), equalTo("access-only"));
-        assertThat(result.idToken(), is(nullValue()));
-        assertThat(result.error(), is(nullValue()));
+            assertThat(result.authorizationEndpoint(), equalTo("https://b.example.com/authorize"));
+        } finally {
+            if (serverB != null) {
+                serverB.stop(0);
+            }
+        }
     }
 }

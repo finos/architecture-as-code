@@ -19,7 +19,6 @@ describe('authService', () => {
         it('should return true when the authority service responds successfully', async () => {
             vi.spyOn(authConfig, 'getAuthConfig').mockReturnValue({
                 oidc: { enabled: true, authority: 'https://auth.example.com' },
-                github: { enabled: false },
                 databaseMode: 'mongo',
             });
             vi.mocked(axios.head).mockResolvedValue({ status: 200 });

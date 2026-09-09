@@ -29,4 +29,14 @@ async function bootstrap() {
     );
 }
 
-bootstrap();
+bootstrap().catch((error: unknown) => {
+    console.error('Failed to bootstrap CalmHub', error);
+    root.render(
+        <React.StrictMode>
+            <div role="alert" style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+                <h1>CalmHub failed to load</h1>
+                <p>Please try refreshing the page. If the problem persists, contact your administrator.</p>
+            </div>
+        </React.StrictMode>
+    );
+});
