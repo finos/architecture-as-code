@@ -145,7 +145,7 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
-    void return_versions_for_control_in_accessible_namespace_with_mixed_access(@TempDir Path tempDir) throws Exception {
+    void return_versions_for_control_in_accessible_namespace_with_mixed_access() throws Exception {
         RegistryEntry accessible = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistryEntry restricted = new RegistryEntry("other", Path.of("controls/security/other.json"),
