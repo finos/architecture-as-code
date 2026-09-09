@@ -118,6 +118,10 @@ public class MappingControllerService {
             logger.error("Invalid namespace [{}] when updating resource via PUT",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (GitHubWriteNotSupportedException e) {
+            // Rethrow rather than let the broad catch below swallow it into a bodyless
+            // 500 - UnsupportedOperationExceptionMapper turns this into the intended 501.
+            throw e;
         } catch (Exception e) {
             logger.error("Error updating resource [{}] in namespace [{}] via PUT",
                     STRICT_SANITIZATION_POLICY.sanitize(name),
@@ -469,6 +473,10 @@ public class MappingControllerService {
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (DuplicateMappingException e) {
             return CalmResourceErrorResponses.resourceAlreadyExistsResponse(resourceType, name, namespace);
+        } catch (GitHubWriteNotSupportedException e) {
+            // Rethrow rather than let the broad catch below swallow it into a 400 -
+            // UnsupportedOperationExceptionMapper turns this into the intended 501.
+            throw e;
         } catch (Exception e) {
             logger.error("Error creating resource [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);

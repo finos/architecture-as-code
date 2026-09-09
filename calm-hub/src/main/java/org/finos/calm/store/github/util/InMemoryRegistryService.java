@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -83,7 +84,12 @@ public class InMemoryRegistryService {
         }
 
         try (Stream<Path> walk = Files.walk(root)) {
-            walk.filter(Files::isRegularFile)
+            // NOFOLLOW_LINKS: don't index a symlink as if it were real repo content -
+            // defense in depth alongside GitHubFileReader's read-time containment check,
+            // which is the check that actually matters (this scan only runs once per
+            // calm.github.sync-interval, so a symlink swapped in between rebuilds would
+            // slip past a scan-time-only guard).
+            walk.filter(p -> Files.isRegularFile(p, LinkOption.NOFOLLOW_LINKS))
                     .filter(p -> p.toString().endsWith(".json") || p.toString().endsWith(".md"))
                     .filter(p -> !isHiddenOrMetadata(root, p))
                     .forEach(filePath -> {
@@ -105,7 +111,7 @@ public class InMemoryRegistryService {
             String fileName = filePath.getFileName().toString();
 
             if (fileName.endsWith(".md")) {
-                return parseMarkdownFile(root, filePath, relativePath);
+                return parseMarkdownFile(filePath, relativePath);
             }
 
             String content = Files.readString(filePath);
@@ -126,7 +132,7 @@ public class InMemoryRegistryService {
         }
     }
 
-    private RegistryEntry parseMarkdownFile(Path root, Path filePath, Path relativePath) throws IOException {
+    private RegistryEntry parseMarkdownFile(Path filePath, Path relativePath) throws IOException {
         CalmResourceType type = detectMarkdownType(relativePath);
         if (type == CalmResourceType.UNKNOWN) {
             return null;

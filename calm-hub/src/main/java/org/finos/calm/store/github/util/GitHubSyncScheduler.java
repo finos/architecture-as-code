@@ -4,6 +4,8 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.scheduler.Scheduled;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.observability.GitHubMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -25,6 +27,12 @@ public class GitHubSyncScheduler {
     private final InMemoryRegistryService registryService;
     private final GitHubMetrics metrics;
 
+    // @LookupIfProperty does not stop @Scheduled invocation once this bean exists - see
+    // the identical guard and comment in GitHubStartupInitializer for why this is needed.
+    @Inject
+    @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
+    String databaseMode;
+
     @Inject
     public GitHubSyncScheduler(GitHubCloneManager cloneManager,
                                InMemoryRegistryService registryService,
@@ -34,9 +42,13 @@ public class GitHubSyncScheduler {
         this.metrics = metrics;
     }
 
-    @Scheduled(every = "${calm.github.sync-interval:60}s", delayed = "${calm.github.sync-interval:60}s")
+    // concurrentExecution = SKIP: without it, a pullAll() slower than the sync interval
+    // overlaps the next tick and runs "reset --hard" on a clone directory a request
+    // thread may be mid-Files.readString on.
+    @Scheduled(every = "${calm.github.sync-interval:60}s", delayed = "${calm.github.sync-interval:60}s",
+            concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void sync() {
-        if (!cloneManager.hasNamespaces()) {
+        if (!DatabaseMode.GITHUB.equals(databaseMode) || !cloneManager.hasNamespaces()) {
             return;
         }
 

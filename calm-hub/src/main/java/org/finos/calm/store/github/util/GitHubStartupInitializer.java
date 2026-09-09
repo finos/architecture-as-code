@@ -7,6 +7,7 @@ import jakarta.enterprise.event.Observes;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.context.ManagedExecutor;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.observability.GitHubMetrics;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,7 +20,12 @@ import java.util.Optional;
 /**
  * Reads namespace configuration on startup, registers repos with the clone manager,
  * triggers initial clone asynchronously, and rebuilds the in-memory registry once complete.
- * Quarkus finishes starting immediately — health endpoints are available during clone.
+ * Quarkus finishes starting immediately — there is no readiness endpoint gating this
+ * (no {@code @Readiness}/smallrye-health dependency exists in this module); a request for
+ * a validly-configured namespace that arrives before the initial clone completes sees
+ * {@link org.finos.calm.domain.exception.NamespaceNotFoundException} (404) rather than a
+ * "still starting up" response, since the registry starts empty. See
+ * {@link GitHubCloneManager#getState()} for the actual in-progress signal callers can poll.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -43,7 +49,18 @@ public class GitHubStartupInitializer {
     @ConfigProperty(name = "calm.github.namespaces")
     Optional<List<String>> namespaceConfigs;
 
+    // @LookupIfProperty only gates whether this bean satisfies @Inject/Instance<T>
+    // resolution - it does NOT stop an @Observes StartupEvent method from firing once the
+    // bean exists, so without this check onStart() runs in every calm.database.mode.
+    // Mirrors the identical guard in StandaloneDemoSeeder for the same reason.
+    @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
+    String databaseMode;
+
     void onStart(@Observes StartupEvent ev) {
+        if (!DatabaseMode.GITHUB.equals(databaseMode)) {
+            return;
+        }
+
         List<String> configs = namespaceConfigs.orElse(List.of());
         if (configs.isEmpty()) {
             LOG.warn("No GitHub namespaces configured (calm.github.namespaces). The registry will be empty.");

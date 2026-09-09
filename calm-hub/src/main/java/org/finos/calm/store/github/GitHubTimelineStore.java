@@ -16,6 +16,7 @@ import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.TimelineStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.RegistryEntry;
@@ -23,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -99,8 +98,7 @@ public class GitHubTimelineStore implements TimelineStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, timeline.getNamespace()).resolve(entry.filePath());
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, timeline.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read timeline file: {}", entry.filePath(), e);
             throw new TimelineVersionNotFoundException();

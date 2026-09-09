@@ -16,6 +16,7 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.RegistryEntry;
@@ -23,7 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
@@ -58,14 +58,8 @@ public class GitHubStandardStore implements StandardStore {
     public List<NamespaceResourceSummary> getStandardsForNamespace(String namespace) throws NamespaceNotFoundException {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.STANDARD);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
         return entries.stream()
-                .map(e -> {
-                    
-                    if (repo != null && versionService != null) {
-                    }
-                    return new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0);
-                })
+                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
     }
 
@@ -104,18 +98,18 @@ public class GitHubStandardStore implements StandardStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, namespace).resolve(entry.filePath());
+            Path relativeFilePath = entry.filePath();
             // If this is a JSON file, check for a sibling .md file and prefer it
-            if (filePath.toString().endsWith(".json")) {
-                String baseName = filePath.getFileName().toString()
+            if (relativeFilePath.toString().endsWith(".json")) {
+                String baseName = relativeFilePath.getFileName().toString()
                         .replaceAll("\\.(guideline|standard|calm)\\.json$", "")
                         .replace(".json", "");
-                Path mdSibling = filePath.getParent().resolve(baseName + ".md");
-                if (Files.exists(mdSibling)) {
-                    return Files.readString(mdSibling);
+                Path relativeMdSibling = relativeFilePath.resolveSibling(baseName + ".md");
+                if (GitHubFileReader.existsContained(cloneDirectory, namespace, relativeMdSibling)) {
+                    return GitHubFileReader.readContained(cloneDirectory, namespace, relativeMdSibling);
                 }
             }
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, namespace, relativeFilePath);
         } catch (IOException e) {
             LOG.error("Failed to read standard file: {}", entry.filePath(), e);
             throw new StandardVersionNotFoundException();

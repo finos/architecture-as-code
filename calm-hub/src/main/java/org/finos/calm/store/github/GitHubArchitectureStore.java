@@ -15,6 +15,7 @@ import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.RegistryEntry;
@@ -22,8 +23,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,7 +56,6 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
         return entries.stream()
                 .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
@@ -99,8 +97,7 @@ public class GitHubArchitectureStore implements ArchitectureStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, architecture.getNamespace()).resolve(entry.filePath());
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, architecture.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read architecture file: {}", entry.filePath(), e);
             throw new ArchitectureVersionNotFoundException();

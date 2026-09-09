@@ -47,6 +47,7 @@ class TestGitHubStartupInitializerShould {
         initializer.registryService = registryService;
         initializer.metrics = metrics;
         initializer.executor = executor;
+        initializer.databaseMode = "github";
 
         // Make executor.runAsync execute the Runnable immediately (synchronously for testing)
         when(executor.runAsync(any(Runnable.class))).thenAnswer(invocation -> {
@@ -62,6 +63,21 @@ class TestGitHubStartupInitializerShould {
 
         initializer.onStart(new StartupEvent());
 
+        verify(cloneManager, never()).cloneAll();
+        verify(registryService, never()).rebuild(any());
+    }
+
+    @Test
+    void skip_entirely_when_database_mode_is_not_github() {
+        // @LookupIfProperty only gates @Inject/Instance<T> resolution, not @Observes
+        // invocation once the bean exists - this guard is what actually stops onStart()
+        // from registering namespaces and cloning in, say, mongo mode.
+        initializer.databaseMode = "mongo";
+        initializer.namespaceConfigs = Optional.of(List.of("finos|finos/architecture-as-code|main"));
+
+        initializer.onStart(new StartupEvent());
+
+        verify(cloneManager, never()).registerNamespace(any(), any(), any(), any());
         verify(cloneManager, never()).cloneAll();
         verify(registryService, never()).rebuild(any());
     }

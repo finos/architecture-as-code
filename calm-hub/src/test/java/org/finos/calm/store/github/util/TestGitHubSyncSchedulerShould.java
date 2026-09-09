@@ -33,11 +33,25 @@ class TestGitHubSyncSchedulerShould {
     @BeforeEach
     void setup() {
         scheduler = new GitHubSyncScheduler(cloneManager, registryService, metrics);
+        scheduler.databaseMode = "github";
     }
 
     @Test
     void skip_sync_when_no_namespaces_registered() {
         when(cloneManager.hasNamespaces()).thenReturn(false);
+
+        scheduler.sync();
+
+        verify(cloneManager, never()).pullAll();
+        verify(registryService, never()).rebuild(any());
+    }
+
+    @Test
+    void skip_sync_entirely_when_database_mode_is_not_github() {
+        // @LookupIfProperty only gates @Inject/Instance<T> resolution, not @Scheduled
+        // invocation once the bean exists - this guard is what actually stops sync()
+        // from pulling and rebuilding in, say, mongo mode.
+        scheduler.databaseMode = "mongo";
 
         scheduler.sync();
 

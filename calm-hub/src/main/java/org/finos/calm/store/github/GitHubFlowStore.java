@@ -16,6 +16,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.RegistryEntry;
@@ -23,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,14 +57,8 @@ public class GitHubFlowStore implements FlowStore {
     public List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.FLOW);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
         return entries.stream()
-                .map(e -> {
-                    
-                    if (repo != null && versionService != null) {
-                    }
-                    return new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0);
-                })
+                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
     }
 
@@ -105,8 +98,7 @@ public class GitHubFlowStore implements FlowStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, flow.getNamespace()).resolve(entry.filePath());
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, flow.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read flow file: {}", entry.filePath(), e);
             throw new FlowVersionNotFoundException();

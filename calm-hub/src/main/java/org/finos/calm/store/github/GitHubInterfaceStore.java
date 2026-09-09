@@ -16,6 +16,7 @@ import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.github.util.CalmResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.util.InMemoryRegistryService;
 import org.finos.calm.store.github.util.RegistryEntry;
@@ -23,8 +24,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Optional;
 
@@ -58,14 +57,8 @@ public class GitHubInterfaceStore implements InterfaceStore {
     public List<NamespaceInterfaceSummary> getInterfacesForNamespace(String namespace) throws NamespaceNotFoundException {
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.INTERFACE);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
         return entries.stream()
-                .map(e -> {
-                    
-                    if (repo != null && versionService != null) {
-                    }
-                    return new NamespaceInterfaceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF));
-                })
+                .map(e -> new NamespaceInterfaceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF)))
                 .toList();
     }
 
@@ -104,8 +97,7 @@ public class GitHubInterfaceStore implements InterfaceStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            Path filePath = Path.of(cloneDirectory, namespace).resolve(entry.filePath());
-            return Files.readString(filePath);
+            return GitHubFileReader.readContained(cloneDirectory, namespace, entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read interface file: {}", entry.filePath(), e);
             throw new InterfaceVersionNotFoundException();
