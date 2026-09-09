@@ -98,10 +98,14 @@
             <version>20240325.1</version>
         </dependency>
 
-        <!-- Caffeine in-memory cache -->
+        <!-- Caffeine in-memory cache. Use the Quarkus extension, not the bare
+             ben-manes jar: Caffeine builds its cache implementation reflectively,
+             and quarkus-caffeine supplies the native-image reflection config for
+             that (the bare jar would only fail this at native build time). It
+             pulls the ben-manes artifact transitively. -->
         <dependency>
-            <groupId>com.github.ben-manes.caffeine</groupId>
-            <artifactId>caffeine</artifactId>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-caffeine</artifactId>
         </dependency>
 
         <!-- JGit for GitHub clone/pull operations -->
