@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubInterfaceStore;
 import org.finos.calm.store.mongo.MongoInterfaceStore;
 import org.finos.calm.store.nitrite.NitriteInterfaceStore;
 
+/**
+ * Producer for InterfaceStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class InterfaceStoreProducer {
 
@@ -27,6 +31,11 @@ public class InterfaceStoreProducer {
     @Inject
     Instance<GitHubInterfaceStore> gitHubInterfaceStore;
 
+    /**
+     * Produces the appropriate InterfaceStore implementation based on the configured database mode.
+     *
+     * @return the InterfaceStore implementation
+     */
     @Produces
     @ApplicationScoped
     public InterfaceStore produceInterfaceStore() {

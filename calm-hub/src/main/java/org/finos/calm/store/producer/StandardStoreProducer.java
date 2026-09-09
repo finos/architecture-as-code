@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubStandardStore;
 import org.finos.calm.store.mongo.MongoStandardStore;
 import org.finos.calm.store.nitrite.NitriteStandardStore;
 
+/**
+ * Producer for StandardStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class StandardStoreProducer {
 
@@ -27,6 +31,11 @@ public class StandardStoreProducer {
     @Inject
     Instance<GitHubStandardStore> gitHubStandardStore;
 
+    /**
+     * Produces the appropriate StandardStore implementation based on the configured database mode.
+     *
+     * @return the StandardStore implementation
+     */
     @Produces
     @ApplicationScoped
     public StandardStore produceStandardStore() {

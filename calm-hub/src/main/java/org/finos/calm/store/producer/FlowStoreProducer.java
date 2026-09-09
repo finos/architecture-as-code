@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubFlowStore;
 import org.finos.calm.store.mongo.MongoFlowStore;
 import org.finos.calm.store.nitrite.NitriteFlowStore;
 
+/**
+ * Producer for FlowStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class FlowStoreProducer {
 
@@ -27,6 +31,11 @@ public class FlowStoreProducer {
     @Inject
     Instance<GitHubFlowStore> gitHubFlowStore;
 
+    /**
+     * Produces the appropriate FlowStore implementation based on the configured database mode.
+     *
+     * @return the FlowStore implementation
+     */
     @Produces
     @ApplicationScoped
     public FlowStore produceFlowStore() {

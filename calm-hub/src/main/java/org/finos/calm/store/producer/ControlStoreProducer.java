@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubControlStore;
 import org.finos.calm.store.mongo.MongoControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
 
+/**
+ * Producer for ControlStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class ControlStoreProducer {
 
@@ -27,6 +31,11 @@ public class ControlStoreProducer {
     @Inject
     Instance<GitHubControlStore> gitHubControlStore;
 
+    /**
+     * Produces the appropriate ControlStore implementation based on the configured database mode.
+     *
+     * @return the ControlStore implementation
+     */
     @Produces
     @ApplicationScoped
     public ControlStore produceControlStore() {

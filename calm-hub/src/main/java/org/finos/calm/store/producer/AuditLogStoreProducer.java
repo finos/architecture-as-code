@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubAuditLogStore;
 import org.finos.calm.store.mongo.MongoAuditLogStore;
 import org.finos.calm.store.nitrite.NitriteAuditLogStore;
 
+/**
+ * Producer for {@link AuditLogStore} implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class AuditLogStoreProducer {
 
@@ -27,6 +31,11 @@ public class AuditLogStoreProducer {
     @Inject
     Instance<GitHubAuditLogStore> gitHubAuditLogStore;
 
+    /**
+     * Produces the appropriate AuditLogStore implementation based on the configured database mode.
+     *
+     * @return the AuditLogStore implementation
+     */
     @Produces
     @ApplicationScoped
     public AuditLogStore produceAuditLogStore() {

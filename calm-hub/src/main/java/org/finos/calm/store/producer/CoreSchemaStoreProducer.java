@@ -11,6 +11,10 @@ import org.finos.calm.store.classpath.ClasspathCoreSchemaStore;
 import org.finos.calm.store.mongo.MongoCoreSchemaStore;
 import org.finos.calm.store.nitrite.NitriteCoreSchemaStore;
 
+/**
+ * Producer for CoreSchemaStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class CoreSchemaStoreProducer {
 
@@ -27,6 +31,11 @@ public class CoreSchemaStoreProducer {
     @Inject
     Instance<ClasspathCoreSchemaStore> classpathCoreSchemaStore;
 
+    /**
+     * Produces the appropriate CoreSchemaStore implementation based on the configured database mode.
+     *
+     * @return the CoreSchemaStore implementation
+     */
     @Produces
     @ApplicationScoped
     public CoreSchemaStore produceCoreSchemaStore() {

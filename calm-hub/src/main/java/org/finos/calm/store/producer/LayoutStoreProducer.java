@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubLayoutStore;
 import org.finos.calm.store.mongo.MongoLayoutStore;
 import org.finos.calm.store.nitrite.NitriteLayoutStore;
 
+/**
+ * Producer for LayoutStore implementations.
+ * Selects the appropriate implementation based on the configured database mode.
+ */
 @ApplicationScoped
 public class LayoutStoreProducer {
 
@@ -27,6 +31,11 @@ public class LayoutStoreProducer {
     @Inject
     Instance<GitHubLayoutStore> gitHubLayoutStore;
 
+    /**
+     * Produces the appropriate LayoutStore implementation based on the configured database mode.
+     *
+     * @return the LayoutStore implementation
+     */
     @Produces
     @ApplicationScoped
     public LayoutStore produceLayoutStore() {

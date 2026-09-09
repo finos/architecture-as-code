@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubDomainStore;
 import org.finos.calm.store.mongo.MongoDomainStore;
 import org.finos.calm.store.nitrite.NitriteDomainStore;
 
+/**
+ * Producer for DomainStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class DomainStoreProducer {
 
@@ -27,6 +31,11 @@ public class DomainStoreProducer {
     @Inject
     Instance<GitHubDomainStore> gitHubDomainStore;
 
+    /**
+     * Produces the appropriate DomainStore implementation based on the configured database mode.
+     *
+     * @return the DomainStore implementation
+     */
     @Produces
     @ApplicationScoped
     public DomainStore produceDomainStore() {

@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubSearchStore;
 import org.finos.calm.store.mongo.MongoSearchStore;
 import org.finos.calm.store.nitrite.NitriteSearchStore;
 
+/**
+ * Producer for SearchStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class SearchStoreProducer {
 
@@ -27,6 +31,11 @@ public class SearchStoreProducer {
     @Inject
     Instance<GitHubSearchStore> gitHubSearchStore;
 
+    /**
+     * Produces the appropriate SearchStore implementation based on the configured database mode.
+     *
+     * @return the SearchStore implementation
+     */
     @Produces
     @ApplicationScoped
     public SearchStore produceSearchStore() {

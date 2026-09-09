@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubAdrStore;
 import org.finos.calm.store.mongo.MongoAdrStore;
 import org.finos.calm.store.nitrite.NitriteAdrStore;
 
+/**
+ * Producer for AdrStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class AdrStoreProducer {
 
@@ -27,6 +31,11 @@ public class AdrStoreProducer {
     @Inject
     Instance<GitHubAdrStore> gitHubAdrStore;
 
+    /**
+     * Produces the appropriate AdrStore implementation based on the configured database mode.
+     *
+     * @return the AdrStore implementation
+     */
     @Produces
     @ApplicationScoped
     public AdrStore produceAdrStore() {

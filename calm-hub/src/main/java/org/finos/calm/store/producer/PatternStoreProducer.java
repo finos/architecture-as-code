@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubPatternStore;
 import org.finos.calm.store.mongo.MongoPatternStore;
 import org.finos.calm.store.nitrite.NitritePatternStore;
 
+/**
+ * Producer for PatternStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class PatternStoreProducer {
 
@@ -27,6 +31,11 @@ public class PatternStoreProducer {
     @Inject
     Instance<GitHubPatternStore> gitHubPatternStore;
 
+    /**
+     * Produces the appropriate PatternStore implementation based on the configured database mode.
+     *
+     * @return the PatternStore implementation
+     */
     @Produces
     @ApplicationScoped
     public PatternStore producePatternStore() {

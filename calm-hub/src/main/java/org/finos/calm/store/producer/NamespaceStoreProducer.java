@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubNamespaceStore;
 import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.finos.calm.store.nitrite.NitriteNamespaceStore;
 
+/**
+ * Producer for NamespaceStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class NamespaceStoreProducer {
 
@@ -27,6 +31,11 @@ public class NamespaceStoreProducer {
     @Inject
     Instance<GitHubNamespaceStore> gitHubNamespaceStore;
 
+    /**
+     * Produces the appropriate NamespaceStore implementation based on the configured database mode.
+     *
+     * @return the NamespaceStore implementation
+     */
     @Produces
     @ApplicationScoped
     public NamespaceStore produceNamespaceStore() {

@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubUserAccessStore;
 import org.finos.calm.store.mongo.MongoUserAccessStore;
 import org.finos.calm.store.nitrite.NitriteUserAccessStore;
 
+/**
+ * Producer for UserAccessStore implementations.
+ * Selects the appropriate implementation based on the configured database mode.
+ */
 @ApplicationScoped
 public class UserAccessStoreProducer {
 
@@ -27,6 +31,11 @@ public class UserAccessStoreProducer {
     @Inject
     Instance<GitHubUserAccessStore> gitHubUserAccessStore;
 
+    /**
+     * Produces the appropriate UserAccessStore implementation based on the configured database mode.
+     *
+     * @return the UserAccessStore implementation
+     */
     @Produces
     @ApplicationScoped
     public UserAccessStore produceUserAccessStore() {

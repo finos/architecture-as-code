@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubResourceMappingStore;
 import org.finos.calm.store.mongo.MongoResourceMappingStore;
 import org.finos.calm.store.nitrite.NitriteResourceMappingStore;
 
+/**
+ * Producer for ResourceMappingStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class ResourceMappingStoreProducer {
 

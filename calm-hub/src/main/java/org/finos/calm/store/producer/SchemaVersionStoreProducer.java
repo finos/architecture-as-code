@@ -11,6 +11,10 @@ import org.finos.calm.store.mongo.MongoSchemaVersionStore;
 import org.finos.calm.store.nitrite.NitriteSchemaVersionStore;
 import org.finos.calm.store.noop.NoOpSchemaVersionStore;
 
+/**
+ * Producer for {@link SchemaVersionStore} implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class SchemaVersionStoreProducer {
 
@@ -27,6 +31,11 @@ public class SchemaVersionStoreProducer {
     @Inject
     Instance<NoOpSchemaVersionStore> noOpSchemaVersionStore;
 
+    /**
+     * Produces the appropriate SchemaVersionStore implementation based on the configured database mode.
+     *
+     * @return the SchemaVersionStore implementation
+     */
     @Produces
     @ApplicationScoped
     public SchemaVersionStore produceSchemaVersionStore() {

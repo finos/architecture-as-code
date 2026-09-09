@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubArchitectureStore;
 import org.finos.calm.store.mongo.MongoArchitectureStore;
 import org.finos.calm.store.nitrite.NitriteArchitectureStore;
 
+/**
+ * Producer for ArchitectureStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class ArchitectureStoreProducer {
 
@@ -27,6 +31,11 @@ public class ArchitectureStoreProducer {
     @Inject
     Instance<GitHubArchitectureStore> gitHubArchitectureStore;
 
+    /**
+     * Produces the appropriate ArchitectureStore implementation based on the configured database mode.
+     *
+     * @return the ArchitectureStore implementation
+     */
     @Produces
     @ApplicationScoped
     public ArchitectureStore produceArchitectureStore() {

@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubDecoratorStore;
 import org.finos.calm.store.mongo.MongoDecoratorStore;
 import org.finos.calm.store.nitrite.NitriteDecoratorStore;
 
+/**
+ * Producer for DecoratorStore implementations.
+ * Selects the appropriate implementation based on the configured database mode.
+ */
 @ApplicationScoped
 public class DecoratorStoreProducer {
 
@@ -27,6 +31,11 @@ public class DecoratorStoreProducer {
     @Inject
     Instance<GitHubDecoratorStore> gitHubDecoratorStore;
 
+    /**
+     * Produces the appropriate DecoratorStore implementation based on the configured database mode.
+     *
+     * @return the DecoratorStore implementation
+     */
     @Produces
     @ApplicationScoped
     public DecoratorStore produceDecoratorStore() {

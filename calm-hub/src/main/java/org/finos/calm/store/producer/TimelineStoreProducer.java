@@ -11,6 +11,10 @@ import org.finos.calm.store.github.GitHubTimelineStore;
 import org.finos.calm.store.mongo.MongoTimelineStore;
 import org.finos.calm.store.nitrite.NitriteTimelineStore;
 
+/**
+ * Producer for TimelineStore implementations.
+ * This class provides either the MongoDB or NitriteDB implementation based on configuration.
+ */
 @ApplicationScoped
 public class TimelineStoreProducer {
 
@@ -27,6 +31,11 @@ public class TimelineStoreProducer {
     @Inject
     Instance<GitHubTimelineStore> gitHubTimelineStore;
 
+    /**
+     * Produces the appropriate TimelineStore implementation based on the configured database mode.
+     *
+     * @return the TimelineStore implementation
+     */
     @Produces
     @ApplicationScoped
     public TimelineStore produceTimelineStore() {
