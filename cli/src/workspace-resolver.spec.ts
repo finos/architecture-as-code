@@ -1,17 +1,25 @@
 import { describe, it, expect, beforeAll, afterAll, afterEach } from 'vitest';
-import { resolveWorkspaceBundlePathFromEnv, findGitRoot, findWorkspaceManifestPath } from './workspace-resolver';
+import { resolveWorkspaceBundlePathFromEnv, findGitRoot, findProjectRoot, findWorkspaceManifestPath } from './workspace-resolver';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
+import os from 'os';
 
 describe('workspace-resolver', () => {
     const testDir = path.join(__dirname, 'test-workspace-resolver');
+    // testDir lives inside this repo's own git checkout, so anything nested under it
+    // resolves a real .git when walking upward. Tests that specifically need "no git
+    // repository above this path" semantics use a separate tree outside the repo.
+    const noGitTestDir = path.join(os.tmpdir(), 'calm-workspace-resolver-no-git-test');
 
     beforeAll(async () => {
         await mkdir(testDir, { recursive: true });
+        await rm(noGitTestDir, { recursive: true, force: true });
+        await mkdir(noGitTestDir, { recursive: true });
     });
 
     afterAll(async () => {
         await rm(testDir, { recursive: true, force: true });
+        await rm(noGitTestDir, { recursive: true, force: true });
     });
 
     describe('resolveWorkspaceBundlePathFromEnv', () => {
@@ -77,6 +85,26 @@ describe('workspace-resolver', () => {
         });
     });
 
+    describe('findProjectRoot', () => {
+        it('should return the git root when one exists', async () => {
+            const repo = path.join(testDir, 'repo-project-root');
+            await mkdir(path.join(repo, '.git'), { recursive: true });
+            const nested = path.join(repo, 'a', 'b');
+            await mkdir(nested, { recursive: true });
+
+            expect(findProjectRoot(nested)).toBe(repo);
+        });
+
+        it('should fall back to the given path when no .git directory exists above it', () => {
+            const nonGitDir = path.join(noGitTestDir, 'no-git-here');
+            expect(findProjectRoot(nonGitDir)).toBe(nonGitDir);
+        });
+
+        it('should default to process.cwd() when no start path is given', () => {
+            expect(findProjectRoot()).toBe(findGitRoot(process.cwd()) ?? process.cwd());
+        });
+    });
+
     describe('findWorkspaceBundlePath', () => {
         const originalEnv = process.env.CALM_WORKSPACE_BUNDLE;
 
@@ -103,9 +131,19 @@ describe('workspace-resolver', () => {
             expect(findWorkspaceManifestPath(repo)).toBe(envDir);
         });
 
-        it('should return null when no git root and no env var', () => {
+        it('should return null when no git root, no env var, and no .calm-workspace at the given path', () => {
             delete process.env.CALM_WORKSPACE_BUNDLE;
-            expect(findWorkspaceManifestPath('/tmp')).toBeNull();
+            const nonGitDir = path.join(noGitTestDir, 'no-git-no-workspace');
+            expect(findWorkspaceManifestPath(nonGitDir)).toBeNull();
+        });
+
+        it('should resolve a workspace at the given path even without a .git directory', async () => {
+            delete process.env.CALM_WORKSPACE_BUNDLE;
+            const nonGitDir = path.join(noGitTestDir, 'no-git-with-workspace');
+            const bundleDir = path.join(nonGitDir, '.calm-workspace', 'bundles', 'default');
+            await mkdir(bundleDir, { recursive: true });
+
+            expect(findWorkspaceManifestPath(nonGitDir)).toBe(bundleDir);
         });
 
         it('should return null when git root has no .calm-workspace', async () => {

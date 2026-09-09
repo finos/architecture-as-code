@@ -27,10 +27,20 @@ export function findGitRoot(startPath?: string): string | null {
     return null;
 }
 
+/**
+ * Resolve the root directory workspace state should live under: the git root if one
+ * exists, otherwise startPath (or the cwd) itself. This lets workspaces be used from
+ * folders that aren't git repositories, without walking further up the filesystem
+ * when there's no git boundary to stop at.
+ */
+export function findProjectRoot(startPath?: string): string {
+    const resolvedStart = startPath || process.cwd();
+    return findGitRoot(resolvedStart) ?? resolvedStart;
+}
+
 function findWorkspaceRoot(startPath?: string): string | null {
-    const gitRoot = findGitRoot(startPath);
-    if (!gitRoot) return null;
-    const workspacePath = join(gitRoot, '.calm-workspace');
+    const projectRoot = findProjectRoot(startPath);
+    const workspacePath = join(projectRoot, '.calm-workspace');
     if (existsSync(workspacePath) && statSync(workspacePath).isDirectory()) {
         return workspacePath;
     }
