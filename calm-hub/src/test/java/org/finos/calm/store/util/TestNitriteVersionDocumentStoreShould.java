@@ -276,6 +276,29 @@ class TestNitriteVersionDocumentStoreShould {
     // --- upsertVersion ---
 
     @Test
+    void remove_the_header_when_the_first_document_content_write_fails() {
+        stubFind(versionCollection, List.of());
+        NitriteException failure = new NitriteException("store is closed");
+        when(versionCollection.insert(any(Document.class))).thenThrow(failure);
+
+        assertThat(assertThrows(NitriteException.class, () -> store.createFirstVersion(
+                NAMESPACE, RESOURCE_ID, "1.0.0", Document.createDocument().put("documentMarkdown", "body"))), is(failure));
+
+        verify(headerCollection).remove(any(Filter.class));
+    }
+
+    @Test
+    void remove_the_header_when_the_first_document_content_version_already_exists() {
+        stubFind(versionCollection, List.of(versionDocument("1.0.0")));
+
+        assertThrows(StorageWriteException.class, () -> store.createFirstVersion(
+                NAMESPACE, RESOURCE_ID, "1.0.0", Document.createDocument().put("documentMarkdown", "body")));
+
+        verify(headerCollection).remove(any(Filter.class));
+        verify(versionCollection, never()).insert(any(Document.class));
+    }
+
+    @Test
     void insert_and_increment_when_upserting_a_version_that_does_not_exist() {
         stubFind(versionCollection, List.of());
         stubFind(headerCollection, List.of(header(RESOURCE_ID, "name", "description", 1)));
