@@ -1,6 +1,5 @@
 package org.finos.calm.store.github.util;
 
-import org.finos.calm.cache.CalmCacheService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,7 +8,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
-import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 
@@ -17,19 +15,16 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.empty;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.verify;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class TestGitHubVersionServiceShould {
 
     @Mock
-    private CalmCacheService cache;
+    private GitHubApiResponseCache cache;
 
     private GitHubVersionService service;
 
@@ -47,7 +42,7 @@ class TestGitHubVersionServiceShould {
     @Test
     void return_cached_versions_when_available() {
         List<String> cached = List.of("abc1234", "def5678");
-        when(cache.getList("versions:org/repo:path/file.json", String.class)).thenReturn(Optional.of(cached));
+        when(cache.getVersions("org/repo", "path/file.json")).thenReturn(Optional.of(cached));
 
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
 
@@ -56,7 +51,7 @@ class TestGitHubVersionServiceShould {
 
     @Test
     void return_latest_when_api_fails() {
-        when(cache.getList(any(), eq(String.class))).thenReturn(Optional.empty());
+        when(cache.getVersions(any(), any())).thenReturn(Optional.empty());
 
         // API will fail since we're not running a real server
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
@@ -68,7 +63,7 @@ class TestGitHubVersionServiceShould {
     @Test
     void return_latest_when_no_token() {
         service.serviceToken = Optional.empty();
-        when(cache.getList(any(), eq(String.class))).thenReturn(Optional.empty());
+        when(cache.getVersions(any(), any())).thenReturn(Optional.empty());
 
         List<String> result = service.getFileVersions("org/repo", "path/file.json");
 

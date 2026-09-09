@@ -6,7 +6,6 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.finos.calm.cache.CalmCacheService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -25,8 +24,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Fetches file version history (commit SHAs) from the GitHub REST API.
- * Results are cached — version lists for 5 min, content at SHA indefinitely (immutable).
+ * Fetches file version history (commit SHAs) and file content from the GitHub REST
+ * API. Results are cached via {@link GitHubApiResponseCache} — see that class for the
+ * caching contract and its cross-instance staleness scope.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -37,7 +37,7 @@ public class GitHubVersionService {
     private static final Pattern LINK_NEXT_PATTERN = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
 
     @Inject
-    CalmCacheService cache;
+    GitHubApiResponseCache cache;
 
     @Inject
     @ConfigProperty(name = "calm.github.api-url", defaultValue = "https://api.github.com")
@@ -60,8 +60,7 @@ public class GitHubVersionService {
     int maxVersions;
 
     public List<String> getFileVersions(String repoFullName, String filePath) {
-        String cacheKey = "versions:" + repoFullName + ":" + filePath;
-        Optional<List<String>> cached = cache.getList(cacheKey, String.class);
+        Optional<List<String>> cached = cache.getVersions(repoFullName, filePath);
         if (cached.isPresent()) {
             return cached.get();
         }
@@ -94,7 +93,7 @@ public class GitHubVersionService {
             }
             List<String> chronological = new ArrayList<>(allShas);
             Collections.reverse(chronological);
-            cache.put(cacheKey, chronological, Duration.ofMinutes(5));
+            cache.putVersions(repoFullName, filePath, chronological);
             return chronological;
         } catch (Exception e) {
             LOG.warn("Failed to fetch versions for {}/{}: {}", repoFullName, filePath, e.getMessage());
@@ -103,8 +102,7 @@ public class GitHubVersionService {
     }
 
     public String getFileAtVersion(String repoFullName, String filePath, String sha) {
-        String cacheKey = "content:" + repoFullName + ":" + filePath + ":" + sha;
-        Optional<String> cached = cache.get(cacheKey, String.class);
+        Optional<String> cached = cache.getContentAtSha(repoFullName, filePath, sha);
         if (cached.isPresent()) {
             return cached.get();
         }
@@ -125,7 +123,7 @@ public class GitHubVersionService {
             }
 
             String content = response.body();
-            cache.put(cacheKey, content, Duration.ofDays(365));
+            cache.putContentAtSha(repoFullName, filePath, sha, content);
             return content;
         } catch (Exception e) {
             LOG.warn("Failed to fetch content at SHA {} for {}/{}: {}", sha, repoFullName, filePath, e.getMessage());
