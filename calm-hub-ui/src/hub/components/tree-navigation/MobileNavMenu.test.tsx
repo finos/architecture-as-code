@@ -185,4 +185,60 @@ describe('MobileNavMenu', () => {
         expect(await screen.findByText('traderx')).toBeInTheDocument();
         expect(screen.queryByText('Architectures')).not.toBeInTheDocument();
     });
+
+    it('shows the static root rows immediately, even while counts are still loading', () => {
+        render(
+            <MemoryRouter>
+                <MobileNavMenu {...props} namespacesLoading={true} domainsLoading={true} />
+            </MemoryRouter>
+        );
+        // The root rows are static labels, not derived from counts, so they must
+        // never be hidden behind a counts spinner.
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        expect(screen.getByText('Namespaces')).toBeInTheDocument();
+        expect(screen.getByText('Control Domains')).toBeInTheDocument();
+    });
+
+    it('shows a spinner only for the section whose own counts are still loading', async () => {
+        render(
+            <MemoryRouter>
+                <MobileNavMenu {...props} namespacesLoading={false} domainsLoading={true} />
+            </MemoryRouter>
+        );
+        // A single OR'd flag couldn't tell these two cases apart.
+        fireEvent.click(screen.getByText('Namespaces'));
+        expect(await screen.findByText('traderx')).toBeInTheDocument();
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        // Section-specific, matching ExploreRail's equivalent spinner labels —
+        // not a bare "Loading" that doesn't say which section to a screen reader.
+        expect(screen.getByRole('status', { name: 'Loading control domains' })).toBeInTheDocument();
+        expect(screen.queryByText('security')).not.toBeInTheDocument();
+    });
+
+    it('shows a distinct message when a counts fetch fails, rather than an ambiguous empty state', async () => {
+        // Hub clears counts to [] on a failed fetch, so the failure looks
+        // identical to a genuinely empty namespace/domain list unless the
+        // *Failed flag is threaded through to distinguish "unknown" from "zero".
+        render(
+            <MemoryRouter>
+                <MobileNavMenu
+                    {...props}
+                    namespaceCounts={[]}
+                    domainCounts={[]}
+                    namespacesFailed={true}
+                    domainsFailed={true}
+                />
+            </MemoryRouter>
+        );
+        fireEvent.click(screen.getByText('Namespaces'));
+        // No retry action exists here, so the copy must not promise one.
+        expect(await screen.findByText("Couldn't load namespaces")).toBeInTheDocument();
+
+        fireEvent.click(screen.getByLabelText('Back'));
+        fireEvent.click(screen.getByText('Control Domains'));
+        expect(await screen.findByText("Couldn't load control domains")).toBeInTheDocument();
+    });
 });

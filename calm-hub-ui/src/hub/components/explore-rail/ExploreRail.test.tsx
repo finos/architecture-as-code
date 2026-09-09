@@ -14,7 +14,15 @@ const domainCounts: DomainControlCount[] = [
     { domain: 'compliance', controlCount: 0 },
 ];
 
-const renderRail = (path = '/', onCollapse?: () => void) =>
+interface RenderRailOptions {
+    onCollapse?: () => void;
+    namespacesLoading?: boolean;
+    domainsLoading?: boolean;
+    namespacesFailed?: boolean;
+    domainsFailed?: boolean;
+}
+
+const renderRail = (path = '/', opts: RenderRailOptions = {}) =>
     render(
         <MemoryRouter initialEntries={[path]}>
             <Routes>
@@ -26,7 +34,11 @@ const renderRail = (path = '/', onCollapse?: () => void) =>
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
-                                onCollapse={onCollapse}
+                                namespacesLoading={opts.namespacesLoading}
+                                domainsLoading={opts.domainsLoading}
+                                namespacesFailed={opts.namespacesFailed}
+                                domainsFailed={opts.domainsFailed}
+                                onCollapse={opts.onCollapse}
                             />
                         }
                     />
@@ -71,6 +83,14 @@ describe('ExploreRail', () => {
         expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
     });
 
+    it('tells a filter matching nothing apart from a genuinely empty namespace list', async () => {
+        renderRail();
+        await screen.findByRole('link', { name: /finos/ });
+
+        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'no-such-namespace' } });
+        expect(screen.getByText('No namespaces match your filter')).toBeInTheDocument();
+    });
+
     it('marks the namespace row matching the URL as active', async () => {
         renderRail('/namespace/traderx');
         const active = await screen.findByRole('link', { name: /traderx/ });
@@ -86,9 +106,46 @@ describe('ExploreRail', () => {
 
     it('invokes onCollapse when the collapse button is clicked', async () => {
         const onCollapse = vi.fn();
-        renderRail('/', onCollapse);
+        renderRail('/', { onCollapse });
         fireEvent.click(screen.getByLabelText('Collapse sidebar'));
         expect(onCollapse).toHaveBeenCalled();
         await screen.findByRole('link', { name: /finos/ });
+    });
+
+    it('shows a spinner in both sections while both are loading', () => {
+        renderRail('/', { namespacesLoading: true, domainsLoading: true });
+        expect(screen.getAllByRole('status')).toHaveLength(2);
+        expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /security/ })).not.toBeInTheDocument();
+    });
+
+    it('resolves the namespaces section independently of a still-loading domains section', async () => {
+        renderRail('/', { namespacesLoading: false, domainsLoading: true });
+        expect(await screen.findByRole('link', { name: /finos/ })).toBeInTheDocument();
+        expect(screen.getByRole('status', { name: 'Loading control domains' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /security/ })).not.toBeInTheDocument();
+    });
+
+    it('resolves the domains section independently of a still-loading namespaces section', async () => {
+        renderRail('/', { namespacesLoading: true, domainsLoading: false });
+        expect(await screen.findByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(screen.getByRole('status', { name: 'Loading namespaces' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
+    });
+
+    it('shows items instead of spinners once both sections finish loading', async () => {
+        renderRail('/', { namespacesLoading: false, domainsLoading: false });
+        expect(await screen.findByRole('link', { name: /finos/ })).toBeInTheDocument();
+        expect(screen.getByRole('link', { name: /security/ })).toBeInTheDocument();
+        expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    });
+
+    it('shows a distinct message when a counts fetch fails, rather than an ambiguous empty state', async () => {
+        renderRail('/', { namespacesLoading: false, domainsLoading: false, namespacesFailed: true, domainsFailed: true });
+        // A failed fetch is "unknown", not "confirmed zero" — the empty-state text
+        // must say so rather than looking identical to a genuinely empty namespace.
+        expect(await screen.findByText("Couldn't load namespaces")).toBeInTheDocument();
+        expect(screen.getByText("Couldn't load control domains")).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: /finos/ })).not.toBeInTheDocument();
     });
 });
