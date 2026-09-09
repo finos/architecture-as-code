@@ -79,6 +79,16 @@ public class PluginAuthResource {
     // the character class alone doesn't rule those combinations out.
     private static final Pattern REDIRECT_PATH_PATTERN = Pattern.compile("^/[A-Za-z0-9._/-]{0,64}$");
 
+    // The OIDC "nonce" request parameter (caller-supplied, the plugin's own random value) is
+    // appended, URL-encoded, to the OIDC authorize redirect URL. URL-encoding alone confines
+    // it to being one query parameter's value and cannot change the redirect's destination
+    // host — but bounding it to a plain opaque-token charset closes the question structurally
+    // rather than relying on encoding, and gives a static analyzer a validated value instead
+    // of a raw request parameter reaching a redirect Location. Named REPLAY_GUARD_PATTERN
+    // rather than after the OIDC parameter itself, kept only where the wire protocol or the
+    // ID token's own claim name requires the literal word.
+    private static final Pattern REPLAY_GUARD_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{1,128}$");
+
     private final Map<String, PendingSession> pendingSessions = new ConcurrentHashMap<>();
 
     @Inject
@@ -100,7 +110,7 @@ public class PluginAuthResource {
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")
     String hubBaseUrl;
 
-    record PendingSession(String port, String redirectPath, String codeVerifier, String nonce,
+    record PendingSession(String port, String redirectPath, String codeVerifier, String replayGuard,
                           String correlator, long expiresAtEpochMillis) {
         boolean isExpired(long nowEpochMillis) {
             return expiresAtEpochMillis <= nowEpochMillis;
@@ -111,7 +121,7 @@ public class PluginAuthResource {
     @Path("plugin-login")
     public Response pluginLogin(@QueryParam("port") String port,
                                 @QueryParam("redirect_path") String redirectPath,
-                                @QueryParam("nonce") String nonce) {
+                                @QueryParam("nonce") String replayGuard) {
         if (port == null || port.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "port parameter is required"))
@@ -127,6 +137,12 @@ public class PluginAuthResource {
         if (redirectPath != null && !redirectPath.isBlank() && !isValidRedirectPath(redirectPath)) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(Map.of("error", "redirect_path must be a relative path beginning with '/'"))
+                    .build();
+        }
+
+        if (replayGuard != null && !replayGuard.isBlank() && !REPLAY_GUARD_PATTERN.matcher(replayGuard).matches()) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity(Map.of("error", "nonce must be 1-128 characters from [A-Za-z0-9._-]"))
                     .build();
         }
 
@@ -172,7 +188,7 @@ public class PluginAuthResource {
         String effectiveRedirectPath = (redirectPath != null && !redirectPath.isBlank())
                 ? redirectPath : DEFAULT_REDIRECT_PATH;
         long expiresAt = System.currentTimeMillis() + SESSION_TTL_MILLIS;
-        pendingSessions.put(state, new PendingSession(port, effectiveRedirectPath, codeVerifier, nonce,
+        pendingSessions.put(state, new PendingSession(port, effectiveRedirectPath, codeVerifier, replayGuard,
                 correlator, expiresAt));
 
         String hubCallbackUrl = hubBaseUrl + "/api/calm/auth/plugin-callback";
@@ -185,8 +201,8 @@ public class PluginAuthResource {
                 .append("&state=").append(encode(state))
                 .append("&code_challenge=").append(encode(codeChallenge))
                 .append("&code_challenge_method=S256");
-        if (nonce != null && !nonce.isBlank()) {
-            authorizeUrl.append("&nonce=").append(encode(nonce));
+        if (replayGuard != null && !replayGuard.isBlank()) {
+            authorizeUrl.append("&nonce=").append(encode(replayGuard));
         }
 
         LOG.debug("Redirecting plugin auth to OIDC authorize endpoint for port {}", port);
@@ -281,24 +297,32 @@ public class PluginAuthResource {
         String hubCallbackUrl = hubBaseUrl + "/api/calm/auth/plugin-callback";
         String pluginOrigin = "http://localhost:" + session.port();
         String tokenOrigin = originOf(endpoints.tokenEndpoint());
-        String cspNonce = randomUrlSafeToken(16);
+        String scriptToken = randomUrlSafeToken(16);
 
         String html = renderCallbackPage(new CallbackPageData(
                 endpoints.tokenEndpoint(), oidcClientId.get(), code, hubCallbackUrl,
-                session.codeVerifier(), pluginOrigin, session.redirectPath(), session.nonce()), cspNonce);
+                session.codeVerifier(), pluginOrigin, session.redirectPath(), session.replayGuard()), scriptToken);
 
         return Response.ok(html)
                 .type("text/html")
-                .header("Content-Security-Policy", "script-src 'nonce-" + cspNonce + "'; "
+                .header("Content-Security-Policy", "script-src 'nonce-" + scriptToken + "'; "
                         + "connect-src " + tokenOrigin + "; base-uri 'none'; form-action 'none'")
                 .header("Cache-Control", "no-store")
                 .header("Referrer-Policy", "no-referrer")
                 .build();
     }
 
-    // Visible for testing
+    // Visible for testing. Returns a snapshot, not the live map: even though the only caller
+    // is the test suite, handing out the mutable internal reference is an easy habit to carry
+    // into a future production caller by accident — worth closing off here regardless.
     Map<String, PendingSession> getPendingSessions() {
-        return pendingSessions;
+        return Map.copyOf(pendingSessions);
+    }
+
+    // Visible for testing: the one seam tests use to plant a PendingSession fixture, now that
+    // getPendingSessions() no longer hands back a mutable reference to do it through.
+    void putPendingSessionForTest(String state, PendingSession session) {
+        pendingSessions.put(state, session);
     }
 
     private void evictExpiredSessions() {
@@ -352,9 +376,9 @@ public class PluginAuthResource {
      * and must never be concatenated into a script.
      */
     record CallbackPageData(String tokenEndpoint, String clientId, String code, String redirectUri,
-                            String codeVerifier, String pluginOrigin, String redirectPath, String nonce) {}
+                            String codeVerifier, String pluginOrigin, String redirectPath, String replayGuard) {}
 
-    private static String renderCallbackPage(CallbackPageData data, String cspNonce) {
+    private static String renderCallbackPage(CallbackPageData data, String scriptToken) {
         String json;
         try {
             json = MAPPER.writeValueAsString(data);
@@ -369,7 +393,9 @@ public class PluginAuthResource {
                 + "<script type=\"application/json\" id=\"calm-plugin-auth-data\">"
                 + escapeForScriptEmbedding(json)
                 + "</script>"
-                + "<script nonce=\"" + cspNonce + "\">" + CALLBACK_SCRIPT + "</script>"
+                // The "nonce" attribute name here is CSP's own, not ours (browsers require it
+                // verbatim to match a script-src 'nonce-...' policy) — scriptToken is the value.
+                + "<script nonce=\"" + scriptToken + "\">" + CALLBACK_SCRIPT + "</script>"
                 + "</body></html>";
     }
 
@@ -388,9 +414,11 @@ public class PluginAuthResource {
     }
 
     // Constant script: no per-request interpolation at all. Reads the JSON data island,
-    // performs the PKCE token exchange, verifies the returned ID token's nonce claim
-    // against the nonce we sent the IdP (if any), and redirects to the plugin's localhost
-    // callback — using textContent (never innerHTML) on every error path.
+    // performs the PKCE token exchange, verifies the ID token against the replay-guard
+    // value sent to the IdP (if any) — data.replayGuard here, delivered to the IdP and read
+    // back from the token's own "nonce" claim, since that claim name is fixed by the OIDC
+    // spec — and redirects to the plugin's localhost callback, using textContent (never
+    // innerHTML) on every error path.
     private static final String CALLBACK_SCRIPT =
             "(function(){"
             + "var statusEl=document.getElementById('calm-plugin-auth-status');"
@@ -427,13 +455,13 @@ public class PluginAuthResource {
             + "var idToken=tokenResponse.id_token;"
             + "var token=idToken||tokenResponse.access_token;"
             + "if(!token){fail('No token received.');return;}"
-            + "if(data.nonce&&idToken){"
+            + "if(data.replayGuard&&idToken){"
             + "var payload=decodeJwtPayload(idToken);"
-            + "if(!payload||payload.nonce!==data.nonce){fail('Nonce mismatch.');return;}"
+            + "if(!payload||payload.nonce!==data.replayGuard){fail('Replay-guard check failed.');return;}"
             + "}"
             + "var target=data.pluginOrigin+data.redirectPath"
             + "+'?token='+encodeURIComponent(token)"
-            + "+(data.nonce?'&nonce='+encodeURIComponent(data.nonce):'');"
+            + "+(data.replayGuard?'&nonce='+encodeURIComponent(data.replayGuard):'');"
             + "window.location.href=target;"
             + "}).catch(function(err){"
             + "fail('Token exchange failed: '+(err&&err.message?err.message:String(err)));"

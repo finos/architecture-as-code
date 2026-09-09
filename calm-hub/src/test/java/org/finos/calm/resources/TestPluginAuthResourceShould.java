@@ -23,6 +23,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,14 +69,14 @@ class TestPluginAuthResourceShould {
 
     private void plantSession(String state, String port, String redirectPath, String correlator) {
         long farFuture = System.currentTimeMillis() + 600_000L;
-        resource.getPendingSessions().put(state,
+        resource.putPendingSessionForTest(state,
                 new PluginAuthResource.PendingSession(port, redirectPath, "test-verifier", "test-nonce",
                         correlator, farFuture));
     }
 
     private void plantExpiredSession(String state, String correlator) {
         long past = System.currentTimeMillis() - 1000L;
-        resource.getPendingSessions().put(state,
+        resource.putPendingSessionForTest(state,
                 new PluginAuthResource.PendingSession("63348", "/callback", "test-verifier", "test-nonce",
                         correlator, past));
     }
@@ -321,7 +322,7 @@ class TestPluginAuthResourceShould {
         stubDiscovery();
         long farFuture = System.currentTimeMillis() + 600_000L;
         for (int i = 0; i < 10_000; i++) {
-            resource.getPendingSessions().put("state-" + i,
+            resource.putPendingSessionForTest("state-" + i,
                     new PluginAuthResource.PendingSession("1", "/callback", "v", null, "c", farFuture));
         }
 
@@ -335,7 +336,7 @@ class TestPluginAuthResourceShould {
         stubDiscovery();
         long past = System.currentTimeMillis() - 1000L;
         for (int i = 0; i < 10_000; i++) {
-            resource.getPendingSessions().put("expired-" + i,
+            resource.putPendingSessionForTest("expired-" + i,
                     new PluginAuthResource.PendingSession("1", "/callback", "v", null, "c", past));
         }
 
@@ -509,6 +510,17 @@ class TestPluginAuthResourceShould {
         Response second = resource.pluginCallback("valid-code", "valid-state", null, CORRELATOR);
 
         assertThat(second.getStatus(), equalTo(403));
+    }
+
+    @Test
+    void return_an_immutable_snapshot_from_get_pending_sessions() {
+        plantSession("valid-state", "63348", "/callback", CORRELATOR);
+
+        Map<String, PluginAuthResource.PendingSession> snapshot = resource.getPendingSessions();
+
+        assertThrows(UnsupportedOperationException.class, () -> snapshot.put("injected",
+                new PluginAuthResource.PendingSession("1", "/callback", "v", null, "c",
+                        System.currentTimeMillis() + 600_000L)));
     }
 
     private JsonNode extractDataIsland(String html) throws Exception {
