@@ -1,9 +1,7 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import org.finos.calm.observability.GitHubMetrics;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.sync.GitHubCloneManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -30,16 +28,13 @@ class TestGitHubSyncSchedulerShould {
     @Mock
     private GitHubMetrics metrics;
 
-    private GitHubSyncScheduler scheduler;
-
-    @BeforeEach
-    void setup() {
-        scheduler = new GitHubSyncScheduler(cloneManager, registryService, metrics);
-        scheduler.databaseMode = "github";
+    private GitHubSyncScheduler schedulerFor(String databaseMode) {
+        return new GitHubSyncScheduler(cloneManager, registryService, metrics, databaseMode);
     }
 
     @Test
     void skip_sync_when_no_namespaces_registered() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
         when(cloneManager.hasNamespaces()).thenReturn(false);
 
         scheduler.sync();
@@ -53,7 +48,7 @@ class TestGitHubSyncSchedulerShould {
         // @LookupIfProperty only gates @Inject/Instance<T> resolution, not @Scheduled
         // invocation once the bean exists - this guard is what actually stops sync()
         // from pulling and rebuilding in, say, mongo mode.
-        scheduler.databaseMode = "mongo";
+        GitHubSyncScheduler scheduler = schedulerFor("mongo");
 
         scheduler.sync();
 
@@ -63,6 +58,7 @@ class TestGitHubSyncSchedulerShould {
 
     @Test
     void pull_all_and_rebuild_registry_on_sync() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
         when(cloneManager.hasNamespaces()).thenReturn(true);
         when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
 
@@ -76,6 +72,7 @@ class TestGitHubSyncSchedulerShould {
 
     @Test
     void record_failure_metric_when_sync_throws() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
         when(cloneManager.hasNamespaces()).thenReturn(true);
         doThrow(new RuntimeException("sync error")).when(cloneManager).pullAll();
 

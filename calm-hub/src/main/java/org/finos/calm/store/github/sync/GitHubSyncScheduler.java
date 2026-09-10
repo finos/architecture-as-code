@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.scheduler.Scheduled;
@@ -8,7 +8,6 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.observability.GitHubMetrics;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,25 +27,27 @@ public class GitHubSyncScheduler {
     private final GitHubCloneManager cloneManager;
     private final ResourceRegistry registryService;
     private final GitHubMetrics metrics;
-
     // @LookupIfProperty does not stop @Scheduled invocation once this bean exists - see
     // the identical guard and comment in GitHubStartupInitializer for why this is needed.
-    @Inject
-    @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
-    String databaseMode;
+    private final String databaseMode;
 
     @Inject
     public GitHubSyncScheduler(GitHubCloneManager cloneManager,
-                               ResourceRegistry registryService,
-                               GitHubMetrics metrics) {
+                                ResourceRegistry registryService,
+                                GitHubMetrics metrics,
+                                @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo") String databaseMode) {
         this.cloneManager = cloneManager;
         this.registryService = registryService;
         this.metrics = metrics;
+        this.databaseMode = databaseMode;
     }
 
-    // concurrentExecution = SKIP: without it, a pullAll() slower than the sync interval
-    // overlaps the next tick and runs "reset --hard" on a clone directory a request
-    // thread may be mid-Files.readString on.
+    // concurrentExecution = SKIP prevents this method from overlapping its own next
+    // scheduled tick - it does NOT protect a request thread mid-Files.readString on a
+    // clone directory from a concurrent "reset --hard" here, and it does NOT prevent
+    // overlap with GitHubStartupInitializer's own registry rebuild during the initial
+    // clone window. Both remain open races - see the tracking issue for GitHub clone
+    // lifecycle coordination with concurrent readers.
     @Scheduled(every = "${calm.github.sync-interval:60}s", delayed = "${calm.github.sync-interval:60}s",
             concurrentExecution = Scheduled.ConcurrentExecution.SKIP)
     void sync() {
