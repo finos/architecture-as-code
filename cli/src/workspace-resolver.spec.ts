@@ -103,6 +103,32 @@ describe('workspace-resolver', () => {
         it('should default to process.cwd() when no start path is given', () => {
             expect(findProjectRoot()).toBe(findGitRoot(process.cwd()) ?? process.cwd());
         });
+
+        it('should prefer an existing .calm-workspace over a .git directory that appears above it', async () => {
+            // Repro from PR review: a workspace initialised before any git repo existed must
+            // stay reachable even if a .git later shows up further up the tree — otherwise it
+            // would silently resolve to the new, higher git root instead.
+            const projectRoot = path.join(noGitTestDir, 'workspace-then-git', 'a', 'b');
+            await mkdir(path.join(projectRoot, '.calm-workspace'), { recursive: true });
+
+            expect(findProjectRoot(projectRoot)).toBe(projectRoot);
+
+            const gitParent = path.join(noGitTestDir, 'workspace-then-git', 'a');
+            await mkdir(path.join(gitParent, '.git'), { recursive: true });
+
+            expect(findProjectRoot(projectRoot)).toBe(projectRoot);
+        });
+
+        it('should find the nearest .calm-workspace from a nested subdirectory, ahead of a higher .git', async () => {
+            const workspaceRoot = path.join(noGitTestDir, 'nested-workspace-then-git', 'a', 'b');
+            await mkdir(path.join(workspaceRoot, '.calm-workspace'), { recursive: true });
+            await mkdir(path.join(noGitTestDir, 'nested-workspace-then-git', 'a', '.git'), { recursive: true });
+
+            const nested = path.join(workspaceRoot, 'c', 'd');
+            await mkdir(nested, { recursive: true });
+
+            expect(findProjectRoot(nested)).toBe(workspaceRoot);
+        });
     });
 
     describe('findWorkspaceBundlePath', () => {
