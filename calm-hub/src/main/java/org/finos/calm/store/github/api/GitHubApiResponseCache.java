@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.api;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -58,10 +58,12 @@ public class GitHubApiResponseCache {
         this(maxSize, Ticker.systemTicker());
     }
 
-    // Package-private: lets tests drive expiry deterministically with a fake Ticker
-    // instead of Thread.sleep, the same pattern used by SchemaMigrationInProgressFilter's
-    // injectable LongSupplier.
-    GitHubApiResponseCache(long maxSize, Ticker ticker) {
+    // Public rather than the package-private form this started as: lets tests drive
+    // expiry deterministically with a fake Ticker instead of Thread.sleep, the same
+    // pattern used by SchemaMigrationInProgressFilter's injectable LongSupplier. Public
+    // because a test now belongs to a different package than the production class -
+    // package-private visibility is not a seam once encapsulation is real.
+    public GitHubApiResponseCache(long maxSize, Ticker ticker) {
         this.versionsCache = buildCache(maxSize, ticker, VERSIONS_TTL);
         this.contentCache = buildCache(maxSize, ticker, CONTENT_TTL);
     }

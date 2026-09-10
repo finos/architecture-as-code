@@ -1,6 +1,7 @@
 package org.finos.calm.store.github.util;
 
 import com.sun.net.httpserver.HttpServer;
+import org.finos.calm.store.github.api.GitHubApiResponseCache;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
