@@ -17,6 +17,17 @@ import org.finos.calm.store.github.registry.RegistryEntry;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * GitHub-mode {@link ResourceMappingStore}, and the one named place that translates between
+ * the front controller's {@link ResourceType} and this backend's own
+ * {@link RegistryResourceType} ({@link #toRegistryResourceType}). The two types are a
+ * deliberate duplication, not an oversight - {@code RegistryResourceType} answers "what kind
+ * of file is this" from repo content alone, while {@code ResourceType} answers "what can the
+ * namespace-scoped front controller address" and is serialized on {@link ResourceMapping} and
+ * name-coupled to {@code AuditEntityType}. Holding the mapping here, rather than inline in
+ * each store, keeps that translation a single reviewable switch instead of one copy per
+ * resource type.
+ */
 @ApplicationScoped
 @Typed(GitHubResourceMappingStore.class)
 public class GitHubResourceMappingStore implements ResourceMappingStore {

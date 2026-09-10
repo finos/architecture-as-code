@@ -15,6 +15,14 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * GitHub-mode {@link DecoratorStore}: like {@link GitHubAdrStore}, decorators have no
+ * registry representation - no file convention exists to classify a decorator from a repo
+ * checkout - so every lookup returns an empty result rather than guessing, and every write
+ * is an unconditional {@link GitHubWriteNotSupportedException}. Extends only
+ * {@link AbstractGitHubStore}: with nothing to read, the shared read-path machinery in
+ * {@link AbstractReadOnlyGitHubStore} would be dead code here.
+ */
 @ApplicationScoped
 @Typed(GitHubDecoratorStore.class)
 public class GitHubDecoratorStore extends AbstractGitHubStore implements DecoratorStore {

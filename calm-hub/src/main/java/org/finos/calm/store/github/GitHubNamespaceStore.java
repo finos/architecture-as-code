@@ -13,6 +13,15 @@ import org.finos.calm.store.github.registry.ResourceRegistry;
 
 import java.util.List;
 
+/**
+ * GitHub-mode {@link NamespaceStore}. Namespaces are not a resource stored in any repo - they
+ * are the deployment-level mapping of {@code calm.github.namespaces[*]} entries to cloned
+ * repos, already materialised into {@link ResourceRegistry}'s snapshot by
+ * {@link org.finos.calm.store.github.sync.GitHubStartupInitializer} at boot. This store is
+ * therefore a thin read view over that snapshot, never a writer of it: creating or deleting a
+ * namespace here would mean editing the running deployment's configuration, which is exactly
+ * what {@link GitHubWriteNotSupportedException} exists to point the caller at instead.
+ */
 @ApplicationScoped
 @Typed(GitHubNamespaceStore.class)
 public class GitHubNamespaceStore implements NamespaceStore {

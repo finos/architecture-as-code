@@ -27,6 +27,15 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.List;
 
+/**
+ * GitHub-mode {@link PatternStore}: patterns are read from the {@code .json} files under
+ * {@code patterns/} in the namespace's clone, classified into the registry by
+ * {@link org.finos.calm.store.github.registry.CalmContentDetector}. Id lookup, version listing
+ * and version-content resolution all delegate to {@link AbstractReadOnlyGitHubStore} - see its
+ * class javadoc for why an unresolvable version 404s rather than silently reading whatever
+ * HEAD holds. Every mutating method throws {@link GitHubWriteNotSupportedException}: this
+ * backend is read-only until GitHub account linking and PR creation land.
+ */
 @ApplicationScoped
 @Typed(GitHubPatternStore.class)
 public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements PatternStore {

@@ -15,6 +15,14 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * GitHub-mode {@link SearchStore}: a read-only, in-memory name/id substring match over the
+ * current {@link ResourceRegistry} snapshot rather than a real index - there is no external
+ * search backend to query in this storage mode, and the registry is already fully resident in
+ * memory, so scanning it directly is the whole implementation. Namespace filtering
+ * ({@code readableNamespaces}) is applied before matching so a caller never sees a result from
+ * a namespace they cannot read, regardless of how good the match is.
+ */
 @ApplicationScoped
 @Typed(GitHubSearchStore.class)
 public class GitHubSearchStore implements SearchStore {
