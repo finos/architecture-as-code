@@ -1,4 +1,8 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.access;
+
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -28,23 +32,36 @@ import java.nio.file.Path;
  * rebuilt only every {@code calm.github.sync-interval} seconds, so a symlink swapped
  * in between rebuilds (a TOCTOU window against {@code GitHubRepoSync}'s
  * {@code reset --hard}) would otherwise slip past a scan-time-only guard.
+ *
+ * <p>An injected bean rather than a static utility, deliberately: every GitHub store
+ * used to declare its own {@code @ConfigProperty("calm.github.clone-directory")} field
+ * purely to pass to a static call here — 8 duplicated fields, and one of them bypassing
+ * {@link GitHubStoreConfig}'s own documented reason for existing (runtime, not
+ * build-time, resolution under native image). Injecting {@link GitHubStoreConfig} here
+ * instead removes both problems in one move.
  */
-public final class GitHubFileReader {
+@ApplicationScoped
+public class NamespaceFileReader {
 
-    private GitHubFileReader() {
+    private final GitHubStoreConfig storeConfig;
+
+    @Inject
+    public NamespaceFileReader(GitHubStoreConfig storeConfig) {
+        this.storeConfig = storeConfig;
     }
 
     /**
-     * Reads {@code relativeFilePath} from within {@code cloneDirectory}/{@code namespace},
-     * refusing to follow a symlink — direct or via an intermediate path component — that
-     * would escape that namespace's own clone directory.
+     * Reads {@code relativeFilePath} from within the configured clone directory's
+     * {@code namespace} subdirectory, refusing to follow a symlink — direct or via an
+     * intermediate path component — that would escape that namespace's own clone
+     * directory.
      *
      * @throws NoSuchFileException if the resolved target is a symlink, does not exist, or
      *                              its real path falls outside the namespace's clone directory
      * @throws IOException         if the read itself fails
      */
-    public static String readContained(String cloneDirectory, String namespace, Path relativeFilePath) throws IOException {
-        Path namespaceRoot = Path.of(cloneDirectory, namespace);
+    public String readContained(String namespace, Path relativeFilePath) throws IOException {
+        Path namespaceRoot = storeConfig.getCloneDirectory().resolve(namespace);
         Path target = namespaceRoot.resolve(relativeFilePath);
         if (!isContained(namespaceRoot, target)) {
             throw new NoSuchFileException(target.toString());
@@ -56,13 +73,13 @@ public final class GitHubFileReader {
      * Same containment guard as {@link #readContained}, without reading the file — for
      * call sites (e.g. an optional sibling file) that need to check existence first.
      */
-    public static boolean existsContained(String cloneDirectory, String namespace, Path relativeFilePath) {
-        Path namespaceRoot = Path.of(cloneDirectory, namespace);
+    public boolean existsContained(String namespace, Path relativeFilePath) {
+        Path namespaceRoot = storeConfig.getCloneDirectory().resolve(namespace);
         Path target = namespaceRoot.resolve(relativeFilePath);
         return Files.exists(target) && isContained(namespaceRoot, target);
     }
 
-    private static boolean isContained(Path namespaceRoot, Path target) {
+    private boolean isContained(Path namespaceRoot, Path target) {
         // Reject a direct symlink target outright, regardless of where it points -
         // simplest and most defensible: repo content never legitimately needs to be a
         // symlink for any resource this reads.

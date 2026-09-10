@@ -4,7 +4,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Architecture;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
@@ -15,7 +14,7 @@ import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubFileReader;
+import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -38,14 +37,13 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     private final ResourceRegistry registryService;
 
     @Inject
-    @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
-    String cloneDirectory;
-
-    @Inject
     GitHubCloneManager cloneManager;
 
     @Inject
     GitHubVersionService versionService;
+
+    @Inject
+    NamespaceFileReader fileReader;
 
     @Inject
     public GitHubArchitectureStore(ResourceRegistry registryService) {
@@ -98,7 +96,7 @@ public class GitHubArchitectureStore implements ArchitectureStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            return GitHubFileReader.readContained(cloneDirectory, architecture.getNamespace(), entry.filePath());
+            return fileReader.readContained(architecture.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read architecture file: {}", entry.filePath(), e);
             throw new ArchitectureVersionNotFoundException();

@@ -6,7 +6,6 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
 import org.bson.json.JsonParseException;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.PatternNotFoundException;
@@ -18,7 +17,7 @@ import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubFileReader;
+import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -41,14 +40,13 @@ public class GitHubPatternStore implements PatternStore {
     private final ResourceRegistry registryService;
 
     @Inject
-    @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
-    String cloneDirectory;
-
-    @Inject
     GitHubCloneManager cloneManager;
 
     @Inject
     GitHubVersionService versionService;
+
+    @Inject
+    NamespaceFileReader fileReader;
 
     @Inject
     public GitHubPatternStore(ResourceRegistry registryService) {
@@ -101,7 +99,7 @@ public class GitHubPatternStore implements PatternStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            return GitHubFileReader.readContained(cloneDirectory, pattern.getNamespace(), entry.filePath());
+            return fileReader.readContained(pattern.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read pattern file: {}", entry.filePath(), e);
             throw new PatternVersionNotFoundException();

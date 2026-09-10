@@ -7,6 +7,8 @@ import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
@@ -218,7 +220,7 @@ class TestGitHubControlStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0");
 
         assertThat(content, equalTo("{\"control\":\"data\"}"));
@@ -293,7 +295,7 @@ class TestGitHubControlStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
 
         assertThrows(ControlRequirementVersionNotFoundException.class,
                 () -> store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0"));

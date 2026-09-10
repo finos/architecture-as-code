@@ -5,7 +5,6 @@ import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.CalmInterface;
 import org.finos.calm.domain.exception.InterfaceNotFoundException;
 import org.finos.calm.domain.exception.InterfaceVersionExistsException;
@@ -16,7 +15,7 @@ import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubFileReader;
+import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -39,14 +38,13 @@ public class GitHubInterfaceStore implements InterfaceStore {
     private final ResourceRegistry registryService;
 
     @Inject
-    @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
-    String cloneDirectory;
-
-    @Inject
     GitHubCloneManager cloneManager;
 
     @Inject
     GitHubVersionService versionService;
+
+    @Inject
+    NamespaceFileReader fileReader;
 
     @Inject
     public GitHubInterfaceStore(ResourceRegistry registryService) {
@@ -98,7 +96,7 @@ public class GitHubInterfaceStore implements InterfaceStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            return GitHubFileReader.readContained(cloneDirectory, namespace, entry.filePath());
+            return fileReader.readContained(namespace, entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read interface file: {}", entry.filePath(), e);
             throw new InterfaceVersionNotFoundException();

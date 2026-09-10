@@ -5,6 +5,8 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -152,7 +154,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
 

@@ -6,6 +6,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
@@ -168,7 +170,7 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
 
         String content = store.getInterfaceForVersion("finos", hashId, "1.0.0");

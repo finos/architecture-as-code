@@ -5,7 +5,6 @@ import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.exception.FlowNotFoundException;
 import org.finos.calm.domain.exception.FlowVersionExistsException;
@@ -16,7 +15,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubFileReader;
+import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -39,14 +38,13 @@ public class GitHubFlowStore implements FlowStore {
     private final ResourceRegistry registryService;
 
     @Inject
-    @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
-    String cloneDirectory;
-
-    @Inject
     GitHubCloneManager cloneManager;
 
     @Inject
     GitHubVersionService versionService;
+
+    @Inject
+    NamespaceFileReader fileReader;
 
     @Inject
     public GitHubFlowStore(ResourceRegistry registryService) {
@@ -99,7 +97,7 @@ public class GitHubFlowStore implements FlowStore {
 
         // Fallback: read from local clone (latest/HEAD)
         try {
-            return GitHubFileReader.readContained(cloneDirectory, flow.getNamespace(), entry.filePath());
+            return fileReader.readContained(flow.getNamespace(), entry.filePath());
         } catch (IOException e) {
             LOG.error("Failed to read flow file: {}", entry.filePath(), e);
             throw new FlowVersionNotFoundException();

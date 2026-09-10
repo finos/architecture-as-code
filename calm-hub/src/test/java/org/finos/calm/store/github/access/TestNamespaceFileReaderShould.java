@@ -1,5 +1,6 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.access;
 
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -13,7 +14,11 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
-class TestGitHubFileReaderShould {
+class TestNamespaceFileReaderShould {
+
+    private static NamespaceFileReader readerFor(Path cloneDirectory) {
+        return new NamespaceFileReader(new GitHubStoreConfig("", cloneDirectory.toString(), "https://api.github.com"));
+    }
 
     @Test
     void read_a_regular_file_within_the_namespace_directory(@TempDir Path cloneDirectory) throws IOException {
@@ -21,8 +26,7 @@ class TestGitHubFileReaderShould {
         Files.createDirectories(namespaceRoot.resolve("architectures"));
         Files.writeString(namespaceRoot.resolve("architectures/a.json"), "{}");
 
-        String content = GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
-                Path.of("architectures/a.json"));
+        String content = readerFor(cloneDirectory).readContained("finos", Path.of("architectures/a.json"));
 
         assertThat(content, equalTo("{}"));
     }
@@ -47,8 +51,7 @@ class TestGitHubFileReaderShould {
         Files.createSymbolicLink(symlink, secretFile);
 
         NoSuchFileException e = assertThrows(NoSuchFileException.class, () ->
-                GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
-                        Path.of("standards/leak.md")));
+                readerFor(cloneDirectory).readContained("finos", Path.of("standards/leak.md")));
         assertThat(e.getFile(), equalTo(symlink.toString()));
     }
 
@@ -59,15 +62,14 @@ class TestGitHubFileReaderShould {
         Path namespaceRoot = cloneDirectory.resolve("finos");
         Files.createDirectories(namespaceRoot.resolve("standards"));
 
-        Path outsideClonesEntirely = Files.createTempFile("github-file-reader-test", ".txt");
+        Path outsideClonesEntirely = Files.createTempFile("namespace-file-reader-test", ".txt");
         Files.writeString(outsideClonesEntirely, "host secret");
         try {
             Path symlink = namespaceRoot.resolve("standards/leak.md");
             Files.createSymbolicLink(symlink, outsideClonesEntirely);
 
             assertThrows(NoSuchFileException.class, () ->
-                    GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
-                            Path.of("standards/leak.md")));
+                    readerFor(cloneDirectory).readContained("finos", Path.of("standards/leak.md")));
         } finally {
             Files.deleteIfExists(outsideClonesEntirely);
         }
@@ -94,8 +96,7 @@ class TestGitHubFileReaderShould {
         Files.createSymbolicLink(namespaceRoot.resolve("standards"), otherNamespaceRoot.resolve("standards"));
 
         assertThrows(NoSuchFileException.class, () ->
-                GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
-                        Path.of("standards/leak.md")));
+                readerFor(cloneDirectory).readContained("finos", Path.of("standards/leak.md")));
     }
 
     @Test
@@ -103,8 +104,7 @@ class TestGitHubFileReaderShould {
         Files.createDirectories(cloneDirectory.resolve("finos"));
 
         assertThrows(NoSuchFileException.class, () ->
-                GitHubFileReader.readContained(cloneDirectory.toString(), "finos",
-                        Path.of("standards/does-not-exist.md")));
+                readerFor(cloneDirectory).readContained("finos", Path.of("standards/does-not-exist.md")));
     }
 
     @Test
@@ -117,8 +117,7 @@ class TestGitHubFileReaderShould {
         Files.writeString(outside, "secret");
         Files.createSymbolicLink(namespaceRoot.resolve("standards/a.md"), outside);
 
-        assertThat(GitHubFileReader.existsContained(cloneDirectory.toString(), "finos",
-                Path.of("standards/a.md")), equalTo(false));
+        assertThat(readerFor(cloneDirectory).existsContained("finos", Path.of("standards/a.md")), equalTo(false));
     }
 
     @Test
@@ -127,8 +126,7 @@ class TestGitHubFileReaderShould {
         Files.createDirectories(namespaceRoot.resolve("standards"));
         Files.writeString(namespaceRoot.resolve("standards/a.md"), "content");
 
-        assertThat(GitHubFileReader.existsContained(cloneDirectory.toString(), "finos",
-                Path.of("standards/a.md")), equalTo(true));
+        assertThat(readerFor(cloneDirectory).existsContained("finos", Path.of("standards/a.md")), equalTo(true));
     }
 
     private static boolean supportsSymlinks(Path dir) {

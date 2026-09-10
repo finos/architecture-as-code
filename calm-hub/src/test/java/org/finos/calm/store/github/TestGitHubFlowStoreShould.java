@@ -7,6 +7,8 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
 import org.finos.calm.store.github.registry.ResourceRegistry;
@@ -156,7 +158,7 @@ class TestGitHubFlowStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
         Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
 

@@ -3,6 +3,8 @@ package org.finos.calm.store.github;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -132,7 +134,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
         String content = store.getStandardForVersion("finos", hashId, "latest");
         assertThat(content, equalTo("{\"name\":\"Test Standard\"}"));
@@ -153,7 +155,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("policy".hashCode() & 0x7FFFFFFF);
         String content = store.getStandardForVersion("finos", hashId, "latest");
         assertThat(content, org.hamcrest.Matchers.startsWith("# Policy"));
@@ -227,7 +229,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
-        store.cloneDirectory = tempDir.toString();
+        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
 
         assertThrows(org.finos.calm.domain.exception.StandardVersionNotFoundException.class,
