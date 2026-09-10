@@ -2,6 +2,7 @@ package org.finos.calm.store.github.util;
 
 import org.finos.calm.observability.GitHubMetrics;
 import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

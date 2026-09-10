@@ -1,7 +1,6 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import org.finos.calm.store.github.config.GitHubStoreConfig;
-import org.finos.calm.store.github.sync.GitHubRepoSync;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -56,7 +55,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void transition_to_ready_when_all_clones_succeed() {
-        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main");
+        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(eq("finos/architecture-as-code"), eq("main"), any(), eq("test-token")))
                 .thenReturn(true);
@@ -68,7 +67,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void transition_to_failed_when_all_clones_fail() {
-        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main");
+        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(false);
 
@@ -79,8 +78,8 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void transition_to_degraded_when_some_clones_fail() {
-        cloneManager.registerNamespace("ns1", "org/repo1", "main");
-        cloneManager.registerNamespace("ns2", "org/repo2", "main");
+        cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
+        cloneManager.registerNamespace("ns2", "org/repo2", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(eq("org/repo1"), eq("main"), any(), any())).thenReturn(true);
         when(repoSync.cloneRepo(eq("org/repo2"), eq("main"), any(), any())).thenReturn(false);
@@ -92,7 +91,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void pull_instead_of_clone_when_repo_already_exists() {
-        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main");
+        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(true);
         when(repoSync.pullRepo(any(), eq("test-token"))).thenReturn(true);
 
@@ -103,7 +102,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void skip_pull_all_when_still_cloning() {
-        cloneManager.registerNamespace("finos", "finos/repo", "main");
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
         // State is INITIALIZING, pullAll should be a no-op
         cloneManager.pullAll();
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.INITIALIZING));
@@ -111,7 +110,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void pull_all_repos_and_stay_ready() {
-        cloneManager.registerNamespace("finos", "finos/repo", "main");
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
@@ -125,7 +124,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void transition_to_failed_on_pull_all_when_all_fail() {
-        cloneManager.registerNamespace("ns1", "org/repo1", "main");
+        cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
@@ -138,8 +137,8 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void return_namespace_clone_paths() {
-        cloneManager.registerNamespace("finos", "finos/repo", "main");
-        cloneManager.registerNamespace("team", "org/team-repo", "main");
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
+        cloneManager.registerNamespace("team", "org/team-repo", "main", Set.of());
 
         Map<String, Path> paths = cloneManager.getNamespaceClonePaths();
 
@@ -151,7 +150,7 @@ class TestGitHubCloneManagerShould {
     @Test
     void report_has_namespaces_correctly() {
         assertThat(cloneManager.hasNamespaces(), is(false));
-        cloneManager.registerNamespace("finos", "finos/repo", "main");
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
         assertThat(cloneManager.hasNamespaces(), is(true));
     }
 
@@ -168,7 +167,7 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void return_repo_for_registered_namespace() {
-        cloneManager.registerNamespace("finos", "finos/repo", "main");
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
         assertThat(cloneManager.getRepoForNamespace("finos"), equalTo("finos/repo"));
     }
 
@@ -179,8 +178,8 @@ class TestGitHubCloneManagerShould {
 
     @Test
     void transition_to_degraded_on_pull_all_when_some_fail() {
-        cloneManager.registerNamespace("ns1", "org/repo1", "main");
-        cloneManager.registerNamespace("ns2", "org/repo2", "main");
+        cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
+        cloneManager.registerNamespace("ns2", "org/repo2", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(false);
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
@@ -192,5 +191,18 @@ class TestGitHubCloneManagerShould {
         cloneManager.pullAll();
 
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.DEGRADED));
+    }
+
+    @Test
+    void delegate_head_sha_to_repo_sync_for_a_registered_namespace() {
+        cloneManager.registerNamespace("finos", "finos/repo", "main", Set.of());
+        when(repoSync.headSha(Path.of("/tmp/test-clones/finos"))).thenReturn("abc1234");
+
+        assertThat(cloneManager.headSha("finos"), equalTo("abc1234"));
+    }
+
+    @Test
+    void return_null_head_sha_for_an_unregistered_namespace() {
+        assertThat(cloneManager.headSha("unknown"), is(nullValue()));
     }
 }

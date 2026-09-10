@@ -14,7 +14,7 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;

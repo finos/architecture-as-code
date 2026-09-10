@@ -122,7 +122,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
-        org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
+        org.finos.calm.store.github.sync.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.sync.GitHubCloneManager.class);
         org.finos.calm.store.github.api.GitHubFileHistoryClient mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.api.GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
@@ -172,7 +172,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
-        org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
+        org.finos.calm.store.github.sync.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.sync.GitHubCloneManager.class);
         org.finos.calm.store.github.api.GitHubFileHistoryClient mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.api.GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;

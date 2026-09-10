@@ -16,7 +16,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.store.PageRequest;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;

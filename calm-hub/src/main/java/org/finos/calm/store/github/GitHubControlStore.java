@@ -19,7 +19,7 @@ import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundExceptio
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;

@@ -4,6 +4,7 @@ import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

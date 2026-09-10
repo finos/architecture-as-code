@@ -14,7 +14,7 @@ import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
 import org.finos.calm.store.InterfaceStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;

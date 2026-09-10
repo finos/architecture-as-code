@@ -6,6 +6,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

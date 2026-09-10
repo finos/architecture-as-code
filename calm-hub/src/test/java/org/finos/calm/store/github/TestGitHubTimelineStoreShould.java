@@ -9,7 +9,7 @@ import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;

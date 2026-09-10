@@ -12,7 +12,7 @@ import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.UserAccessStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.util.GitHubCloneManager;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.registry.ControlDomains;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.slf4j.Logger;

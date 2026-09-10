@@ -1,10 +1,9 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
-import org.finos.calm.store.github.sync.GitHubRepoSync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,8 +14,10 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Manages parallel cloning of all registered namespace repos on startup,
- * tracks clone state, and provides pull-all for periodic sync.
+ * Clones all registered namespace repos on startup — sequentially, not in parallel
+ * despite what an earlier version of this class claimed; see the tracking issue for
+ * parallelising {@link #cloneAll} and {@link #pullAll} — tracks clone state, and
+ * provides pull-all for periodic sync.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -40,10 +41,6 @@ public class GitHubCloneManager {
 
     public State getState() {
         return state;
-    }
-
-    public void registerNamespace(String name, String repoFullName, String branch) {
-        namespaceRepos.put(name, new NamespaceRepo(repoFullName, branch, Set.of()));
     }
 
     public void registerNamespace(String name, String repoFullName, String branch, Set<String> accessGroups) {
@@ -149,6 +146,20 @@ public class GitHubCloneManager {
     public String getBranchForNamespace(String namespace) {
         NamespaceRepo repo = namespaceRepos.get(namespace);
         return repo != null ? repo.branch() : null;
+    }
+
+    /**
+     * The commit SHA a namespace's clone directory currently holds — see
+     * {@link GitHubRepoSync#headSha}, which this delegates to. {@code null} if the
+     * namespace isn't registered or its clone directory isn't a valid repo yet (e.g.
+     * during the initial clone window).
+     */
+    public String headSha(String namespace) {
+        NamespaceRepo repo = namespaceRepos.get(namespace);
+        if (repo == null) {
+            return null;
+        }
+        return repoSync.headSha(config.getCloneDirectory().resolve(namespace));
     }
 
     record NamespaceRepo(String repoFullName, String branch, Set<String> accessGroups) {}
