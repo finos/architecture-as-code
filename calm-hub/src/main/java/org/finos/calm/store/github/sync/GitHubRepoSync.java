@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -7,6 +7,7 @@ import org.eclipse.jgit.api.CloneCommand;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ResetCommand;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.transport.UsernamePasswordCredentialsProvider;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.Logger;
@@ -26,9 +27,12 @@ public class GitHubRepoSync {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubRepoSync.class);
 
+    private final String githubBaseUrl;
+
     @Inject
-    @ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com")
-    String githubBaseUrl;
+    public GitHubRepoSync(@ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com") String githubBaseUrl) {
+        this.githubBaseUrl = githubBaseUrl;
+    }
 
     public boolean cloneRepo(String repoFullName, String branch, Path targetDir, String token) {
         String url = githubBaseUrl + "/" + repoFullName + ".git";
@@ -80,5 +84,28 @@ public class GitHubRepoSync {
 
     public boolean isValidRepo(Path repoDir) {
         return Files.isDirectory(repoDir.resolve(".git"));
+    }
+
+    /**
+     * The commit SHA a clone directory's working tree currently holds, truncated to 7
+     * characters to match the abbreviated SHAs {@code GitHubFileHistoryClient} returns from
+     * the GitHub commits API — a version list mixing 7-char and 40-char entries would be
+     * inconsistent. Every clone is {@code --depth 1} ({@link #cloneRepo}), so this is the
+     * only version the local tree can honestly attest to; anything else requires the API.
+     *
+     * @return the abbreviated HEAD SHA, or {@code null} if {@code repoDir} isn't a valid
+     * git repository (mirrors {@link #isValidRepo} rather than throwing).
+     */
+    public String headSha(Path repoDir) {
+        if (!isValidRepo(repoDir)) {
+            return null;
+        }
+        try (Git git = Git.open(repoDir.toFile())) {
+            ObjectId head = git.getRepository().resolve("HEAD");
+            return head == null ? null : head.abbreviate(7).name();
+        } catch (IOException e) {
+            LOG.error("Failed to resolve HEAD for {}: {}", repoDir.getFileName(), e.getMessage());
+            return null;
+        }
     }
 }

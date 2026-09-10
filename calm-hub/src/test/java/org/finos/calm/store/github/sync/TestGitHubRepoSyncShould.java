@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.sync;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -13,6 +13,8 @@ import java.nio.file.Path;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesPattern;
+import static org.hamcrest.Matchers.nullValue;
 
 class TestGitHubRepoSyncShould {
 
@@ -23,7 +25,7 @@ class TestGitHubRepoSyncShould {
 
     @BeforeEach
     void setup() {
-        repoSync = new GitHubRepoSync();
+        repoSync = new GitHubRepoSync("https://github.com");
     }
 
     @Test
@@ -136,13 +138,13 @@ class TestGitHubRepoSyncShould {
             origin.commit().setMessage("init").call();
         }
 
-        repoSync.githubBaseUrl = tempDir.toUri().toString().replaceAll("/$", "");
+        GitHubRepoSync localRepoSync = new GitHubRepoSync(tempDir.toUri().toString().replaceAll("/$", ""));
         Path cloneTarget = tempDir.resolve("cloned-real");
 
-        boolean result = repoSync.cloneRepo("myrepo", "main", cloneTarget, null);
+        boolean result = localRepoSync.cloneRepo("myrepo", "main", cloneTarget, null);
 
         assertThat(result, is(true));
-        assertThat(repoSync.isValidRepo(cloneTarget), is(true));
+        assertThat(localRepoSync.isValidRepo(cloneTarget), is(true));
     }
 
     @Test
@@ -166,5 +168,41 @@ class TestGitHubRepoSyncShould {
 
         boolean result = repoSync.pullRepo(cloneDir, "");
         assertThat(result, is(true));
+    }
+
+    @Test
+    void return_the_head_sha_of_a_valid_repo() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("head-sha-repo");
+        Files.createDirectories(originDir);
+        String expectedSha;
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("file.txt"), "content");
+            origin.add().addFilepattern("file.txt").call();
+            expectedSha = origin.commit().setMessage("initial").call().getName();
+        }
+
+        String headSha = repoSync.headSha(originDir);
+
+        assertThat(headSha, is(expectedSha.substring(0, 7)));
+    }
+
+    @Test
+    void return_a_seven_character_head_sha() throws GitAPIException, IOException {
+        Path originDir = tempDir.resolve("head-sha-length-repo");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("file.txt"), "content");
+            origin.add().addFilepattern("file.txt").call();
+            origin.commit().setMessage("initial").call();
+        }
+
+        String headSha = repoSync.headSha(originDir);
+
+        assertThat(headSha, matchesPattern("[0-9a-f]{7}"));
+    }
+
+    @Test
+    void return_null_head_sha_when_directory_is_not_a_repo() {
+        assertThat(repoSync.headSha(tempDir), is(nullValue()));
     }
 }
