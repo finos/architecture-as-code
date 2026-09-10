@@ -1,5 +1,6 @@
 package org.finos.calm.store.github.util;
 
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

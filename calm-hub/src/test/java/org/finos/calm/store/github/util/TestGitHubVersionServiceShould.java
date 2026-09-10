@@ -1,6 +1,7 @@
 package org.finos.calm.store.github.util;
 
 import com.sun.net.httpserver.HttpServer;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -45,10 +46,7 @@ class TestGitHubVersionServiceShould {
     void setup() {
         service = new GitHubVersionService();
         service.cache = cache;
-        storeConfig = new GitHubStoreConfig();
-        storeConfig.apiUrl = "https://api.github.com";
-        storeConfig.serviceToken = "test-token";
-        storeConfig.cloneDirectory = "/tmp/calm-hub-clones";
+        storeConfig = new GitHubStoreConfig("test-token", "/tmp/calm-hub-clones", "https://api.github.com");
         service.storeConfig = storeConfig;
         service.maxVersions = 100;
         service.connectTimeoutSeconds = 10;
@@ -61,6 +59,16 @@ class TestGitHubVersionServiceShould {
         if (server != null) {
             server.stop(0);
         }
+    }
+
+    private void setApiUrl(String apiUrl) {
+        storeConfig = new GitHubStoreConfig(storeConfig.getServiceToken(), storeConfig.getCloneDirectory().toString(), apiUrl);
+        service.storeConfig = storeConfig;
+    }
+
+    private void setServiceToken(String serviceToken) {
+        storeConfig = new GitHubStoreConfig(serviceToken, storeConfig.getCloneDirectory().toString(), storeConfig.getApiUrl());
+        service.storeConfig = storeConfig;
     }
 
     @Test
@@ -86,7 +94,7 @@ class TestGitHubVersionServiceShould {
 
     @Test
     void return_latest_when_no_token() {
-        storeConfig.serviceToken = "";
+        setServiceToken("");
         when(cache.getVersions(any(), any(), any())).thenReturn(Optional.empty());
 
         List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
@@ -173,7 +181,7 @@ class TestGitHubVersionServiceShould {
             exchange.close();
         });
         server.start();
-        storeConfig.apiUrl = "http://localhost:" + server.getAddress().getPort();
+        setApiUrl("http://localhost:" + server.getAddress().getPort());
 
         String content = service.getFileAtVersion("org/repo", "path/file.json", "abc1234");
 
@@ -192,7 +200,7 @@ class TestGitHubVersionServiceShould {
             exchange.close();
         });
         server.start();
-        storeConfig.apiUrl = "http://localhost:" + server.getAddress().getPort();
+        setApiUrl("http://localhost:" + server.getAddress().getPort());
 
         String content = service.getFileAtVersion("org/repo", "path/file.json", "abc1234");
 
@@ -212,7 +220,7 @@ class TestGitHubVersionServiceShould {
         int freedPort = server.getAddress().getPort();
         server.stop(0);
         server = null;
-        storeConfig.apiUrl = "http://localhost:" + freedPort;
+        setApiUrl("http://localhost:" + freedPort);
         // A closed local port can hang until the connect/request timeout rather than
         // refusing instantly - keep this test fast rather than waiting out the
         // production 10s/30s defaults set up in @BeforeEach.
@@ -233,7 +241,7 @@ class TestGitHubVersionServiceShould {
         int freedPort = server.getAddress().getPort();
         server.stop(0);
         server = null;
-        storeConfig.apiUrl = "http://localhost:" + freedPort;
+        setApiUrl("http://localhost:" + freedPort);
         service.connectTimeoutSeconds = 1;
         service.requestTimeoutSeconds = 1;
         service.init();
@@ -265,7 +273,7 @@ class TestGitHubVersionServiceShould {
             exchange.close();
         });
         server.start();
-        storeConfig.apiUrl = "http://localhost:" + server.getAddress().getPort();
+        setApiUrl("http://localhost:" + server.getAddress().getPort());
 
         List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
@@ -288,7 +296,7 @@ class TestGitHubVersionServiceShould {
             exchange.close();
         });
         server.start();
-        storeConfig.apiUrl = "http://localhost:" + server.getAddress().getPort();
+        setApiUrl("http://localhost:" + server.getAddress().getPort());
 
         List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
@@ -311,7 +319,7 @@ class TestGitHubVersionServiceShould {
             exchange.close();
         });
         server.start();
-        storeConfig.apiUrl = "http://localhost:" + server.getAddress().getPort();
+        setApiUrl("http://localhost:" + server.getAddress().getPort());
 
         List<String> result = service.getFileVersions("org/repo", "main", "path/file.json");
 
