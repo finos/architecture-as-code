@@ -1,6 +1,8 @@
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { useTheme } from '../../../theme/useTheme.js';
 import { ThemeToggle } from '../../../components/navbar/ThemeToggle.js';
+import { UserMenu } from '../../../components/user-menu/UserMenu.js';
+import { isAuthServiceEnabled } from '../../../authService.js';
 import { IntroSearchBar } from './IntroSearchBar.js';
 import { IntroBrowse } from './IntroBrowse.js';
 
@@ -27,8 +29,9 @@ export function IntroScreen({ namespaceCounts, domainCounts, storage }: IntroScr
 
     return (
         <div data-testid="intro-screen" className="relative h-screen overflow-auto bg-base-100">
-            <div className="absolute top-4 right-4 z-10">
+            <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
                 <ThemeToggle theme={theme} onToggle={toggleTheme} />
+                {isAuthServiceEnabled() && <UserMenu />}
             </div>
 
             <div className="min-h-full flex flex-col items-center px-6 py-16 sm:py-24">

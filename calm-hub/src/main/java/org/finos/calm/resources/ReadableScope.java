@@ -10,12 +10,14 @@ import java.util.function.BiFunction;
 
 /**
  * Shared resolution of the caller's readable namespaces/domains for the counts and search
- * endpoints, so the auth-bypass rule lives in exactly one place rather than being copied into
- * each resource: {@link Optional#empty()} (no filtering — see everything) when auth is disabled
- * or the {@link UserAccessValidator} is not resolvable (no-auth / standalone profile); otherwise
- * the validator's READ-sufficient set (itself empty for global-admin / public-read).
+ * endpoints (REST and the {@code SearchTools} MCP tool alike), so the auth-bypass rule lives
+ * in exactly one place rather than being copied into each caller: {@link Optional#empty()}
+ * (no filtering — see everything) when auth is disabled or the {@link UserAccessValidator} is
+ * not resolvable (no-auth / standalone profile — {@code UserAccessValidator} is otherwise
+ * unconditionally registered, see its own javadoc); otherwise the validator's READ-sufficient
+ * set (itself empty for global-admin / public-read).
  */
-interface ReadableScope {
+public interface ReadableScope {
 
     /**
      * @param authEnabled       whether authentication is enabled for this deployment

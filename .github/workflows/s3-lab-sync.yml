@@ -1,0 +1,52 @@
+# The bucket (lab.calm.finos.org), its CloudFront distribution, the DNS record, the TLS
+# certificate and the AWS_CLOUDFRONT_LAB_DISTRIBUTION_ID secret are provisioned outside this
+# repository. Until they exist this job fails loudly rather than silently publishing nowhere.
+name: Sync Lab to S3
+
+permissions:
+    contents: read
+
+on:
+    workflow_dispatch: {}
+    push:
+        branches: ['main']
+        paths:
+            - 'calm-lab/**'
+            - 'shared/**'
+            - 'calm-models/**'
+            - 'calm-widgets/**'
+            - 'calm/**'
+
+jobs:
+    sync-to-s3:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Build the lab (models → widgets → shared → lab)
+              run: npm run build:calm-lab
+
+            - name: Configure AWS credentials
+              uses: aws-actions/configure-aws-credentials@e6de054238d6b7531b4efff3b6587d9aade6a06c # v6
+              with:
+                  aws-access-key-id: ${{ secrets.AWS_S3_ACCESS_KEY }}
+                  aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
+                  aws-region: us-east-1
+
+            - name: Sync lab to S3
+              run: |
+                  aws s3 sync dist s3://lab.calm.finos.org/ --delete
+              working-directory: "calm-lab"
+
+            - name: Invalidate CloudFront cache
+              run: |
+                  aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_LAB_DISTRIBUTION_ID }} --paths "/*"

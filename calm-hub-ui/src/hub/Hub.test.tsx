@@ -4,6 +4,7 @@ import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import Hub from './Hub.js';
 import { vi, describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { authStore } from '../service/utils/auth-store.js';
+import { CountsService } from '../service/counts-service.js';
 import type { Data, Adr } from '../model/calm.js';
 import type { ControlData } from '../model/control.js';
 import type { InterfaceData } from '../model/interface.js';
@@ -473,6 +474,14 @@ describe('Hub', () => {
         it('renders DomainPage with the control count from counts on /domain/:domain', async () => {
             renderAt('/domain/security');
             expect(await screen.findByTestId('domain-page')).toHaveTextContent('Domain: security (3)');
+        });
+
+        it('passes an unknown (undefined) control count, not a misleading 0, when the domain counts fetch fails', async () => {
+            // A failed fetch means the count is unknown, not a confirmed zero —
+            // the same distinction Hub already makes for namespace counts.
+            vi.spyOn(CountsService.prototype, 'fetchDomainCounts').mockRejectedValueOnce(new Error('boom'));
+            renderAt('/domain/security');
+            expect(await screen.findByTestId('domain-page')).toHaveTextContent('Domain: security ()');
         });
 
         it('renders the intro (not a namespace/domain page) on the empty / route', async () => {

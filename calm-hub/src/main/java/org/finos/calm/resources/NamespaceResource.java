@@ -76,7 +76,13 @@ public class NamespaceResource {
     )
     @Authenticated
     public ValueWrapper<NamespaceInfo> namespaces() {
-        return new ValueWrapper<>(namespaceService.getNamespaces());
+        Optional<Set<String>> readable = resolveReadableNamespaces();
+        if (readable.isEmpty()) {
+            return new ValueWrapper<>(namespaceService.getNamespaces());
+        }
+        return new ValueWrapper<>(namespaceService.getNamespaces().stream()
+                .filter(ns -> readable.get().contains(ns.getName()))
+                .toList());
     }
 
     @GET
