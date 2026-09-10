@@ -123,7 +123,7 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                                                         {validation['allowed-values'].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 ) : (
-                                                    <input type="text" defaultValue={getConfigValue(control)} onInput={(e) => handleValueInput(key, (e.target as HTMLInputElement).value)} placeholder={validation?.example ?? 'Enter value...'} style={ctrlInputStyle} />
+                                                    <input type="text" defaultValue={getConfigValue(control)} onBlur={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={validation?.example ?? 'Enter value...'} style={ctrlInputStyle} />
                                                 )}
                                             </div>
                                         )}

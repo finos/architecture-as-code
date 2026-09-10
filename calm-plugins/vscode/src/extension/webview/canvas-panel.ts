@@ -3,10 +3,67 @@ import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
+import { HubClient } from '../services/hub-client';
+import { HubAssetService } from '../services/hub-asset-service';
+import { ShaCacheService } from '../services/sha-cache-service';
 import type {
     ExtToWebviewMessage,
     WebviewToExtMessage,
 } from '../types/messages';
+
+/**
+ * Parse a CURIE of the form `namespace:type:slug@version` into its components.
+ * Exported for unit testing.
+ */
+export function parseCurie(curie: string): {
+    namespace: string;
+    type: string;
+    slug: string;
+    version: string | undefined;
+} {
+    const parts = curie.split(':');
+    const namespace = parts[0] ?? '';
+    const type = parts[1] ?? '';
+    const slugAndVersion = parts.slice(2).join(':');
+    const atIndex = slugAndVersion.indexOf('@');
+    const slug =
+        atIndex === -1 ? slugAndVersion : slugAndVersion.substring(0, atIndex);
+    const version =
+        atIndex === -1 ? undefined : slugAndVersion.substring(atIndex + 1);
+    return { namespace, type, slug, version };
+}
+
+/**
+ * Pin unversioned control CURIEs in requirement-url fields with the parent's SHA.
+ * A CURIE has the form `ns:type:slug` — if it lacks `@version`, append `@sha`.
+ */
+function pinControlCuries(
+    controls: Record<string, unknown>,
+    sha: string
+): Record<string, unknown> {
+    const pinned: Record<string, unknown> = {};
+    for (const [key, ctrl] of Object.entries(controls)) {
+        if (!ctrl || typeof ctrl !== 'object') {
+            pinned[key] = ctrl;
+            continue;
+        }
+        const c = ctrl as Record<string, unknown>;
+        const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
+        if (!reqs?.length) {
+            pinned[key] = ctrl;
+            continue;
+        }
+        const pinnedReqs = reqs.map((req) => {
+            const url = req['requirement-url'];
+            if (typeof url !== 'string') return req;
+            // Already versioned or not a CURIE (no colons)
+            if (url.includes('@') || (url.match(/:/g) ?? []).length < 2) return req;
+            return { ...req, 'requirement-url': `${url}@${sha}` };
+        });
+        pinned[key] = { ...c, requirements: pinnedReqs };
+    }
+    return pinned;
+}
 
 export class CanvasPanel {
     private panel: vscode.WebviewPanel | undefined;
@@ -16,6 +73,9 @@ export class CanvasPanel {
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
     private exportService = new DiagramExportService();
+    private hubClient: HubClient | undefined;
+    private hubAssetService: HubAssetService | undefined;
+    private shaCache = new ShaCacheService();
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
 
@@ -34,6 +94,31 @@ export class CanvasPanel {
             `[CanvasPanel] constructor, workspaceRoot: ${workspaceRoot}`
         );
         this.assetService = new WorkspaceAssetService(workspaceRoot);
+        const hubUrl = vscode.workspace
+            .getConfiguration('calm.hub')
+            .get<string>('url');
+        if (hubUrl?.trim()) {
+            this.hubClient = new HubClient(hubUrl.trim());
+            this.hubAssetService = new HubAssetService(this.hubClient);
+            // Load stored auth token THEN refresh Hub assets
+            void this.context.secrets.get('calm.hub.token').then((token) => {
+                if (token) {
+                    this.hubClient!.setAuthHeaders({ Authorization: `Bearer ${token}` });
+                }
+                return this.hubAssetService!.refresh();
+            }).then(() => {
+                this.log.appendLine(
+                    `[CanvasPanel] Hub asset refresh complete: ${this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.buildingBlocks.length, 0)} blocks, ${this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.standards.length, 0)} standards`
+                );
+                if (this.scanReady && this.webviewReady) {
+                    this.sendAssets();
+                }
+            }).catch((err) => {
+                this.log.appendLine(
+                    `[CanvasPanel] Hub asset refresh failed: ${String(err)}`
+                );
+            });
+        }
         void this.assetService.scanAll().then(() => {
             const fn = this.assetService!.getBuildingBlocks();
             const p = this.assetService!.getPatterns();
@@ -162,6 +247,12 @@ export class CanvasPanel {
                     message.content
                 );
                 break;
+            case 'resolveDefinitionId':
+                void this.handleResolveDefinitionId(
+                    message.nodeId,
+                    message.curie
+                );
+                break;
         }
     }
 
@@ -172,18 +263,33 @@ export class CanvasPanel {
             json: this.currentDocument.getText(),
             source: 'file',
         });
+        // Kick off update check after initial data is sent
+        void this.checkForUpdates();
+    }
+
+    public refreshAssets(): void {
+        this.sendAssets();
     }
 
     private sendAssets(): void {
         if (!this.assetService) return;
-        const fn = this.assetService.getBuildingBlocks();
+        const localBlocks = this.assetService.getBuildingBlocks();
         const p = this.assetService.getPatterns();
         const t = this.assetService.getTemplates();
         const s = this.assetService.getStandards();
+
+        // Merge Hub-sourced blocks and standards — only show explicitly selected namespaces
+        const selectedNs: string[] = vscode.workspace
+            .getConfiguration('calm.hub')
+            .get<string[]>('selectedNamespaces') ?? [];
+        const hubBlocks = this.hubAssetService?.getAllBuildingBlocks(selectedNs) ?? [];
+        const hubStandards = this.hubAssetService?.getAllStandards(selectedNs) ?? [];
+        const allBlocks = [...localBlocks, ...hubBlocks, ...hubStandards];
+
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${fn.length} nodes, ${p.length} patterns, ${t.length} templates, ${s.length} standards`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks + ${hubStandards.length} hub standards), ${p.length} patterns, ${t.length} templates, ${s.length} standards`
         );
-        this.postMessage({ type: 'buildingBlocksLoaded', nodes: fn });
+        this.postMessage({ type: 'buildingBlocksLoaded', nodes: allBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: p });
         this.postMessage({ type: 'templatesLoaded', templates: t });
         this.postMessage({ type: 'standardsLoaded', standards: s });
@@ -494,6 +600,233 @@ export class CanvasPanel {
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+    }
+
+    private async handleResolveDefinitionId(
+        nodeId: string,
+        curie: string
+    ): Promise<void> {
+        this.log.appendLine(
+            `[CanvasPanel] resolveDefinitionId: nodeId="${nodeId}", curie="${curie}"`
+        );
+        try {
+            const { namespace, type, slug, version } = parseCurie(curie);
+            if (this.hubClient && version) {
+                // Check SHA cache first for offline-capable resolution
+                const cached = await this.shaCache.get(
+                    namespace,
+                    type,
+                    slug,
+                    version
+                );
+                if (cached) {
+                    const rawControls =
+                        (
+                            cached as {
+                                nodes?: Array<{
+                                    controls?: Record<string, unknown>;
+                                }>;
+                            }
+                        )?.nodes?.[0]?.controls ?? {};
+                    const pinned = pinControlCuries(rawControls, version);
+                    const controls = await this.enrichControlValidation(pinned);
+                    this.postMessage({
+                        type: 'definitionResolved',
+                        nodeId,
+                        controls,
+                    });
+                    this.log.appendLine(
+                        `[CanvasPanel] definitionResolved (cache hit): nodeId="${nodeId}", controls=${Object.keys(controls).length} keys`
+                    );
+                    return;
+                }
+
+                // Cache miss — fetch from Hub, then cache
+                const content = (await this.hubClient.getResourceAtVersion(
+                    namespace,
+                    type,
+                    slug,
+                    version
+                )) as { nodes?: Array<{ controls?: Record<string, unknown> }> };
+
+                await this.shaCache.put(
+                    namespace,
+                    type,
+                    slug,
+                    version,
+                    content
+                );
+
+                const rawControls = content?.nodes?.[0]?.controls ?? {};
+                const pinned = pinControlCuries(rawControls, version);
+                const controls = await this.enrichControlValidation(pinned);
+                this.postMessage({
+                    type: 'definitionResolved',
+                    nodeId,
+                    controls,
+                });
+                this.log.appendLine(
+                    `[CanvasPanel] definitionResolved (fetched + cached): nodeId="${nodeId}", controls=${Object.keys(controls).length} keys`
+                );
+            } else {
+                this.postMessage({
+                    type: 'definitionResolutionFailed',
+                    nodeId,
+                    error: 'Hub client not connected or no version in CURIE',
+                });
+            }
+        } catch (error) {
+            this.postMessage({
+                type: 'definitionResolutionFailed',
+                nodeId,
+                error: String(error),
+            });
+            this.log.appendLine(
+                `[CanvasPanel] definitionResolutionFailed: nodeId="${nodeId}", error="${String(error)}"`
+            );
+        }
+    }
+
+    /**
+     * Resolve each control's requirement-url CURIE to fetch its JSON Schema
+     * and extract validation metadata (allowed-values, pattern).
+     */
+    private async enrichControlValidation(
+        controls: Record<string, unknown>
+    ): Promise<Record<string, unknown>> {
+        if (!this.hubClient) return controls;
+
+        const enriched: Record<string, unknown> = {};
+        const fetchPromises: Array<Promise<void>> = [];
+
+        for (const [key, ctrl] of Object.entries(controls)) {
+            if (!ctrl || typeof ctrl !== 'object') {
+                enriched[key] = ctrl;
+                continue;
+            }
+            const c = ctrl as Record<string, unknown>;
+            const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
+            const url = reqs?.[0]?.['requirement-url'];
+            if (typeof url !== 'string' || !url.includes('@')) {
+                enriched[key] = ctrl;
+                continue;
+            }
+
+            const { namespace: ctrlNs, type: ctrlType, slug: ctrlSlug, version: ctrlVersion } = parseCurie(url);
+            if (!ctrlVersion) {
+                enriched[key] = ctrl;
+                continue;
+            }
+
+            const client = this.hubClient;
+            fetchPromises.push(
+                (async () => {
+                    try {
+                        const schema = await client.getResourceAtVersion(
+                            ctrlNs, ctrlType, ctrlSlug, ctrlVersion
+                        ) as Record<string, unknown>;
+
+                        const props = schema?.properties as Record<string, unknown> | undefined;
+                        const valueProp = props?.value as Record<string, unknown> | undefined;
+                        if (!valueProp) {
+                            enriched[key] = ctrl;
+                            return;
+                        }
+
+                        const validation: Record<string, unknown> = {};
+                        if (Array.isArray(valueProp.enum)) {
+                            validation['allowed-values'] = valueProp.enum;
+                        }
+                        if (typeof valueProp.pattern === 'string') {
+                            validation.pattern = valueProp.pattern;
+                        }
+                        if (typeof valueProp.description === 'string') {
+                            validation.example = valueProp.description;
+                        }
+
+                        if (Object.keys(validation).length > 0) {
+                            enriched[key] = {
+                                ...c,
+                                metadata: { ...(c.metadata as Record<string, unknown> ?? {}), validation },
+                            };
+                        } else {
+                            enriched[key] = ctrl;
+                        }
+                    } catch {
+                        enriched[key] = ctrl;
+                    }
+                })()
+            );
+        }
+
+        await Promise.all(fetchPromises);
+        // Fill any controls not handled by async fetches
+        for (const [key, ctrl] of Object.entries(controls)) {
+            if (!(key in enriched)) enriched[key] = ctrl;
+        }
+        return enriched;
+    }
+
+    /**
+     * Check for available updates by comparing pinned SHAs in the current document
+     * against the latest versions from the Hub. Sends an `updatesAvailable` message
+     * to the webview with a list of nodes that have newer versions.
+     */
+    private async checkForUpdates(): Promise<void> {
+        if (!this.hubClient || !this.currentDocument) return;
+
+        try {
+            const text = this.currentDocument.getText();
+            if (!text.trim()) return;
+            const arch = JSON.parse(text) as {
+                nodes?: Array<{
+                    'unique-id'?: string;
+                    'definition-id'?: string;
+                }>;
+            };
+            if (!arch?.nodes) return;
+
+            const updates: Array<{
+                nodeId: string;
+                currentSha: string;
+                latestSha: string;
+            }> = [];
+
+            for (const node of arch.nodes) {
+                const defId = node['definition-id'];
+                if (!defId) continue;
+                const { namespace, type, slug, version } = parseCurie(defId);
+                if (!version) continue;
+
+                try {
+                    const versions = await this.hubClient.getVersions(
+                        namespace,
+                        type,
+                        slug
+                    );
+                    if (versions.length === 0) continue;
+                    const latestSha = versions[versions.length - 1];
+                    if (latestSha !== version) {
+                        updates.push({
+                            nodeId: node['unique-id'] ?? '',
+                            currentSha: version,
+                            latestSha,
+                        });
+                    }
+                } catch {
+                    /* skip nodes that fail version lookup */
+                }
+            }
+
+            if (updates.length > 0) {
+                this.postMessage({ type: 'updatesAvailable', updates });
+                this.log.appendLine(
+                    `[CanvasPanel] ${updates.length} update(s) available`
+                );
+            }
+        } catch {
+            /* non-JSON document or other parse error */
+        }
     }
 
     private handleCanvasChanged(json: string): void {

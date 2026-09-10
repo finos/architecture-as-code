@@ -34,6 +34,24 @@ export type ExtToWebviewMessage =
           filePath: string;
           readonly?: boolean;
           solution?: SolutionMetadata;
+      }
+    | {
+          type: 'definitionResolved';
+          nodeId: string;
+          controls: Record<string, unknown>;
+      }
+    | {
+          type: 'definitionResolutionFailed';
+          nodeId: string;
+          error: string;
+      }
+    | {
+          type: 'updatesAvailable';
+          updates: Array<{
+              nodeId: string;
+              currentSha: string;
+              latestSha: string;
+          }>;
       };
 
 export type WebviewToExtMessage =
@@ -44,4 +62,5 @@ export type WebviewToExtMessage =
     | { type: 'requestStandardProse'; url: string }
     | { type: 'requestGenerateSpec' }
     | { type: 'saveBuildingBlock'; filename: string; content: string }
-    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string };
+    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
+    | { type: 'resolveDefinitionId'; nodeId: string; curie: string };

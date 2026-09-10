@@ -9,6 +9,10 @@ export interface BuildingBlockDef {
     controls: Record<string, unknown>;
     category?: string;
     nodeType?: string;
+    /** Hub namespace — present when this block was fetched from a remote CalmHub. */
+    namespace?: string;
+    /** Content-addressable SHA — present when this block was fetched from a remote CalmHub. */
+    sha?: string;
 }
 
 export interface PatternEntry {

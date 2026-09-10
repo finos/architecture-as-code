@@ -5,6 +5,31 @@ import { homedir } from 'os';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 
+// TODO: Add built-in CalmHub authentication for the CLI.
+// Currently auth uses a pluggable AuthPlugin (.js file) — works but requires custom code.
+//
+// Two modes needed:
+//
+// A) Developer workstation (interactive, one-time):
+//    `calm login` — OIDC Auth Code + PKCE via localhost callback (like VS Code plugin),
+//    chains into GitHub OAuth via Hub's PluginAuthResource, stores tokens in
+//    ~/.calm/credentials (encrypted or OS keychain). Subsequent commands auto-inject headers.
+//
+// B) CI / non-interactive (the harder problem):
+//    No browser, no human. Options to explore:
+//    - OAuth2 Client Credentials grant (machine-to-machine app registration in IdP)
+//    - Pre-obtained token via env var (CALM_HUB_TOKEN) — simplest, user provisions externally
+//    - GitHub Actions OIDC: runner gets a JWT from GitHub's OIDC provider, Hub trusts it
+//      as a federated identity (Azure Workload Identity Federation / similar)
+//    - GitHub App installation token: Hub accepts a GitHub App token directly for API access
+//    - Service principal / managed identity: Azure MI / AWS IAM Role → token exchange
+//
+//    The Hub needs to support at least one non-interactive grant type. Client Credentials
+//    is the most universal (works in any CI). GitHub Actions OIDC is zero-secret but
+//    GitHub-specific. Both may be needed.
+//
+// Hub-side: PluginAuthResource (or a new /api/calm/auth/token endpoint) must accept
+// client_credentials or token-exchange grants alongside the existing browser-based flow.
 export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
