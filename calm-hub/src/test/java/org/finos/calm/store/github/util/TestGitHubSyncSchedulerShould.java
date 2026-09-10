@@ -1,6 +1,7 @@
 package org.finos.calm.store.github.util;
 
 import org.finos.calm.observability.GitHubMetrics;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -23,7 +24,7 @@ class TestGitHubSyncSchedulerShould {
     private GitHubCloneManager cloneManager;
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     @Mock
     private GitHubMetrics metrics;

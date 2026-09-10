@@ -15,7 +15,7 @@ import org.finos.calm.domain.exception.AdrRevisionExistsException;
 import org.finos.calm.domain.exception.AdrRevisionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.AdrStore;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 
 import java.util.Collections;
 import java.util.List;
@@ -30,10 +30,10 @@ public class GitHubAdrStore implements AdrStore {
     private static final String VERSION_UNSUPPORTED =
             "Version history via GitHub API is not yet implemented.";
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
-    public GitHubAdrStore(InMemoryRegistryService registryService) {
+    public GitHubAdrStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 

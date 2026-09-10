@@ -2,6 +2,8 @@ package org.finos.calm.store.github.util;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.security.OidcRoleResolver;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +37,7 @@ class TestNamespaceAccessFilterShould {
     private OidcRoleResolver roleResolver;
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     @Mock
     private GitHubCloneManager cloneManager;
@@ -56,7 +58,7 @@ class TestNamespaceAccessFilterShould {
         filter.authEnabled = false;
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "private", List.of()),
-                Map.of(), Map.of());
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Set<String> result = filter.getAccessibleNamespaces();
@@ -68,7 +70,7 @@ class TestNamespaceAccessFilterShould {
     void return_empty_when_identity_is_anonymous() {
         filter.authEnabled = true;
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of()), Map.of(), Map.of());
+                Map.of("finos", List.of()), Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(true);
 
@@ -82,7 +84,7 @@ class TestNamespaceAccessFilterShould {
         filter.authEnabled = true;
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "private", List.of(), "restricted", List.of()),
-                Map.of(), Map.of());
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);
@@ -105,7 +107,7 @@ class TestNamespaceAccessFilterShould {
     void return_empty_when_no_namespaces_match() {
         filter.authEnabled = true;
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("private", List.of()), Map.of(), Map.of());
+                Map.of("private", List.of()), Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);

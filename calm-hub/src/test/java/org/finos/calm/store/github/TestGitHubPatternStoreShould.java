@@ -7,12 +7,12 @@ import org.finos.calm.domain.exception.PatternVersionNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubPatternStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubPatternStore store;
 
@@ -49,15 +49,13 @@ class TestGitHubPatternStoreShould {
     @Test
     void return_patterns_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         List<NamespaceResourceSummary> result = store.getPatternsForNamespace("finos", PageRequest.UNPAGED);
 
@@ -114,14 +112,12 @@ class TestGitHubPatternStoreShould {
     @Test
     void return_versions_list_for_existing_pattern() throws Exception {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
@@ -134,14 +130,12 @@ class TestGitHubPatternStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -168,14 +162,12 @@ class TestGitHubPatternStoreShould {
         Files.writeString(patternDir.resolve("event-driven.json"), "{\"nodes\":[],\"relationships\":[]}");
 
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
@@ -188,14 +180,12 @@ class TestGitHubPatternStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -216,14 +206,12 @@ class TestGitHubPatternStoreShould {
     @Test
     void throw_pattern_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
-                CalmResourceType.PATTERN, "Event Driven", Instant.now());
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:event-driven", entry),
-                Map.of(CalmResourceType.PATTERN, List.of(entry))
-        );
+                Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(99999).build();
         assertThrows(PatternNotFoundException.class, () -> store.getPatternVersions(pattern));

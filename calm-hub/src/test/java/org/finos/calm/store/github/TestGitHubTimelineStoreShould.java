@@ -6,12 +6,12 @@ import org.finos.calm.domain.exception.TimelineVersionNotFoundException;
 import org.finos.calm.domain.timeline.CreateTimelineRequest;
 import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +38,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubTimelineStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubTimelineStore store;
 
@@ -51,11 +51,9 @@ class TestGitHubTimelineStoreShould {
     void return_empty_timelines_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of());
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of());
 
         List<NamespaceTimelineSummary> result = store.getTimelinesForNamespace("finos");
 
@@ -65,15 +63,13 @@ class TestGitHubTimelineStoreShould {
     @Test
     void return_timelines_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         List<NamespaceTimelineSummary> result = store.getTimelinesForNamespace("finos");
 
@@ -118,14 +114,12 @@ class TestGitHubTimelineStoreShould {
     @Test
     void return_versions_list_for_existing_timeline() throws Exception {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
         Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(hashId).build();
@@ -138,14 +132,12 @@ class TestGitHubTimelineStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -172,14 +164,12 @@ class TestGitHubTimelineStoreShould {
         Files.writeString(timelineDir.resolve("release-timeline.json"), "{\"milestones\":[]}");
 
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
@@ -192,14 +182,12 @@ class TestGitHubTimelineStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -220,14 +208,12 @@ class TestGitHubTimelineStoreShould {
     @Test
     void throw_timeline_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry("release-timeline", Path.of("timelines/release-timeline.json"),
-                CalmResourceType.TIMELINE, "Release Timeline", Instant.now());
+                RegistryResourceType.TIMELINE, "Release Timeline", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:release-timeline", entry),
-                Map.of(CalmResourceType.TIMELINE, List.of(entry))
-        );
+                Map.of("finos:release-timeline", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.TIMELINE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         Timeline timeline = new Timeline.TimelineBuilder().setNamespace("finos").setId(99999).build();
         assertThrows(TimelineNotFoundException.class, () -> store.getTimelineVersions(timeline));

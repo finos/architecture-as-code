@@ -7,6 +7,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.observability.GitHubMetrics;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,7 +25,7 @@ public class GitHubSyncScheduler {
     private static final Logger LOG = LoggerFactory.getLogger(GitHubSyncScheduler.class);
 
     private final GitHubCloneManager cloneManager;
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
     private final GitHubMetrics metrics;
 
     // @LookupIfProperty does not stop @Scheduled invocation once this bean exists - see
@@ -35,7 +36,7 @@ public class GitHubSyncScheduler {
 
     @Inject
     public GitHubSyncScheduler(GitHubCloneManager cloneManager,
-                               InMemoryRegistryService registryService,
+                               ResourceRegistry registryService,
                                GitHubMetrics metrics) {
         this.cloneManager = cloneManager;
         this.registryService = registryService;

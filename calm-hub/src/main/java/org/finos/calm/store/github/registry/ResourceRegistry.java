@@ -1,5 +1,6 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.registry;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.json.Json;
@@ -15,24 +16,30 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Stream;
 
+/**
+ * In-memory index of every CALM resource file across all GitHub-mode namespace clones,
+ * rebuilt from scratch each time {@link #rebuild} runs (on startup, and on the periodic
+ * sync schedule). Reads always see one atomically-published, immutable
+ * {@link RegistrySnapshot} — never a partially-built one.
+ */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
-public class InMemoryRegistryService {
+public class ResourceRegistry {
 
-    private static final Logger LOG = LoggerFactory.getLogger(InMemoryRegistryService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(ResourceRegistry.class);
 
     private volatile RegistrySnapshot snapshot = RegistrySnapshot.EMPTY;
 
     private final CalmContentDetector contentDetector;
 
     @Inject
-    public InMemoryRegistryService(CalmContentDetector contentDetector) {
+    public ResourceRegistry(CalmContentDetector contentDetector) {
         this.contentDetector = contentDetector;
     }
 
@@ -43,7 +50,6 @@ public class InMemoryRegistryService {
     public void rebuild(Map<String, Path> namespaceClonePaths) {
         Map<String, List<RegistryEntry>> byNamespace = new HashMap<>();
         Map<String, RegistryEntry> byQualifiedId = new HashMap<>();
-        Map<CalmResourceType, List<RegistryEntry>> byType = new EnumMap<>(CalmResourceType.class);
 
         for (Map.Entry<String, Path> entry : namespaceClonePaths.entrySet()) {
             String namespace = entry.getKey();
@@ -54,14 +60,12 @@ public class InMemoryRegistryService {
 
             for (RegistryEntry registryEntry : entries) {
                 byQualifiedId.put(namespace + ":" + registryEntry.uniqueId(), registryEntry);
-                byType.computeIfAbsent(registryEntry.type(), k -> new ArrayList<>()).add(registryEntry);
             }
         }
 
         this.snapshot = new RegistrySnapshot(
                 Map.copyOf(byNamespace),
-                Map.copyOf(byQualifiedId),
-                Map.copyOf(byType)
+                Map.copyOf(byQualifiedId)
         );
         LOG.info("Registry rebuilt: {} namespaces, {} total entries",
                 byNamespace.size(), byQualifiedId.size());
@@ -71,7 +75,7 @@ public class InMemoryRegistryService {
         return snapshot.findByUniqueId(namespace, uniqueId);
     }
 
-    public List<RegistryEntry> listByType(String namespace, CalmResourceType type) {
+    public List<RegistryEntry> listByType(String namespace, RegistryResourceType type) {
         return snapshot.listByType(namespace, type);
     }
 
@@ -94,7 +98,7 @@ public class InMemoryRegistryService {
                     .filter(p -> !isHiddenOrMetadata(root, p))
                     .forEach(filePath -> {
                         RegistryEntry entry = parseFile(root, filePath);
-                        if (entry != null && entry.type() != CalmResourceType.UNKNOWN) {
+                        if (entry != null) {
                             entries.add(entry);
                         }
                     });
@@ -115,9 +119,9 @@ public class InMemoryRegistryService {
             }
 
             String content = Files.readString(filePath);
-            CalmResourceType type = contentDetector.detect(content, relativePath);
+            Optional<RegistryResourceType> type = contentDetector.detect(content, relativePath);
 
-            if (type == CalmResourceType.UNKNOWN) {
+            if (type.isEmpty()) {
                 return null;
             }
 
@@ -125,7 +129,7 @@ public class InMemoryRegistryService {
             String name = extractName(content, relativePath);
             Instant lastModified = Files.getLastModifiedTime(filePath).toInstant();
 
-            return new RegistryEntry(uniqueId, relativePath, type, name, lastModified);
+            return new RegistryEntry(uniqueId, relativePath, type.get(), name, lastModified);
         } catch (IOException e) {
             LOG.debug("Failed to parse file: {}", filePath, e);
             return null;
@@ -133,8 +137,8 @@ public class InMemoryRegistryService {
     }
 
     private RegistryEntry parseMarkdownFile(Path filePath, Path relativePath) throws IOException {
-        CalmResourceType type = detectMarkdownType(relativePath);
-        if (type == CalmResourceType.UNKNOWN) {
+        RegistryResourceType type = detectMarkdownType(relativePath);
+        if (type == null) {
             return null;
         }
         String fileName = filePath.getFileName().toString().replace(".md", "");
@@ -146,16 +150,16 @@ public class InMemoryRegistryService {
         return new RegistryEntry(fileName, relativePath, type, name, lastModified);
     }
 
-    private CalmResourceType detectMarkdownType(Path relativePath) {
+    private RegistryResourceType detectMarkdownType(Path relativePath) {
         for (int i = 0; i < relativePath.getNameCount() - 1; i++) {
             String segment = relativePath.getName(i).toString().toLowerCase();
             switch (segment) {
-                case "standards", "building-blocks": return CalmResourceType.STANDARD;
-                case "adrs": return CalmResourceType.ADR;
+                case "standards", "building-blocks": return RegistryResourceType.STANDARD;
+                case "adrs": return RegistryResourceType.ADR;
                 default: break;
             }
         }
-        return CalmResourceType.UNKNOWN;
+        return null;
     }
 
     private String extractUniqueId(String content, Path relativePath) {

@@ -5,12 +5,12 @@ import org.finos.calm.domain.exception.InterfaceVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.interfaces.NamespaceInterfaceSummary;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,7 +37,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubInterfaceStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubInterfaceStore store;
 
@@ -50,11 +50,9 @@ class TestGitHubInterfaceStoreShould {
     void return_empty_interfaces_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of());
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of());
 
         List<NamespaceInterfaceSummary> result = store.getInterfacesForNamespace("finos");
 
@@ -64,15 +62,13 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void return_interfaces_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         List<NamespaceInterfaceSummary> result = store.getInterfacesForNamespace("finos");
 
@@ -117,14 +113,12 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void return_versions_list_for_existing_interface() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
         List<String> versions = store.getInterfaceVersions("finos", hashId);
@@ -136,14 +130,12 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -169,14 +161,12 @@ class TestGitHubInterfaceStoreShould {
         Files.writeString(ifaceDir.resolve("payment-api.json"), "{\"operations\":[]}");
 
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
@@ -188,14 +178,12 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -215,14 +203,12 @@ class TestGitHubInterfaceStoreShould {
     @Test
     void throw_interface_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
-                CalmResourceType.INTERFACE, "Payment API", Instant.now());
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-api", entry),
-                Map.of(CalmResourceType.INTERFACE, List.of(entry))
-        );
+                Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         assertThrows(InterfaceNotFoundException.class, () -> store.getInterfaceVersions("finos", 99999));
     }

@@ -2,8 +2,8 @@ package org.finos.calm.store.github;
 
 import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubDecoratorStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubDecoratorStore store;
 
@@ -38,9 +38,7 @@ class TestGitHubDecoratorStoreShould {
     void return_empty_decorators_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<Integer> result = store.getDecoratorsForNamespace("finos", "target", "type");
@@ -52,9 +50,7 @@ class TestGitHubDecoratorStoreShould {
     void return_empty_decorator_values_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<Decorator> result = store.getDecoratorValuesForNamespace("finos", "target", "type");
@@ -66,9 +62,7 @@ class TestGitHubDecoratorStoreShould {
     void return_empty_optional_for_decorator_by_id() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         Optional<Decorator> result = store.getDecoratorById("finos", 1);

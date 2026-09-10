@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.registry;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,21 +18,21 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 
-class TestInMemoryRegistryServiceShould {
+class TestResourceRegistryShould {
 
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     @TempDir
     Path tempDir;
 
     @BeforeEach
     void setup() {
-        registryService = new InMemoryRegistryService(new CalmContentDetector());
+        registryService = new ResourceRegistry(new CalmContentDetector());
     }
 
     @Test
     void return_empty_snapshot_before_rebuild() {
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, is(empty()));
     }
 
@@ -45,7 +45,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("payment-platform"));
         assertThat(entries.get(0).name(), equalTo("Payment Platform"));
@@ -60,7 +60,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.PATTERN);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.PATTERN);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("event-driven"));
     }
@@ -74,7 +74,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("my-system"));
     }
@@ -113,7 +113,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("real"));
     }
@@ -129,9 +129,9 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("team-a", ns1, "team-b", ns2));
 
-        assertThat(registryService.listByType("team-a", CalmResourceType.ARCHITECTURE), hasSize(1));
-        assertThat(registryService.listByType("team-b", CalmResourceType.PATTERN), hasSize(1));
-        assertThat(registryService.listByType("team-a", CalmResourceType.PATTERN), is(empty()));
+        assertThat(registryService.listByType("team-a", RegistryResourceType.ARCHITECTURE), hasSize(1));
+        assertThat(registryService.listByType("team-b", RegistryResourceType.PATTERN), hasSize(1));
+        assertThat(registryService.listByType("team-a", RegistryResourceType.PATTERN), is(empty()));
     }
 
     @Test
@@ -160,7 +160,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("good"));
     }
@@ -189,7 +189,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("vm-sizing"));
     }
@@ -214,7 +214,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("auth-block"));
     }
@@ -233,7 +233,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
         assertThat(entries, hasSize(2));
     }
 
@@ -246,14 +246,14 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
         assertThat(entries, is(empty()));
     }
 
     @Test
     void return_empty_list_for_unknown_namespace() {
         registryService.rebuild(Map.of());
-        List<RegistryEntry> entries = registryService.listByType("nonexistent", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("nonexistent", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, is(empty()));
     }
 
@@ -284,7 +284,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, is(empty()));
     }
 
@@ -292,7 +292,7 @@ class TestInMemoryRegistryServiceShould {
     void handle_nonexistent_clone_path() {
         registryService.rebuild(Map.of("finos", tempDir.resolve("does-not-exist")));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, is(empty()));
     }
 }

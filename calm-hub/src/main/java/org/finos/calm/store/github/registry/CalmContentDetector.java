@@ -1,5 +1,6 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.registry;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
@@ -7,6 +8,7 @@ import jakarta.json.JsonReader;
 
 import java.io.StringReader;
 import java.nio.file.Path;
+import java.util.Optional;
 
 /**
  * Detects CALM resource types from JSON content and file path conventions.
@@ -14,7 +16,7 @@ import java.nio.file.Path;
  * JSON structure signals (nodes[], relationships[], moments[]) and parent
  * directory naming conventions (architectures/, patterns/, etc.).
  *
- * <p>{@code building-blocks/} is deliberately aliased to {@link CalmResourceType#STANDARD}
+ * <p>{@code building-blocks/} is deliberately aliased to {@link RegistryResourceType#STANDARD}
  * rather than kept as its own type. "Building Block" was introduced as a new CALM Hub
  * resource type without going through the CALM concept design process; Office Hours
  * (2026-09-10, #3052) agreed it should be modelled as a {@code Standard} instead. Keeping
@@ -22,45 +24,46 @@ import java.nio.file.Path;
  * plugin's building-blocks-directory convention for CALM/architecture JSON files keep
  * working — only the domain concept goes away, not the file layout.</p>
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
 public class CalmContentDetector {
 
-    public CalmResourceType detect(String jsonContent, Path filePath) {
+    public Optional<RegistryResourceType> detect(String jsonContent, Path filePath) {
         if (jsonContent == null || jsonContent.isBlank()) {
-            return CalmResourceType.UNKNOWN;
+            return Optional.empty();
         }
 
         JsonObject json;
         try (JsonReader reader = Json.createReader(new StringReader(jsonContent))) {
             json = reader.readObject();
         } catch (Exception e) {
-            return CalmResourceType.UNKNOWN;
+            return Optional.empty();
         }
 
         String parentDir = getParentDirectoryName(filePath);
 
         if (isTimeline(json)) {
-            return CalmResourceType.TIMELINE;
+            return Optional.of(RegistryResourceType.TIMELINE);
         }
 
         if (hasNodesOrRelationships(json)) {
-            return detectByDirectoryHint(parentDir, CalmResourceType.UNKNOWN);
+            return detectByDirectoryHint(parentDir);
         }
 
         if (hasSchemaMatching(json, "flow")) {
-            return CalmResourceType.FLOW;
+            return Optional.of(RegistryResourceType.FLOW);
         }
 
         if (hasSchemaMatching(json, "interface")) {
-            return CalmResourceType.INTERFACE;
+            return Optional.of(RegistryResourceType.INTERFACE);
         }
 
         if (hasSchemaMatching(json, "control")) {
-            return CalmResourceType.CONTROL;
+            return Optional.of(RegistryResourceType.CONTROL);
         }
 
         if (hasSchemaMatching(json, "decorator")) {
-            return CalmResourceType.DECORATOR;
+            return Optional.of(RegistryResourceType.DECORATOR);
         }
 
         return detectByDirectoryOnly(parentDir);
@@ -84,33 +87,33 @@ public class CalmContentDetector {
         return schema.toLowerCase().contains(keyword);
     }
 
-    private CalmResourceType detectByDirectoryHint(String parentDir, CalmResourceType fallback) {
-        if (parentDir == null) return fallback;
+    private Optional<RegistryResourceType> detectByDirectoryHint(String parentDir) {
+        if (parentDir == null) return Optional.empty();
         return switch (parentDir.toLowerCase()) {
-            case "patterns" -> CalmResourceType.PATTERN;
-            case "architectures" -> CalmResourceType.ARCHITECTURE;
-            case "standards", "building-blocks" -> CalmResourceType.STANDARD;
-            case "flows" -> CalmResourceType.FLOW;
-            case "interfaces" -> CalmResourceType.INTERFACE;
-            case "adrs" -> CalmResourceType.ADR;
-            case "decorators" -> CalmResourceType.DECORATOR;
-            default -> fallback;
+            case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
+            case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
+            case "standards", "building-blocks" -> Optional.of(RegistryResourceType.STANDARD);
+            case "flows" -> Optional.of(RegistryResourceType.FLOW);
+            case "interfaces" -> Optional.of(RegistryResourceType.INTERFACE);
+            case "adrs" -> Optional.of(RegistryResourceType.ADR);
+            case "decorators" -> Optional.of(RegistryResourceType.DECORATOR);
+            default -> Optional.empty();
         };
     }
 
-    private CalmResourceType detectByDirectoryOnly(String parentDir) {
-        if (parentDir == null) return CalmResourceType.UNKNOWN;
+    private Optional<RegistryResourceType> detectByDirectoryOnly(String parentDir) {
+        if (parentDir == null) return Optional.empty();
         return switch (parentDir.toLowerCase()) {
-            case "architectures" -> CalmResourceType.ARCHITECTURE;
-            case "patterns" -> CalmResourceType.PATTERN;
-            case "standards", "building-blocks" -> CalmResourceType.STANDARD;
-            case "controls" -> CalmResourceType.CONTROL;
-            case "adrs" -> CalmResourceType.ADR;
-            case "flows" -> CalmResourceType.FLOW;
-            case "interfaces" -> CalmResourceType.INTERFACE;
-            case "timelines" -> CalmResourceType.TIMELINE;
-            case "decorators" -> CalmResourceType.DECORATOR;
-            default -> CalmResourceType.UNKNOWN;
+            case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
+            case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
+            case "standards", "building-blocks" -> Optional.of(RegistryResourceType.STANDARD);
+            case "controls" -> Optional.of(RegistryResourceType.CONTROL);
+            case "adrs" -> Optional.of(RegistryResourceType.ADR);
+            case "flows" -> Optional.of(RegistryResourceType.FLOW);
+            case "interfaces" -> Optional.of(RegistryResourceType.INTERFACE);
+            case "timelines" -> Optional.of(RegistryResourceType.TIMELINE);
+            case "decorators" -> Optional.of(RegistryResourceType.DECORATOR);
+            default -> Optional.empty();
         };
     }
 

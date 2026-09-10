@@ -5,7 +5,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -17,7 +17,7 @@ import static io.restassured.RestAssured.given;
 
 /**
  * End-to-end proof, against real local git repos (no mocking of GitHubUserAccessStore,
- * GitHubCloneManager, or InMemoryRegistryService) that the DOMAIN_READ grants
+ * GitHubCloneManager, or ResourceRegistry) that the DOMAIN_READ grants
  * GitHubUserAccessStore derives actually gate the {@code /api/calm/domains/{domain}/controls}
  * endpoint correctly - both that a domain within an accessible namespace is readable,
  * and that a domain that only exists in a namespace the caller cannot access is not
@@ -37,7 +37,7 @@ class GitHubUserAccessDomainReadIntegration {
     GitHubCloneManager cloneManager;
 
     @Inject
-    InMemoryRegistryService registryService;
+    ResourceRegistry registryService;
 
     private static final Set<String> EXPECTED_NAMESPACES = Set.of("finos", "other");
 

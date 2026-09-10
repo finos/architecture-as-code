@@ -2,9 +2,9 @@ package org.finos.calm.store.github;
 
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubNamespaceStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubNamespaceStore store;
 
@@ -38,9 +38,7 @@ class TestGitHubNamespaceStoreShould {
     void return_namespaces_from_registry() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "team", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<NamespaceInfo> result = store.getNamespaces();
@@ -52,9 +50,7 @@ class TestGitHubNamespaceStoreShould {
     void return_true_when_namespace_exists() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThat(store.namespaceExists("finos"), is(true));

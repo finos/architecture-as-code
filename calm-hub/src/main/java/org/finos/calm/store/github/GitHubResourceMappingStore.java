@@ -10,9 +10,9 @@ import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.ResourceMappingStore;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,10 +24,10 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     private static final String WRITE_UNSUPPORTED =
             "Resource ID mapping is managed by the GitHub repository. Writes are not supported in GitHub storage mode.";
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
-    public GitHubResourceMappingStore(InMemoryRegistryService registryService) {
+    public GitHubResourceMappingStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 
@@ -35,7 +35,7 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     public ResourceMapping getMapping(String namespace, ResourceType type, String customId)
             throws MappingNotFoundException, NamespaceNotFoundException {
         verifyNamespace(namespace);
-        CalmResourceType calmType = toCalmResourceType(type);
+        RegistryResourceType calmType = toRegistryResourceType(type);
         Optional<RegistryEntry> entry = registryService.findByUniqueId(namespace, customId);
         if (entry.isEmpty() || entry.get().type() != calmType) {
             throw new MappingNotFoundException();
@@ -47,7 +47,7 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     public List<ResourceMapping> listMappings(String namespace, ResourceType typeFilter)
             throws NamespaceNotFoundException {
         verifyNamespace(namespace);
-        CalmResourceType calmType = toCalmResourceType(typeFilter);
+        RegistryResourceType calmType = toRegistryResourceType(typeFilter);
         return registryService.listByType(namespace, calmType).stream()
                 .map(e -> toResourceMapping(namespace, typeFilter, e))
                 .toList();
@@ -57,7 +57,7 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     public ResourceMapping getMappingByNumericId(String namespace, ResourceType type, int numericId)
             throws MappingNotFoundException, NamespaceNotFoundException {
         verifyNamespace(namespace);
-        CalmResourceType calmType = toCalmResourceType(type);
+        RegistryResourceType calmType = toRegistryResourceType(type);
         Optional<RegistryEntry> found = registryService.listByType(namespace, calmType).stream()
                 .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == numericId)
                 .findFirst();
@@ -71,7 +71,7 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
     public List<ResourceMapping> listMappingsByNumericIds(String namespace, ResourceType type, List<Integer> ids)
             throws NamespaceNotFoundException {
         verifyNamespace(namespace);
-        CalmResourceType calmType = toCalmResourceType(type);
+        RegistryResourceType calmType = toRegistryResourceType(type);
         return registryService.listByType(namespace, calmType).stream()
                 .filter(e -> ids.contains(e.uniqueId().hashCode() & 0x7FFFFFFF))
                 .map(e -> toResourceMapping(namespace, type, e))
@@ -111,13 +111,13 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
                 .build();
     }
 
-    static CalmResourceType toCalmResourceType(ResourceType type) {
+    static RegistryResourceType toRegistryResourceType(ResourceType type) {
         return switch (type) {
-            case PATTERN -> CalmResourceType.PATTERN;
-            case ARCHITECTURE -> CalmResourceType.ARCHITECTURE;
-            case FLOW -> CalmResourceType.FLOW;
-            case STANDARD -> CalmResourceType.STANDARD;
-            case INTERFACE -> CalmResourceType.INTERFACE;
+            case PATTERN -> RegistryResourceType.PATTERN;
+            case ARCHITECTURE -> RegistryResourceType.ARCHITECTURE;
+            case FLOW -> RegistryResourceType.FLOW;
+            case STANDARD -> RegistryResourceType.STANDARD;
+            case INTERFACE -> RegistryResourceType.INTERFACE;
         };
     }
 

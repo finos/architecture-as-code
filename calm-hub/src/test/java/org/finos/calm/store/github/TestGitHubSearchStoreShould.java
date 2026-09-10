@@ -1,8 +1,8 @@
 package org.finos.calm.store.github;
 
 import org.finos.calm.domain.search.GroupedSearchResults;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubSearchStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubSearchStore store;
 
@@ -72,13 +72,12 @@ class TestGitHubSearchStoreShould {
 
     @Test
     void find_entries_matching_query_by_name() {
-        org.finos.calm.store.github.util.RegistryEntry entry = new org.finos.calm.store.github.util.RegistryEntry(
+        org.finos.calm.store.github.registry.RegistryEntry entry = new org.finos.calm.store.github.registry.RegistryEntry(
                 "payment-svc", java.nio.file.Path.of("architectures/payment.json"),
-                org.finos.calm.store.github.util.CalmResourceType.ARCHITECTURE, "Payment Service", java.time.Instant.now());
-        org.finos.calm.store.github.util.RegistrySnapshot snapshot = new org.finos.calm.store.github.util.RegistrySnapshot(
+                org.finos.calm.store.github.registry.RegistryResourceType.ARCHITECTURE, "Payment Service", java.time.Instant.now());
+        org.finos.calm.store.github.registry.RegistrySnapshot snapshot = new org.finos.calm.store.github.registry.RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:payment-svc", entry),
-                java.util.Map.of(org.finos.calm.store.github.util.CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
+                java.util.Map.of("finos:payment-svc", entry)
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
 

@@ -5,10 +5,10 @@ import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,7 +35,7 @@ class TestGitHubResourceMappingStoreShould {
     private static final int NUMERIC_ID = UNIQUE_ID.hashCode() & 0x7FFFFFFF;
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubResourceMappingStore store;
 
@@ -46,7 +46,7 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void return_mapping_when_entry_exists_in_registry() throws Exception {
-        RegistryEntry entry = createEntry(UNIQUE_ID, CalmResourceType.ARCHITECTURE);
+        RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.ARCHITECTURE);
         setupNamespaceWithEntry(entry);
         when(registryService.findByUniqueId(NAMESPACE, UNIQUE_ID)).thenReturn(Optional.of(entry));
 
@@ -69,7 +69,7 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void throw_mapping_not_found_when_type_mismatch() {
-        RegistryEntry entry = createEntry(UNIQUE_ID, CalmResourceType.PATTERN);
+        RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.PATTERN);
         setupNamespaceWithEntry(entry);
         when(registryService.findByUniqueId(NAMESPACE, UNIQUE_ID)).thenReturn(Optional.of(entry));
 
@@ -87,10 +87,10 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void list_mappings_for_namespace_and_type() throws Exception {
-        RegistryEntry entry1 = createEntry("arch-one", CalmResourceType.ARCHITECTURE);
-        RegistryEntry entry2 = createEntry("arch-two", CalmResourceType.ARCHITECTURE);
+        RegistryEntry entry1 = createEntry("arch-one", RegistryResourceType.ARCHITECTURE);
+        RegistryEntry entry2 = createEntry("arch-two", RegistryResourceType.ARCHITECTURE);
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, CalmResourceType.ARCHITECTURE))
+        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE))
                 .thenReturn(List.of(entry1, entry2));
 
         List<ResourceMapping> mappings = store.listMappings(NAMESPACE, ResourceType.ARCHITECTURE);
@@ -103,7 +103,7 @@ class TestGitHubResourceMappingStoreShould {
     @Test
     void return_empty_list_when_no_entries_of_type() throws Exception {
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, CalmResourceType.FLOW)).thenReturn(List.of());
+        when(registryService.listByType(NAMESPACE, RegistryResourceType.FLOW)).thenReturn(List.of());
 
         List<ResourceMapping> mappings = store.listMappings(NAMESPACE, ResourceType.FLOW);
 
@@ -112,9 +112,9 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void get_mapping_by_numeric_id() throws Exception {
-        RegistryEntry entry = createEntry(UNIQUE_ID, CalmResourceType.ARCHITECTURE);
+        RegistryEntry entry = createEntry(UNIQUE_ID, RegistryResourceType.ARCHITECTURE);
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, CalmResourceType.ARCHITECTURE))
+        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE))
                 .thenReturn(List.of(entry));
 
         ResourceMapping mapping = store.getMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, NUMERIC_ID);
@@ -126,7 +126,7 @@ class TestGitHubResourceMappingStoreShould {
     @Test
     void throw_mapping_not_found_for_unknown_numeric_id() {
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, CalmResourceType.ARCHITECTURE)).thenReturn(List.of());
+        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE)).thenReturn(List.of());
 
         assertThrows(MappingNotFoundException.class,
                 () -> store.getMappingByNumericId(NAMESPACE, ResourceType.ARCHITECTURE, 99999));
@@ -134,10 +134,10 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void list_mappings_by_numeric_ids() throws Exception {
-        RegistryEntry entry1 = createEntry("arch-one", CalmResourceType.ARCHITECTURE);
-        RegistryEntry entry2 = createEntry("arch-two", CalmResourceType.ARCHITECTURE);
+        RegistryEntry entry1 = createEntry("arch-one", RegistryResourceType.ARCHITECTURE);
+        RegistryEntry entry2 = createEntry("arch-two", RegistryResourceType.ARCHITECTURE);
         setupNamespace();
-        when(registryService.listByType(NAMESPACE, CalmResourceType.ARCHITECTURE))
+        when(registryService.listByType(NAMESPACE, RegistryResourceType.ARCHITECTURE))
                 .thenReturn(List.of(entry1, entry2));
 
         int id1 = "arch-one".hashCode() & 0x7FFFFFFF;
@@ -174,14 +174,14 @@ class TestGitHubResourceMappingStoreShould {
 
     @Test
     void map_all_resource_types_correctly() {
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.PATTERN), equalTo(CalmResourceType.PATTERN));
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.ARCHITECTURE), equalTo(CalmResourceType.ARCHITECTURE));
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.FLOW), equalTo(CalmResourceType.FLOW));
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.STANDARD), equalTo(CalmResourceType.STANDARD));
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.INTERFACE), equalTo(CalmResourceType.INTERFACE));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.PATTERN), equalTo(RegistryResourceType.PATTERN));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.ARCHITECTURE), equalTo(RegistryResourceType.ARCHITECTURE));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.FLOW), equalTo(RegistryResourceType.FLOW));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.STANDARD), equalTo(RegistryResourceType.STANDARD));
+        assertThat(GitHubResourceMappingStore.toRegistryResourceType(ResourceType.INTERFACE), equalTo(RegistryResourceType.INTERFACE));
     }
 
-    private RegistryEntry createEntry(String uniqueId, CalmResourceType type) {
+    private RegistryEntry createEntry(String uniqueId, RegistryResourceType type) {
         String folder = switch (type) {
             case ARCHITECTURE -> "architectures";
             case PATTERN -> "patterns";
@@ -197,18 +197,14 @@ class TestGitHubResourceMappingStoreShould {
     private void setupNamespace() {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of(NAMESPACE, List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
     }
 
     private void setupNamespaceWithEntry(RegistryEntry entry) {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of(NAMESPACE, List.of(entry)),
-                Map.of(NAMESPACE + ":" + entry.uniqueId(), entry),
-                Map.of(entry.type(), List.of(entry))
-        );
+                Map.of(NAMESPACE + ":" + entry.uniqueId(), entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
     }
 }

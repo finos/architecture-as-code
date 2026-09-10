@@ -3,10 +3,10 @@ package org.finos.calm.store.github;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -28,7 +28,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubStandardStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubStandardStore store;
 
@@ -40,15 +40,13 @@ class TestGitHubStandardStoreShould {
     @Test
     void return_standards_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("naming-convention", Path.of("standards/naming-convention.json"),
-                CalmResourceType.STANDARD, "Naming Convention", Instant.now());
+                RegistryResourceType.STANDARD, "Naming Convention", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:naming-convention", entry),
-                Map.of(CalmResourceType.STANDARD, List.of(entry))
-        );
+                Map.of("finos:naming-convention", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         List<NamespaceResourceSummary> result = store.getStandardsForNamespace("finos");
 
@@ -79,14 +77,12 @@ class TestGitHubStandardStoreShould {
     @Test
     void throw_standard_not_found_when_id_does_not_match() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("std-x", java.nio.file.Path.of("standards/x.json"),
-                CalmResourceType.STANDARD, "X", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "X", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:std-x", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:std-x", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         assertThrows(org.finos.calm.domain.exception.StandardNotFoundException.class,
                 () -> store.getStandardVersions("finos", 99999));
@@ -109,14 +105,12 @@ class TestGitHubStandardStoreShould {
     @Test
     void return_versions_for_existing_standard() throws Exception {
         RegistryEntry entry = new RegistryEntry("std-1", java.nio.file.Path.of("standards/std.json"),
-                CalmResourceType.STANDARD, "Std", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Std", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:std-1", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:std-1", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
         java.util.List<String> versions = store.getStandardVersions("finos", hashId);
@@ -131,14 +125,12 @@ class TestGitHubStandardStoreShould {
         java.nio.file.Files.writeString(stdDir.resolve("test.json"), "{\"name\":\"Test Standard\"}");
 
         RegistryEntry entry = new RegistryEntry("test-std", java.nio.file.Path.of("standards/test.json"),
-                CalmResourceType.STANDARD, "Test", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-std", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-std", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
@@ -154,14 +146,12 @@ class TestGitHubStandardStoreShould {
         java.nio.file.Files.writeString(stdDir.resolve("policy.md"), "# Policy\n\nContent here.");
 
         RegistryEntry entry = new RegistryEntry("policy", java.nio.file.Path.of("standards/policy.guideline.json"),
-                CalmResourceType.STANDARD, "Policy", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Policy", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:policy", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:policy", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("policy".hashCode() & 0x7FFFFFFF);
@@ -178,14 +168,12 @@ class TestGitHubStandardStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("std-1", java.nio.file.Path.of("standards/std.json"),
-                CalmResourceType.STANDARD, "Std", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Std", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:std-1", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:std-1", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
         org.finos.calm.store.github.util.GitHubVersionService mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubVersionService.class);
@@ -207,14 +195,12 @@ class TestGitHubStandardStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("test-std", java.nio.file.Path.of("standards/test.json"),
-                CalmResourceType.STANDARD, "Test", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-std", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-std", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
         org.finos.calm.store.github.util.GitHubVersionService mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubVersionService.class);
@@ -234,14 +220,12 @@ class TestGitHubStandardStoreShould {
     @Test
     void throw_standard_version_not_found_when_file_missing(@org.junit.jupiter.api.io.TempDir java.nio.file.Path tempDir) throws Exception {
         RegistryEntry entry = new RegistryEntry("test-std", java.nio.file.Path.of("standards/nonexistent.json"),
-                CalmResourceType.STANDARD, "Test", java.time.Instant.now());
+                RegistryResourceType.STANDARD, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-std", entry),
-                java.util.Map.of(CalmResourceType.STANDARD, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-std", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);

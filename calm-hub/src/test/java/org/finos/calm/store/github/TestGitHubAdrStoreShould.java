@@ -4,8 +4,8 @@ import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.Status;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +26,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubAdrStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubAdrStore store;
 
@@ -39,9 +39,7 @@ class TestGitHubAdrStoreShould {
     void return_empty_adrs_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         List<NamespaceAdrSummary> result = store.getAdrsForNamespace("finos");
@@ -53,9 +51,7 @@ class TestGitHubAdrStoreShould {
     void return_zero_count_for_namespace() throws NamespaceNotFoundException {
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()),
-                Map.of(),
-                Map.of()
-        );
+                Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
 
         assertThat(store.countAdrsForNamespace("finos"), equalTo(0));

@@ -13,12 +13,12 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -35,7 +35,7 @@ public class GitHubArchitectureStore implements ArchitectureStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubArchitectureStore.class);
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
     @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
@@ -48,14 +48,14 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     GitHubVersionService versionService;
 
     @Inject
-    public GitHubArchitectureStore(InMemoryRegistryService registryService) {
+    public GitHubArchitectureStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 
     @Override
     public List<NamespaceResourceSummary> getArchitecturesForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException {
         verifyNamespace(namespace);
-        List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.ARCHITECTURE);
         return entries.stream()
                 .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
@@ -121,7 +121,7 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     }
 
     private RegistryEntry findEntryById(String namespace, int id) throws ArchitectureNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.ARCHITECTURE);
+        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.ARCHITECTURE);
         Optional<RegistryEntry> found = entries.stream()
                 .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
                 .findFirst();

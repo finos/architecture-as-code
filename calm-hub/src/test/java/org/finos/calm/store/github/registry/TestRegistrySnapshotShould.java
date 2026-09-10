@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.registry;
 
 import org.junit.jupiter.api.Test;
 
@@ -18,11 +18,11 @@ import static org.hamcrest.Matchers.is;
 class TestRegistrySnapshotShould {
 
     private static final RegistryEntry FINOS_PATTERN = new RegistryEntry("finos-pattern",
-            Path.of("patterns/finos-pattern.json"), CalmResourceType.PATTERN, "FINOS Pattern", Instant.now());
+            Path.of("patterns/finos-pattern.json"), RegistryResourceType.PATTERN, "FINOS Pattern", Instant.now());
     private static final RegistryEntry FINOS_FLOW = new RegistryEntry("finos-flow",
-            Path.of("flows/finos-flow.json"), CalmResourceType.FLOW, "FINOS Flow", Instant.now());
+            Path.of("flows/finos-flow.json"), RegistryResourceType.FLOW, "FINOS Flow", Instant.now());
     private static final RegistryEntry OTHER_PATTERN = new RegistryEntry("other-pattern",
-            Path.of("patterns/other-pattern.json"), CalmResourceType.PATTERN, "Other Pattern", Instant.now());
+            Path.of("patterns/other-pattern.json"), RegistryResourceType.PATTERN, "Other Pattern", Instant.now());
 
     private static RegistrySnapshot buildSnapshot() {
         return new RegistrySnapshot(
@@ -34,12 +34,7 @@ class TestRegistrySnapshotShould {
                         "finos:finos-pattern", FINOS_PATTERN,
                         "finos:finos-flow", FINOS_FLOW,
                         "other:other-pattern", OTHER_PATTERN
-                ),
-                Map.of(
-                        CalmResourceType.PATTERN, List.of(FINOS_PATTERN, OTHER_PATTERN),
-                        CalmResourceType.FLOW, List.of(FINOS_FLOW)
-                )
-        );
+                ));
     }
 
     @Test
@@ -66,21 +61,21 @@ class TestRegistrySnapshotShould {
 
     @Test
     void list_entries_by_type_scoped_to_one_namespace() {
-        List<RegistryEntry> patterns = buildSnapshot().listByType("finos", CalmResourceType.PATTERN);
+        List<RegistryEntry> patterns = buildSnapshot().listByType("finos", RegistryResourceType.PATTERN);
 
         assertThat(patterns, contains(FINOS_PATTERN));
     }
 
     @Test
     void return_empty_list_by_type_for_a_namespace_with_no_matching_entries() {
-        List<RegistryEntry> flows = buildSnapshot().listByType("other", CalmResourceType.FLOW);
+        List<RegistryEntry> flows = buildSnapshot().listByType("other", RegistryResourceType.FLOW);
 
         assertThat(flows, is(empty()));
     }
 
     @Test
     void return_empty_list_by_type_for_an_unknown_namespace() {
-        List<RegistryEntry> patterns = buildSnapshot().listByType("nonexistent", CalmResourceType.PATTERN);
+        List<RegistryEntry> patterns = buildSnapshot().listByType("nonexistent", RegistryResourceType.PATTERN);
 
         assertThat(patterns, is(empty()));
     }
@@ -106,7 +101,7 @@ class TestRegistrySnapshotShould {
     void the_empty_constant_has_no_namespaces_entries_or_types() {
         assertThat(RegistrySnapshot.EMPTY.getNamespaces(), is(empty()));
         assertThat(RegistrySnapshot.EMPTY.listAll("finos"), is(empty()));
-        assertThat(RegistrySnapshot.EMPTY.listByType("finos", CalmResourceType.PATTERN), is(empty()));
+        assertThat(RegistrySnapshot.EMPTY.listByType("finos", RegistryResourceType.PATTERN), is(empty()));
         assertThat(RegistrySnapshot.EMPTY.findByUniqueId("finos", "anything").isPresent(), is(false));
     }
 }

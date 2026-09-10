@@ -11,10 +11,10 @@ import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.exception.UserAccessNotFoundException;
 import org.finos.calm.security.OidcRoleResolver;
 import org.finos.calm.store.UserAccessStore;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubControlDomains;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ControlDomains;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,7 @@ public class GitHubUserAccessStore implements UserAccessStore {
             "Access grants cannot be created in GitHub mode. Assign users to the appropriate IdP roles instead.";
 
     @Inject
-    InMemoryRegistryService registryService;
+    ResourceRegistry registryService;
 
     @Inject
     OidcRoleResolver roleResolver;
@@ -75,8 +75,8 @@ public class GitHubUserAccessStore implements UserAccessStore {
 
             if (level != OidcRoleResolver.AccessLevel.NONE) {
                 grants.add(new UserAccess(username, UserAccess.Permission.read, namespace));
-                registryService.getSnapshot().listByType(namespace, CalmResourceType.CONTROL).stream()
-                        .map(GitHubControlDomains::extractDomain)
+                registryService.getSnapshot().listByType(namespace, RegistryResourceType.CONTROL).stream()
+                        .map(ControlDomains::extractDomain)
                         .forEach(accessibleDomains::add);
             } else {
                 LOG.debug("User [{}] denied access to namespace [{}] — no matching group", username, namespace);

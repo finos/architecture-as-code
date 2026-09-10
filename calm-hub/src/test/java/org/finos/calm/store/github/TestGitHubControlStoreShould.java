@@ -6,13 +6,13 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,7 +42,7 @@ class TestGitHubControlStoreShould {
     private static final int HASH_ID = UNIQUE_ID.hashCode() & 0x7FFFFFFF;
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     @Mock
     private NamespaceAccessFilter accessFilter;
@@ -62,14 +62,12 @@ class TestGitHubControlStoreShould {
         // unrelated concepts, and a fixture where they happen to share a name would hide
         // a namespace/domain mix-up regression (see the cross-domain-match test below).
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<ControlDetail> result = store.getControlsForDomain(DOMAIN);
@@ -93,14 +91,12 @@ class TestGitHubControlStoreShould {
     void return_all_controls_when_access_filter_is_null() throws Exception {
         GitHubControlStore unfilteredStore = new GitHubControlStore(registryService);
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
 
         List<ControlDetail> result = unfilteredStore.getControlsForDomain(DOMAIN);
 
@@ -111,16 +107,14 @@ class TestGitHubControlStoreShould {
     @Test
     void hide_controls_from_inaccessible_namespaces() throws Exception {
         RegistryEntry accessibleEntry = new RegistryEntry("ctrl-a", Path.of("controls/security/ctrl-a.json"),
-                CalmResourceType.CONTROL, "Control A", Instant.now());
+                RegistryResourceType.CONTROL, "Control A", Instant.now());
         RegistryEntry restrictedEntry = new RegistryEntry("ctrl-b", Path.of("controls/security/ctrl-b.json"),
-                CalmResourceType.CONTROL, "Control B", Instant.now());
+                RegistryResourceType.CONTROL, "Control B", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(accessibleEntry), "private", List.of(restrictedEntry)),
-                Map.of("finos:ctrl-a", accessibleEntry, "private:ctrl-b", restrictedEntry),
-                Map.of(CalmResourceType.CONTROL, List.of(accessibleEntry, restrictedEntry))
-        );
+                Map.of("finos:ctrl-a", accessibleEntry, "private:ctrl-b", restrictedEntry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(accessibleEntry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessibleEntry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<ControlDetail> result = store.getControlsForDomain(DOMAIN);
@@ -132,16 +126,14 @@ class TestGitHubControlStoreShould {
     @Test
     void deny_version_lookup_for_control_in_inaccessible_namespace() {
         RegistryEntry accessible = new RegistryEntry("ctrl-a", Path.of("controls/security/ctrl-a.json"),
-                CalmResourceType.CONTROL, "Control A", Instant.now());
+                RegistryResourceType.CONTROL, "Control A", Instant.now());
         RegistryEntry restricted = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(accessible), "private", List.of(restricted)),
-                Map.of("finos:ctrl-a", accessible, "private:" + UNIQUE_ID, restricted),
-                Map.of(CalmResourceType.CONTROL, List.of(accessible, restricted))
-        );
+                Map.of("finos:ctrl-a", accessible, "private:" + UNIQUE_ID, restricted));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(accessible));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessible));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         assertThrows(ControlNotFoundException.class,
@@ -151,16 +143,14 @@ class TestGitHubControlStoreShould {
     @Test
     void return_versions_for_control_in_accessible_namespace_with_mixed_access() throws Exception {
         RegistryEntry accessible = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistryEntry restricted = new RegistryEntry("other", Path.of("controls/security/other.json"),
-                CalmResourceType.CONTROL, "Other", Instant.now());
+                RegistryResourceType.CONTROL, "Other", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(accessible), "private", List.of(restricted)),
-                Map.of("finos:" + UNIQUE_ID, accessible, "private:other", restricted),
-                Map.of(CalmResourceType.CONTROL, List.of(accessible, restricted))
-        );
+                Map.of("finos:" + UNIQUE_ID, accessible, "private:other", restricted));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(accessible));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessible));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
@@ -172,14 +162,12 @@ class TestGitHubControlStoreShould {
     @Test
     void return_versions_list_for_existing_control() throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
@@ -191,14 +179,12 @@ class TestGitHubControlStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
@@ -224,14 +210,12 @@ class TestGitHubControlStoreShould {
         Files.writeString(controlDir.resolve("my-control.json"), "{\"control\":\"data\"}");
 
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         store.cloneDirectory = tempDir.toString();
@@ -243,14 +227,12 @@ class TestGitHubControlStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
@@ -279,14 +261,12 @@ class TestGitHubControlStoreShould {
     @Test
     void throw_control_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         assertThrows(ControlNotFoundException.class,
@@ -305,14 +285,12 @@ class TestGitHubControlStoreShould {
     @Test
     void throw_requirement_version_not_found_when_file_missing(@TempDir Path tempDir) throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/nonexistent.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         store.cloneDirectory = tempDir.toString();
@@ -388,14 +366,12 @@ class TestGitHubControlStoreShould {
         // registry must 404 on the domain, never fall through to returning a different
         // domain's control just because the id happened to match.
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/payments/my-control.json"),
-                CalmResourceType.CONTROL, "My Control", Instant.now());
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry),
-                Map.of(CalmResourceType.CONTROL, List.of(entry))
-        );
+                Map.of("finos:" + UNIQUE_ID, entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         assertThrows(DomainNotFoundException.class,

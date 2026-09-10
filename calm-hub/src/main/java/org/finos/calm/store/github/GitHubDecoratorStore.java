@@ -9,7 +9,7 @@ import org.finos.calm.domain.Decorator;
 import org.finos.calm.domain.exception.DecoratorNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.store.DecoratorStore;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,10 +22,10 @@ public class GitHubDecoratorStore implements DecoratorStore {
     private static final String WRITE_UNSUPPORTED =
             "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
-    public GitHubDecoratorStore(InMemoryRegistryService registryService) {
+    public GitHubDecoratorStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 

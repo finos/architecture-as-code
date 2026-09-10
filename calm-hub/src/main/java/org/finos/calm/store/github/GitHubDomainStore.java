@@ -9,9 +9,9 @@ import org.finos.calm.domain.Domain;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.DomainStore;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.GitHubControlDomains;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ControlDomains;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
 
 import java.util.List;
@@ -28,13 +28,13 @@ public class GitHubDomainStore implements DomainStore {
     private static final String UNSUPPORTED_MSG =
             "Domains in GitHub mode are derived from the controls/ directory structure in the repo.";
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
     NamespaceAccessFilter accessFilter;
 
     @Inject
-    public GitHubDomainStore(InMemoryRegistryService registryService) {
+    public GitHubDomainStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 
@@ -44,8 +44,8 @@ public class GitHubDomainStore implements DomainStore {
         return registryService.getSnapshot().entriesByNamespace().entrySet().stream()
                 .filter(e -> accessible.contains(e.getKey()))
                 .flatMap(e -> e.getValue().stream())
-                .filter(entry -> entry.type() == CalmResourceType.CONTROL)
-                .map(GitHubControlDomains::extractDomain)
+                .filter(entry -> entry.type() == RegistryResourceType.CONTROL)
+                .map(ControlDomains::extractDomain)
                 .distinct()
                 .toList();
     }

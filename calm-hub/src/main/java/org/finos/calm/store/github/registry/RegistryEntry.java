@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.registry;
 
 import java.nio.file.Path;
 import java.time.Instant;
@@ -6,7 +6,7 @@ import java.time.Instant;
 public record RegistryEntry(
         String uniqueId,
         Path filePath,
-        CalmResourceType type,
+        RegistryResourceType type,
         String name,
         Instant lastModified
 ) {}

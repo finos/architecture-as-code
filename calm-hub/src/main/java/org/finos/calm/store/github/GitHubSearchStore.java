@@ -6,9 +6,9 @@ import jakarta.inject.Inject;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 public class GitHubSearchStore implements SearchStore {
 
     @Inject
-    InMemoryRegistryService registryService;
+    ResourceRegistry registryService;
 
     @Override
     public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {
@@ -38,13 +38,13 @@ public class GitHubSearchStore implements SearchStore {
                 .toList();
 
         return new GroupedSearchResults(
-                filterByType(allEntries, CalmResourceType.ARCHITECTURE),
-                filterByType(allEntries, CalmResourceType.PATTERN),
-                filterByType(allEntries, CalmResourceType.FLOW),
-                filterByType(allEntries, CalmResourceType.STANDARD),
-                filterByType(allEntries, CalmResourceType.INTERFACE),
-                filterByType(allEntries, CalmResourceType.CONTROL),
-                filterByType(allEntries, CalmResourceType.ADR)
+                filterByType(allEntries, RegistryResourceType.ARCHITECTURE),
+                filterByType(allEntries, RegistryResourceType.PATTERN),
+                filterByType(allEntries, RegistryResourceType.FLOW),
+                filterByType(allEntries, RegistryResourceType.STANDARD),
+                filterByType(allEntries, RegistryResourceType.INTERFACE),
+                filterByType(allEntries, RegistryResourceType.CONTROL),
+                filterByType(allEntries, RegistryResourceType.ADR)
         );
     }
 
@@ -53,7 +53,7 @@ public class GitHubSearchStore implements SearchStore {
                 || (entry.uniqueId() != null && entry.uniqueId().toLowerCase().contains(lowerQuery));
     }
 
-    private List<SearchResult> filterByType(List<RegistryEntry> entries, CalmResourceType type) {
+    private List<SearchResult> filterByType(List<RegistryEntry> entries, RegistryResourceType type) {
         return entries.stream()
                 .filter(e -> e.type() == type)
                 .limit(MAX_RESULTS_PER_TYPE)

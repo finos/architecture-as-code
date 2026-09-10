@@ -9,6 +9,7 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.context.ManagedExecutor;
 import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.observability.GitHubMetrics;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,7 +38,7 @@ public class GitHubStartupInitializer {
     GitHubCloneManager cloneManager;
 
     @Inject
-    InMemoryRegistryService registryService;
+    ResourceRegistry registryService;
 
     @Inject
     GitHubMetrics metrics;

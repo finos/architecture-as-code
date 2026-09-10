@@ -9,7 +9,7 @@ import org.finos.calm.domain.exception.NamespaceAlreadyExistsException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.store.NamespaceStore;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 
 import java.util.List;
 
@@ -21,10 +21,10 @@ public class GitHubNamespaceStore implements NamespaceStore {
             "Namespaces in GitHub mode are admin-configured via deployment properties (calm.github.namespaces[*]). " +
             "Update your deployment configuration to add or remove namespaces.";
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
-    public GitHubNamespaceStore(InMemoryRegistryService registryService) {
+    public GitHubNamespaceStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 

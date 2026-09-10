@@ -6,12 +6,12 @@ import org.finos.calm.domain.exception.FlowVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubFlowStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubFlowStore store;
 
@@ -48,15 +48,13 @@ class TestGitHubFlowStoreShould {
     @Test
     void return_flows_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         List<NamespaceResourceSummary> result = store.getFlowsForNamespace("finos");
 
@@ -101,14 +99,12 @@ class TestGitHubFlowStoreShould {
     @Test
     void return_versions_list_for_existing_flow() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
         Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
@@ -121,14 +117,12 @@ class TestGitHubFlowStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -155,14 +149,12 @@ class TestGitHubFlowStoreShould {
         Files.writeString(flowDir.resolve("payment-flow.json"), "{\"steps\":[]}");
 
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
@@ -175,14 +167,12 @@ class TestGitHubFlowStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
         GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
@@ -203,14 +193,12 @@ class TestGitHubFlowStoreShould {
     @Test
     void throw_flow_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
-                CalmResourceType.FLOW, "Payment Flow", Instant.now());
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:payment-flow", entry),
-                Map.of(CalmResourceType.FLOW, List.of(entry))
-        );
+                Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.FLOW)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(99999).build();
         assertThrows(FlowNotFoundException.class, () -> store.getFlowVersions(flow));

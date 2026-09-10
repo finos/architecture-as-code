@@ -19,13 +19,13 @@ import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
-import org.finos.calm.store.github.util.CalmResourceType;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.util.GitHubFileReader;
 import org.finos.calm.store.github.util.GitHubVersionService;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
+import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
-import org.finos.calm.store.github.util.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryEntry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,7 +42,7 @@ public class GitHubControlStore implements ControlStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubControlStore.class);
 
-    private final InMemoryRegistryService registryService;
+    private final ResourceRegistry registryService;
 
     @Inject
     @ConfigProperty(name = "calm.github.clone-directory", defaultValue = "/tmp/calm-hub-clones")
@@ -58,7 +58,7 @@ public class GitHubControlStore implements ControlStore {
     NamespaceAccessFilter accessFilter;
 
     @Inject
-    public GitHubControlStore(InMemoryRegistryService registryService) {
+    public GitHubControlStore(ResourceRegistry registryService) {
         this.registryService = registryService;
     }
 
@@ -70,7 +70,7 @@ public class GitHubControlStore implements ControlStore {
             if (!accessible.contains(namespace)) {
                 continue;
             }
-            List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
+            List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
                 String path = entry.filePath().toString();
                 if (path.contains("controls/" + domain + "/") || path.contains("controls\\" + domain + "\\")) {
@@ -195,7 +195,7 @@ public class GitHubControlStore implements ControlStore {
             if (!accessible.contains(namespace)) {
                 continue;
             }
-            List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
+            List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
                 String path = entry.filePath().toString();
                 boolean inDomain = path.contains("controls/" + domain + "/") || path.contains("controls\\" + domain + "\\");
@@ -226,7 +226,7 @@ public class GitHubControlStore implements ControlStore {
             if (!accessible.contains(namespace)) {
                 continue;
             }
-            List<RegistryEntry> entries = registryService.listByType(namespace, CalmResourceType.CONTROL);
+            List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.CONTROL);
             if (entries.contains(entry)) return namespace;
         }
         return null;

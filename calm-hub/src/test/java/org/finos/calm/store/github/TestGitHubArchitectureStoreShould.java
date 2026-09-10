@@ -5,10 +5,10 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.store.PageRequest;
-import org.finos.calm.store.github.util.CalmResourceType;
-import org.finos.calm.store.github.util.InMemoryRegistryService;
-import org.finos.calm.store.github.util.RegistryEntry;
-import org.finos.calm.store.github.util.RegistrySnapshot;
+import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,7 +32,7 @@ import static org.mockito.Mockito.when;
 class TestGitHubArchitectureStoreShould {
 
     @Mock
-    private InMemoryRegistryService registryService;
+    private ResourceRegistry registryService;
 
     private GitHubArchitectureStore store;
 
@@ -44,15 +44,13 @@ class TestGitHubArchitectureStoreShould {
     @Test
     void return_architectures_for_namespace() throws NamespaceNotFoundException {
         RegistryEntry entry = new RegistryEntry("my-arch", Path.of("architectures/my-arch.json"),
-                CalmResourceType.ARCHITECTURE, "My Architecture", Instant.now());
+                RegistryResourceType.ARCHITECTURE, "My Architecture", Instant.now());
 
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(entry)),
-                Map.of("finos:my-arch", entry),
-                Map.of(CalmResourceType.ARCHITECTURE, List.of(entry))
-        );
+                Map.of("finos:my-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
         List<NamespaceResourceSummary> result = store.getArchitecturesForNamespace("finos", PageRequest.UNPAGED);
 
@@ -97,14 +95,12 @@ class TestGitHubArchitectureStoreShould {
     @Test
     void return_versions_list_for_existing_architecture() throws Exception {
         RegistryEntry entry = new RegistryEntry("test-arch", java.nio.file.Path.of("architectures/test.json"),
-                CalmResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
+                RegistryResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-arch", entry),
-                java.util.Map.of(CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(hashId).build();
@@ -117,14 +113,12 @@ class TestGitHubArchitectureStoreShould {
     @Test
     void return_sha_versions_when_version_service_available() throws Exception {
         RegistryEntry entry = new RegistryEntry("test-arch", java.nio.file.Path.of("architectures/test.json"),
-                CalmResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
+                RegistryResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-arch", entry),
-                java.util.Map.of(CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
         org.finos.calm.store.github.util.GitHubVersionService mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubVersionService.class);
@@ -151,14 +145,12 @@ class TestGitHubArchitectureStoreShould {
         java.nio.file.Files.writeString(archDir.resolve("test.json"), "{\"nodes\":[],\"relationships\":[]}");
 
         RegistryEntry entry = new RegistryEntry("test-arch", java.nio.file.Path.of("architectures/test.json"),
-                CalmResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
+                RegistryResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-arch", entry),
-                java.util.Map.of(CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         store.cloneDirectory = tempDir.toString();
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
@@ -171,14 +163,12 @@ class TestGitHubArchitectureStoreShould {
     @Test
     void return_content_from_github_api_for_sha_version() throws Exception {
         RegistryEntry entry = new RegistryEntry("test-arch", java.nio.file.Path.of("architectures/test.json"),
-                CalmResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
+                RegistryResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-arch", entry),
-                java.util.Map.of(CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         org.finos.calm.store.github.util.GitHubCloneManager mockCloneManager = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubCloneManager.class);
         org.finos.calm.store.github.util.GitHubVersionService mockVersionService = org.mockito.Mockito.mock(org.finos.calm.store.github.util.GitHubVersionService.class);
@@ -200,14 +190,12 @@ class TestGitHubArchitectureStoreShould {
     @Test
     void throw_architecture_not_found_when_id_does_not_match() {
         RegistryEntry entry = new RegistryEntry("test-arch", java.nio.file.Path.of("architectures/test.json"),
-                CalmResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
+                RegistryResourceType.ARCHITECTURE, "Test", java.time.Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 java.util.Map.of("finos", java.util.List.of(entry)),
-                java.util.Map.of("finos:test-arch", entry),
-                java.util.Map.of(CalmResourceType.ARCHITECTURE, java.util.List.of(entry))
-        );
+                java.util.Map.of("finos:test-arch", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", CalmResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
+        when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(java.util.List.of(entry));
 
         Architecture arch = new Architecture.ArchitectureBuilder().setNamespace("finos").setId(99999).build();
         assertThrows(ArchitectureNotFoundException.class, () -> store.getArchitectureVersions(arch));
