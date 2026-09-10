@@ -97,6 +97,40 @@
             <artifactId>owasp-java-html-sanitizer</artifactId>
             <version>20240325.1</version>
         </dependency>
+
+        <!-- Caffeine in-memory cache. Use the Quarkus extension, not the bare
+             ben-manes jar: Caffeine builds its cache implementation reflectively,
+             and quarkus-caffeine supplies the native-image reflection config for
+             that (the bare jar would only fail this at native build time). It
+             pulls the ben-manes artifact transitively. -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-caffeine</artifactId>
+        </dependency>
+
+        <!-- JGit for GitHub clone/pull operations -->
+        <dependency>
+            <groupId>org.eclipse.jgit</groupId>
+            <artifactId>org.eclipse.jgit</artifactId>
+            <version>7.2.1.202505142326-r</version>
+        </dependency>
+
+        <!-- Quarkus Scheduler for periodic sync -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-scheduler</artifactId>
+        </dependency>
+
+        <!-- OpenTelemetry + Micrometer observability -->
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-opentelemetry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.quarkus</groupId>
+            <artifactId>quarkus-micrometer-opentelemetry</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-oidc</artifactId>
