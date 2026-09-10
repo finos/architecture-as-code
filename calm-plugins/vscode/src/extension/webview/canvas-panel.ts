@@ -274,23 +274,25 @@ export class CanvasPanel {
     private sendAssets(): void {
         if (!this.assetService) return;
         const localBlocks = this.assetService.getBuildingBlocks();
-        const p = this.assetService.getPatterns();
+        const localPatterns = this.assetService.getPatterns();
         const t = this.assetService.getTemplates();
         const s = this.assetService.getStandards();
 
-        // Merge Hub-sourced blocks and standards — only show explicitly selected namespaces
+        // Merge Hub-sourced assets — only show explicitly selected namespaces
         const selectedNs: string[] = vscode.workspace
             .getConfiguration('calm.hub')
             .get<string[]>('selectedNamespaces') ?? [];
         const hubBlocks = this.hubAssetService?.getAllBuildingBlocks(selectedNs) ?? [];
         const hubStandards = this.hubAssetService?.getAllStandards(selectedNs) ?? [];
+        const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
         const allBlocks = [...localBlocks, ...hubBlocks, ...hubStandards];
+        const allPatterns = [...localPatterns, ...hubPatterns];
 
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks + ${hubStandards.length} hub standards), ${p.length} patterns, ${t.length} templates, ${s.length} standards`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks + ${hubStandards.length} hub standards), ${allPatterns.length} patterns (${localPatterns.length} local + ${hubPatterns.length} hub), ${t.length} templates, ${s.length} standards`
         );
         this.postMessage({ type: 'buildingBlocksLoaded', nodes: allBlocks });
-        this.postMessage({ type: 'patternsLoaded', patterns: p });
+        this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
         this.postMessage({ type: 'templatesLoaded', templates: t });
         this.postMessage({ type: 'standardsLoaded', standards: s });
     }

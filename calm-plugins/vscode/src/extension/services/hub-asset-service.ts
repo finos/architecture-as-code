@@ -1,10 +1,11 @@
 import { HubClient, type NamespaceSummary } from './hub-client';
-import type { BuildingBlockDef } from './workspace-asset-service';
+import type { BuildingBlockDef, PatternEntry } from './workspace-asset-service';
 
 export interface HubNamespace {
     name: string;
     buildingBlocks: BuildingBlockDef[];
     standards: BuildingBlockDef[];
+    patterns: PatternEntry[];
 }
 
 export class HubAssetService {
@@ -24,6 +25,7 @@ export class HubAssetService {
                 name: ns.name,
                 buildingBlocks: [],
                 standards: [],
+                patterns: [],
             };
 
             try {
@@ -109,6 +111,42 @@ export class HubAssetService {
                 /* namespace may not have standards */
             }
 
+            try {
+                const patterns = await this.client.getResources(
+                    ns.name,
+                    'patterns'
+                );
+                const versionResults = await Promise.all(
+                    patterns.map((pat) =>
+                        this.client
+                            .getVersions(ns.name, 'patterns', pat.uniqueId)
+                            .then((versions) => ({ pat, versions }))
+                            .catch(() => ({ pat, versions: [] as string[] }))
+                    )
+                );
+                for (const { pat, versions } of versionResults) {
+                    const latestSha =
+                        versions.length > 0
+                            ? versions[versions.length - 1]
+                            : undefined;
+                    if (!latestSha) continue;
+                    try {
+                        const content = await this.client.getResourceAtVersion(
+                            ns.name, 'patterns', pat.uniqueId, latestSha
+                        ) as Record<string, unknown>;
+                        namespace.patterns.push({
+                            id: pat.uniqueId,
+                            name: (content.title as string) || pat.name || humanize(pat.uniqueId),
+                            description: (content.description as string) || '',
+                            category: (content.category as string) || (content['x-category'] as string) || ns.name,
+                            schema: content,
+                        });
+                    } catch { /* skip unreadable pattern */ }
+                }
+            } catch {
+                /* namespace may not have patterns */
+            }
+
             this.namespaces.push(namespace);
         }
 
@@ -127,6 +165,11 @@ export class HubAssetService {
     getAllStandards(selectedNamespaces: string[]): BuildingBlockDef[] {
         const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
         return filtered.flatMap((ns) => ns.standards);
+    }
+
+    getAllPatterns(selectedNamespaces: string[]): PatternEntry[] {
+        const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
+        return filtered.flatMap((ns) => ns.patterns);
     }
 }
 

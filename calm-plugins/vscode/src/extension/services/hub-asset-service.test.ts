@@ -95,6 +95,7 @@ describe('HubAssetService', () => {
             expect(namespaces).toHaveLength(1);
             expect(namespaces[0].buildingBlocks).toHaveLength(0);
             expect(namespaces[0].standards).toHaveLength(0);
+            expect(namespaces[0].patterns).toHaveLength(0);
         });
 
         it('uses latest version (last element) as SHA', async () => {
@@ -186,6 +187,103 @@ describe('HubAssetService', () => {
             expect(blocks).toHaveLength(2);
             expect(blocks[0].namespace).toBe('ns1');
             expect(blocks[1].namespace).toBe('ns2');
+        });
+    });
+
+    describe('getAllPatterns', () => {
+        it('returns flattened patterns from selected namespaces', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
+                { name: 'ns1' },
+            ]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'patterns') {
+                        return Promise.resolve([
+                            { uniqueId: 'api-pattern', name: 'API Pattern', numericId: 1 },
+                        ]);
+                    }
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha-1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                title: 'API Gateway Pattern',
+                description: 'A standard API gateway topology',
+                category: 'networking',
+                properties: { nodes: { prefixItems: [] }, relationships: { prefixItems: [] } },
+            });
+
+            await service.refresh();
+
+            const patterns = service.getAllPatterns(['ns1']);
+            expect(patterns).toHaveLength(1);
+            expect(patterns[0]).toEqual(expect.objectContaining({
+                id: 'api-pattern',
+                name: 'API Gateway Pattern',
+                description: 'A standard API gateway topology',
+                category: 'networking',
+            }));
+            expect(patterns[0].schema).toBeDefined();
+        });
+
+        it('skips patterns with no versions', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
+                { name: 'ns1' },
+            ]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'patterns') {
+                        return Promise.resolve([
+                            { uniqueId: 'no-version', name: 'No Version', numericId: 1 },
+                        ]);
+                    }
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+            await service.refresh();
+
+            expect(service.getAllPatterns(['ns1'])).toHaveLength(0);
+        });
+
+        it('handles namespace with no patterns gracefully', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
+                { name: 'ns1' },
+            ]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockRejectedValue(
+                new Error('Not found')
+            );
+
+            const namespaces = await service.refresh();
+
+            expect(namespaces[0].patterns).toHaveLength(0);
+        });
+
+        it('uses namespace name as category fallback', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
+                { name: 'finos' },
+            ]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'patterns') {
+                        return Promise.resolve([
+                            { uniqueId: 'minimal', name: 'Minimal', numericId: 1 },
+                        ]);
+                    }
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['v1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                title: 'Minimal Pattern',
+                properties: {},
+            });
+
+            await service.refresh();
+
+            const patterns = service.getAllPatterns(['finos']);
+            expect(patterns[0].category).toBe('finos');
         });
     });
 
