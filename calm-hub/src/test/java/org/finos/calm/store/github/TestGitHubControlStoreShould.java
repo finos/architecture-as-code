@@ -6,21 +6,23 @@ import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
-import org.finos.calm.store.github.registry.RegistryResourceType;
-import org.finos.calm.store.github.access.NamespaceFileReader;
-import org.finos.calm.store.github.config.GitHubStoreConfig;
-import org.finos.calm.store.github.sync.GitHubCloneManager;
-import org.finos.calm.store.github.api.GitHubFileHistoryClient;
-import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.access.NamespaceAccessFilter;
+import org.finos.calm.store.github.access.NamespaceFileReader;
+import org.finos.calm.store.github.api.GitHubFileHistoryClient;
+import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,12 +32,14 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class TestGitHubControlStoreShould {
 
@@ -47,14 +51,22 @@ class TestGitHubControlStoreShould {
     private ResourceRegistry registryService;
 
     @Mock
+    private GitHubCloneManager cloneManager;
+
+    @Mock
+    private GitHubFileHistoryClient versionService;
+
+    @Mock
+    private NamespaceFileReader fileReader;
+
+    @Mock
     private NamespaceAccessFilter accessFilter;
 
     private GitHubControlStore store;
 
     @BeforeEach
     void setup() {
-        store = new GitHubControlStore(registryService);
-        store.accessFilter = accessFilter;
+        store = new GitHubControlStore(registryService, cloneManager, versionService, fileReader, accessFilter);
     }
 
     @Test
@@ -87,23 +99,6 @@ class TestGitHubControlStoreShould {
 
         assertThrows(DomainNotFoundException.class,
                 () -> store.getControlsForDomain("nonexistent"));
-    }
-
-    @Test
-    void return_all_controls_when_access_filter_is_null() throws Exception {
-        GitHubControlStore unfilteredStore = new GitHubControlStore(registryService);
-        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
-                RegistryResourceType.CONTROL, "My Control", Instant.now());
-        RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of("finos", List.of(entry)),
-                Map.of("finos:" + UNIQUE_ID, entry));
-        when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
-
-        List<ControlDetail> result = unfilteredStore.getControlsForDomain(DOMAIN);
-
-        assertThat(result, hasSize(1));
-        assertThat(result.get(0).getName(), equalTo(UNIQUE_ID));
     }
 
     @Test
@@ -154,15 +149,16 @@ class TestGitHubControlStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(accessible));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+        when(cloneManager.headSha("finos")).thenReturn("1234567");
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
 
         assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), equalTo("latest"));
+        assertThat(versions.get(0), equalTo("1234567"));
     }
 
     @Test
-    void return_versions_list_for_existing_control() throws Exception {
+    void return_empty_versions_when_neither_the_api_nor_the_local_clone_have_anything() throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -174,8 +170,25 @@ class TestGitHubControlStoreShould {
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
 
+        assertThat(versions, is(empty()));
+    }
+
+    @Test
+    void fall_back_to_the_local_head_sha_when_the_api_returns_no_versions() throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+        when(cloneManager.headSha("finos")).thenReturn("1234567");
+
+        List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
+
         assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), equalTo("latest"));
+        assertThat(versions.get(0), equalTo("1234567"));
     }
 
     @Test
@@ -189,14 +202,9 @@ class TestGitHubControlStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
-        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(mockVersionService.getFileVersions("org/repo", "main", "controls/security/my-control.json"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
+        when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(versionService.getFileVersions("org/repo", "main", "controls/security/my-control.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
@@ -206,7 +214,7 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
-    void return_control_content_for_version(@TempDir Path tempDir) throws Exception {
+    void return_control_content_for_the_current_head_version(@TempDir Path tempDir) throws Exception {
         Path controlDir = tempDir.resolve("finos/controls/security");
         Files.createDirectories(controlDir);
         Files.writeString(controlDir.resolve("my-control.json"), "{\"control\":\"data\"}");
@@ -219,9 +227,12 @@ class TestGitHubControlStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
-        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
-        String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0");
+        GitHubControlStore realFileReaderStore = new GitHubControlStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")),
+                accessFilter);
+        String content = realFileReaderStore.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234");
 
         assertThat(content, equalTo("{\"control\":\"data\"}"));
     }
@@ -237,13 +248,8 @@ class TestGitHubControlStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
-        when(mockVersionService.getFileAtVersion("org/repo", "controls/security/my-control.json", "abc1234"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
+        when(versionService.getFileAtVersion("org/repo", "controls/security/my-control.json", "abc1234"))
                 .thenReturn("{\"control\":\"old-data\"}");
 
         String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234");
@@ -281,11 +287,26 @@ class TestGitHubControlStoreShould {
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of());
 
         assertThrows(DomainNotFoundException.class,
-                () -> store.getRequirementForVersion("nonexistent", 1, "1.0.0"));
+                () -> store.getRequirementForVersion("nonexistent", 1, "abc1234"));
     }
 
     @Test
-    void throw_requirement_version_not_found_when_file_missing(@TempDir Path tempDir) throws Exception {
+    void throw_version_not_found_when_the_requested_version_is_not_sha_shaped() {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThrows(ControlRequirementVersionNotFoundException.class,
+                () -> store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0"));
+    }
+
+    @Test
+    void throw_requirement_version_not_found_when_file_missing() throws Exception {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/nonexistent.json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -295,10 +316,12 @@ class TestGitHubControlStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
+        when(versionService.getFileAtVersion("org/repo", "controls/security/nonexistent.json", "abc1234"))
+                .thenReturn(null);
 
         assertThrows(ControlRequirementVersionNotFoundException.class,
-                () -> store.getRequirementForVersion(DOMAIN, HASH_ID, "1.0.0"));
+                () -> store.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234"));
     }
 
     @Test

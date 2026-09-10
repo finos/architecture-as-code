@@ -19,8 +19,12 @@ import java.util.stream.Collectors;
 @Typed(GitHubSearchStore.class)
 public class GitHubSearchStore implements SearchStore {
 
+    private final ResourceRegistry registryService;
+
     @Inject
-    ResourceRegistry registryService;
+    public GitHubSearchStore(ResourceRegistry registryService) {
+        this.registryService = registryService;
+    }
 
     @Override
     public GroupedSearchResults search(String query, Optional<Set<String>> readableNamespaces) {

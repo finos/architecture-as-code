@@ -31,8 +31,7 @@ class TestGitHubSearchStoreShould {
 
     @BeforeEach
     void setup() {
-        store = new GitHubSearchStore();
-        store.registryService = registryService;
+        store = new GitHubSearchStore(registryService);
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
     }
 

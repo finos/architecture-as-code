@@ -37,8 +37,7 @@ class TestGitHubDomainStoreShould {
 
     @BeforeEach
     void setup() {
-        store = new GitHubDomainStore(registryService);
-        store.accessFilter = accessFilter;
+        store = new GitHubDomainStore(registryService, accessFilter);
     }
 
     @Test

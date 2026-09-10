@@ -18,8 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,17 +36,27 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class TestGitHubInterfaceStoreShould {
 
     @Mock
     private ResourceRegistry registryService;
 
+    @Mock
+    private GitHubCloneManager cloneManager;
+
+    @Mock
+    private GitHubFileHistoryClient versionService;
+
+    @Mock
+    private NamespaceFileReader fileReader;
+
     private GitHubInterfaceStore store;
 
     @BeforeEach
     void setup() {
-        store = new GitHubInterfaceStore(registryService);
+        store = new GitHubInterfaceStore(registryService, cloneManager, versionService, fileReader);
     }
 
     @Test
@@ -113,7 +124,7 @@ class TestGitHubInterfaceStoreShould {
     }
 
     @Test
-    void return_versions_list_for_existing_interface() throws Exception {
+    void return_empty_versions_when_neither_the_api_nor_the_local_clone_have_anything() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
                 RegistryResourceType.INTERFACE, "Payment API", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -125,8 +136,25 @@ class TestGitHubInterfaceStoreShould {
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
         List<String> versions = store.getInterfaceVersions("finos", hashId);
 
+        assertThat(versions, is(empty()));
+    }
+
+    @Test
+    void fall_back_to_the_local_head_sha_when_the_api_returns_no_versions() throws Exception {
+        RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-api", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("1234567");
+
+        int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
+        List<String> versions = store.getInterfaceVersions("finos", hashId);
+
         assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), equalTo("latest"));
+        assertThat(versions.get(0), equalTo("1234567"));
     }
 
     @Test
@@ -139,14 +167,9 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "interfaces/payment-api.json"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
+        when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", "interfaces/payment-api.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
@@ -157,7 +180,7 @@ class TestGitHubInterfaceStoreShould {
     }
 
     @Test
-    void return_interface_content_for_version(@TempDir Path tempDir) throws Exception {
+    void return_interface_content_for_the_current_head_version(@TempDir Path tempDir) throws Exception {
         Path ifaceDir = tempDir.resolve("finos/interfaces");
         Files.createDirectories(ifaceDir);
         Files.writeString(ifaceDir.resolve("payment-api.json"), "{\"operations\":[]}");
@@ -169,11 +192,13 @@ class TestGitHubInterfaceStoreShould {
                 Map.of("finos:payment-api", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
-        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
+        GitHubInterfaceStore realFileReaderStore = new GitHubInterfaceStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
 
-        String content = store.getInterfaceForVersion("finos", hashId, "1.0.0");
+        String content = realFileReaderStore.getInterfaceForVersion("finos", hashId, "abc1234");
         assertThat(content, equalTo("{\"operations\":[]}"));
     }
 
@@ -187,19 +212,49 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(mockVersionService.getFileAtVersion("finos/repo", "interfaces/payment-api.json", "abc1234"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
+        when(versionService.getFileAtVersion("finos/repo", "interfaces/payment-api.json", "abc1234"))
                 .thenReturn("{\"operations\":[{\"name\":\"old\"}]}");
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
         String content = store.getInterfaceForVersion("finos", hashId, "abc1234");
 
         assertThat(content, equalTo("{\"operations\":[{\"name\":\"old\"}]}"));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_requested_version_is_not_sha_shaped() {
+        RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/payment-api.json"),
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-api", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
+
+        int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
+
+        assertThrows(InterfaceVersionNotFoundException.class,
+                () -> store.getInterfaceForVersion("finos", hashId, "1.0.0"));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_local_file_is_missing(@TempDir Path tempDir) throws Exception {
+        RegistryEntry entry = new RegistryEntry("payment-api", Path.of("interfaces/nonexistent.json"),
+                RegistryResourceType.INTERFACE, "Payment API", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-api", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
+
+        GitHubInterfaceStore realFileReaderStore = new GitHubInterfaceStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
+        int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
+
+        assertThrows(InterfaceVersionNotFoundException.class,
+                () -> realFileReaderStore.getInterfaceForVersion("finos", hashId, "abc1234"));
     }
 
     @Test

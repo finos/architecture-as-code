@@ -24,31 +24,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubInterfaceStore.class)
-public class GitHubInterfaceStore implements InterfaceStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubInterfaceStore extends AbstractReadOnlyGitHubStore implements InterfaceStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubInterfaceStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubInterfaceStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubInterfaceStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                                 GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -68,35 +54,19 @@ public class GitHubInterfaceStore implements InterfaceStore {
     @Override
     public List<String> getInterfaceVersions(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
         verifyNamespace(namespace);
-        RegistryEntry entry = findEntryById(namespace, interfaceId);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(namespace) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.INTERFACE, interfaceId)
+                .orElseThrow(InterfaceNotFoundException::new);
+        return getVersions(namespace, entry);
     }
 
     @Override
     public String getInterfaceForVersion(String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionNotFoundException {
         verifyNamespace(namespace);
-        RegistryEntry entry = findEntryById(namespace, interfaceId);
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(namespace);
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.INTERFACE, interfaceId)
+                .orElseThrow(InterfaceNotFoundException::new);
         try {
-            return fileReader.readContained(namespace, entry.filePath());
+            return readAtVersion(namespace, entry, version)
+                    .orElseThrow(InterfaceVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read interface file: {}", entry.filePath(), e);
             throw new InterfaceVersionNotFoundException();
@@ -111,22 +81,5 @@ public class GitHubInterfaceStore implements InterfaceStore {
     @Override
     public void deleteInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws InterfaceNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.INTERFACE);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new InterfaceNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

@@ -29,18 +29,17 @@ public class GitHubDomainStore implements DomainStore {
             "Domains in GitHub mode are derived from the controls/ directory structure in the repo.";
 
     private final ResourceRegistry registryService;
+    private final NamespaceAccessFilter accessFilter;
 
     @Inject
-    NamespaceAccessFilter accessFilter;
-
-    @Inject
-    public GitHubDomainStore(ResourceRegistry registryService) {
+    public GitHubDomainStore(ResourceRegistry registryService, NamespaceAccessFilter accessFilter) {
         this.registryService = registryService;
+        this.accessFilter = accessFilter;
     }
 
     @Override
     public List<String> getDomains() {
-        Set<String> accessible = resolveAccessibleNamespaces();
+        Set<String> accessible = accessFilter.getAccessibleNamespaces();
         return registryService.getSnapshot().entriesByNamespace().entrySet().stream()
                 .filter(e -> accessible.contains(e.getKey()))
                 .flatMap(e -> e.getValue().stream())
@@ -63,12 +62,5 @@ public class GitHubDomainStore implements DomainStore {
     @Override
     public void deleteDomain(String name) throws DomainNotFoundException {
         throw new GitHubWriteNotSupportedException(UNSUPPORTED_MSG);
-    }
-
-    private Set<String> resolveAccessibleNamespaces() {
-        if (accessFilter == null) {
-            return new java.util.HashSet<>(registryService.getSnapshot().getNamespaces());
-        }
-        return accessFilter.getAccessibleNamespaces();
     }
 }

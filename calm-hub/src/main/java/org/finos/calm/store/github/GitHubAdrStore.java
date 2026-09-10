@@ -22,19 +22,14 @@ import java.util.List;
 
 @ApplicationScoped
 @Typed(GitHubAdrStore.class)
-public class GitHubAdrStore implements AdrStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubAdrStore extends AbstractGitHubStore implements AdrStore {
 
     private static final String VERSION_UNSUPPORTED =
             "Version history via GitHub API is not yet implemented.";
 
-    private final ResourceRegistry registryService;
-
     @Inject
     public GitHubAdrStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+        super(registryService);
     }
 
     @Override
@@ -82,11 +77,5 @@ public class GitHubAdrStore implements AdrStore {
     @Override
     public void deleteAdr(String namespace, int adrId) throws NamespaceNotFoundException, AdrNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

@@ -19,8 +19,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,22 +30,34 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class TestGitHubFlowStoreShould {
 
     @Mock
     private ResourceRegistry registryService;
 
+    @Mock
+    private GitHubCloneManager cloneManager;
+
+    @Mock
+    private GitHubFileHistoryClient versionService;
+
+    @Mock
+    private NamespaceFileReader fileReader;
+
     private GitHubFlowStore store;
 
     @BeforeEach
     void setup() {
-        store = new GitHubFlowStore(registryService);
+        store = new GitHubFlowStore(registryService, cloneManager, versionService, fileReader);
     }
 
     @Test
@@ -99,7 +112,7 @@ class TestGitHubFlowStoreShould {
     }
 
     @Test
-    void return_versions_list_for_existing_flow() throws Exception {
+    void return_empty_versions_when_neither_the_api_nor_the_local_clone_have_anything() throws Exception {
         RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
                 RegistryResourceType.FLOW, "Payment Flow", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -112,8 +125,26 @@ class TestGitHubFlowStoreShould {
         Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
         List<String> versions = store.getFlowVersions(flow);
 
+        assertThat(versions, is(empty()));
+    }
+
+    @Test
+    void fall_back_to_the_local_head_sha_when_the_api_returns_no_versions() throws Exception {
+        RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-flow", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("1234567");
+
+        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).build();
+        List<String> versions = store.getFlowVersions(flow);
+
         assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), equalTo("latest"));
+        assertThat(versions.get(0), equalTo("1234567"));
     }
 
     @Test
@@ -126,14 +157,9 @@ class TestGitHubFlowStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "flows/payment-flow.json"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
+        when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", "flows/payment-flow.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
@@ -145,7 +171,7 @@ class TestGitHubFlowStoreShould {
     }
 
     @Test
-    void return_flow_content_for_version(@TempDir Path tempDir) throws Exception {
+    void return_flow_content_for_the_current_head_version(@TempDir Path tempDir) throws Exception {
         Path flowDir = tempDir.resolve("finos/flows");
         Files.createDirectories(flowDir);
         Files.writeString(flowDir.resolve("payment-flow.json"), "{\"steps\":[]}");
@@ -157,12 +183,14 @@ class TestGitHubFlowStoreShould {
                 Map.of("finos:payment-flow", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
-        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
+        GitHubFlowStore realFileReaderStore = new GitHubFlowStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
-        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
 
-        String content = store.getFlowForVersion(flow);
+        String content = realFileReaderStore.getFlowForVersion(flow);
         assertThat(content, equalTo("{\"steps\":[]}"));
     }
 
@@ -176,13 +204,8 @@ class TestGitHubFlowStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(mockVersionService.getFileAtVersion("finos/repo", "flows/payment-flow.json", "abc1234"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
+        when(versionService.getFileAtVersion("finos/repo", "flows/payment-flow.json", "abc1234"))
                 .thenReturn("{\"steps\":[{\"name\":\"old\"}]}");
 
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
@@ -190,6 +213,41 @@ class TestGitHubFlowStoreShould {
         String content = store.getFlowForVersion(flow);
 
         assertThat(content, equalTo("{\"steps\":[{\"name\":\"old\"}]}"));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_requested_version_is_not_sha_shaped() {
+        RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/payment-flow.json"),
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-flow", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
+
+        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+
+        assertThrows(FlowVersionNotFoundException.class, () -> store.getFlowForVersion(flow));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_local_file_is_missing(@TempDir Path tempDir) throws Exception {
+        RegistryEntry entry = new RegistryEntry("payment-flow", Path.of("flows/nonexistent.json"),
+                RegistryResourceType.FLOW, "Payment Flow", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:payment-flow", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
+
+        GitHubFlowStore realFileReaderStore = new GitHubFlowStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
+        int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
+        Flow flow = new Flow.FlowBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+
+        assertThrows(FlowVersionNotFoundException.class, () -> realFileReaderStore.getFlowForVersion(flow));
     }
 
     @Test

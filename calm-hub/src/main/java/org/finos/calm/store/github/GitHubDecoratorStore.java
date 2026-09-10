@@ -17,16 +17,11 @@ import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubDecoratorStore.class)
-public class GitHubDecoratorStore implements DecoratorStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
-
-    private final ResourceRegistry registryService;
+public class GitHubDecoratorStore extends AbstractGitHubStore implements DecoratorStore {
 
     @Inject
     public GitHubDecoratorStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+        super(registryService);
     }
 
     @Override
@@ -60,11 +55,5 @@ public class GitHubDecoratorStore implements DecoratorStore {
     @Override
     public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

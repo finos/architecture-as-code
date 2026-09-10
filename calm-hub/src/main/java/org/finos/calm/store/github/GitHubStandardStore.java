@@ -25,31 +25,17 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubStandardStore.class)
-public class GitHubStandardStore implements StandardStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubStandardStore extends AbstractReadOnlyGitHubStore implements StandardStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubStandardStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubStandardStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubStandardStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                                GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -69,50 +55,39 @@ public class GitHubStandardStore implements StandardStore {
     @Override
     public List<String> getStandardVersions(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
         verifyNamespace(namespace);
-        RegistryEntry entry = findEntryById(namespace, standardId);
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(namespace) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.STANDARD, standardId)
+                .orElseThrow(StandardNotFoundException::new);
+        return getVersions(namespace, entry);
     }
 
     @Override
     public String getStandardForVersion(String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionNotFoundException {
         verifyNamespace(namespace);
-        RegistryEntry entry = findEntryById(namespace, standardId);
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(namespace);
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(namespace, RegistryResourceType.STANDARD, standardId)
+                .orElseThrow(StandardNotFoundException::new);
         try {
-            Path relativeFilePath = entry.filePath();
-            // If this is a JSON file, check for a sibling .md file and prefer it
-            if (relativeFilePath.toString().endsWith(".json")) {
-                String baseName = relativeFilePath.getFileName().toString()
-                        .replaceAll("\\.(guideline|standard|calm)\\.json$", "")
-                        .replace(".json", "");
-                Path relativeMdSibling = relativeFilePath.resolveSibling(baseName + ".md");
-                if (fileReader.existsContained(namespace, relativeMdSibling)) {
-                    return fileReader.readContained(namespace, relativeMdSibling);
-                }
-            }
-            return fileReader.readContained(namespace, relativeFilePath);
+            return readAtVersion(namespace, entry, version, preferMarkdownSibling(namespace, entry.filePath()))
+                    .orElseThrow(StandardVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read standard file: {}", entry.filePath(), e);
             throw new StandardVersionNotFoundException();
         }
+    }
+
+    // Standards render better as prose: when the JSON entry has a same-named .md sibling,
+    // the local-HEAD read prefers it - but only for the local read. A pinned-SHA fetch via
+    // the GitHub API (in readAtVersion's other branch) always targets entry.filePath()
+    // regardless, since the API request is keyed on the JSON file's own version history,
+    // not the sibling's.
+    private Path preferMarkdownSibling(String namespace, Path relativeFilePath) {
+        if (!relativeFilePath.toString().endsWith(".json")) {
+            return relativeFilePath;
+        }
+        String baseName = relativeFilePath.getFileName().toString()
+                .replaceAll("\\.(guideline|standard|calm)\\.json$", "")
+                .replace(".json", "");
+        Path relativeMdSibling = relativeFilePath.resolveSibling(baseName + ".md");
+        return fileReader.existsContained(namespace, relativeMdSibling) ? relativeMdSibling : relativeFilePath;
     }
 
     @Override
@@ -123,22 +98,5 @@ public class GitHubStandardStore implements StandardStore {
     @Override
     public void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws StandardNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.STANDARD);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new StandardNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

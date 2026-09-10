@@ -20,8 +20,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,22 +31,34 @@ import java.util.List;
 import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
 
+@MockitoSettings(strictness = Strictness.LENIENT)
 @ExtendWith(MockitoExtension.class)
 class TestGitHubPatternStoreShould {
 
     @Mock
     private ResourceRegistry registryService;
 
+    @Mock
+    private GitHubCloneManager cloneManager;
+
+    @Mock
+    private GitHubFileHistoryClient versionService;
+
+    @Mock
+    private NamespaceFileReader fileReader;
+
     private GitHubPatternStore store;
 
     @BeforeEach
     void setup() {
-        store = new GitHubPatternStore(registryService);
+        store = new GitHubPatternStore(registryService, cloneManager, versionService, fileReader);
     }
 
     @Test
@@ -112,7 +125,7 @@ class TestGitHubPatternStoreShould {
     }
 
     @Test
-    void return_versions_list_for_existing_pattern() throws Exception {
+    void return_empty_versions_when_neither_the_api_nor_the_local_clone_have_anything() throws Exception {
         RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
                 RegistryResourceType.PATTERN, "Event Driven", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -125,8 +138,26 @@ class TestGitHubPatternStoreShould {
         Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
         List<String> versions = store.getPatternVersions(pattern);
 
+        assertThat(versions, is(empty()));
+    }
+
+    @Test
+    void fall_back_to_the_local_head_sha_when_the_api_returns_no_versions() throws Exception {
+        RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:event-driven", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("1234567");
+
+        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).build();
+        List<String> versions = store.getPatternVersions(pattern);
+
         assertThat(versions, hasSize(1));
-        assertThat(versions.get(0), equalTo("latest"));
+        assertThat(versions.get(0), equalTo("1234567"));
     }
 
     @Test
@@ -139,14 +170,9 @@ class TestGitHubPatternStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
-        when(mockCloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(mockVersionService.getFileVersions("finos/architecture-as-code", "main", "patterns/event-driven.json"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
+        when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", "patterns/event-driven.json"))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
@@ -158,7 +184,7 @@ class TestGitHubPatternStoreShould {
     }
 
     @Test
-    void return_pattern_content_for_version(@TempDir Path tempDir) throws Exception {
+    void return_pattern_content_for_the_current_head_version(@TempDir Path tempDir) throws Exception {
         Path patternDir = tempDir.resolve("finos/patterns");
         Files.createDirectories(patternDir);
         Files.writeString(patternDir.resolve("event-driven.json"), "{\"nodes\":[],\"relationships\":[]}");
@@ -170,12 +196,14 @@ class TestGitHubPatternStoreShould {
                 Map.of("finos:event-driven", entry));
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
 
-        store.fileReader = new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com"));
+        GitHubPatternStore realFileReaderStore = new GitHubPatternStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
-        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
 
-        String content = store.getPatternForVersion(pattern);
+        String content = realFileReaderStore.getPatternForVersion(pattern);
         assertThat(content, equalTo("{\"nodes\":[],\"relationships\":[]}"));
     }
 
@@ -189,13 +217,8 @@ class TestGitHubPatternStoreShould {
         when(registryService.getSnapshot()).thenReturn(snapshot);
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
-        GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
-        store.cloneManager = mockCloneManager;
-        store.versionService = mockVersionService;
-
-        when(mockCloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(mockVersionService.getFileAtVersion("finos/repo", "patterns/event-driven.json", "abc1234"))
+        when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
+        when(versionService.getFileAtVersion("finos/repo", "patterns/event-driven.json", "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
@@ -203,6 +226,41 @@ class TestGitHubPatternStoreShould {
         String content = store.getPatternForVersion(pattern);
 
         assertThat(content, equalTo("{\"nodes\":[{\"name\":\"old\"}]}"));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_requested_version_is_not_sha_shaped() {
+        RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/event-driven.json"),
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:event-driven", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
+
+        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("1.0.0").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> store.getPatternForVersion(pattern));
+    }
+
+    @Test
+    void throw_version_not_found_when_the_local_file_is_missing(@TempDir Path tempDir) throws Exception {
+        RegistryEntry entry = new RegistryEntry("event-driven", Path.of("patterns/nonexistent.json"),
+                RegistryResourceType.PATTERN, "Event Driven", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:event-driven", entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
+
+        GitHubPatternStore realFileReaderStore = new GitHubPatternStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")));
+        int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
+        Pattern pattern = new Pattern.PatternBuilder().setNamespace("finos").setId(hashId).setVersion("abc1234").build();
+
+        assertThrows(PatternVersionNotFoundException.class, () -> realFileReaderStore.getPatternForVersion(pattern));
     }
 
     @Test

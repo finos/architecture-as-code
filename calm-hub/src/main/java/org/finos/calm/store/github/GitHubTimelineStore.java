@@ -24,31 +24,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubTimelineStore.class)
-public class GitHubTimelineStore implements TimelineStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements TimelineStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubTimelineStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubTimelineStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubTimelineStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                                GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -68,36 +54,19 @@ public class GitHubTimelineStore implements TimelineStore {
     @Override
     public List<String> getTimelineVersions(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException {
         verifyNamespace(timeline.getNamespace());
-        RegistryEntry entry = findEntryById(timeline.getNamespace(), timeline.getId());
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(timeline.getNamespace()) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(timeline.getNamespace()) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(timeline.getNamespace(), RegistryResourceType.TIMELINE, timeline.getId())
+                .orElseThrow(TimelineNotFoundException::new);
+        return getVersions(timeline.getNamespace(), entry);
     }
 
     @Override
     public String getTimelineForVersion(Timeline timeline) throws NamespaceNotFoundException, TimelineNotFoundException, TimelineVersionNotFoundException {
         verifyNamespace(timeline.getNamespace());
-        RegistryEntry entry = findEntryById(timeline.getNamespace(), timeline.getId());
-        String version = timeline.getDotVersion();
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(timeline.getNamespace());
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(timeline.getNamespace(), RegistryResourceType.TIMELINE, timeline.getId())
+                .orElseThrow(TimelineNotFoundException::new);
         try {
-            return fileReader.readContained(timeline.getNamespace(), entry.filePath());
+            return readAtVersion(timeline.getNamespace(), entry, timeline.getDotVersion())
+                    .orElseThrow(TimelineVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read timeline file: {}", entry.filePath(), e);
             throw new TimelineVersionNotFoundException();
@@ -117,22 +86,5 @@ public class GitHubTimelineStore implements TimelineStore {
     @Override
     public void deleteTimeline(String namespace, int timelineId) throws NamespaceNotFoundException, TimelineNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws TimelineNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.TIMELINE);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new TimelineNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

@@ -26,31 +26,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubPatternStore.class)
-public class GitHubPatternStore implements PatternStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements PatternStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubPatternStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubPatternStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubPatternStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                               GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -70,36 +56,19 @@ public class GitHubPatternStore implements PatternStore {
     @Override
     public List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException {
         verifyNamespace(pattern.getNamespace());
-        RegistryEntry entry = findEntryById(pattern.getNamespace(), pattern.getId());
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(pattern.getNamespace()) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(pattern.getNamespace()) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(pattern.getNamespace(), RegistryResourceType.PATTERN, pattern.getId())
+                .orElseThrow(PatternNotFoundException::new);
+        return getVersions(pattern.getNamespace(), entry);
     }
 
     @Override
     public String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException {
         verifyNamespace(pattern.getNamespace());
-        RegistryEntry entry = findEntryById(pattern.getNamespace(), pattern.getId());
-        String version = pattern.getDotVersion();
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(pattern.getNamespace());
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(pattern.getNamespace(), RegistryResourceType.PATTERN, pattern.getId())
+                .orElseThrow(PatternNotFoundException::new);
         try {
-            return fileReader.readContained(pattern.getNamespace(), entry.filePath());
+            return readAtVersion(pattern.getNamespace(), entry, pattern.getDotVersion())
+                    .orElseThrow(PatternVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read pattern file: {}", entry.filePath(), e);
             throw new PatternVersionNotFoundException();
@@ -119,22 +88,5 @@ public class GitHubPatternStore implements PatternStore {
     @Override
     public void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws PatternNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.PATTERN);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new PatternNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

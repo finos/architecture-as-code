@@ -29,41 +29,49 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+/**
+ * Does not extend {@link AbstractReadOnlyGitHubStore} — controls are looked up by
+ * (domain, controlId), not the (namespace, type, id) shape every other read-only GitHub
+ * store shares, so {@code findEntry} doesn't apply here. The version-list and
+ * read-at-version behaviour (never a fabricated "latest", 404 on an unresolvable version)
+ * mirrors {@link AbstractReadOnlyGitHubStore#getVersions} and
+ * {@link AbstractReadOnlyGitHubStore#readAtVersion} exactly - see those for why.
+ */
 @ApplicationScoped
 @Typed(GitHubControlStore.class)
 public class GitHubControlStore implements ControlStore {
 
     private static final String WRITE_UNSUPPORTED =
             "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+    private static final String SHA_PATTERN = "[0-9a-f]{7,40}";
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubControlStore.class);
 
     private final ResourceRegistry registryService;
+    private final GitHubCloneManager cloneManager;
+    private final GitHubFileHistoryClient versionService;
+    private final NamespaceFileReader fileReader;
+    private final NamespaceAccessFilter accessFilter;
 
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    NamespaceAccessFilter accessFilter;
-
-    @Inject
-    public GitHubControlStore(ResourceRegistry registryService) {
+    public GitHubControlStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                               GitHubFileHistoryClient versionService, NamespaceFileReader fileReader,
+                               NamespaceAccessFilter accessFilter) {
         this.registryService = registryService;
+        this.cloneManager = cloneManager;
+        this.versionService = versionService;
+        this.fileReader = fileReader;
+        this.accessFilter = accessFilter;
     }
 
     @Override
     public List<ControlDetail> getControlsForDomain(String domain) throws DomainNotFoundException {
-        Set<String> accessible = resolveAccessibleNamespaces();
-        List<ControlDetail> results = new java.util.ArrayList<>();
+        Set<String> accessible = accessFilter.getAccessibleNamespaces();
+        List<ControlDetail> results = new ArrayList<>();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             if (!accessible.contains(namespace)) {
                 continue;
@@ -95,12 +103,19 @@ public class GitHubControlStore implements ControlStore {
     public List<String> getRequirementVersions(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
         RegistryEntry entry = findControlEntry(domain, controlId);
         String namespace = findNamespaceForControl(entry);
-        String repo = cloneManager != null && namespace != null ? cloneManager.getRepoForNamespace(namespace) : null;
-        String branch = cloneManager != null && namespace != null ? cloneManager.getBranchForNamespace(namespace) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
+        if (namespace == null) {
+            return List.of();
         }
-        return List.of("latest");
+        String repo = cloneManager.getRepoForNamespace(namespace);
+        String branch = cloneManager.getBranchForNamespace(namespace);
+        List<String> versions = (repo != null && branch != null)
+                ? versionService.getFileVersions(repo, branch, entry.filePath().toString())
+                : List.of();
+        if (!versions.isEmpty()) {
+            return versions;
+        }
+        String headSha = cloneManager.headSha(namespace);
+        return headSha != null ? List.of(headSha) : List.of();
     }
 
     @Override
@@ -120,25 +135,26 @@ public class GitHubControlStore implements ControlStore {
             throw new ControlRequirementVersionNotFoundException();
         }
 
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(namespace);
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
+        if (version == null || !version.matches(SHA_PATTERN)) {
+            throw new ControlRequirementVersionNotFoundException();
+        }
+
+        String headSha = cloneManager.headSha(namespace);
+        if (version.equals(headSha)) {
+            try {
+                return fileReader.readContained(namespace, entry.filePath());
+            } catch (IOException e) {
+                LOG.error("Failed to read control file: {}", entry.filePath(), e);
+                throw new ControlRequirementVersionNotFoundException();
             }
         }
 
-        // Fallback: read from local clone (latest/HEAD)
-        try {
-            return fileReader.readContained(namespace, entry.filePath());
-        } catch (IOException e) {
-            LOG.error("Failed to read control file: {}", entry.filePath(), e);
+        String repo = cloneManager.getRepoForNamespace(namespace);
+        String content = repo != null ? versionService.getFileAtVersion(repo, entry.filePath().toString(), version) : null;
+        if (content == null) {
             throw new ControlRequirementVersionNotFoundException();
         }
+        return content;
     }
 
     @Override
@@ -187,7 +203,7 @@ public class GitHubControlStore implements ControlStore {
     }
 
     private RegistryEntry findControlEntry(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        Set<String> accessible = resolveAccessibleNamespaces();
+        Set<String> accessible = accessFilter.getAccessibleNamespaces();
         boolean domainExists = false;
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             if (!accessible.contains(namespace)) {
@@ -219,7 +235,7 @@ public class GitHubControlStore implements ControlStore {
     }
 
     private String findNamespaceForControl(RegistryEntry entry) {
-        Set<String> accessible = resolveAccessibleNamespaces();
+        Set<String> accessible = accessFilter.getAccessibleNamespaces();
         for (String namespace : registryService.getSnapshot().getNamespaces()) {
             if (!accessible.contains(namespace)) {
                 continue;
@@ -228,12 +244,5 @@ public class GitHubControlStore implements ControlStore {
             if (entries.contains(entry)) return namespace;
         }
         return null;
-    }
-
-    private Set<String> resolveAccessibleNamespaces() {
-        if (accessFilter == null) {
-            return new java.util.HashSet<>(registryService.getSnapshot().getNamespaces());
-        }
-        return accessFilter.getAccessibleNamespaces();
     }
 }

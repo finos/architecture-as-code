@@ -56,11 +56,7 @@ class TestGitHubUserAccessStoreShould {
 
     @BeforeEach
     void setup() {
-        store = new GitHubUserAccessStore();
-        store.registryService = registryService;
-        store.roleResolver = roleResolver;
-        store.identity = identity;
-        store.cloneManager = cloneManager;
+        store = new GitHubUserAccessStore(registryService, roleResolver, identity, cloneManager);
 
         when(cloneManager.getAccessGroupsForNamespace("finos")).thenReturn(ACCESS_GROUPS);
         when(cloneManager.getAccessGroupsForNamespace("team")).thenReturn(ACCESS_GROUPS);

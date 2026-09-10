@@ -39,17 +39,19 @@ public class GitHubUserAccessStore implements UserAccessStore {
     private static final String WRITE_UNSUPPORTED =
             "Access grants cannot be created in GitHub mode. Assign users to the appropriate IdP roles instead.";
 
-    @Inject
-    ResourceRegistry registryService;
+    private final ResourceRegistry registryService;
+    private final OidcRoleResolver roleResolver;
+    private final SecurityIdentity identity;
+    private final GitHubCloneManager cloneManager;
 
     @Inject
-    OidcRoleResolver roleResolver;
-
-    @Inject
-    SecurityIdentity identity;
-
-    @Inject
-    GitHubCloneManager cloneManager;
+    public GitHubUserAccessStore(ResourceRegistry registryService, OidcRoleResolver roleResolver,
+                                  SecurityIdentity identity, GitHubCloneManager cloneManager) {
+        this.registryService = registryService;
+        this.roleResolver = roleResolver;
+        this.identity = identity;
+        this.cloneManager = cloneManager;
+    }
 
     @Override
     public List<UserAccess> getGrantsForUser(String username) {
@@ -69,7 +71,7 @@ public class GitHubUserAccessStore implements UserAccessStore {
         Set<String> accessibleDomains = new HashSet<>();
 
         for (String namespace : namespaces) {
-            Set<String> accessGroups = cloneManager != null ? cloneManager.getAccessGroupsForNamespace(namespace) : Set.of();
+            Set<String> accessGroups = cloneManager.getAccessGroupsForNamespace(namespace);
 
             OidcRoleResolver.AccessLevel level = roleResolver.resolve(identity, accessGroups);
 

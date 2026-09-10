@@ -24,31 +24,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubFlowStore.class)
-public class GitHubFlowStore implements FlowStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubFlowStore extends AbstractReadOnlyGitHubStore implements FlowStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubFlowStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubFlowStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubFlowStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                            GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -68,36 +54,19 @@ public class GitHubFlowStore implements FlowStore {
     @Override
     public List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException {
         verifyNamespace(flow.getNamespace());
-        RegistryEntry entry = findEntryById(flow.getNamespace(), flow.getId());
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(flow.getNamespace()) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(flow.getNamespace()) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(flow.getNamespace(), RegistryResourceType.FLOW, flow.getId())
+                .orElseThrow(FlowNotFoundException::new);
+        return getVersions(flow.getNamespace(), entry);
     }
 
     @Override
     public String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
         verifyNamespace(flow.getNamespace());
-        RegistryEntry entry = findEntryById(flow.getNamespace(), flow.getId());
-        String version = flow.getDotVersion();
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(flow.getNamespace());
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(flow.getNamespace(), RegistryResourceType.FLOW, flow.getId())
+                .orElseThrow(FlowNotFoundException::new);
         try {
-            return fileReader.readContained(flow.getNamespace(), entry.filePath());
+            return readAtVersion(flow.getNamespace(), entry, flow.getDotVersion())
+                    .orElseThrow(FlowVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read flow file: {}", entry.filePath(), e);
             throw new FlowVersionNotFoundException();
@@ -117,22 +86,5 @@ public class GitHubFlowStore implements FlowStore {
     @Override
     public void deleteFlow(String namespace, int flowId) throws NamespaceNotFoundException, FlowNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws FlowNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.FLOW);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new FlowNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }

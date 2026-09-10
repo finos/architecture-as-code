@@ -23,31 +23,17 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Optional;
 
 @ApplicationScoped
 @Typed(GitHubArchitectureStore.class)
-public class GitHubArchitectureStore implements ArchitectureStore {
-
-    private static final String WRITE_UNSUPPORTED =
-            "Write operations are not yet available. GitHub account linking and PR creation will be enabled in a future release.";
+public class GitHubArchitectureStore extends AbstractReadOnlyGitHubStore implements ArchitectureStore {
 
     private static final Logger LOG = LoggerFactory.getLogger(GitHubArchitectureStore.class);
 
-    private final ResourceRegistry registryService;
-
     @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    GitHubFileHistoryClient versionService;
-
-    @Inject
-    NamespaceFileReader fileReader;
-
-    @Inject
-    public GitHubArchitectureStore(ResourceRegistry registryService) {
-        this.registryService = registryService;
+    public GitHubArchitectureStore(ResourceRegistry registryService, GitHubCloneManager cloneManager,
+                                    GitHubFileHistoryClient versionService, NamespaceFileReader fileReader) {
+        super(registryService, cloneManager, versionService, fileReader);
     }
 
     @Override
@@ -67,36 +53,19 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     @Override
     public List<String> getArchitectureVersions(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException {
         verifyNamespace(architecture.getNamespace());
-        RegistryEntry entry = findEntryById(architecture.getNamespace(), architecture.getId());
-        String repo = cloneManager != null ? cloneManager.getRepoForNamespace(architecture.getNamespace()) : null;
-        String branch = cloneManager != null ? cloneManager.getBranchForNamespace(architecture.getNamespace()) : null;
-        if (repo != null && branch != null && versionService != null) {
-            return versionService.getFileVersions(repo, branch, entry.filePath().toString());
-        }
-        return List.of("latest");
+        RegistryEntry entry = findEntry(architecture.getNamespace(), RegistryResourceType.ARCHITECTURE, architecture.getId())
+                .orElseThrow(ArchitectureNotFoundException::new);
+        return getVersions(architecture.getNamespace(), entry);
     }
 
     @Override
     public String getArchitectureForVersion(Architecture architecture) throws NamespaceNotFoundException, ArchitectureNotFoundException, ArchitectureVersionNotFoundException {
         verifyNamespace(architecture.getNamespace());
-        RegistryEntry entry = findEntryById(architecture.getNamespace(), architecture.getId());
-        String version = architecture.getDotVersion();
-
-        // If a specific SHA is requested and version service is available, fetch from GitHub API
-        if (version != null && !version.equals("latest") && version.matches("[0-9a-f]{7,40}")
-                && cloneManager != null && versionService != null) {
-            String repo = cloneManager.getRepoForNamespace(architecture.getNamespace());
-            if (repo != null) {
-                String content = versionService.getFileAtVersion(repo, entry.filePath().toString(), version);
-                if (content != null) {
-                    return content;
-                }
-            }
-        }
-
-        // Fallback: read from local clone (latest/HEAD)
+        RegistryEntry entry = findEntry(architecture.getNamespace(), RegistryResourceType.ARCHITECTURE, architecture.getId())
+                .orElseThrow(ArchitectureNotFoundException::new);
         try {
-            return fileReader.readContained(architecture.getNamespace(), entry.filePath());
+            return readAtVersion(architecture.getNamespace(), entry, architecture.getDotVersion())
+                    .orElseThrow(ArchitectureVersionNotFoundException::new);
         } catch (IOException e) {
             LOG.error("Failed to read architecture file: {}", entry.filePath(), e);
             throw new ArchitectureVersionNotFoundException();
@@ -116,22 +85,5 @@ public class GitHubArchitectureStore implements ArchitectureStore {
     @Override
     public void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
-    }
-
-    private RegistryEntry findEntryById(String namespace, int id) throws ArchitectureNotFoundException {
-        List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.ARCHITECTURE);
-        Optional<RegistryEntry> found = entries.stream()
-                .filter(e -> (e.uniqueId().hashCode() & 0x7FFFFFFF) == id)
-                .findFirst();
-        if (found.isEmpty()) {
-            throw new ArchitectureNotFoundException();
-        }
-        return found.get();
-    }
-
-    private void verifyNamespace(String namespace) throws NamespaceNotFoundException {
-        if (!registryService.getSnapshot().getNamespaces().contains(namespace)) {
-            throw new NamespaceNotFoundException();
-        }
     }
 }
