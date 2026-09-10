@@ -72,5 +72,10 @@ three declaration sites listed above.
 inside another alternative. The keyword check reads node and relationship entries, not
 interface entries.
 
+Do not give a `prefixItems` entry its own `properties` as well as alternatives. `calm
+generate` keeps the selected alternative and discards the entry's own `properties`, so
+whatever the entry declares is lost. `calm validate` reports a duplicate `unique-id` when
+the two halves share one. That catches the common case. It does not name the fault.
+
 A pattern that declares alternatives inside an `allOf` branch is not supported. Two `allOf`
 branches that declare the same property discard one of the two declarations.

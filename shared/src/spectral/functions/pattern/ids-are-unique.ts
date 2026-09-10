@@ -1,23 +1,21 @@
 import { JSONPath } from 'jsonpath-plus';
+import { partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 import { detectDuplicates } from '../helper-functions';
-import { declaredIdPaths, declaredInterfaceIdPaths } from './declaration-paths';
+import { containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
 
 interface Match {
     value: unknown;
     pointer: string;
 }
 
-function declarationKey(pointer: string): string {
-    return pointer.split('/properties/interfaces/')[0];
-}
-
-function entryKey(pointer: string): string {
-    return declarationKey(pointer).split(/\/(?:oneOf|anyOf)\/\d+$/)[0];
-}
-
-function isAlternative(pointer: string): boolean {
-    return declarationKey(pointer) !== entryKey(pointer);
+/**
+ * The rule blames the second declaration it sees, but three queries per id kind arrive
+ * grouped by query rather than by position. Padding keeps prefixItems/2 before /10.
+ */
+function inDocumentOrder(matches: Match[]): Match[] {
+    const position = (pointer: string) => pointer.replace(/\d+/g, index => index.padStart(6, '0'));
+    return [...matches].sort((left, right) => position(left.pointer) < position(right.pointer) ? -1 : 1);
 }
 
 function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] {
@@ -37,13 +35,12 @@ function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] 
  * prefixItems entry is ever chosen, so alternatives may repeat an interface id.
  */
 function detectDuplicateInterfaceIds(matches: Match[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
-    for (const entry of groupBy(matches, entryKey)) {
-        const always = entry.filter(match => !isAlternative(match.pointer));
-        const choices = groupBy(entry.filter(match => isAlternative(match.pointer)), declarationKey);
+    for (const entry of groupBy(matches, containingEntry)) {
+        const [choices, fixed] = partition(entry, match => isAlternative(match.pointer));
 
-        detectDuplicates(always, seenIds, messages);
-        choices.forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));
-        choices.flat().forEach(match => seenIds.add(match.value));
+        detectDuplicates(fixed, seenIds, messages);
+        groupBy(choices, containingDeclaration).forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));
+        choices.forEach(match => seenIds.add(match.value));
     }
 }
 
@@ -54,8 +51,8 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
     if (!input) {
         return [];
     }
-    const collect = (paths: string[]): Match[] => paths.flatMap(path =>
-        JSONPath({ path, json: context.document.data as object, resultType: 'all' }));
+    const collect = (paths: string[]): Match[] => inDocumentOrder(paths.flatMap(path =>
+        JSONPath({ path, json: context.document.data as object, resultType: 'all' })));
 
     const nodeIdMatches = collect(declaredIdPaths('nodes'));
     const relationshipIdMatches = collect(declaredIdPaths('relationships'));

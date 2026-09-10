@@ -495,4 +495,55 @@ describe('idsAreUnique', () => {
         expect(result.length).toBeGreaterThan(0);
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: intf1, path: /properties/nodes/prefixItems/1/oneOf/0/properties/interfaces/prefixItems/0/properties/unique-id/const');
     });
+    it('should blame the later declaration when an alternative comes before a fixed entry', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            prefixItems: [
+                                { 'oneOf': [{ 'properties': { 'unique-id': { 'const': 'dup' } } }] },
+                                { 'properties': { 'unique-id': { 'const': 'dup' } } }
+                            ]
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/prefixItems/1/properties/unique-id/const');
+    });
+
+    it('should blame the later declaration when anyOf comes before oneOf', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            prefixItems: [
+                                { 'anyOf': [{ 'properties': { 'unique-id': { 'const': 'dup' } } }] },
+                                { 'oneOf': [{ 'properties': { 'unique-id': { 'const': 'dup' } } }] }
+                            ]
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/prefixItems/1/oneOf/0/properties/unique-id/const');
+    });
+
+    it('should order prefixItems entries numerically, not as strings', () => {
+        const input = {};
+        const prefixItems = Array.from({ length: 11 }, (_, index) => ({ 'properties': { 'unique-id': { 'const': `n${index}` } } }));
+        prefixItems.push({ 'properties': { 'unique-id': { 'const': 'n2' } } });
+        const context = { document: { data: { properties: { nodes: { prefixItems } } } } };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/prefixItems/11/properties/unique-id/const');
+    });
 });
