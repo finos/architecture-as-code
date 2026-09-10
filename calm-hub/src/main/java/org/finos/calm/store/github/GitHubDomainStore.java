@@ -12,7 +12,7 @@ import org.finos.calm.store.DomainStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ControlDomains;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.util.NamespaceAccessFilter;
+import org.finos.calm.store.github.access.NamespaceAccessFilter;
 
 import java.util.List;
 import java.util.Set;

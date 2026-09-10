@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.access;
 
 import io.quarkus.security.identity.SecurityIdentity;
 import org.finos.calm.security.OidcRoleResolver;
@@ -12,7 +12,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.security.Principal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -21,7 +20,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
@@ -43,20 +41,13 @@ class TestNamespaceAccessFilterShould {
     @Mock
     private GitHubCloneManager cloneManager;
 
-    private NamespaceAccessFilter filter;
-
-    @BeforeEach
-    void setup() {
-        filter = new NamespaceAccessFilter();
-        filter.identity = identity;
-        filter.roleResolver = roleResolver;
-        filter.registryService = registryService;
-        filter.cloneManager = cloneManager;
+    private NamespaceAccessFilter filterWithAuth(boolean authEnabled) {
+        return new NamespaceAccessFilter(identity, roleResolver, registryService, cloneManager, authEnabled);
     }
 
     @Test
     void return_all_namespaces_when_auth_disabled() {
-        filter.authEnabled = false;
+        NamespaceAccessFilter filter = filterWithAuth(false);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "private", List.of()),
                 Map.of());
@@ -69,7 +60,7 @@ class TestNamespaceAccessFilterShould {
 
     @Test
     void return_empty_when_identity_is_anonymous() {
-        filter.authEnabled = true;
+        NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of()), Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
@@ -82,7 +73,7 @@ class TestNamespaceAccessFilterShould {
 
     @Test
     void return_only_accessible_namespaces_based_on_oidc_groups() {
-        filter.authEnabled = true;
+        NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "private", List.of(), "restricted", List.of()),
                 Map.of());
@@ -106,7 +97,7 @@ class TestNamespaceAccessFilterShould {
 
     @Test
     void return_empty_when_no_namespaces_match() {
-        filter.authEnabled = true;
+        NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("private", List.of()), Map.of());
         when(registryService.getSnapshot()).thenReturn(snapshot);
@@ -124,7 +115,7 @@ class TestNamespaceAccessFilterShould {
 
     @Test
     void return_empty_when_no_namespaces_registered() {
-        filter.authEnabled = true;
+        NamespaceAccessFilter filter = filterWithAuth(true);
         when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);

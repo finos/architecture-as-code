@@ -12,7 +12,7 @@ import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.util.NamespaceAccessFilter;
+import org.finos.calm.store.github.access.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;

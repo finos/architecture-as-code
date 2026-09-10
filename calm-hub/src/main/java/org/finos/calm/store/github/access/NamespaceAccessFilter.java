@@ -1,5 +1,6 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.access;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -20,26 +21,30 @@ import java.util.Set;
  * GitHub-mode stores to restrict domain/control visibility to namespaces the
  * caller is authorised to read.
  */
+@LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
 public class NamespaceAccessFilter {
 
     private static final Logger LOG = LoggerFactory.getLogger(NamespaceAccessFilter.class);
 
-    @Inject
-    SecurityIdentity identity;
+    private final SecurityIdentity identity;
+    private final OidcRoleResolver roleResolver;
+    private final ResourceRegistry registryService;
+    private final GitHubCloneManager cloneManager;
+    private final boolean authEnabled;
 
     @Inject
-    OidcRoleResolver roleResolver;
-
-    @Inject
-    ResourceRegistry registryService;
-
-    @Inject
-    GitHubCloneManager cloneManager;
-
-    @Inject
-    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
-    boolean authEnabled;
+    public NamespaceAccessFilter(SecurityIdentity identity,
+                                  OidcRoleResolver roleResolver,
+                                  ResourceRegistry registryService,
+                                  GitHubCloneManager cloneManager,
+                                  @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false") boolean authEnabled) {
+        this.identity = identity;
+        this.roleResolver = roleResolver;
+        this.registryService = registryService;
+        this.cloneManager = cloneManager;
+        this.authEnabled = authEnabled;
+    }
 
     public Set<String> getAccessibleNamespaces() {
         List<String> allNamespaces = registryService.getSnapshot().getNamespaces();

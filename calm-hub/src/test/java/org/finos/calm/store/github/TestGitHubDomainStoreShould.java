@@ -2,7 +2,7 @@ package org.finos.calm.store.github;
 
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.util.NamespaceAccessFilter;
+import org.finos.calm.store.github.access.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
