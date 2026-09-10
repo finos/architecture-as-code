@@ -1,5 +1,5 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
-import { pattern, truthy, length, xor } from '@stoplight/spectral-functions';
+import { pattern, truthy, length, xor, falsy } from '@stoplight/spectral-functions';
 import { numericalPlaceHolder } from './functions/helper-functions';
 import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
@@ -7,7 +7,6 @@ import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
-import { prefixItemsDeclaresOneKeyword } from './functions/pattern/prefix-items-declares-one-keyword';
 import { declaredIdPaths } from './functions/pattern/declaration-paths';
 
 
@@ -192,10 +191,13 @@ const patternRules: RulesetDefinition = {
         'pattern-prefix-items-must-declare-one-keyword': {
             description: 'A prefixItems entry must declare either oneOf or anyOf, not both',
             severity: 'error',
-            message: '{{error}}',
-            given: '$',
+            message: 'A prefixItems entry declares both \'oneOf\' and \'anyOf\'. An element must satisfy both, so some alternatives can never be selected. Declare one keyword.',
+            given: [
+                '$.properties.nodes.prefixItems[?(@.oneOf && @.anyOf)]',
+                '$.properties.relationships.prefixItems[?(@.oneOf && @.anyOf)]',
+            ],
             then: {
-                function: prefixItemsDeclaresOneKeyword,
+                function: falsy,
             },
         },
         'pattern-option-relationship-must-have-max-one-item': {

@@ -25,9 +25,16 @@ A pattern declares a relationship at the same three sites.
 
 ## Rules that hold across all tools
 
-A decision names a node or a relationship by its `unique-id`. Two declarations must
-therefore never share a `unique-id`. If they did, no answer could select one and not the
-other.
+An id names one kind of thing. A name used for a node is never also used for a relationship
+or an interface, anywhere in the pattern.
+
+A decision names a node or a relationship by its `unique-id`. Two alternatives of one entry
+must therefore have different node ids and different relationship ids. If they did not, no
+answer could select one and not the other.
+
+A decision never names an interface on its own, because a relationship names an interface
+beside its node. Two alternatives may expose the same interface id, because only one of
+them is ever built.
 
 Declare one keyword, not both. An element must satisfy every keyword declared beside it, so
 declaring both `oneOf` and `anyOf` makes some alternatives impossible to select.
@@ -53,11 +60,17 @@ three declaration sites listed above.
 
 | Fault | Severity |
 |---|---|
-| Two declarations share a `unique-id` | error |
+| Two declarations that can appear together share a `unique-id` | error |
+| Two alternatives of one entry share a node or relationship `unique-id` | error |
+| One name is used for more than one kind of thing | error |
 | A relationship refers to a node that the pattern does not declare | error |
 | A connects relationship refers to an interface that the named node does not declare | error |
 | A `prefixItems` entry declares both `oneOf` and `anyOf` | error |
 | No relationship and no decision refers to a declared node | warning |
+
+`calm validate` reads one level of alternatives. It does not read alternatives declared
+inside another alternative. The keyword check reads node and relationship entries, not
+interface entries.
 
 A pattern that declares alternatives inside an `allOf` branch is not supported. Two `allOf`
 branches that declare the same property discard one of the two declarations.
