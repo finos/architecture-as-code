@@ -88,10 +88,12 @@ class TestCalmContentDetectorShould {
     }
 
     @Test
-    void detect_guideline_from_directory_only() {
+    void classify_a_file_under_a_removed_guidelines_directory_as_unknown() {
+        // GUIDELINE was removed as a resource type (Office Hours, 2026-09-10, #3052) —
+        // nothing served it, so files under guidelines/ are no longer indexed at all.
         String json = "{\"title\": \"Microservices Guideline\"}";
         CalmResourceType type = detector.detect(json, Path.of("guidelines/microservices.json"));
-        assertThat(type, equalTo(CalmResourceType.GUIDELINE));
+        assertThat(type, equalTo(CalmResourceType.UNKNOWN));
     }
 
     @Test
@@ -232,10 +234,11 @@ class TestCalmContentDetectorShould {
     }
 
     @Test
-    void detect_guideline_from_nodes_in_guidelines_directory() {
+    void classify_nodes_in_a_removed_guidelines_directory_as_unknown() {
+        // GUIDELINE was removed as a resource type (Office Hours, 2026-09-10, #3052).
         String json = "{\"nodes\": []}";
         CalmResourceType type = detector.detect(json, Path.of("guidelines/best.json"));
-        assertThat(type, equalTo(CalmResourceType.GUIDELINE));
+        assertThat(type, equalTo(CalmResourceType.UNKNOWN));
     }
 
     @Test
@@ -246,23 +249,25 @@ class TestCalmContentDetectorShould {
     }
 
     @Test
-    void detect_building_block_from_nodes_in_building_blocks_directory() {
+    void detect_standard_from_nodes_in_building_blocks_directory() {
+        // building-blocks/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052) —
+        // "Building Block" was removed as its own CALM Hub resource type.
         String json = "{\"nodes\": [{\"unique-id\": \"svc\"}], \"relationships\": []}";
         CalmResourceType type = detector.detect(json, Path.of("building-blocks/auth-block.json"));
-        assertThat(type, equalTo(CalmResourceType.BUILDING_BLOCK));
+        assertThat(type, equalTo(CalmResourceType.STANDARD));
     }
 
     @Test
-    void detect_building_block_from_directory_only() {
+    void detect_standard_from_building_blocks_directory_only() {
         String json = "{\"title\": \"Auth Building Block\"}";
         CalmResourceType type = detector.detect(json, Path.of("building-blocks/auth-block.json"));
-        assertThat(type, equalTo(CalmResourceType.BUILDING_BLOCK));
+        assertThat(type, equalTo(CalmResourceType.STANDARD));
     }
 
     @Test
-    void detect_building_block_from_nested_path() {
+    void detect_standard_from_nested_building_blocks_path() {
         String json = "{\"nodes\": []}";
         CalmResourceType type = detector.detect(json, Path.of("building-blocks/sub/auth-block.json"));
-        assertThat(type, equalTo(CalmResourceType.BUILDING_BLOCK));
+        assertThat(type, equalTo(CalmResourceType.STANDARD));
     }
 }

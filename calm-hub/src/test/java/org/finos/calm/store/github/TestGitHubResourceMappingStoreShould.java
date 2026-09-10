@@ -179,7 +179,7 @@ class TestGitHubResourceMappingStoreShould {
         assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.FLOW), equalTo(CalmResourceType.FLOW));
         assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.STANDARD), equalTo(CalmResourceType.STANDARD));
         assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.INTERFACE), equalTo(CalmResourceType.INTERFACE));
-        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.BUILDING_BLOCK), equalTo(CalmResourceType.BUILDING_BLOCK));
+        assertThat(GitHubResourceMappingStore.toCalmResourceType(ResourceType.CONTROL), equalTo(CalmResourceType.CONTROL));
     }
 
     private RegistryEntry createEntry(String uniqueId, CalmResourceType type) {

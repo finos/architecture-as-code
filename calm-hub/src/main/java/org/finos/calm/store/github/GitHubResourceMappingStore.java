@@ -118,7 +118,6 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
             case FLOW -> CalmResourceType.FLOW;
             case STANDARD -> CalmResourceType.STANDARD;
             case INTERFACE -> CalmResourceType.INTERFACE;
-            case BUILDING_BLOCK -> CalmResourceType.BUILDING_BLOCK;
             case CONTROL -> CalmResourceType.CONTROL;
         };
     }

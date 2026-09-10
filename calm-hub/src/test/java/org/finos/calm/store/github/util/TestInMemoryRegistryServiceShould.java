@@ -166,7 +166,10 @@ class TestInMemoryRegistryServiceShould {
     }
 
     @Test
-    void detect_guideline_in_guidelines_directory() throws IOException {
+    void not_index_a_json_file_under_a_removed_guidelines_directory() throws IOException {
+        // GUIDELINE was removed as a resource type (Office Hours, 2026-09-10, #3052) —
+        // nothing served it, so files under guidelines/ are dropped entirely, not
+        // reclassified.
         Path guideDir = tempDir.resolve("guidelines");
         Files.createDirectories(guideDir);
         Files.writeString(guideDir.resolve("best-practices.json"),
@@ -174,8 +177,7 @@ class TestInMemoryRegistryServiceShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.GUIDELINE);
-        assertThat(entries, hasSize(1));
+        assertThat(registryService.getSnapshot().listAll("finos"), empty());
     }
 
     @Test
@@ -193,15 +195,46 @@ class TestInMemoryRegistryServiceShould {
     }
 
     @Test
-    void detect_markdown_guidelines_in_nested_directories() throws IOException {
+    void not_index_a_markdown_file_under_a_removed_guidelines_directory() throws IOException {
         Path guideDir = tempDir.resolve("guidelines/security");
         Files.createDirectories(guideDir);
         Files.writeString(guideDir.resolve("tls-policy.md"), "# TLS Policy\n\nAlways use TLS.");
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.GUIDELINE);
+        assertThat(registryService.getSnapshot().listAll("finos"), empty());
+    }
+
+    @Test
+    void index_a_markdown_file_under_building_blocks_as_a_standard() throws IOException {
+        // building-blocks/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052).
+        Path bbDir = tempDir.resolve("building-blocks");
+        Files.createDirectories(bbDir);
+        Files.writeString(bbDir.resolve("auth-block.md"), "# Auth Block\n\nDescribes the auth building block.");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
         assertThat(entries, hasSize(1));
+        assertThat(entries.get(0).uniqueId(), equalTo("auth-block"));
+    }
+
+    @Test
+    void merge_building_blocks_and_standards_entries_into_one_listing() throws IOException {
+        Path stdDir = tempDir.resolve("standards");
+        Files.createDirectories(stdDir);
+        Files.writeString(stdDir.resolve("api-design.json"),
+                "{\"unique-id\": \"api-design\", \"title\": \"API Design Standard\"}");
+
+        Path bbDir = tempDir.resolve("building-blocks");
+        Files.createDirectories(bbDir);
+        Files.writeString(bbDir.resolve("auth-block.json"),
+                "{\"unique-id\": \"auth-block\", \"title\": \"Auth Building Block\"}");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        List<RegistryEntry> entries = registryService.listByType("finos", CalmResourceType.STANDARD);
+        assertThat(entries, hasSize(2));
     }
 
     @Test

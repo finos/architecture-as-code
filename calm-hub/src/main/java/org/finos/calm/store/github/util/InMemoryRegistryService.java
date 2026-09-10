@@ -150,8 +150,7 @@ public class InMemoryRegistryService {
         for (int i = 0; i < relativePath.getNameCount() - 1; i++) {
             String segment = relativePath.getName(i).toString().toLowerCase();
             switch (segment) {
-                case "standards": return CalmResourceType.STANDARD;
-                case "guidelines": return CalmResourceType.GUIDELINE;
+                case "standards", "building-blocks": return CalmResourceType.STANDARD;
                 case "adrs": return CalmResourceType.ADR;
                 default: break;
             }

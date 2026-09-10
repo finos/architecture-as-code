@@ -34,7 +34,6 @@ public class CalmDocumentParser {
             Map.entry("flows",           ResourceType.FLOW),
             Map.entry("standards",       ResourceType.STANDARD),
             Map.entry("interfaces",      ResourceType.INTERFACE),
-            Map.entry("building-blocks", ResourceType.BUILDING_BLOCK),
             Map.entry("controls",        ResourceType.CONTROL)
     );
 
@@ -45,7 +44,6 @@ public class CalmDocumentParser {
             Map.entry(ResourceType.FLOW,           "flows"),
             Map.entry(ResourceType.STANDARD,       "standards"),
             Map.entry(ResourceType.INTERFACE,      "interfaces"),
-            Map.entry(ResourceType.BUILDING_BLOCK, "building-blocks"),
             Map.entry(ResourceType.CONTROL,        "controls")
     );
 

@@ -266,7 +266,7 @@ public class MappingControllerResource {
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
-                            + ". Supported: patterns, architectures, flows, standards, interfaces, building-blocks").build();
+                            + ". Supported: patterns, architectures, flows, standards, interfaces").build();
         }
         if ("versions".equals(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
