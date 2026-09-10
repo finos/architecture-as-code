@@ -88,6 +88,38 @@ class GitHubUserAccessDomainReadIntegration {
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
+    void read_a_control_requirements_content_through_the_domain_route_with_namespace_distinct_from_domain() {
+        // "finos" (the namespace this control actually lives in) and "security" (the
+        // domain it's addressed by) are deliberately different strings here - the exact
+        // conflation TestGitHubControlStoreShould's fixtures used to hide. Proves the
+        // domain-scoped route resolves real content end to end, not just a non-empty list.
+        int controlId = given()
+                .when().get("/api/calm/domains/security/controls")
+                .then()
+                .statusCode(200)
+                .extract().jsonPath().getInt("values[0].id");
+
+        given()
+                .when().get("/api/calm/domains/security/controls/" + controlId + "/requirement/versions")
+                .then()
+                .statusCode(200)
+                .body("values", org.hamcrest.Matchers.not(org.hamcrest.Matchers.empty()));
+
+        String sha = given()
+                .when().get("/api/calm/domains/security/controls/" + controlId + "/requirement/versions")
+                .then()
+                .statusCode(200)
+                .extract().jsonPath().getString("values[0]");
+
+        given()
+                .when().get("/api/calm/domains/security/controls/" + controlId + "/requirement/versions/" + sha)
+                .then()
+                .statusCode(200)
+                .body(org.hamcrest.Matchers.equalTo("{}"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
     void deny_domain_read_for_a_domain_that_only_exists_outside_every_namespace_the_user_can_access() {
         given()
                 .when().get("/api/calm/domains/finance/controls")

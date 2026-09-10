@@ -18,6 +18,11 @@ import java.util.Map;
  * configured with access group "group1", "other" with "group2" - see
  * {@link IntegrationTestGithubProfile} for how these feed calm.github.namespaces, and
  * GitHubUserAccessDomainReadIntegration for what this fixture is proving.
+ *
+ * <p>"finos-repo" also carries a {@code building-blocks/rate-limit-policy.json} file -
+ * see {@link GitHubReworkBehaviorIntegration} for what that proves (the Building
+ * Block-to-Standard alias, and the "latest" removal, end to end against a real local clone
+ * rather than a mock).
  */
 public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManager {
 
@@ -32,8 +37,13 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
             originRoot = Files.createTempDirectory("calm-github-it-origin");
             cloneDirectory = Files.createTempDirectory("calm-github-it-clones");
 
-            createRepo(originRoot.resolve("finos-repo.git"), "controls/security/access-control.json");
-            createRepo(originRoot.resolve("other-repo.git"), "controls/finance/other-control.json");
+            createRepo(originRoot.resolve("finos-repo.git"), Map.of(
+                    "controls/security/access-control.json", "{}",
+                    "building-blocks/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}"
+            ));
+            createRepo(originRoot.resolve("other-repo.git"), Map.of(
+                    "controls/finance/other-control.json", "{}"
+            ));
 
             LOG.info("GitHub fixture repos created under {}", originRoot);
         } catch (Exception e) {
@@ -51,14 +61,16 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
         );
     }
 
-    private void createRepo(Path repoDir, String controlRelativePath) throws Exception {
+    private void createRepo(Path repoDir, Map<String, String> filesByRelativePath) throws Exception {
         Files.createDirectories(repoDir);
         try (Git git = Git.init().setDirectory(repoDir.toFile()).setInitialBranch("main").call()) {
-            Path controlFile = repoDir.resolve(controlRelativePath);
-            Files.createDirectories(controlFile.getParent());
-            Files.writeString(controlFile, "{}");
+            for (Map.Entry<String, String> file : filesByRelativePath.entrySet()) {
+                Path target = repoDir.resolve(file.getKey());
+                Files.createDirectories(target.getParent());
+                Files.writeString(target, file.getValue());
+            }
             git.add().addFilepattern(".").call();
-            git.commit().setMessage("seed fixture control").call();
+            git.commit().setMessage("seed fixture content").call();
         }
     }
 
