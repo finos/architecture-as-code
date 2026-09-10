@@ -258,6 +258,16 @@ public class TestFlowResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_when_getting_flow_version() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/flows/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetFlowTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),

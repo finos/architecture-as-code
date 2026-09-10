@@ -269,6 +269,16 @@ public class TestInterfaceResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_of_interface() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/interfaces/5/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetInterfaceTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),

@@ -594,6 +594,15 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_400_when_latest_is_requested_as_a_version_on_the_shared_front_controller() {
+        // "latest" is not a version anywhere on this backend-agnostic route - it never
+        // reaches parseTypePlural/the store, it's rejected by bean validation before
+        // either is invoked.
+        given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/latest")
+                .then().statusCode(400).body(containsString(ResourceValidationConstants.VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
     void return_200_for_specific_architecture_version() throws Exception {
         ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-arch")

@@ -208,6 +208,16 @@ public class TestControlResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_requirement_for_version() {
+        given()
+                .when()
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetRequirementTests() {
         return Stream.of(
                 Arguments.of(INVALID_DOMAIN, new DomainNotFoundException(INVALID_DOMAIN), 404),

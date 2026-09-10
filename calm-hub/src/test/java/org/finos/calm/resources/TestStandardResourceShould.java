@@ -226,6 +226,16 @@ public class TestStandardResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_of_standard() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/standards/5/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetStandardTests() {
         return Stream.of(
           Arguments.of("invalid", new NamespaceNotFoundException(), 404),

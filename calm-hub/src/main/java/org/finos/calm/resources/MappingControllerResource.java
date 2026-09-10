@@ -351,7 +351,7 @@ public class MappingControllerResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Get a specific version of a named resource",
-            description = "Returns the resource at the specified version (semver, git SHA, or 'latest'). " +
+            description = "Returns the resource at the specified version (semver or git SHA). " +
                     "The \"$id\" in the returned document is rewritten to the versioned canonical URL."
     )
     @PermissionsAllowed(CalmHubScopes.READ)

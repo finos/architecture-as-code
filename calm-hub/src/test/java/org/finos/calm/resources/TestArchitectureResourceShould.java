@@ -315,6 +315,16 @@ public class TestArchitectureResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_architecture() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/architectures/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     private void verifyExpectedGetArchitecture(String namespace) throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionNotFoundException {
         Architecture expectedArchitectureToRetrieve = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)

@@ -332,6 +332,16 @@ public class TestPatternResourceShould {
                 .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_pattern() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
     private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
         Pattern expectedPatternToRetrieve = new Pattern.PatternBuilder()
                 .setNamespace(namespace)
