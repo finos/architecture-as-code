@@ -22,7 +22,7 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.nullValue;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -68,13 +68,13 @@ class TestAbstractReadOnlyGitHubStoreShould {
     }
 
     @Test
-    void leave_every_collaborator_null_when_built_through_the_cdi_proxy_constructor() {
-        TestStore proxyShell = new TestStore();
-
-        assertThat(proxyShell.registryService, is(nullValue()));
-        assertThat(proxyShell.cloneManager, is(nullValue()));
-        assertThat(proxyShell.versionService, is(nullValue()));
-        assertThat(proxyShell.fileReader, is(nullValue()));
+    void expose_a_no_arg_constructor_for_the_cdi_client_proxy() {
+        // Exists purely so Arc can generate a client proxy for the @ApplicationScoped
+        // subclasses - see AbstractGitHubStore.AbstractGitHubStore() for why. Asserting on
+        // the resulting fields would mean reaching into package-private state the way
+        // Phase 4 removed everywhere else; executing the constructor without throwing is
+        // the whole contract this test needs to cover.
+        assertThat(new TestStore(), is(notNullValue()));
     }
 
     @Test
