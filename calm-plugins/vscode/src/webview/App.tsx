@@ -102,6 +102,7 @@ function CanvasApp() {
     const syncingRef = useRef(false);
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
+    const pendingNodesRef = useRef<Node[] | null>(null);
 
 
     // --- Core: emit change ---
@@ -120,7 +121,8 @@ function CanvasApp() {
                 if (undoStack.current.length > 50) undoStack.current.shift();
                 redoStack.current = [];
             }
-            const currentNodes = reactFlowInstance.getNodes();
+            const currentNodes = pendingNodesRef.current ?? reactFlowInstance.getNodes();
+            pendingNodesRef.current = null;
             const currentEdges = reactFlowInstance.getEdges();
             const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
             const json = JSON.stringify(arch, null, 2);
@@ -140,6 +142,7 @@ function CanvasApp() {
         // Cancel any pending emit timers to prevent stale data from overwriting the file
         if (debounceTimer.current) { clearTimeout(debounceTimer.current); debounceTimer.current = null; }
         if (positionDebounceTimer.current) { clearTimeout(positionDebounceTimer.current); positionDebounceTimer.current = null; }
+        pendingNodesRef.current = null;
 
         // A blank/whitespace file means "no architecture" — clear the canvas instead of
         // keeping the previously loaded diagram (JSON.parse('') would otherwise throw and the
@@ -412,23 +415,27 @@ function CanvasApp() {
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
-        setNodes((nds) => nds.map((n) => {
-            if (n.id !== nodeId) return n;
-            const data = { ...(n.data as Record<string, unknown>) };
-            switch (field) {
-                case 'name': data.label = value; break;
-                case 'description': data.description = value; break;
-                case 'node-type': data.calmType = value; break;
-                case 'interfaces': data.interfaces = value; break;
-                case 'controls': data.controls = value; break;
-                case 'metadata': data.metadata = { ...((data.metadata as Record<string, unknown>) ?? {}), ...(value as Record<string, unknown>) }; break;
-                case 'containerRole': data.containerRole = value; break;
-            }
-            const updated = { ...n, data };
-            if (field === 'node-type') updated.type = resolveFlowNodeType(value as string);
-            setSelectedNode(updated);
-            return updated;
-        }));
+        setNodes((nds) => {
+            const result = nds.map((n) => {
+                if (n.id !== nodeId) return n;
+                const data = { ...(n.data as Record<string, unknown>) };
+                switch (field) {
+                    case 'name': data.label = value; break;
+                    case 'description': data.description = value; break;
+                    case 'node-type': data.calmType = value; break;
+                    case 'interfaces': data.interfaces = value; break;
+                    case 'controls': data.controls = value; break;
+                    case 'metadata': data.metadata = { ...((data.metadata as Record<string, unknown>) ?? {}), ...(value as Record<string, unknown>) }; break;
+                    case 'containerRole': data.containerRole = value; break;
+                }
+                const updated = { ...n, data };
+                if (field === 'node-type') updated.type = resolveFlowNodeType(value as string);
+                setSelectedNode(updated);
+                return updated;
+            });
+            pendingNodesRef.current = result;
+            return result;
+        });
         setTimeout(() => emitChange(field !== 'name' && field !== 'description'), 0);
     }, [setNodes, emitChange]);
 
@@ -863,7 +870,8 @@ function CanvasApp() {
         return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: 'var(--calm-fg-muted)' }}>Loading CALM architecture...</div>;
     }
 
-    const data = selectedNode ? (selectedNode.data as Record<string, unknown>) : null;
+    const liveSelectedNode = selectedNode ? nodes.find((n) => n.id === selectedNode.id) ?? selectedNode : null;
+    const data = liveSelectedNode ? (liveSelectedNode.data as Record<string, unknown>) : null;
 
     return (
         <div ref={containerRef} style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--calm-bg)', fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", color: 'var(--calm-fg)' }}>
@@ -967,40 +975,40 @@ function CanvasApp() {
                                 <span style={{ fontSize: '11px', fontWeight: 700, color: 'var(--calm-fg)' }}>PROPERTIES</span>
                                 <button onClick={() => setPanelCollapsed(true)} title="Collapse panel" style={collapseToggleStyle}>›</button>
                             </div>
-                            {selectedEdge && !selectedNode ? (
+                            {selectedEdge && !liveSelectedNode ? (
                                 <EdgeProperties edge={selectedEdge} readonlyMode={store.readonlyMode} onEdgeUpdate={onEdgeUpdate} />
-                            ) : selectedNode && data ? (
+                            ) : liveSelectedNode && data ? (
                                 <>
                                     <div style={{ padding: '12px' }}>
-                                        <Field label="ID"><span style={{ fontFamily: 'monospace', fontSize: '11px', opacity: 0.8 }}>{data.calmId as string ?? selectedNode.id}</span></Field>
+                                        <Field label="ID"><span style={{ fontFamily: 'monospace', fontSize: '11px', opacity: 0.8 }}>{data.calmId as string ?? liveSelectedNode.id}</span></Field>
                                         <Field label="Name">
-                                            <input type="text" defaultValue={String(data.label ?? '')} key={`${selectedNode.id}-name`}
-                                                onBlur={(e) => onNodeUpdate(selectedNode.id, 'name', e.target.value)} style={inputStyle} readOnly={store.readonlyMode} />
+                                            <input type="text" defaultValue={String(data.label ?? '')} key={`${liveSelectedNode.id}-name`}
+                                                onBlur={(e) => onNodeUpdate(liveSelectedNode.id, 'name', e.target.value)} style={inputStyle} readOnly={store.readonlyMode} />
                                         </Field>
                                         <Field label="Type"><span style={{ fontSize: '12px', color: 'var(--calm-fg)' }}>{data.calmType as string ?? 'system'}</span></Field>
                                         <Field label="Description">
-                                            <textarea defaultValue={String(data.description ?? '')} key={`${selectedNode.id}-desc`}
-                                                onBlur={(e) => onNodeUpdate(selectedNode.id, 'description', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', minHeight: '60px' }} readOnly={store.readonlyMode} />
+                                            <textarea defaultValue={String(data.description ?? '')} key={`${liveSelectedNode.id}-desc`}
+                                                onBlur={(e) => onNodeUpdate(liveSelectedNode.id, 'description', e.target.value)} rows={3} style={{ ...inputStyle, resize: 'vertical', minHeight: '60px' }} readOnly={store.readonlyMode} />
                                         </Field>
-                                        {selectedNode.parentId && !store.readonlyMode && (
-                                            <button onClick={() => unparentNode(selectedNode.id)} style={unparentBtnStyle}>Remove from Container</button>
+                                        {liveSelectedNode.parentId && !store.readonlyMode && (
+                                            <button onClick={() => unparentNode(liveSelectedNode.id)} style={unparentBtnStyle}>Remove from Container</button>
                                         )}
                                     </div>
                                     <InterfaceList
                                         interfaces={(data.interfaces as any[]) ?? []}
-                                        onUpdate={(ifaces) => onNodeUpdate(selectedNode.id, 'interfaces', ifaces)}
+                                        onUpdate={(ifaces) => onNodeUpdate(liveSelectedNode.id, 'interfaces', ifaces)}
                                         readonly={store.readonlyMode}
                                     />
                                     <ControlsList
                                         controls={data.controls as any}
-                                        onUpdate={(ctrls) => onNodeUpdate(selectedNode.id, 'controls', ctrls)}
+                                        onUpdate={(ctrls) => onNodeUpdate(liveSelectedNode.id, 'controls', ctrls)}
                                         readonly={store.readonlyMode}
                                         valueOnly={!!(data.metadata as any)?.['source-building-block']}
                                         expandControl={expandControlKey}
                                         onControlFocused={handleControlFocused}
                                     />
                                     <NodeAppearance
-                                        key={`${selectedNode.id}-appearance`}
+                                        key={`${liveSelectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
@@ -1009,13 +1017,13 @@ function CanvasApp() {
                                             } else {
                                                 delete meta['building-block-style'];
                                             }
-                                            onNodeUpdate(selectedNode.id, 'metadata', meta);
+                                            onNodeUpdate(liveSelectedNode.id, 'metadata', meta);
                                         }}
                                         readonly={store.readonlyMode}
                                     />
                                     <CustomMetadata
                                         metadata={(data.metadata as Record<string, string>) ?? {}}
-                                        onUpdate={(meta) => onNodeUpdate(selectedNode.id, 'metadata', meta)}
+                                        onUpdate={(meta) => onNodeUpdate(liveSelectedNode.id, 'metadata', meta)}
                                         readonly={store.readonlyMode}
                                     />
                                 </>

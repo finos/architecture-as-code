@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 
 interface ControlEntry { description?: string; requirements?: Array<{ 'requirement-url'?: string; config?: { value?: string } }>; metadata?: { validation?: { pattern?: string; 'allowed-values'?: string[]; example?: string } } }
 
@@ -15,6 +15,8 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+    const controlsRef = useRef(controls);
+    useEffect(() => { controlsRef.current = controls; }, [controls]);
     const lastExpand = useRef<string | null>(null);
 
     if (expandControl && expandControl !== lastExpand.current) {
@@ -34,10 +36,11 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
         setExpandedControls(next);
     };
 
-    const handleValueInput = useCallback((key: string, value: string) => {
+    const handleValueInput = useCallback((key: string, value: string, immediate = false) => {
         clearTimeout(valueTimers.current[key]);
-        valueTimers.current[key] = setTimeout(() => {
-            const updated = { ...(controls ?? {}) };
+        const flush = () => {
+            const latest = controlsRef.current ?? {};
+            const updated = { ...latest };
             const ctrl = { ...updated[key] };
             const reqs = [...(ctrl.requirements ?? [])];
             if (reqs.length === 0) reqs.push({ 'requirement-url': '' });
@@ -45,13 +48,16 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
             ctrl.requirements = reqs;
             updated[key] = ctrl;
             onUpdate(updated);
-        }, 300);
-    }, [controls, onUpdate]);
+        };
+        if (immediate) flush();
+        else valueTimers.current[key] = setTimeout(flush, 300);
+    }, [onUpdate]);
 
-    const handleRemove = (key: string) => { const u = { ...(controls ?? {}) }; delete u[key]; onUpdate(u); };
+    const handleRemove = (key: string) => { clearTimeout(valueTimers.current[key]); const u = { ...(controls ?? {}) }; delete u[key]; onUpdate(u); };
     const handleRename = (oldKey: string, newKey: string) => {
         const trimmed = newKey.trim();
         if (!trimmed || trimmed === oldKey) return;
+        clearTimeout(valueTimers.current[oldKey]);
         const existing = controls ?? {};
         if (trimmed in existing) return;
         const updated: Record<string, ControlEntry> = {};
@@ -118,12 +124,12 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                                                 {readonly ? (
                                                     <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{getConfigValue(control) || '— not configured —'}</p>
                                                 ) : validation?.['allowed-values'] ? (
-                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} style={ctrlInputStyle}>
+                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value, true)} style={ctrlInputStyle}>
                                                         <option value="">— Select —</option>
                                                         {validation['allowed-values'].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 ) : (
-                                                    <input type="text" defaultValue={getConfigValue(control)} onBlur={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={validation?.example ?? 'Enter value...'} style={ctrlInputStyle} />
+                                                    <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={validation?.example ?? 'Enter value...'} style={ctrlInputStyle} />
                                                 )}
                                             </div>
                                         )}
