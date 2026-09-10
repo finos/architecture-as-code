@@ -1,0 +1,59 @@
+name: Build CALM Lab
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-lab/**'
+            - 'shared/**'
+            - 'calm-models/**'
+            - 'calm-widgets/**'
+            - 'calm/**'
+            - '.github/workflows/build-calm-lab.yml'
+    push:
+        branches:
+            - 'main'
+            - 'release*'
+        paths:
+            - 'calm-lab/**'
+            - 'shared/**'
+            - 'calm-models/**'
+            - 'calm-widgets/**'
+            - 'calm/**'
+            - '.github/workflows/build-calm-lab.yml'
+
+jobs:
+    calm-lab:
+        name: Build, Test, and Lint CALM Lab
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Setup Node.js
+              uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version-file: '.nvmrc'
+
+            - name: Install workspace
+              run: npm ci
+
+            - name: Lint calm-lab
+              run: npm run lint --workspace=calm-lab
+
+            - name: Build calm-lab (models → widgets → shared → lab)
+              run: npm run build:calm-lab
+
+            # After the build: the typecheck resolves @finos/calm-shared/browser through
+            # shared/dist/browser.d.ts, which only exists once shared has been built.
+            - name: Typecheck calm-lab
+              run: npm run typecheck --workspace=calm-lab
+
+            - name: Test calm-lab
+              run: npm run test --workspace=calm-lab

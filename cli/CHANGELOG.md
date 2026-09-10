@@ -5,6 +5,21 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.59.0] - 2026-09-07
+
+## [1.59.0](https://github.com/finos/architecture-as-code/compare/cli-v1.58.0...cli-v1.59.0) (2026-09-07)
+
+### chore
+
+* **deps:** update aws-actions/configure-aws-credentials digest to cbe3b39 ([](https://github.com/finos/architecture-as-code/commit/9da2b763229e07f144052c24572b40285cc6df7e))
+* **deps:** update aws-actions/configure-aws-credentials digest to cbe3b39 ([](https://github.com/finos/architecture-as-code/commit/6ca842b10b52caa1732c75dee63db87bd497595f))
+* **deps:** update dtolnay/rust-toolchain digest to 6bed076 ([](https://github.com/finos/architecture-as-code/commit/0034591fc6cfb9bbd83818e81775c1d722d293e5))
+* **deps:** update dtolnay/rust-toolchain digest to 6bed076 ([](https://github.com/finos/architecture-as-code/commit/142ea190af8e3cab1c1128fd40f4b3dbe6e8a561))
+
+### feat
+
+* **calm-hub:** tag Docker images with project version (#2948) ([](https://github.com/finos/architecture-as-code/commit/54e43c29efcde22a814eca90383eb1e8b638fe52)), closes [#2948](https://github.com/finos/architecture-as-code/issues/2948)
+
 ## [1.58.0] - 2026-08-31
 
 ## [1.58.0](https://github.com/finos/architecture-as-code/compare/cli-v1.57.0...cli-v1.58.0) (2026-08-31)

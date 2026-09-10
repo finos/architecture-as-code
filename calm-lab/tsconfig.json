@@ -1,0 +1,19 @@
+{
+    "compilerOptions": {
+        "target": "es2021",
+        "lib": ["dom", "dom.iterable", "esnext"],
+        "jsx": "react-jsx",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "resolveJsonModule": true,
+        "allowJs": true,
+        "isolatedModules": true,
+        "esModuleInterop": true,
+        "forceConsistentCasingInFileNames": true,
+        "strict": true,
+        "skipLibCheck": true,
+        "noEmit": true,
+        "types": ["vite/client", "vitest/globals"]
+    },
+    "include": ["src", "vite.config.ts", "vitest.setup.ts"]
+}
