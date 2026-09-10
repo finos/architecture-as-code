@@ -9,7 +9,7 @@ import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubVersionService;
+import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
@@ -140,7 +140,7 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
+        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 
@@ -188,7 +188,7 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         GitHubCloneManager mockCloneManager = Mockito.mock(GitHubCloneManager.class);
-        GitHubVersionService mockVersionService = Mockito.mock(GitHubVersionService.class);
+        GitHubFileHistoryClient mockVersionService = Mockito.mock(GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 

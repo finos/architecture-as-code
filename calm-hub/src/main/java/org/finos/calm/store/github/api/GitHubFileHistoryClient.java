@@ -1,13 +1,11 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.api;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.lookup.LookupIfProperty;
-import jakarta.annotation.PostConstruct;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
-import org.finos.calm.store.github.api.GitHubApiResponseCache;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,45 +27,48 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Fetches file version history (commit SHAs) and file content from the GitHub REST
- * API. Results are cached via {@link GitHubApiResponseCache} — see that class for the
- * caching contract and its cross-instance staleness scope.
+ * REST client fetching file version history (commit SHAs) and file content from the
+ * GitHub API. Results are cached via {@link GitHubApiResponseCache} — see that class for
+ * the caching contract and its cross-instance staleness scope.
+ *
+ * <p>Never fabricates a version. On any failure to determine real commit history —
+ * the API unreachable, a non-200 response, an empty result — {@link #getFileVersions}
+ * returns an empty list, not a placeholder value. A version list may only ever contain
+ * versions the store can actually resolve; see the read-block design in the GitHub
+ * stores that consume this for how an empty list and a genuine SHA are told apart on
+ * read (namespace/#3066 review discussion — "latest" was removed as a sentinel value
+ * for exactly this reason).</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
-public class GitHubVersionService {
+public class GitHubFileHistoryClient {
 
-    private static final Logger LOG = LoggerFactory.getLogger(GitHubVersionService.class);
+    private static final Logger LOG = LoggerFactory.getLogger(GitHubFileHistoryClient.class);
     private static final ObjectMapper MAPPER = new ObjectMapper();
     private static final Pattern LINK_NEXT_PATTERN = Pattern.compile("<([^>]+)>;\\s*rel=\"next\"");
 
-    @Inject
-    GitHubApiResponseCache cache;
+    private final GitHubApiResponseCache cache;
+    private final GitHubStoreConfig storeConfig;
+    private final int requestTimeoutSeconds;
+    private final int maxVersions;
+    private final HttpClient httpClient;
 
     @Inject
-    GitHubStoreConfig storeConfig;
-
-    @Inject
-    @ConfigProperty(name = "calm.github.http.connect-timeout", defaultValue = "10")
-    int connectTimeoutSeconds;
-
-    @Inject
-    @ConfigProperty(name = "calm.github.http.request-timeout", defaultValue = "30")
-    int requestTimeoutSeconds;
-
-    @Inject
-    @ConfigProperty(name = "calm.github.max-versions", defaultValue = "100")
-    int maxVersions;
-
-    // Built in @PostConstruct, not as a field initializer: connectTimeoutSeconds is
-    // @ConfigProperty-injected, which happens after the constructor runs but before
-    // @PostConstruct - a field initializer here would read the pre-injection default
-    // (0). Built once and reused, not per-call, so requests share a connection pool.
-    private HttpClient httpClient;
-
-    @PostConstruct
-    void init() {
-        httpClient = HttpClient.newBuilder()
+    public GitHubFileHistoryClient(GitHubApiResponseCache cache,
+                                    GitHubStoreConfig storeConfig,
+                                    @ConfigProperty(name = "calm.github.http.connect-timeout", defaultValue = "10") int connectTimeoutSeconds,
+                                    @ConfigProperty(name = "calm.github.http.request-timeout", defaultValue = "30") int requestTimeoutSeconds,
+                                    @ConfigProperty(name = "calm.github.max-versions", defaultValue = "100") int maxVersions) {
+        this.cache = cache;
+        this.storeConfig = storeConfig;
+        this.requestTimeoutSeconds = requestTimeoutSeconds;
+        this.maxVersions = maxVersions;
+        // Built here rather than in a separate lifecycle step: constructor injection
+        // means connectTimeoutSeconds is already resolved by the time this line runs,
+        // unlike the field + @PostConstruct split this class used to need (a field
+        // initializer would have read @ConfigProperty's pre-injection default of 0).
+        // Built once and reused, not per-call, so requests share a connection pool.
+        this.httpClient = HttpClient.newBuilder()
                 .proxy(ProxySelector.getDefault())
                 .connectTimeout(Duration.ofSeconds(connectTimeoutSeconds))
                 .build();
@@ -80,6 +81,8 @@ public class GitHubVersionService {
      *               share one cache entry holding whichever branch's history was
      *               fetched first, and the API call itself would always return the
      *               default branch's history regardless of which branch is configured.
+     * @return commit SHAs oldest-first, truncated to 7 characters; empty if none could
+     * be determined — never a placeholder value (see class javadoc)
      */
     public List<String> getFileVersions(String repoFullName, String branch, String filePath) {
         Optional<List<String>> cached = cache.getVersions(repoFullName, branch, filePath);
@@ -106,16 +109,13 @@ public class GitHubVersionService {
                 url = nextPageUrl(response.headers());
             }
 
-            if (allShas.isEmpty()) {
-                allShas = List.of("latest");
-            }
             List<String> chronological = new ArrayList<>(allShas);
             Collections.reverse(chronological);
             cache.putVersions(repoFullName, branch, filePath, chronological);
             return chronological;
         } catch (Exception e) {
             LOG.warn("Failed to fetch versions for {}/{}: {}", repoFullName, filePath, e.getMessage());
-            return List.of("latest");
+            return List.of();
         }
     }
 
@@ -148,7 +148,7 @@ public class GitHubVersionService {
 
     // Percent-encodes a repo-controlled relative path as a sequence of URL path
     // segments (preserving "/" as a separator, encoding everything else) - filePath
-    // comes from the repo's own tree (InMemoryRegistryService), not a request, so a
+    // comes from the repo's own tree (ResourceRegistry), not a request, so a
     // file named e.g. "x?ref=other&y" must not be able to inject extra query
     // parameters or alter the request the way an unencoded concatenation would.
     private static String encodePathSegment(String relativePath) {
@@ -162,7 +162,7 @@ public class GitHubVersionService {
         return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
-    List<String> extractShas(String json, int limit) {
+    private List<String> extractShas(String json, int limit) {
         List<String> shas = new ArrayList<>();
         try {
             JsonNode commits = MAPPER.readTree(json);
@@ -181,7 +181,7 @@ public class GitHubVersionService {
         return shas;
     }
 
-    String extractNextLink(HttpHeaders headers) {
+    private String extractNextLink(HttpHeaders headers) {
         Optional<String> linkHeader = headers.firstValue("Link");
         if (linkHeader.isEmpty()) {
             return null;

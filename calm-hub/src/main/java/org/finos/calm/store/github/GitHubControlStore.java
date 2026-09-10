@@ -21,7 +21,7 @@ import org.finos.calm.store.ControlStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
-import org.finos.calm.store.github.util.GitHubVersionService;
+import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -47,7 +47,7 @@ public class GitHubControlStore implements ControlStore {
     GitHubCloneManager cloneManager;
 
     @Inject
-    GitHubVersionService versionService;
+    GitHubFileHistoryClient versionService;
 
     @Inject
     NamespaceFileReader fileReader;

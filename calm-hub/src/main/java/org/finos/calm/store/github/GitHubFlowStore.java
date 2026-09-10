@@ -16,7 +16,7 @@ import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.util.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
-import org.finos.calm.store.github.util.GitHubVersionService;
+import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
 import org.slf4j.Logger;
@@ -41,7 +41,7 @@ public class GitHubFlowStore implements FlowStore {
     GitHubCloneManager cloneManager;
 
     @Inject
-    GitHubVersionService versionService;
+    GitHubFileHistoryClient versionService;
 
     @Inject
     NamespaceFileReader fileReader;

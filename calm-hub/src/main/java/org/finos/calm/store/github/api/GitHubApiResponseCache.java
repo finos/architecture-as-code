@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Caches responses from the GitHub REST API on behalf of {@code GitHubVersionService}:
+ * Caches responses from the GitHub REST API on behalf of {@link GitHubFileHistoryClient}:
  * version lists for a file (5 minutes) and file content at an immutable commit SHA
  * (365 days).
  *

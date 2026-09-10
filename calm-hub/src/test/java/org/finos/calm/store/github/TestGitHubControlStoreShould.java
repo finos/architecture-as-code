@@ -10,7 +10,7 @@ import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.config.GitHubStoreConfig;
 import org.finos.calm.store.github.util.GitHubCloneManager;
-import org.finos.calm.store.github.util.GitHubVersionService;
+import org.finos.calm.store.github.api.GitHubFileHistoryClient;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.util.NamespaceAccessFilter;
 import org.finos.calm.store.github.registry.RegistryEntry;
@@ -190,7 +190,7 @@ class TestGitHubControlStoreShould {
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
-        GitHubVersionService mockVersionService = mock(GitHubVersionService.class);
+        GitHubFileHistoryClient mockVersionService = mock(GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 
@@ -238,7 +238,7 @@ class TestGitHubControlStoreShould {
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         GitHubCloneManager mockCloneManager = mock(GitHubCloneManager.class);
-        GitHubVersionService mockVersionService = mock(GitHubVersionService.class);
+        GitHubFileHistoryClient mockVersionService = mock(GitHubFileHistoryClient.class);
         store.cloneManager = mockCloneManager;
         store.versionService = mockVersionService;
 
