@@ -157,7 +157,6 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
-            case CONTROL -> controlStore.getRequirementVersions(mapping.getNamespace(), mapping.getNumericId());
         };
     }
 
@@ -189,7 +188,6 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
-            case CONTROL -> controlStore.getRequirementForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
         };
     }
 
@@ -564,7 +562,6 @@ public class MappingControllerService {
                 CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
                 yield created.getId();
             }
-            case CONTROL -> { throw new UnsupportedOperationException("Control creation via name-based API is not supported"); }
         };
     }
 
@@ -617,7 +614,6 @@ public class MappingControllerService {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
             }
-            case CONTROL -> { throw new UnsupportedOperationException("Control version creation via name-based API is not supported"); }
         }
     }
 

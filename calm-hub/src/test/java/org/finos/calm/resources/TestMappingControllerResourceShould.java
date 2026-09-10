@@ -1129,6 +1129,35 @@ public class TestMappingControllerResourceShould {
     }
 
     // =========================================================================
+    // Namespace-scoped "controls" is not a supported type on the generic front
+    // controller - controls are domain-scoped (/calm/domains/{domain}/controls/...,
+    // tested above), not namespace-scoped. A prior revision wired CONTROL into
+    // ResourceType/TYPE_MAP here; that was reverted because a control mapping can
+    // never carry a domain through this namespace-keyed dispatch (see MappingControllerService
+    // and GitHubResourceMappingStore, which no longer produce a CONTROL arm).
+    // =========================================================================
+
+    @Test
+    void return_400_when_posting_a_control_via_the_namespace_scoped_front_controller() {
+        given().header("Content-Type", "application/json")
+                .body("{\"$id\":\"http://localhost:8080/calm/namespaces/finos/controls/access-control/versions/1.0.0\"}")
+                .when().post("/calm/namespaces/finos/controls/access-control/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_400_when_listing_control_versions_via_the_namespace_scoped_front_controller() {
+        given().when().get("/calm/namespaces/finos/controls/access-control/versions")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_400_when_getting_a_control_version_via_the_namespace_scoped_front_controller() {
+        given().when().get("/calm/namespaces/finos/controls/access-control/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    // =========================================================================
     // createNewResource — NamespaceNotFoundException from createMapping
     // =========================================================================
 

@@ -8,6 +8,5 @@ public enum ResourceType {
     ARCHITECTURE,
     FLOW,
     STANDARD,
-    INTERFACE,
-    CONTROL
+    INTERFACE
 }

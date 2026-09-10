@@ -57,16 +57,20 @@ class TestGitHubControlStoreShould {
 
     @Test
     void return_controls_for_domain() throws Exception {
+        // Registry namespace ("finos") deliberately differs from the control domain
+        // ("security", derived from the controls/security/ path segment) - the two are
+        // unrelated concepts, and a fixture where they happen to share a name would hide
+        // a namespace/domain mix-up regression (see the cross-domain-match test below).
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         List<ControlDetail> result = store.getControlsForDomain(DOMAIN);
 
@@ -91,12 +95,12 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
 
         List<ControlDetail> result = unfilteredStore.getControlsForDomain(DOMAIN);
 
@@ -277,13 +281,13 @@ class TestGitHubControlStoreShould {
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 CalmResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
-                Map.of(DOMAIN, List.of(entry)),
-                Map.of(DOMAIN + ":" + UNIQUE_ID, entry),
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry),
                 Map.of(CalmResourceType.CONTROL, List.of(entry))
         );
         when(registryService.getSnapshot()).thenReturn(snapshot);
-        when(registryService.listByType(DOMAIN, CalmResourceType.CONTROL)).thenReturn(List.of(entry));
-        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of(DOMAIN));
+        when(registryService.listByType("finos", CalmResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         assertThrows(ControlNotFoundException.class,
                 () -> store.getRequirementVersions(DOMAIN, 99999));

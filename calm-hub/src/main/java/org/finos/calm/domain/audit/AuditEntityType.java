@@ -7,7 +7,6 @@ public enum AuditEntityType {
     NAMESPACE,
     ARCHITECTURE,
     PATTERN,
-    CONTROL,
     CONTROL_REQUIREMENT,
     CONTROL_CONFIGURATION,
     ADR,
