@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import { CanvasPanel } from './webview/canvas-panel';
 import { CalmCanvasCodeLensProvider } from './services/codelens-provider';
+import { SvgImportService } from './services/svg-import';
 
 let canvasPanel: CanvasPanel | undefined;
 let outputChannel: vscode.OutputChannel;
@@ -68,6 +69,15 @@ export function activate(context: vscode.ExtensionContext): void {
     );
 
     context.subscriptions.push(openCanvas);
+
+    const importService = new SvgImportService(outputChannel);
+    const importSvg = vscode.commands.registerCommand(
+        'calm.importSvg',
+        async (uri?: vscode.Uri) => {
+            await importService.importSvgToNewFile(uri);
+        }
+    );
+    context.subscriptions.push(importSvg);
 
     // Inline "View in CALM Canvas" affordances on CALM documents.
     const calmSelector: vscode.DocumentSelector = [
