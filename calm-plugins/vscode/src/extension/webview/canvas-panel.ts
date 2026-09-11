@@ -6,6 +6,7 @@ import { DiagramExportService } from '../services/diagram-export-service';
 import { HubClient } from '../services/hub-client';
 import { HubAssetService } from '../services/hub-asset-service';
 import { ShaCacheService } from '../services/sha-cache-service';
+import { SvgImportService } from '../services/svg-import';
 import type {
     ExtToWebviewMessage,
     WebviewToExtMessage,
@@ -76,6 +77,7 @@ export class CanvasPanel {
     private hubClient: HubClient | undefined;
     private hubAssetService: HubAssetService | undefined;
     private shaCache = new ShaCacheService();
+    private importService: SvgImportService | undefined;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
 
@@ -88,6 +90,7 @@ export class CanvasPanel {
         outputChannel: vscode.OutputChannel
     ) {
         this.log = outputChannel;
+        this.importService = new SvgImportService(outputChannel);
         const workspaceRoot =
             vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '';
         this.log.appendLine(
@@ -252,6 +255,9 @@ export class CanvasPanel {
                     message.nodeId,
                     message.curie
                 );
+                break;
+            case 'requestImportSvg':
+                void this.handleImportSvg();
                 break;
         }
     }
@@ -828,6 +834,24 @@ export class CanvasPanel {
             }
         } catch {
             /* non-JSON document or other parse error */
+        }
+    }
+
+    private async handleImportSvg(): Promise<void> {
+        this.log.appendLine('[CanvasPanel] handleImportSvg triggered');
+        if (!this.importService) {
+            this.log.appendLine('[CanvasPanel] importService is undefined');
+            return;
+        }
+        if (!this.currentDocument) {
+            this.log.appendLine('[CanvasPanel] currentDocument is undefined');
+        }
+        const json = await this.importService.importSvgIntoDocument(this.currentDocument);
+        if (json) {
+            this.log.appendLine(`[CanvasPanel] Import successful, updating webview`);
+            this.postMessage({ type: 'modelUpdated', json, source: 'file' });
+        } else {
+            this.log.appendLine('[CanvasPanel] Import returned null (cancelled or failed)');
         }
     }
 

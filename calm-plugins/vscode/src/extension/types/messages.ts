@@ -63,4 +63,5 @@ export type WebviewToExtMessage =
     | { type: 'requestGenerateSpec' }
     | { type: 'saveBuildingBlock'; filename: string; content: string }
     | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
-    | { type: 'resolveDefinitionId'; nodeId: string; curie: string };
+    | { type: 'resolveDefinitionId'; nodeId: string; curie: string }
+    | { type: 'requestImportSvg' };

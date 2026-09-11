@@ -63,26 +63,39 @@ interface WorkspaceFolder {
     uri: Uri;
 }
 
+export class WorkspaceEdit {
+    private _edits: Array<{ uri: unknown; range: unknown; newText: string }> = [];
+    replace(uri: unknown, range: unknown, newText: string): void {
+        this._edits.push({ uri, range, newText });
+    }
+}
+
 export const workspace: {
     workspaceFolders: WorkspaceFolder[] | undefined;
-    fs: { readFile: (uri: Uri) => Promise<Uint8Array> };
+    fs: {
+        readFile: (uri: Uri) => Promise<Uint8Array>;
+        writeFile: (uri: Uri, content: Uint8Array) => Promise<void>;
+    };
     getConfiguration: (section?: string) => {
         get: <T>(key: string, defaultValue?: T) => T | undefined;
         update: (key: string, value: unknown, target?: ConfigurationTarget) => Promise<void>;
     };
     findFiles: (...args: unknown[]) => Promise<Uri[]>;
+    applyEdit: (edit: WorkspaceEdit) => Promise<boolean>;
 } = {
     workspaceFolders: [],
     fs: {
         readFile: async () => {
             throw new Error('ENOENT');
         },
+        writeFile: async () => {},
     },
     getConfiguration: () => ({
         get: () => undefined,
         update: async () => {},
     }),
     findFiles: async () => [],
+    applyEdit: async () => true,
 };
 
 export interface StatusBarItem {
@@ -112,6 +125,8 @@ export const window = {
     showErrorMessage: () => Promise.resolve(undefined),
     showInformationMessage: () => Promise.resolve(undefined),
     showInputBox: () => Promise.resolve(undefined),
+    showOpenDialog: async () => undefined,
+    showSaveDialog: async () => undefined,
     createStatusBarItem: (_alignment?: StatusBarAlignment, _priority?: number): StatusBarItem =>
         createMockStatusBarItem(),
     createOutputChannel: (_name: string) => ({
@@ -128,6 +143,7 @@ export const commands = {
     registerCommand: (_command: string, _callback: (...args: unknown[]) => unknown) => ({
         dispose: () => {},
     }),
+    executeCommand: async () => undefined,
 };
 
 export const languages = {
