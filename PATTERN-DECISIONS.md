@@ -23,6 +23,9 @@ A pattern declares a node at five kinds of site:
 | `items.oneOf` | nodes an architecture may add, none of them required |
 | `items.anyOf` | nodes an architecture may add, none of them required |
 
+`maxItems` counts the whole array and the `prefixItems` entries fill it from the front, so
+a pattern that wants `items` must leave room for them.
+
 A node declared under `items` must sit inside `oneOf` or `anyOf`. `items` applies one
 schema to every position after the entries, so a node declared directly would force every
 added node to be that same node. An `items` schema that declares a node directly is not
@@ -79,6 +82,7 @@ five declaration sites listed above.
 | A connects relationship refers to an interface that the named node does not declare | error |
 | A `prefixItems` entry or an `items` block declares both `oneOf` and `anyOf` | error |
 | A decision is declared in `items` rather than in `prefixItems` | error |
+| `maxItems` leaves no room for an `items` member | error |
 | No relationship and no decision refers to a declared node | warning |
 
 `calm validate` does not read the destination of a connects relationship. A typo there is

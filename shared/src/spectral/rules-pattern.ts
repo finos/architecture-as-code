@@ -8,6 +8,7 @@ import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
 import { decisionIsDeclaredInPrefixItems } from './functions/pattern/decision-is-declared-in-prefix-items';
+import { itemsFitWithinMaxItems } from './functions/pattern/items-fit-within-max-items';
 import { declaredIdPaths, twoKeywordSites } from './functions/pattern/declaration-paths';
 
 
@@ -196,6 +197,15 @@ const patternRules: RulesetDefinition = {
             given: twoKeywordSites(),
             then: {
                 function: falsy,
+            },
+        },
+        'pattern-items-must-fit-within-max-items': {
+            description: 'maxItems must leave room for an items member to be built',
+            severity: 'error',
+            message: '{{error}}',
+            given: ['$.properties.nodes', '$.properties.relationships'],
+            then: {
+                function: itemsFitWithinMaxItems,
             },
         },
         'pattern-decision-must-be-declared-in-prefix-items': {
