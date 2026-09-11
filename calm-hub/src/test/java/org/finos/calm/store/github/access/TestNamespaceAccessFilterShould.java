@@ -1,11 +1,9 @@
 package org.finos.calm.store.github.access;
 
 import io.quarkus.security.identity.SecurityIdentity;
-import org.finos.calm.security.OidcRoleResolver;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.finos.calm.store.github.registry.ResourceRegistry;
-import org.finos.calm.store.github.sync.GitHubCloneManager;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -14,13 +12,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.security.Principal;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,16 +31,13 @@ class TestNamespaceAccessFilterShould {
     private Principal principal;
 
     @Mock
-    private OidcRoleResolver roleResolver;
+    private UserAccessValidator accessValidator;
 
     @Mock
     private ResourceRegistry registryService;
 
-    @Mock
-    private GitHubCloneManager cloneManager;
-
     private NamespaceAccessFilter filterWithAuth(boolean authEnabled) {
-        return new NamespaceAccessFilter(identity, roleResolver, registryService, cloneManager, authEnabled);
+        return new NamespaceAccessFilter(identity, accessValidator, registryService, authEnabled);
     }
 
     @Test
@@ -72,7 +67,7 @@ class TestNamespaceAccessFilterShould {
     }
 
     @Test
-    void return_only_accessible_namespaces_based_on_oidc_groups() {
+    void return_only_the_namespaces_the_access_validator_says_are_readable() {
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("finos", List.of(), "private", List.of(), "restricted", List.of()),
@@ -82,13 +77,8 @@ class TestNamespaceAccessFilterShould {
         when(identity.getPrincipal()).thenReturn(principal);
         when(principal.getName()).thenReturn("testuser");
 
-        when(cloneManager.getAccessGroupsForNamespace("finos")).thenReturn(Set.of("team-a"));
-        when(cloneManager.getAccessGroupsForNamespace("private")).thenReturn(Set.of("team-b"));
-        when(cloneManager.getAccessGroupsForNamespace("restricted")).thenReturn(Set.of("team-c"));
-
-        when(roleResolver.resolve(eq(identity), eq(Set.of("team-a")))).thenReturn(OidcRoleResolver.AccessLevel.READ);
-        when(roleResolver.resolve(eq(identity), eq(Set.of("team-b")))).thenReturn(OidcRoleResolver.AccessLevel.NONE);
-        when(roleResolver.resolve(eq(identity), eq(Set.of("team-c")))).thenReturn(OidcRoleResolver.AccessLevel.READ);
+        when(accessValidator.getReadableNamespaces("testuser"))
+                .thenReturn(Optional.of(Set.of("finos", "restricted")));
 
         Set<String> result = filter.getAccessibleNamespaces();
 
@@ -96,7 +86,51 @@ class TestNamespaceAccessFilterShould {
     }
 
     @Test
-    void return_empty_when_no_namespaces_match() {
+    void return_every_registered_namespace_when_the_access_validator_says_everything_is_readable() {
+        // Optional.empty() from UserAccessValidator means calm.auth.allow-public-read is
+        // true, or the caller holds a GLOBAL admin grant - either way, every namespace the
+        // registry actually knows about, not just the ones the caller has an explicit
+        // grant for.
+        NamespaceAccessFilter filter = filterWithAuth(true);
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(), "private", List.of()),
+                Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(identity.isAnonymous()).thenReturn(false);
+        when(identity.getPrincipal()).thenReturn(principal);
+        when(principal.getName()).thenReturn("testuser");
+
+        when(accessValidator.getReadableNamespaces("testuser")).thenReturn(Optional.empty());
+
+        Set<String> result = filter.getAccessibleNamespaces();
+
+        assertThat(result, containsInAnyOrder("finos", "private"));
+    }
+
+    @Test
+    void exclude_a_readable_namespace_the_registry_no_longer_knows_about() {
+        // UserAccessValidator's grants can be stale relative to the registry's current
+        // snapshot (a namespace removed from calm.github.namespaces since the grant was
+        // computed) - the accessible set must never include a namespace the caller
+        // couldn't actually read anything from.
+        NamespaceAccessFilter filter = filterWithAuth(true);
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(identity.isAnonymous()).thenReturn(false);
+        when(identity.getPrincipal()).thenReturn(principal);
+        when(principal.getName()).thenReturn("testuser");
+
+        when(accessValidator.getReadableNamespaces("testuser"))
+                .thenReturn(Optional.of(Set.of("finos", "removed-namespace")));
+
+        Set<String> result = filter.getAccessibleNamespaces();
+
+        assertThat(result, containsInAnyOrder("finos"));
+    }
+
+    @Test
+    void return_empty_when_no_namespaces_are_readable() {
         NamespaceAccessFilter filter = filterWithAuth(true);
         RegistrySnapshot snapshot = new RegistrySnapshot(
                 Map.of("private", List.of()), Map.of());
@@ -105,8 +139,7 @@ class TestNamespaceAccessFilterShould {
         when(identity.getPrincipal()).thenReturn(principal);
         when(principal.getName()).thenReturn("testuser");
 
-        when(cloneManager.getAccessGroupsForNamespace("private")).thenReturn(Set.of("admins"));
-        when(roleResolver.resolve(eq(identity), eq(Set.of("admins")))).thenReturn(OidcRoleResolver.AccessLevel.NONE);
+        when(accessValidator.getReadableNamespaces("testuser")).thenReturn(Optional.of(Set.of()));
 
         Set<String> result = filter.getAccessibleNamespaces();
 
@@ -120,6 +153,8 @@ class TestNamespaceAccessFilterShould {
         when(identity.isAnonymous()).thenReturn(false);
         when(identity.getPrincipal()).thenReturn(principal);
         when(principal.getName()).thenReturn("testuser");
+
+        when(accessValidator.getReadableNamespaces("testuser")).thenReturn(Optional.of(Set.of()));
 
         Set<String> result = filter.getAccessibleNamespaces();
 
