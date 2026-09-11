@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="34" failures="0" errors="0" skipped="0">
+<testsuites tests="35" failures="0" errors="0" skipped="0">
     <testsuite name="JSON Schema Validation" tests="1" failures="0"
         errors="0" skipped="0">
         <testcase name="JSON Schema Validation succeeded" />
     </testsuite>
-    <testsuite name="Spectral Suite" tests="33"
+    <testsuite name="Spectral Suite" tests="34"
         failures="0" errors="0" skipped="0">
         <testcase name="architecture-has-nodes-relationships" />
         <testcase name="architecture-has-no-empty-string-properties" />
@@ -42,6 +42,7 @@
         <testcase name="relationships-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block"/>
         <testcase name="pattern-option-relationship-must-only-have-oneof-or-anyof-items"/>
         <testcase name="pattern-choice-must-declare-one-keyword"/>
+        <testcase name="pattern-items-must-fit-within-max-items"/>
         <testcase name="pattern-decision-must-be-declared-in-prefix-items"/>
         <testcase name="pattern-option-relationship-must-have-max-one-item"/>
     </testsuite>

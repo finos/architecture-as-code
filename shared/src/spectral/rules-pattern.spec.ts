@@ -234,4 +234,35 @@ describe('pattern ruleset', () => {
             expect(codes).not.toContain('pattern-decision-must-be-declared-in-prefix-items');
         });
     });
+    describe('pattern-items-must-fit-within-max-items', () => {
+        it('rejects a pattern whose maxItems leaves no room for items', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { minItems: 1, maxItems: 1, prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [] }
+                }
+            });
+            expect(codes).toContain('pattern-items-must-fit-within-max-items');
+        });
+
+        it('accepts a pattern whose maxItems leaves room', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { minItems: 1, maxItems: 2, prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [] }
+                }
+            });
+            expect(codes).not.toContain('pattern-items-must-fit-within-max-items');
+        });
+
+        it('accepts a pattern that declares no maxItems', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [] }
+                }
+            });
+            expect(codes).not.toContain('pattern-items-must-fit-within-max-items');
+        });
+    });
 });
