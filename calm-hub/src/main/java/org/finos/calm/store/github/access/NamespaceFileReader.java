@@ -72,11 +72,17 @@ public class NamespaceFileReader {
     /**
      * Same containment guard as {@link #readContained}, without reading the file — for
      * call sites (e.g. an optional sibling file) that need to check existence first.
+     *
+     * <p>{@code isContained}'s own {@code toRealPath()} resolution already fails (caught
+     * as "not contained") for a path that doesn't exist, so containment implies existence —
+     * a separate {@code Files.exists(target)} call against the raw, not-yet-validated path
+     * would touch the filesystem with unsanitised input before the containment check runs,
+     * which is exactly the ordering this class exists to avoid.
      */
     public boolean existsContained(String namespace, Path relativeFilePath) {
         Path namespaceRoot = storeConfig.getCloneDirectory().resolve(namespace);
         Path target = namespaceRoot.resolve(relativeFilePath);
-        return Files.exists(target) && isContained(namespaceRoot, target);
+        return isContained(namespaceRoot, target);
     }
 
     private boolean isContained(Path namespaceRoot, Path target) {
