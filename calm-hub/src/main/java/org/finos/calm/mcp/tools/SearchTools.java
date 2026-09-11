@@ -11,6 +11,7 @@ import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.resources.ReadableScope;
 import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
 import org.slf4j.Logger;
@@ -99,10 +100,8 @@ public class SearchTools {
     }
 
     private Optional<Set<String>> resolveReadableNamespaces() {
-        if (!authEnabled || !userAccessValidatorInstance.isResolvable()) {
-            return Optional.empty();
-        }
-        return userAccessValidatorInstance.get().getReadableNamespaces(identity.getPrincipal().getName());
+        return ReadableScope.resolve(authEnabled, userAccessValidatorInstance, identity,
+                UserAccessValidator::getReadableNamespaces);
     }
 
     private static Map<String, List<SearchResult>> toGroupMap(GroupedSearchResults results) {

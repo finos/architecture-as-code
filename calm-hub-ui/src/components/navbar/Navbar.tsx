@@ -6,6 +6,8 @@ import { GlobalSearchBar } from './GlobalSearchBar.js';
 import { ThemeToggle } from './ThemeToggle.js';
 import { useTheme } from '../../theme/useTheme.js';
 import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
+import { UserMenu } from '../user-menu/UserMenu.js';
+import { isAuthServiceEnabled } from '../../authService.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -58,6 +60,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 <div className="hidden lg:flex items-center">
                     <GlobalSearchBar />
                 </div>
+                {isAuthServiceEnabled() && <UserMenu />}
             </div>
 
             {/* Backdrop — dims the page behind the drawer; tap to close */}

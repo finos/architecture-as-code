@@ -69,6 +69,8 @@ export default function Hub() {
     const [namespaceCountsFailed, setNamespaceCountsFailed] = useState(false);
     const [domainCounts, setDomainCounts] = useState<DomainControlCount[]>([]);
     const [domainCountsLoaded, setDomainCountsLoaded] = useState(false);
+    // Mirrors namespaceCountsFailed above — a failed fetch means "unknown", not "zero".
+    const [domainCountsFailed, setDomainCountsFailed] = useState(false);
     const isMobile = useIsMobile();
 
     // Route-first content selection (redesign problem #4): the same <Hub/> element
@@ -112,7 +114,10 @@ export default function Hub() {
         countsService
             .fetchDomainCounts()
             .then(setDomainCounts)
-            .catch(() => setDomainCounts([]))
+            .catch(() => {
+                setDomainCounts([]);
+                setDomainCountsFailed(true);
+            })
             .finally(() => setDomainCountsLoaded(true));
     }, [countsService]);
 
@@ -309,13 +314,17 @@ export default function Hub() {
             }
         );
     }, [namespaceCounts, namespaceCountsLoaded, namespaceCountsFailed, activeNamespace]);
-    // Both counts stay `undefined` until the domain-counts fetch settles, so a
-    // deep-link shows "controls" rather than a misleading "0 controls" before it
-    // resolves (mirrors the activeNamespaceCounts gate above).
+    // Both counts stay `undefined` until the domain-counts fetch settles OR if it
+    // failed, so a deep-link shows "controls" rather than a misleading "0 controls"
+    // (mirrors the activeNamespaceCounts gate above).
     const domainControlCount = useMemo(
-        () => (domainCountsLoaded ? (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0) : undefined),
-        [domainCounts, domainCountsLoaded, activeDomain]
+        () =>
+            !domainCountsLoaded || domainCountsFailed
+                ? undefined
+                : (domainCounts.find((c) => c.domain === activeDomain)?.controlCount ?? 0),
+        [domainCounts, domainCountsLoaded, domainCountsFailed, activeDomain]
     );
+
     // Chrome-free intro / front door (`/` with nothing else active): early-returns
     // before Hub's navbar + rail layout. Below every hook above, so none is skipped.
     if (
@@ -417,6 +426,10 @@ export default function Hub() {
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
+                                namespacesLoading={!namespaceCountsLoaded}
+                                domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
@@ -450,6 +463,10 @@ export default function Hub() {
                             <MobileNavMenu
                                 namespaceCounts={namespaceCounts}
                                 domainCounts={domainCounts}
+                                namespacesLoading={!namespaceCountsLoaded}
+                                domainsLoading={!domainCountsLoaded}
+                                namespacesFailed={namespaceCountsFailed}
+                                domainsFailed={domainCountsFailed}
                                 onClose={() => setIsMobileNavOpen(false)}
                             />
                         </div>
