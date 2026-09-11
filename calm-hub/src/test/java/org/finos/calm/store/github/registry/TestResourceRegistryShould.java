@@ -295,4 +295,50 @@ class TestResourceRegistryShould {
         List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.ARCHITECTURE);
         assertThat(entries, is(empty()));
     }
+
+    @Test
+    void list_both_entries_by_type_even_when_their_fallback_derived_unique_ids_collide() throws IOException {
+        // Two files in different subdirectories with the same basename, neither setting
+        // its own "unique-id" - both fall back to "foo", colliding in the qualified-id
+        // index. listByType (backed by the per-namespace list, not that index) must
+        // still surface both.
+        Path patternsA = tempDir.resolve("patterns/a");
+        Path patternsB = tempDir.resolve("patterns/b");
+        Files.createDirectories(patternsA);
+        Files.createDirectories(patternsB);
+        Files.writeString(patternsA.resolve("foo.json"), "{\"name\": \"Foo A\", \"nodes\": []}");
+        Files.writeString(patternsB.resolve("foo.json"), "{\"name\": \"Foo B\", \"nodes\": []}");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.PATTERN);
+        assertThat(entries, hasSize(2));
+    }
+
+    @Test
+    void resolve_a_colliding_unique_id_to_the_same_entry_deterministically_across_rebuilds() throws IOException {
+        // findByUniqueId can only ever resolve one of the two colliding entries (that's
+        // the known, tracked limitation - see the class javadoc on the index build).
+        // What must hold is that repeated rebuilds of identical, unchanged content
+        // resolve to the SAME one every time, not whichever the filesystem happened to
+        // walk first.
+        Path patternsA = tempDir.resolve("patterns/a");
+        Path patternsB = tempDir.resolve("patterns/b");
+        Files.createDirectories(patternsA);
+        Files.createDirectories(patternsB);
+        Files.writeString(patternsA.resolve("foo.json"), "{\"name\": \"Foo A\", \"nodes\": []}");
+        Files.writeString(patternsB.resolve("foo.json"), "{\"name\": \"Foo B\", \"nodes\": []}");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+        Optional<RegistryEntry> firstRebuild = registryService.findByUniqueId("finos", "foo");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+        Optional<RegistryEntry> secondRebuild = registryService.findByUniqueId("finos", "foo");
+
+        assertThat(firstRebuild.isPresent(), is(true));
+        assertThat(secondRebuild, equalTo(firstRebuild));
+        // Sorted by path ascending, then indexed in that order - the alphabetically
+        // last path ("patterns/b/foo.json") is put into the map last, so it wins.
+        assertThat(firstRebuild.get().filePath().toString(), equalTo("patterns/b/foo.json"));
+    }
 }

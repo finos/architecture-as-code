@@ -16,6 +16,7 @@ import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +60,23 @@ public class ResourceRegistry {
             byNamespace.put(namespace, entries);
 
             for (RegistryEntry registryEntry : entries) {
-                byQualifiedId.put(namespace + ":" + registryEntry.uniqueId(), registryEntry);
+                // A uniqueId is only guaranteed unique when a document sets its own
+                // "unique-id" - the path-derived fallback (extractUniqueId) is just the
+                // filename minus extension, so two files with the same name in different
+                // subdirectories (e.g. patterns/a/foo.json and patterns/b/foo.json)
+                // collide here. listByType still lists both (byNamespace is unaffected),
+                // but a direct findByUniqueId lookup can only ever resolve to one - log
+                // it so a colliding repo layout is at least diagnosable, not a silent
+                // "wrong document served" surprise. entries is sorted by path below, so
+                // which one wins is at least deterministic across rebuilds.
+                String qualifiedId = namespace + ":" + registryEntry.uniqueId();
+                RegistryEntry previous = byQualifiedId.put(qualifiedId, registryEntry);
+                if (previous != null && !previous.filePath().equals(registryEntry.filePath())) {
+                    LOG.warn("uniqueId collision in namespace [{}]: [{}] and [{}] both resolve to id [{}] - "
+                                    + "only [{}] is reachable via a direct id lookup",
+                            namespace, previous.filePath(), registryEntry.filePath(), registryEntry.uniqueId(),
+                            registryEntry.filePath());
+                }
             }
         }
 
@@ -106,6 +123,11 @@ public class ResourceRegistry {
             LOG.error("Failed to scan directory for namespace [{}]: {}", namespace, root, e);
         }
 
+        // Files.walk's iteration order is unspecified - without sorting, a
+        // uniqueId collision (see rebuild()) could pick a different winner on every
+        // rebuild even though the repo content hasn't changed. Sorting by path makes
+        // that choice at least stable.
+        entries.sort(Comparator.comparing(e -> e.filePath().toString()));
         return entries;
     }
 
