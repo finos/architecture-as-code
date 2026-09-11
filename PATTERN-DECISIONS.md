@@ -23,6 +23,11 @@ A pattern declares a node at five kinds of site:
 | `items.oneOf` | nodes an architecture may add, none of them required |
 | `items.anyOf` | nodes an architecture may add, none of them required |
 
+A node declared under `items` must sit inside `oneOf` or `anyOf`. `items` applies one
+schema to every position after the entries, so a node declared directly would force every
+added node to be that same node. An `items` schema that declares a node directly is not
+read.
+
 A pattern declares a relationship at the same five sites.
 
 `prefixItems` and `items` differ in how many of their declarations reach one architecture.
@@ -79,10 +84,10 @@ five declaration sites listed above.
 `calm validate` does not read the destination of a connects relationship. A typo there is
 not reported.
 
-Declare a decision in `relationships.prefixItems`. An architecture contains every
-relationship a pattern declares there, so the decision is always asked. An architecture may
-leave out an `items` member, so a decision declared in `items` can vanish, and an answer
-never gets to decline it.
+Declare a decision as a plain entry in `relationships.prefixItems`. An architecture
+contains every relationship declared at a fixed position there, so the decision is always
+asked. A decision declared in `items`, or as one alternative of an entry, can be left out,
+and an answer never gets to decline it. `calm validate` reports the `items` case only.
 
 Two `items` members may both be built, so they must not share a `unique-id`, and two nodes
 declared there must not share an interface id. Two alternatives of one `prefixItems` entry

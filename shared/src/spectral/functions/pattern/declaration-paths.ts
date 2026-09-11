@@ -11,28 +11,24 @@ const CALM_TYPE = '(?:nodes|relationships)';
 const DECLARATION = new RegExp(`^/properties/${CALM_TYPE}/(?:prefixItems/\\d+(?:/${ALTERNATIVES}/\\d+)?|items/${ALTERNATIVES}/\\d+)`);
 const ENTRY_ALTERNATIVE = new RegExp(`^(/properties/${CALM_TYPE}/prefixItems/\\d+)/${ALTERNATIVES}/\\d+$`);
 
-function entryPath(calmType: CalmType): string {
+function fixedPath(calmType: CalmType): string {
     return `$.properties.${calmType}.prefixItems[*]`;
 }
 
 function choicePaths(calmType: CalmType): string[] {
-    return [entryPath(calmType), `$.properties.${calmType}.items`].flatMap(base =>
+    return [fixedPath(calmType), `$.properties.${calmType}.items`].flatMap(base =>
         ALTERNATIVE_KEYWORDS.map(keyword => `${base}.${keyword}[*]`));
 }
 
 /**
  * Shared so that the rules resolving declarations cannot disagree about where they are.
- *
- * The paths below find declarations. A query run with `resultType: 'all'` returns each hit
- * with the JSON Pointer it was found at, and the pointer helpers read that pointer back,
- * because it is the only surviving trace of which site the hit came from.
  */
 export function declarationPaths(calmType: CalmType): string[] {
-    return [entryPath(calmType), ...choicePaths(calmType)];
+    return [fixedPath(calmType), ...choicePaths(calmType)];
 }
 
 export function fixedIdPath(calmType: CalmType): string {
-    return `${entryPath(calmType)}.${ID}`;
+    return `${fixedPath(calmType)}.${ID}`;
 }
 
 export function choiceIdPaths(calmType: CalmType): string[] {
@@ -61,6 +57,9 @@ export function declaredId(declaration: object): string | undefined {
     return get(declaration, ID);
 }
 
+// Reading a pointer back. A query run with `resultType: 'all'` returns each hit with the
+// JSON Pointer it was found at, the only surviving trace of which site the hit came from.
+
 /**
  * A pointer from outside these paths has no declaration, so it stands alone.
  */
@@ -79,18 +78,20 @@ export function exclusiveGroup(pointer: string): string {
 }
 
 export function isAlternative(pointer: string): boolean {
-    return containingDeclaration(pointer) !== exclusiveGroup(pointer);
+    return ENTRY_ALTERNATIVE.test(containingDeclaration(pointer));
 }
 
 function declarationIndices(pointer: string): number[] {
-    return (containingDeclaration(pointer).match(/\d+/g) ?? []).map(Number);
+    const declaration = containingDeclaration(pointer);
+    const indices = (declaration.match(/\d+/g) ?? []).map(Number);
+    return [declaration.includes('/items/') ? 1 : 0, ...indices];
 }
 
 /**
- * Orders declarations as an architecture fills the array. The indices decide it, not the
- * pointer text: sorting the text puts an alternative ahead of the entry that holds it,
- * because "oneOf" precedes "properties". A declaration with fewer indices contains the
- * other, so it comes first.
+ * Orders declarations as an architecture fills the array: every prefixItems entry, then
+ * every items member. The indices decide it, not the pointer text, which sorts "items"
+ * ahead of "prefixItems" and an alternative ahead of the entry that holds it. A
+ * declaration with fewer indices contains the other, so it comes first.
  */
 export function byBuildOrder(left: string, right: string): number {
     const [first, second] = [left, right].map(declarationIndices);
