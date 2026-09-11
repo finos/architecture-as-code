@@ -394,4 +394,51 @@ describe('Pattern Options', () => {
             expect(extractOptions(allOfPattern)).toEqual(expectedOptions);
         });
     });
+    describe('items', () => {
+        const node = (id: string) => ({ type: 'object', properties: { 'unique-id': { const: id } } });
+        const add = (id: string): CalmChoice => ({ description: `Add ${id}`, nodes: [id], relationships: [] });
+        const pattern = (nodes: object) => ({ properties: { nodes, relationships: { type: 'array', prefixItems: [] } } });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const nodesOf = (result: object) => (result as any).properties.nodes;
+
+        const withItems = () => pattern({
+            type: 'array',
+            prefixItems: [node('webapp')],
+            items: { oneOf: [node('cache'), node('queue')] }
+        });
+
+        it('should promote a chosen items member into prefixItems', () => {
+            const result = nodesOf(selectChoices(withItems(), [add('cache')]));
+            expect(result.prefixItems).toEqual([node('webapp'), node('cache')]);
+        });
+
+        it('should remove items once its members have been promoted', () => {
+            expect(nodesOf(selectChoices(withItems(), [add('cache')]))).not.toHaveProperty('items');
+        });
+
+        it('should promote every chosen items member', () => {
+            const result = nodesOf(selectChoices(withItems(), [add('cache'), add('queue')]));
+            expect(result.prefixItems).toEqual([node('webapp'), node('cache'), node('queue')]);
+        });
+
+        it('should promote nothing when no items member is chosen', () => {
+            expect(nodesOf(selectChoices(withItems(), [])).prefixItems).toEqual([node('webapp')]);
+        });
+
+        it('should leave a plain items schema untouched', () => {
+            const plain = pattern({ type: 'array', prefixItems: [node('webapp')], items: { $ref: 'core.json#/defs/node' } });
+            expect(nodesOf(selectChoices(plain, [add('webapp')])).items).toEqual({ $ref: 'core.json#/defs/node' });
+        });
+
+        it('should build prefixItems for a pattern that declares only items', () => {
+            const itemsOnly = pattern({ type: 'array', items: { oneOf: [node('cache')] } });
+            expect(nodesOf(selectChoices(itemsOnly, [add('cache')])).prefixItems).toEqual([node('cache')]);
+        });
+
+        it('should accept a pattern with no relationships property', () => {
+            const noRelationships = { properties: { nodes: { type: 'array', prefixItems: [node('webapp')] } } };
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            expect((selectChoices(noRelationships, [add('webapp')]) as any).properties.nodes.prefixItems).toEqual([node('webapp')]);
+        });
+    });
 });

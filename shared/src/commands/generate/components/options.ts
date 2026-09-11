@@ -119,12 +119,30 @@ function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode)
         .filter((x: SchemaNode) => selectionPredicate(x));
 }
 
-function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
-    const calmItems = pattern['properties'][calmType]['prefixItems'];
+function isChoice(items: Item | undefined): items is Item {
+    return Boolean(items?.oneOf || items?.anyOf);
+}
+
+/**
+ * Selected `items` members are promoted into `prefixItems`, so the instantiator only ever
+ * reads positions and needs no knowledge of `items`.
+ */
+function selectDeclarations(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
+    const declarations = pattern['properties'][calmType];
+    if (!declarations) {
+        return;
+    }
 
     const selectionPredicate = (x: SchemaNode) => ids.includes(x['properties']['unique-id']['const']);
-    pattern['properties'][calmType]['prefixItems'] = calmItems
+    const chosen = (declarations['prefixItems'] ?? [])
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
+
+    if (isChoice(declarations['items'])) {
+        chosen.push(...flattenOneOfAndAnyOf(declarations['items'], selectionPredicate));
+        delete declarations['items'];
+    }
+
+    declarations['prefixItems'] = chosen;
 }
 
 function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {
@@ -141,7 +159,12 @@ function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoic
 }
 
 function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[]): void {
-    pattern['properties']['relationships']['prefixItems'] = pattern['properties']['relationships']['prefixItems']
+    const relationships = pattern['properties']['relationships'];
+    if (!relationships?.['prefixItems']) {
+        return;
+    }
+
+    relationships['prefixItems'] = relationships['prefixItems']
         .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices));
 }
 
@@ -160,8 +183,8 @@ export function selectChoices(inputPattern: object, choices: CalmChoice[], debug
     const nodeIds: string[] = choices.flatMap(choice => choice.nodes);
     const relationshipIds: string[] = choices.flatMap(choice => choice.relationships);
 
-    flattenCalmItems(pattern, 'nodes', nodeIds);
-    flattenCalmItems(pattern, 'relationships', relationshipIds);
+    selectDeclarations(pattern, 'nodes', nodeIds);
+    selectDeclarations(pattern, 'relationships', relationshipIds);
 
     flattenOptionsRelationships(pattern, choices);
     
