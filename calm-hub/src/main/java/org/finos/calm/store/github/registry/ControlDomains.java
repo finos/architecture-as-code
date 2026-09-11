@@ -7,14 +7,19 @@ import java.nio.file.Path;
  * domain is the second path segment under a {@code controls/} directory
  * (e.g. {@code controls/security/access-control.json} -> domain {@code "security"}).
  *
- * <p>Used by both {@code GitHubDomainStore} (to list the domains a namespace has) and
+ * <p>Used by {@code GitHubDomainStore} (to list the domains a namespace has),
  * {@code GitHubUserAccessStore} (to derive which domains a user's namespace-level access
- * should also grant read on) — kept in one place so the two never drift.
+ * should also grant read on), and {@code GitHubControlStore} (to resolve a control's domain
+ * for lookup and listing) — kept in one place so none of the three drift. They previously
+ * did: {@code GitHubControlStore} re-derived the domain via an inline substring match
+ * ({@code path.contains("controls/" + domain + "/")}), which — unlike this method's
+ * first-path-segment rule — matched {@code controls/} at any depth, not just the root. A
+ * control at a non-root path like {@code foo/controls/security/x.json} would resolve to
+ * domain {@code "security"} here but {@code "default"} there, so a grant for one domain
+ * wrongly allowed or denied access derived via the other.
  *
  * <p>Stays a static utility deliberately: it's a pure function of a {@link RegistryEntry}
- * with no state and no configuration to inject — exactly the case static methods exist for.
- * {@code GitHubControlStore.findControlEntry} re-derives the same domain by inline substring
- * match rather than calling this — see the tracking issue for that drift.</p>
+ * with no state and no configuration to inject — exactly the case static methods exist for.</p>
  */
 public final class ControlDomains {
 

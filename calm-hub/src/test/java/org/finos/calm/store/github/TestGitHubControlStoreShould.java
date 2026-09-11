@@ -3,6 +3,7 @@ package org.finos.calm.store.github;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
+import org.finos.calm.domain.exception.ControlConfigurationNotFoundException;
 import org.finos.calm.domain.exception.ControlNotFoundException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
@@ -398,15 +399,43 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
-    void throw_unsupported_on_get_configurations_for_control() {
-        assertThrows(UnsupportedOperationException.class,
+    void return_no_configurations_for_a_control_that_has_none() throws Exception {
+        // Control configurations have no registry representation at all in GitHub mode -
+        // this is a genuine "there are none", not the write-unsupported 501 the old
+        // behaviour incorrectly returned for what is a GET-backed read.
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThat(store.getConfigurationsForControl(DOMAIN, HASH_ID), is(empty()));
+    }
+
+    @Test
+    void throw_control_not_found_on_get_configurations_for_control_when_control_does_not_exist() {
+        when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of());
+
+        assertThrows(DomainNotFoundException.class,
                 () -> store.getConfigurationsForControl(DOMAIN, 1));
     }
 
     @Test
-    void throw_unsupported_on_get_configuration_details_for_control() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getConfigurationDetailsForControl(DOMAIN, 1));
+    void return_no_configuration_details_for_a_control_that_has_none() throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThat(store.getConfigurationDetailsForControl(DOMAIN, HASH_ID), is(empty()));
     }
 
     @Test
@@ -422,15 +451,33 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
-    void throw_unsupported_on_get_configuration_versions() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getConfigurationVersions(DOMAIN, 1, 1));
+    void throw_configuration_not_found_on_get_configuration_versions() throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.getConfigurationVersions(DOMAIN, HASH_ID, 1));
     }
 
     @Test
-    void throw_unsupported_on_get_configuration_for_version() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getConfigurationForVersion(DOMAIN, 1, 1, "1.0.0"));
+    void throw_configuration_not_found_on_get_configuration_for_version() throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThrows(ControlConfigurationNotFoundException.class,
+                () -> store.getConfigurationForVersion(DOMAIN, HASH_ID, 1, "1.0.0"));
     }
 
     @Test

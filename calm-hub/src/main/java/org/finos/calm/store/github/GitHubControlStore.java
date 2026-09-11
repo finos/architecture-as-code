@@ -18,6 +18,7 @@ import org.finos.calm.domain.exception.ControlRequirementVersionExistsException;
 import org.finos.calm.domain.exception.ControlRequirementVersionNotFoundException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
 import org.finos.calm.store.ControlStore;
+import org.finos.calm.store.github.registry.ControlDomains;
 import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
@@ -78,8 +79,7 @@ public class GitHubControlStore implements ControlStore {
             }
             List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
-                String path = entry.filePath().toString();
-                if (path.contains("controls/" + domain + "/") || path.contains("controls\\" + domain + "\\")) {
+                if (domain.equals(ControlDomains.extractDomain(entry))) {
                     results.add(new ControlDetail(
                             (entry.uniqueId().hashCode() & 0x7FFFFFFF),
                             entry.uniqueId(),
@@ -162,14 +162,22 @@ public class GitHubControlStore implements ControlStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    // Control configurations have no registry representation - no file convention
+    // exists to classify one from a repo checkout, the same shape of gap as
+    // GitHubAdrStore/GitHubDecoratorStore. These four are read (GET-backed) methods, so
+    // - unlike the write methods below, which correctly throw
+    // GitHubWriteNotSupportedException - they answer "none exist" rather than claiming
+    // writes are unsupported for a request that was never trying to write.
     @Override
     public List<Integer> getConfigurationsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+        findControlEntry(domain, controlId);
+        return List.of();
     }
 
     @Override
     public List<ControlConfigDetail> getConfigurationDetailsForControl(String domain, int controlId) throws DomainNotFoundException, ControlNotFoundException {
-        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+        findControlEntry(domain, controlId);
+        return List.of();
     }
 
     @Override
@@ -179,12 +187,14 @@ public class GitHubControlStore implements ControlStore {
 
     @Override
     public List<String> getConfigurationVersions(String domain, int controlId, int configurationId) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException {
-        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+        findControlEntry(domain, controlId);
+        throw new ControlConfigurationNotFoundException();
     }
 
     @Override
     public String getConfigurationForVersion(String domain, int controlId, int configurationId, String version) throws DomainNotFoundException, ControlNotFoundException, ControlConfigurationNotFoundException, ControlConfigurationVersionNotFoundException {
-        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+        findControlEntry(domain, controlId);
+        throw new ControlConfigurationNotFoundException();
     }
 
     @Override
@@ -211,8 +221,7 @@ public class GitHubControlStore implements ControlStore {
             }
             List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.CONTROL);
             for (RegistryEntry entry : entries) {
-                String path = entry.filePath().toString();
-                boolean inDomain = path.contains("controls/" + domain + "/") || path.contains("controls\\" + domain + "\\");
+                boolean inDomain = domain.equals(ControlDomains.extractDomain(entry));
                 if (inDomain) {
                     domainExists = true;
                     if ((entry.uniqueId().hashCode() & 0x7FFFFFFF) == controlId) {
