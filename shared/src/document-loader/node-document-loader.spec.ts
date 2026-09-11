@@ -126,7 +126,22 @@ describe('DocumentLoader', () => {
 
         buildDocumentLoader(docLoaderOpts);
 
-        expect(mocks.directDocLoader).toHaveBeenCalledWith(false, undefined, ['schemas.example.com']);
+        expect(mocks.directDocLoader).toHaveBeenCalledWith(false, undefined, ['schemas.example.com'], undefined, undefined);
+    });
+
+    it('should pass directUrlAuthPlugin to DirectUrlDocumentLoader', () => {
+        const directUrlAuthPlugin = {
+            getAuthHeaders: vi.fn()
+        };
+
+        const docLoaderOpts: DocumentLoaderOptions = {
+            directUrlAuthPlugin,
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
+        };
+
+        buildDocumentLoader(docLoaderOpts);
+
+        expect(mocks.directDocLoader).toHaveBeenCalledWith(false, undefined, undefined, directUrlAuthPlugin, ['schemas.example.com']);
     });
 
     it('should create a MappedDocumentLoader when urlToLocalMap is provided', () => {

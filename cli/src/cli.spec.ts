@@ -32,6 +32,8 @@ describe('CLI Commands', () => {
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
         documentLoaderModule = await import('../../shared/src/document-loader/node-document-loader');
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -1617,6 +1619,18 @@ describe('parseDocumentLoaderConfig', () => {
         return cliModule.parseDocumentLoaderConfig(options);
     };
 
+    const createMockLogger = () => ({
+        info: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+    });
+
+    beforeEach(async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
+    });
+
     it('should parse calmhub url when provided', async () => {
         const options = await parseDocLoaderConfigForTest({
             calmHubUrl: 'calmhub'
@@ -1693,6 +1707,26 @@ describe('parseDocumentLoaderConfig', () => {
         expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
     });
 
+    it('keeps supported repositories when CLI allowedRemoteHosts override the config list', async () => {
+        cliConfigModule = await import('./cli-config');
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com'],
+            directUrlAuth: {
+                module: '/fake/direct-url-auth.js',
+                authenticatedHosts: ['protected.example.com']
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['cli.example.com']
+        });
+
+        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['protected.example.com']);
+    });
+
     it('should set debug to true when verbose passed along', async () => {
         const options = await parseDocLoaderConfigForTest({
             verbose: true
@@ -1726,5 +1760,79 @@ describe('parseDocumentLoaderConfig', () => {
         const options = await parseDocLoaderConfigForTest({});
 
         expect(options.authPlugin).toBeUndefined();
+    });
+
+    it('loads direct URL auth module from config file when directUrlAuth is set', async () => {
+        cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuth: {
+                module: '/fake/direct-url-auth.js',
+                configPath: '/configs/direct-url-auth.json',
+                authenticatedHosts: ['schemas.example.com']
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
+            module: '/fake/direct-url-auth.js',
+            configPath: '/configs/direct-url-auth.json',
+            authenticatedHosts: ['schemas.example.com']
+        }, false);
+        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['schemas.example.com']);
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: /configs/direct-url-auth.json'
+        );
+    });
+
+    it('logs "not specified" when direct URL auth configPath is omitted', async () => {
+        cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuth: {
+                module: '/fake/direct-url-auth.js',
+                authenticatedHosts: ['schemas.example.com']
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: not specified'
+        );
+    });
+
+    it('fails when direct URL auth module loading throws', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuth: {
+                module: '/bad/direct-url-auth.js',
+                authenticatedHosts: ['schemas.example.com']
+            }
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockRejectedValue(new Error('module not found'));
+
+        await expect(parseDocLoaderConfigForTest({})).rejects.toThrow(/Direct URL authentication setup failed: module not found/);
     });
 });

@@ -19,7 +19,9 @@ const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
     getFormattedOutput: vi.fn(),
     exitBasedOffOfValidationOutcome: vi.fn(),
-    initLogger: vi.fn(function () { return { error: vi.fn(), debug: vi.fn() }; }),
+    loggerError: vi.fn(),
+    loggerDebug: vi.fn(),
+    initLogger: vi.fn(function () { return { error: mocks.loggerError, debug: mocks.loggerDebug }; }),
     processExit: vi.fn(),
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
@@ -287,6 +289,50 @@ describe('runValidate', () => {
 
         await runValidate(options);
         expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
+    it('should log nested causes when verbose mode is enabled', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        const rootCause = new Error('token request failed');
+        const error = new Error('Direct URL authentication failed');
+        error.cause = rootCause;
+        (validate as Mock).mockRejectedValue(error);
+
+        await runValidate(options);
+
+        expect(mocks.loggerError).toHaveBeenCalledWith('An error occurred while validating: Direct URL authentication failed');
+        expect(mocks.loggerError).toHaveBeenCalledWith('Cause: token request failed');
+    });
+
+    it('should not log nested causes when verbose mode is disabled', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        const rootCause = new Error('token request failed');
+        const error = new Error('Direct URL authentication failed');
+        error.cause = rootCause;
+        (validate as Mock).mockRejectedValue(error);
+
+        await runValidate(options);
+
+        expect(mocks.loggerError).toHaveBeenCalledWith('An error occurred while validating: Direct URL authentication failed');
+        expect(mocks.loggerError).not.toHaveBeenCalledWith('Cause: token request failed');
     });
 });
 

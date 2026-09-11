@@ -1,9 +1,10 @@
-import axios, { Axios } from 'axios';
+import axios, { Axios, AxiosRequestConfig } from 'axios';
 import { ipLiteralVersion } from '../util/ip-literal.js';
 import { SchemaDirectory } from '../schema-directory';
 import { DocumentLoader, DocumentLoadError, assertJsonObject } from './document-loader';
 import { assertResponseOrigin } from './response-origin.js';
 import { Logger, initLogger } from '../logger';
+import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 const DEFAULT_ALLOWED_REMOTE_HOSTS = ['calm.finos.org'];
@@ -27,6 +28,27 @@ const PRIVATE_IPV6_PATTERNS = [
 // Mirrors CalmHubDocumentLoader.SAFE_PATH_PATTERN: a strict character allowlist for the request
 // path, checked in addition to (not instead of) the host allowlist below.
 const SAFE_PATH_PATTERN = /^[a-zA-Z0-9/_.-]+$/;
+
+const TLS_CERTIFICATE_ERROR_CODES = new Set([
+    'ERR_TLS_CERT_ALTNAME_INVALID',
+    'CERT_HAS_EXPIRED',
+    'CERT_NOT_YET_VALID',
+    'DEPTH_ZERO_SELF_SIGNED_CERT',
+    'SELF_SIGNED_CERT_IN_CHAIN',
+    'UNABLE_TO_GET_ISSUER_CERT',
+    'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+    'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+]);
+
+const TLS_CERTIFICATE_ERROR_MESSAGES = [
+    /Hostname\/IP does not match certificate's altnames/,
+    /self-signed certificate/i,
+    /certificate has expired/i,
+    /certificate is not yet valid/i,
+    /unable to verify the first certificate/i,
+    /unable to get local issuer certificate/i,
+    /unable to verify leaf signature/i,
+];
 
 function isPrivateHost(hostname: string): boolean {
     if (/^localhost$/i.test(hostname)) return true;
@@ -52,12 +74,98 @@ function toRequestPath(parsedUrl: URL): string {
     return `/${normalizedPath}`;
 }
 
+type LoggedHeaderValue = string | number | boolean | null | undefined | LoggedHeaderValue[];
+
+type DirectUrlDebugRequest = AxiosRequestConfig & {
+    __directUrlAuthHeaderNames?: string[];
+};
+
+function normalizeHeaderValue(value: unknown): string | number | boolean | null | undefined | Array<string | number | boolean | null | undefined> {
+    if (Array.isArray(value)) {
+        return value.map(item => normalizeHeaderValue(item) as string | number | boolean | null | undefined);
+    }
+    if (
+        value === null
+        || value === undefined
+        || typeof value === 'string'
+        || typeof value === 'number'
+        || typeof value === 'boolean'
+    ) {
+        return value;
+    }
+    return JSON.stringify(value);
+}
+
+function collectSafeHeaders(headers: unknown, authHeaderNames: readonly string[]): Record<string, LoggedHeaderValue> {
+    const candidate = typeof headers === 'object' && headers !== null && 'toJSON' in headers && typeof headers.toJSON === 'function'
+        ? headers.toJSON()
+        : headers;
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
+        return {};
+    }
+
+    const authHeaderNameSet = new Set(authHeaderNames.map(name => name.toLowerCase()));
+    return Object.fromEntries(
+        Object.entries(candidate)
+            .filter(([key]) => !authHeaderNameSet.has(key.toLowerCase()))
+            .map(([key, value]) => [
+                key,
+                normalizeHeaderValue(value) as LoggedHeaderValue,
+            ])
+    );
+}
+
+function resolveLoggedUrl(baseURL: unknown, url: unknown): string | undefined {
+    const base = typeof baseURL === 'string' ? baseURL : undefined;
+    const path = typeof url === 'string' ? url : undefined;
+    if (base && path) {
+        try {
+            return new URL(path, base).toString();
+        } catch {
+            return `${base}${path}`;
+        }
+    }
+    return base ?? path;
+}
+
+function sanitizeTlsCertificateError(error: unknown, hostname: string): Error | undefined {
+    const visited = new Set<unknown>();
+    let current = error;
+
+    while (current instanceof Error && !visited.has(current)) {
+        const currentError = current;
+        visited.add(currentError);
+        const code = 'code' in currentError ? currentError.code : undefined;
+        if (
+            (typeof code === 'string' && TLS_CERTIFICATE_ERROR_CODES.has(code))
+            || TLS_CERTIFICATE_ERROR_MESSAGES.some(pattern => pattern.test(currentError.message))
+        ) {
+            return new Error(`TLS certificate verification failed for ${hostname}.`);
+        }
+        current = 'cause' in currentError ? currentError.cause : undefined;
+    }
+
+    return undefined;
+}
+
+function documentLoadCause(error: unknown, hostname: string): Error | undefined {
+    return sanitizeTlsCertificateError(error, hostname) ?? (error instanceof Error ? error : undefined);
+}
+
 export class DirectUrlDocumentLoader implements DocumentLoader {
     private readonly ax: Axios;
     private logger: Logger;
     private readonly allowedRemoteHosts: Set<string>;
+    private readonly directUrlAuthPlugin?: DirectUrlAuthPlugin;
+    private readonly directUrlAuthAuthenticatedHosts?: Set<string>;
 
-    constructor(debug: boolean, axiosInstance?: Axios, allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS) {
+    constructor(
+        debug: boolean,
+        axiosInstance?: Axios,
+        allowedRemoteHosts: readonly string[] = DEFAULT_ALLOWED_REMOTE_HOSTS,
+        directUrlAuthPlugin?: DirectUrlAuthPlugin,
+        directUrlAuthAuthenticatedHosts?: readonly string[]
+    ) {
         if (axiosInstance) {
             this.ax = axiosInstance;
         } else {
@@ -68,7 +176,14 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
         }
 
         this.logger = initLogger(debug, 'direct-url-document-loader');
-        this.allowedRemoteHosts = new Set(allowedRemoteHosts.map(host => normalizeHost(host)));
+        this.directUrlAuthAuthenticatedHosts = directUrlAuthAuthenticatedHosts
+            ? new Set(directUrlAuthAuthenticatedHosts.map(host => normalizeHost(host)))
+            : undefined;
+        this.allowedRemoteHosts = new Set([
+            ...allowedRemoteHosts.map(host => normalizeHost(host)),
+            ...(this.directUrlAuthAuthenticatedHosts ?? []),
+        ]);
+        this.directUrlAuthPlugin = directUrlAuthPlugin;
         if (debug) {
             this.addAxiosDebug();
         }
@@ -76,12 +191,28 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
 
     addAxiosDebug() {
         this.ax.interceptors.request.use(request => {
-            console.log('Starting Request', JSON.stringify(request, null, 2));
+            const authHeaderNames = [...((request as DirectUrlDebugRequest).__directUrlAuthHeaderNames ?? [])].sort();
+            this.logger.debug(`Starting Request: ${JSON.stringify({
+                method: request.method,
+                url: resolveLoggedUrl(request.baseURL, request.url),
+                baseURL: request.baseURL,
+                path: request.url,
+                timeout: request.timeout,
+                maxRedirects: request.maxRedirects,
+                allowAbsoluteUrls: request.allowAbsoluteUrls,
+                headers: collectSafeHeaders(request.headers, authHeaderNames),
+                authHeadersPresent: authHeaderNames.length > 0,
+                authHeaderNames,
+            }, null, 2)}`);
             return request;
         });
 
         this.ax.interceptors.response.use(response => {
-            console.log('Response:', response);
+            this.logger.debug(`Response: ${JSON.stringify({
+                status: response.status,
+                statusText: response.statusText,
+                url: resolveLoggedUrl(response.config?.baseURL, response.config?.url),
+            }, null, 2)}`);
             return response;
         });
     }
@@ -166,11 +297,31 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
                 });
             }
             const baseURL = `${parsedUrl.protocol}//${normalizedHost}${parsedUrl.port ? `:${parsedUrl.port}` : ''}`;
-            const response = await this.ax.get(requestPath, {
+            let authHeaders: Record<string, string> | undefined;
+            const authHeaderNames: string[] = [];
+            if (this.directUrlAuthPlugin && (
+                !this.directUrlAuthAuthenticatedHosts || this.directUrlAuthAuthenticatedHosts.has(normalizedHost)
+            )) {
+                try {
+                    authHeaders = await this.directUrlAuthPlugin.getAuthHeaders(`${baseURL}${requestPath}`, undefined);
+                    authHeaderNames.push(...Object.keys(authHeaders));
+                } catch (error) {
+                    throw new DocumentLoadError({
+                        name: 'AUTHENTICATION_FAILED',
+                        message: `Direct URL authentication failed for ${documentId}. Check direct URL auth configuration and remote credentials.`,
+                        cause: documentLoadCause(error, parsedUrl.hostname),
+                        recoverable: false
+                    });
+                }
+            }
+            const requestConfig: DirectUrlDebugRequest = {
                 baseURL,
+                headers: authHeaders,
                 maxRedirects: 0,
-                allowAbsoluteUrls: false
-            });
+                allowAbsoluteUrls: false,
+                __directUrlAuthHeaderNames: authHeaderNames,
+            };
+            const response = await this.ax.get(requestPath, requestConfig);
             assertResponseOrigin(response, new URL(baseURL).origin, documentId);
             assertJsonObject(response.data, documentId);
             return response.data;
@@ -178,10 +329,18 @@ export class DirectUrlDocumentLoader implements DocumentLoader {
             if (error instanceof DocumentLoadError) {
                 throw error;
             }
+            if (axios.isAxiosError(error) && (error.response?.status === 401 || error.response?.status === 403)) {
+                throw new DocumentLoadError({
+                    name: 'AUTHENTICATION_FAILED',
+                    message: `Direct URL request was not authorized for ${documentId} (HTTP ${error.response.status}). Check direct URL auth configuration and remote credentials.`,
+                    cause: error,
+                    recoverable: false
+                });
+            }
             throw new DocumentLoadError({
                 name: 'UNKNOWN',
                 message: `Failed to load document from URL: ${documentId}`,
-                cause: error instanceof Error ? error : undefined,
+                cause: documentLoadCause(error, parsedUrl.hostname),
                 recoverable: false
             });
         }
