@@ -1,6 +1,7 @@
 import { JSONPath } from 'jsonpath-plus';
 import { difference } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
+import { declarationPaths, declaredId } from './declaration-paths';
 
 interface ConnectsRelationship {
     node?: string;
@@ -23,13 +24,9 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     }
 
     const nodeId = input.node;
-    const nodes: object[] = JSONPath({ path: '$.properties.nodes.prefixItems[*]', json: context.document.data as object });
-    const node = nodes.find((node) => {
-        const uniqueId: string[] = JSONPath({ path: '$.properties.unique-id.const', json: node });
-        uniqueId.push(...JSONPath({ path: '$.oneOf[*].properties.unique-id.const', json: node }));
-        uniqueId.push(...JSONPath({ path: '$.anyOf[*].properties.unique-id.const', json: node }));
-        return uniqueId && uniqueId[0] === nodeId;
-    });
+    const nodes: object[] = declarationPaths('nodes').flatMap(path =>
+        JSONPath({ path, json: context.document.data as object }));
+    const node = nodes.find(declaration => declaredId(declaration) === nodeId);
     if (!node) {
         // other rule will report undefined node
         return [];
@@ -39,8 +36,6 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     const desiredInterfaces = input.interfaces;
 
     const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node });
-    nodeInterfaces.push(...JSONPath({ path: '$.oneOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
-    nodeInterfaces.push(...JSONPath({ path: '$.anyOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
             { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
