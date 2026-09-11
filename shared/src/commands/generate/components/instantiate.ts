@@ -99,9 +99,11 @@ async function instantiateFromProperties(
     for (const [key, def] of Object.entries(properties)) {
         const resolvedDef = await resolveSchema(def as JsonSchema, schemaDir);
 
-        if (resolvedDef.type === 'array' && resolvedDef.prefixItems) {
+        if (resolvedDef.const !== undefined) {
+            output[key] = resolvedDef.const;
+        } else if (resolvedDef.type === 'array') {
             output[key] = await Promise.all(
-                resolvedDef.prefixItems.map(async (itemDef, idx) => {
+                (resolvedDef.prefixItems ?? []).map(async (itemDef, idx) => {
                     const resolvedItem = await resolveSchema(itemDef, schemaDir);
                     if (resolvedItem.const !== undefined) {
                         return resolvedItem.const;
@@ -110,12 +112,7 @@ async function instantiateFromProperties(
                 })
             );
         } else {
-            // Check for const values at the top level
-            if (resolvedDef.const !== undefined) {
-                output[key] = resolvedDef.const;
-            } else {
-                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
-            }
+            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
         }
     }
 

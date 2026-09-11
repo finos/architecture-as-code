@@ -3,9 +3,6 @@
 A CALM pattern can offer a choice. This document records what each tool guarantees about
 that choice. It describes behaviour only. It does not describe how a tool is built.
 
-Each section names the tests that hold its guarantees. A guarantee below with no test is a
-gap.
-
 ## Terms
 
 | Term | Meaning |
@@ -123,6 +120,11 @@ branches that declare the same property discard one of the two declarations.
 
 ## What generation guarantees
 
-`calm generate` does not read `items`. It builds one node per `prefixItems` entry and
-nothing else, so a node declared in `items` never reaches the architecture. `calm validate`
-accepts the pattern, and the missing node is silent.
+`calm generate` builds one element per `prefixItems` entry, in order. An answer that selects
+an `items` member appends that member to the same list, so a selected member reaches the
+architecture and an unselected one does not.
+
+An `items` block that declares no `oneOf` or `anyOf` is left alone. Nothing selects from it,
+so nothing is promoted out of it.
+
+An array that ends with no entries becomes `[]`.
