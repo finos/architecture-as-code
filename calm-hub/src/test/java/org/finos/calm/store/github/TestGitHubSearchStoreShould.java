@@ -1,6 +1,9 @@
 package org.finos.calm.store.github;
 
 import org.finos.calm.domain.search.GroupedSearchResults;
+import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.github.registry.RegistryEntry;
+import org.finos.calm.store.github.registry.RegistryResourceType;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.junit.jupiter.api.BeforeEach;
@@ -11,6 +14,11 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
+import java.nio.file.Path;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 
@@ -84,5 +92,28 @@ class TestGitHubSearchStoreShould {
 
         assertThat(result.getArchitectures(), is(org.hamcrest.Matchers.not(empty())));
         assertThat(result.getArchitectures().get(0).getName(), is("Payment Service"));
+    }
+
+    @Test
+    void not_let_one_types_matches_starve_another_types_matches() {
+        // More architecture matches than the old combined cap (MAX_RESULTS_PER_TYPE * 7)
+        // could ever let through, all sorting ahead of the one pattern match in the
+        // merged, per-namespace-ordered stream. The pattern match must still come back.
+        List<RegistryEntry> entries = new ArrayList<>();
+        for (int i = 0; i < (SearchStore.MAX_RESULTS_PER_TYPE * 7) + 5; i++) {
+            entries.add(new RegistryEntry("payment-arch-" + i, Path.of("architectures/payment-" + i + ".json"),
+                    RegistryResourceType.ARCHITECTURE, "Payment Architecture " + i, Instant.now()));
+        }
+        entries.add(new RegistryEntry("payment-pattern", Path.of("patterns/payment.json"),
+                RegistryResourceType.PATTERN, "Payment Pattern", Instant.now()));
+
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", entries), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        GroupedSearchResults result = store.search("payment", Optional.empty());
+
+        assertThat(result.getArchitectures(), is(org.hamcrest.Matchers.not(empty())));
+        assertThat(result.getPatterns(), is(org.hamcrest.Matchers.not(empty())));
+        assertThat(result.getPatterns().get(0).getName(), is("Payment Pattern"));
     }
 }

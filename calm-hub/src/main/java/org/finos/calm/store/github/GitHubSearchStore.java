@@ -41,12 +41,18 @@ public class GitHubSearchStore implements SearchStore {
                     List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
         }
 
+        // No cap on the merged stream here, deliberately: filterByType below already caps
+        // each type independently to MAX_RESULTS_PER_TYPE. A single combined cap applied
+        // before the per-type split would let one type's matches (e.g. a namespace with
+        // many matching architectures) exhaust it before entries of other types are ever
+        // reached, starving them even when real matches exist further into the stream.
+        // The registry is an in-memory index, not an external call, so there's no cost
+        // reason to cut the merge short.
         String lowerQuery = query.toLowerCase();
         List<RegistryEntry> allEntries = registryService.getSnapshot().getNamespaces().stream()
                 .filter(ns -> readableNamespaces.isEmpty() || readableNamespaces.get().contains(ns))
                 .flatMap(ns -> registryService.getSnapshot().listAll(ns).stream())
                 .filter(e -> matchesQuery(e, lowerQuery))
-                .limit(MAX_RESULTS_PER_TYPE * 7L)
                 .toList();
 
         return new GroupedSearchResults(
