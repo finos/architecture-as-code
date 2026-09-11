@@ -1,0 +1,55 @@
+:root {
+    --flow-active: oklch(65% 0.2 250deg);
+    --flow-active-light: oklch(85% 0.18 250deg);
+    --flow-active-glow: oklch(75% 0.2 250deg);
+    --flow-visited: oklch(72% 0.12 165deg);
+}
+
+@keyframes flow-dash {
+    to {
+        stroke-dashoffset: -24;
+    }
+}
+
+@keyframes flow-node-pulse {
+    0%, 100% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--flow-active) 45%, transparent);
+    }
+    50% {
+        box-shadow: 0 0 0 8px color-mix(in srgb, var(--flow-active) 0%, transparent);
+    }
+}
+
+/* Classes below are applied by calmTransformer. */
+.react-flow .flow-edge-active path.react-flow__edge-path {
+    stroke: var(--flow-active);
+    stroke-width: 3;
+    filter: drop-shadow(0 0 4px color-mix(in srgb, var(--flow-active) 50%, transparent));
+    transition: stroke 0.3s ease, stroke-width 0.3s ease, filter 0.3s ease;
+}
+
+.react-flow .flow-edge-visited path.react-flow__edge-path {
+    stroke: var(--flow-visited);
+    transition: stroke 0.4s ease;
+}
+
+.flow-dash-overlay {
+    stroke: var(--flow-active-light);
+    stroke-width: 3;
+    stroke-dasharray: 8 16;
+    fill: none;
+    animation: flow-dash 0.6s linear infinite;
+    pointer-events: none;
+}
+
+.flow-node-active > div:first-child {
+    animation: flow-node-pulse 1.6s ease-in-out infinite;
+    /* stylelint-disable-next-line declaration-no-important -- CustomNode sets border inline */
+    border-color: var(--flow-active) !important;
+}
+
+.flow-node-visited > div:first-child {
+    /* stylelint-disable-next-line declaration-no-important -- CustomNode sets border inline */
+    border-color: var(--flow-visited) !important;
+}
+

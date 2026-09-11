@@ -9,7 +9,7 @@ import { CalmService } from '../../../service/calm-service.js';
 import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
-import type { DrawerProps, Flow, Control, Decorator } from '../../contracts/contracts.js';
+import type { DrawerProps, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
  * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
@@ -136,11 +136,6 @@ export function Drawer({
 
     const decorators = decoratorsProp ?? decoratorsState;
 
-    // Extract flows from CALM data
-    const flows = useMemo((): Flow[] => {
-        const calmData = calmInstance as CalmArchitectureSchema & { flows?: Flow[] };
-        return calmData?.flows || [];
-    }, [calmInstance]);
 
     // Extract ADR links from CALM data
     const adrs = useMemo((): string[] => {
@@ -204,7 +199,7 @@ export function Drawer({
         return { ...nodeControls, ...relationshipControls, ...rootControls };
     }, [calmInstance]);
 
-    const hasMetadata = flows.length > 0 || Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0;
+    const hasMetadata = Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0;
 
     const hasContent = !!(calmInstance || patternInstance);
 
@@ -229,16 +224,6 @@ export function Drawer({
         onItemSelect?.({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
     }, [onItemSelect]);
 
-    // Handle transition click from flows panel - highlight the relationship
-    const handleTransitionClick = useCallback(
-        (relationshipId: string) => {
-            const relationship = calmInstance?.relationships?.find((r) => r['unique-id'] === relationshipId);
-            if (relationship) {
-                handleEdgeClick(relationship);
-            }
-        },
-        [calmInstance, handleEdgeClick]
-    );
 
     // Handle node click from controls panel
     const handleControlNodeClick = useCallback(
@@ -322,11 +307,9 @@ export function Drawer({
                             }}
                         >
                             <MetadataPanel
-                                flows={flows}
                                 controls={controls}
                                 decorators={decorators}
                                 adrs={adrs}
-                                onTransitionClick={handleTransitionClick}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}
                                 onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}
