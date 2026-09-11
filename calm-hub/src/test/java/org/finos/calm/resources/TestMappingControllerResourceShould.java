@@ -269,6 +269,25 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_501_not_400_when_adding_a_version_in_github_mode() throws Exception {
+        // addNewVersion() previously had no explicit GitHubWriteNotSupportedException
+        // catch before its broad catch(Exception), unlike its sibling create/update
+        // paths - the broad catch swallowed it into a misleading 400 instead of the 501
+        // every other GitHub-mode write path correctly returns.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-arch")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(2).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        doThrow(new GitHubWriteNotSupportedException("Write operations are not yet available."))
+                .when(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+
+        given().header("Content-Type", "application/json").body(versionedDoc("finos", "architectures", "my-arch", "2.0.0")).when()
+                .post("/calm")
+                .then().statusCode(501);
+    }
+
+    @Test
     void return_201_when_adding_explicit_version_to_existing_flow() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-flow")
