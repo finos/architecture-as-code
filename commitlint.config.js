@@ -13,6 +13,7 @@ module.exports = {
         'calm-widgets',
         'calm-hub',
         'calm-hub-ui',
+        'calm-lab',
         'docs',
         'vscode',
         'calm-suite',

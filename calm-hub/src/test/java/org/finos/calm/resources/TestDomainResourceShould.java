@@ -8,14 +8,17 @@ import org.finos.calm.domain.controls.DomainControlCount;
 import org.finos.calm.domain.exception.DomainAlreadyExistsException;
 import org.finos.calm.domain.exception.DomainNotEmptyException;
 import org.finos.calm.domain.exception.DomainNotFoundException;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.services.CountsService;
 import org.finos.calm.services.DomainService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
@@ -36,6 +39,20 @@ public class TestDomainResourceShould {
 
     @InjectMock
     CountsService mockCountsService;
+
+    // See the equivalent field in TestNamespaceResourceShould/TestSearchResourceShould:
+    // @TestSecurity(authorizationEnabled = false) bypasses declarative permission checks but
+    // not DomainResource's own ReadableScope lookup, so without this the identity-less test
+    // principal resolves to zero grants instead of the unfiltered Optional.empty() these tests
+    // expect — and, since UserAccessValidator is unconditionally registered, it's genuinely
+    // invoked here, hitting the real UserAccessStore and hanging/timing out under test.
+    @InjectMock
+    UserAccessValidator mockUserAccessValidator;
+
+    @BeforeEach
+    void setUpUserAccessValidator() {
+        lenient().when(mockUserAccessValidator.getReadableDomains(any())).thenReturn(Optional.empty());
+    }
 
     @Test
     void return_an_empty_list_when_no_domains_exist() {
