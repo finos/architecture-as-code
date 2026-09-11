@@ -21,6 +21,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -93,10 +94,25 @@ class TestGitHubCloneManagerShould {
     void pull_instead_of_clone_when_repo_already_exists() {
         cloneManager.registerNamespace("finos", "finos/architecture-as-code", "main", Set.of());
         when(repoSync.isValidRepo(any())).thenReturn(true);
-        when(repoSync.pullRepo(any(), eq("test-token"))).thenReturn(true);
+        when(repoSync.pullRepo(any(), any(), eq("test-token"))).thenReturn(true);
 
         cloneManager.cloneAll();
 
+        assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
+    }
+
+    @Test
+    void pull_the_configured_branch_not_whatever_is_locally_checked_out() {
+        // A namespace's clone directory can already exist on disk (e.g. from before its
+        // configured branch changed) - cloneAll() must resync it to the CONFIGURED
+        // branch, not silently keep whatever branch happens to be checked out locally.
+        cloneManager.registerNamespace("finos", "finos/architecture-as-code", "release", Set.of());
+        when(repoSync.isValidRepo(any())).thenReturn(true);
+        when(repoSync.pullRepo(any(), eq("release"), eq("test-token"))).thenReturn(true);
+
+        cloneManager.cloneAll();
+
+        verify(repoSync).pullRepo(Path.of("/tmp/test-clones/finos"), "release", "test-token");
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
     }
 
@@ -116,7 +132,7 @@ class TestGitHubCloneManagerShould {
         cloneManager.cloneAll();
 
         when(repoSync.isValidRepo(any())).thenReturn(true);
-        when(repoSync.pullRepo(any(), any())).thenReturn(true);
+        when(repoSync.pullRepo(any(), any(), any())).thenReturn(true);
         cloneManager.pullAll();
 
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
@@ -186,8 +202,8 @@ class TestGitHubCloneManagerShould {
 
         when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns1"))).thenReturn(true);
         when(repoSync.isValidRepo(Path.of("/tmp/test-clones/ns2"))).thenReturn(true);
-        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns1"), "test-token")).thenReturn(true);
-        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns2"), "test-token")).thenReturn(false);
+        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns1"), "main", "test-token")).thenReturn(true);
+        when(repoSync.pullRepo(Path.of("/tmp/test-clones/ns2"), "main", "test-token")).thenReturn(false);
         cloneManager.pullAll();
 
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.DEGRADED));

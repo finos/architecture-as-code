@@ -20,6 +20,14 @@ import java.nio.file.Path;
 /**
  * Handles git clone and sync operations for a single repository.
  * Uses fetch + reset instead of pull to handle upstream force-pushes gracefully.
+ *
+ * <p>Both {@link #cloneRepo} and {@link #pullRepo} set an explicit JGit transport timeout
+ * ({@code calm.github.git.timeout-seconds}) — without one, an unresponsive remote hangs the
+ * command indefinitely. That matters more here than a plain slow request: {@code pullRepo}
+ * runs from {@link GitHubSyncScheduler}, which is {@code @Scheduled(concurrentExecution =
+ * SKIP)} — a hung fetch doesn't just block one tick, it blocks every future tick from ever
+ * starting (SKIP only prevents overlap, it doesn't time out a stuck execution), so the
+ * namespace silently stops updating until the process is restarted.
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -28,10 +36,13 @@ public class GitHubRepoSync {
     private static final Logger LOG = LoggerFactory.getLogger(GitHubRepoSync.class);
 
     private final String githubBaseUrl;
+    private final int gitTimeoutSeconds;
 
     @Inject
-    public GitHubRepoSync(@ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com") String githubBaseUrl) {
+    public GitHubRepoSync(@ConfigProperty(name = "calm.github.oauth.base-url", defaultValue = "https://github.com") String githubBaseUrl,
+                           @ConfigProperty(name = "calm.github.git.timeout-seconds", defaultValue = "30") int gitTimeoutSeconds) {
         this.githubBaseUrl = githubBaseUrl;
+        this.gitTimeoutSeconds = gitTimeoutSeconds;
     }
 
     public boolean cloneRepo(String repoFullName, String branch, Path targetDir, String token) {
@@ -42,7 +53,8 @@ public class GitHubRepoSync {
                     .setURI(url)
                     .setDirectory(targetDir.toFile())
                     .setBranch(branch)
-                    .setDepth(1);
+                    .setDepth(1)
+                    .setTimeout(gitTimeoutSeconds);
 
             if (token != null && !token.isBlank()) {
                 clone.setCredentialsProvider(
@@ -59,9 +71,19 @@ public class GitHubRepoSync {
         }
     }
 
-    public boolean pullRepo(Path repoDir, String token) {
+    /**
+     * Fetches and hard-resets {@code repoDir} to {@code origin/<branch>}. {@code branch}
+     * is the configured branch, deliberately not whatever the local checkout currently
+     * happens to be on: if an operator changes a namespace's configured branch without
+     * wiping its clone directory, {@code isValidRepo} still sees a valid repo and this
+     * runs instead of a fresh clone - resetting to the configured branch (rather than the
+     * stale local one) is what makes that change actually take effect, instead of leaving
+     * the working tree permanently pointed at the old branch while
+     * {@code GitHubFileHistoryClient} queries version history against the new one.
+     */
+    public boolean pullRepo(Path repoDir, String branch, String token) {
         try (Git git = Git.open(repoDir.toFile())) {
-            var fetchCommand = git.fetch();
+            var fetchCommand = git.fetch().setTimeout(gitTimeoutSeconds);
 
             if (token != null && !token.isBlank()) {
                 fetchCommand.setCredentialsProvider(
@@ -71,10 +93,10 @@ public class GitHubRepoSync {
             fetchCommand.call();
             git.reset()
                     .setMode(ResetCommand.ResetType.HARD)
-                    .setRef("origin/" + git.getRepository().getBranch())
+                    .setRef("origin/" + branch)
                     .call();
 
-            LOG.debug("Fetched and reset for {}", repoDir.getFileName());
+            LOG.debug("Fetched and reset {} to origin/{}", repoDir.getFileName(), branch);
             return true;
         } catch (GitAPIException | IOException e) {
             LOG.error("Failed to sync {}: {}", repoDir.getFileName(), e.getMessage());

@@ -25,7 +25,7 @@ class TestGitHubRepoSyncShould {
 
     @BeforeEach
     void setup() {
-        repoSync = new GitHubRepoSync("https://github.com");
+        repoSync = new GitHubRepoSync("https://github.com", 30);
     }
 
     @Test
@@ -57,7 +57,7 @@ class TestGitHubRepoSyncShould {
 
     @Test
     void return_false_when_pull_on_non_repo_directory() {
-        boolean result = repoSync.pullRepo(tempDir, "token");
+        boolean result = repoSync.pullRepo(tempDir, "main", "token");
         assertThat(result, is(false));
     }
 
@@ -98,8 +98,42 @@ class TestGitHubRepoSyncShould {
             // clone done
         }
 
-        boolean result = repoSync.pullRepo(cloneDir, null);
+        boolean result = repoSync.pullRepo(cloneDir, "main", null);
         assertThat(result, is(true));
+    }
+
+    @Test
+    void reset_to_the_configured_branch_even_when_a_different_branch_is_locally_checked_out() throws GitAPIException, IOException {
+        // Simulates a namespace whose configured branch changed (main -> release) without
+        // its clone directory being wiped: the local checkout is still on "main", but
+        // pullRepo must move the working tree to match the newly configured branch, not
+        // silently keep serving whatever branch happens to be checked out.
+        Path originDir = tempDir.resolve("origin-branch-switch");
+        Files.createDirectories(originDir);
+        try (Git origin = Git.init().setDirectory(originDir.toFile()).setInitialBranch("main").call()) {
+            Files.writeString(originDir.resolve("content.txt"), "main content");
+            origin.add().addFilepattern("content.txt").call();
+            origin.commit().setMessage("main commit").call();
+
+            origin.checkout().setCreateBranch(true).setName("release").call();
+            Files.writeString(originDir.resolve("content.txt"), "release content");
+            origin.add().addFilepattern("content.txt").call();
+            origin.commit().setMessage("release commit").call();
+        }
+
+        Path cloneDir = tempDir.resolve("clone-branch-switch");
+        try (Git ignored = Git.cloneRepository()
+                .setURI(originDir.toUri().toString())
+                .setDirectory(cloneDir.toFile())
+                .setBranch("main")
+                .call()) {
+            // cloned on "main" - stands in for a clone made before the branch config changed
+        }
+
+        boolean result = repoSync.pullRepo(cloneDir, "release", null);
+
+        assertThat(result, is(true));
+        assertThat(Files.readString(cloneDir.resolve("content.txt")), is("release content"));
     }
 
     @Test
@@ -124,7 +158,7 @@ class TestGitHubRepoSyncShould {
         // A local file:// remote ignores the credentials provider entirely, but this
         // still exercises the setCredentialsProvider branch (a non-blank token) that
         // the "" and null cases used by the other pull tests don't reach.
-        boolean result = repoSync.pullRepo(cloneDir, "a-real-looking-token");
+        boolean result = repoSync.pullRepo(cloneDir, "main", "a-real-looking-token");
         assertThat(result, is(true));
     }
 
@@ -138,7 +172,7 @@ class TestGitHubRepoSyncShould {
             origin.commit().setMessage("init").call();
         }
 
-        GitHubRepoSync localRepoSync = new GitHubRepoSync(tempDir.toUri().toString().replaceAll("/$", ""));
+        GitHubRepoSync localRepoSync = new GitHubRepoSync(tempDir.toUri().toString().replaceAll("/$", ""), 30);
         Path cloneTarget = tempDir.resolve("cloned-real");
 
         boolean result = localRepoSync.cloneRepo("myrepo", "main", cloneTarget, null);
@@ -166,7 +200,7 @@ class TestGitHubRepoSyncShould {
             // clone done
         }
 
-        boolean result = repoSync.pullRepo(cloneDir, "");
+        boolean result = repoSync.pullRepo(cloneDir, "main", "");
         assertThat(result, is(true));
     }
 

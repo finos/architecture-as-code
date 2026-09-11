@@ -70,7 +70,7 @@ public class GitHubCloneManager {
 
             boolean success;
             if (repoSync.isValidRepo(targetDir)) {
-                success = repoSync.pullRepo(targetDir, config.getServiceToken());
+                success = repoSync.pullRepo(targetDir, repo.branch(), config.getServiceToken());
             } else {
                 success = repoSync.cloneRepo(repo.repoFullName(), repo.branch(), targetDir, config.getServiceToken());
             }
@@ -104,10 +104,11 @@ public class GitHubCloneManager {
 
         for (Map.Entry<String, NamespaceRepo> entry : namespaceRepos.entrySet()) {
             String namespace = entry.getKey();
+            NamespaceRepo repo = entry.getValue();
             Path targetDir = config.getCloneDirectory().resolve(namespace);
 
             if (repoSync.isValidRepo(targetDir)) {
-                if (repoSync.pullRepo(targetDir, config.getServiceToken())) {
+                if (repoSync.pullRepo(targetDir, repo.branch(), config.getServiceToken())) {
                     succeeded++;
                 } else {
                     failed++;
