@@ -211,4 +211,58 @@ describe('DocumentDetailSection', () => {
         expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard', 'Standards');
         expect(mockFetchStandardVersions).not.toHaveBeenCalled();
     });
+
+    it('renders markdown content when data is a markdown string', () => {
+        const data: Data = {
+            id: 'std-123',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '# TLS Policy\n\nAll services must use TLS 1.2+.',
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('All services must use TLS 1.2+.')).toBeInTheDocument();
+    });
+
+    it('shows display name from markdown heading in breadcrumb', () => {
+        const data: Data = {
+            id: '12345',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '# My Standard Name\n\nContent.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.textContent).toContain('My Standard Name');
+    });
+
+    it('shows type label in breadcrumb', () => {
+        const data: Data = {
+            id: 'std-1',
+            version: 'latest',
+            name: 'fae-calm',
+            calmType: 'Standards',
+            data: '# Test\n\nBody.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.textContent).toContain('Standards');
+    });
 });

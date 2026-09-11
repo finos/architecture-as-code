@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.NamespaceStore;
+import org.finos.calm.store.github.GitHubNamespaceStore;
 import org.finos.calm.store.mongo.MongoNamespaceStore;
 import org.finos.calm.store.nitrite.NitriteNamespaceStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestNamespaceStoreProducerShould {
     @Mock
     Instance<NitriteNamespaceStore> nitriteNamespaceStoreInstance;
 
+    @Mock
+    GitHubNamespaceStore gitHubNamespaceStore;
+
+    @Mock
+    Instance<GitHubNamespaceStore> gitHubNamespaceStoreInstance;
+
     private NamespaceStoreProducer namespaceStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestNamespaceStoreProducerShould {
         namespaceStoreProducer.mongoNamespaceStore = mongoNamespaceStoreInstance;
         when(nitriteNamespaceStoreInstance.get()).thenReturn(nitriteNamespaceStore);
         namespaceStoreProducer.standaloneNamespaceStore = nitriteNamespaceStoreInstance;
+        when(gitHubNamespaceStoreInstance.get()).thenReturn(gitHubNamespaceStore);
+        namespaceStoreProducer.gitHubNamespaceStore = gitHubNamespaceStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestNamespaceStoreProducerShould {
 
     @Test
     void return_mongo_namespace_store_when_database_mode_is_not_recognized() {
-        // Given
         namespaceStoreProducer.databaseMode = "unknown";
 
-        // When
         NamespaceStore result = namespaceStoreProducer.produceNamespaceStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoNamespaceStore)));
+    }
+
+    @Test
+    void return_github_namespace_store_when_database_mode_is_github() {
+        namespaceStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        NamespaceStore result = namespaceStoreProducer.produceNamespaceStore();
+
+        assertThat(result, is(sameInstance(gitHubNamespaceStore)));
     }
 }

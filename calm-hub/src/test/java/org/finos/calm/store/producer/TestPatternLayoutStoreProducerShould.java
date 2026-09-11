@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.PatternLayoutStore;
+import org.finos.calm.store.github.GitHubPatternLayoutStore;
 import org.finos.calm.store.mongo.MongoPatternLayoutStore;
 import org.finos.calm.store.nitrite.NitritePatternLayoutStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestPatternLayoutStoreProducerShould {
     @Mock
     Instance<NitritePatternLayoutStore> nitritePatternLayoutStoreInstance;
 
+    @Mock
+    GitHubPatternLayoutStore gitHubPatternLayoutStore;
+
+    @Mock
+    Instance<GitHubPatternLayoutStore> gitHubPatternLayoutStoreInstance;
+
     private PatternLayoutStoreProducer patternLayoutStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestPatternLayoutStoreProducerShould {
         patternLayoutStoreProducer.mongoPatternLayoutStore = mongoPatternLayoutStoreInstance;
         when(nitritePatternLayoutStoreInstance.get()).thenReturn(nitritePatternLayoutStore);
         patternLayoutStoreProducer.nitritePatternLayoutStore = nitritePatternLayoutStoreInstance;
+        when(gitHubPatternLayoutStoreInstance.get()).thenReturn(gitHubPatternLayoutStore);
+        patternLayoutStoreProducer.gitHubPatternLayoutStore = gitHubPatternLayoutStoreInstance;
     }
 
     @Test
@@ -78,5 +88,14 @@ public class TestPatternLayoutStoreProducerShould {
 
         // Then
         assertThat(result, is(sameInstance(mongoPatternLayoutStore)));
+    }
+
+    @Test
+    void return_github_pattern_layout_store_when_database_mode_is_github() {
+        patternLayoutStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        PatternLayoutStore result = patternLayoutStoreProducer.producePatternLayoutStore();
+
+        assertThat(result, is(sameInstance(gitHubPatternLayoutStore)));
     }
 }

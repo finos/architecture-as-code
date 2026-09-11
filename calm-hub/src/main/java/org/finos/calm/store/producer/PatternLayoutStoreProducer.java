@@ -5,7 +5,9 @@ import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.PatternLayoutStore;
+import org.finos.calm.store.github.GitHubPatternLayoutStore;
 import org.finos.calm.store.mongo.MongoPatternLayoutStore;
 import org.finos.calm.store.nitrite.NitritePatternLayoutStore;
 
@@ -26,6 +28,9 @@ public class PatternLayoutStoreProducer {
     @Inject
     Instance<NitritePatternLayoutStore> nitritePatternLayoutStore;
 
+    @Inject
+    Instance<GitHubPatternLayoutStore> gitHubPatternLayoutStore;
+
     /**
      * Produces the appropriate PatternLayoutStore implementation based on the configured database mode.
      *
@@ -34,9 +39,12 @@ public class PatternLayoutStoreProducer {
     @Produces
     @ApplicationScoped
     public PatternLayoutStore producePatternLayoutStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubPatternLayoutStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return nitritePatternLayoutStore.get();
+        } else {
+            return mongoPatternLayoutStore.get();
         }
-        return mongoPatternLayoutStore.get();
     }
 }
