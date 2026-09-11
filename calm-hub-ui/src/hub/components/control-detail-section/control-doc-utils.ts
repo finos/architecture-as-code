@@ -1,14 +1,7 @@
 // Shape heuristics and formatting helpers for the readable control-document
 // viewer. No JSX — shared by ReadableControlDoc and its child components.
 
-/** `encryption-algorithm` / `contributing_factors` -> `Encryption Algorithm`. */
-export function formatFieldName(field: string): string {
-    return field
-        .split(/[-_]/)
-        .filter(Boolean)
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
-}
+export { formatFieldName } from '../../../utils/format-utils.js';
 
 export function isPlainObject(v: unknown): v is Record<string, unknown> {
     return typeof v === 'object' && v !== null && !Array.isArray(v);
