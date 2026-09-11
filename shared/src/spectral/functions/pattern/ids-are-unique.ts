@@ -2,7 +2,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 import { detectDuplicates } from '../helper-functions';
-import { containingDeclaration, declaredIdPaths, declaredInterfaceIdPaths, exclusiveGroup, isAlternative } from './declaration-paths';
+import { buildOrder, containingDeclaration, declaredIdPaths, declaredInterfaceIdPaths, exclusiveGroup, isAlternative } from './declaration-paths';
 
 interface Match {
     value: unknown;
@@ -12,11 +12,9 @@ interface Match {
 /**
  * detectDuplicates blames the second match it sees, so the later declaration must come
  * second. One query per declaration site means matches arrive grouped by site instead.
- * Padding the digits keeps prefixItems/2 ahead of prefixItems/10.
  */
-function inDocumentOrder(matches: Match[]): Match[] {
-    const position = (pointer: string) => pointer.replace(/\d+/g, index => index.padStart(6, '0'));
-    return [...matches].sort((left, right) => position(left.pointer) < position(right.pointer) ? -1 : 1);
+function inBuildOrder(matches: Match[]): Match[] {
+    return [...matches].sort((left, right) => buildOrder(left.pointer) < buildOrder(right.pointer) ? -1 : 1);
 }
 
 function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] {
@@ -52,7 +50,7 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
     if (!input) {
         return [];
     }
-    const collect = (paths: string[]): Match[] => inDocumentOrder(paths.flatMap(path =>
+    const collect = (paths: string[]): Match[] => inBuildOrder(paths.flatMap(path =>
         JSONPath({ path, json: context.document.data as object, resultType: 'all' })));
 
     const nodeIdMatches = collect(declaredIdPaths('nodes'));

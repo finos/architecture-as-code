@@ -546,4 +546,60 @@ describe('idsAreUnique', () => {
         const result = idsAreUnique(input, null, asContext(context));
         expect(result[0].message).toContain('path: /properties/nodes/prefixItems/11/properties/unique-id/const');
     });
+    it('should blame the items member when a fixed entry declares the same id', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            prefixItems: [{ 'properties': { 'unique-id': { 'const': 'dup' } } }],
+                            items: { 'oneOf': [{ 'properties': { 'unique-id': { 'const': 'dup' } } }] }
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/items/oneOf/0/properties/unique-id/const');
+    });
+
+    it('should blame the items member however the pattern orders its keys', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: {
+                            items: { 'oneOf': [{ 'properties': { 'unique-id': { 'const': 'dup' } } }] },
+                            prefixItems: [{ 'properties': { 'unique-id': { 'const': 'dup' } } }]
+                        }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/items/oneOf/0/properties/unique-id/const');
+    });
+
+    it('should blame the items member for an interface id a fixed node already declares', () => {
+        const input = {};
+        const withPort = (id: string) => ({ 'properties': {
+            'unique-id': { 'const': id },
+            'interfaces': { prefixItems: [{ 'properties': { 'unique-id': { 'const': 'port' } } }] } } });
+        const context = {
+            document: {
+                data: {
+                    properties: {
+                        nodes: { prefixItems: [withPort('database')], items: { 'oneOf': [withPort('cache')] } }
+                    }
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].message).toContain('path: /properties/nodes/items/oneOf/0/properties/interfaces/prefixItems/0/properties/unique-id/const');
+    });
 });
