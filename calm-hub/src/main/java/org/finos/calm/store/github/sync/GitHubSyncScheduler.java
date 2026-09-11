@@ -64,8 +64,21 @@ public class GitHubSyncScheduler {
             metrics.recordRegistryRebuild(Duration.between(rebuildStart, Instant.now()));
 
             Duration total = Duration.between(start, Instant.now());
-            metrics.recordSyncSuccess(total);
-            LOG.debug("Sync completed in {}ms", total.toMillis());
+            // pullAll() never throws - every per-repo git failure is caught inside
+            // GitHubRepoSync and folded into cloneManager's state instead. Recording
+            // success purely on "no exception" would mean an unreachable GitHub, or an
+            // expired token, reports as a healthy sync for every namespace, forever -
+            // check the outcome pullAll() actually left behind.
+            GitHubCloneManager.State stateAfterSync = cloneManager.getState();
+            if (stateAfterSync == GitHubCloneManager.State.FAILED
+                    || stateAfterSync == GitHubCloneManager.State.DEGRADED) {
+                metrics.recordSyncFailure(total);
+                LOG.error("Sync completed in {}ms but left clone state {} - at least one namespace failed to pull",
+                        total.toMillis(), stateAfterSync);
+            } else {
+                metrics.recordSyncSuccess(total);
+                LOG.debug("Sync completed in {}ms", total.toMillis());
+            }
         } catch (Exception e) {
             Duration total = Duration.between(start, Instant.now());
             metrics.recordSyncFailure(total);

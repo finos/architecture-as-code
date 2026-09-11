@@ -61,6 +61,7 @@ class TestGitHubSyncSchedulerShould {
         GitHubSyncScheduler scheduler = schedulerFor("github");
         when(cloneManager.hasNamespaces()).thenReturn(true);
         when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.READY);
 
         scheduler.sync();
 
@@ -79,5 +80,34 @@ class TestGitHubSyncSchedulerShould {
         scheduler.sync();
 
         verify(metrics).recordSyncFailure(any());
+    }
+
+    @Test
+    void record_failure_metric_when_pull_all_leaves_clone_state_failed() {
+        // pullAll() never throws - every per-repo git error is caught internally and
+        // folded into cloneManager's state instead. A sync where every namespace failed
+        // to pull must not report as a healthy success just because nothing threw.
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.FAILED);
+
+        scheduler.sync();
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
+    }
+
+    @Test
+    void record_failure_metric_when_pull_all_leaves_clone_state_degraded() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.DEGRADED);
+
+        scheduler.sync();
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
     }
 }
