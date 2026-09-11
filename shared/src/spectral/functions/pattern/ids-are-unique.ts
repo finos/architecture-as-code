@@ -2,7 +2,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 import { detectDuplicates } from '../helper-functions';
-import { containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
+import { containingDeclaration, declaredIdPaths, declaredInterfaceIdPaths, exclusiveGroup, isAlternative } from './declaration-paths';
 
 interface Match {
     value: unknown;
@@ -10,8 +10,9 @@ interface Match {
 }
 
 /**
- * The rule blames the second declaration it sees, but three queries per id kind arrive
- * grouped by query rather than by position. Padding keeps prefixItems/2 before /10.
+ * detectDuplicates blames the second match it sees, so the later declaration must come
+ * second. One query per declaration site means matches arrive grouped by site instead.
+ * Padding the digits keeps prefixItems/2 ahead of prefixItems/10.
  */
 function inDocumentOrder(matches: Match[]): Match[] {
     const position = (pointer: string) => pointer.replace(/\d+/g, index => index.padStart(6, '0'));
@@ -35,8 +36,8 @@ function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] 
  * prefixItems entry is ever chosen, so alternatives may repeat an interface id.
  */
 function detectDuplicateInterfaceIds(matches: Match[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
-    for (const entry of groupBy(matches, containingEntry)) {
-        const [choices, fixed] = partition(entry, match => isAlternative(match.pointer));
+    for (const group of groupBy(matches, exclusiveGroup)) {
+        const [choices, fixed] = partition(group, match => isAlternative(match.pointer));
 
         detectDuplicates(fixed, seenIds, messages);
         groupBy(choices, containingDeclaration).forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));

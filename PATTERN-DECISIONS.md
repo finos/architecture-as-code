@@ -13,15 +13,22 @@ gap.
 | alternative | One entry in a `oneOf` or an `anyOf` array. |
 | decision | A relationship that carries `relationship-type.properties.options`. A decision asks which alternatives to include. |
 
-A pattern declares a node at three kinds of site:
+A pattern declares a node at five kinds of site:
 
 | Site | Meaning |
 |---|---|
 | a `prefixItems` entry | one node, at that position |
 | `prefixItems[i].oneOf` | alternatives for that position |
 | `prefixItems[i].anyOf` | alternatives for that position |
+| `items.oneOf` | nodes an architecture may add, none of them required |
+| `items.anyOf` | nodes an architecture may add, none of them required |
 
-A pattern declares a relationship at the same three sites.
+A pattern declares a relationship at the same five sites.
+
+`prefixItems` and `items` differ in how many of their declarations reach one architecture.
+A `prefixItems` entry is one position, so exactly one of its alternatives is built. `items`
+describes every position after the last entry, so an architecture may build any number of
+its members, or none.
 
 ## Rules that hold across all tools
 
@@ -54,7 +61,7 @@ Tests: [`shared/src/spectral/rules-pattern.spec.ts`](shared/src/spectral/rules-p
 and the rule tests beside it in `shared/src/spectral/functions/pattern/`.
 
 `calm validate` reads every node and every relationship a pattern declares. It reads all
-three declaration sites listed above.
+five declaration sites listed above.
 
 `calm validate` reports these faults:
 
@@ -65,14 +72,24 @@ three declaration sites listed above.
 | One name is used for more than one kind of thing | error |
 | The source of a connects relationship refers to a node that the pattern does not declare | error |
 | A connects relationship refers to an interface that the named node does not declare | error |
-| A `prefixItems` entry declares both `oneOf` and `anyOf` | error |
+| A `prefixItems` entry or an `items` block declares both `oneOf` and `anyOf` | error |
+| A decision is declared in `items` rather than in `prefixItems` | error |
 | No relationship and no decision refers to a declared node | warning |
 
 `calm validate` does not read the destination of a connects relationship. A typo there is
 not reported.
 
+Declare a decision in `relationships.prefixItems`. An architecture contains every
+relationship a pattern declares there, so the decision is always asked. An architecture may
+leave out an `items` member, so a decision declared in `items` can vanish, and an answer
+never gets to decline it.
+
+Two `items` members may both be built, so they must not share a `unique-id`, and two nodes
+declared there must not share an interface id. Two alternatives of one `prefixItems` entry
+may, because only one of them is built.
+
 `calm validate` reads one level of alternatives. It does not read alternatives declared
-inside another alternative. The keyword check reads node and relationship entries, not
+inside another alternative. The keyword check reads node and relationship sites, not
 interface entries.
 
 Do not give a `prefixItems` entry its own `properties` as well as alternatives. `calm
@@ -82,3 +99,9 @@ the two halves share one. That catches the common case. It does not name the fau
 
 A pattern that declares alternatives inside an `allOf` branch is not supported. Two `allOf`
 branches that declare the same property discard one of the two declarations.
+
+## What generation guarantees
+
+`calm generate` does not read `items`. It builds one node per `prefixItems` entry and
+nothing else, so a node declared in `items` never reaches the architecture. `calm validate`
+accepts the pattern, and the missing node is silent.
