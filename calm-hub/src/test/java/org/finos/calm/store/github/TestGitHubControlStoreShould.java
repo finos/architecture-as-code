@@ -322,6 +322,64 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
+    void throw_requirement_version_not_found_when_the_local_head_file_is_missing_on_disk(@TempDir Path tempDir) throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/nonexistent.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL)).thenReturn(List.of(entry));
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+        when(cloneManager.headSha("finos")).thenReturn("abc1234");
+
+        GitHubControlStore realFileReaderStore = new GitHubControlStore(registryService, cloneManager, versionService,
+                new NamespaceFileReader(new GitHubStoreConfig("", tempDir.toString(), "https://api.github.com")),
+                accessFilter);
+
+        assertThrows(ControlRequirementVersionNotFoundException.class,
+                () -> realFileReaderStore.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234"));
+    }
+
+    @Test
+    void return_empty_versions_when_the_registry_is_mid_rebuild_between_the_two_lookups() throws Exception {
+        // findControlEntry and findNamespaceForControl each re-derive the entry's namespace
+        // independently by re-walking the registry - a genuine (if rare) registry-rebuild
+        // race can have the entry present for the first walk and gone by the second. This
+        // simulates exactly that with consecutive stubbing, rather than a namespace/domain
+        // mismatch which is a different scenario entirely.
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL))
+                .thenReturn(List.of(entry), List.of());
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
+
+        assertThat(versions, is(empty()));
+    }
+
+    @Test
+    void throw_requirement_version_not_found_when_the_registry_is_mid_rebuild_between_the_two_lookups() throws Exception {
+        RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
+                RegistryResourceType.CONTROL, "My Control", Instant.now());
+        RegistrySnapshot snapshot = new RegistrySnapshot(
+                Map.of("finos", List.of(entry)),
+                Map.of("finos:" + UNIQUE_ID, entry));
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+        when(registryService.listByType("finos", RegistryResourceType.CONTROL))
+                .thenReturn(List.of(entry), List.of());
+        when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
+
+        assertThrows(ControlRequirementVersionNotFoundException.class,
+                () -> store.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234"));
+    }
+
+    @Test
     void throw_unsupported_on_create_control_requirement() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createControlRequirement(new CreateControlRequirement(), DOMAIN));
