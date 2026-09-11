@@ -63,10 +63,13 @@ three declaration sites listed above.
 | Two declarations that can appear together share a `unique-id` | error |
 | Two alternatives of one entry share a node or relationship `unique-id` | error |
 | One name is used for more than one kind of thing | error |
-| A relationship refers to a node that the pattern does not declare | error |
+| The source of a connects relationship refers to a node that the pattern does not declare | error |
 | A connects relationship refers to an interface that the named node does not declare | error |
 | A `prefixItems` entry declares both `oneOf` and `anyOf` | error |
 | No relationship and no decision refers to a declared node | warning |
+
+`calm validate` does not read the destination of a connects relationship. A typo there is
+not reported.
 
 `calm validate` reads one level of alternatives. It does not read alternatives declared
 inside another alternative. The keyword check reads node and relationship entries, not
