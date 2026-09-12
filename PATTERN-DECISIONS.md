@@ -58,15 +58,16 @@ Neither keyword controls how many alternatives an architecture includes. A `pref
 entry is one position, so it takes one alternative. `minItems` and `maxItems` on the array
 set the bounds.
 
+`prefixItems` is positional. An architecture lists the elements a pattern declares there
+first, and in the order the pattern declares them. Members built from `items` follow. An
+architecture that reorders the positional elements does not match the pattern.
+
 `oneOf` and `anyOf` do not differ for CALM alternatives. Each alternative pins a distinct
 `unique-id`, so an element matches at most one of them, and "exactly one" and "at least one"
 become the same test. The visualiser prints the keyword as the label on the decision box, so
 the choice is visible to a reader. It changes no validation.
 
 ## What validation guarantees
-
-Tests: [`shared/src/spectral/rules-pattern.spec.ts`](shared/src/spectral/rules-pattern.spec.ts)
-and the rule tests beside it in `shared/src/spectral/functions/pattern/`.
 
 `calm validate` reads every node and every relationship a pattern declares. It reads all
 five declaration sites listed above.
@@ -96,6 +97,15 @@ and an answer never gets to decline it. `calm validate` reports the `items` case
 Two `items` members may both be built, so they must not share a `unique-id`, and two nodes
 declared there must not share an interface id. Two alternatives of one `prefixItems` entry
 may, because only one of them is built.
+
+An `items` block cannot limit how many times one member is used. `items` constrains every
+position after the entries, so two positions may both match the same member, and the
+architecture then holds one `unique-id` twice. `calm validate` cannot report that from the
+pattern, because the pattern is correct. The architecture check
+`unique-ids-must-be-unique-in-architecture` reports it against the architecture.
+
+Leave `minItems` out rather than writing `minItems: 0`. Zero is the default, and
+`pattern-has-no-empty-properties` reads a zero as a placeholder and reports an error.
 
 `calm validate` reads one level of alternatives. It does not read alternatives declared
 inside another alternative. The keyword check reads node and relationship sites, not
