@@ -1,8 +1,11 @@
+import { ReactNode } from 'react';
+
 interface ReadableJsonViewProps {
     json?: object;
 }
 
-function JsonValue({ value }: { value: unknown }) {
+/** Basic typed-value renderer used by the generic {@link ReadableJsonView}. */
+function DefaultValue({ value }: { value: unknown }) {
     if (value === null) {
         return <span className="text-base-content/40 italic">null</span>;
     }
@@ -27,7 +30,7 @@ function JsonValue({ value }: { value: unknown }) {
             <ul className="list-disc list-inside ml-2">
                 {value.map((item, i) => (
                     <li key={i}>
-                        <JsonValue value={item} />
+                        <DefaultValue value={item} />
                     </li>
                 ))}
             </ul>
@@ -39,11 +42,24 @@ function JsonValue({ value }: { value: unknown }) {
     return <span>{String(value)}</span>;
 }
 
-function JsonTree({ data }: { data: Record<string, unknown> }) {
+/**
+ * Generic key/value renderer for an arbitrary object. Used as the fallback path
+ * of {@link ReadableControlDoc} and directly by InterfaceDetailSection — nothing
+ * is ever hidden. Callers that want richer value rendering (URL links, string
+ * arrays as bullet lists) pass their own `renderValue`.
+ */
+export function JsonTree({
+    data,
+    renderValue,
+}: {
+    data: Record<string, unknown>;
+    renderValue?: (value: unknown) => ReactNode;
+}) {
     const entries = Object.entries(data);
     if (entries.length === 0) {
         return <span className="text-base-content/40 italic">empty object</span>;
     }
+    const render = renderValue ?? ((value: unknown) => <DefaultValue value={value} />);
     return (
         <table className="table table-sm w-full">
             <tbody>
@@ -54,9 +70,7 @@ function JsonTree({ data }: { data: Record<string, unknown> }) {
                             <td className="font-semibold text-base-content/80 whitespace-nowrap pr-4 py-2 w-48">
                                 {key}
                             </td>
-                            <td className={`py-2 ${isComplex ? 'pl-2' : ''}`}>
-                                <JsonValue value={value} />
-                            </td>
+                            <td className={`py-2 ${isComplex ? 'pl-2' : ''}`}>{render(value)}</td>
                         </tr>
                     );
                 })}
