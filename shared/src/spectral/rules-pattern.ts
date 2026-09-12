@@ -1,5 +1,5 @@
 import { RulesetDefinition } from '@stoplight/spectral-core';
-import { pattern, truthy, length, xor } from '@stoplight/spectral-functions';
+import { pattern, truthy, length, xor, falsy } from '@stoplight/spectral-functions';
 import { numericalPlaceHolder } from './functions/helper-functions';
 import nodeIdExists from './functions/pattern/node-id-exists';
 import idsAreUnique from './functions/pattern/ids-are-unique';
@@ -7,6 +7,9 @@ import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
+import { decisionIsDeclaredInPrefixItems } from './functions/pattern/decision-is-declared-in-prefix-items';
+import { itemsFitWithinMaxItems } from './functions/pattern/items-fit-within-max-items';
+import { declaredIdPaths, twoKeywordSites } from './functions/pattern/declaration-paths';
 
 
 const patternRules: RulesetDefinition = {
@@ -134,7 +137,7 @@ const patternRules: RulesetDefinition = {
             description: 'Nodes must be referenced by at least one relationship',
             severity: 'warn',
             message: '{{error}}',
-            given: '$.properties.nodes.prefixItems[*].properties.unique-id.const',
+            given: declaredIdPaths('nodes'),
             then: {
                 function: nodeHasRelationship,
             },
@@ -185,6 +188,33 @@ const patternRules: RulesetDefinition = {
                         'anyOf',
                     ]
                 },
+            },
+        },
+        'pattern-choice-must-declare-one-keyword': {
+            description: 'A choice must declare either oneOf or anyOf, not both',
+            severity: 'error',
+            message: 'A choice declares both \'oneOf\' and \'anyOf\'. An element must satisfy both, so some alternatives can never be selected. Declare one keyword.',
+            given: twoKeywordSites(),
+            then: {
+                function: falsy,
+            },
+        },
+        'pattern-items-must-fit-within-max-items': {
+            description: 'maxItems must leave room for an items member to be built',
+            severity: 'error',
+            message: '{{error}}',
+            given: ['$.properties.nodes', '$.properties.relationships'],
+            then: {
+                function: itemsFitWithinMaxItems,
+            },
+        },
+        'pattern-decision-must-be-declared-in-prefix-items': {
+            description: 'A decision must be declared in relationships prefixItems, not in items',
+            severity: 'error',
+            message: '{{error}}',
+            given: ['$.properties.relationships.items.oneOf[*]', '$.properties.relationships.items.anyOf[*]'],
+            then: {
+                function: decisionIsDeclaredInPrefixItems,
             },
         },
         'pattern-option-relationship-must-have-max-one-item': {
