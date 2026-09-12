@@ -133,8 +133,9 @@ rules can't drift apart between them.
   `1.10.0` before `1.9.0`, so ordering had to become explicit once versions
   were rows rather than map keys. Deliberately *not* a change to
   `VersionKeySelector`, which keeps parsing dashes for Control — see
-  [ADR 0002](0002-version-key-encoding.md). It delegates to the existing
-  `Semver` record rather than parsing versions a second time.
+  [ADR 0002](0002-version-key-encoding.md). It originally delegated to the
+  `Semver` record. It now uses `BigInteger` components because
+  the API accepts version components above the Java integer range.
 - **`CanonicalVersion`** — folds every accepted spelling of a version onto
   one stored form, applied at every helper entry point that takes a version
   *for the semantically-versioned types*. Reached through `VersionScheme`

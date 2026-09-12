@@ -40,6 +40,12 @@ class TestSemanticVersionOrderShould {
     }
 
     @Test
+    void order_version_components_larger_than_an_integer() {
+        assertThat(sorted("2147483648.0.0", "1.0.10", "1.0.0"),
+                contains("1.0.0", "1.0.10", "2147483648.0.0"));
+    }
+
+    @Test
     void not_let_a_large_patch_outrank_a_higher_minor() {
         // Guards the segment-by-segment comparison: packing segments into one integer
         // would let a big patch number overflow into the minor version's range.

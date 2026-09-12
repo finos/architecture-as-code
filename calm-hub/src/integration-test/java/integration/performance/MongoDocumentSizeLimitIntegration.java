@@ -128,6 +128,30 @@ public class MongoDocumentSizeLimitIntegration {
 
 
     @Test
+    void keep_accepting_narrative_versions_beyond_the_old_document_ceiling() throws Exception {
+        String markdown = "---\r\ntype: knowledge\r\ntitle: Size test\r\n---\r\n" + LARGE_CONTENT;
+        String body = OBJECT_MAPPER.writeValueAsString(Map.of(
+                "name", "Narrative size test", "description", "Aggregate history exceeds 20 MiB",
+                "documentMarkdown", markdown));
+        String path = "/api/calm/namespaces/" + NAMESPACE + "/documents/knowledge";
+        String location = given().contentType(ContentType.JSON).body(body).post(path)
+                .then().statusCode(201).extract().header("Location");
+        String[] segments = java.net.URI.create(location).getPath().split("/");
+        int typeIndex = java.util.Arrays.asList(segments).indexOf("knowledge");
+        String versionsPath = path + "/" + segments[typeIndex + 1] + "/versions";
+        for (int version = 2; version <= VERSIONS_BEYOND_OLD_CEILING; version++) {
+            given().contentType(ContentType.JSON).body(body).post(versionsPath + "/" + version + ".0.0")
+                    .then().statusCode(201);
+        }
+        assertEquals(VERSIONS_BEYOND_OLD_CEILING,
+                given().get(versionsPath).then().statusCode(200).extract().jsonPath().getList("values").size());
+        for (int version = 1; version <= VERSIONS_BEYOND_OLD_CEILING; version++) {
+            assertEquals(markdown, given().get(versionsPath + "/" + version + ".0.0")
+                    .then().statusCode(200).extract().jsonPath().getString("documentMarkdown"));
+        }
+    }
+
+    @Test
     void keep_accepting_architecture_versions_well_past_the_old_document_ceiling() throws Exception {
         int architectureId = createResource("architectures", "architectureJson", "size-limit-test-architecture");
         String requestBody = largeBody("architectureJson", "size-limit-test-architecture");
