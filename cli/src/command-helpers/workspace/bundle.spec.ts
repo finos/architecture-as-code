@@ -203,6 +203,31 @@ describe('bundle', () => {
             expect(manifest['source-doc'].type).toBe('architecture');
         });
 
+        it('persists a complete narrative Hub identity with its version', async () => {
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'sad', version: '1.2.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/1.2.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toMatchObject({
+                version: '1.2.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/1.2.0',
+            });
+        });
+
+        it('allows a version-only narrative entry for a new document', async () => {
+            await addFileToBundle(bundlePath, srcFile, { type: 'sad', version: '1.0.0' });
+            expect((await loadManifest(bundlePath))['source-doc']).toMatchObject({ version: '1.0.0' });
+        });
+
+        it.each([
+            { type: 'sad' as const, version: '1.2.0', calmHubDocumentId: 42 },
+            { type: 'sad' as const, version: '1.2.0', calmHubId: '/path' },
+            { type: 'sad' as const, calmHubDocumentId: 42, calmHubId: '/path' },
+        ])('rejects an incomplete narrative Hub identity', async (options) => {
+            await expect(addFileToBundle(bundlePath, srcFile, options)).rejects.toThrow(/Hub identity/);
+        });
+
         it('should copy file when copy option is true', async () => {
             const result = await addFileToBundle(bundlePath, srcFile, { copy: true });
 

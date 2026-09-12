@@ -161,6 +161,20 @@ describe('WorkspaceDocumentLoader', () => {
             // Document without an $id is stored only by its bare id.
             expect(mocks.schemaDirectory.storeDocument).toHaveBeenCalledWith('no-id-doc', 'schema', noIdDoc);
         });
+
+        it('ignores Markdown narrative documents', async () => {
+            setupBundle({
+                '/ws/workspace-manifest.json': JSON.stringify({
+                    'payments-sad': { path: 'files/payments-sad.md', type: 'sad' },
+                }),
+                '/ws/files/payments-sad.md': '---\\ntitle: Payments SAD\\n---\\n# Payments\\n',
+            });
+            const loader = new WorkspaceDocumentLoader(BUNDLE);
+
+            await loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
+
+            expect(mocks.schemaDirectory.storeDocument).not.toHaveBeenCalled();
+        });
     });
 
     describe('with no usable manifest', () => {

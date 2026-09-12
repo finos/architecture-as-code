@@ -1,5 +1,5 @@
 import { DocumentLoader, DocumentLoadError } from './document-loader';
-import type { CalmDocumentType } from '@finos/calm-models/types';
+import { isNarrativeDocumentType, type CalmDocumentType } from '@finos/calm-models/types';
 import { initLogger, Logger } from '../logger';
 import { readFile } from 'fs/promises';
 import { existsSync, readFileSync } from 'fs';
@@ -79,6 +79,12 @@ export class WorkspaceDocumentLoader implements DocumentLoader {
         const rules: WorkspaceRule[] = [];
         for (const [bareId, value] of Object.entries(manifest)) {
             // Manifest entries are `{ path, type, ... }`; tolerate the legacy plain-string form too.
+            const type = value && typeof value === 'object'
+                ? (value as { type?: unknown }).type
+                : undefined;
+            // Narrative documents are Markdown rather than CALM JSON documents. They cannot be
+            // schema-preloaded or resolve a CALM `$ref`, so keep them out of this JSON-only loader.
+            if (isNarrativeDocumentType(type)) continue;
             const relPath = typeof value === 'string'
                 ? value
                 : (value && typeof value === 'object' && typeof (value as { path?: unknown }).path === 'string'

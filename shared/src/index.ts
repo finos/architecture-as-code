@@ -52,6 +52,7 @@ export * from './template/types.js';
 export {
     parseFrontMatter,
     parseFrontMatterFromContent,
+    parseYamlFrontMatterMapping,
     hasArchitectureFrontMatter,
     replaceVariables,
     injectFrontMatter,
@@ -85,6 +86,8 @@ export {
     type HubDomainSummary,
     type HubControlSummary,
     type CalmHubOptions,
+    type NarrativeDocumentRequest,
+    type NarrativeDocumentVersion,
     type ResourceType,
     type ResourceChangeType,
     isValidResourceType

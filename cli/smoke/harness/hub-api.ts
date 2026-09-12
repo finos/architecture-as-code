@@ -39,5 +39,10 @@ export function hubApi(baseUrl: string = SMOKE_HUB_URL) {
                 `${baseUrl}/calm/namespaces/${namespace}/${type}/${mapping}/versions/${version}`
             );
         },
+        async getNarrativeDocument(namespace: string, type: string, id: number, version: string): Promise<string> {
+            const body = await getJson(`${baseUrl}/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`);
+            if (typeof body.documentMarkdown !== 'string') throw new Error('Narrative document response has no documentMarkdown');
+            return body.documentMarkdown;
+        },
     };
 }
