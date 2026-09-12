@@ -111,10 +111,12 @@ Leave `minItems` out rather than writing `minItems: 0`. Zero is the default, and
 inside another alternative. The keyword check reads node and relationship sites, not
 interface entries.
 
-Do not give a `prefixItems` entry its own `properties` as well as alternatives. `calm
-generate` keeps the selected alternative and discards the entry's own `properties`, so
-whatever the entry declares is lost. `calm validate` reports a duplicate `unique-id` when
-the two halves share one. That catches the common case. It does not name the fault.
+Do not give a `prefixItems` entry its own `properties` as well as alternatives. Both halves
+apply to the same element. If each half pins a `unique-id`, no element can satisfy both, so
+nothing can ever fill that position. If they do not conflict, `calm generate` keeps the
+selected alternative and discards the entry's own `properties`, so whatever the entry
+declares is lost. `calm validate` reports this only when the two halves share a `unique-id`,
+and then it reports a duplicate rather than naming the fault.
 
 A pattern that declares alternatives inside an `allOf` branch is not supported. Two `allOf`
 branches that declare the same property discard one of the two declarations.
