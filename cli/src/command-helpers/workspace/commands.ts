@@ -10,7 +10,7 @@ import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
-import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
+import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST, isValidCalmDocumentType } from '@finos/calm-models/types';
@@ -33,7 +33,7 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--dir <path>', 'Directory in which to create the workspace (defaults to git root)')
         .action(async (name: string, options: { dir?: string }) => {
             const workspaceName: string = name as string;
-            const targetDir = options.dir ? path.resolve(options.dir) : (findGitRoot(process.cwd()) ?? process.cwd());
+            const targetDir = options.dir ? path.resolve(options.dir) : findProjectRoot(process.cwd());
 
             try {
                 const created = await ensureWorkspaceBundle(targetDir, workspaceName);
@@ -151,13 +151,9 @@ export function setupWorkspaceCommands(program: Command) {
         .description('List all available workspaces')
         .action(async () => {
             try {
-                const gitRoot = findGitRoot(process.cwd());
-                if (!gitRoot) {
-                    logger.error('No git repository found. Please run this command from within a git repository.');
-                    process.exit(1);
-                }
-                const workspaces = await listWorkspaces(gitRoot);
-                const activeWorkspace = await getActiveWorkspace(gitRoot);
+                const projectRoot = findProjectRoot(process.cwd());
+                const workspaces = await listWorkspaces(projectRoot);
+                const activeWorkspace = await getActiveWorkspace(projectRoot);
                 if (workspaces.length === 0) {
                     logger.warn('No workspaces found.');
                     return;
@@ -181,12 +177,8 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Show the active workspace')
         .action(async () => {
             try {
-                const gitRoot = findGitRoot(process.cwd());
-                if (!gitRoot) {
-                    logger.error('No git repository found. Please run this command from within a git repository.');
-                    process.exit(1);
-                }
-                const activeWorkspace = await getActiveWorkspace(gitRoot);
+                const projectRoot = findProjectRoot(process.cwd());
+                const activeWorkspace = await getActiveWorkspace(projectRoot);
                 if (!activeWorkspace) {
                     logger.info('No active workspace.');
                     return;
@@ -243,17 +235,13 @@ export function setupWorkspaceCommands(program: Command) {
         .argument('<name>', 'The name of the workspace to switch to')
         .action(async (name: string) => {
             try {
-                const gitRoot = findGitRoot(process.cwd());
-                if (!gitRoot) {
-                    logger.error('No git repository found. Please run this command from within a git repository.');
-                    process.exit(1);
-                }
-                const workspaces = await listWorkspaces(gitRoot);
+                const projectRoot = findProjectRoot(process.cwd());
+                const workspaces = await listWorkspaces(projectRoot);
                 if (!workspaces.includes(name)) {
                     logger.error(`Workspace '${name}' not found.`);
                     process.exit(1);
                 }
-                await setActiveWorkspace(gitRoot, name);
+                await setActiveWorkspace(projectRoot, name);
                 logger.info(`Switched to workspace '${name}'.`);
             } catch (err) {
                 logger.error('Failed to switch workspace: ' + (err instanceof Error ? err.message : String(err)));
@@ -267,22 +255,18 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--all', 'Clean all workspaces and reset workspace.json')
         .action(async (options: { all?: boolean }) => {
             try {
-                const gitRoot = findGitRoot(process.cwd());
-                if (!gitRoot) {
-                    logger.error('No git repository found. Please run this command from within a git repository.');
-                    process.exit(1);
-                }
+                const projectRoot = findProjectRoot(process.cwd());
 
                 if (options.all) {
-                    await cleanAllWorkspaces(gitRoot);
+                    await cleanAllWorkspaces(projectRoot);
                     logger.info('All workspaces cleaned.');
                 } else {
-                    const activeWorkspace = await getActiveWorkspace(gitRoot);
+                    const activeWorkspace = await getActiveWorkspace(projectRoot);
                     if (!activeWorkspace) {
                         logger.error('No active workspace. Use --all to clean all workspaces.');
                         process.exit(1);
                     }
-                    await cleanWorkspaceBundle(gitRoot, activeWorkspace);
+                    await cleanWorkspaceBundle(projectRoot, activeWorkspace);
                     logger.info(`Workspace '${activeWorkspace}' cleaned.`);
                 }
             } catch (err) {
@@ -348,9 +332,8 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
 
-                const gitRoot = findGitRoot(process.cwd());
-                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
-                const failIfModified = options.failIfModified ?? workspaceConfig?.push.failIfModified ?? false;
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
+                const failIfModified = options.failIfModified ?? workspaceConfig.push.failIfModified;
 
                 const client = new CalmHubClient(calmHubOptions);
                 await pushWorkspaceToHub(bundlePath, client, { failIfModified });
@@ -437,10 +420,9 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
 
-                const gitRoot = findGitRoot(process.cwd());
-                const workspaceConfig = gitRoot ? await loadWorkspaceConfig(gitRoot) : undefined;
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
                 const defaultIncrement: ResourceChangeType =
-                    options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig?.bump.defaultIncrement ?? 'MINOR';
+                    options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig.bump.defaultIncrement;
 
                 const client = new CalmHubClient(calmHubOptions);
 

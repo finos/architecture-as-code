@@ -20,7 +20,7 @@ const mocks = vi.hoisted(() => {
         runPostBumpValidation: vi.fn(async () => []),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
         findWorkspaceManifestPath: vi.fn<() => string | null>(() => '/fake/bundle'),
-        findGitRoot: vi.fn<() => string | null>(() => '/fake/repo'),
+        findProjectRoot: vi.fn<() => string>(() => '/fake/repo'),
         loadManifest: vi.fn(async () => ({})),
         removeDocumentFromManifest: vi.fn(async () => true),
         loadCliConfig: vi.fn(async () => ({ calmHubUrl: 'https://calmhub.example.com' })),
@@ -85,7 +85,7 @@ vi.mock('./config', () => ({
 
 vi.mock('../../workspace-resolver', () => ({
     findWorkspaceManifestPath: mocks.findWorkspaceManifestPath,
-    findGitRoot: mocks.findGitRoot,
+    findProjectRoot: mocks.findProjectRoot,
 }));
 
 vi.mock('../../cli-config', () => ({
@@ -268,10 +268,10 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/repo');
         });
 
-        it('should exit when no git root found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'list'])).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'list']);
+            expect(mocks.listWorkspaces).toHaveBeenCalledWith('/fake/cwd-no-git');
         });
 
         it('should handle empty workspace list', async () => {
@@ -315,10 +315,10 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.loadManifest).toHaveBeenCalled();
         });
 
-        it('should exit when no git root found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'show'])).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'show']);
+            expect(mocks.getActiveWorkspace).toHaveBeenCalledWith('/fake/cwd-no-git');
         });
 
         it('should exit on error', async () => {
@@ -374,10 +374,10 @@ describe('setupWorkspaceCommands', () => {
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
-        it('should exit when no git root found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'switch', 'other'])).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'switch', 'other']);
+            expect(mocks.setActiveWorkspace).toHaveBeenCalledWith('/fake/cwd-no-git', 'other');
         });
 
         it('should exit on error', async () => {
@@ -398,10 +398,10 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.cleanAllWorkspaces).toHaveBeenCalledWith('/fake/repo');
         });
 
-        it('should exit when no git root found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
-            await expect(program.parseAsync(['node', 'test', 'workspace', 'clean'])).rejects.toThrow();
-            expect(exitSpy).toHaveBeenCalledWith(1);
+        it('should fall back to the resolved project root when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
+            await program.parseAsync(['node', 'test', 'workspace', 'clean']);
+            expect(mocks.cleanWorkspaceBundle).toHaveBeenCalledWith('/fake/cwd-no-git', 'default');
         });
 
         it('should exit when no active workspace and no --all flag', async () => {
@@ -485,9 +485,10 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
-        it('passes failIfModified: false when no git root / config is found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
+        it('still loads workspace config, falling back to the resolved project root, when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
             await program.parseAsync(['node', 'test', 'workspace', 'push']);
+            expect(mocks.loadWorkspaceConfig).toHaveBeenCalledWith('/fake/cwd-no-git');
             expect(mocks.pushWorkspaceToHub).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
@@ -652,11 +653,24 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
-        it('defaults to MINOR when no git root / config is found', async () => {
-            mocks.findGitRoot.mockReturnValueOnce(null);
+        it('--minor skips prompts and applies MINOR to all docs', async () => {
+            mocks.loadWorkspaceConfig.mockResolvedValueOnce({ push: { failIfModified: false }, bump: { defaultIncrement: 'MAJOR' } } as never);
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--minor']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.objectContaining({ isMockClient: true }),
+                expect.objectContaining({ increment: 'MINOR' })
+            );
+        });
+
+        it('still loads workspace config, falling back to the resolved project root, when there is no git repo', async () => {
+            mocks.findProjectRoot.mockReturnValueOnce('/fake/cwd-no-git');
             mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
             mocks.select.mockResolvedValueOnce('MINOR');
             await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.loadWorkspaceConfig).toHaveBeenCalledWith('/fake/cwd-no-git');
             expect(mocks.bumpWorkspace).toHaveBeenCalledWith(
                 '/fake/bundle',
                 expect.objectContaining({ isMockClient: true }),
