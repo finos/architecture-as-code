@@ -19,7 +19,8 @@ function isPatternData(data: unknown): boolean {
     if (!data || typeof data !== 'object') return false;
     const obj = data as Record<string, unknown>;
     const props = obj['properties'] as Record<string, unknown> | undefined;
-    return !!(props?.['nodes'] && typeof props['nodes'] === 'object' && (props['nodes'] as Record<string, unknown>)['prefixItems']);
+    const nodes = props?.['nodes'] as Record<string, unknown> | undefined;
+    return !!(nodes && typeof nodes === 'object' && (nodes['prefixItems'] || nodes['items']));
 }
 
 /**
