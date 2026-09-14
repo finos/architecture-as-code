@@ -10,25 +10,43 @@
           {
             "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
             "properties": {
-              "unique-id": { "const": "payment-service" },
-              "name": { "const": "Payment Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "payment-service"
+              },
+              "name": {
+                "const": "Payment Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
             "properties": {
-              "unique-id": { "const": "user-db" },
-              "name": { "const": "User Database" },
-              "node-type": { "const": "database" }
+              "unique-id": {
+                "const": "user-db"
+              },
+              "name": {
+                "const": "User Database"
+              },
+              "node-type": {
+                "const": "database"
+              }
             }
           }
         ]
@@ -39,20 +57,46 @@
           {
             "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
             "properties": {
-              "unique-id": { "const": "gateway-to-payment" },
-              "description": { "const": "Gateway routes to payment service" },
+              "unique-id": {
+                "const": "gateway-to-payment"
+              },
+              "description": {
+                "const": "Gateway routes to payment service"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-gateway"
+                    },
+                    "destination": {
+                      "node": "payment-service"
+                    }
+                  }
+                }
               }
             }
           },
           {
             "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
             "properties": {
-              "unique-id": { "const": "payment-to-db" },
-              "description": { "const": "Payment persists to database" },
+              "unique-id": {
+                "const": "payment-to-db"
+              },
+              "description": {
+                "const": "Payment persists to database"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "payment-service"
+                    },
+                    "destination": {
+                      "node": "user-db"
+                    }
+                  }
+                }
               }
             }
           }
@@ -70,30 +114,54 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-service" },
-              "name": { "const": "Payment Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "payment-service"
+              },
+              "name": {
+                "const": "Payment Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "user-db" },
-              "name": { "const": "User Database" },
-              "node-type": { "const": "database" }
+              "unique-id": {
+                "const": "user-db"
+              },
+              "name": {
+                "const": "User Database"
+              },
+              "node-type": {
+                "const": "database"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "audit-service" },
-              "name": { "const": "Audit Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "audit-service"
+              },
+              "name": {
+                "const": "Audit Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
@@ -103,28 +171,67 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "gateway-to-payment" },
-              "description": { "const": "Gateway routes to payment service" },
+              "unique-id": {
+                "const": "gateway-to-payment"
+              },
+              "description": {
+                "const": "Gateway routes to payment service"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-gateway"
+                    },
+                    "destination": {
+                      "node": "payment-service"
+                    }
+                  }
+                }
               }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-to-db" },
-              "description": { "const": "Payment persists to database" },
+              "unique-id": {
+                "const": "payment-to-db"
+              },
+              "description": {
+                "const": "Payment persists to database"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "payment-service"
+                    },
+                    "destination": {
+                      "node": "user-db"
+                    }
+                  }
+                }
               }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-to-audit" },
-              "description": { "const": "Payment emits audit events" },
+              "unique-id": {
+                "const": "payment-to-audit"
+              },
+              "description": {
+                "const": "Payment emits audit events"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "audit-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "payment-service"
+                    },
+                    "destination": {
+                      "node": "audit-service"
+                    }
+                  }
+                }
               }
             }
           }
@@ -142,16 +249,28 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-service" },
-              "name": { "const": "Payment Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "payment-service"
+              },
+              "name": {
+                "const": "Payment Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
@@ -161,10 +280,23 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "gateway-to-payment" },
-              "description": { "const": "Gateway routes to payment service" },
+              "unique-id": {
+                "const": "gateway-to-payment"
+              },
+              "description": {
+                "const": "Gateway routes to payment service"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-gateway"
+                    },
+                    "destination": {
+                      "node": "payment-service"
+                    }
+                  }
+                }
               }
             }
           }
@@ -182,23 +314,41 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway v2" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway v2"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-service" },
-              "name": { "const": "Payment Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "payment-service"
+              },
+              "name": {
+                "const": "Payment Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "user-db" },
-              "name": { "const": "User Database" },
-              "node-type": { "const": "database" }
+              "unique-id": {
+                "const": "user-db"
+              },
+              "name": {
+                "const": "User Database"
+              },
+              "node-type": {
+                "const": "database"
+              }
             }
           }
         ]
@@ -208,19 +358,45 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "gateway-to-payment" },
-              "description": { "const": "Gateway routes to payment service" },
+              "unique-id": {
+                "const": "gateway-to-payment"
+              },
+              "description": {
+                "const": "Gateway routes to payment service"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-gateway"
+                    },
+                    "destination": {
+                      "node": "payment-service"
+                    }
+                  }
+                }
               }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-to-db" },
-              "description": { "const": "Payment persists to database" },
+              "unique-id": {
+                "const": "payment-to-db"
+              },
+              "description": {
+                "const": "Payment persists to database"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "payment-service"
+                    },
+                    "destination": {
+                      "node": "user-db"
+                    }
+                  }
+                }
               }
             }
           }
@@ -238,23 +414,41 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-processor" },
-              "name": { "const": "Payment Service" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "payment-processor"
+              },
+              "name": {
+                "const": "Payment Service"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "user-db" },
-              "name": { "const": "User Database" },
-              "node-type": { "const": "database" }
+              "unique-id": {
+                "const": "user-db"
+              },
+              "name": {
+                "const": "User Database"
+              },
+              "node-type": {
+                "const": "database"
+              }
             }
           }
         ]
@@ -264,19 +458,45 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "gateway-to-payment" },
-              "description": { "const": "Gateway routes to payment service" },
+              "unique-id": {
+                "const": "gateway-to-payment"
+              },
+              "description": {
+                "const": "Gateway routes to payment service"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "api-gateway" }, "destination": { "node": "payment-service" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "api-gateway"
+                    },
+                    "destination": {
+                      "node": "payment-service"
+                    }
+                  }
+                }
               }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "payment-to-db" },
-              "description": { "const": "Payment persists to database" },
+              "unique-id": {
+                "const": "payment-to-db"
+              },
+              "description": {
+                "const": "Payment persists to database"
+              },
               "relationship-type": {
-                "const": { "connects": { "source": { "node": "payment-service" }, "destination": { "node": "user-db" } } }
+                "const": {
+                  "connects": {
+                    "source": {
+                      "node": "payment-service"
+                    },
+                    "destination": {
+                      "node": "user-db"
+                    }
+                  }
+                }
               }
             }
           }
@@ -296,9 +516,15 @@
             "prefixItems": [
               {
                 "properties": {
-                  "unique-id": { "const": "api-gateway" },
-                  "name": { "const": "API Gateway" },
-                  "node-type": { "const": "service" }
+                  "unique-id": {
+                    "const": "api-gateway"
+                  },
+                  "name": {
+                    "const": "API Gateway"
+                  },
+                  "node-type": {
+                    "const": "service"
+                  }
                 }
               }
             ]
@@ -317,21 +543,36 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "type": "string" },
-              "name": { "const": "Worker" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "type": "string"
+              },
+              "name": {
+                "const": "Worker"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
       },
-      "relationships": { "type": "array", "prefixItems": [] }
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
     }
   },
   "contentReorderedPattern": {
@@ -344,21 +585,36 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "type": "string" },
-              "name": { "const": "Worker" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "type": "string"
+              },
+              "name": {
+                "const": "Worker"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
       },
-      "relationships": { "type": "array", "prefixItems": [] }
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
     }
   },
   "contentModifiedPattern": {
@@ -371,21 +627,36 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "type": "string" },
-              "name": { "const": "Worker v2" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "type": "string"
+              },
+              "name": {
+                "const": "Worker v2"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
       },
-      "relationships": { "type": "array", "prefixItems": [] }
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
     }
   },
   "contentDuplicatePattern": {
@@ -398,28 +669,49 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "type": "string" },
-              "name": { "const": "Worker" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "type": "string"
+              },
+              "name": {
+                "const": "Worker"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "type": "string" },
-              "name": { "const": "Worker" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "type": "string"
+              },
+              "name": {
+                "const": "Worker"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           }
         ]
       },
-      "relationships": { "type": "array", "prefixItems": [] }
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
     }
   },
   "undiffablePattern": {
@@ -432,14 +724,22 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "properties": {
-              "unique-id": { "type": "string" }
+              "unique-id": {
+                "type": "string"
+              }
             }
           },
           {
@@ -447,7 +747,10 @@
           }
         ]
       },
-      "relationships": { "type": "array", "prefixItems": [] }
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
     }
   },
   "decisionPattern": {
@@ -460,28 +763,234 @@
         "prefixItems": [
           {
             "properties": {
-              "unique-id": { "const": "api-gateway" },
-              "name": { "const": "API Gateway" },
-              "node-type": { "const": "service" }
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
             }
           },
           {
             "oneOf": [
               {
                 "properties": {
-                  "unique-id": { "const": "postgres-store" },
-                  "name": { "const": "Postgres Store" },
-                  "node-type": { "const": "database" }
+                  "unique-id": {
+                    "const": "postgres-store"
+                  },
+                  "name": {
+                    "const": "Postgres Store"
+                  },
+                  "node-type": {
+                    "const": "database"
+                  }
                 }
               },
               {
                 "properties": {
-                  "unique-id": { "const": "dynamo-store" },
-                  "name": { "const": "DynamoDB Store" },
-                  "node-type": { "const": "database" }
+                  "unique-id": {
+                    "const": "dynamo-store"
+                  },
+                  "name": {
+                    "const": "DynamoDB Store"
+                  },
+                  "node-type": {
+                    "const": "database"
+                  }
                 }
               }
             ]
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
+    }
+  },
+  "cataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": {
+                "unique-id": {
+                  "const": "cache"
+                },
+                "name": {
+                  "const": "Cache"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
+    }
+  },
+  "catalogueGrownPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Grown Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": {
+                "unique-id": {
+                  "const": "cache"
+                },
+                "name": {
+                  "const": "Cache"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            },
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": {
+                "unique-id": {
+                  "const": "queue"
+                },
+                "name": {
+                  "const": "Queue"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
+    }
+  },
+  "catalogueRenamedMemberPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Renamed Member Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": {
+                "unique-id": {
+                  "const": "cache"
+                },
+                "name": {
+                  "const": "Redis"
+                },
+                "node-type": {
+                  "const": "service"
+                }
+              }
+            }
+          ]
+        }
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": []
+      }
+    }
+  },
+  "noCataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "No Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": {
+                "const": "api-gateway"
+              },
+              "name": {
+                "const": "API Gateway"
+              },
+              "node-type": {
+                "const": "service"
+              }
+            }
           }
         ]
       },
