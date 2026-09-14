@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import * as path from 'path';
 import { detectSvgFormat } from './format-detector';
 import { parseDrawioSvg } from './drawio-parser';
 import { parseGenericSvg } from './generic-svg-parser';
@@ -98,7 +99,6 @@ export class SvgImportService {
             return;
         }
 
-        const path = await import('path');
         const stem = path.basename(uri.fsPath, '.svg');
         const defaultName = `${stem}.calm.json`;
         const defaultUri = vscode.Uri.file(

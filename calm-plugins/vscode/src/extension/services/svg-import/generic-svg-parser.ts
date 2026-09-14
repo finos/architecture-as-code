@@ -94,6 +94,8 @@ function tryExtractNodeFromGroup(
     let shapeHint: ShapeHint = 'unknown';
     let label = '';
 
+    let shapeTransform = { tx: 0, ty: 0 };
+
     for (const child of g.children) {
         if (child.type !== 'element') continue;
         const tag = child.tagName;
@@ -101,6 +103,7 @@ function tryExtractNodeFromGroup(
         if ((tag === 'rect' || tag === 'ellipse' || tag === 'circle') && !shapeGeo) {
             shapeGeo = getShapeGeometry(tag, child.properties);
             shapeHint = classifyTag(tag, child.properties);
+            shapeTransform = parseTranslate(String(child.properties.transform ?? ''));
         }
 
         if (tag === 'text' && !label) {
@@ -112,8 +115,8 @@ function tryExtractNodeFromGroup(
         return null;
     }
 
-    shapeGeo.x += accTransform.tx;
-    shapeGeo.y += accTransform.ty;
+    shapeGeo.x += accTransform.tx + shapeTransform.tx;
+    shapeGeo.y += accTransform.ty + shapeTransform.ty;
 
     const id = String(g.properties.id ?? `node-${index}`);
     return { id, label, shapeHint, geometry: shapeGeo, styleProps: {} };
@@ -246,6 +249,8 @@ function parseTranslate(transform: string | undefined): { tx: number; ty: number
     if (match) return { tx: parseFloat(match[1]!), ty: parseFloat(match[2]!) };
     const single = transform.match(/translate\(\s*([-\d.]+)\s*\)/);
     if (single) return { tx: parseFloat(single[1]!), ty: 0 };
+    const matrix = transform.match(/matrix\(\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
+    if (matrix) return { tx: parseFloat(matrix[5]!), ty: parseFloat(matrix[6]!) };
     return { tx: 0, ty: 0 };
 }
 
