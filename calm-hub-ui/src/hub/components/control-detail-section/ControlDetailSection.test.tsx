@@ -12,9 +12,9 @@ vi.mock('@monaco-editor/react', () => ({
     ),
 }));
 
-vi.mock('./ReadableJsonView.js', () => ({
-    ReadableJsonView: ({ json }: { json?: object }) => (
-        <div data-testid="readable-json-view">{json ? JSON.stringify(json) : 'No data'}</div>
+vi.mock('./ReadableControlDoc.js', () => ({
+    ReadableControlDoc: ({ doc }: { doc?: object }) => (
+        <div data-testid="readable-json-view">{doc ? JSON.stringify(doc) : 'No data'}</div>
     ),
 }));
 
@@ -34,10 +34,7 @@ vi.mock('../../../service/control-service.js', () => ({
     }; }),
 }));
 
-/**
- * Force `useIsMobile()` (which reads window.matchMedia) to report the given
- * viewport. Returns a restore function.
- */
+/** Force `useIsMobile()` to report the given viewport. Returns a restore fn. */
 function mockViewport(isMobile: boolean) {
     const original = window.matchMedia;
     window.matchMedia = ((query: string) => ({
@@ -69,14 +66,6 @@ const configJson = { minKeyLength: 256, algorithm: 'AES' };
 
 // ── Helpers ───────────────────────────────────────────────
 
-/**
- * Sets up the mocks so that:
- * - fetchRequirementVersions resolves with the given versions
- * - fetchRequirementForVersion resolves to the given schema
- * - fetchConfigurationsForControl resolves with the given config IDs
- * - fetchConfigurationVersions resolves with the given versions
- * - fetchConfigurationForVersion resolves to the given JSON
- */
 function setupMocks({
     reqVersions = ['0.1.0'],
     reqSchema = requirementSchema,
@@ -105,411 +94,69 @@ describe('ControlDetailSection', () => {
     });
 
     // ──────────────────────────────────────────────────
-    // Rendering
+    // Desktop: side-by-side columns
     // ──────────────────────────────────────────────────
-    describe('rendering', () => {
-        it('renders the requirement breadcrumb header with control name', async () => {
+    describe('desktop layout', () => {
+        it('renders Requirement and Configuration columns side by side', async () => {
             setupMocks();
             render(<ControlDetailSection controlData={controlData} />);
 
             await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                const reqHeading = headings[0];
-
-                expect(reqHeading).toHaveTextContent('Access Control');
-                expect(reqHeading).toHaveTextContent('Requirement');
+                expect(screen.getByText('Requirement')).toBeInTheDocument();
+                expect(screen.getByText('Configuration')).toBeInTheDocument();
             });
+            // Both panels render at once (not tabbed).
+            expect(screen.getAllByTestId('readable-json-view')).toHaveLength(2);
         });
 
-        it('renders the requirement breadcrumb header with control title when present', async () => {
-            setupMocks();
-            render(<ControlDetailSection controlData={{ ...controlData, controlTitle: 'Pretty Title' }} />);
-
-            await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                expect(headings[0]).toHaveTextContent('Pretty Title');
-                expect(headings[0]).not.toHaveTextContent('Access Control');
-            });
-        });
-
-        it('renders the configuration breadcrumb header with control name', async () => {
-            setupMocks();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                const cfgHeading = headings[1];
-
-                expect(cfgHeading).toHaveTextContent('Access Control');
-                expect(cfgHeading).toHaveTextContent('Configurations');
-            });
-        });
-
-        it('hides the configurations panel when no config IDs exist', async () => {
+        it('shows only the Requirement column when there are no configurations', async () => {
             setupMocks({ configs: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
-            // Wait for requirement panel to render, then assert configurations heading is absent
             await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                expect(headings).toHaveLength(1);
-                expect(headings[0]).toHaveTextContent('Requirement');
+                expect(screen.getByText('Requirement')).toBeInTheDocument();
             });
-            expect(screen.queryByText('Configurations')).not.toBeInTheDocument();
+            expect(screen.queryByText('Configuration')).not.toBeInTheDocument();
+            expect(screen.getAllByTestId('readable-json-view')).toHaveLength(1);
         });
 
-        it('renders two readable JSON views by default (requirement + configuration)', async () => {
+        it('renders an independent readable/raw toggle per column', async () => {
             setupMocks();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const readableViews = screen.getAllByTestId('readable-json-view');
-                expect(readableViews).toHaveLength(2);
-            });
-        });
-    });
-
-    // ──────────────────────────────────────────────────
-    // useEffect: initial data loading
-    // ──────────────────────────────────────────────────
-    describe('initial data loading', () => {
-        it('fetches requirement versions and configurations on mount', async () => {
-            setupMocks();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                expect(mockFetchRequirementVersions).toHaveBeenCalledWith(
-                    'security',
-                    1,
-                );
-                expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith(
-                    'security',
-                    1,
-                );
-            });
-        });
-
-        it('auto-selects the first requirement version and fetches its schema', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith(
-                    'security',
-                    1,
-                    '0.1.0'
-                );
-            });
-        });
-
-        it('shows the auto-selected requirement version in the breadcrumb', async () => {
-            setupMocks({ reqVersions: ['0.1.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                expect(headings[0]).toHaveTextContent('0.1.0');
-            });
-        });
-    });
-
-    // ──────────────────────────────────────────────────
-    // Requirement version tabs
-    // ──────────────────────────────────────────────────
-    describe('requirement version tabs', () => {
-        it('does not render version tabs when only one version exists', async () => {
-            setupMocks({ reqVersions: ['0.1.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                // The version tab bar only renders when > 1 version
-                const tabs = screen.queryAllByRole('tab');
-                // Only config tabs may be present (for config IDs), not requirement version tabs
-                const reqVersionTabs = tabs.filter((t) => t.textContent === '0.1.0');
-                // With auto-select, '0.1.0' should NOT appear as a clickable tab since there's only 1 version
-                expect(reqVersionTabs).toHaveLength(0);
-            });
-        });
-
-        it('renders version tabs when multiple requirement versions exist', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '0.1.0' })).toBeInTheDocument();
-                expect(screen.getByRole('tab', { name: '0.2.0' })).toBeInTheDocument();
-            });
-        });
-
-        it('applies active style to the selected requirement version tab', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const activeTab = screen.getByRole('tab', { name: '0.1.0' });
-                expect(activeTab).toHaveClass('tab-active');
-
-                const inactiveTab = screen.getByRole('tab', { name: '0.2.0' });
-                expect(inactiveTab).not.toHaveClass('tab-active');
-            });
-        });
-
-        it('switches requirement version when a different tab is clicked', async () => {
-            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '0.2.0' })).toBeInTheDocument();
-            });
-
-            await user.click(screen.getByRole('tab', { name: '0.2.0' }));
-
-            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith(
-                'security',
-                1,
-                '0.2.0'
+            await waitFor(() =>
+                expect(screen.getAllByRole('tab', { name: 'Raw JSON' })).toHaveLength(2),
             );
 
-            const newActiveTab = screen.getByRole('tab', { name: '0.2.0' });
-            expect(newActiveTab).toHaveClass('tab-active');
-        });
-    });
-
-    // ──────────────────────────────────────────────────
-    // Configuration tabs
-    // ──────────────────────────────────────────────────
-    describe('configuration tabs', () => {
-        it('renders config tab labels using title then name then fallback', async () => {
-            setupMocks({ configs: [
-                { id: 10, title: 'Rate Limit Config' },
-                { id: 20, name: 'config-b' },
-                { id: 30 },
-            ]});
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: 'Rate Limit Config' })).toBeInTheDocument();
-                expect(screen.getByRole('tab', { name: 'config-b' })).toBeInTheDocument();
-                expect(screen.getByRole('tab', { name: 'Config 30' })).toBeInTheDocument();
-            });
-        });
-
-        it('renders config ID tabs', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: 'Config 10' })).toBeInTheDocument();
-                expect(screen.getByRole('tab', { name: 'Config 20' })).toBeInTheDocument();
-            });
-        });
-
-        it('clicking a config ID tab fetches its versions', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-
-            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith(
-                'security',
-                1,
-                10,
-            );
-        });
-
-        it('applies active style to the selected config tab', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-
-            expect(screen.getByRole('tab', { name: 'Config 10' })).toHaveClass('tab-active');
-            expect(screen.getByRole('tab', { name: 'Config 20' })).not.toHaveClass('tab-active');
-        });
-
-        it('shows the selected config ID in the breadcrumb header', async () => {
-            setupMocks({ configs: [{ id: 10 }] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-
-            const headings = screen.getAllByRole('heading');
-            expect(headings[1]).toHaveTextContent('10');
-        });
-
-        it('renders config version tabs after selecting a config ID', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
-                expect(screen.getByRole('tab', { name: '1.1.0' })).toBeInTheDocument();
-            });
-        });
-
-        it('clicking a config version tab fetches the configuration JSON', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
-            });
-
-            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
-
-            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith(
-                'security',
-                1,
-                10,
-                '1.0.0'
-            );
-        });
-
-        it('applies active style to the selected config version tab', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0', '1.1.0'] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
-            });
-
-            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
-
-            expect(screen.getByRole('tab', { name: '1.0.0' })).toHaveClass('tab-active');
-            expect(screen.getByRole('tab', { name: '1.1.0' })).not.toHaveClass('tab-active');
-        });
-
-        it('shows the selected config version in the breadcrumb header', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
-            });
-            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
-
-            const headings = screen.getAllByRole('heading');
-            expect(headings[1]).toHaveTextContent('1.0.0');
-        });
-
-        it('does not show config version tabs until a config ID is selected', async () => {
-            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                // Config version tabs should not be present until Config 10 is clicked
-                expect(screen.queryByRole('tab', { name: '1.0.0' })).not.toBeInTheDocument();
-            });
-        });
-    });
-
-    // ──────────────────────────────────────────────────
-    // View mode toggle (Readable / Raw JSON)
-    // ──────────────────────────────────────────────────
-    describe('view mode toggle', () => {
-        it('defaults to Readable view for requirement panel', async () => {
-            setupMocks();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const readableViews = screen.getAllByTestId('readable-json-view');
-                expect(readableViews.length).toBeGreaterThanOrEqual(1);
-            });
-
-            // Raw JSON renderer should not be visible by default
-            expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
-        });
-
-        it('switches requirement panel to Raw JSON view when Raw JSON tab is clicked', async () => {
-            setupMocks();
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            // Find the Raw JSON tabs — there are two, one per panel
-            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
-            await user.click(rawTabs[0]); // click requirement panel's Raw JSON tab
-
-            // Requirement panel should now show JsonRenderer
-            await waitFor(() => {
-                const wrappers = document.querySelectorAll('[data-cy="json-renderer-wrapper"]');
-                expect(wrappers).toHaveLength(1);
-            });
-        });
-
-        it('switches configuration panel to Raw JSON view independently', async () => {
-            setupMocks({ configs: [{ id: 10 }] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Config 10' }));
-            await waitFor(() => {
-                expect(screen.getByRole('tab', { name: '1.0.0' })).toBeInTheDocument();
-            });
-            await user.click(screen.getByRole('tab', { name: '1.0.0' }));
-
-            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
-            await user.click(rawTabs[1]); // click config panel's Raw JSON tab
-
-            await waitFor(() => {
-                // One json-renderer-wrapper (config panel) + one readable-json-view (req panel)
-                const wrappers = document.querySelectorAll('[data-cy="json-renderer-wrapper"]');
-                expect(wrappers).toHaveLength(1);
-                const readableViews = screen.getAllByTestId('readable-json-view');
-                expect(readableViews).toHaveLength(1);
-            });
-        });
-
-        it('can toggle back from Raw JSON to Readable', async () => {
-            setupMocks();
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            const rawTabs = await screen.findAllByRole('tab', { name: 'Raw JSON' });
-            await user.click(rawTabs[0]);
-
+            // Flip only the requirement column to raw.
+            await user.click(screen.getAllByRole('tab', { name: 'Raw JSON' })[0]);
             await waitFor(() => {
                 expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(1);
+                expect(screen.getAllByTestId('readable-json-view')).toHaveLength(1);
             });
+        });
 
-            const readableTabs = screen.getAllByRole('tab', { name: 'Readable' });
-            await user.click(readableTabs[0]);
+        it('hides the per-column toggles when viewMode is controlled by the parent', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={controlData} viewMode="raw" />);
 
             await waitFor(() => {
-                expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(0);
-                expect(screen.getAllByTestId('readable-json-view')).toHaveLength(2);
+                expect(document.querySelectorAll('[data-cy="json-renderer-wrapper"]')).toHaveLength(2);
             });
+            expect(screen.queryByRole('tab', { name: 'Readable' })).not.toBeInTheDocument();
         });
     });
 
     // ──────────────────────────────────────────────────
-    // Mobile tabbed layout
+    // Mobile: Requirement / Configuration tabs
     // ──────────────────────────────────────────────────
     describe('mobile layout', () => {
         let restore: () => void;
+        beforeEach(() => { restore = mockViewport(true); });
+        afterEach(() => { restore(); });
 
-        beforeEach(() => {
-            restore = mockViewport(true);
-        });
-
-        afterEach(() => {
-            restore();
-        });
-
-        it('renders Requirement and Configuration tabs instead of stacked panels', async () => {
+        it('renders the two sections as tabs, one panel at a time', async () => {
             setupMocks();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -517,22 +164,10 @@ describe('ControlDetailSection', () => {
                 expect(screen.getByRole('tab', { name: 'Requirement' })).toBeInTheDocument();
                 expect(screen.getByRole('tab', { name: 'Configuration' })).toBeInTheDocument();
             });
-
-            // Only the active (requirement) panel is shown, so just one readable view.
             expect(screen.getAllByTestId('readable-json-view')).toHaveLength(1);
         });
 
-        it('shows the requirement panel by default', async () => {
-            setupMocks({ reqSchema: requirementSchema });
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const view = screen.getByTestId('readable-json-view');
-                expect(view).toHaveTextContent(JSON.stringify(requirementSchema));
-            });
-        });
-
-        it('omits the Configuration tab when no configurations exist', async () => {
+        it('omits the Configuration tab when there are no configurations', async () => {
             setupMocks({ configs: [] });
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -542,21 +177,8 @@ describe('ControlDetailSection', () => {
             expect(screen.queryByRole('tab', { name: 'Configuration' })).not.toBeInTheDocument();
         });
 
-        it('switches to the configuration panel and shows its config tabs', async () => {
-            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
-            const user = userEvent.setup();
-            render(<ControlDetailSection controlData={controlData} />);
-
-            await user.click(await screen.findByRole('tab', { name: 'Configuration' }));
-
-            expect(screen.getByRole('tab', { name: 'Config 10' })).toBeInTheDocument();
-            expect(screen.getByRole('tab', { name: 'Config 20' })).toBeInTheDocument();
-            // Requirement version pickers are not visible on the configuration panel.
-            expect(screen.queryByText('Requirement /')).not.toBeInTheDocument();
-        });
-
-        it('applies the active style to the selected panel tab', async () => {
-            setupMocks();
+        it('switches to the Configuration panel when its tab is clicked', async () => {
+            setupMocks({ cfgJson: configJson });
             const user = userEvent.setup();
             render(<ControlDetailSection controlData={controlData} />);
 
@@ -564,9 +186,161 @@ describe('ControlDetailSection', () => {
             expect(reqTab).toHaveClass('tab-active');
 
             await user.click(screen.getByRole('tab', { name: 'Configuration' }));
-
             expect(screen.getByRole('tab', { name: 'Configuration' })).toHaveClass('tab-active');
-            expect(screen.getByRole('tab', { name: 'Requirement' })).not.toHaveClass('tab-active');
+            expect(screen.getByTestId('readable-json-view')).toHaveTextContent(JSON.stringify(configJson));
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // Initial data loading (viewport-independent)
+    // ──────────────────────────────────────────────────
+    describe('initial data loading', () => {
+        it('fetches requirement versions and configurations on mount', async () => {
+            setupMocks();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(mockFetchRequirementVersions).toHaveBeenCalledWith('security', 1);
+                expect(mockFetchConfigurationsForControl).toHaveBeenCalledWith('security', 1);
+            });
+        });
+
+        it('auto-selects the latest requirement version, not the first in the list', async () => {
+            setupMocks({ reqVersions: ['1.0.0', '2.0.0', '0.9.0'] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '2.0.0');
+            });
+        });
+
+        it('auto-selects a default configuration and its latest version', async () => {
+            setupMocks({
+                configs: [{ id: 10 }, { id: 20 }],
+                cfgVersions: ['1.0.0', '2.0.0', '1.5.0'],
+            });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0');
+            });
+        });
+
+        it('auto-loads a lone configuration and its lone version', async () => {
+            setupMocks({ configs: [{ id: 10 }], cfgVersions: ['1.0.0'] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => {
+                expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '1.0.0');
+            });
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // Requirement version picker
+    // ──────────────────────────────────────────────────
+    describe('requirement version picker', () => {
+        it('does not render a picker when only one version exists', async () => {
+            setupMocks({ reqVersions: ['0.1.0'] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() => expect(screen.getByText('Requirement')).toBeInTheDocument());
+            expect(screen.queryByLabelText('Requirement version')).not.toBeInTheDocument();
+        });
+
+        it('renders a newest-first dropdown with the latest version selected', async () => {
+            setupMocks({ reqVersions: ['0.1.0', '2.0.0', '1.0.0'] });
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const select = await screen.findByLabelText('Requirement version');
+            expect(select).toHaveValue('2.0.0');
+            const options = Array.from(select.querySelectorAll('option')).map((o) => o.textContent);
+            expect(options).toEqual(['2.0.0', '1.0.0', '0.1.0']);
+        });
+
+        it('fetches the chosen version and updates the selection', async () => {
+            setupMocks({ reqVersions: ['0.1.0', '0.2.0'] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const select = await screen.findByLabelText('Requirement version');
+            await user.selectOptions(select, '0.1.0');
+
+            expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0');
+            expect(select).toHaveValue('0.1.0');
+        });
+    });
+
+    // ──────────────────────────────────────────────────
+    // Configuration picker (in the Configuration column on desktop)
+    // ──────────────────────────────────────────────────
+    describe('configuration picker', () => {
+        it('labels options using title then name then a fallback', async () => {
+            setupMocks({ configs: [
+                { id: 10, title: 'Rate Limit Config' },
+                { id: 20, name: 'config-b' },
+                { id: 30 },
+            ]});
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const select = await screen.findByLabelText('Configuration');
+            expect(select).toBeInTheDocument();
+            expect(screen.getByRole('option', { name: 'Rate Limit Config' })).toBeInTheDocument();
+            expect(screen.getByRole('option', { name: 'config-b' })).toBeInTheDocument();
+            expect(screen.getByRole('option', { name: 'Config 30' })).toBeInTheDocument();
+        });
+
+        it('fetches versions for the chosen configuration', async () => {
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const select = await screen.findByLabelText('Configuration');
+            await user.selectOptions(select, '20');
+
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
+        });
+
+        it('does not request a version the newly selected configuration lacks', async () => {
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }] });
+            // config 10 has 2.0.0; config 20 only has 1.0.0
+            mockFetchConfigurationVersions.mockImplementation((_d: unknown, _c: unknown, configId: number) =>
+                Promise.resolve(configId === 10 ? ['2.0.0'] : ['1.0.0']),
+            );
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            await waitFor(() =>
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 10, '2.0.0'),
+            );
+
+            await user.selectOptions(await screen.findByLabelText('Configuration'), '20');
+
+            await waitFor(() =>
+                expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0'),
+            );
+            expect(mockFetchConfigurationForVersion).not.toHaveBeenCalledWith('security', 1, 20, '2.0.0');
+        });
+
+        it('shows a version picker for the auto-selected config and re-fetches on config change', async () => {
+            setupMocks({ configs: [{ id: 10 }, { id: 20 }], cfgVersions: ['1.0.0', '1.1.0'] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            // Default config (id 10) is auto-selected, so its version picker is shown
+            // right away with the latest version selected.
+            const versionSelect = await screen.findByLabelText('Configuration version');
+            expect(versionSelect).toHaveValue('1.1.0');
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 10);
+
+            // Choosing a different config re-fetches that config's versions.
+            await user.selectOptions(screen.getByLabelText('Configuration'), '20');
+            expect(mockFetchConfigurationVersions).toHaveBeenCalledWith('security', 1, 20);
+
+            await user.selectOptions(screen.getByLabelText('Configuration version'), '1.0.0');
+            expect(mockFetchConfigurationForVersion).toHaveBeenCalledWith('security', 1, 20, '1.0.0');
         });
     });
 
@@ -589,44 +363,13 @@ describe('ControlDetailSection', () => {
                 controlName: 'Encryption',
                 controlDescription: 'Data encryption standards',
             };
-
             rerender(<ControlDetailSection controlData={newControl} />);
 
             await waitFor(() => {
                 expect(mockFetchRequirementVersions).toHaveBeenCalledTimes(2);
-                expect(mockFetchRequirementVersions).toHaveBeenLastCalledWith(
-                    'compliance',
-                    2,
-                );
+                expect(mockFetchRequirementVersions).toHaveBeenLastCalledWith('compliance', 2);
                 expect(mockFetchConfigurationsForControl).toHaveBeenCalledTimes(2);
-                expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith(
-                    'compliance',
-                    2,
-                );
-            });
-        });
-
-        it('updates the breadcrumb header when controlData changes', async () => {
-            setupMocks();
-            const { rerender } = render(<ControlDetailSection controlData={controlData} />);
-
-            await waitFor(() => {
-                const headings = screen.getAllByRole('heading');
-                expect(headings[0]).toHaveTextContent('Access Control');
-            });
-
-            const newControl: ControlData = {
-                domain: 'compliance',
-                controlId: 2,
-                controlName: 'Encryption',
-                controlDescription: 'Data encryption standards',
-            };
-
-            rerender(<ControlDetailSection controlData={newControl} />);
-
-            await waitFor(() => {
-                const updatedHeadings = screen.getAllByRole('heading');
-                expect(updatedHeadings[0]).toHaveTextContent('Encryption');
+                expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith('compliance', 2);
             });
         });
     });
