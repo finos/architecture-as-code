@@ -199,10 +199,14 @@ function decodeHtmlEntities(text: string): string {
         .replace(/&amp;/g, '&');
 }
 
+const MAX_COMPRESSED_INPUT_BYTES = 5 * 1024 * 1024;
+
 async function tryDecompress(content: string): Promise<string | null> {
     try {
         let data = content;
         try { data = decodeURIComponent(data); } catch { /* already decoded */ }
+
+        if (Buffer.byteLength(data, 'utf-8') > MAX_COMPRESSED_INPUT_BYTES) return null;
 
         const buffer = Buffer.from(data, 'base64');
         if (buffer.length === 0) return null;

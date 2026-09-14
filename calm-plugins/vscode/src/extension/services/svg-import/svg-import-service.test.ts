@@ -8,6 +8,9 @@ const VALID_SVG = `<svg xmlns="http://www.w3.org/2000/svg">
 
 const EMPTY_SVG = '<svg xmlns="http://www.w3.org/2000/svg"></svg>';
 
+const SVG_URI = vscode.Uri.file('/workspace/diagram.svg');
+const OUTPUT_URI = vscode.Uri.file('/workspace/diagram.calm.json');
+
 function createMockDocument(content = '{}'): vscode.TextDocument {
     return {
         uri: vscode.Uri.file('/workspace/test.calm.json'),
@@ -89,5 +92,69 @@ describe('SvgImportService', () => {
         const result = await service.importSvgIntoDocument(createMockDocument());
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalled();
+    });
+});
+
+describe('SvgImportService - importSvgToNewFile', () => {
+    let service: SvgImportService;
+
+    beforeEach(() => {
+        service = new SvgImportService(createMockOutputChannel());
+        (vscode.window as Record<string, unknown>).showOpenDialog = vi.fn().mockResolvedValue([SVG_URI]);
+        (vscode.window as Record<string, unknown>).showSaveDialog = vi.fn().mockResolvedValue(OUTPUT_URI);
+        (vscode.window as Record<string, unknown>).showWarningMessage = vi.fn().mockResolvedValue(undefined);
+        (vscode.window as Record<string, unknown>).showInformationMessage = vi.fn().mockResolvedValue('No');
+        (vscode.window as Record<string, unknown>).showErrorMessage = vi.fn().mockResolvedValue(undefined);
+        (vscode.commands as Record<string, unknown>).executeCommand = vi.fn().mockResolvedValue(undefined);
+        (vscode.workspace as { fs: Record<string, unknown> }).fs = {
+            readFile: vi.fn().mockResolvedValue(Buffer.from(VALID_SVG)),
+            writeFile: vi.fn().mockResolvedValue(undefined),
+        };
+    });
+
+    it('returns early when user cancels file picker (no sourceUri)', async () => {
+        (vscode.window as Record<string, unknown>).showOpenDialog = vi.fn().mockResolvedValue(undefined);
+        await service.importSvgToNewFile();
+        expect(vscode.workspace.fs.readFile).not.toHaveBeenCalled();
+    });
+
+    it('shows warning and returns when SVG has no nodes', async () => {
+        (vscode.workspace as { fs: Record<string, unknown> }).fs = {
+            readFile: vi.fn().mockResolvedValue(Buffer.from(EMPTY_SVG)),
+            writeFile: vi.fn().mockResolvedValue(undefined),
+        };
+        await service.importSvgToNewFile(SVG_URI);
+        expect(vscode.window.showWarningMessage).toHaveBeenCalledWith('No nodes found in the SVG.');
+        expect(vscode.window.showSaveDialog).not.toHaveBeenCalled();
+    });
+
+    it('returns when user cancels save dialog', async () => {
+        (vscode.window as Record<string, unknown>).showSaveDialog = vi.fn().mockResolvedValue(undefined);
+        await service.importSvgToNewFile(SVG_URI);
+        expect(vscode.workspace.fs.writeFile).not.toHaveBeenCalled();
+    });
+
+    it('writes CALM JSON to the chosen file on success', async () => {
+        await service.importSvgToNewFile(SVG_URI);
+        expect(vscode.workspace.fs.writeFile).toHaveBeenCalledWith(
+            OUTPUT_URI,
+            expect.any(Buffer)
+        );
+        expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+            expect.stringContaining('1 nodes')
+        );
+    });
+
+    it('opens canvas when user confirms', async () => {
+        (vscode.window as Record<string, unknown>).showInformationMessage = vi.fn()
+            .mockResolvedValueOnce(undefined)
+            .mockResolvedValueOnce('Yes');
+        await service.importSvgToNewFile(SVG_URI);
+        expect(vscode.commands.executeCommand).toHaveBeenCalledWith('calm.openCanvas', OUTPUT_URI);
+    });
+
+    it('uses sourceUri directly when provided (skips open dialog)', async () => {
+        await service.importSvgToNewFile(SVG_URI);
+        expect(vscode.window.showOpenDialog).not.toHaveBeenCalled();
     });
 });
