@@ -3,18 +3,140 @@ import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
 import { validateCalmArchitecture } from '../../core/validation.js';
 
 interface ControlRequirement {
-    config?: { value?: string };
+    config?: Record<string, unknown> & { value?: string };
+    'requirement-url'?: string;
 }
 
-interface ControlValidationMeta {
+interface LegacyValidationMeta {
     pattern?: string;
     'allowed-values'?: string[];
     example?: string;
 }
 
+interface RequirementPropertyDef {
+    type: 'string' | 'boolean' | 'number' | 'integer' | 'enum';
+    allowedValues?: Array<string | number | boolean>;
+    pattern?: string;
+    description?: string;
+    required: boolean;
+}
+
+interface NewValidationMeta {
+    identity?: { controlId: string; name: string; description: string };
+    properties?: Record<string, RequirementPropertyDef>;
+}
+
+type ControlValidationMeta = LegacyValidationMeta | NewValidationMeta;
+
 interface ControlEntry {
     requirements?: ControlRequirement[];
     metadata?: { validation?: ControlValidationMeta };
+}
+
+function isNewValidation(v: ControlValidationMeta): v is NewValidationMeta {
+    return !!v && typeof v === 'object' && 'properties' in v && !!v.properties;
+}
+
+/** A config value is "present" unless it is undefined, null, or an empty string. `false` and `0` count. */
+function hasConfigValue(value: unknown): boolean {
+    return value !== undefined && value !== null && value !== '';
+}
+
+/**
+ * Validate the per-property inline config of a control against its resolved
+ * requirement property definitions (the new multi-property shape).
+ */
+export function validateControlProperties(
+    controlId: string,
+    properties: Record<string, RequirementPropertyDef>,
+    control: ControlEntry,
+    scopeLabel: string,
+    nodeId?: string
+): ValidationIssue[] {
+    const issues: ValidationIssue[] = [];
+    const config = (control?.requirements?.[0]?.config ?? {}) as Record<
+        string,
+        unknown
+    >;
+
+    for (const [propName, def] of Object.entries(properties)) {
+        const value = config[propName];
+        if (!hasConfigValue(value)) {
+            if (def.required) {
+                issues.push({
+                    severity: 'error',
+                    message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" is required`,
+                    nodeId,
+                    controlId,
+                });
+            }
+            continue;
+        }
+
+        if (
+            def.type === 'enum' &&
+            def.allowedValues &&
+            !def.allowedValues.includes(value as string | number | boolean)
+        ) {
+            issues.push({
+                severity: 'error',
+                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" value "${String(value)}" is not allowed (one of: ${def.allowedValues.join(', ')})`,
+                nodeId,
+                controlId,
+            });
+        }
+
+        if (def.type === 'string' && def.pattern) {
+            let matches = true;
+            try {
+                matches = new RegExp(def.pattern).test(String(value));
+            } catch {
+                matches = true; // malformed pattern — don't punish the user
+            }
+            if (!matches) {
+                issues.push({
+                    severity: 'error',
+                    message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" value "${String(value)}" does not match pattern ${def.pattern}`,
+                    nodeId,
+                    controlId,
+                });
+            }
+        }
+
+        if (
+            (def.type === 'number' || def.type === 'integer') &&
+            typeof value !== 'number'
+        ) {
+            issues.push({
+                severity: 'error',
+                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be a number`,
+                nodeId,
+                controlId,
+            });
+        } else if (
+            def.type === 'integer' &&
+            typeof value === 'number' &&
+            !Number.isInteger(value)
+        ) {
+            issues.push({
+                severity: 'error',
+                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be an integer`,
+                nodeId,
+                controlId,
+            });
+        }
+
+        if (def.type === 'boolean' && typeof value !== 'boolean') {
+            issues.push({
+                severity: 'error',
+                message: `Control "${controlId}" on ${scopeLabel}: property "${propName}" must be true or false`,
+                nodeId,
+                controlId,
+            });
+        }
+    }
+
+    return issues;
 }
 
 /**
@@ -30,6 +152,18 @@ export function validateControlConfig(
     nodeId?: string
 ): ValidationIssue[] {
     const validation = control?.metadata?.validation;
+
+    // New multi-property shape — validate each property's inline config value.
+    if (validation && isNewValidation(validation)) {
+        return validateControlProperties(
+            controlId,
+            validation.properties ?? {},
+            control,
+            scopeLabel,
+            nodeId
+        );
+    }
+
     const requirementUrl = control?.requirements?.[0]?.['requirement-url'] as string | undefined;
     const value = control?.requirements?.[0]?.config?.value ?? '';
 
@@ -43,8 +177,9 @@ export function validateControlConfig(
         }];
     }
     if (!validation) return [];
-    const allowed = validation['allowed-values'];
-    const pattern = validation.pattern;
+    const legacy = validation as LegacyValidationMeta;
+    const allowed = legacy['allowed-values'];
+    const pattern = legacy.pattern;
     const issues: ValidationIssue[] = [];
 
     if (!value) {

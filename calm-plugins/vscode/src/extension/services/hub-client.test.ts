@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { HubClient } from './hub-client';
+import { HubClient, HubApiError } from './hub-client';
 
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
@@ -162,6 +162,136 @@ describe('HubClient', () => {
             expect(result).toEqual(resource);
             expect(mockFetch).toHaveBeenCalledWith(
                 'https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0',
+                expect.any(Object)
+            );
+        });
+    });
+
+    describe('HubApiError', () => {
+        it('throws a typed error carrying the status and url on 403', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({}, 403));
+
+            const err = await client.getDomains().catch((e) => e);
+            expect(err).toBeInstanceOf(HubApiError);
+            expect(err.status).toBe(403);
+            expect(err.url).toBe('https://hub.example.com/calm/domains');
+        });
+
+        it('carries a 404 status', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({}, 404));
+
+            const err = await client
+                .getControlsForDomain('security')
+                .catch((e) => e);
+            expect(err).toBeInstanceOf(HubApiError);
+            expect(err.status).toBe(404);
+        });
+    });
+
+    describe('getDomains', () => {
+        it('unwraps the values wrapper into a string array', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: ['security', 'privacy'] })
+            );
+
+            const result = await client.getDomains();
+            expect(result).toEqual(['security', 'privacy']);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/calm/domains',
+                expect.any(Object)
+            );
+        });
+    });
+
+    describe('getControlsForDomain', () => {
+        it('returns control details and encodes the domain', async () => {
+            const controls = [
+                { id: 1, name: 'micro-segmentation', description: 'd', title: 't' },
+            ];
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: controls }));
+
+            const result = await client.getControlsForDomain('security');
+            expect(result).toEqual(controls);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/calm/domains/security/controls',
+                expect.any(Object)
+            );
+        });
+    });
+
+    describe('getRequirementVersions', () => {
+        it('constructs the name-mapped requirement versions URL', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: ['1.0.0', '1.1.0'] })
+            );
+
+            const result = await client.getRequirementVersions(
+                'security',
+                'micro-segmentation'
+            );
+            expect(result).toEqual(['1.0.0', '1.1.0']);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions',
+                expect.any(Object)
+            );
+        });
+    });
+
+    describe('getRequirementAtVersion', () => {
+        it('returns the raw requirement JSON (no values wrapper)', async () => {
+            const schema = { $id: 'x', properties: {} };
+            mockFetch.mockResolvedValueOnce(jsonResponse(schema));
+
+            const result = await client.getRequirementAtVersion(
+                'security',
+                'micro-segmentation',
+                '1.0.0'
+            );
+            expect(result).toEqual(schema);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions/1.0.0',
+                expect.any(Object)
+            );
+        });
+    });
+
+    describe('ADR methods', () => {
+        it('getAdrs unwraps the summary list', async () => {
+            const adrs = [{ id: 1, title: 'Use X', status: 'accepted' }];
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: adrs }));
+
+            const result = await client.getAdrs('finos');
+            expect(result).toEqual(adrs);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/namespaces/finos/adrs',
+                expect.any(Object)
+            );
+        });
+
+        it('getAdr returns the AdrMeta wrapper with nested adr content', async () => {
+            const meta = {
+                namespace: 'finos',
+                id: 3,
+                revision: 2,
+                adr: { title: 'Use X', status: 'accepted' },
+            };
+            mockFetch.mockResolvedValueOnce(jsonResponse(meta));
+
+            const result = await client.getAdr('finos', 3);
+            expect(result).toEqual(meta);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/namespaces/finos/adrs/3',
+                expect.any(Object)
+            );
+        });
+
+        it('getAdrRevisions unwraps numeric revisions', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [1, 2, 3] }));
+
+            const result = await client.getAdrRevisions('finos', 3);
+            expect(result).toEqual([1, 2, 3]);
+            expect(mockFetch).toHaveBeenCalledWith(
+                'https://hub.example.com/api/calm/namespaces/finos/adrs/3/revisions',
                 expect.any(Object)
             );
         });

@@ -2,8 +2,20 @@ import { describe, it, expect } from 'vitest';
 import {
     buildBuildingBlockDoc,
     generateId,
-    type ControlEntry,
+    type AttachedControl,
 } from './building-block-doc';
+import type { ParsedRequirement } from '../../extension/services/requirement-parser';
+
+const parsed: ParsedRequirement = {
+    identity: {
+        controlId: 'security-001',
+        name: 'Micro-segmentation',
+        description: 'Prevent lateral movement',
+    },
+    properties: {
+        'permit-ingress': { type: 'boolean', required: true },
+    },
+};
 
 describe('generateId', () => {
     it('slugifies names to lowercase kebab-case', () => {
@@ -37,14 +49,9 @@ describe('buildBuildingBlockDoc', () => {
         expect(doc.relationships).toEqual([]);
     });
 
-    it('emits a control with a requirement and no validation metadata when type is none', () => {
-        const controls: ControlEntry[] = [
-            {
-                id: 'tls',
-                description: 'Require TLS',
-                requirementUrl: 'standards/tls-policy.md',
-                validation: { type: 'none' },
-            },
+    it('emits a Hub CURIE control as a slim reference (no config or metadata)', () => {
+        const controls: AttachedControl[] = [
+            { ref: 'security:controls:micro-segmentation@1.0.0', parsed },
         ];
         const { json } = buildBuildingBlockDoc({
             name: 'Svc',
@@ -52,27 +59,19 @@ describe('buildBuildingBlockDoc', () => {
             description: '',
             controls,
         });
-        const control = JSON.parse(json).nodes[0].controls.tls;
-
-        expect(control.description).toBe('Require TLS');
+        const map = JSON.parse(json).nodes[0].controls;
+        const control = map['security--micro-segmentation'];
+        expect(control.description).toBeUndefined();
         expect(control.requirements[0]['requirement-url']).toBe(
-            'standards/tls-policy.md'
+            'security:controls:micro-segmentation@1.0.0'
         );
+        expect(control.requirements[0].config).toBeUndefined();
         expect(control.metadata).toBeUndefined();
     });
 
-    it('emits pattern validation metadata (with example) under metadata.validation', () => {
-        const controls: ControlEntry[] = [
-            {
-                id: 'tls',
-                description: 'TLS version',
-                requirementUrl: '',
-                validation: {
-                    type: 'pattern',
-                    pattern: '^TLS1\\.[23]$',
-                    example: 'TLS1.3',
-                },
-            },
+    it('emits a local path control with the file-stem key', () => {
+        const controls: AttachedControl[] = [
+            { ref: 'controls/micro-segmentation.requirement.json', parsed },
         ];
         const { json } = buildBuildingBlockDoc({
             name: 'Svc',
@@ -80,56 +79,10 @@ describe('buildBuildingBlockDoc', () => {
             description: '',
             controls,
         });
-        const validation =
-            JSON.parse(json).nodes[0].controls.tls.metadata.validation;
-
-        expect(validation).toEqual({
-            pattern: '^TLS1\\.[23]$',
-            example: 'TLS1.3',
-        });
-    });
-
-    it('emits allowed-values validation metadata', () => {
-        const controls: ControlEntry[] = [
-            {
-                id: 'tls',
-                description: 'TLS version',
-                requirementUrl: '',
-                validation: {
-                    type: 'allowed-values',
-                    allowedValues: ['TLS1.2', 'TLS1.3'],
-                },
-            },
-        ];
-        const { json } = buildBuildingBlockDoc({
-            name: 'Svc',
-            nodeType: 'service',
-            description: '',
-            controls,
-        });
-        const validation =
-            JSON.parse(json).nodes[0].controls.tls.metadata.validation;
-
-        expect(validation).toEqual({ 'allowed-values': ['TLS1.2', 'TLS1.3'] });
-    });
-
-    it('derives a control id from its description when id is blank', () => {
-        const controls: ControlEntry[] = [
-            {
-                id: '',
-                description: 'Encryption At Rest',
-                requirementUrl: '',
-                validation: { type: 'none' },
-            },
-        ];
-        const { json } = buildBuildingBlockDoc({
-            name: 'Svc',
-            nodeType: 'service',
-            description: '',
-            controls,
-        });
-        expect(Object.keys(JSON.parse(json).nodes[0].controls)).toEqual([
-            'encryption-at-rest',
-        ]);
+        const map = JSON.parse(json).nodes[0].controls;
+        expect(Object.keys(map)).toEqual(['micro-segmentation']);
+        expect(map['micro-segmentation'].requirements[0]['requirement-url']).toBe(
+            'controls/micro-segmentation.requirement.json'
+        );
     });
 });

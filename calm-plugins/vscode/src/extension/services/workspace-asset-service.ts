@@ -1,6 +1,15 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as YAML from 'yaml';
+import { parseRequirementSchema } from './requirement-parser';
+import {
+    isCanonicalControlUrl,
+    isControlCurie,
+    isLocalControlPath,
+    makeControlMapKey,
+    parseCanonicalControlUrl,
+    parseControlCurie,
+} from './control-curie';
 
 export interface BuildingBlockDef {
     id: string;
@@ -13,6 +22,24 @@ export interface BuildingBlockDef {
     namespace?: string;
     /** Content-addressable SHA — present when this block was fetched from a remote CalmHub. */
     sha?: string;
+}
+
+/** A locally-authored standalone control requirement discovered under `controls/`. */
+export interface LocalControlDef {
+    /** File stem, e.g. "micro-segmentation". */
+    id: string;
+    /** `properties.control-id.const` from the requirement schema. */
+    controlId: string;
+    /** `properties.name.const`. */
+    name: string;
+    /** `properties.description.const`. */
+    description: string;
+    /** Absolute path on disk. */
+    filePath: string;
+    /** Normalized workspace-relative path — used for local file resolution. */
+    relativePath: string;
+    /** Domain derived from the first subdirectory under `controls/`, if any. */
+    domain?: string;
 }
 
 export interface PatternEntry {
@@ -37,41 +64,119 @@ export interface StandardDef {
     filePath: string;
 }
 
+/** Deprecated inline `controls:` front-matter entry shape (pre-`control-refs`). */
+export interface LegacyFrontMatterControl {
+    id?: string;
+    name?: string;
+    description?: string;
+    metadata?: unknown;
+}
+
 /**
- * Convert a markdown front-matter `controls` array into the CALM control-map
- * shape used on nodes: `{ [id]: { description, requirements:[{requirement-url,config}], metadata } }`.
- * Pure and exported so it can be unit-tested without the VS Code API.
+ * Convert a standard/guideline's front-matter controls into the CALM control-map
+ * shape. `refs` are the new `control-refs` entries (CURIE / canonical URL / local
+ * path); `legacyControls` are deprecated inline `controls:` objects. Both are
+ * passed explicitly so the merge is visible: legacy entries are converted first,
+ * then ref-derived entries take precedence on key collision. Pure and exported
+ * for unit testing.
  */
 export function frontMatterControlsToMap(
-    controls: unknown,
-    requirementUrl: string
-): Record<string, unknown> {
-    if (!Array.isArray(controls)) return {};
-    const map: Record<string, unknown> = {};
-    for (const raw of controls) {
+    refs: string[],
+    legacyControls: LegacyFrontMatterControl[],
+    localControls: LocalControlDef[],
+    legacyRequirementUrl = ''
+): { controls: Record<string, unknown>; warnings: string[] } {
+    const controls: Record<string, unknown> = {};
+    const warnings: string[] = [];
+
+    // Legacy inline controls first — ref-derived entries below take precedence.
+    for (const raw of legacyControls) {
         if (!raw || typeof raw !== 'object') continue;
-        const ctrl = raw as Record<string, unknown>;
         const idVal =
-            typeof ctrl.id === 'string'
-                ? ctrl.id
-                : typeof ctrl.name === 'string'
-                  ? ctrl.name
+            typeof raw.id === 'string'
+                ? raw.id
+                : typeof raw.name === 'string'
+                  ? raw.name
                   : '';
         if (!idVal) continue;
         const entry: Record<string, unknown> = {
             description:
-                (typeof ctrl.description === 'string'
-                    ? ctrl.description
-                    : undefined) ??
-                (typeof ctrl.name === 'string' ? ctrl.name : ''),
-            requirements: [{ 'requirement-url': requirementUrl, config: {} }],
+                (typeof raw.description === 'string' ? raw.description : undefined) ??
+                (typeof raw.name === 'string' ? raw.name : ''),
+            requirements: [{ 'requirement-url': legacyRequirementUrl, config: {} }],
         };
-        if (ctrl.metadata && typeof ctrl.metadata === 'object') {
-            entry.metadata = ctrl.metadata;
+        if (raw.metadata && typeof raw.metadata === 'object') {
+            entry.metadata = raw.metadata;
         }
-        map[idVal] = entry;
+        controls[idVal] = entry;
     }
-    return map;
+
+    const refKeys = new Set<string>();
+    for (const ref of refs) {
+        if (typeof ref !== 'string' || !ref.trim()) continue;
+        const key = makeControlMapKey(ref);
+        if (refKeys.has(key)) {
+            warnings.push(`Duplicate control ref key "${key}" — last wins`);
+        }
+        refKeys.add(key);
+
+        if (isLocalControlPath(ref)) {
+            const local = localControls.find((c) => c.relativePath === ref);
+            if (!local) {
+                warnings.push(`Local control not found for ref "${ref}"`);
+                continue;
+            }
+            controls[key] = {
+                description: local.description,
+                requirements: [
+                    {
+                        'requirement-url': ref,
+                        config: {
+                            'control-id': local.controlId,
+                            name: local.name,
+                            description: local.description,
+                        },
+                    },
+                ],
+            };
+        } else if (isCanonicalControlUrl(ref) || isControlCurie(ref)) {
+            const parts = isCanonicalControlUrl(ref)
+                ? parseCanonicalControlUrl(ref)
+                : parseControlCurie(ref);
+            if (!parts) {
+                warnings.push(`Invalid control ref "${ref}"`);
+                continue;
+            }
+            // Eagerly seed identity if a local control matches by slug,
+            // regardless of domain — allows local dev against any domain.
+            const local = localControls.find((c) => c.id === parts.controlName);
+            if (local) {
+                controls[key] = {
+                    description: local.description,
+                    requirements: [
+                        {
+                            'requirement-url': ref,
+                            config: {
+                                'control-id': local.controlId,
+                                name: local.name,
+                                description: local.description,
+                            },
+                        },
+                    ],
+                };
+            } else {
+                // Hub ref — identity resolved lazily by the webview.
+                controls[key] = {
+                    description: parts.controlName,
+                    requirements: [{ 'requirement-url': ref, config: {} }],
+                };
+            }
+        } else {
+            warnings.push(`Unrecognized control ref "${ref}"`);
+        }
+    }
+
+    return { controls, warnings };
 }
 
 export class WorkspaceAssetService {
@@ -79,6 +184,7 @@ export class WorkspaceAssetService {
     private patterns: PatternEntry[] = [];
     private templates: CalmTemplate[] = [];
     private standards: StandardDef[] = [];
+    private controls: LocalControlDef[] = [];
     private watchers: vscode.FileSystemWatcher[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -99,6 +205,10 @@ export class WorkspaceAssetService {
     }
 
     async scanAll(): Promise<void> {
+        // Controls must be scanned before building blocks, because
+        // addStandardsPaletteItems() (invoked from scanBuildingBlocks) resolves
+        // standard control-refs against the scanned local controls.
+        await this.scanControls();
         await Promise.all([
             this.scanBuildingBlocks(),
             this.scanPatterns(),
@@ -119,6 +229,9 @@ export class WorkspaceAssetService {
     getStandards(): StandardDef[] {
         return this.standards;
     }
+    getControls(): LocalControlDef[] {
+        return this.controls;
+    }
 
     registerWatchers(
         context: vscode.ExtensionContext,
@@ -131,6 +244,7 @@ export class WorkspaceAssetService {
             'templates/**/*.template.json',
             'standards/**/*.md',
             'guidelines/**/*.md',
+            'controls/**/*.json',
         ];
 
         const roots = this.getRoots();
@@ -154,6 +268,56 @@ export class WorkspaceAssetService {
             await this.scanAll();
             onRescan();
         }, 500);
+    }
+
+    private async scanControls(): Promise<void> {
+        const controls: LocalControlDef[] = [];
+        const seen = new Set<string>();
+
+        for (const root of this.getRoots()) {
+            // Any `controls/**/*.json` is considered; parseRequirementSchema
+            // below skips files that aren't valid control requirements.
+            const glob = new vscode.RelativePattern(
+                root,
+                'controls/**/*.json'
+            );
+            const files = await vscode.workspace.findFiles(glob);
+            for (const file of files) {
+                const relativePath = this.toRelativeUrl(root, file);
+                // Multi-root: the first root to yield a given relative path wins.
+                if (seen.has(relativePath)) continue;
+                try {
+                    const bytes = await vscode.workspace.fs.readFile(file);
+                    const schema = JSON.parse(
+                        Buffer.from(bytes).toString('utf-8')
+                    );
+                    const { parsed } = parseRequirementSchema(schema);
+                    if (!parsed) continue;
+                    seen.add(relativePath);
+                    const id = path
+                        .basename(file.fsPath)
+                        .replace(/(\.requirement)?\.json$/, '');
+                    // Derive domain from subdirectory: controls/{domain}/{name}.json
+                    const segments = relativePath.replace(/\\/g, '/').split('/');
+                    const domain = segments[0] === 'controls' && segments.length > 2
+                        ? segments[1]
+                        : undefined;
+                    controls.push({
+                        id,
+                        controlId: parsed.identity.controlId,
+                        name: parsed.identity.name,
+                        description: parsed.identity.description,
+                        filePath: file.fsPath,
+                        relativePath,
+                        domain,
+                    });
+                } catch {
+                    /* skip malformed requirement files */
+                }
+            }
+        }
+
+        this.controls = controls;
     }
 
     private async scanBuildingBlocks(): Promise<void> {
@@ -265,7 +429,8 @@ export class WorkspaceAssetService {
     /**
      * Parse a standard/guideline markdown's YAML front matter to extract its
      * display name and control definitions, so dropping it applies validatable
-     * controls onto the target node.
+     * controls onto the target node. Prefers `control-refs`; still parses the
+     * deprecated inline `controls:` for one release.
      */
     private async readFrontMatter(
         file: vscode.Uri,
@@ -278,9 +443,34 @@ export class WorkspaceAssetService {
             if (!match) return null;
             const fm = YAML.parse(match[1]) as Record<string, unknown> | null;
             if (!fm || typeof fm !== 'object') return null;
+
+            const refs = Array.isArray(fm['control-refs'])
+                ? (fm['control-refs'] as unknown[]).filter(
+                      (r): r is string => typeof r === 'string'
+                  )
+                : [];
+            const legacy = Array.isArray(fm.controls)
+                ? (fm.controls as LegacyFrontMatterControl[])
+                : [];
+            if (legacy.length > 0) {
+                console.warn(
+                    `[CALM] Deprecated inline 'controls:' in ${requirementUrl} — migrate to 'control-refs:'`
+                );
+            }
+
+            const { controls, warnings } = frontMatterControlsToMap(
+                refs,
+                legacy,
+                this.controls,
+                requirementUrl
+            );
+            for (const w of warnings) {
+                console.warn(`[CALM] ${requirementUrl}: ${w}`);
+            }
+
             return {
                 name: typeof fm.name === 'string' ? fm.name : undefined,
-                controls: frontMatterControlsToMap(fm.controls, requirementUrl),
+                controls,
             };
         } catch {
             return null;

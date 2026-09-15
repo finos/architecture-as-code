@@ -32,6 +32,7 @@ import {
     setDefinitionResolvedCallback,
     setDefinitionResolutionFailedCallback,
     setUpdatesAvailableCallback,
+    setControlsChangedCallback,
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
@@ -39,6 +40,7 @@ import {
     notifyRequestGenerateSpec,
     notifySaveBuildingBlock,
     notifyRequestImportSvg,
+    requestControlResolve,
 } from './stores/sync-bridge';
 import { postMessage } from './vscode-api';
 import {
@@ -59,6 +61,16 @@ import { PatternPicker } from './panels/PatternPicker';
 import { TemplatePicker } from './panels/TemplatePicker';
 import { StandardsPanel } from './panels/StandardsPanel';
 import { BuildingBlockCreator } from './panels/BuildingBlockCreator';
+import { ControlPicker } from './panels/ControlPicker';
+import { ControlCreator } from './panels/ControlCreator';
+import {
+    type ControlEntry,
+    enrichControlWithRequirement,
+    getRequirementUrl,
+    needsEnrichment,
+} from './panels/control-metadata';
+import { isControlRef, isLocalControlPath, makeControlMapKey } from '../extension/services/control-curie';
+import type { ParsedRequirement } from '../extension/services/requirement-parser';
 import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
@@ -89,6 +101,14 @@ function CanvasApp() {
     const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
     const [showBuildingBlockCreator, setShowBuildingBlockCreator] = useState(false);
+    const [showControlCreator, setShowControlCreator] = useState(false);
+    const [showControlPicker, setShowControlPicker] = useState(false);
+    const [controlPickerTarget, setControlPickerTarget] = useState<
+        | { type: 'node'; nodeId: string }
+        | { type: 'document' }
+        | { type: 'building-block-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
+        | null
+    >(null);
     const [activeRequirementUrl, setActiveRequirementUrl] = useState<string | null>(null);
     const [activeStandardProse, setActiveStandardProse] = useState<string | null>(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
@@ -136,6 +156,61 @@ function CanvasApp() {
         else debounceTimer.current = setTimeout(flush, 300);
     }, [reactFlowInstance, store.readonlyMode]);
 
+    // --- Control enrichment (webview-driven) ---
+    // Resolve each control's requirement to attach validation metadata and seed
+    // base identity constants. Local refs always re-resolve (the file may have
+    // changed); Hub refs only when not yet enriched. All updates are guarded by
+    // the load generation so stale resolves from a prior document are discarded.
+    const updateNodeControl = useCallback((nodeId: string, ckey: string, enrich: (c: ControlEntry) => ControlEntry) => {
+        setNodes((nds) => nds.map((n) => {
+            if (n.id !== nodeId) return n;
+            const data = n.data as Record<string, unknown>;
+            const existing = (data.controls as Record<string, ControlEntry>) ?? {};
+            const target = existing[ckey];
+            if (!target) return n;
+            return { ...n, data: { ...data, controls: { ...existing, [ckey]: enrich(target) } } };
+        }));
+    }, [setNodes]);
+
+    const updateDocControl = useCallback((ckey: string, enrich: (c: ControlEntry) => ControlEntry) => {
+        const latest = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
+        const target = latest[ckey];
+        if (!target) return;
+        useCanvasStore.setState({ documentControls: { ...latest, [ckey]: enrich(target) } });
+    }, []);
+
+    const resolveAndEnrich = useCallback((
+        controls: Record<string, ControlEntry>,
+        generation: number,
+        apply: (ckey: string, enrich: (c: ControlEntry) => ControlEntry) => void
+    ) => {
+        for (const [ckey, ctrl] of Object.entries(controls)) {
+            const ref = getRequirementUrl(ctrl);
+            if (!ref || !isControlRef(ref)) continue;
+            const local = isLocalControlPath(ref);
+            if (!needsEnrichment(ctrl) && !local) continue;
+            requestControlResolve(ref, (result) => {
+                if (generation !== loadGeneration.current || !result.ok) return;
+                apply(ckey, (c) => enrichControlWithRequirement(c, result.parsed));
+            });
+        }
+    }, []);
+
+    const enrichNodeControls = useCallback((nodeList: Node[], generation: number) => {
+        for (const node of nodeList) {
+            const controls = (node.data as Record<string, unknown>)?.controls as Record<string, ControlEntry> | undefined;
+            if (controls && Object.keys(controls).length > 0) {
+                resolveAndEnrich(controls, generation, (ckey, enrich) => updateNodeControl(node.id, ckey, enrich));
+            }
+        }
+    }, [resolveAndEnrich, updateNodeControl]);
+
+    const enrichAllControls = useCallback((nodeList: Node[], generation: number) => {
+        enrichNodeControls(nodeList, generation);
+        const docControls = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
+        resolveAndEnrich(docControls, generation, (ckey, enrich) => updateDocControl(ckey, enrich));
+    }, [enrichNodeControls, resolveAndEnrich, updateDocControl]);
+
     // --- Load architecture ---
     const loadArchitecture = useCallback((json: string) => {
         // Invalidate any in-flight setTimeout callbacks from prior interactions
@@ -177,10 +252,15 @@ function CanvasApp() {
                     postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
                 }
             }
+            // Enrich controls with resolved requirement metadata (covers initial
+            // load, drill, file-watcher, SVG import, undo/redo). Both node-level and
+            // document-level controls are scanned; local refs always re-resolve.
+            const generation = loadGeneration.current;
+            setTimeout(() => enrichAllControls(layoutedNodes, generation), 0);
         } catch (err) {
             console.error('[CALM Canvas] Failed to load architecture:', err);
         }
-    }, [setNodes, setEdges]);
+    }, [setNodes, setEdges, enrichAllControls]);
 
     // --- Bridge setup ---
     useEffect(() => {
@@ -210,12 +290,24 @@ function CanvasApp() {
                 const hasExisting = existingControls && Object.keys(existingControls).length > 0;
                 return { ...n, data: { ...data, controls: hasExisting ? existingControls : controls, _resolvedControls: controls } };
             }));
+            // Enrich the freshly-resolved controls once React has committed them.
+            const generation = loadGeneration.current;
+            setTimeout(() => {
+                if (generation !== loadGeneration.current) return;
+                const n = reactFlowInstance.getNodes().find((x) => x.id === nodeId);
+                if (n) enrichNodeControls([n], generation);
+            }, 0);
         });
         setDefinitionResolutionFailedCallback((nodeId, error) => {
             console.warn(`[CALM Canvas] Failed to resolve definition for node ${nodeId}: ${error}`);
         });
         setUpdatesAvailableCallback((updates) => {
             useCanvasStore.setState({ availableUpdates: updates });
+        });
+        setControlsChangedCallback(() => {
+            // A local requirement file changed — re-resolve all controls.
+            const generation = loadGeneration.current;
+            enrichAllControls(reactFlowInstance.getNodes(), generation);
         });
         initBridge();
 
@@ -568,6 +660,7 @@ function CanvasApp() {
                         return updatedNodes;
                     });
                     setTimeout(() => emitChange(true), 0);
+                    setTimeout(() => enrichAllControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
                     return;
                 }
                 // No target (or no controls to apply) — fall through to place a standalone marker.
@@ -606,6 +699,10 @@ function CanvasApp() {
                 postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
             }
             setTimeout(() => emitChange(true), 0);
+            // Local building-block controls may carry local requirement refs — enrich them.
+            if (!isHubSourced) {
+                setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+            }
             return;
         }
 
@@ -624,7 +721,7 @@ function CanvasApp() {
             }]);
         }
         setTimeout(() => emitChange(true), 0);
-    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.buildingBlocks]);
+    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.buildingBlocks, enrichAllControls, enrichNodeControls]);
 
     // --- Validate ---
     const handleValidate = useCallback(() => {
@@ -862,6 +959,47 @@ function CanvasApp() {
         if (url) requestStandardProse(url);
     }, []);
 
+    // --- Control picker attach ---
+    const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
+        const key = makeControlMapKey(ref);
+        const entry: ControlEntry = {
+            requirements: [{ 'requirement-url': ref }],
+        };
+        const target = controlPickerTarget;
+        setShowControlPicker(false);
+        setControlPickerTarget(null);
+        if (!target) return;
+        if (target.type === 'node') {
+            setNodes((nds) => nds.map((n) => {
+                if (n.id !== target.nodeId) return n;
+                const data = n.data as Record<string, unknown>;
+                const existing = (data.controls as Record<string, ControlEntry>) ?? {};
+                return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
+            }));
+            setTimeout(() => emitChange(true), 0);
+        } else if (target.type === 'document') {
+            const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
+            useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
+            setTimeout(() => emitChange(true), 0);
+        } else if (target.type === 'building-block-draft') {
+            target.onAttach(ref, parsed);
+        }
+    }, [controlPickerTarget, setNodes, emitChange]);
+
+    const existingControlKeys = React.useMemo(() => {
+        const target = controlPickerTarget;
+        if (!target) return new Set<string>();
+        if (target.type === 'node') {
+            const node = nodes.find((n) => n.id === target.nodeId);
+            const controls = (node?.data as Record<string, unknown>)?.controls as Record<string, unknown> | undefined;
+            return new Set(Object.keys(controls ?? {}));
+        }
+        if (target.type === 'document') {
+            return new Set(Object.keys(store.documentControls ?? {}));
+        }
+        return target.existingKeys ?? new Set<string>();
+    }, [controlPickerTarget, nodes, store.documentControls]);
+
     // --- Generate spec ---
     const handleGenerateSpec = useCallback(() => {
         notifyRequestGenerateSpec();
@@ -899,6 +1037,7 @@ function CanvasApp() {
                             { label: 'Templates', onClick: handleTemplates },
                             { label: 'New from Pattern', onClick: handlePatterns },
                             { label: 'Create Node', onClick: () => setShowBuildingBlockCreator(true) },
+                            { label: 'Create Control', onClick: () => setShowControlCreator(true) },
                         ]} />
                     )}
                 </div>
@@ -1010,6 +1149,7 @@ function CanvasApp() {
                                         valueOnly={!!(data.metadata as any)?.['source-building-block']}
                                         expandControl={expandControlKey}
                                         onControlFocused={handleControlFocused}
+                                        onBrowseControls={() => { setControlPickerTarget({ type: 'node', nodeId: liveSelectedNode.id }); setShowControlPicker(true); }}
                                     />
                                     <NodeAppearance
                                         key={`${liveSelectedNode.id}-appearance`}
@@ -1041,6 +1181,7 @@ function CanvasApp() {
                                         valueOnly={false}
                                         expandControl={expandControlKey}
                                         onControlFocused={handleControlFocused}
+                                        onBrowseControls={() => { setControlPickerTarget({ type: 'document' }); setShowControlPicker(true); }}
                                     />
                                     {(!store.documentControls || Object.keys(store.documentControls).length === 0) && (
                                         <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', textAlign: 'center', padding: '20px 0' }}>No solution-level controls. Select a node or drop a standard here.</p>
@@ -1086,6 +1227,24 @@ function CanvasApp() {
                 visible={showBuildingBlockCreator}
                 onClose={() => setShowBuildingBlockCreator(false)}
                 onSave={(json, fileName) => notifySaveBuildingBlock(fileName, json)}
+                onRequestBrowseControls={(onAttach, existingKeys) => {
+                    setControlPickerTarget({ type: 'building-block-draft', onAttach, existingKeys });
+                    setShowControlPicker(true);
+                }}
+            />
+
+            {/* Control Picker */}
+            <ControlPicker
+                visible={showControlPicker}
+                onClose={() => { setShowControlPicker(false); setControlPickerTarget(null); }}
+                onAttach={handleControlAttach}
+                existingControlKeys={existingControlKeys}
+            />
+
+            {/* Control Creator */}
+            <ControlCreator
+                visible={showControlCreator}
+                onClose={() => setShowControlCreator(false)}
             />
         </div>
     );

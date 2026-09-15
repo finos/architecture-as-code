@@ -1,11 +1,13 @@
 import { HubClient, type NamespaceSummary } from './hub-client';
 import type { BuildingBlockDef, PatternEntry } from './workspace-asset-service';
+import type { AdrEntry } from '../types/messages';
 
 export interface HubNamespace {
     name: string;
     buildingBlocks: BuildingBlockDef[];
     standards: BuildingBlockDef[];
     patterns: PatternEntry[];
+    adrs: AdrEntry[];
 }
 
 export class HubAssetService {
@@ -26,6 +28,7 @@ export class HubAssetService {
                 buildingBlocks: [],
                 standards: [],
                 patterns: [],
+                adrs: [],
             };
 
             try {
@@ -147,6 +150,23 @@ export class HubAssetService {
                 /* namespace may not have patterns */
             }
 
+            // ADR fetch is isolated in its own try/catch so a failure here never
+            // blocks building-block / standard / pattern loading for this namespace.
+            try {
+                const adrSummaries = await this.client.getAdrs(ns.name);
+                for (const adr of adrSummaries) {
+                    if (adr.id === null || adr.id === undefined) continue;
+                    namespace.adrs.push({
+                        namespace: ns.name,
+                        id: adr.id,
+                        title: adr.title ?? '',
+                        status: (adr.status ?? '').toLowerCase(),
+                    });
+                }
+            } catch {
+                /* namespace may not expose ADRs, or the caller lacks access */
+            }
+
             this.namespaces.push(namespace);
         }
 
@@ -170,6 +190,11 @@ export class HubAssetService {
     getAllPatterns(selectedNamespaces: string[]): PatternEntry[] {
         const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
         return filtered.flatMap((ns) => ns.patterns);
+    }
+
+    getAllAdrs(selectedNamespaces: string[]): AdrEntry[] {
+        const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
+        return filtered.flatMap((ns) => ns.adrs);
     }
 }
 

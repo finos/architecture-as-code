@@ -69,6 +69,10 @@ export function activate(context: vscode.ExtensionContext): void {
                 canvasPanel.onDispose(() => {
                     canvasPanel = undefined;
                 });
+                // If the Hub is already connected, wire the panel immediately.
+                if (hubClient) {
+                    void canvasPanel.setHubConnection(hubClient);
+                }
             }
             canvasPanel.reveal(document);
         }
@@ -220,9 +224,10 @@ async function connectToHub(
         hubStatusBar!.setState('connected', availableNames.length, url);
         hubStatusBar!.setAvailableAndSelected(availableNames, validSelection);
 
-        // Refresh the canvas palette if open
+        // Hand the authenticated client to the canvas panel — this refreshes
+        // Hub assets and posts them to the webview.
         if (canvasPanel) {
-            canvasPanel.refreshAssets();
+            void canvasPanel.setHubConnection(hubClient);
         }
 
         outputChannel.appendLine(
@@ -248,6 +253,7 @@ async function disconnectFromHub(): Promise<void> {
     hubClient = undefined;
     hubAuthService = undefined;
     hubStatusBar?.setState('disconnected');
+    void canvasPanel?.setHubConnection(undefined);
     outputChannel.appendLine('[INFO] Disconnected from CalmHub');
 }
 
@@ -263,6 +269,7 @@ async function refreshFromHub(): Promise<void> {
         hubStatusBar.setState('connecting');
         const namespaces = await hubClient.getNamespaces();
         hubStatusBar.setState('connected', namespaces.length);
+        void canvasPanel?.setHubConnection(hubClient);
         outputChannel.appendLine(
             `[INFO] Refreshed from CalmHub — ${namespaces.length} namespace(s)`
         );

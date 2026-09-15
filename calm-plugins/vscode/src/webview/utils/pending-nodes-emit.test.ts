@@ -146,12 +146,11 @@ describe('pendingNodesRef emit pattern', () => {
     });
 
     it('emit after loadArchitecture falls back to store (ref was cleared)', () => {
-        const { loadArchitecture, emitChange } = createEmitLogic(deps);
+        const { loadArchitecture } = createEmitLogic(deps);
 
         deps.pendingNodesRef.current = ['stale-pending'];
         loadArchitecture();
 
-        deps.generation.current = deps.generation.current;
         const freshDeps = { ...deps, generation: { current: deps.generation.current } };
         const fresh = createEmitLogic(freshDeps);
         fresh.emitChange(true);

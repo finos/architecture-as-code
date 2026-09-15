@@ -32,6 +32,52 @@ export interface ResourceSummary {
     customId?: string;
 }
 
+/** A control listed under a Hub domain. `name` is the kebab-case slug used in API paths. */
+export interface ControlDetail {
+    id: number;
+    name: string;
+    description: string;
+    title?: string;
+}
+
+/** Summary entry from `GET /adrs` — flat, top-level fields. `id` may be null for malformed rows. */
+export interface AdrSummary {
+    id: number | null;
+    title?: string;
+    status?: string;
+}
+
+/** Flattened ADR content (from the `adr` member of the `AdrMeta` wrapper). */
+export interface AdrContent {
+    title: string;
+    status: string;
+    contextAndProblemStatement?: string;
+    decisionDrivers?: string[];
+    consideredOptions?: unknown[];
+    decisionOutcome?: unknown;
+    links?: unknown[];
+}
+
+/** Wrapper returned by `GET /adrs/{id}` — ADR content is nested under `adr`. */
+export interface AdrMeta {
+    namespace: string;
+    id: number;
+    revision: number;
+    adr: AdrContent;
+}
+
+/** Typed HTTP error so callers can branch on `status` (e.g. 403 domain access denied). */
+export class HubApiError extends Error {
+    constructor(
+        public readonly status: number,
+        public readonly url: string,
+        message: string
+    ) {
+        super(message);
+        this.name = 'HubApiError';
+    }
+}
+
 export class HubClient {
     private baseUrl: string;
     private authHeaders: Record<string, string> = {};
@@ -107,6 +153,72 @@ export class HubClient {
         return res.json();
     }
 
+    // --- Domains & controls (name-mapped `/calm/domains` API) ---
+
+    async getDomains(): Promise<string[]> {
+        const res = await this.authenticatedFetch('/calm/domains');
+        const data = await res.json();
+        return this.unwrapValues<string>(data);
+    }
+
+    async getControlsForDomain(domain: string): Promise<ControlDetail[]> {
+        const res = await this.authenticatedFetch(
+            `/calm/domains/${encodeURIComponent(domain)}/controls`
+        );
+        const data = await res.json();
+        return this.unwrapValues<ControlDetail>(data);
+    }
+
+    async getRequirementVersions(
+        domain: string,
+        controlName: string
+    ): Promise<string[]> {
+        const res = await this.authenticatedFetch(
+            `/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlName)}/requirement/versions`
+        );
+        const data = await res.json();
+        return this.unwrapValues<string>(data);
+    }
+
+    async getRequirementAtVersion(
+        domain: string,
+        controlName: string,
+        version: string
+    ): Promise<unknown> {
+        const res = await this.authenticatedFetch(
+            `/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlName)}/requirement/versions/${encodeURIComponent(version)}`
+        );
+        return res.json();
+    }
+
+    // --- ADRs (namespace-scoped storage API, numeric IDs) ---
+
+    async getAdrs(namespace: string): Promise<AdrSummary[]> {
+        const res = await this.authenticatedFetch(
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs`
+        );
+        const data = await res.json();
+        return this.unwrapValues<AdrSummary>(data);
+    }
+
+    async getAdr(namespace: string, adrId: number): Promise<AdrMeta> {
+        const res = await this.authenticatedFetch(
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${adrId}`
+        );
+        return (await res.json()) as AdrMeta;
+    }
+
+    async getAdrRevisions(
+        namespace: string,
+        adrId: number
+    ): Promise<number[]> {
+        const res = await this.authenticatedFetch(
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/adrs/${adrId}/revisions`
+        );
+        const data = await res.json();
+        return this.unwrapValues<number>(data);
+    }
+
     private unwrapValues<T>(data: unknown): T[] {
         if (
             data !== null &&
@@ -126,7 +238,11 @@ export class HubClient {
             headers: { ...this.authHeaders, Accept: 'application/json' },
         });
         if (!res.ok)
-            throw new Error(`Hub request failed: ${res.status} ${url}`);
+            throw new HubApiError(
+                res.status,
+                url,
+                `Hub request failed: ${res.status} ${url}`
+            );
         return res;
     }
 }
