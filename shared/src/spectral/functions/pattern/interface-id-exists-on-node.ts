@@ -9,6 +9,20 @@ interface ConnectsRelationship {
 }
 
 /**
+ * One declaration site at a time, because a node is nearly always a plain prefixItems
+ * entry and the later sites then never run.
+ */
+function findDeclaredNode(json: object, nodeId: string): object | undefined {
+    for (const path of declarationPaths('nodes')) {
+        const declarations: object[] = JSONPath({ path, json });
+        const node = declarations.find(declaration => declaredId(declaration) === nodeId);
+        if (node) {
+            return node;
+        }
+    }
+}
+
+/**
  * Checks that the input value exists as an interface with matching unique ID defined under a node in the document.
  */
 export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | undefined, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
@@ -23,10 +37,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
         }];
     }
 
-    const nodeId = input.node;
-    const nodes: object[] = declarationPaths('nodes').flatMap(path =>
-        JSONPath({ path, json: context.document.data as object }));
-    const node = nodes.find(declaration => declaredId(declaration) === nodeId);
+    const node = findDeclaredNode(context.document.data as object, input.node);
     if (!node) {
         // other rule will report undefined node
         return [];
@@ -38,7 +49,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node });
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
-            { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
+            { message: `Node with unique-id ${input.node} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
         ];
     }
 
@@ -52,7 +63,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
 
     for (const missing of missingInterfaces) {
         results.push({
-            message: `Referenced interface with ID '${missing}' was not defined on the node with ID '${nodeId}'.`,
+            message: `Referenced interface with ID '${missing}' was not defined on the node with ID '${input.node}'.`,
             path: [...context.path]
         });
     }

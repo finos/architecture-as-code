@@ -1,4 +1,4 @@
-import { JSONPath } from 'jsonpath-plus';
+import { get } from 'lodash';
 
 export type CalmType = 'nodes' | 'relationships';
 
@@ -46,7 +46,7 @@ export function declaredInterfaceIdPaths(): string[] {
 }
 
 export function declaredId(declaration: object): string | undefined {
-    return JSONPath({ path: `$.${ID}`, json: declaration })[0];
+    return get(declaration, ID);
 }
 
 /**
