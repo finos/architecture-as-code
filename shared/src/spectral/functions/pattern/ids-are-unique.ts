@@ -1,31 +1,19 @@
 import { JSONPath } from 'jsonpath-plus';
-import { partition } from 'lodash';
+import { groupBy, partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { detectDuplicates } from '../helper-functions';
+import { detectDuplicates, JSONPathMatch } from '../helper-functions';
 import { byBuildOrder, containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
-
-interface Match {
-    value: unknown;
-    pointer: string;
-}
 
 /**
  * The rule blames the second declaration it sees, but one query per declaration site means
  * matches arrive grouped by site rather than by position.
  */
-function inBuildOrder(matches: Match[]): Match[] {
+function inBuildOrder(matches: JSONPathMatch[]): JSONPathMatch[] {
     return [...matches].sort((left, right) => byBuildOrder(left.pointer, right.pointer));
 }
 
-function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] {
-    const groups = new Map<string, Match[]>();
-    for (const match of matches) {
-        const groupKey = key(match.pointer);
-        const group = groups.get(groupKey) ?? [];
-        group.push(match);
-        groups.set(groupKey, group);
-    }
-    return [...groups.values()];
+function groupMatches(matches: JSONPathMatch[], key: (pointer: string) => string): JSONPathMatch[][] {
+    return Object.values(groupBy(matches, match => key(match.pointer)));
 }
 
 /**
@@ -33,12 +21,12 @@ function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] 
  * unique among the nodes that can appear in one architecture. At most one alternative of a
  * prefixItems entry is ever chosen, so alternatives may repeat an interface id.
  */
-function detectDuplicateInterfaceIds(matches: Match[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
-    for (const entry of groupBy(matches, containingEntry)) {
+function detectDuplicateInterfaceIds(matches: JSONPathMatch[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
+    for (const entry of groupMatches(matches, containingEntry)) {
         const [choices, fixed] = partition(entry, match => isAlternative(match.pointer));
 
         detectDuplicates(fixed, seenIds, messages);
-        groupBy(choices, containingDeclaration).forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));
+        groupMatches(choices, containingDeclaration).forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));
         choices.forEach(match => seenIds.add(match.value));
     }
 }
@@ -50,7 +38,7 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
     if (!input) {
         return [];
     }
-    const collect = (paths: string[]): Match[] => inBuildOrder(paths.flatMap(path =>
+    const collect = (paths: string[]): JSONPathMatch[] => inBuildOrder(paths.flatMap(path =>
         JSONPath({ path, json: context.document.data as object, resultType: 'all' })));
 
     const nodeIdMatches = collect(declaredIdPaths('nodes'));
