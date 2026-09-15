@@ -168,6 +168,74 @@ Patterns use JSON schema constructs to provide choices and options:
 }
 ```
 
+### Optional Candidates with items
+
+`prefixItems` fixes positions, and every entry it declares is built. Declare candidates an architecture *may* add — none of them required — under `items`, inside `oneOf` or `anyOf`:
+
+```json
+{
+    "properties": {
+        "nodes": {
+            "type": "array",
+            "prefixItems": [
+                {
+                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "properties": {
+                        "unique-id": { "const": "api-gateway" },
+                        "node-type": { "const": "service" },
+                        "name": { "const": "API Gateway" },
+                        "description": { "type": "string" }
+                    },
+                    "required": ["unique-id", "node-type", "name", "description"]
+                }
+            ],
+            "items": {
+                "oneOf": [
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "properties": {
+                            "unique-id": { "const": "redis-cache" },
+                            "node-type": { "const": "database" },
+                            "name": { "const": "Redis Cache" },
+                            "description": { "type": "string" }
+                        },
+                        "required": ["unique-id", "node-type", "name", "description"]
+                    },
+                    {
+                        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                        "properties": {
+                            "unique-id": { "const": "message-queue" },
+                            "node-type": { "const": "service" },
+                            "name": { "const": "Message Queue" },
+                            "description": { "type": "string" }
+                        },
+                        "required": ["unique-id", "node-type", "name", "description"]
+                    }
+                ]
+            },
+            "minItems": 1,
+            "maxItems": 3
+        }
+    }
+}
+```
+
+Choose the site by obligation, not by how many candidates there are:
+
+| The architecture must | Declare the candidates in |
+|---|---|
+| contain exactly one of them | a `prefixItems` entry holding `oneOf`/`anyOf` |
+| be free to add any number of them, or none | `items` holding `oneOf`/`anyOf` |
+
+Four rules apply to `items`:
+
+- A node or relationship declared there must sit inside `oneOf` or `anyOf`. `items` applies one schema to every position after the entries, so a member declared directly would force every added element to be that same one.
+- `maxItems` counts the whole array and the `prefixItems` entries fill it from the front. Leave room for the members, or none can ever be built.
+- Two members may both be built, so they must not share a `unique-id`, and two nodes declared there must not share an interface id. Two alternatives of one `prefixItems` entry may share both, because only one of them is ever built.
+- `items` cannot limit how many times one member is used. Two positions may match the same member, and the architecture then holds one `unique-id` twice. `calm validate` reports that against the architecture, not against the pattern.
+
+Declare a decision itself as a plain entry in `relationships.prefixItems`, never under `items`. An architecture contains every relationship declared at a fixed position, so the decision is always asked. A decision declared under `items` can be left out, and an answer never gets to decline it. `calm validate` reports this.
+
 ## Complete Pattern Example
 
 **Conference Signup Pattern (Based on Real Example):**
@@ -619,7 +687,8 @@ Always use specific interface schema references:
 ### Array Handling
 
 - Use `prefixItems` to define specific array positions
-- Use `minItems`/`maxItems` to constrain array sizes
+- Use `items` with `oneOf`/`anyOf` for candidates an architecture may add, none of them required
+- Use `minItems`/`maxItems` to constrain array sizes, leaving room for any `items` members
 - Each array item should reference base schema + add constraints
 
 ## Using Patterns with calm generate
@@ -643,7 +712,8 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 - `const` - Fixed values that cannot be changed
 - `enum` - List of allowed values
 - `minItems`/`maxItems` - Array size constraints
-- `prefixItems` - Define specific array items
+- `prefixItems` - Define specific array positions, each one always built
+- `items` - Constrain every position after the entries, each member optional
 
 ### Option Constructs
 
@@ -665,14 +735,19 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 3. Node definitions must use `$ref` to core node schema
 4. Relationship definitions must use `$ref` to core relationship schema
 5. Use `const` for fixed values, `anyOf`/`oneOf` for options
-6. All constraint properties must be valid JSON schema constructs
-7. Pattern should be testable with `calm validate -p <pattern-file>`
+6. A node or relationship declared under `items` must sit inside `oneOf` or `anyOf`
+7. `maxItems` must leave room for an `items` member beyond the `prefixItems` entries
+8. Declare a decision in `relationships.prefixItems`, never under `items`
+9. Declare `oneOf` or `anyOf` beside an element, never both
+10. All constraint properties must be valid JSON schema constructs
+11. Pattern should be testable with `calm validate -p <pattern-file>`
 
 ## Best Practices
 
 - Create patterns for commonly repeated architecture components
 - Use meaningful constraint names and descriptions
 - Provide clear choices in `anyOf`/`oneOf` constructs
+- Put candidates in `prefixItems` when exactly one is required, and in `items` when any number may be added
 - Use `const` values for fixed architectural decisions
 - Reference external schemas for complex interface definitions
 - Test patterns thoroughly before publishing
