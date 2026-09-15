@@ -156,4 +156,34 @@ describe('parseRequirementSchema', () => {
         expect(parsed).toBeNull();
         expect(warnings[0]).toContain('properties');
     });
+
+    it('uses fallback identity when const values are missing', () => {
+        const fallback = { controlId: 'fb-id', name: 'Fallback', description: 'Fallback desc' };
+        const { parsed, warnings } = parseRequirementSchema(
+            { properties: { 'max-connections': { type: 'integer' } }, required: [] },
+            fallback
+        );
+        expect(parsed).not.toBeNull();
+        expect(parsed!.identity).toEqual(fallback);
+        expect(parsed!.properties['max-connections']).toMatchObject({ type: 'integer' });
+        expect(warnings.some((w) => w.includes('derived from control metadata'))).toBe(true);
+    });
+
+    it('merges partial const values with fallback identity', () => {
+        const fallback = { controlId: 'fb-id', name: 'Fallback', description: 'Fallback desc' };
+        const { parsed } = parseRequirementSchema(
+            { properties: { ...identity, 'control-id': {} }, required: [] },
+            fallback
+        );
+        expect(parsed!.identity.controlId).toBe('fb-id');
+        expect(parsed!.identity.name).toBe('Micro-segmentation');
+        expect(parsed!.identity.description).toBe('Prevent lateral movement');
+    });
+
+    it('returns null without fallback when identity constants are missing', () => {
+        const { parsed } = parseRequirementSchema(
+            { properties: { 'max-connections': { type: 'integer' } }, required: [] }
+        );
+        expect(parsed).toBeNull();
+    });
 });

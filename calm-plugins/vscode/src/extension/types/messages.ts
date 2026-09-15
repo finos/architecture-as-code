@@ -106,4 +106,6 @@ export type WebviewToExtMessage =
           controlName: string;
       }
     | { type: 'requestControlResolve'; requestId: string; ref: string }
-    | { type: 'saveControl'; requestId: string; filename: string; content: string };
+    | { type: 'saveControl'; requestId: string; filename: string; content: string }
+    | { type: 'savePattern'; filename: string; content: string }
+    | { type: 'requestExportPattern'; doc: string };

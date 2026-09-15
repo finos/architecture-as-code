@@ -232,6 +232,13 @@ export function notifySaveBuildingBlock(
     postMessage({ type: 'saveBuildingBlock', filename, content });
 }
 
+export function notifySavePattern(
+    filename: string,
+    content: string
+): void {
+    postMessage({ type: 'savePattern', filename, content });
+}
+
 export function notifyRequestImportSvg(): void {
     postMessage({ type: 'requestImportSvg' });
 }

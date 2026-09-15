@@ -1000,6 +1000,14 @@ function CanvasApp() {
         return target.existingKeys ?? new Set<string>();
     }, [controlPickerTarget, nodes, store.documentControls]);
 
+    // --- Export as Pattern ---
+    const handleExportAsPattern = useCallback(() => {
+        const currentNodes = reactFlowInstance.getNodes();
+        const currentEdges = reactFlowInstance.getEdges();
+        const doc = flowToCalm(currentNodes, currentEdges, useCanvasStore.getState().documentControls);
+        postMessage({ type: 'requestExportPattern', doc: JSON.stringify(doc) });
+    }, [reactFlowInstance]);
+
     // --- Generate spec ---
     const handleGenerateSpec = useCallback(() => {
         notifyRequestGenerateSpec();
@@ -1038,6 +1046,7 @@ function CanvasApp() {
                             { label: 'New from Pattern', onClick: handlePatterns },
                             { label: 'Create Node', onClick: () => setShowBuildingBlockCreator(true) },
                             { label: 'Create Control', onClick: () => setShowControlCreator(true) },
+                            { label: 'Export as Pattern', onClick: handleExportAsPattern },
                         ]} />
                     )}
                 </div>

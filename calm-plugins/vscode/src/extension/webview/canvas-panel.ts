@@ -323,6 +323,15 @@ export class CanvasPanel {
                     message.content
                 );
                 break;
+            case 'savePattern':
+                void this.handleSavePattern(
+                    message.filename,
+                    message.content
+                );
+                break;
+            case 'requestExportPattern':
+                void this.handleExportPattern(message.doc);
+                break;
             case 'resolveDefinitionId':
                 void this.handleResolveDefinitionId(
                     message.nodeId,
@@ -712,6 +721,123 @@ export class CanvasPanel {
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+    }
+
+    private async handleSavePattern(
+        filename: string,
+        content: string
+    ): Promise<void> {
+        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage('No workspace folder open.');
+            return;
+        }
+
+        const patternsDir = vscode.Uri.joinPath(
+            workspaceFolder.uri,
+            'patterns'
+        );
+        try {
+            await vscode.workspace.fs.stat(patternsDir);
+        } catch {
+            await vscode.workspace.fs.createDirectory(patternsDir);
+        }
+
+        const safeName = filename.replace(/[/\\]/g, '');
+        if (!safeName || safeName !== filename || filename.includes('..')) {
+            vscode.window.showErrorMessage(`Invalid pattern filename: ${filename}`);
+            return;
+        }
+        const fileUri = vscode.Uri.joinPath(patternsDir, safeName);
+        try {
+            await vscode.workspace.fs.stat(fileUri);
+            const overwrite = await vscode.window.showWarningMessage(
+                `${filename} already exists. Overwrite?`,
+                'Overwrite',
+                'Cancel'
+            );
+            if (overwrite !== 'Overwrite') return;
+        } catch {
+            /* doesn't exist — good */
+        }
+
+        await vscode.workspace.fs.writeFile(
+            fileUri,
+            Buffer.from(content, 'utf-8')
+        );
+        vscode.window.showInformationMessage(
+            `Pattern saved: patterns/${filename}`
+        );
+
+        const doc = await vscode.workspace.openTextDocument(fileUri);
+        await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+
+        await this.assetService?.scanAll();
+        this.sendAssets();
+    }
+
+    private async handleExportPattern(docJson: string): Promise<void> {
+        const name = await vscode.window.showInputBox({
+            prompt: 'Pattern name',
+            placeHolder: 'e.g. My Service Pattern',
+        });
+        if (!name?.trim()) return;
+
+        const doc = JSON.parse(docJson);
+        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+        const fileName = `${slug}.pattern.json`;
+
+        const toSchema = (value: unknown): unknown => {
+            if (value === null || value === undefined) return undefined;
+            if (Array.isArray(value)) return { type: 'array', prefixItems: value.map(toSchema) };
+            if (typeof value === 'object') {
+                const props: Record<string, unknown> = {};
+                for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
+                    if (k === '$schema' || k === '$id' || k === 'type') continue;
+                    const s = toSchema(v);
+                    if (s !== undefined) props[k] = s;
+                }
+                return { type: 'object', properties: props };
+            }
+            return { const: value };
+        };
+        const itemSchema = (entry: Record<string, unknown>, ref: string) => {
+            const props: Record<string, unknown> = {};
+            for (const [k, v] of Object.entries(entry)) {
+                if (k === '$schema' || k === '$id' || k === 'type' || v === undefined) continue;
+                props[k] = toSchema(v);
+            }
+            return { $ref: ref, type: 'object', properties: props };
+        };
+
+        const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
+        const rels = (doc.relationships ?? []) as Record<string, unknown>[];
+        const pattern = {
+            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+            $id: `patterns/${fileName}`,
+            type: 'object',
+            title: name.trim(),
+            description: `Pattern derived from architecture: ${name.trim()}`,
+            properties: {
+                nodes: {
+                    type: 'array',
+                    minItems: nodes.length,
+                    prefixItems: nodes.map((n) =>
+                        itemSchema(n, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node')
+                    ),
+                },
+                relationships: {
+                    type: 'array',
+                    minItems: rels.length,
+                    prefixItems: rels.map((r) =>
+                        itemSchema(r, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship')
+                    ),
+                },
+            },
+            required: ['nodes', 'relationships'],
+        };
+
+        await this.handleSavePattern(fileName, JSON.stringify(pattern, null, 2));
     }
 
     private async handleResolveDefinitionId(
