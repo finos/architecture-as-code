@@ -16,7 +16,7 @@ Learn how CALM Patterns enable you to define reusable architecture templates tha
 
 By the end of this tutorial, you will:
 - Understand the dual superpower of Patterns: generation and validation
-- Know how Patterns use JSON Schema keywords (`const`, `prefixItems`, `minItems`/`maxItems`, `$ref`)
+- Know how Patterns use JSON Schema keywords (`const`, `prefixItems`, `items`, `minItems`/`maxItems`, `$ref`)
 - Create a Pattern for a 3-tier web application
 - Generate a new architecture from your Pattern
 - Validate both a passing and a failing architecture against the Pattern
@@ -60,6 +60,7 @@ Patterns use JSON Schema keywords to define requirements:
 |---------|---------|---------|
 | `const` | Requires an exact value | `"unique-id": { "const": "api-gateway" }` |
 | `prefixItems` | Defines exact ordered items in an array | First node must be X, second must be Y |
+| `items` | Constrains every position after those items | A cache or a queue may be added, or neither |
 | `minItems` / `maxItems` | Enforces array length | Exactly 3 nodes |
 | `$ref` | References other schemas | Point to a node or Standards definition |
 
@@ -198,6 +199,7 @@ Before moving on, use git to capture the state of your work. A descriptive commi
 |---------|----------|--------|
 | `const` | Exact value | Nothing else |
 | `prefixItems` | Specific ordered items | Additional items after them |
+| `items` | Every later position matches one of its alternatives | Any number of them, or none |
 | `minItems` + `maxItems` (equal) | Exact array length | — |
 | `$ref` | Schema from another file | Properties defined there |
 
@@ -209,7 +211,7 @@ Generated architectures use placeholders as signals:
 
 ### Pattern vs Architecture
 
-A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra nodes, relationships, interfaces, and metadata — Patterns only constrain what they explicitly specify.
+A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra nodes, relationships, interfaces, and metadata — Patterns only constrain what they explicitly specify. A Pattern that declares `items` does constrain those extras: each one must match a candidate it lists.
 
 ## Resources
 
