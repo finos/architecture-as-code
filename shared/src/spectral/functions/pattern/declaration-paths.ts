@@ -63,3 +63,24 @@ export function containingEntry(pointer: string): string {
 export function isAlternative(pointer: string): boolean {
     return containingDeclaration(pointer) !== containingEntry(pointer);
 }
+
+function declarationIndices(pointer: string): number[] {
+    return (containingDeclaration(pointer).match(/\d+/g) ?? []).map(Number);
+}
+
+/**
+ * Orders declarations as an architecture fills the array. The indices decide it, not the
+ * pointer text: sorting the text puts an alternative ahead of the entry that holds it,
+ * because "oneOf" precedes "properties". A declaration with fewer indices contains the
+ * other, so it comes first.
+ */
+export function byBuildOrder(left: string, right: string): number {
+    const [first, second] = [left, right].map(declarationIndices);
+    for (let depth = 0; depth < Math.max(first.length, second.length); depth++) {
+        const difference = (first[depth] ?? -1) - (second[depth] ?? -1);
+        if (difference !== 0) {
+            return difference;
+        }
+    }
+    return 0;
+}

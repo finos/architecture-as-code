@@ -2,7 +2,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 import { detectDuplicates } from '../helper-functions';
-import { containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
+import { byBuildOrder, containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
 
 interface Match {
     value: unknown;
@@ -10,12 +10,11 @@ interface Match {
 }
 
 /**
- * The rule blames the second declaration it sees, but three queries per id kind arrive
- * grouped by query rather than by position. Padding keeps prefixItems/2 before /10.
+ * The rule blames the second declaration it sees, but one query per declaration site means
+ * matches arrive grouped by site rather than by position.
  */
-function inDocumentOrder(matches: Match[]): Match[] {
-    const position = (pointer: string) => pointer.replace(/\d+/g, index => index.padStart(6, '0'));
-    return [...matches].sort((left, right) => position(left.pointer) < position(right.pointer) ? -1 : 1);
+function inBuildOrder(matches: Match[]): Match[] {
+    return [...matches].sort((left, right) => byBuildOrder(left.pointer, right.pointer));
 }
 
 function groupBy(matches: Match[], key: (pointer: string) => string): Match[][] {
@@ -51,7 +50,7 @@ export default (input: unknown, _: unknown, context: RulesetFunctionContext): IF
     if (!input) {
         return [];
     }
-    const collect = (paths: string[]): Match[] => inDocumentOrder(paths.flatMap(path =>
+    const collect = (paths: string[]): Match[] => inBuildOrder(paths.flatMap(path =>
         JSONPath({ path, json: context.document.data as object, resultType: 'all' })));
 
     const nodeIdMatches = collect(declaredIdPaths('nodes'));
