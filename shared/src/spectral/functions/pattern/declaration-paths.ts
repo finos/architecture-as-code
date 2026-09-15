@@ -4,6 +4,7 @@ export type CalmType = 'nodes' | 'relationships';
 
 const ALTERNATIVE_KEYWORDS = ['oneOf', 'anyOf'];
 const ID = 'properties.unique-id.const';
+const OPTIONS = 'properties.relationship-type.properties.options';
 const INTERFACES = 'properties.interfaces.prefixItems[*]';
 
 const ALTERNATIVES = `(?:${ALTERNATIVE_KEYWORDS.join('|')})`;
@@ -55,6 +56,13 @@ export function twoKeywordSites(): string[] {
 
 export function declaredId(declaration: object): string | undefined {
     return get(declaration, ID);
+}
+
+/**
+ * A relationship that carries options is a decision: it asks which alternatives to include.
+ */
+export function declaresOptions(relationship: object): boolean {
+    return get(relationship, OPTIONS) !== undefined;
 }
 
 // Reading a pointer back. A query run with `resultType: 'all'` returns each hit with the

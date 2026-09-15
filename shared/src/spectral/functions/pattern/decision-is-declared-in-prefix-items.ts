@@ -1,6 +1,5 @@
-import { JSONPath } from 'jsonpath-plus';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
-import { declaredId } from './declaration-paths';
+import { declaredId, declaresOptions } from './declaration-paths';
 
 /**
  * An architecture always contains every relationship a pattern declares in prefixItems, so
@@ -9,7 +8,7 @@ import { declaredId } from './declaration-paths';
  */
 export function decisionIsDeclaredInPrefixItems(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     const relationship = input as object;
-    if (!relationship || JSONPath({ path: '$.properties.relationship-type.properties.options', json: relationship }).length === 0) {
+    if (!relationship || !declaresOptions(relationship)) {
         return [];
     }
 
