@@ -1,4 +1,5 @@
 import { initLogger } from '../../../logger';
+import { declaresOptions } from '../../../spectral/functions/pattern/declaration-paths';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
@@ -19,10 +20,6 @@ export interface CalmOption {
     optionId: string,
     prompt: string,
     choices: CalmChoice[],
-}
-
-function isOptionsRelationship(relationship: SchemaNode): boolean {
-    return relationship['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: SchemaNode): SchemaNode[] {
@@ -84,7 +81,7 @@ export function extractOptions(pattern: object, debug: boolean = false): CalmOpt
     }
 
     const options: CalmOption[] = calmItems
-        .filter((rel: SchemaNode) => isOptionsRelationship(rel))
+        .filter((rel: SchemaNode) => declaresOptions(rel))
         .flatMap((optionsRel: SchemaNode) => [
             ...extractOptionsFromBlock(optionsRel, 'oneOf'),
             ...extractOptionsFromBlock(optionsRel, 'anyOf')
@@ -146,7 +143,7 @@ function selectDeclarations(pattern: SchemaNode, calmType: 'nodes' | 'relationsh
 }
 
 function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {
-    if (!isOptionsRelationship(relationship)) {
+    if (!declaresOptions(relationship)) {
         return relationship;
     }
 
