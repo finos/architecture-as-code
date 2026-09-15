@@ -1,13 +1,15 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.ControlStore;
+import org.finos.calm.store.github.GitHubControlStore;
 import org.finos.calm.store.mongo.MongoControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
-import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for ControlStore implementations.
@@ -26,6 +28,9 @@ public class ControlStoreProducer {
     @Inject
     Instance<NitriteControlStore> standaloneControlStore;
 
+    @Inject
+    Instance<GitHubControlStore> gitHubControlStore;
+
     /**
      * Produces the appropriate ControlStore implementation based on the configured database mode.
      *
@@ -34,7 +39,9 @@ public class ControlStoreProducer {
     @Produces
     @ApplicationScoped
     public ControlStore produceControlStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubControlStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneControlStore.get();
         } else {
             return mongoControlStore.get();

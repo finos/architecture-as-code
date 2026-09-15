@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoGridOutline, IoGitNetworkOutline } from 'react-icons/io5';
+import Markdown from 'react-markdown';
 import { Data, isSlug } from '../../../model/calm.js';
 import { CalmService } from '../../../service/calm-service.js';
 import { sortVersionsDescending } from '../../../model/version.js';
@@ -9,6 +10,24 @@ import { SectionHeader } from '../section-header/SectionHeader.js';
 
 interface DocumentDetailSectionProps {
     data?: Data;
+}
+
+function getDisplayName(data: Data): string {
+    if (typeof data.data === 'string') {
+        const content = data.data as string;
+        const headingMatch = content.match(/^#\s+(.+)$/m);
+        if (headingMatch) return headingMatch[1];
+    }
+    if (typeof data.data === 'object' && data.data && 'name' in (data.data as object)) {
+        return String((data.data as Record<string, unknown>).name);
+    }
+    return data.id;
+}
+
+function isMarkdownContent(data: Data): boolean {
+    if (typeof data.data !== 'string') return false;
+    const content = data.data as string;
+    return content.startsWith('#') || content.startsWith('---') || !content.startsWith('{');
 }
 
 function calmTypeToUrlSegment(calmType: string): string {
@@ -69,6 +88,8 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                     icon={getIcon()}
                     namespace={data.name}
                     id={data.id}
+                    displayName={getDisplayName(data)}
+                    typeLabel={data.calmType}
                     version={data.version}
                     typeSegment={calmTypeToUrlSegment(data.calmType)}
                     versions={versions}
@@ -76,7 +97,13 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                 />
 
                 <div className="flex-1 min-h-0 overflow-auto bg-base-200">
-                    <JsonRenderer json={data} />
+                    {isMarkdownContent(data) ? (
+                        <div className="prose prose-sm max-w-none p-6 bg-base-100">
+                            <Markdown>{data.data as string}</Markdown>
+                        </div>
+                    ) : (
+                        <JsonRenderer json={data} />
+                    )}
                 </div>
             </div>
         </div>

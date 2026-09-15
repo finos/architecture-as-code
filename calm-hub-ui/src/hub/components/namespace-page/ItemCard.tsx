@@ -95,9 +95,11 @@ export function ItemCard({
     const chip =
         meta !== undefined
             ? meta
-            : versionCount !== undefined
+            : versionCount !== undefined && versionCount > 0
               ? `${versionCount} ${versionCount === 1 ? 'version' : 'versions'}`
-              : customId;
+              : versionCount === 0
+                ? customId || undefined
+                : customId;
 
     return (
         <article

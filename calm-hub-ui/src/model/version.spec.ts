@@ -30,6 +30,18 @@ describe('sortVersionsDescending', () => {
         expect(result).toEqual(['2.0.0', '1.5.0', '1.0.0']);
         expect(input).toEqual(['1.0.0', '2.0.0', '1.5.0']);
     });
+
+    it('reverses SHA versions from chronological to newest-first', () => {
+        const input = ['abc1234', 'def5678', 'f1339ab'];
+        const result = sortVersionsDescending(input);
+        expect(result).toEqual(['f1339ab', 'def5678', 'abc1234']);
+    });
+
+    it('does not re-sort SHA versions alphabetically', () => {
+        const input = ['aaa1111', 'fff9999', 'bbb2222'];
+        const result = sortVersionsDescending(input);
+        expect(result).toEqual(['bbb2222', 'fff9999', 'aaa1111']);
+    });
 });
 
 describe('pickLatestVersion', () => {
@@ -43,5 +55,10 @@ describe('pickLatestVersion', () => {
 
     it('returns the only version when the list has one entry', () => {
         expect(pickLatestVersion(['3.4.5'])).toBe('3.4.5');
+    });
+
+    it('returns the last SHA (newest) from chronological list', () => {
+        const input = ['abc1234', 'def5678', 'f1339ab'];
+        expect(pickLatestVersion(input)).toBe('f1339ab');
     });
 });
