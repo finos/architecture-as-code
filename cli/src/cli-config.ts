@@ -38,16 +38,10 @@ export async function loadCliConfig(): Promise<CLIConfig> {
     try {
         const config = await readFile(configFilePath, 'utf8');
         const parsed = JSON.parse(config) as CLIConfig;
-        if (Object.prototype.hasOwnProperty.call(parsed, 'directUrlAuth')) {
-            throw new Error('The nested directUrlAuth configuration is no longer supported. Use directUrlAuthModule, directUrlAuthConfigPath, and directUrlAuthAuthenticatedHosts.');
-        }
         logger.debug('Parsed user config: ' + config);
         return mergeWithEnvVars(parsed);
     }
     catch (err) {
-        if (err instanceof Error && err.message.startsWith('The nested directUrlAuth configuration')) {
-            throw err;
-        }
         if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
             logger.debug('No config file found at ' + configFilePath);
         } else {

@@ -136,14 +136,6 @@ describe('cli-config', () => {
         });
     });
 
-    it('rejects the legacy nested directUrlAuth configuration', async () => {
-        vol.fromJSON({
-            '/home/user/.calm.json': JSON.stringify({ directUrlAuth: {} })
-        });
-
-        await expect(loadCliConfig()).rejects.toThrow(/nested directUrlAuth configuration is no longer supported/);
-    });
-
     it('loads direct URL auth module from absolute path and passes configPath to the constructor', async () => {
         vol.fromJSON({
             '/home/user/.calm.json': JSON.stringify({
