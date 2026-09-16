@@ -9,8 +9,9 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
+import integration.MongoTestConnection;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -78,10 +79,13 @@ public class MongoDocumentSizeLimitIntegration {
      */
     private static final String NAMESPACE = "size-limit";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
