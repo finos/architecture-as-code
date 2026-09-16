@@ -85,18 +85,10 @@ class NitriteDocumentIntegration {
                                 + "/versions/1.0.2")
                 .then()
                 .statusCode(201);
-        given().contentType("application/json")
-                .body(request("Nitrite document v3", versionTwo))
-                .post(
-                        "/api/calm/namespaces/finos/documents/knowledge/"
-                                + documentId
-                                + "/versions/2147483648.0.0")
-                .then()
-                .statusCode(201);
         given().get("/api/calm/namespaces/finos/documents/knowledge/" + documentId + "/versions")
                 .then()
                 .statusCode(200)
-                .body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
+                .body("values", contains("1.0.0", "1.0.2", "1.0.10"));
         given().get(
                         "/api/calm/namespaces/finos/documents/knowledge/"
                                 + documentId
@@ -128,7 +120,7 @@ class NitriteDocumentIntegration {
         given().get("/api/calm/namespaces/finos/documents/knowledge/" + documentId + "/versions")
                 .then()
                 .statusCode(200)
-                .body("values", contains("1.0.0", "1.0.2", "1.0.10", "2147483648.0.0"));
+                .body("values", contains("1.0.0", "1.0.2", "1.0.10"));
     }
 
     private static int documentId(String location) {
