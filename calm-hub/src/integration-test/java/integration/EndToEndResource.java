@@ -117,5 +117,7 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
     @Override
     public void stop() {
         mongoDBContainer.stop();
+        System.clearProperty("quarkus.mongodb.connection-string");
+        System.clearProperty("quarkus.mongodb.database");
     }
 }
