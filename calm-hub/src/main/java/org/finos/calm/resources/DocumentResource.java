@@ -70,10 +70,9 @@ public class DocumentResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE)
                     String namespace,
             @PathParam("documentType") String type) {
-        if (!NARRATIVE_DOCUMENT_TYPES.contains(type)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Unsupported document type")
-                    .build();
+        Response invalidResponse = validateDocumentType(type);
+        if (invalidResponse != null) {
+            return invalidResponse;
         }
         try {
             return Response.ok(
@@ -141,10 +140,9 @@ public class DocumentResource {
                     String namespace,
             @PathParam("documentType") String type,
             @PathParam("id") Integer id) {
-        if (!NARRATIVE_DOCUMENT_TYPES.contains(type)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Unsupported document type")
-                    .build();
+        Response invalidResponse = validateDocumentType(type);
+        if (invalidResponse != null) {
+            return invalidResponse;
         }
         try {
             return Response.ok(
@@ -179,10 +177,9 @@ public class DocumentResource {
             @PathParam("id") Integer id,
             @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)
                     String version) {
-        if (!NARRATIVE_DOCUMENT_TYPES.contains(type)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Unsupported document type")
-                    .build();
+        Response invalidResponse = validateDocumentType(type);
+        if (invalidResponse != null) {
+            return invalidResponse;
         }
         try {
             return Response.ok(
@@ -260,14 +257,22 @@ public class DocumentResource {
     }
 
     private Response validate(String type, CreateDocumentRequest request) {
-        if (!NARRATIVE_DOCUMENT_TYPES.contains(type)) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("Unsupported document type")
-                    .build();
+        Response invalidResponse = validateDocumentType(type);
+        if (invalidResponse != null) {
+            return invalidResponse;
         }
         if (request == null || !hasMappingFrontmatter(request.getDocumentMarkdown())) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("documentMarkdown must begin with YAML mapping frontmatter")
+                    .build();
+        }
+        return null;
+    }
+
+    private Response validateDocumentType(String type) {
+        if (!NARRATIVE_DOCUMENT_TYPES.contains(type)) {
+            return Response.status(Response.Status.BAD_REQUEST)
+                    .entity("Unsupported document type")
                     .build();
         }
         return null;
