@@ -11,13 +11,13 @@ export function DatabaseNode({ id, data, selected }: NodeProps) {
 
     return (
         <>
-            <NodeResizer isVisible={selected} minWidth={60} minHeight={50} lineStyle={{ borderColor: '#6366f1' }} handleStyle={{ width: '6px', height: '6px', background: '#6366f1', borderRadius: '2px' }} />
             <Handle type="target" position={Position.Top} style={handleStyle} />
             <Handle type="source" position={Position.Bottom} style={handleStyle} />
             <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
             <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
 
             <div style={nodeStyle}>
+                <NodeResizer isVisible={selected} minWidth={60} minHeight={50} lineStyle={{ borderColor: '#6366f1' }} handleStyle={{ width: '6px', height: '6px', background: '#6366f1', borderRadius: '2px' }} />
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <svg width="48" height="44" viewBox="0 0 48 44" fill="none" aria-hidden="true">
                     <ellipse cx="24" cy="8" rx="20" ry="6" fill={fill} stroke={selected ? '#6366f1' : '#1b7340'} strokeWidth="1.5" />

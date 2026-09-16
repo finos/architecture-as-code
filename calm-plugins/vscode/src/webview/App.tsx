@@ -86,6 +86,11 @@ function resolveFlowNodeType(calmType: string): string {
     return 'extension';
 }
 
+function isInputDOMNode(e: KeyboardEvent): boolean {
+    const tag = (e.target as HTMLElement)?.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable === true;
+}
+
 function CanvasApp() {
     const containerRef = useRef<HTMLDivElement>(null);
     const store = useCanvasStore();
@@ -124,6 +129,9 @@ function CanvasApp() {
     const undoingOrRedoing = useRef(false);
     const loadGeneration = useRef(0);
     const pendingNodesRef = useRef<Node[] | null>(null);
+
+    // Copy/paste
+    const clipboardNode = useRef<Node | null>(null);
 
 
     // --- Core: emit change ---
@@ -346,10 +354,48 @@ function CanvasApp() {
                 e.preventDefault();
                 if (selectedNode?.parentId) unparentNode(selectedNode.id);
             }
+            // Copy
+            if ((e.ctrlKey || e.metaKey) && e.key === 'c' && !e.shiftKey && !isInputDOMNode(e)) {
+                const live = selectedNode ? nodes.find((n) => n.id === selectedNode.id) ?? selectedNode : null;
+                if (live) {
+                    clipboardNode.current = live;
+                }
+            }
+            // Paste
+            if ((e.ctrlKey || e.metaKey) && e.key === 'v' && !e.shiftKey && !isInputDOMNode(e)) {
+                if (store.readonlyMode || !clipboardNode.current) return;
+                e.preventDefault();
+                const src = clipboardNode.current;
+                const data = JSON.parse(JSON.stringify(src.data)) as Record<string, unknown>;
+                const calmType = (data.calmType as string) ?? 'system';
+                const newId = `${calmType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+                data.calmId = newId;
+                data.label = `${data.label ?? ''} (copy)`;
+                // Strip resolved definition data — the copy is independent
+                delete data['definition-id'];
+                delete data._resolvedControls;
+                delete data.validationErrors;
+                delete data.validationWarnings;
+
+                const isContainer = src.type === 'container';
+                const newNode: Node = {
+                    id: newId,
+                    type: src.type ?? 'system',
+                    position: { x: src.position.x + 30, y: src.position.y + 30 },
+                    data,
+                    ...(isContainer && src.width && src.height
+                        ? { width: src.width, height: src.height, style: { width: src.width, height: src.height } }
+                        : {}),
+                };
+                setNodes((nds) => [...nds, newNode]);
+                setSelectedNode(newNode);
+                store.selectNode(newId);
+                setTimeout(() => emitChange(true), 0);
+            }
         };
         window.addEventListener('keydown', handleKeydown);
         return () => window.removeEventListener('keydown', handleKeydown);
-    }, [loadArchitecture, selectedNode]);
+    }, [loadArchitecture, selectedNode, nodes, setNodes, emitChange, store]);
 
     // --- Node changes (position, dimension, remove) ---
     const onNodesChange = useCallback((changes: NodeChange[]) => {
