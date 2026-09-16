@@ -76,9 +76,6 @@ public class MongoVersionSplitMigration {
     private final String versionsField;
     private final String resourceLabel;
     private final VersionScheme versionScheme;
-    private final String discriminatorField;
-    private final String contentField;
-    private final String legacyIndex;
 
     /**
      * @param headerCollection  the existing per-type collection, which becomes the headers
@@ -106,15 +103,6 @@ public class MongoVersionSplitMigration {
     public MongoVersionSplitMigration(MongoDatabase database, String headerCollection, String versionCollection,
                                       String idField, String arrayField, String versionsField, String resourceLabel,
                                       VersionScheme versionScheme) {
-        this(database, headerCollection, versionCollection, idField, arrayField, versionsField,
-                resourceLabel, versionScheme, null, null, OLD_NAMESPACE_INDEX);
-    }
-
-    /** Optional root discriminator and string-content wrapper for narrative migrations. */
-    public MongoVersionSplitMigration(MongoDatabase database, String headerCollection, String versionCollection,
-                                      String idField, String arrayField, String versionsField, String resourceLabel,
-                                      VersionScheme versionScheme, String discriminatorField, String contentField,
-                                      String legacyIndex) {
         this.database = database;
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
@@ -123,9 +111,6 @@ public class MongoVersionSplitMigration {
         this.versionsField = versionsField;
         this.resourceLabel = resourceLabel;
         this.versionScheme = versionScheme;
-        this.discriminatorField = discriminatorField;
-        this.contentField = contentField;
-        this.legacyIndex = legacyIndex;
     }
 
     public void migrate() {
@@ -139,25 +124,25 @@ public class MongoVersionSplitMigration {
         dropOldNamespaceIndex(headers);
 
         IndexOptions unique = new IndexOptions().unique(true);
-        headers.createIndex(identity(1, 1, 1), unique);
+        headers.createIndex(new Document(NAMESPACE_FIELD, 1).append(idField, 1), unique);
         LOG.info("Ensured unique index on {}.({}, {})", headerCollection, NAMESPACE_FIELD, idField);
 
         database.getCollection(versionCollection).createIndex(
-                identity(1, 1, 1).append(VERSION_FIELD, 1), unique);
+                new Document(NAMESPACE_FIELD, 1).append(idField, 1).append(VERSION_FIELD, 1), unique);
         LOG.info("Ensured unique index on {}.({}, {}, version)", versionCollection, NAMESPACE_FIELD, idField);
     }
 
     private void dropOldNamespaceIndex(MongoCollection<Document> headers) {
         try {
-            headers.dropIndex(legacyIndex);
-            LOG.info("Dropped the old unique index {}.{}", headerCollection, legacyIndex);
+            headers.dropIndex(OLD_NAMESPACE_INDEX);
+            LOG.info("Dropped the old unique index {}.{}", headerCollection, OLD_NAMESPACE_INDEX);
         } catch (MongoCommandException e) {
             if (e.getErrorCode() != INDEX_NOT_FOUND) {
                 throw e;
             }
             // Already dropped by a previous attempt, or never created — either way the
             // constraint we need gone is gone, which is all this call is for.
-            LOG.info("Old unique index {}.{} was already absent", headerCollection, legacyIndex);
+            LOG.info("Old unique index {}.{} was already absent", headerCollection, OLD_NAMESPACE_INDEX);
         }
     }
 
@@ -189,8 +174,7 @@ public class MongoVersionSplitMigration {
             }
             String namespace = oldDocument.getString(NAMESPACE_FIELD);
             for (Document entry : oldDocument.getList(arrayField, Document.class, List.of())) {
-                migratedVersions += writeOneResource(headers, versions, namespace, entry,
-                        discriminatorField == null ? null : oldDocument.getString(discriminatorField));
+                migratedVersions += writeOneResource(headers, versions, namespace, entry);
                 migratedResources++;
             }
             // Only once its contents are safely rewritten.
@@ -206,14 +190,15 @@ public class MongoVersionSplitMigration {
      * @return how many version documents were written for this resource.
      */
     private int writeOneResource(MongoCollection<Document> headers, MongoCollection<Document> versions,
-                                 String namespace, Document entry, String discriminator) {
+                                 String namespace, Document entry) {
         Integer resourceId = entry.getInteger(idField);
         Document storedVersions = entry.get(versionsField, Document.class);
         Map<String, String> keysByCanonicalVersion = collapseToCanonicalVersions(storedVersions, namespace, resourceId);
 
         ReplaceOptions upsert = new ReplaceOptions().upsert(true);
 
-        Document header = identity(namespace, resourceId, discriminator)
+        Document header = new Document(NAMESPACE_FIELD, namespace)
+                .append(idField, resourceId)
                 .append("name", entry.getString("name"))
                 .append("description", entry.getString("description"))
                 // The collapsed count, not the raw key count: two old keys can mean one
@@ -222,16 +207,19 @@ public class MongoVersionSplitMigration {
                 .append("versionCount", keysByCanonicalVersion.size())
                 .append("metadata", new Document());
         headers.replaceOne(
-                identity(namespace, resourceId, discriminator),
+                Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(idField, resourceId)),
                 header, upsert);
 
         for (Map.Entry<String, String> version : keysByCanonicalVersion.entrySet()) {
-            Document versionDocument = identity(namespace, resourceId, discriminator)
+            Document versionDocument = new Document(NAMESPACE_FIELD, namespace)
+                    .append(idField, resourceId)
                     .append(VERSION_FIELD, version.getKey())
                     .append("content", contentOf(storedVersions, version.getValue(), namespace, resourceId))
                     .append("metadata", new Document());
             versions.replaceOne(
-                    identity(namespace, resourceId, discriminator).append(VERSION_FIELD, version.getKey()),
+                    Filters.and(Filters.eq(NAMESPACE_FIELD, namespace),
+                            Filters.eq(idField, resourceId),
+                            Filters.eq(VERSION_FIELD, version.getKey())),
                     versionDocument, upsert);
         }
         return keysByCanonicalVersion.size();
@@ -251,12 +239,6 @@ public class MongoVersionSplitMigration {
      */
     private Object contentOf(Document storedVersions, String key, String namespace, Integer resourceId) {
         Object content = storedVersions.get(key);
-        if (contentField != null) {
-            if (!(content instanceof String)) {
-                throw new IllegalStateException("Narrative Markdown must be a string");
-            }
-            return new Document(contentField, content);
-        }
         if (!(content instanceof Document)) {
             LOG.warn("Version [{}] of {} [namespace={}, {}={}] holds content of type [{}] rather than a "
                             + "document. Migrating it unchanged so nothing is lost; repair the document "
@@ -294,9 +276,6 @@ public class MongoVersionSplitMigration {
             String version = versionScheme.canonicalise(storedKey);
             String alreadyMapped = keysByCanonicalVersion.putIfAbsent(version, storedKey);
             if (alreadyMapped != null) {
-                if (contentField != null && !java.util.Objects.equals(storedVersions.get(alreadyMapped), storedVersions.get(storedKey))) {
-                    throw new IllegalStateException("Conflicting narrative versions for " + namespace + "/" + resourceId);
-                }
                 LOG.warn("Discarding version key '{}' [namespace={}, {}={}] — it means the same "
                                 + "version as '{}' ({}), which the new shape stores once. The "
                                 + "discarded content is only recoverable from a backup.",
@@ -304,13 +283,5 @@ public class MongoVersionSplitMigration {
             }
         }
         return keysByCanonicalVersion;
-    }
-
-    private Document identity(Object namespace, Object resourceId, Object discriminator) {
-        Document identity = new Document(NAMESPACE_FIELD, namespace);
-        if (discriminatorField != null) {
-            identity.append(discriminatorField, discriminator);
-        }
-        return identity.append(idField, resourceId);
     }
 }
