@@ -427,6 +427,11 @@
                             <includes>
                                 <include>**/*Integration.java</include>
                             </includes>
+                            <!-- Diagnostic aid: a stuck fork (e.g. EndToEndResource hanging in
+                                 MongoIndexInitializationStep) currently runs silently until the
+                                 CI job's own timeout kills it with no stack trace. This forces
+                                 failsafe to thread-dump and kill the fork after 5 minutes instead. -->
+                            <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
                         </configuration>
                     </plugin>
                 </plugins>

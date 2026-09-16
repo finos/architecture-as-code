@@ -1,5 +1,7 @@
 package integration;
 
+import com.mongodb.ConnectionString;
+import com.mongodb.MongoClientSettings;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
@@ -21,6 +23,7 @@ import org.slf4j.LoggerFactory;
 import org.testcontainers.containers.MongoDBContainer;
 
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
 
@@ -40,12 +43,28 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
         logger.info("MongoDB container started at {}", connectionString);
         String databaseName = connectionString.substring(connectionString.lastIndexOf("/")+1);
 
+        // Belt-and-braces alongside the returned Map below, mirroring KeycloakTestResource -
+        // the Map alone has been unreliable across Quarkus versions for propagating test
+        // resource config into @ConfigProperty-injected values (quarkusio/quarkus#52919).
+        System.setProperty("quarkus.mongodb.connection-string", connectionString);
+        System.setProperty("quarkus.mongodb.database", databaseName);
+
         // MongoIndexInitializationStep no longer runs itself under @QuarkusTest (LaunchMode.TEST
         // can't distinguish "real Mongo, via this container" from "no Mongo at all", which is
         // the common case for the rest of the test suite) — so integration tests that rely on
         // unique-index enforcement (duplicate-key rejection etc.) need it created here, against
         // the real container, before the Quarkus application under test even starts.
-        try (MongoClient mongoClient = MongoClients.create(connectionString)) {
+        // Bounded timeouts so a stuck container/network leaves this fail fast instead of
+        // hanging the whole CI job indefinitely.
+        MongoClientSettings settings = MongoClientSettings.builder()
+                .applyConnectionString(new ConnectionString(connectionString))
+                .applyToSocketSettings(builder -> builder
+                        .connectTimeout(10, TimeUnit.SECONDS)
+                        .readTimeout(10, TimeUnit.SECONDS))
+                .applyToClusterSettings(builder -> builder
+                        .serverSelectionTimeout(10, TimeUnit.SECONDS))
+                .build();
+        try (MongoClient mongoClient = MongoClients.create(settings)) {
             MongoDatabase database = mongoClient.getDatabase(databaseName);
             new MongoIndexInitializationStep(database).createIndexes();
             // That step creates a unique index on architectures.namespace alone, which
