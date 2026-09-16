@@ -921,17 +921,18 @@ export async function parseDocumentLoaderConfig(
         }
     }
 
-    if (userConfig && userConfig.directUrlAuth) {
+    const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(userConfig);
+    if (directUrlAuthConfig) {
         try {
-            cliConfig.validateDirectUrlAuthConfig(userConfig.directUrlAuth);
-            const directUrlAuthConfigPath = userConfig.directUrlAuth.configPath !== undefined
-                ? userConfig.directUrlAuth.configPath
+            cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
+            const directUrlAuthConfigPath = directUrlAuthConfig.configPath !== undefined
+                ? directUrlAuthConfig.configPath
                 : 'not specified';
-            logger.info('Loading direct URL auth module from config file: ' + userConfig.directUrlAuth.module);
+            logger.info('Loading direct URL auth module from config file: ' + directUrlAuthConfig.module);
             logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
-            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(userConfig.directUrlAuth, !!options.verbose);
+            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(directUrlAuthConfig, !!options.verbose);
             docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
-            docLoaderOpts.directUrlAuthAuthenticatedHosts = userConfig.directUrlAuth.authenticatedHosts;
+            docLoaderOpts.directUrlAuthAuthenticatedHosts = directUrlAuthConfig.authenticatedHosts;
             logger.debug('Direct URL auth module loaded successfully');
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);

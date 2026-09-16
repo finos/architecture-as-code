@@ -15,7 +15,9 @@ Note that if they're set on the command line, e.g. `--calm-hub-url`, this will o
 | `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
 | `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
 | `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
-| `directUrlAuth`      | None                        | Direct-URL authentication module config for protected remote document fetches. See [Direct URL authentication modules](#direct-url-authentication-modules). |
+| `directUrlAuthModule` | `CALM_DIRECT_URL_AUTH_MODULE` | Path to the direct-URL authentication module for protected remote document fetches. See [Direct URL authentication modules](#direct-url-authentication-modules). |
+| `directUrlAuthConfigPath` | `CALM_DIRECT_URL_AUTH_CONFIG_PATH` | Optional path passed to the direct-URL authentication module constructor. |
+| `directUrlAuthAuthenticatedHosts` | `CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS` | Required hostnames for direct-URL authentication. In environment-variable form, use a comma-separated list. |
 
 Rather than hand-editing this file, use [`calm init-config`](#managing-the-config-file-with-init-config) to create or update it.
 
@@ -659,17 +661,15 @@ Example `~/.calm.json`:
 
 ```json
 {
-  "directUrlAuth": {
-    "module": "~/plugins/direct-url-auth.js",
-    "configPath": "~/plugins/direct-url-auth.config.json",
-    "authenticatedHosts": ["protected.example.com"]
-  }
+  "directUrlAuthModule": "~/plugins/direct-url-auth.js",
+  "directUrlAuthConfigPath": "~/plugins/direct-url-auth.config.json",
+  "directUrlAuthAuthenticatedHosts": ["protected.example.com"]
 }
 ```
 
 The entries must be exact hostnames (case-insensitive); URLs, ports, paths, and wildcards are not supported. Other allowlisted hosts continue through the unauthenticated direct URL path.
 
-This flow does not replace `authPluginPath`: `authPluginPath` still applies only to CalmHub requests, and `directUrlAuth` applies only to configured direct `http(s)` hosts.
+This flow does not replace `authPluginPath`: `authPluginPath` still applies only to CalmHub requests, and direct-URL authentication applies only to configured direct `http(s)` hosts.
 
 ## CALM Hub
 
@@ -1121,7 +1121,7 @@ For `push` to work, each document must have a namespace recorded in the manifest
 
 Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer <token>). The token can be used to authenticate the request and/or determine authorization.
 
-`directUrlAuth.module` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+`directUrlAuthModule` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
 
 ```ts
 new DefaultExport(configPath?)
@@ -1140,8 +1140,8 @@ What each part means:
 - `getAuthHeaders(url, requestBody)` is required.
   It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
 - The constructor may accept an optional `configPath: string | undefined`.
-  If the user sets `directUrlAuth.configPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
-- `directUrlAuth.authenticatedHosts` is required. The CLI calls the module only for URLs whose hostname is in this list, and adds those hosts to the effective direct URL allowlist.
+  If the user sets `directUrlAuthConfigPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
+- `directUrlAuthAuthenticatedHosts` is required. The CLI calls the module only for URLs whose hostname is in this list, and adds those hosts to the effective direct URL allowlist.
 - TLS trust is not configurable through the module.
   Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
 

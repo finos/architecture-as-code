@@ -15,7 +15,9 @@ export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
     authPluginPath?: string
-    directUrlAuth?: DirectUrlAuthConfig
+    directUrlAuthModule?: string
+    directUrlAuthConfigPath?: string
+    directUrlAuthAuthenticatedHosts?: string[]
 }
 
 export function getUserConfigLocation(): string {
@@ -36,10 +38,16 @@ export async function loadCliConfig(): Promise<CLIConfig> {
     try {
         const config = await readFile(configFilePath, 'utf8');
         const parsed = JSON.parse(config) as CLIConfig;
+        if (Object.prototype.hasOwnProperty.call(parsed, 'directUrlAuth')) {
+            throw new Error('The nested directUrlAuth configuration is no longer supported. Use directUrlAuthModule, directUrlAuthConfigPath, and directUrlAuthAuthenticatedHosts.');
+        }
         logger.debug('Parsed user config: ' + config);
         return mergeWithEnvVars(parsed);
     }
     catch (err) {
+        if (err instanceof Error && err.message.startsWith('The nested directUrlAuth configuration')) {
+            throw err;
+        }
         if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
             logger.debug('No config file found at ' + configFilePath);
         } else {
@@ -59,7 +67,27 @@ export function mergeWithEnvVars(config: CLIConfig): CLIConfig {
         calmHubUrl: process.env.CALM_HUB_URL || config.calmHubUrl,
         allowedRemoteHosts: process.env.CALM_ALLOWED_REMOTE_HOSTS ? process.env.CALM_ALLOWED_REMOTE_HOSTS.split(',') : config.allowedRemoteHosts,
         authPluginPath: process.env.CALM_AUTH_PLUGIN_PATH || config.authPluginPath,
-        directUrlAuth: config.directUrlAuth,
+        directUrlAuthModule: process.env.CALM_DIRECT_URL_AUTH_MODULE || config.directUrlAuthModule,
+        directUrlAuthConfigPath: process.env.CALM_DIRECT_URL_AUTH_CONFIG_PATH || config.directUrlAuthConfigPath,
+        directUrlAuthAuthenticatedHosts: process.env.CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS
+            ? process.env.CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS.split(',').map(host => host.trim()).filter(Boolean)
+            : config.directUrlAuthAuthenticatedHosts,
+    };
+}
+
+export function getDirectUrlAuthConfig(config: CLIConfig): DirectUrlAuthConfig | undefined {
+    const hasDirectUrlAuthConfig = config.directUrlAuthModule !== undefined
+        || config.directUrlAuthConfigPath !== undefined
+        || config.directUrlAuthAuthenticatedHosts !== undefined;
+
+    if (!hasDirectUrlAuthConfig) {
+        return undefined;
+    }
+
+    return {
+        module: config.directUrlAuthModule as string,
+        configPath: config.directUrlAuthConfigPath,
+        authenticatedHosts: config.directUrlAuthAuthenticatedHosts as string[],
     };
 }
 
