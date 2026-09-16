@@ -5,6 +5,109 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.60.1] - 2026-09-16
+
+## [1.60.1](https://github.com/finos/architecture-as-code/compare/cli-v1.60.0...cli-v1.60.1) (2026-09-16)
+
+* Render flows in CALM Hub (WIP) (#3050) ([](https://github.com/finos/architecture-as-code/commit/487daa7f8966eaef13dcf6f1efc27ff185928ac7)), closes [#3050](https://github.com/finos/architecture-as-code/issues/3050) [#1998](https://github.com/finos/architecture-as-code/issues/1998) [#2537](https://github.com/finos/architecture-as-code/issues/2537) [#2690](https://github.com/finos/architecture-as-code/issues/2690)
+
+### chore
+
+* **deps:** update aws-actions/configure-aws-credentials digest to e125382 ([](https://github.com/finos/architecture-as-code/commit/c1613e44d21d76259d458bf6d11ea03965265ebd))
+* **deps:** update aws-actions/configure-aws-credentials digest to e125382 ([](https://github.com/finos/architecture-as-code/commit/0727cf8d563617699140c687332ae9764266aff1))
+* **deps:** update patch updates (#3106) ([](https://github.com/finos/architecture-as-code/commit/33fa35a04ba9f6038ab48673b23358ac90d3c574)), closes [#3106](https://github.com/finos/architecture-as-code/issues/3106)
+* **deps:** update semgrep/semgrep docker digest to 34ab619 ([](https://github.com/finos/architecture-as-code/commit/649f4d5e78b45522caf4fa22f911009693a96aa7))
+* **deps:** update semgrep/semgrep docker digest to 34ab619 ([](https://github.com/finos/architecture-as-code/commit/24fa68178471f65cd254e92c22b2ba43046cfd8b))
+
+### fix
+
+* **calm-hub-ui:** meet WCAG AA contrast for redesign text tokens (#2989) ([](https://github.com/finos/architecture-as-code/commit/ee8424af6776258c98af59ca22369fc5dfff57b9)), closes [#2989](https://github.com/finos/architecture-as-code/issues/2989) [#9AA6B8](https://github.com/finos/architecture-as-code/issues/9AA6B8) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#8A94A6](https://github.com/finos/architecture-as-code/issues/8A94A6) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#515F75](https://github.com/finos/architecture-as-code/issues/515F75) [#FFFFFF](https://github.com/finos/architecture-as-code/issues/FFFFFF) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A697F](https://github.com/finos/architecture-as-code/issues/5A697F) [#EEF2F7](https://github.com/finos/architecture-as-code/issues/EEF2F7) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#F8FAFC](https://github.com/finos/architecture-as-code/issues/F8FAFC)
+
+## [1.60.0] - 2026-09-14
+
+## [1.60.0](https://github.com/finos/architecture-as-code/compare/cli-v1.59.0...cli-v1.60.0) (2026-09-14)
+
+* Merge branch 'main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/317d247feb67a09b27594c6746b4691657ea75d5))
+* Merge branch 'main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/dcbbe8d67e04c2c559de6248cfe471a5bd743774))
+* Merge branch 'main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/8da6a8b911abc081794e988814ab675600a279ab))
+* Merge branch 'main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/da23daad9ebf71829779bd9845a64811d6823c3e))
+* Merge pull request #3065 from finos/slice/3001-s4-oidc-plugin-auth ([](https://github.com/finos/architecture-as-code/commit/25fa2621aba139c7f759fc099f653b07abd641ce))
+* Merge remote-tracking branch 'origin/learning-lab' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/1463486706a640d6d11e782080751d8009c34a0d))
+* Merge remote-tracking branch 'upstream/main' into feat/rework-control-detail-viewer ([](https://github.com/finos/architecture-as-code/commit/ef3f46d856187da2dedc557885fac7b883701ace))
+* Merge remote-tracking branch 'upstream/main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/5842be336321af1c55a8cdebe01d3e995f40deb1))
+* Merge remote-tracking branch 'upstream/main' into learning-lab ([](https://github.com/finos/architecture-as-code/commit/102a9372d8e7c212c0c3a6d5f8a2cac3187843f7))
+
+### chore
+
+* **calm-lab:** address Copilot review feedback ([](https://github.com/finos/architecture-as-code/commit/a4a3f0e6956ddec79a78394442c2f450e04e7942))
+* **calm-lab:** tidy dead code, comments, docs manifest and lint/typecheck wiring ([](https://github.com/finos/architecture-as-code/commit/b9882602a7985ae2a48bea4942bda1071c968f3e))
+
+### ci
+
+* **calm-lab:** build and deploy the learning lab to lab.calm.finos.org ([](https://github.com/finos/architecture-as-code/commit/8fd1436763d547bf4a9aa89b2eb4163f6b6f2d13))
+* **calm-lab:** typecheck after the build so shared's browser types exist ([](https://github.com/finos/architecture-as-code/commit/2978d7461a005fcb76fe243ae06f6953442b269d))
+
+### docs
+
+* add guidelines for responsible use of AI coding assistants ([](https://github.com/finos/architecture-as-code/commit/9da75091d6d79c65b41c94651d60599ed837e063))
+* add in-browser CALM learning lab MVP ([](https://github.com/finos/architecture-as-code/commit/bd8885d2ea60661bde54c90092ea60f686ee7824)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* add terminal tab completion and JSON highlighting to the lab ([](https://github.com/finos/architecture-as-code/commit/c9f2c2df7e40aa2298de488c8d042cd767be4aec))
+* address accessibility and label-name review feedback ([](https://github.com/finos/architecture-as-code/commit/1e1dfcbe4c785da4d30c2130a7b520b8af75becc))
+* address second round of talks-page review feedback ([](https://github.com/finos/architecture-as-code/commit/86e4de9caed1f3958b3acdd3489e3d1b5aeb5585))
+* address talks-page review feedback ([](https://github.com/finos/architecture-as-code/commit/7b2fb0c429cc66f38060ea76b0e32f99e148cabc))
+* **calm-lab:** match the subtitle colour to the docs navbar and document lesson authoring ([](https://github.com/finos/architecture-as-code/commit/627fd22c057426cac1665c0826be206bba3f1789))
+* defer the docs links to the learning lab until lab.calm.finos.org is live ([](https://github.com/finos/architecture-as-code/commit/fe5beda3450c7d943292ab065d941355db296613))
+* dock the learning lab into a full-viewport IDE layout ([](https://github.com/finos/architecture-as-code/commit/63c00cd1946795ab56087295629f3ef4cd83493c)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* fix light-mode hint contrast and copy-button feedback ([](https://github.com/finos/architecture-as-code/commit/1e6a3645381a7dabe2a86e0b00a5a28df106e88c))
+* fix step-3 completion and make hints paste-safe ([](https://github.com/finos/architecture-as-code/commit/3217cd2f667d0fe505afb340743a81c45224b051)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* highlight the lab diagram tab when unviewed changes exist ([](https://github.com/finos/architecture-as-code/commit/369cb0aaa0beb638457f6bebe3d2589b7f489458))
+* load talk players paused instead of autoplaying ([](https://github.com/finos/architecture-as-code/commit/cc014544997f6a4603a6bc62c5f354dce2b066d4))
+* make lab step checks state-based and add lesson-rail toggle ([](https://github.com/finos/architecture-as-code/commit/89e53f0397f924ffce5656452301301ff83668cc)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* move the lab diagram and problems into IDE tabs ([](https://github.com/finos/architecture-as-code/commit/abb5ecc9e39d6e60f3a42a3f2891bf8cba4a3903)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* redesign talks page as a media hub ([](https://github.com/finos/architecture-as-code/commit/4c72dc29665e337b8a462cb6e218f2e7cf125fe2)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* render the lab diagram with the CALM Hub visualizer pipeline ([](https://github.com/finos/architecture-as-code/commit/6b43ba0c302272e554d80bfa2774dc9430cf92d6)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+* replace the embedded lab with a landing page linking to lab.calm.finos.org ([](https://github.com/finos/architecture-as-code/commit/261c612ac4752ce6f5d448e5d69d7dd1b5bb1216))
+* start the OSFF London keynote embed at the CALM segment ([](https://github.com/finos/architecture-as-code/commit/9477ede108dcea44af98581fd213ca6f5459db97))
+* unify the lab into a theme-invariant IDE chassis ([](https://github.com/finos/architecture-as-code/commit/c88204a521a1afc6a3da0efdf06ffef31e1694bc)), closes [#2873](https://github.com/finos/architecture-as-code/issues/2873)
+
+### feat
+
+* **calm-hub-ui:** fixes Improve the UI of Controls ([](https://github.com/finos/architecture-as-code/commit/77d6d2c66838a5f82e884be0e2c3969615d021c1)), closes [#2976](https://github.com/finos/architecture-as-code/issues/2976)
+* **calm-hub-ui:** Improve the UI of Controls ([](https://github.com/finos/architecture-as-code/commit/77f5af246d0f73203f4cca3af0862b17747a8225))
+* **calm-hub-ui:** select latest version of controls when they're loaded ([](https://github.com/finos/architecture-as-code/commit/40a76f293fec79d3c1e28c01b8b9ad0fddac68bd))
+* **calm-hub:** OIDC-driven auth config and VS Code plugin login ([](https://github.com/finos/architecture-as-code/commit/aa24360714ccfdbf9b41a285b4d935c3e3957846)), closes [finos/architecture-as-code#3001](https://github.com/finos/architecture-as-code/issues/3001)
+* **calm-lab:** add the docs-style light/dark colour-mode toggle to the lab header ([](https://github.com/finos/architecture-as-code/commit/60b0e640d1c5141d11b8cdcff65f51abf9981bd6))
+* **calm-lab:** async shell with calm diff and manifest-driven unsupported-command messages ([](https://github.com/finos/architecture-as-code/commit/3438b98e7b103991031d76cac35129a9e771ca1b))
+* **calm-lab:** in-browser learning lab as a standalone app on the real CALM engine ([](https://github.com/finos/architecture-as-code/commit/f5f6838c194090ccf27ac9b7ba0c5fe988fa31f4))
+* **calm-lab:** make the lab's validate and shell paths async with stale-result guards ([](https://github.com/finos/architecture-as-code/commit/c1a647c73dfe6ac523c5c0946f69ef8698c90f3e))
+* **calm-lab:** match the docs navbar in the lab header and link the lab from the docs navbar ([](https://github.com/finos/architecture-as-code/commit/4faf7d858d7c606062203cc495fd1e049d3f041a))
+* **calm-lab:** print the engine's pretty validation report and list hub commands ([](https://github.com/finos/architecture-as-code/commit/d22f5671931210a0ce382cb25d5b53aa931821e9))
+* **calm-lab:** run validation and diff on @finos/calm-shared/browser ([](https://github.com/finos/architecture-as-code/commit/777562d48252d8dddb6b7026ad4781aa58ef05cc))
+* **calm-lab:** scaffold the learning lab as a standalone Vite app and move the lab components ([](https://github.com/finos/architecture-as-code/commit/f47349decc85123988299ab63cde42007427781f))
+
+### fix
+
+* **calm-hub:** address CI feedback on the plugin-auth security rework ([](https://github.com/finos/architecture-as-code/commit/cd8b9bac2e495917be17decf37bdbf01c48f9458))
+* **calm-hub:** address round-2 review feedback on oidc plugin auth ([](https://github.com/finos/architecture-as-code/commit/fa3050bd145f1c66f55f4f56d922d3a7d4dd5ad5))
+* **calm-hub:** address security review findings on OIDC plugin auth ([](https://github.com/finos/architecture-as-code/commit/9f7a7dd9b4658cae98c9c61e2b746ee0513e0dcb)), closes [#3078](https://github.com/finos/architecture-as-code/issues/3078) [#3077](https://github.com/finos/architecture-as-code/issues/3077) [#3078](https://github.com/finos/architecture-as-code/issues/3078)
+* **calm-hub:** mock UserAccessValidator in TestDomainResourceShould ([](https://github.com/finos/architecture-as-code/commit/2f9024381b7fa2791cec49d0e9471dc99fb2fc21)), closes [#3078](https://github.com/finos/architecture-as-code/issues/3078)
+* **calm-lab:** harden the diagram parser against invalid documents and add error boundaries ([](https://github.com/finos/architecture-as-code/commit/beeefff2b41c3fbdc6cc2bbfaeea8075ad4cf104))
+* **calm-lab:** make the async validate and terminal paths robust to failures and resets ([](https://github.com/finos/architecture-as-code/commit/8b9bffe5b5b9d233bae9e4eb8dbda62ba99ef6b1))
+* **cli:** allow workspaces in non-git projects and store relative paths in add (#3074) ([](https://github.com/finos/architecture-as-code/commit/e201dc721a9d79e7ce8bfea4bac88ccf1063ff4c)), closes [#3074](https://github.com/finos/architecture-as-code/issues/3074)
+
+### refactor
+
+* **calm-hub-ui:** consolidate formatFieldName into a shared utility ([](https://github.com/finos/architecture-as-code/commit/12dfffa5dfeb600bf934b161f4235b85555dc042))
+* **calm-hub-ui:** extracted reusable utility ([](https://github.com/finos/architecture-as-code/commit/c5768db2dbf6aca09410a159a342c18ec70d2976))
+* **calm-hub-ui:** improved style of controls section ([](https://github.com/finos/architecture-as-code/commit/013f0ca44af5c5af44cac653c115233df55ab59d))
+* **calm-lab:** convert vfs.js and lesson.js to TypeScript ([](https://github.com/finos/architecture-as-code/commit/29c034b5de2dc75a2ee98c4d64e99145b2798f5d))
+* **calm-lab:** finish the TypeScript conversion — no JS/JSX left ([](https://github.com/finos/architecture-as-code/commit/d8229299e53bd5f315231fe396163b75084d89e4))
+* **calm-lab:** inline diffArchitectures into the shell's diff command ([](https://github.com/finos/architecture-as-code/commit/c59d3089c386af9a5135f60859ce80b2d709584d))
+
+### test
+
+* **calm-lab:** cover the virtual filesystem and lesson checks ([](https://github.com/finos/architecture-as-code/commit/2d840faf21e7ce602546c25ff71e9acbf7b2db29))
+
 ## [1.59.0] - 2026-09-07
 
 ## [1.59.0](https://github.com/finos/architecture-as-code/compare/cli-v1.58.0...cli-v1.59.0) (2026-09-07)
