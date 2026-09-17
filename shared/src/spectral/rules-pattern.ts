@@ -7,7 +7,9 @@ import nodeHasRelationship from './functions/pattern/node-has-relationship';
 import { interfaceIdExists } from './functions/pattern/interface-id-exists';
 import { interfaceIdExistsOnNode } from './functions/pattern/interface-id-exists-on-node';
 import { isDefinedInOneOfOrAnyOf } from './functions/pattern/is-defined-in-oneof-or-anyof';
-import { declaredIdPaths } from './functions/pattern/declaration-paths';
+import { decisionIsDeclaredInPrefixItems } from './functions/pattern/decision-is-declared-in-prefix-items';
+import { itemsFitWithinMaxItems } from './functions/pattern/items-fit-within-max-items';
+import { declaredIdPaths, twoKeywordSites } from './functions/pattern/declaration-paths';
 
 
 const patternRules: RulesetDefinition = {
@@ -188,15 +190,40 @@ const patternRules: RulesetDefinition = {
                 },
             },
         },
-        'pattern-prefix-items-must-declare-one-keyword': {
-            description: 'A prefixItems entry must declare either oneOf or anyOf, not both',
+        'pattern-choice-must-declare-one-keyword': {
+            description: 'A choice must declare either oneOf or anyOf, not both',
             severity: 'error',
-            message: 'A prefixItems entry declares both \'oneOf\' and \'anyOf\'. An element must satisfy both, so some alternatives can never be selected. Declare one keyword.',
-            given: [
-                '$.properties.nodes.prefixItems[?(@.oneOf && @.anyOf)]',
-                '$.properties.relationships.prefixItems[?(@.oneOf && @.anyOf)]',
-            ],
+            message: 'A choice declares both \'oneOf\' and \'anyOf\'. An element must satisfy both, so some alternatives can never be selected. Declare one keyword.',
+            given: twoKeywordSites(),
             then: {
+                function: falsy,
+            },
+        },
+        'pattern-items-must-fit-within-max-items': {
+            description: 'maxItems must leave room for an items member to be built',
+            severity: 'error',
+            message: '{{error}}',
+            given: ['$.properties.nodes', '$.properties.relationships'],
+            then: {
+                function: itemsFitWithinMaxItems,
+            },
+        },
+        'pattern-decision-must-be-declared-in-prefix-items': {
+            description: 'A decision must be declared in relationships prefixItems, not in items',
+            severity: 'error',
+            message: '{{error}}',
+            given: ['$.properties.relationships.items.oneOf[*]', '$.properties.relationships.items.anyOf[*]'],
+            then: {
+                function: decisionIsDeclaredInPrefixItems,
+            },
+        },
+        'pattern-decision-options-must-be-declared-in-prefix-items': {
+            description: 'Decision options must be declared in options prefixItems, not in items',
+            severity: 'error',
+            message: 'Declare decision options in options prefixItems. calm generate reads prefixItems only, so an options block declared in items is never built.',
+            given: '$..relationship-type.properties.options',
+            then: {
+                field: 'items',
                 function: falsy,
             },
         },

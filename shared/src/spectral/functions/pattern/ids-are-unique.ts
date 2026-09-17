@@ -2,7 +2,7 @@ import { JSONPath } from 'jsonpath-plus';
 import { groupBy, partition } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 import { detectDuplicates, JSONPathMatch } from '../helper-functions';
-import { byBuildOrder, containingDeclaration, containingEntry, declaredIdPaths, declaredInterfaceIdPaths, isAlternative } from './declaration-paths';
+import { byBuildOrder, containingDeclaration, declaredIdPaths, declaredInterfaceIdPaths, exclusiveGroup, isAlternative } from './declaration-paths';
 
 /**
  * The rule blames the second declaration it sees, but one query per declaration site means
@@ -22,8 +22,8 @@ function groupMatches(matches: JSONPathMatch[], key: (pointer: string) => string
  * prefixItems entry is ever chosen, so alternatives may repeat an interface id.
  */
 function detectDuplicateInterfaceIds(matches: JSONPathMatch[], seenIds: Set<unknown>, messages: IFunctionResult[]) {
-    for (const entry of groupMatches(matches, containingEntry)) {
-        const [choices, fixed] = partition(entry, match => isAlternative(match.pointer));
+    for (const group of groupMatches(matches, exclusiveGroup)) {
+        const [choices, fixed] = partition(group, match => isAlternative(match.pointer));
 
         detectDuplicates(fixed, seenIds, messages);
         groupMatches(choices, containingDeclaration).forEach(choice => detectDuplicates(choice, new Set(seenIds), messages));
