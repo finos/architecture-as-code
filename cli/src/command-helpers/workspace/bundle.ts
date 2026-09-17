@@ -73,6 +73,7 @@ export type MappingWorkspaceManifestEntry = {
     calmHubId?: string;
     version?: never;
     calmHubDocumentId?: never;
+    createRecovery?: never;
 };
 
 type NarrativeWorkspaceManifestEntryBase = {
@@ -85,15 +86,29 @@ type NarrativeWorkspaceManifestEntryBase = {
 export type UnpublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
     calmHubDocumentId?: never;
     calmHubId?: never;
+    createRecovery?: never;
+};
+
+export type NarrativeCreateRecovery = {
+    documentIdsBeforeCreate: number[];
+    documentMarkdownSha256: string;
+};
+
+export type CreateRecoveryPendingNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+    createRecovery: NarrativeCreateRecovery;
 };
 
 export type PublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
     calmHubDocumentId: number;
     calmHubId: string;
+    createRecovery?: never;
 };
 
 export type NarrativeWorkspaceManifestEntry =
     | UnpublishedNarrativeWorkspaceManifestEntry
+    | CreateRecoveryPendingNarrativeWorkspaceManifestEntry
     | PublishedNarrativeWorkspaceManifestEntry;
 
 export type WorkspaceManifestEntry = MappingWorkspaceManifestEntry | NarrativeWorkspaceManifestEntry;
@@ -225,6 +240,14 @@ function isPublishedNarrativeWorkspaceManifestEntry(
         entry.calmHubId !== undefined;
 }
 
+function hasNarrativeCreateRecovery(
+    entry: WorkspaceManifestEntry | undefined
+): entry is CreateRecoveryPendingNarrativeWorkspaceManifestEntry {
+    return entry !== undefined &&
+        isNarrativeWorkspaceManifestEntry(entry) &&
+        Object.prototype.hasOwnProperty.call(entry, 'createRecovery');
+}
+
 function hasEquivalentPublishedNarrativeIdentity(
     entry: PublishedNarrativeWorkspaceManifestEntry,
     opts: AddNarrativeFileToBundleOptions & { calmHubDocumentId: number; calmHubId: string }
@@ -281,6 +304,33 @@ export async function addFileToBundle(
     const manifest = await loadManifest(bundlePath);
     const existingEntry = manifest[id];
     let narrativeIdentity: Pick<PublishedNarrativeWorkspaceManifestEntry, 'version' | 'calmHubDocumentId' | 'calmHubId'> | undefined;
+
+    if (hasNarrativeCreateRecovery(existingEntry)) {
+        if (
+            !isNarrativeAddFileToBundleOptions(opts) ||
+            opts.calmHubDocumentId === undefined ||
+            opts.calmHubId === undefined
+        ) {
+            throw new Error(`Narrative document '${id}' has pending create recovery and cannot be re-added until it is reconciled.`);
+        }
+        if (
+            existingEntry.type !== opts.type ||
+            existingEntry.namespace !== opts.namespace ||
+            existingEntry.version !== opts.version
+        ) {
+            throw new Error(`Narrative document '${id}' recovery identity conflicts with its pending create recovery scope.`);
+        }
+        try {
+            validateNarrativeDocumentLocation(opts.calmHubId, {
+                namespace: opts.namespace ?? '',
+                type: opts.type,
+                version: opts.version,
+                calmHubDocumentId: opts.calmHubDocumentId,
+            });
+        } catch {
+            throw new Error(`Narrative document '${id}' recovery identity conflicts with its pending create recovery scope.`);
+        }
+    }
 
     if (
         isPublishedNarrativeWorkspaceManifestEntry(existingEntry) &&

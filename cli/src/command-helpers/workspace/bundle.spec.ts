@@ -20,6 +20,7 @@ describe('bundle', () => {
     const testDir = path.join(__dirname, 'test-bundle');
     const bundlePath = path.join(testDir, 'bundle');
     const filesPath = path.join(bundlePath, 'files');
+    const documentMarkdownSha256 = 'a'.repeat(64);
 
     beforeAll(async () => {
         await mkdir(testDir, { recursive: true });
@@ -61,10 +62,15 @@ describe('bundle', () => {
                 path: 'files/design.md', type: 'sad', version: '1.0.0',
                 calmHubDocumentId: 42, calmHubId: '/documents/sad/42/versions/1.0.0',
             };
+            const pendingNarrative: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0',
+                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+            };
 
             expect(isNarrativeWorkspaceManifestEntry(mapping)).toBe(false);
             expect(isNarrativeWorkspaceManifestEntry(unpublishedNarrative)).toBe(true);
             expect(isNarrativeWorkspaceManifestEntry(publishedNarrative)).toBe(true);
+            expect(isNarrativeWorkspaceManifestEntry(pendingNarrative)).toBe(true);
             expect([mapping, publishedNarrative].filter(isNarrativeWorkspaceManifestEntry)[0].version).toBe('1.0.0');
         });
 
@@ -89,12 +95,19 @@ describe('bundle', () => {
             const invalidMappingId: WorkspaceManifestEntry = {
                 path: 'files/architecture.json', type: 'architecture', calmHubDocumentId: 42,
             };
+            // @ts-expect-error Pending narrative entries cannot also have a published identity.
+            const pendingPublishedNarrative: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0',
+                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                calmHubDocumentId: 42, calmHubId: '/documents/sad/42/versions/1.0.0',
+            };
 
             expect(narrativeWithoutHubId.type).toBe('sad');
             expect(narrativeWithoutDocumentId.type).toBe('sad');
             expect(narrativeWithoutVersion.type).toBe('sad');
             expect(invalidMapping.type).toBe('architecture');
             expect(invalidMappingId.type).toBe('architecture');
+            expect(pendingPublishedNarrative.type).toBe('sad');
         });
     });
 
@@ -292,6 +305,77 @@ describe('bundle', () => {
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
                 path: srcFile, type: 'sad', namespace: 'finos', version: '1.0.0',
             });
+        });
+
+        it('rejects re-adding a narrative while create recovery is pending', async () => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
+                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type: 'sad', namespace: 'finos', version: '1.0.0',
+            })).rejects.toThrow(/pending create recovery/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+        });
+
+        it('rejects replacing a pending narrative with a mapping', async () => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
+                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type: 'architecture',
+            })).rejects.toThrow(/pending create recovery/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+        });
+
+        it('allows a full compatible verified identity to reconcile pending recovery', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '1.0.0',
+                    createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'sad', namespace: 'finos', version: '1.0.0', calmHubDocumentId: 3,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/3/versions/1.0.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: srcFile, type: 'sad', namespace: 'finos', version: '1.0.0',
+                calmHubDocumentId: 3,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/3/versions/1.0.0',
+            });
+            expect((await loadManifest(bundlePath))['source-doc']).not.toHaveProperty('createRecovery');
+        });
+
+        it.each([
+            { type: 'knowledge' as const, namespace: 'finos', version: '1.0.0' },
+            { type: 'sad' as const, namespace: 'other', version: '1.0.0' },
+            { type: 'sad' as const, namespace: 'finos', version: '1.1.0' },
+        ])('rejects verified identity outside the pending recovery scope', async ({ type, namespace, version }) => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
+                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type, namespace, version, calmHubDocumentId: 3,
+                calmHubId: `/api/calm/namespaces/${namespace}/documents/${type}/3/versions/${version}`,
+            })).rejects.toThrow(/pending create recovery scope/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
         });
 
         it('preserves a published narrative Hub identity when re-added normally', async () => {

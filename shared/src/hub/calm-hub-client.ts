@@ -133,9 +133,14 @@ export class CalmHubClient {
         namespace: string,
         type: NarrativeDocumentType,
         request: NarrativeDocumentRequest
-    ): Promise<string> {
+    ): Promise<string | undefined> {
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}`;
-        return this.createNarrativeDocumentAt(endpoint, request, `POST ${endpoint}`);
+        try {
+            const response = await this.ax.post(endpoint, request);
+            return response.headers.location as string | undefined;
+        } catch (err) {
+            throw this.wrapError(err, `POST ${endpoint}`);
+        }
     }
 
     async createNarrativeDocumentVersion(
@@ -147,6 +152,21 @@ export class CalmHubClient {
     ): Promise<string> {
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`;
         return this.createNarrativeDocumentAt(endpoint, request, `POST ${endpoint}`);
+    }
+
+    async getNarrativeDocumentIds(namespace: string, type: NarrativeDocumentType): Promise<number[]> {
+        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            if (!response.data || typeof response.data !== 'object' || !Array.isArray(response.data.values) ||
+                !response.data.values.every((value: unknown) => Number.isSafeInteger(value) && (value as number) > 0)) {
+                throw new HubClientError(0, 'Response does not contain a positive integer values array', `GET ${endpoint}`);
+            }
+            return response.data.values;
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
     }
 
     async getNarrativeDocumentVersions(namespace: string, type: NarrativeDocumentType, id: number): Promise<string[]> {

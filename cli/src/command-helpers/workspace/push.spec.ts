@@ -5,17 +5,20 @@ import { CalmHubClient, HubClientError } from '@finos/calm-shared';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
+import { createHash } from 'node:crypto';
 
 const makeClient = (
     overrides: Partial<Pick<CalmHubClient,
         'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion' |
-        'createNarrativeDocument' | 'createNarrativeDocumentVersion' | 'getNarrativeDocumentVersions' | 'getNarrativeDocumentVersion'>> = {}
+        'createNarrativeDocument' | 'createNarrativeDocumentVersion' | 'getNarrativeDocumentIds' |
+        'getNarrativeDocumentVersions' | 'getNarrativeDocumentVersion'>> = {}
 ): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async () => []),
     createMappedResourceVersion: vi.fn(async () => '/calm/namespaces/com.example/architectures/my-arch/versions/1.0.0'),
     getMappedResourceByVersion: vi.fn(async () => ({})),
     createNarrativeDocument: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0'),
     createNarrativeDocumentVersion: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.1.0'),
+    getNarrativeDocumentIds: vi.fn(async () => []),
     getNarrativeDocumentVersions: vi.fn(async () => []),
     getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '' })),
     ...overrides,
@@ -34,6 +37,7 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
 const BASE = 'https://hub.example.com';
 const mappingId = (resource: string, version = '1.0.0', type = 'architectures', ns = 'com.example') =>
     `${BASE}/calm/namespaces/${ns}/${type}/${resource}/versions/${version}`;
+const sha256 = (value: string) => createHash('sha256').update(value, 'utf8').digest('hex');
 
 describe('pushWorkspaceToHub', () => {
     const testDir = path.join(__dirname, 'test-push');
@@ -58,6 +62,13 @@ describe('pushWorkspaceToHub', () => {
         }
         await mkdir(filesPath, { recursive: true });
     });
+
+    async function writeFreshNarrative(markdown: string): Promise<void> {
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await saveManifest(bundlePath, {
+            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+    }
 
     it('resolves file path when entry.path is absolute', async () => {
         const absoluteFilePath = path.join(filesPath, 'doc-a.json');
@@ -105,6 +116,319 @@ describe('pushWorkspaceToHub', () => {
         expect(await loadManifest(bundlePath)).toMatchObject({
             'payments-sad': { calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0' },
         });
+        expect((await loadManifest(bundlePath))['payments-sad']).not.toHaveProperty('createRecovery');
+        expect(client.getNarrativeDocumentIds).toHaveBeenCalledOnce();
+        expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('preserves an absolute valid Location without recovery', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const location = 'https://hub.example.com/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0';
+        const client = makeClient({ createNarrativeDocument: vi.fn().mockResolvedValue(location) });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({ calmHubDocumentId: 42, calmHubId: location });
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');
+        expect(client.getNarrativeDocumentIds).toHaveBeenCalledOnce();
+        expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
+    });
+
+    it('preserves independent identities for multiple narratives', async () => {
+        const payments = '---\ntitle: Payments SAD\n---\n# Payments';
+        const orders = '---\ntitle: Orders Knowledge\n---\n# Orders';
+        await writeFile(path.join(filesPath, 'payments.md'), payments);
+        await writeFile(path.join(filesPath, 'orders.md'), orders);
+        await saveManifest(bundlePath, {
+            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            orders: { path: 'files/orders.md', type: 'knowledge', namespace: 'com.example', version: '1.0.0' },
+        });
+        const createNarrativeDocument = vi.fn().mockImplementation(async (_namespace, type) =>
+            `/api/calm/namespaces/com.example/documents/${type}/${type === 'sad' ? 3 : 4}/versions/1.0.0`
+        );
+        const client = makeClient({ createNarrativeDocument });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(await loadManifest(bundlePath)).toMatchObject({
+            payments: { calmHubDocumentId: 3 },
+            orders: { calmHubDocumentId: 4 },
+        });
+        expect(createNarrativeDocument).toHaveBeenCalledTimes(2);
+        expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
+    });
+
+    it('recovers a created narrative document from authoritative Hub state', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const getNarrativeDocumentIds = vi.fn()
+            .mockResolvedValueOnce([1, 2])
+            .mockResolvedValueOnce([1, 2, 3]);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds,
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({
+            calmHubDocumentId: 3,
+            calmHubId: '/api/calm/namespaces/com.example/documents/sad/3/versions/1.0.0',
+        });
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');
+        expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('com.example', 'sad', 3, '1.0.0');
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('recovers only the matching document when concurrent documents appear', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2, 3, 4]),
+            getNarrativeDocumentVersion: vi.fn().mockImplementation(async (_namespace, _type, documentId) => ({
+                documentMarkdown: documentId === 4 ? markdown : '---\ntitle: Other\n---\n# Other',
+            })),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({ calmHubDocumentId: 4 });
+        expect(client.getNarrativeDocumentVersion).toHaveBeenCalledTimes(2);
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('uses the same recovery path when a confirmed create has no Location', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue(undefined),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2, 3]),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({
+            calmHubDocumentId: 3,
+            calmHubId: '/api/calm/namespaces/com.example/documents/sad/3/versions/1.0.0',
+        });
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('persists a recovery fence when the post-create list is stale', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2]),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/no new document has matching Markdown/);
+
+        expect((await loadManifest(bundlePath)).payments).toEqual({
+            path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        });
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('fails ambiguous recovery when multiple new documents match', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2, 3, 4]),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/multiple new documents have matching Markdown/);
+
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        });
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('calmHubDocumentId');
+        expect(client.getNarrativeDocumentVersion).toHaveBeenCalledTimes(2);
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+    });
+
+    it('recovers a pending create on retry without another POST', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const firstClient = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2]),
+        });
+        await expect(pushWorkspaceToHub(bundlePath, firstClient)).rejects.toThrow(/no new document/);
+
+        const retryClient = makeClient({
+            getNarrativeDocumentIds: vi.fn().mockResolvedValue([1, 2, 3]),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+        await pushWorkspaceToHub(bundlePath, retryClient);
+
+        expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
+        expect((await loadManifest(bundlePath)).payments).toEqual({
+            path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+            calmHubDocumentId: 3,
+            calmHubId: '/api/calm/namespaces/com.example/documents/sad/3/versions/1.0.0',
+        });
+    });
+
+    it('does not recover against changed local Markdown', async () => {
+        const markdownA = '---\ntitle: Payments SAD\n---\n# Payload A';
+        const markdownB = '---\ntitle: Payments SAD\n---\n# Payload B';
+        await writeFreshNarrative(markdownA);
+        const firstClient = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2]),
+        });
+        await expect(pushWorkspaceToHub(bundlePath, firstClient)).rejects.toThrow(/no new document/);
+        const pending = (await loadManifest(bundlePath)).payments;
+
+        await writeFile(path.join(filesPath, 'payments.md'), markdownB);
+        const retryClient = makeClient({
+            getNarrativeDocumentIds: vi.fn().mockResolvedValue([1, 2, 3, 4]),
+            getNarrativeDocumentVersion: vi.fn().mockImplementation(async (_namespace, _type, documentId) => ({
+                documentMarkdown: documentId === 3 ? markdownA : markdownB,
+            })),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, retryClient)).rejects.toThrow(/Markdown changed while create recovery is pending/);
+
+        expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
+        expect(retryClient.getNarrativeDocumentIds).not.toHaveBeenCalled();
+        expect(retryClient.getNarrativeDocumentVersion).not.toHaveBeenCalled();
+        expect((await loadManifest(bundlePath)).payments).toEqual(pending);
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('calmHubDocumentId');
+    });
+
+    it('keeps a pending recovery fence when retry still has no match', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const pending = {
+            path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        };
+        await saveManifest(bundlePath, { payments: pending });
+        const client = makeClient({
+            getNarrativeDocumentIds: vi.fn().mockResolvedValue([1, 2, 3]),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: '# Different' }),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/no new document has matching Markdown/);
+
+        expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+        expect((await loadManifest(bundlePath)).payments).toEqual(pending);
+    });
+
+    it('keeps a pending recovery fence when retry remains ambiguous', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const pending = {
+            path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        };
+        await saveManifest(bundlePath, { payments: pending });
+        const client = makeClient({
+            getNarrativeDocumentIds: vi.fn().mockResolvedValue([1, 2, 3, 4]),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/multiple new documents have matching Markdown/);
+
+        expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+        expect((await loadManifest(bundlePath)).payments).toEqual(pending);
+    });
+
+    it('keeps a recovery fence after a candidate GET error and never POSTs on retry', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const firstClient = makeClient({
+            createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected'),
+            getNarrativeDocumentIds: vi.fn()
+                .mockResolvedValueOnce([1, 2])
+                .mockResolvedValueOnce([1, 2, 3]),
+            getNarrativeDocumentVersion: vi.fn().mockRejectedValue(new Error('temporarily unavailable')),
+        });
+        await expect(pushWorkspaceToHub(bundlePath, firstClient)).rejects.toThrow(/temporarily unavailable/);
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        });
+
+        const retryClient = makeClient({
+            getNarrativeDocumentIds: vi.fn().mockResolvedValue([1, 2, 3]),
+            getNarrativeDocumentVersion: vi.fn().mockRejectedValue(new Error('still unavailable')),
+        });
+        await expect(pushWorkspaceToHub(bundlePath, retryClient)).rejects.toThrow(/still unavailable/);
+
+        expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({
+            createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: sha256(markdown) },
+        });
+    });
+
+    it.each([
+        null,
+        {},
+        { documentIdsBeforeCreate: '1,2', documentMarkdownSha256: 'a'.repeat(64) },
+        { documentIdsBeforeCreate: [0], documentMarkdownSha256: 'a'.repeat(64) },
+        { documentIdsBeforeCreate: [1.5], documentMarkdownSha256: 'a'.repeat(64) },
+        { documentIdsBeforeCreate: [Number.MAX_SAFE_INTEGER + 1], documentMarkdownSha256: 'a'.repeat(64) },
+        { documentIdsBeforeCreate: [1, 2] },
+        { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'not-a-digest' },
+        { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'A'.repeat(64) },
+        { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'a'.repeat(63) },
+    ])('rejects malformed persisted create recovery without posting: %j', async (createRecovery) => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0', createRecovery,
+            } as never,
+        });
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/createRecovery/);
+
+        expect(client.createNarrativeDocument).not.toHaveBeenCalled();
+        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
+    });
+
+    it('does not run success recovery after a genuine create failure', async () => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFreshNarrative(markdown);
+        const getNarrativeDocumentIds = vi.fn().mockResolvedValue([1, 2]);
+        const client = makeClient({
+            createNarrativeDocument: vi.fn().mockRejectedValue(
+                new HubClientError(500, 'unavailable', 'POST /api/calm/namespaces/com.example/documents/sad')
+            ),
+            getNarrativeDocumentIds,
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/Hub error 500/);
+
+        expect(getNarrativeDocumentIds).toHaveBeenCalledOnce();
+        expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('calmHubDocumentId');
+        expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');
     });
 
     it('fails the completed push when a narrative document is invalid', async () => {
@@ -202,17 +526,6 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/valid namespace/);
         expect(client.createNarrativeDocument).not.toHaveBeenCalled();
         expect(await loadManifest(bundlePath)).toEqual({ payments: entry });
-    });
-
-    it('fails narrative publish when Hub returns an unexpected Location', async () => {
-        await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
-        await saveManifest(bundlePath, {
-            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
-        });
-        const client = makeClient({ createNarrativeDocument: vi.fn().mockResolvedValue('/unexpected') });
-
-        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/unexpected format/);
-        expect((await loadManifest(bundlePath)).payments.calmHubDocumentId).toBeUndefined();
     });
 
     it('rejects narrative manifests with no version or a non-initial unassigned version', async () => {
