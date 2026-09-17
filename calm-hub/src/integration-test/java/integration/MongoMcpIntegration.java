@@ -10,7 +10,6 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
 import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.mcp.tools.ArchitectureTools;
 import org.finos.calm.mcp.tools.ControlTools;
 import org.finos.calm.mcp.tools.DecoratorTools;
@@ -139,14 +138,17 @@ public class MongoMcpIntegration {
     @Inject
     TimelineTools timelineTools;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     private static String text(ToolResponse r) {
         return ((TextContent) r.firstContent()).text();
     }
 
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
