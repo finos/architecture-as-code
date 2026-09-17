@@ -5,6 +5,24 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.60.1] - 2026-09-16
+
+## [1.60.1](https://github.com/finos/architecture-as-code/compare/cli-v1.60.0...cli-v1.60.1) (2026-09-16)
+
+* Render flows in CALM Hub (WIP) (#3050) ([](https://github.com/finos/architecture-as-code/commit/487daa7f8966eaef13dcf6f1efc27ff185928ac7)), closes [#3050](https://github.com/finos/architecture-as-code/issues/3050) [#1998](https://github.com/finos/architecture-as-code/issues/1998) [#2537](https://github.com/finos/architecture-as-code/issues/2537) [#2690](https://github.com/finos/architecture-as-code/issues/2690)
+
+### chore
+
+* **deps:** update aws-actions/configure-aws-credentials digest to e125382 ([](https://github.com/finos/architecture-as-code/commit/c1613e44d21d76259d458bf6d11ea03965265ebd))
+* **deps:** update aws-actions/configure-aws-credentials digest to e125382 ([](https://github.com/finos/architecture-as-code/commit/0727cf8d563617699140c687332ae9764266aff1))
+* **deps:** update patch updates (#3106) ([](https://github.com/finos/architecture-as-code/commit/33fa35a04ba9f6038ab48673b23358ac90d3c574)), closes [#3106](https://github.com/finos/architecture-as-code/issues/3106)
+* **deps:** update semgrep/semgrep docker digest to 34ab619 ([](https://github.com/finos/architecture-as-code/commit/649f4d5e78b45522caf4fa22f911009693a96aa7))
+* **deps:** update semgrep/semgrep docker digest to 34ab619 ([](https://github.com/finos/architecture-as-code/commit/24fa68178471f65cd254e92c22b2ba43046cfd8b))
+
+### fix
+
+* **calm-hub-ui:** meet WCAG AA contrast for redesign text tokens (#2989) ([](https://github.com/finos/architecture-as-code/commit/ee8424af6776258c98af59ca22369fc5dfff57b9)), closes [#2989](https://github.com/finos/architecture-as-code/issues/2989) [#9AA6B8](https://github.com/finos/architecture-as-code/issues/9AA6B8) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#8A94A6](https://github.com/finos/architecture-as-code/issues/8A94A6) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#515F75](https://github.com/finos/architecture-as-code/issues/515F75) [#FFFFFF](https://github.com/finos/architecture-as-code/issues/FFFFFF) [#5A6678](https://github.com/finos/architecture-as-code/issues/5A6678) [#5A697F](https://github.com/finos/architecture-as-code/issues/5A697F) [#EEF2F7](https://github.com/finos/architecture-as-code/issues/EEF2F7) [#64748B](https://github.com/finos/architecture-as-code/issues/64748B) [#F8FAFC](https://github.com/finos/architecture-as-code/issues/F8FAFC)
+
 ## [1.60.0] - 2026-09-14
 
 ## [1.60.0](https://github.com/finos/architecture-as-code/compare/cli-v1.59.0...cli-v1.60.0) (2026-09-14)
