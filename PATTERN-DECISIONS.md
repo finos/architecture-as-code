@@ -83,6 +83,7 @@ five declaration sites listed above.
 | A connects relationship refers to an interface that the named node does not declare | error |
 | A `prefixItems` entry or an `items` block declares both `oneOf` and `anyOf` | error |
 | A decision is declared in `items` rather than in `prefixItems` | error |
+| A decision declares its options in `items` rather than in `prefixItems` | error |
 | `maxItems` leaves no room for an `items` member | error |
 | No relationship and no decision refers to a declared node | warning |
 
@@ -93,6 +94,10 @@ Declare a decision as a plain entry in `relationships.prefixItems`. An architect
 contains every relationship declared at a fixed position there, so the decision is always
 asked. A decision declared in `items`, or as one alternative of an entry, can be left out,
 and an answer never gets to decline it. `calm validate` reports the `items` case only.
+
+A decision holds its answers in an `options` array. Declare those option blocks in
+`options.prefixItems`. `calm generate` reads that array alone, so a block declared in
+`options.items` is never built and the decision loses the answers it holds.
 
 Two `items` members may both be built, so they must not share a `unique-id`, and two nodes
 declared there must not share an interface id. Two alternatives of one `prefixItems` entry
