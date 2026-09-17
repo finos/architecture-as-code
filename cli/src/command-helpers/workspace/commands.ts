@@ -16,9 +16,43 @@ import { select, input } from '@inquirer/prompts';
 import { CALM_DOCUMENT_TYPES_LIST, CALM_NARRATIVE_DOCUMENT_TYPES_LIST, isNarrativeDocumentType, isValidCalmDocumentType } from '@finos/calm-models/types';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
-import { constructNarrativeDocumentPath, parseNarrativeDocument, validateNarrativeIdentity } from './narrative-document';
+import { constructNarrativeDocumentPath, parseNarrativeDocument, validateNarrativeIdentity, type NarrativeDocumentIdentity } from './narrative-document';
 
 const logger: Logger = initLogger(false, 'workspace');
+
+type NarrativeRegistrationOptions = {
+    id?: string;
+    copy?: boolean;
+    identity: NarrativeDocumentIdentity;
+    verify?: (documentMarkdown: string) => Promise<void>;
+};
+
+async function registerNarrativeDocument(
+    bundlePath: string,
+    srcPath: string,
+    file: string,
+    options: NarrativeRegistrationOptions
+): Promise<{ id: string; destPath: string; rel: string }> {
+    const raw = await readFile(srcPath, 'utf8');
+    const narrative = parseNarrativeDocument(raw, file);
+    await options.verify?.(raw);
+
+    const hubIdentity = options.identity.calmHubDocumentId === undefined
+        ? {}
+        : {
+            calmHubDocumentId: options.identity.calmHubDocumentId,
+            calmHubId: constructNarrativeDocumentPath(options.identity),
+        };
+
+    return addFileToBundle(bundlePath, srcPath, {
+        id: options.id ?? narrative.request.name,
+        copy: options.copy,
+        type: options.identity.type,
+        namespace: options.identity.namespace,
+        version: options.identity.version,
+        ...hubIdentity,
+    });
+}
 
 /**
  * Sets up the 'workspace' command and its subcommands in the CLI.
@@ -106,25 +140,26 @@ export function setupWorkspaceCommands(program: Command) {
                         calmHubDocumentId,
                     };
                     validateNarrativeIdentity(identity, true, file);
-                    const raw = await readFile(srcPath, 'utf8');
-                    const narrative = parseNarrativeDocument(raw, file);
-                    const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
-                    const client = new CalmHubClient(calmHubOptions);
-                    const remote = await client.getNarrativeDocumentVersion(
-                        identity.namespace, identity.type, identity.calmHubDocumentId, identity.version
+                    const { id: resolvedId, destPath: finalDestPath } = await registerNarrativeDocument(
+                        bundlePath,
+                        srcPath,
+                        file,
+                        {
+                            id: options.id,
+                            copy: options.copy,
+                            identity,
+                            verify: async (raw) => {
+                                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                                const client = new CalmHubClient(calmHubOptions);
+                                const remote = await client.getNarrativeDocumentVersion(
+                                    identity.namespace, identity.type, identity.calmHubDocumentId, identity.version
+                                );
+                                if (remote.documentMarkdown !== raw) {
+                                    throw new Error(`Narrative document '${file}' does not match CalmHub version ${identity.version}.`);
+                                }
+                            },
+                        }
                     );
-                    if (remote.documentMarkdown !== raw) {
-                        throw new Error(`Narrative document '${file}' does not match CalmHub version ${identity.version}.`);
-                    }
-                    const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
-                        id: options.id ?? narrative.request.name,
-                        copy: options.copy,
-                        type: identity.type,
-                        namespace: identity.namespace,
-                        version: identity.version,
-                        calmHubDocumentId: identity.calmHubDocumentId,
-                        calmHubId: constructNarrativeDocumentPath(identity),
-                    });
                     logger.info(`${options.copy ? 'Copied' : 'Added reference to'} ${finalDestPath} (id: ${resolvedId})`);
                     return;
                 }
@@ -135,15 +170,20 @@ export function setupWorkspaceCommands(program: Command) {
                     if (!options.namespace?.trim()) {
                         throw new Error(`Narrative document '${file}' requires --namespace.`);
                     }
-                    const raw = await readFile(srcPath, 'utf8');
-                    const narrative = parseNarrativeDocument(raw, file);
-                    const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
-                        id: options.id ?? narrative.request.name,
-                        copy: options.copy,
-                        type,
-                        namespace: options.namespace.trim(),
-                        version: '1.0.0',
-                    });
+                    const { id: resolvedId, destPath: finalDestPath } = await registerNarrativeDocument(
+                        bundlePath,
+                        srcPath,
+                        file,
+                        {
+                            id: options.id,
+                            copy: options.copy,
+                            identity: {
+                                namespace: options.namespace.trim(),
+                                type,
+                                version: '1.0.0',
+                            },
+                        }
+                    );
                     if (options.copy) {
                         logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
                     } else {

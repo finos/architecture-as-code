@@ -278,6 +278,172 @@ describe('bundle', () => {
             expect((await loadManifest(bundlePath))['source-doc']).toMatchObject({ version: '1.0.0' });
         });
 
+        it('keeps an unpublished narrative unpublished when re-added', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '1.0.0',
+                },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'sad', namespace: 'finos', version: '1.0.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: srcFile, type: 'sad', namespace: 'finos', version: '1.0.0',
+            });
+        });
+
+        it('preserves a published narrative Hub identity when re-added normally', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '2.3.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+                },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'sad', namespace: 'finos', version: '1.0.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: srcFile, type: 'sad', namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            });
+        });
+
+        it.each([
+            [false, srcFile],
+            [true, 'files/source.json'],
+        ])('preserves a published narrative Hub identity when changing its stored path (copy: %s)', async (copy, expectedPath) => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '2.3.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+                },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                copy, type: 'sad', namespace: 'finos', version: '1.0.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: expectedPath, type: 'sad', namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            });
+        });
+
+        it('accepts verified recovery when the existing published identity is equivalent', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '2.3.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: 'https://calmhub.example.com/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+                },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'sad', namespace: 'finos', version: '2.3.0', calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: srcFile, type: 'sad', namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            });
+        });
+
+        it('rejects verified recovery that conflicts with an existing published identity', async () => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type: 'sad', namespace: 'finos', version: '2.3.0', calmHubDocumentId: 43,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/43/versions/2.3.0',
+            })).rejects.toThrow(/recovery identity conflicts/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+        });
+
+        it.each([
+            { type: 'knowledge' as const, namespace: 'finos' },
+            { type: 'sad' as const, namespace: 'other' },
+        ])('rejects a normal re-add that changes published identity scope', async ({ type, namespace }) => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                type, namespace, version: '1.0.0',
+            })).rejects.toThrow(/type or namespace conflicts/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+        });
+
+        it('rejects replacing a published narrative with a mapping before copying or changing the manifest', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': {
+                    path: 'old.md', type: 'sad', namespace: 'finos', version: '2.3.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+                },
+            });
+            const manifestPath = path.join(bundlePath, MANIFEST_FILENAME);
+            const originalManifest = await readFile(manifestPath, 'utf8');
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type: 'architecture',
+            })).rejects.toThrow(/cannot be replaced with a non-narrative document/);
+
+            expect(await readFile(manifestPath, 'utf8')).toBe(originalManifest);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+        });
+
+        it.each([
+            ['omitted', undefined],
+            ['unknown', { type: 'unknown' as const }],
+        ])('rejects replacing a published narrative when the incoming type is %s', async (_label, options) => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '2.3.0',
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, options)).rejects.toThrow(
+                /cannot be replaced with a non-narrative document/
+            );
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+        });
+
+        it('preserves normal replacement behavior for an existing mapping entry', async () => {
+            await saveManifest(bundlePath, {
+                'source-doc': { path: 'old.json', type: 'architecture', namespace: 'finos' },
+            });
+
+            await addFileToBundle(bundlePath, srcFile, {
+                type: 'pattern', namespace: 'other',
+            });
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual({
+                path: srcFile, type: 'pattern', namespace: 'other',
+            });
+        });
+
         it.each([
             { type: 'sad' as const, version: '1.2.0', calmHubDocumentId: 42 },
             { type: 'sad' as const, version: '1.2.0', calmHubId: '/path' },

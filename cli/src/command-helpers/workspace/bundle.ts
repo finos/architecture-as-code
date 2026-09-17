@@ -4,6 +4,7 @@ import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
 import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
+import { validateNarrativeDocumentLocation } from './narrative-document';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -215,6 +216,45 @@ function isNarrativeAddFileToBundleOptions(
     return opts !== undefined && isNarrativeDocumentType(opts.type);
 }
 
+function isPublishedNarrativeWorkspaceManifestEntry(
+    entry: WorkspaceManifestEntry | undefined
+): entry is PublishedNarrativeWorkspaceManifestEntry {
+    return entry !== undefined &&
+        isNarrativeWorkspaceManifestEntry(entry) &&
+        entry.calmHubDocumentId !== undefined &&
+        entry.calmHubId !== undefined;
+}
+
+function hasEquivalentPublishedNarrativeIdentity(
+    entry: PublishedNarrativeWorkspaceManifestEntry,
+    opts: AddNarrativeFileToBundleOptions & { calmHubDocumentId: number; calmHubId: string }
+): boolean {
+    if (
+        entry.namespace === undefined ||
+        opts.namespace === undefined ||
+        entry.namespace !== opts.namespace ||
+        entry.type !== opts.type ||
+        entry.version !== opts.version ||
+        entry.calmHubDocumentId !== opts.calmHubDocumentId
+    ) {
+        return false;
+    }
+
+    const identity = {
+        namespace: entry.namespace,
+        type: entry.type,
+        version: entry.version,
+        calmHubDocumentId: entry.calmHubDocumentId,
+    };
+    try {
+        validateNarrativeDocumentLocation(entry.calmHubId, identity);
+        validateNarrativeDocumentLocation(opts.calmHubId, identity);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Add a file into the workspace bundle and register it in the bundle manifest.
  * The file is copied into the bundle's 'files/' directory and the manifest is updated
@@ -238,6 +278,42 @@ export async function addFileToBundle(
     }
 
     const id = await determineDocumentId(srcPath, opts?.id);
+    const manifest = await loadManifest(bundlePath);
+    const existingEntry = manifest[id];
+    let narrativeIdentity: Pick<PublishedNarrativeWorkspaceManifestEntry, 'version' | 'calmHubDocumentId' | 'calmHubId'> | undefined;
+
+    if (
+        isPublishedNarrativeWorkspaceManifestEntry(existingEntry) &&
+        !isNarrativeAddFileToBundleOptions(opts)
+    ) {
+        throw new Error(`Published narrative document '${id}' cannot be replaced with a non-narrative document.`);
+    }
+
+    if (isNarrativeAddFileToBundleOptions(opts)) {
+        if (opts.calmHubDocumentId !== undefined && opts.calmHubId !== undefined) {
+            if (
+                isPublishedNarrativeWorkspaceManifestEntry(existingEntry) &&
+                !hasEquivalentPublishedNarrativeIdentity(existingEntry, opts)
+            ) {
+                throw new Error(`Narrative document '${id}' recovery identity conflicts with its existing published Hub identity.`);
+            }
+            narrativeIdentity = {
+                version: opts.version,
+                calmHubDocumentId: opts.calmHubDocumentId,
+                calmHubId: opts.calmHubId,
+            };
+        } else if (isPublishedNarrativeWorkspaceManifestEntry(existingEntry)) {
+            if (existingEntry.type !== opts.type || existingEntry.namespace !== opts.namespace) {
+                throw new Error(`Narrative document '${id}' type or namespace conflicts with its existing published Hub identity.`);
+            }
+            narrativeIdentity = {
+                version: existingEntry.version,
+                calmHubDocumentId: existingEntry.calmHubDocumentId,
+                calmHubId: existingEntry.calmHubId,
+            };
+        }
+    }
+
     let rel: string;
     let destPath: string;
 
@@ -257,16 +333,15 @@ export async function addFileToBundle(
         rel = srcPath;
     }
 
-    const manifest = await loadManifest(bundlePath);
     if (isNarrativeAddFileToBundleOptions(opts)) {
-        const hubIdentity = opts.calmHubDocumentId !== undefined && opts.calmHubId !== undefined
-            ? { calmHubDocumentId: opts.calmHubDocumentId, calmHubId: opts.calmHubId }
+        const hubIdentity = narrativeIdentity
+            ? { calmHubDocumentId: narrativeIdentity.calmHubDocumentId, calmHubId: narrativeIdentity.calmHubId }
             : {};
         manifest[id] = {
             path: rel,
             type: opts.type,
             ...(opts.namespace ? { namespace: opts.namespace } : {}),
-            version: opts.version,
+            version: narrativeIdentity?.version ?? opts.version,
             ...hubIdentity,
         };
     } else {
