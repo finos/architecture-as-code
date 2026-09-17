@@ -234,6 +234,67 @@ describe('pattern ruleset', () => {
             expect(codes).not.toContain('pattern-decision-must-be-declared-in-prefix-items');
         });
     });
+    describe('nodes and relationships referenced by a decision', () => {
+        it('accepts a decision option referencing a node declared in an items catalogue', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [decision('add-ons', ['cache'])] }
+                }
+            });
+            expect(codes).not.toContain('nodes-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block');
+        });
+
+        it('reports a decision option referencing a node declared only as a fixed entry', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp'), node('cache')] },
+                    relationships: { prefixItems: [decision('add-ons', ['cache'])] }
+                }
+            });
+            expect(codes).toContain('nodes-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block');
+        });
+    });
+
+    describe('pattern-decision-options-must-be-declared-in-prefix-items', () => {
+        const decisionWithOptions = (options: object) => ({
+            properties: {
+                'unique-id': { const: 'add-ons' },
+                description: { const: 'Pick an alternative' },
+                'relationship-type': { properties: { options } }
+            }
+        });
+        const optionBlock = {
+            anyOf: [{
+                properties: {
+                    description: { const: 'Use cache' },
+                    nodes: { const: ['cache'] },
+                    relationships: { const: [] }
+                }
+            }]
+        };
+
+        it('accepts option blocks declared in options prefixItems', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [decisionWithOptions({ prefixItems: [optionBlock] })] }
+                }
+            });
+            expect(codes).not.toContain('pattern-decision-options-must-be-declared-in-prefix-items');
+        });
+
+        it('rejects option blocks declared in options items, which calm generate never reads', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [decisionWithOptions({ items: optionBlock })] }
+                }
+            });
+            expect(codes).toContain('pattern-decision-options-must-be-declared-in-prefix-items');
+        });
+    });
+
     describe('pattern-items-must-fit-within-max-items', () => {
         it('rejects a pattern whose maxItems leaves no room for items', async () => {
             const codes = await codesFor({
