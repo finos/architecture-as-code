@@ -7,7 +7,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.eclipse.microprofile.config.ConfigProvider;
+import jakarta.inject.Inject;
 import org.finos.calm.domain.adr.Adr;
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.Decision;
@@ -39,6 +39,9 @@ import static org.hamcrest.Matchers.is;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class MongoAdrIntegration {
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     private ObjectMapper objectMapper;
 
     private static final Logger logger = LoggerFactory.getLogger(MongoAdrIntegration.class);
@@ -62,8 +65,8 @@ public class MongoAdrIntegration {
 
     @BeforeEach
     public void setupAdrs() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if(mongoUri == null || mongoUri.isBlank()) {
