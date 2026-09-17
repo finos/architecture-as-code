@@ -3,14 +3,12 @@ import {
     type LucideIcon,
 } from 'lucide-react';
 
+export { formatFieldName } from '../../../utils/format-utils.js';
+
 export interface AigfData {
     'risk-level'?: string;
     risks?: (string | import('../../contracts/contracts.js').RiskItem)[];
     mitigations?: (string | import('../../contracts/contracts.js').MitigationItem)[];
-}
-
-export function formatFieldName(field: string): string {
-    return field.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
 }
 
 const NODE_ICON_MAP: Record<string, LucideIcon> = {

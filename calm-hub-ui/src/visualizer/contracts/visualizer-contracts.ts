@@ -3,7 +3,6 @@ import {
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '@finos/calm-models/types';
-import type { Flow } from './flow-contracts.js';
 import type { Control } from './control-contracts.js';
 import type { Decorator } from './decorator-contracts.js';
 import { Data } from '../../model/calm.js';
@@ -104,17 +103,22 @@ export interface ArchitectureGraphProps {
     /** Bumped to force a clean re-apply of positions (used by "reset to default"). */
     layoutEpoch?: number;
     onPositionsChange?: PositionsChangeHandler;
+    /**
+     * Always show the whole graph: fit on mount, fit again when the pane resizes, and
+     * lower the desktop zoom floor so a narrow pane can contain the graph. Use it for
+     * an embedded pane that sibling UI sizes, for example the flow commentary panel.
+     * Do not use it where a viewport is persisted: it discards saved pan and zoom.
+     */
+    fitToPane?: boolean;
 }
 
 /**
  * Props for MetadataPanel component
  */
 export interface MetadataPanelProps {
-    flows: Flow[];
     controls: Record<string, Control>;
     decorators: Decorator[];
     adrs: string[];
-    onTransitionClick?: (relationshipId: string) => void;
     onNodeClick?: (nodeId: string) => void;
     onControlClick?: (controlId: string) => void;
     isCollapsed: boolean;
@@ -126,7 +130,7 @@ export interface MetadataPanelProps {
 /**
  * Tab type for MetadataPanel
  */
-export type MetadataPanelTabType = 'flows' | 'controls' | 'deployment' | 'adrs';
+export type MetadataPanelTabType = 'controls' | 'deployment' | 'adrs';
 
 /**
  * Props for AdrsPanel component

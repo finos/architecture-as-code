@@ -19,6 +19,7 @@ import {
     fetchVersionsForResource,
 } from './navigation-loaders.js';
 import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
+import { LoadingSpinner } from '../LoadingSpinner.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -27,6 +28,14 @@ interface MobileNavMenuProps {
     namespaceCounts: NamespaceCounts[];
     /** Per-domain control counts, fetched once by {@link Hub} and passed down. */
     domainCounts: DomainControlCount[];
+    /** True while the namespace counts are still being fetched. */
+    namespacesLoading?: boolean;
+    /** True while the domain control counts are still being fetched. */
+    domainsLoading?: boolean;
+    /** True if the namespace counts fetch failed — distinct from "loaded and empty". */
+    namespacesFailed?: boolean;
+    /** True if the domain counts fetch failed — distinct from "loaded and empty". */
+    domainsFailed?: boolean;
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
 }
@@ -66,7 +75,15 @@ interface LeafItem {
  * {@link Hub} (fetched once and shared) and passed in as props rather than
  * re-fetched here.
  */
-export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: MobileNavMenuProps) {
+export function MobileNavMenu({
+    namespaceCounts,
+    domainCounts,
+    namespacesLoading,
+    domainsLoading,
+    namespacesFailed,
+    domainsFailed,
+    onClose,
+}: MobileNavMenuProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
 
@@ -77,7 +94,7 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
 
     const [view, setView] = useState<View>({ level: 'root' });
     const [leafItems, setLeafItems] = useState<LeafItem[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [leafLoading, setLeafLoading] = useState(false);
     const [searching, setSearching] = useState(false);
 
     // Derive the namespace/domain lists from the counts Hub already fetched, rather than
@@ -111,10 +128,10 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         (namespace: string, type: TypeInUI) => {
             setView({ level: 'resources', namespace, type });
             setLeafItems([]);
-            setLoading(true);
+            setLeafLoading(true);
             const finish = (items: LeafItem[]) => {
                 setLeafItems(items);
-                setLoading(false);
+                setLeafLoading(false);
             };
             if (type === 'Interfaces') {
                 interfaceService
@@ -149,14 +166,14 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         (domain: string) => {
             setView({ level: 'controls', domain });
             setLeafItems([]);
-            setLoading(true);
+            setLeafLoading(true);
             controlService
                 .fetchControlsForDomain(domain)
                 .then((controls: ControlDetail[]) =>
                     setLeafItems(controls.map((c) => ({ id: c.id.toString(), name: c.title ?? c.name })))
                 )
                 .catch(() => setLeafItems([]))
-                .finally(() => setLoading(false));
+                .finally(() => setLeafLoading(false));
         },
         [controlService]
     );
@@ -287,7 +304,28 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
         }
     })();
 
-    const isEmpty = !loading && rows.length === 0;
+    // The root rows ('Namespaces', 'Control Domains') are static labels, not
+    // count-derived, so they render immediately — only the level whose data is
+    // actually in flight shows a spinner.
+    const showLoading =
+        leafLoading ||
+        (view.level === 'namespaces' && namespacesLoading) ||
+        (view.level === 'domains' && domainsLoading);
+    // Matches ExploreRail's section-specific spinner labels, rather than a bare
+    // "Loading" that doesn't tell a screen-reader user which section.
+    const loadingLabel =
+        view.level === 'namespaces' ? 'Loading namespaces' : view.level === 'domains' ? 'Loading control domains' : 'Loading';
+    const isEmpty = !showLoading && rows.length === 0;
+    // Distinguish "the fetch failed" from "there's genuinely nothing here" — a
+    // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
+    // No retry action exists here (Hub fetches counts once on mount), so the copy
+    // must not promise one — matches ExploreRail's equivalent desktop wording.
+    const emptyMessage =
+        view.level === 'namespaces' && namespacesFailed
+            ? "Couldn't load namespaces"
+            : view.level === 'domains' && domainsFailed
+              ? "Couldn't load control domains"
+              : 'Nothing here';
 
     return (
         <div className="h-full w-full flex flex-col">
@@ -309,15 +347,15 @@ export function MobileNavMenu({ namespaceCounts, domainCounts, onClose }: Mobile
 
             {!searching && (
                 <ul className="flex-1 overflow-auto divide-y divide-base-200">
-                    {loading && (
+                    {showLoading && (
                         <li className="flex items-center justify-center py-8">
-                            <span className="loading loading-spinner loading-md text-base-content/50" />
+                            <LoadingSpinner label={loadingLabel} />
                         </li>
                     )}
                     {isEmpty && (
-                        <li className="px-4 py-8 text-center text-base-content/50 text-sm">Nothing here</li>
+                        <li className="px-4 py-8 text-center text-base-content/50 text-sm">{emptyMessage}</li>
                     )}
-                    {!loading &&
+                    {!showLoading &&
                         rows.map((row) => (
                             <li key={row.key}>
                                 <button

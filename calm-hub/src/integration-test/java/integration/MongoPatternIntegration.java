@@ -3,14 +3,16 @@ package integration;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
+import io.quarkus.arc.Arc;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.migration.steps.MongoPatternVersionSplitStep;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import jakarta.inject.Inject;
 
 
 import static io.restassured.RestAssured.given;
@@ -27,10 +29,15 @@ public class MongoPatternIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoPatternIntegration.class);
     public static final String PATTERN = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeAll
     public static void resetPatterns() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        // Static JUnit lifecycle method — no instance to inject into, so look the bean up via Arc directly.
+        MongoTestConnection mongoTestConnection = Arc.container().instance(MongoTestConnection.class).get();
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
@@ -62,8 +69,8 @@ public class MongoPatternIntegration {
 
     @BeforeEach
     public void setupPatterns() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {

@@ -23,6 +23,7 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +43,7 @@ public class FlowResource {
 
     private final FlowStore store;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(FlowResource.class);
 
@@ -49,9 +51,10 @@ public class FlowResource {
     Boolean allowPutOperations;
 
     @Inject
-    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds) {
+    public FlowResource(FlowStore store, CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     @GET
@@ -272,6 +275,31 @@ public class FlowResource {
             logger.error("Invalid flow [{}] when trying to put flow", flow, e);
             return invalidFlowResponse(flowId);
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/flows/{flowId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a flow",
+            description = "Deletes a flow and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteFlow(
+            @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("flowId") int flowId
+    ) {
+        try {
+            store.deleteFlow(namespace, flowId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting flow", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (FlowNotFoundException e) {
+            logger.error("Invalid flow [{}] when deleting flow", flowId, e);
+            return invalidFlowResponse(flowId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.FLOW, flowId);
+        return Response.noContent().build();
     }
 
     private Response flowWithLocationResponse(Flow flow) throws URISyntaxException {

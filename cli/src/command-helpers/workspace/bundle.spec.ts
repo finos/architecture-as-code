@@ -4,6 +4,7 @@ import {
     saveManifest,
     determineDocumentId,
     addFileToBundle,
+    resolveFilePath,
     buildDependencyGraph,
     printBundleTree,
     extractReferenceValue,
@@ -189,10 +190,10 @@ describe('bundle', () => {
 
             expect(result.id).toBe('source-doc');
             expect(result.destPath).toBe(srcFile);
-            expect(result.rel).toBe(srcFile);
+            expect(result.rel).toBe('../source.json');
 
             const manifest = await loadManifest(bundlePath);
-            expect(manifest['source-doc'].path).toBe(srcFile);
+            expect(manifest['source-doc'].path).toBe('../source.json');
             expect(manifest['source-doc'].type).toBe('unknown');
         });
 
@@ -236,6 +237,31 @@ describe('bundle', () => {
             expect(existsSync(filesPath)).toBe(false);
             await addFileToBundle(bundlePath, srcFile, { copy: true });
             expect(existsSync(filesPath)).toBe(true);
+        });
+
+        it('should store a path relative to the bundle for a file nested under it', async () => {
+            const nestedDir = path.join(testDir, 'nested');
+            await mkdir(nestedDir, { recursive: true });
+            const nestedFile = path.join(nestedDir, 'nested.json');
+            await writeFile(nestedFile, JSON.stringify({ '$id': 'nested-doc' }));
+
+            const result = await addFileToBundle(bundlePath, nestedFile);
+
+            expect(result.rel).toBe('../nested/nested.json');
+            const manifest = await loadManifest(bundlePath);
+            expect(manifest['nested-doc'].path).toBe('../nested/nested.json');
+        });
+    });
+
+    describe('resolveFilePath', () => {
+        it('should resolve a relative entry against the bundle path, including parent traversal', () => {
+            expect(resolveFilePath(bundlePath, '../source.json')).toBe(path.join(bundlePath, '../source.json'));
+            expect(resolveFilePath(bundlePath, 'files/source.json')).toBe(path.join(bundlePath, 'files/source.json'));
+        });
+
+        it('should pass an absolute entry through unchanged for backwards compatibility', () => {
+            const absolute = path.join(testDir, 'legacy-absolute.json');
+            expect(resolveFilePath(bundlePath, absolute)).toBe(absolute);
         });
     });
 

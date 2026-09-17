@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { Axios } from 'axios';
 import AxiosMockAdapter from 'axios-mock-adapter';
 import { CalmHubDocumentLoader } from './calmhub-document-loader';
 import { DocumentLoadError } from './document-loader';
@@ -118,5 +118,39 @@ describe('calmhub-document-loader', () => {
         const promise = calmHubDocumentLoader.loadMissingDocument('calm:/schemas/2025-03/meta/array-response.json', 'schema');
         await expect(promise).rejects.toBeInstanceOf(DocumentLoadError);
         await expect(promise).rejects.toThrow('Expected a JSON object');
+    });
+
+    it('rejects a response redirected to a different origin', async () => {
+        const redirectAx = axios.create({ baseURL: calmHubBaseUrl });
+        vi.spyOn(redirectAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://evil.example/x.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: 'https://evil.example/x.json' }
+        });
+        const redirectedLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, redirectAx as unknown as Axios);
+
+        const calmHubUrl = 'calm:/schemas/2025-03/meta/core.json';
+        await expect(redirectedLoader.loadMissingDocument(calmHubUrl, 'schema'))
+            .rejects.toThrow('redirected to a different origin');
+    });
+
+    it('accepts a response whose responseURL confirms the same origin', async () => {
+        const sameOriginAx = axios.create({ baseURL: calmHubBaseUrl });
+        vi.spyOn(sameOriginAx, 'get').mockResolvedValue({
+            data: { '$id': 'https://calm.finos.org/core.json' },
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: {},
+            request: { responseURL: `${calmHubBaseUrl}/schemas/2025-03/meta/core.json` }
+        });
+        const sameOriginLoader = new CalmHubDocumentLoader(calmHubBaseUrl, false, undefined, sameOriginAx as unknown as Axios);
+
+        const calmHubUrl = 'calm:/schemas/2025-03/meta/core.json';
+        const document = await sameOriginLoader.loadMissingDocument(calmHubUrl, 'schema');
+        expect(document).toEqual({ '$id': 'https://calm.finos.org/core.json' });
     });
 });

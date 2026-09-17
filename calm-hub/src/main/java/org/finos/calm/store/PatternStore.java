@@ -37,4 +37,9 @@ public interface PatternStore {
     String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
     Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException;
     Pattern updatePatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
+
+    /**
+     * Deletes a pattern and all of its versions.
+     */
+    void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException;
 }

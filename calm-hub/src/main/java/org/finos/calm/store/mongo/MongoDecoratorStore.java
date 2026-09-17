@@ -145,6 +145,22 @@ public class MongoDecoratorStore implements DecoratorStore {
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
+    @Override
+    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        long modified = decoratorCollection.updateOne(
+                Filters.eq("namespace", namespace),
+                Updates.pull("decorators", Filters.eq(DECORATOR_ID_FIELD, id))
+        ).getModifiedCount();
+
+        if (modified == 0) {
+            throw new DecoratorNotFoundException();
+        }
+
+        LOG.debug("Deleted decorator with ID {} in namespace '{}'", id, namespace);
+    }
+
     /**
      * Fetches the namespace document from MongoDB
      */

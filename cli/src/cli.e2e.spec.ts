@@ -2,7 +2,7 @@ import { execSync } from 'child_process';
 import path from 'path';
 import * as fs from 'fs';
 import { parseStringPromise } from 'xml2js';
-import { expectDirectoryMatch, expectFilesMatch } from '@finos/calm-shared';
+import { expectDirectoryMatch, expectFilesMatch } from '../../shared/src/test/file-comparison';
 import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
 import { patchJson } from './test_helpers/json-file';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';

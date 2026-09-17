@@ -4,7 +4,7 @@ import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
-import { saveNodePositions } from '../../services/node-position-service.js';
+import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -120,6 +120,88 @@ describe('ArchitectureGraph', () => {
     it('wires onInit on desktop too, so a later desktop→mobile crossing can re-fit', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
         expect(typeof reactFlowProps.current?.onInit).toBe('function');
+    });
+
+    describe('fitToPane', () => {
+        // The shared setup stubs ResizeObserver as a no-op. Swap in one that
+        // records its callback so a pane resize can be simulated, and run
+        // rAF synchronously since the refit is frame-batched.
+        // Globals are saved and restored by hand. vi.unstubAllGlobals() would
+        // also drop the localStorage/sessionStorage stubs from vitest.setup.ts
+        // and break every test that runs after this block.
+        let triggerResize: (() => void) | null;
+        let originalResizeObserver: typeof globalThis.ResizeObserver;
+        let originalRaf: typeof globalThis.requestAnimationFrame;
+        let originalCancelRaf: typeof globalThis.cancelAnimationFrame;
+
+        beforeEach(() => {
+            triggerResize = null;
+            originalResizeObserver = globalThis.ResizeObserver;
+            originalRaf = globalThis.requestAnimationFrame;
+            originalCancelRaf = globalThis.cancelAnimationFrame;
+
+            globalThis.ResizeObserver = class {
+                constructor(callback: ResizeObserverCallback) {
+                    triggerResize = () => callback([], this as unknown as ResizeObserver);
+                }
+                observe() {}
+                unobserve() {}
+                disconnect() {}
+            } as unknown as typeof globalThis.ResizeObserver;
+            globalThis.requestAnimationFrame = ((cb: FrameRequestCallback) => {
+                cb(0);
+                return 1;
+            }) as typeof globalThis.requestAnimationFrame;
+            globalThis.cancelAnimationFrame = (() => {}) as typeof globalThis.cancelAnimationFrame;
+        });
+
+        afterEach(() => {
+            globalThis.ResizeObserver = originalResizeObserver;
+            globalThis.requestAnimationFrame = originalRaf;
+            globalThis.cancelAnimationFrame = originalCancelRaf;
+        });
+
+        /** Hands the graph a flow instance the way ReactFlow's onInit would. */
+        function initFlow() {
+            const fitView = vi.fn();
+            const onInit = reactFlowProps.current?.onInit as (i: unknown) => void;
+            onInit({ fitView });
+            return fitView;
+        }
+
+        it('drops the zoom floor so a narrow pane contains the graph instead of clipping it', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} fitToPane />);
+            // The 0.6 desktop floor cannot fit this graph into a pane narrowed by
+            // the commentary panel, so it overflows left/right at exactly scale 0.6.
+            expect(reactFlowProps.current?.fitViewOptions).toEqual({
+                padding: 0.1,
+                minZoom: 0.1,
+                maxZoom: 1.2,
+            });
+            // Always fit, never restore. Siblings size the pane, not the user.
+            expect(reactFlowProps.current?.fitView).toBe(true);
+            expect(reactFlowProps.current?.defaultViewport).toBeUndefined();
+        });
+
+        it('re-fits the pane on resize when enabled', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} fitToPane />);
+            const fitView = initFlow();
+
+            triggerResize?.();
+
+            // Same options as the initial fit, so a resize does not reintroduce the
+            // floor that caused the clipping.
+            expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
+        });
+
+        it('does not observe the pane when disabled, so a saved viewport survives a resize', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const fitView = initFlow();
+
+            // No observer was constructed at all, so there is nothing to trigger.
+            expect(triggerResize).toBeNull();
+            expect(fitView).not.toHaveBeenCalled();
+        });
     });
 
     describe('minimap (#5)', () => {
@@ -248,7 +330,7 @@ describe('ArchitectureGraph', () => {
             return nodes?.find((n) => n.id === id)?.position;
         }
 
-        it('applies the local scratch layout, even when a different server default exists', () => {
+        it('applies local scratch over the default layout when both exist', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             render(
@@ -295,22 +377,21 @@ describe('ArchitectureGraph', () => {
             expect(screen.getByTestId('react-flow')).toBeInTheDocument();
         });
 
-        it('re-applies positions when layoutEpoch changes, picking up a cleared scratch layout', () => {
+        it('falls back to scratch when no default layout is provided, then applies default on epoch bump after scratch is cleared', () => {
             saveNodePositions(key, [{ id: 'node-1', position: { x: 111, y: 222 }, data: {} }] as Node[]);
 
             const { rerender } = render(
                 <ArchitectureGraph
                     jsonData={mockCalmData}
                     viewportKey={key}
-                    defaultLayout={[{ id: 'node-1', position: { x: 333, y: 444 } }]}
+                    defaultLayout={null}
                     layoutEpoch={0}
                 />
             );
             expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
 
-            // Simulate "reset to default": the scratch entry is cleared and the
-            // epoch bumps, forcing a clean re-apply of the server default.
-            localStorage.removeItem('calm-hub:node-positions:ns/id');
+            // Simulate save/reset: scratch is cleared before the epoch bumps.
+            clearStoredNodePositions(key);
             rerender(
                 <ArchitectureGraph
                     jsonData={mockCalmData}

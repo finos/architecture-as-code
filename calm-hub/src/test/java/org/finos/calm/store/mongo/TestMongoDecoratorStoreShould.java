@@ -728,4 +728,58 @@ class TestMongoDecoratorStoreShould {
         verify(namespaceStore).namespaceExists(namespace);
         verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
+
+    @Test
+    void should_delete_decorator_successfully() throws Exception {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 1;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(1L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When
+        decoratorStore.deleteDecorator(namespace, decoratorId);
+
+        // Then
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_decorator_not_found_when_delete_matches_nothing() {
+        // Given
+        String namespace = "finos";
+        int decoratorId = 99;
+
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
+
+        UpdateResult updateResult = mock(UpdateResult.class);
+        when(updateResult.getModifiedCount()).thenReturn(0L);
+        when(decoratorCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(updateResult);
+
+        // When & Then
+        assertThrows(DecoratorNotFoundException.class,
+                () -> decoratorStore.deleteDecorator(namespace, decoratorId));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void should_throw_namespace_not_found_when_deleting_decorator_in_unknown_namespace() {
+        // Given
+        String namespace = "unknown-namespace";
+        when(namespaceStore.namespaceExists(namespace)).thenReturn(false);
+
+        // When & Then
+        assertThrows(NamespaceNotFoundException.class,
+                () -> decoratorStore.deleteDecorator(namespace, 1));
+
+        verify(namespaceStore).namespaceExists(namespace);
+        verify(decoratorCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
 }

@@ -1,6 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { THEME } from './theme.js';
-import { FlowsPanel } from './FlowsPanel.js';
 import { ControlsPanel } from './ControlsPanel.js';
 import { DeploymentPanel } from './DeploymentPanel.js';
 import { AdrsPanel } from './AdrsPanel.js';
@@ -9,11 +8,9 @@ import { FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import type { DeploymentDecorator, MetadataPanelProps, MetadataPanelTabType } from '../../contracts/contracts.js';
 
 export function MetadataPanel({
-    flows,
     controls,
     decorators,
     adrs,
-    onTransitionClick,
     onNodeClick,
     onControlClick,
     isCollapsed,
@@ -21,16 +18,14 @@ export function MetadataPanel({
     height,
     onHeightChange,
 }: MetadataPanelProps) {
-    const hasFlows = flows.length > 0;
     const hasControls = Object.keys(controls).length > 0;
     const hasDeployment = decorators.length > 0;
     const hasAdrs = adrs.length > 0;
-    const defaultTab: MetadataPanelTabType = hasFlows ? 'flows' : hasControls ? 'controls' : hasDeployment ? 'deployment' : 'adrs';
+    const defaultTab: MetadataPanelTabType = hasControls ? 'controls' : hasDeployment ? 'deployment' : 'adrs';
     const [activeTab, setActiveTab] = useState<MetadataPanelTabType>(defaultTab);
 
     useEffect(() => {
         const tabAvailable: Record<MetadataPanelTabType, boolean> = {
-            flows: hasFlows,
             controls: hasControls,
             deployment: hasDeployment,
             adrs: hasAdrs,
@@ -38,7 +33,7 @@ export function MetadataPanel({
         if (!tabAvailable[activeTab]) {
             setActiveTab(defaultTab);
         }
-    }, [hasFlows, hasControls, hasDeployment, hasAdrs, activeTab, defaultTab]);
+    }, [hasControls, hasDeployment, hasAdrs, activeTab, defaultTab]);
 
     const [isDragging, setIsDragging] = useState(false);
     const dragStartY = useRef<number>(0);
@@ -69,7 +64,7 @@ export function MetadataPanel({
         [height, onHeightChange]
     );
 
-    if (!hasFlows && !hasControls && !hasDeployment && !hasAdrs) {
+    if (!hasControls && !hasDeployment && !hasAdrs) {
         return null;
     }
 
@@ -88,12 +83,10 @@ export function MetadataPanel({
                 }}
             >
                 <div style={{ display: 'flex', gap: '8px', fontSize: '13px', fontWeight: 600, color: THEME.colors.foreground }}>
-                    {hasFlows && <span>Flows ({flows.length})</span>}
-                    {hasFlows && hasControls && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasControls && <span>Controls ({Object.keys(controls).length})</span>}
-                    {(hasFlows || hasControls) && hasDeployment && <span style={{ color: THEME.colors.muted }}>•</span>}
+                    {hasControls && hasDeployment && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasDeployment && <span>Deployment ({decorators.length})</span>}
-                    {(hasFlows || hasControls || hasDeployment) && hasAdrs && <span style={{ color: THEME.colors.muted }}>•</span>}
+                    {(hasControls || hasDeployment) && hasAdrs && <span style={{ color: THEME.colors.muted }}>•</span>}
                     {hasAdrs && <span>ADRs ({adrs.length})</span>}
                 </div>
                 <button
@@ -218,11 +211,6 @@ export function MetadataPanel({
                     borderBottom: `1px solid ${THEME.colors.border}`,
                 }}
             >
-                {hasFlows && (
-                    <TabButton isActive={activeTab === 'flows'} onClick={() => setActiveTab('flows')}>
-                        Flows ({flows.length})
-                    </TabButton>
-                )}
                 {hasControls && (
                     <TabButton isActive={activeTab === 'controls'} onClick={() => setActiveTab('controls')}>
                         Controls ({Object.keys(controls).length})
@@ -242,7 +230,6 @@ export function MetadataPanel({
 
             {/* Tab Content */}
             <div style={{ flex: 1, overflow: 'hidden', padding: '12px' }}>
-                {activeTab === 'flows' && hasFlows && <FlowsPanel flows={flows} onTransitionClick={onTransitionClick} />}
                 {activeTab === 'controls' && hasControls && (
                     <ControlsPanel controls={controls} onNodeClick={onNodeClick} onControlClick={onControlClick} />
                 )}

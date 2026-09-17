@@ -410,3 +410,12 @@ The Docker image will be built and pushed to Docker Hub as `username/calm-hub:yo
 1. `docker buildx build --platform linux/amd64,linux/arm64 -f src/main/docker/Dockerfile.multistage -t calm-hub .`
 
 Known limitations, doesn't run integration tests.
+
+### Versioned CALM documents API
+
+CALM Hub exposes namespace-scoped Markdown documents at
+`/api/calm/namespaces/{namespace}/documents/{documentType}`. Supported types are
+`knowledge` and `sad`. Use `GET` to list documents, `POST` to create version `1.0.0`, and
+`GET`/`POST` on `/{id}/versions` and `/{id}/versions/{version}` to list, read,
+and create immutable versions. Request Markdown must start with a YAML mapping
+frontmatter block delimited by complete `---` lines.

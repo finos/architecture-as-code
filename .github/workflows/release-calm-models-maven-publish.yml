@@ -17,9 +17,15 @@ jobs:
         steps:
             - name: Extract release version
               id: version
+              env:
+                REF: ${{ github.event.pull_request.head.ref }}
               run: |
-                REF="${{ github.event.pull_request.head.ref }}"
-                echo "release_version=${REF#release-prep/calm-models-v}" >> "$GITHUB_OUTPUT"
+                RELEASE_VERSION="${REF#release-prep/calm-models-v}"
+                if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+                  echo "::error::Branch name did not yield a valid semver release version: $REF"
+                  exit 1
+                fi
+                echo "release_version=$RELEASE_VERSION" >> "$GITHUB_OUTPUT"
 
             - name: Checkout main at merge commit
               uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
@@ -47,8 +53,9 @@ jobs:
                 git config --global url."https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/".insteadOf "https://github.com/"
 
             - name: Tag release
+              env:
+                RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
               run: |
-                RELEASE_VERSION="${{ steps.version.outputs.release_version }}"
                 git tag -a "calm-models-v${RELEASE_VERSION}" -m "calm-models v${RELEASE_VERSION}"
                 git push origin "calm-models-v${RELEASE_VERSION}"
 
@@ -66,8 +73,8 @@ jobs:
             - name: Prepare next development iteration PR
               env:
                 GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                RELEASE_VERSION: ${{ steps.version.outputs.release_version }}
               run: |
-                RELEASE_VERSION="${{ steps.version.outputs.release_version }}"
                 IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
                 NEXT_VERSION="${MAJOR}.${MINOR}.$((PATCH + 1))-SNAPSHOT"
                 BRANCH="release-prep/calm-models-next-dev-v${NEXT_VERSION}"

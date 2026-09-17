@@ -12,7 +12,8 @@ vi.mock('./logger', () => {
                 warn: () => { },
                 error: () => { }
             };
-        }
+        },
+        registerNodeLoggerFactory: () => { }
     };
 });
 

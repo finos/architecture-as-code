@@ -10,6 +10,7 @@ import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.Sorts;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -81,6 +82,8 @@ public class MongoVersionDocumentStore {
     private final String idField;
     private final String resourceLabel;
     private final VersionScheme versionScheme;
+    private final String discriminatorField;
+    private final String discriminatorValue;
 
     /**
      * @param headerCollection  the existing per-type collection, now holding headers
@@ -109,11 +112,39 @@ public class MongoVersionDocumentStore {
                                      String idField,
                                      String resourceLabel,
                                      VersionScheme versionScheme) {
+        this(headerCollection, versionCollection, idField, resourceLabel, versionScheme, null, null);
+    }
+
+    /**
+     * Creates a store whose records include a fixed discriminator.
+     *
+     * <p>The discriminator lets resource types share a collection without widening a
+     * query beyond their own records. Existing callers use the constructor without it.</p>
+     */
+    public MongoVersionDocumentStore(MongoCollection<Document> headerCollection,
+                                     MongoCollection<Document> versionCollection,
+                                     String idField,
+                                     String resourceLabel,
+                                     String discriminatorField,
+                                     String discriminatorValue) {
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC,
+                discriminatorField, discriminatorValue);
+    }
+
+    private MongoVersionDocumentStore(MongoCollection<Document> headerCollection,
+                                      MongoCollection<Document> versionCollection,
+                                      String idField,
+                                      String resourceLabel,
+                                      VersionScheme versionScheme,
+                                      String discriminatorField,
+                                      String discriminatorValue) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
         this.versionScheme = versionScheme;
+        this.discriminatorField = discriminatorField;
+        this.discriminatorValue = discriminatorValue;
     }
 
     /**
@@ -142,6 +173,7 @@ public class MongoVersionDocumentStore {
                 .append(DESCRIPTION_FIELD, description)
                 .append(VERSION_COUNT_FIELD, 0)
                 .append(METADATA_FIELD, new Document());
+        addDiscriminator(header);
         try {
             headerCollection.insertOne(header);
         } catch (MongoWriteException e) {
@@ -156,8 +188,9 @@ public class MongoVersionDocumentStore {
      *
      * <p>The old shape pushed the resource and its first version in one document write, so
      * a failure left nothing behind. Splitting them means a failed version write can strand
-     * a header that no API can remove — there is no delete endpoint for these types — and it
-     * would show up in listings and search with {@code versionCount: 0} forever.</p>
+     * a header that no API can remove — this is a narrower operation than
+     * {@link #deleteResource}, the general-purpose delete — and it would show up in listings
+     * and search with {@code versionCount: 0} forever.</p>
      *
      * <p>Not a general-purpose delete: nothing else calls this, and it deliberately does not
      * touch the version collection, because the only caller has just failed to write the
@@ -172,6 +205,31 @@ public class MongoVersionDocumentStore {
             LOG.warn("Failed to remove the header after a failed first version write "
                     + "[namespace={}, {}={}] — it may be left with no versions",
                     namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Deletes a resource entirely: its header and every version document. This is the
+     * general-purpose delete backing a DELETE endpoint — unlike {@link #deleteHeader}, a
+     * failure here is translated and thrown rather than swallowed, and the version
+     * collection is cleared too.
+     *
+     * <p>Versions are removed before the header, not after: if the version delete fails,
+     * the header is still there as evidence the resource exists, rather than leaving
+     * unreachable version documents behind under a header that's already gone.</p>
+     *
+     * @return {@code true} if a header was actually deleted, {@code false} if none existed
+     * at this (namespace, resourceId) — lets the caller distinguish "already gone" from
+     * "removed".
+     */
+    public boolean deleteResource(String namespace, int resourceId) {
+        try {
+            versionCollection.deleteMany(headerFilter(namespace, resourceId));
+            DeleteResult result = headerCollection.deleteOne(headerFilter(namespace, resourceId));
+            return result.getDeletedCount() > 0;
+        } catch (MongoException e) {
+            LOG.error("Failed to delete resource [namespace={}, {}={}]", namespace, idField, resourceId, e);
+            throw StorageWriteException.writeFailed(e);
         }
     }
 
@@ -229,6 +287,7 @@ public class MongoVersionDocumentStore {
                 .append(VERSION_FIELD, canonicalVersion)
                 .append(CONTENT_FIELD, content)
                 .append(METADATA_FIELD, new Document());
+        addDiscriminator(versionDocument);
         try {
             versionCollection.insertOne(versionDocument);
         } catch (MongoWriteException e) {
@@ -419,7 +478,7 @@ public class MongoVersionDocumentStore {
      * migration creates, so this is answered from the index without fetching documents.</p>
      */
     public int countHeaders(String namespace) {
-        return (int) headerCollection.countDocuments(Filters.eq(NAMESPACE_FIELD, namespace));
+        return (int) headerCollection.countDocuments(namespaceFilter(namespace));
     }
 
     /**
@@ -432,7 +491,7 @@ public class MongoVersionDocumentStore {
      * defined order, which would make paging return overlapping or missing rows.</p>
      */
     public List<NamespaceResourceSummary> listSummariesPaged(String namespace, PageRequest page) {
-        FindIterable<Document> headers = headerCollection.find(Filters.eq(NAMESPACE_FIELD, namespace))
+        FindIterable<Document> headers = headerCollection.find(namespaceFilter(namespace))
                 .sort(Sorts.ascending(idField));
         if (page.isPaged()) {
             headers = headers.skip(page.normalizedOffset()).limit(page.limit());
@@ -486,12 +545,31 @@ public class MongoVersionDocumentStore {
     }
 
     private Bson headerFilter(String namespace, int resourceId) {
-        return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(idField, resourceId));
+        return withDiscriminator(Filters.eq(NAMESPACE_FIELD, namespace), Filters.eq(idField, resourceId));
     }
 
     private Bson versionFilter(String namespace, int resourceId, String version) {
-        return Filters.and(Filters.eq(NAMESPACE_FIELD, namespace),
+        return withDiscriminator(Filters.eq(NAMESPACE_FIELD, namespace),
                 Filters.eq(idField, resourceId),
                 Filters.eq(VERSION_FIELD, version));
+    }
+
+    private Bson namespaceFilter(String namespace) {
+        return withDiscriminator(Filters.eq(NAMESPACE_FIELD, namespace));
+    }
+
+    private Bson withDiscriminator(Bson... filters) {
+        if (discriminatorField == null) {
+            return Filters.and(filters);
+        }
+        Bson[] filtersWithDiscriminator = java.util.Arrays.copyOf(filters, filters.length + 1);
+        filtersWithDiscriminator[filters.length] = Filters.eq(discriminatorField, discriminatorValue);
+        return Filters.and(filtersWithDiscriminator);
+    }
+
+    private void addDiscriminator(Document document) {
+        if (discriminatorField != null) {
+            document.append(discriminatorField, discriminatorValue);
+        }
     }
 }
