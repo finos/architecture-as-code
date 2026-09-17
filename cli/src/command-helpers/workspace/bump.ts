@@ -14,7 +14,7 @@ import {
     initLogger,
     Logger,
 } from '@finos/calm-shared';
-import { NarrativeDocumentIdentity, parseNarrativeDocument, validateNarrativeDocumentLocation, validateNarrativeIdentity, validateNarrativeNamespace } from './narrative-document';
+import { resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narrative-document';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -113,26 +113,13 @@ export async function detectChangedResources(
 
         if (isNarrativeWorkspaceManifestEntry(entry)) {
             // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
-            const version = entry.version;
-            if (!version) throw new Error(`Narrative document '${id}' has no manifest version.`);
-            if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
-                throw new Error(`Narrative document '${id}' has incomplete Hub identity. Re-add the document to repair it.`);
-            }
-            validateNarrativeNamespace(entry.namespace, id);
-            const identity: NarrativeDocumentIdentity = {
-                namespace: entry.namespace, type: entry.type, version, calmHubDocumentId: entry.calmHubDocumentId,
-            };
-            parseNarrativeDocument(raw, id);
-            if (entry.calmHubDocumentId === undefined) {
-                validateNarrativeIdentity(identity, false, id);
-                continue;
-            }
-            validateNarrativeIdentity(identity, true, id);
+            const { version, identity, hubIdentityAssigned } = resolveNarrativeEntry(id, entry, raw);
+            if (!hubIdentityAssigned) continue;
             validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
-            const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId!);
+            const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId);
             if (versions.length === 0 || !versions.includes(version)) continue;
             const remote = await client.getNarrativeDocumentVersion(
-                identity.namespace, identity.type, identity.calmHubDocumentId!, version
+                identity.namespace, identity.type, identity.calmHubDocumentId, version
             );
             if (remote.documentMarkdown === raw) continue;
             changed.push({

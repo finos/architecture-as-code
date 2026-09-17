@@ -19,6 +19,73 @@ export interface ParsedNarrativeDocument {
     request: NarrativeDocumentRequest;
 }
 
+export interface NarrativeEntryInput {
+    type: unknown;
+    namespace?: unknown;
+    version?: unknown;
+    calmHubDocumentId?: unknown;
+    calmHubId?: unknown;
+}
+
+export type ResolvedNarrativeEntry = {
+    version: string;
+    narrative: ParsedNarrativeDocument;
+} & (
+    | {
+        hubIdentityAssigned: false;
+        identity: NarrativeDocumentIdentity & { calmHubDocumentId?: undefined };
+    }
+    | {
+        hubIdentityAssigned: true;
+        identity: NarrativeDocumentIdentity & { calmHubDocumentId: number };
+    }
+);
+
+export function resolveNarrativeEntry(
+    id: string,
+    entry: NarrativeEntryInput,
+    raw: string
+): ResolvedNarrativeEntry {
+    if (!entry.version) {
+        throw new Error(`Narrative document '${id}' has no manifest version.`);
+    }
+
+    const hubIdentityAssigned = entry.calmHubDocumentId !== undefined;
+    if (hubIdentityAssigned !== (entry.calmHubId !== undefined)) {
+        throw new Error(`Narrative document '${id}' has incomplete Hub identity. Re-add the document to repair it.`);
+    }
+
+    const namespace = entry.namespace;
+    validateNarrativeNamespace(namespace, id);
+    const identity = {
+        namespace,
+        type: entry.type,
+        version: entry.version,
+        ...(hubIdentityAssigned ? { calmHubDocumentId: entry.calmHubDocumentId } : {}),
+    };
+    const narrative = parseNarrativeDocument(raw, id);
+    validateNarrativeIdentity(identity, hubIdentityAssigned, id);
+
+    if (hubIdentityAssigned) {
+        return {
+            version: identity.version,
+            identity: identity as NarrativeDocumentIdentity & { calmHubDocumentId: number },
+            narrative,
+            hubIdentityAssigned: true,
+        };
+    }
+    return {
+        version: identity.version,
+        identity: {
+            namespace: identity.namespace,
+            type: identity.type,
+            version: identity.version,
+        },
+        narrative,
+        hubIdentityAssigned: false,
+    };
+}
+
 export function parseNarrativeDocument(markdown: string, label: string): ParsedNarrativeDocument {
     let frontMatter: Record<string, unknown> | null;
     try {

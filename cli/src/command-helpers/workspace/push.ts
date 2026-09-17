@@ -20,12 +20,10 @@ import {
 import { canonicalEqual } from './bump';
 import {
     constructNarrativeDocumentPath,
-    parseNarrativeDocument,
     parseNarrativeDocumentLocation,
+    resolveNarrativeEntry,
     type NarrativeDocumentIdentity,
     validateNarrativeDocumentLocation,
-    validateNarrativeIdentity,
-    validateNarrativeNamespace,
 } from './narrative-document';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -78,23 +76,12 @@ export async function pushWorkspaceToHub(
 
         if (isNarrativeWorkspaceManifestEntry(entry)) {
             try {
-                const version = entry.version;
-                if (!version) throw new Error('Narrative document manifest entry has no version. Re-add the document to repair it.');
-                if ((entry.calmHubId === undefined) !== (entry.calmHubDocumentId === undefined)) {
-                    throw new Error('Narrative document Hub identity is incomplete. Re-add the document to repair it.');
-                }
                 const createRecovery = getCreateRecovery(entry);
-                validateNarrativeNamespace(entry.namespace, id);
-                const identity = {
-                    namespace: entry.namespace,
-                    type: entry.type,
-                    version,
-                    calmHubDocumentId: entry.calmHubDocumentId,
-                };
-                const narrative = parseNarrativeDocument(raw, id);
+                const resolved = resolveNarrativeEntry(id, entry, raw);
+                const { version, narrative } = resolved;
 
-                if (entry.calmHubDocumentId === undefined) {
-                    validateNarrativeIdentity(identity, false, id);
+                if (!resolved.hubIdentityAssigned) {
+                    const { identity } = resolved;
                     if (version !== '1.0.0') {
                         throw new Error('A narrative document without calmHubDocumentId must use version 1.0.0.');
                     }
@@ -152,17 +139,17 @@ export async function pushWorkspaceToHub(
                     continue;
                 }
 
-                validateNarrativeIdentity(identity, true, id);
+                const { identity } = resolved;
                 validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
                 const versions = await client.getNarrativeDocumentVersions(
-                    identity.namespace, identity.type, identity.calmHubDocumentId!
+                    identity.namespace, identity.type, identity.calmHubDocumentId
                 );
                 if (!versions.includes(version)) {
                     const location = await client.createNarrativeDocumentVersion(
-                        identity.namespace, identity.type, identity.calmHubDocumentId!, version, narrative.request
+                        identity.namespace, identity.type, identity.calmHubDocumentId, version, narrative.request
                     );
                     validateNarrativeDocumentLocation(location, identity);
-                    manifest[id] = { ...entry, calmHubId: location };
+                    manifest[id] = publishNarrativeEntry(entry, identity.calmHubDocumentId, location);
                     await saveManifest(bundlePath, manifest);
                     logger.info(`Pushed '${id}' version ${version} -> ${location}`);
                     continue;
@@ -173,7 +160,7 @@ export async function pushWorkspaceToHub(
                     continue;
                 }
                 const remote = await client.getNarrativeDocumentVersion(
-                    identity.namespace, identity.type, identity.calmHubDocumentId!, version
+                    identity.namespace, identity.type, identity.calmHubDocumentId, version
                 );
                 if (remote.documentMarkdown !== raw) {
                     logger.error(`'${id}' version ${version} already exists in CalmHub but differs on disk. Bump it before pushing.`);

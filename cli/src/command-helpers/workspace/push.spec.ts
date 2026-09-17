@@ -395,8 +395,8 @@ describe('pushWorkspaceToHub', () => {
         { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'not-a-digest' },
         { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'A'.repeat(64) },
         { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256: 'a'.repeat(63) },
-    ])('rejects malformed persisted create recovery without posting: %j', async (createRecovery) => {
-        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+    ])('rejects malformed persisted create recovery before parsing or posting: %j', async (createRecovery) => {
+        const markdown = '# no frontmatter';
         await writeFreshNarrative(markdown);
         await saveManifest(bundlePath, {
             payments: {
@@ -500,7 +500,7 @@ describe('pushWorkspaceToHub', () => {
             partial: { path: 'files/partial.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
         });
         await writeFile(path.join(filesPath, 'partial.md'), '---\ntitle: Partial\n---\n# Partial');
-        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/narrative document/);
+        await expect(pushWorkspaceToHub(bundlePath, makeClient())).rejects.toThrow(/incomplete Hub identity/);
     });
 
     it('rejects malformed persisted narrative identity before calling Hub', async () => {

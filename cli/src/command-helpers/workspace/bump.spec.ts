@@ -71,6 +71,25 @@ describe('bump', () => {
             expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown }))).toEqual([]);
         });
 
+        it('treats pending create recovery as unassigned without mutating the fence', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
+            const entry = {
+                path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                createRecovery: {
+                    documentIdsBeforeCreate: [1, 2],
+                    documentMarkdownSha256: 'a'.repeat(64),
+                },
+            };
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, { payments: entry });
+            const client = makeClient();
+
+            expect(await detectChangedResources(bundlePath, client)).toEqual([]);
+
+            expect(client.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+            expect(await loadManifest(bundlePath)).toEqual({ payments: entry });
+        });
+
         it('fails narrative checks with incomplete identity or missing source', async () => {
             await saveManifest(bundlePath, {
                 partial: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },

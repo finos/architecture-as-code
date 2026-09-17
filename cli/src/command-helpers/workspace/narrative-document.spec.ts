@@ -4,12 +4,78 @@ import {
     constructNarrativeDocumentPath,
     parseNarrativeDocument,
     parseNarrativeDocumentLocation,
+    resolveNarrativeEntry,
     validateNarrativeDocumentLocation,
     validateNarrativeIdentity,
 } from './narrative-document';
 
 describe('narrative document helpers', () => {
     const identity = { namespace: 'finos', type: 'sad' as const, version: '1.0.0' };
+    const markdown = '---\ntitle: Payments SAD\ndescription: Decisions\n---\n# Content\n';
+
+    describe('resolveNarrativeEntry', () => {
+        it('resolves a valid unpublished narrative', () => {
+            const resolved = resolveNarrativeEntry('payments', identity, markdown);
+
+            expect(resolved).toMatchObject({
+                version: '1.0.0',
+                hubIdentityAssigned: false,
+                identity,
+                narrative: {
+                    request: { name: 'Payments SAD', description: 'Decisions', documentMarkdown: markdown },
+                },
+            });
+            expect(resolved.identity.calmHubDocumentId).toBeUndefined();
+        });
+
+        it('resolves a valid published narrative', () => {
+            const resolved = resolveNarrativeEntry('payments', {
+                ...identity,
+                calmHubDocumentId: 42,
+                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            }, markdown);
+
+            expect(resolved.hubIdentityAssigned).toBe(true);
+            expect(resolved.identity.calmHubDocumentId).toBe(42);
+            expect(resolved.narrative.request.documentMarkdown).toBe(markdown);
+        });
+
+        it('rejects a missing manifest version', () => {
+            expect(() => resolveNarrativeEntry('payments', {
+                type: 'sad', namespace: 'finos',
+            }, markdown)).toThrow(/Narrative document 'payments' has no manifest version\./);
+        });
+
+        it.each([
+            ['document ID only', { ...identity, calmHubDocumentId: 42 }],
+            ['Location only', { ...identity, calmHubId: '/stored-location' }],
+        ])('rejects incomplete Hub identity with %s', (_case, entry) => {
+            expect(() => resolveNarrativeEntry('payments', entry, markdown)).toThrow(
+                /Narrative document 'payments' has incomplete Hub identity\. Re-add the document to repair it\./
+            );
+        });
+
+        it.each([
+            [{ ...identity, namespace: 'not_valid' }, /valid namespace/],
+            [{ ...identity, type: 'unsupported' }, /unsupported type/],
+            [{ ...identity, version: 'latest' }, /major.minor.patch/],
+            [{ ...identity, calmHubDocumentId: 0, calmHubId: '/stored-location' }, /positive integer/],
+        ])('rejects invalid identity data %#', (entry, message) => {
+            expect(() => resolveNarrativeEntry('payments', entry, markdown)).toThrow(message);
+        });
+
+        it('parses Markdown before validating the constructed identity', () => {
+            expect(() => resolveNarrativeEntry(
+                'payments', { ...identity, version: 'latest' }, '# No frontmatter'
+            )).toThrow(/must contain non-empty YAML mapping frontmatter/);
+        });
+
+        it('rejects malformed narrative Markdown', () => {
+            expect(() => resolveNarrativeEntry('payments', identity, '# No frontmatter')).toThrow(
+                /must contain non-empty YAML mapping frontmatter/
+            );
+        });
+    });
 
     it('uses frontmatter title and preserves CRLF Markdown', () => {
         const markdown = '---\r\ntitle: Payments SAD\r\ndescription: Decisions\r\n---\r\n# Content\r\n';
