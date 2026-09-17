@@ -7,8 +7,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
 import org.finos.calm.domain.controls.CreateControlRequirement;
 import org.junit.jupiter.api.*;
@@ -34,10 +34,13 @@ public class MongoControlIntegration {
     private static final String VALID_DOMAIN = "security";
     private static final String INVALID_DOMAIN = "nonexistent";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupControls() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -249,8 +252,8 @@ public class MongoControlIntegration {
         // header/version shape (ADR 0007): a header in controlConfigurations plus one version
         // in controlConfigurationVersions, both under the synthetic "domain::controlId"
         // namespace control 1's configurations are scoped under.
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
         String configNamespace = VALID_DOMAIN + "::1";
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {

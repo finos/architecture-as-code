@@ -12,7 +12,7 @@ interface CalmArray {
  */
 export function itemsFitWithinMaxItems(input: unknown, _: unknown, context: RulesetFunctionContext): IFunctionResult[] {
     const array = input as CalmArray;
-    const offersChoice = Boolean(array?.items?.oneOf || array?.items?.anyOf);
+    const offersChoice = Boolean(array?.items?.oneOf?.length || array?.items?.anyOf?.length);
     const positions = array?.prefixItems?.length ?? 0;
 
     if (!offersChoice || array.maxItems === undefined || array.maxItems > positions) {

@@ -18,6 +18,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 
+import jakarta.inject.Inject;
+
 import static integration.MongoSetup.counterSetup;
 import static integration.MongoSetup.namespaceSetup;
 import static io.restassured.RestAssured.given;
@@ -49,10 +51,13 @@ public class MongoAuditLogDeniedIntegration {
     private MongoClient mongoClient;
     private MongoDatabase database;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabaseName = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabaseName = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             throw new IllegalStateException("MongoDB URI is not set. Check the EndToEndResource configuration.");
