@@ -8,7 +8,8 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
-import org.eclipse.microprofile.config.ConfigProvider;
+import integration.MongoTestConnection;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -36,10 +37,13 @@ public class MongoConcurrencyIntegration {
     private static final Logger LOG = LoggerFactory.getLogger(MongoConcurrencyIntegration.class);
     private static final int THREADS = DEFAULT_THREAD_COUNT;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);

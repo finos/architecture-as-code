@@ -4,45 +4,54 @@ export type CalmType = 'nodes' | 'relationships';
 
 const ALTERNATIVE_KEYWORDS = ['oneOf', 'anyOf'];
 const ID = 'properties.unique-id.const';
+const OPTIONS = 'properties.relationship-type.properties.options';
 const INTERFACES = 'properties.interfaces.prefixItems[*]';
 
 const ALTERNATIVES = `(?:${ALTERNATIVE_KEYWORDS.join('|')})`;
-const DECLARATION_POINTER = new RegExp(`^/properties/(?:nodes|relationships)/prefixItems/\\d+(?:/${ALTERNATIVES}/\\d+)?`);
-const ALTERNATIVE_SUFFIX = new RegExp(`/${ALTERNATIVES}/\\d+$`);
+const CALM_TYPE = '(?:nodes|relationships)';
+const DECLARATION = new RegExp(`^/properties/${CALM_TYPE}/(?:prefixItems/\\d+(?:/${ALTERNATIVES}/\\d+)?|items/${ALTERNATIVES}/\\d+)`);
+const ENTRY_ALTERNATIVE = new RegExp(`^(/properties/${CALM_TYPE}/prefixItems/\\d+)/${ALTERNATIVES}/\\d+$`);
 
-function entryPath(calmType: CalmType): string {
+function fixedPath(calmType: CalmType): string {
     return `$.properties.${calmType}.prefixItems[*]`;
 }
 
-function alternativePaths(calmType: CalmType): string[] {
-    return ALTERNATIVE_KEYWORDS.map(keyword => `${entryPath(calmType)}.${keyword}[*]`);
+function choicePaths(calmType: CalmType): string[] {
+    return [fixedPath(calmType), `$.properties.${calmType}.items`].flatMap(base =>
+        ALTERNATIVE_KEYWORDS.map(keyword => `${base}.${keyword}[*]`));
 }
 
 /**
  * Shared so that the rules resolving declarations cannot disagree about where they are.
- *
- * The paths below find declarations. A query run with `resultType: 'all'` returns each hit
- * with the JSON Pointer it was found at, and the `containing` helpers read that pointer
- * back, because it is the only surviving trace of which entry the hit came from.
  */
 export function declarationPaths(calmType: CalmType): string[] {
-    return [entryPath(calmType), ...alternativePaths(calmType)];
+    return [fixedPath(calmType), ...choicePaths(calmType)];
 }
 
 export function fixedIdPath(calmType: CalmType): string {
-    return `${entryPath(calmType)}.${ID}`;
+    return `${fixedPath(calmType)}.${ID}`;
 }
 
-export function alternativeIdPaths(calmType: CalmType): string[] {
-    return alternativePaths(calmType).map(path => `${path}.${ID}`);
+export function choiceIdPaths(calmType: CalmType): string[] {
+    return choicePaths(calmType).map(path => `${path}.${ID}`);
 }
 
 export function declaredIdPaths(calmType: CalmType): string[] {
-    return [fixedIdPath(calmType), ...alternativeIdPaths(calmType)];
+    return [fixedIdPath(calmType), ...choiceIdPaths(calmType)];
 }
 
 export function declaredInterfaceIdPaths(): string[] {
     return declarationPaths('nodes').map(path => `${path}.${INTERFACES}.${ID}`);
+}
+
+/**
+ * Every site at which a pattern can declare both keywords, as Spectral `given` selectors.
+ */
+export function twoKeywordSites(): string[] {
+    return (['nodes', 'relationships'] as CalmType[]).flatMap(calmType => [
+        `$.properties.${calmType}.prefixItems[?(@.oneOf && @.anyOf)]`,
+        `$.properties.${calmType}[?(@property === "items" && @.oneOf && @.anyOf)]`,
+    ]);
 }
 
 export function declaredId(declaration: object): string | undefined {
@@ -50,29 +59,47 @@ export function declaredId(declaration: object): string | undefined {
 }
 
 /**
+ * A relationship that carries options is a decision: it asks which alternatives to include.
+ */
+export function declaresOptions(relationship: object): boolean {
+    return get(relationship, OPTIONS) !== undefined;
+}
+
+// Reading a pointer back. A query run with `resultType: 'all'` returns each hit with the
+// JSON Pointer it was found at, the only surviving trace of which site the hit came from.
+
+/**
  * A pointer from outside these paths has no declaration, so it stands alone.
  */
 export function containingDeclaration(pointer: string): string {
-    return pointer.match(DECLARATION_POINTER)?.[0] ?? pointer;
-}
-
-export function containingEntry(pointer: string): string {
-    return containingDeclaration(pointer).split(ALTERNATIVE_SUFFIX)[0];
-}
-
-export function isAlternative(pointer: string): boolean {
-    return containingDeclaration(pointer) !== containingEntry(pointer);
-}
-
-function declarationIndices(pointer: string): number[] {
-    return (containingDeclaration(pointer).match(/\d+/g) ?? []).map(Number);
+    return pointer.match(DECLARATION)?.[0] ?? pointer;
 }
 
 /**
- * Orders declarations as an architecture fills the array. The indices decide it, not the
- * pointer text: sorting the text puts an alternative ahead of the entry that holds it,
- * because "oneOf" precedes "properties". A declaration with fewer indices contains the
- * other, so it comes first.
+ * Declarations sharing a group never appear in the same architecture. Only the
+ * alternatives of one prefixItems entry qualify, because the entry is one position and one
+ * of them wins. An items member competes with nothing, since items admits any number.
+ */
+export function exclusiveGroup(pointer: string): string {
+    const declaration = containingDeclaration(pointer);
+    return declaration.match(ENTRY_ALTERNATIVE)?.[1] ?? declaration;
+}
+
+export function isAlternative(pointer: string): boolean {
+    return ENTRY_ALTERNATIVE.test(containingDeclaration(pointer));
+}
+
+function declarationIndices(pointer: string): number[] {
+    const declaration = containingDeclaration(pointer);
+    const indices = (declaration.match(/\d+/g) ?? []).map(Number);
+    return [declaration.includes('/items/') ? 1 : 0, ...indices];
+}
+
+/**
+ * Orders declarations as an architecture fills the array: every prefixItems entry, then
+ * every items member. The indices decide it, not the pointer text, which sorts "items"
+ * ahead of "prefixItems" and an alternative ahead of the entry that holds it. A
+ * declaration with fewer indices contains the other, so it comes first.
  */
 export function byBuildOrder(left: string, right: string): number {
     const [first, second] = [left, right].map(declarationIndices);

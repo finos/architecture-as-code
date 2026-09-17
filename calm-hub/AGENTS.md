@@ -5,7 +5,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ## Tech Stack
 
 - **Language**: Java 21
-- **Framework**: Quarkus 3.34+ (Reactive REST, CDI) — `quarkus.platform.version` is pinned to `3.34.7` in the root `pom.xml`
+- **Framework**: Quarkus (Reactive REST, CDI) — version is set via `quarkus.platform.version` in the root `pom.xml`
 - **Build Tool**: Maven (via parent POM)
 - **Databases**: 
   - MongoDB (production default)
@@ -14,7 +14,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 - **API Docs**: OpenAPI/Swagger UI
 - **Security**: Per-namespace permissions enforced via Quarkus Security (`org.finos.calm.security`); four auth modes — the default is **secure** (rejects all requests with 401), `no-auth` (open, local testing only), OIDC/Keycloak (`secure` profile), and proxy-injected header (`proxy-auth`)
 
-> **Note**: Netty is pinned to `4.1.x` (currently `4.1.132.Final` via `netty-bom` in the root `pom.xml`) to mitigate CVEs. It must stay on 4.1.x — Quarkus 3.x applies a `CleanerJava9` bytecode transformation incompatible with Netty 4.2.
+> **Note**: Netty must stay on whatever 4.1.x version the Quarkus platform BOM manages — never add an explicit `netty-bom` override. Quarkus 3.x applies a `CleanerJava9` bytecode transformation incompatible with Netty 4.2. See the comment near the top of `calm-hub/pom.xml` for the full rationale.
 
 ## Key Commands
 
@@ -312,7 +312,7 @@ bash calm-hub/smoke-test.sh http://localhost:8080 readwrite 120
 
 CALM Hub includes an experimental [Model Context Protocol](https://modelcontextprotocol.io) (MCP) server.
 
-**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http:1.12.1`  
+**Dependency:** `io.quarkiverse.mcp:quarkus-mcp-server-http`, version managed by `quarkus-mcp-server-bom` (imported in the root `pom.xml`, tracking the same `quarkus.platform.version`)  
 **Endpoint:** `POST /mcp` (HTTP Streamable JSON-RPC 2.0)  
 **Config:** `calm.mcp.enabled=false` (env: `CALM_MCP_ENABLED`)
 
