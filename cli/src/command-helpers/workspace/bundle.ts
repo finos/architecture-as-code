@@ -13,8 +13,9 @@ export const REFERENCE_PROPERTIES = ['$ref', '$schema', 'requirement-url', 'conf
 
 /**
  * Resolve a manifest entry's stored path to an absolute filesystem path.
- * Entries added by reference store their path as absolute; entries added with --copy
- * store a relative path within the bundle directory.
+ * Entries are stored relative to the bundle directory (which may include '../' segments
+ * for files referenced from outside the workspace). Older manifests may still hold an
+ * absolute path, which is returned unchanged for backwards compatibility.
  */
 export function resolveFilePath(bundlePath: string, entryPath: string): string {
     return path.isAbsolute(entryPath) ? entryPath : path.join(bundlePath, entryPath);
@@ -184,10 +185,10 @@ export async function addFileToBundle(
         // Forward slashes: the manifest travels with the bundle.
         rel = path.relative(bundlePath, destPath).split(path.sep).join('/');
     } else {
-        // reference the original file using its absolute path so it remains resolvable
-        // regardless of where the bundle directory sits
-        destPath = srcPath;
-        rel = srcPath;
+        // reference the original file in place, storing its path relative to the bundle
+        // directory so the manifest is portable across machines/checkouts.
+        destPath = path.resolve(srcPath);
+        rel = path.relative(bundlePath, destPath).split(path.sep).join('/');
     }
 
     const manifest = await loadManifest(bundlePath);

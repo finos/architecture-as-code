@@ -32,4 +32,9 @@ public interface AdrStore {
     AdrMeta getAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException;
     AdrMeta updateAdrForNamespace(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException;
     AdrMeta updateAdrStatus(AdrMeta adrMeta, Status status) throws AdrNotFoundException, NamespaceNotFoundException, AdrRevisionNotFoundException, AdrPersistenceException, AdrParseException, AdrRevisionExistsException;
+
+    /**
+     * Deletes an ADR and all of its revisions.
+     */
+    void deleteAdr(String namespace, int adrId) throws NamespaceNotFoundException, AdrNotFoundException;
 }

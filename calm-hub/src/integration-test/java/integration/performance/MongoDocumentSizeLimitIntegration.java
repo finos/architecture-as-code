@@ -9,8 +9,9 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import integration.IntegrationTestProfile;
+import integration.MongoTestConnection;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -78,10 +79,13 @@ public class MongoDocumentSizeLimitIntegration {
      */
     private static final String NAMESPACE = "size-limit";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         try (MongoClient mongoClient = MongoClients.create(mongoUri)) {
             MongoDatabase database = mongoClient.getDatabase(mongoDatabase);
@@ -126,6 +130,30 @@ public class MongoDocumentSizeLimitIntegration {
                 .thenReturn();
     }
 
+
+    @Test
+    void keep_accepting_narrative_versions_beyond_the_old_document_ceiling() throws Exception {
+        String markdown = "---\r\ntype: knowledge\r\ntitle: Size test\r\n---\r\n" + LARGE_CONTENT;
+        String body = OBJECT_MAPPER.writeValueAsString(Map.of(
+                "name", "Narrative size test", "description", "Aggregate history exceeds 20 MiB",
+                "documentMarkdown", markdown));
+        String path = "/api/calm/namespaces/" + NAMESPACE + "/documents/knowledge";
+        String location = given().contentType(ContentType.JSON).body(body).post(path)
+                .then().statusCode(201).extract().header("Location");
+        String[] segments = java.net.URI.create(location).getPath().split("/");
+        int typeIndex = java.util.Arrays.asList(segments).indexOf("knowledge");
+        String versionsPath = path + "/" + segments[typeIndex + 1] + "/versions";
+        for (int version = 2; version <= VERSIONS_BEYOND_OLD_CEILING; version++) {
+            given().contentType(ContentType.JSON).body(body).post(versionsPath + "/" + version + ".0.0")
+                    .then().statusCode(201);
+        }
+        assertEquals(VERSIONS_BEYOND_OLD_CEILING,
+                given().get(versionsPath).then().statusCode(200).extract().jsonPath().getList("values").size());
+        for (int version = 1; version <= VERSIONS_BEYOND_OLD_CEILING; version++) {
+            assertEquals(markdown, given().get(versionsPath + "/" + version + ".0.0")
+                    .then().statusCode(200).extract().jsonPath().getString("documentMarkdown"));
+        }
+    }
 
     @Test
     void keep_accepting_architecture_versions_well_past_the_old_document_ceiling() throws Exception {

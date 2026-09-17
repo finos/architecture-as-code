@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { pushWorkspaceToHub } from './push';
 import { loadManifest, saveManifest } from './bundle';
-import { CalmHubClient, HubClientError } from '@finos/calm-shared/src/hub/calm-hub-client';
+import { CalmHubClient, HubClientError } from '@finos/calm-shared';
 import { mkdir, writeFile, rm } from 'fs/promises';
 import path from 'path';
 import { existsSync } from 'fs';
@@ -15,7 +15,8 @@ const makeClient = (
     ...overrides,
 }) as unknown as CalmHubClient;
 
-vi.mock('@finos/calm-shared/src/logger', () => ({
+vi.mock('@finos/calm-shared', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@finos/calm-shared')>()),
     initLogger: () => ({
         info: vi.fn(),
         warn: vi.fn(),

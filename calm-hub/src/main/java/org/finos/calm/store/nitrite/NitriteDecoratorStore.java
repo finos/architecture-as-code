@@ -182,6 +182,38 @@ public class NitriteDecoratorStore implements DecoratorStore {
         LOG.debug("Updated decorator with ID {} in namespace '{}'", id, namespace);
     }
 
+    @Override
+    public void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+
+        lock.lock();
+        try {
+            Document namespaceDoc = fetchNamespaceDocument(namespace);
+            if (namespaceDoc == null) {
+                throw new DecoratorNotFoundException();
+            }
+
+            TypeSafeNitriteDocument<Document> typeSafeDoc = new TypeSafeNitriteDocument<>(namespaceDoc, Document.class);
+            List<Document> decorators = typeSafeDoc.getList(DECORATORS_FIELD);
+            if (decorators == null) {
+                throw new DecoratorNotFoundException();
+            }
+
+            List<Document> mutableDecorators = new ArrayList<>(decorators);
+            boolean removed = mutableDecorators.removeIf(
+                    decoratorEntry -> Integer.valueOf(id).equals(decoratorEntry.get(DECORATOR_ID_FIELD, Integer.class)));
+            if (!removed) {
+                throw new DecoratorNotFoundException();
+            }
+
+            namespaceDoc.put(DECORATORS_FIELD, mutableDecorators);
+            decoratorCollection.update(namespaceDoc);
+            LOG.debug("Deleted decorator with ID {} in namespace '{}'", id, namespace);
+        } finally {
+            lock.unlock();
+        }
+    }
+
     /**
      * Fetches the namespace document from NitriteDB
      */

@@ -7,6 +7,7 @@ import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.UpdateOptions;
+import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
@@ -411,5 +412,31 @@ public class TestMongoFlowStoreShould {
         StorageWriteException exception = assertThrows(StorageWriteException.class,
                 () -> store.updateFlowForVersion(flow("1.0.1")));
         assertThat(exception.isCapacityExceeded(), is(false));
+    }
+
+    // --- deleteFlow ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_flow_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
+    }
+
+    @Test
+    void delete_the_header_and_all_versions_when_the_flow_exists() throws Exception {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        store.deleteFlow(NAMESPACE, FLOW_ID);
+
+        verify(versionCollection).deleteMany(any(Bson.class));
+        verify(headerCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void throw_a_flow_exception_when_deleting_a_missing_flow() {
+        when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThrows(FlowNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
     }
 }

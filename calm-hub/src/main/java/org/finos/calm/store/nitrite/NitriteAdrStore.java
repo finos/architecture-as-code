@@ -285,4 +285,13 @@ public class NitriteAdrStore implements AdrStore {
             throw new AdrNotFoundException();
         }
     }
+
+    @Override
+    public void deleteAdr(String namespace, int adrId) throws NamespaceNotFoundException, AdrNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, adrId)) {
+            throw new AdrNotFoundException();
+        }
+        LOG.info("Deleted ADR with ID {} from namespace '{}'", adrId, namespace);
+    }
 }

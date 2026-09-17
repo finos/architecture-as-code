@@ -196,4 +196,35 @@ public class DecoratorResource {
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         }
     }
+
+    /**
+     * Delete an existing decorator by ID in a given namespace.
+     *
+     * @param namespace the namespace containing the decorator
+     * @param id        the id of the decorator to delete
+     * @return 204 No Content, or an appropriate error response
+     */
+    @DELETE
+    @Path("{namespace}/decorators/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete a decorator by ID in a given namespace",
+            description = "Deletes a decorator from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteDecoratorForNamespace(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("id") @Min(value = 1, message = "ID must be a positive integer") int id
+    ) {
+        try {
+            decoratorStore.deleteDecorator(namespace, id);
+        } catch (DecoratorNotFoundException e) {
+            logger.error("Decorator [{}] not found in namespace [{}] when deleting", id, namespace, e);
+            return CalmResourceErrorResponses.decoratorNotFoundResponse(namespace, id);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting decorator [{}]", namespace, id, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        }
+        return Response.noContent().build();
+    }
 }

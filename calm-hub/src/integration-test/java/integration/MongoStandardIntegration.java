@@ -5,7 +5,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import org.eclipse.microprofile.config.ConfigProvider;
+import jakarta.inject.Inject;
 import org.finos.calm.domain.Standard;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.junit.jupiter.api.*;
@@ -36,10 +36,13 @@ public class MongoStandardIntegration {
     private static final String DESCRIPTION = "Test Standard Description";
     private static int createdStandardId;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupStandards() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
