@@ -33,6 +33,7 @@ export type CalmNodeSchema = {
     'node-type': CalmNodeTypeSchema;
     name: string;
     description: string;
+    'definition-id'?: string;
     details?: CalmNodeDetailsSchema;
     interfaces?: CalmInterfaceSchema[];
     controls?: CalmControlsSchema;

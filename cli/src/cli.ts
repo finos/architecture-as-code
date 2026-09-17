@@ -128,6 +128,7 @@ Validation requires:
         .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--assets-path <path>', 'Local path to CALM assets directory (resolves CURIEs without a Hub)')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
@@ -146,6 +147,7 @@ Validation requires:
                 timelinePath: options.timeline,
                 metaSchemaPath: options.schemaDirectory,
                 calmHubUrl: options.calmHubUrl,
+                assetsPath: options.assetsPath,
                 urlToLocalFileMapping: options.urlToLocalFileMapping,
                 verbose: !!options.verbose,
                 strict: options.strict,

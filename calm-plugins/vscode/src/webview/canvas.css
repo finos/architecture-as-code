@@ -27,7 +27,7 @@
     box-shadow: none !important;
 }
 
-.react-flow__node.selected>div {
+.react-flow__node.selected > div:not(.react-flow__handle) {
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 1.5px #6366f1 !important;
 }
@@ -138,6 +138,36 @@
     height: 18px;
     background: var(--calm-border-heavy);
     margin: 0 4px;
+}
+
+/* ── Node resize handles — centered on corners/edges, visible in dark theme ── */
+.react-flow__resize-control.handle {
+    width: 10px !important;
+    height: 10px !important;
+    background: #6366f1 !important;
+    border: 2px solid #fff !important;
+    border-radius: 2px !important;
+    z-index: 10 !important;
+}
+
+.react-flow__resize-control.handle.top.left {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.top.right {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.bottom.left {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.handle.bottom.right {
+    transform: translate(-50%, -50%) !important;
+}
+
+.react-flow__resize-control.line {
+    border-color: #6366f1 !important;
 }
 
 /* Properties panel resize grip — visible and highlights on hover */

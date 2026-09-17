@@ -1,40 +1,47 @@
 import React, { useState } from 'react';
 import {
     buildBuildingBlockDoc,
-    generateId,
-    type ControlEntry,
-    type ControlValidation,
-    type ValidationType,
+    type AttachedControl,
 } from './building-block-doc';
+import { makeControlMapKey } from '../../extension/services/control-curie';
+import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
 interface BuildingBlockCreatorProps {
     visible: boolean;
     onClose: () => void;
     onSave: (nodeJson: string, fileName: string) => void;
+    /** Opens the shared control picker, preserving the in-progress form. */
+    onRequestBrowseControls?: (
+        onAttach: (ref: string, parsed: ParsedRequirement) => void,
+        existingKeys: Set<string>
+    ) => void;
 }
 
 const NODE_TYPES = ['service', 'database', 'network', 'webclient', 'actor', 'system', 'ecosystem', 'ldap', 'data-asset'];
 
 /**
- * Authoring modal for governed building blocks ("building blocks"). Mirrors the
- * Svelte calm-canvas's BuildingBlockCreator: collects a node definition
- * plus controls (with optional pattern / allowed-values validation) and emits a
- * CALM document that the extension writes to `building-blocks/`.
+ * Authoring modal for governed building blocks ("building blocks"). Collects a
+ * node definition plus controls attached via the shared control picker, and
+ * emits a CALM document that the extension writes to `building-blocks/`.
  */
-export function BuildingBlockCreator({ visible, onClose, onSave }: Readonly<BuildingBlockCreatorProps>) {
+export function BuildingBlockCreator({ visible, onClose, onSave, onRequestBrowseControls }: Readonly<BuildingBlockCreatorProps>) {
     const [nodeName, setNodeName] = useState('');
     const [nodeType, setNodeType] = useState('service');
     const [nodeDescription, setNodeDescription] = useState('');
-    const [controls, setControls] = useState<ControlEntry[]>([]);
+    const [controls, setControls] = useState<AttachedControl[]>([]);
 
     if (!visible) return null;
 
-    const addControl = () => setControls((c) => [...c, { id: '', description: '', requirementUrl: '', validation: { type: 'none' } }]);
-    const removeControl = (index: number) => setControls((c) => c.filter((_, i) => i !== index));
-    const updateControl = (index: number, field: keyof ControlEntry, value: unknown) =>
-        setControls((c) => c.map((ctrl, i) => (i === index ? { ...ctrl, [field]: value } : ctrl)));
-    const updateValidation = (index: number, validation: ControlValidation) =>
-        setControls((c) => c.map((ctrl, i) => (i === index ? { ...ctrl, validation } : ctrl)));
+    const removeControl = (ref: string) => setControls((c) => c.filter((ctrl) => ctrl.ref !== ref));
+
+    const browseControls = () => {
+        const existingKeys = new Set(controls.map((c) => makeControlMapKey(c.ref)));
+        onRequestBrowseControls?.((ref, parsed) => {
+            setControls((c) =>
+                c.some((existing) => existing.ref === ref) ? c : [...c, { ref, parsed }]
+            );
+        }, existingKeys);
+    };
 
     const resetForm = () => {
         setNodeName('');
@@ -84,56 +91,24 @@ export function BuildingBlockCreator({ visible, onClose, onSave }: Readonly<Buil
                     <section>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
                             <h4 style={sectionTitleStyle}>Controls <span style={countStyle}>{controls.length}</span></h4>
-                            <button onClick={addControl} style={addBtnStyle}>+ Add Control</button>
+                            <button onClick={browseControls} style={addBtnStyle}>Browse Controls…</button>
                         </div>
                         <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: '0 0 10px' }}>
-                            Each control defines a configuration requirement that consuming architectures must fulfill.
+                            Attach control requirements that consuming architectures must fulfill.
                         </p>
 
-                        {controls.map((ctrl, idx) => (
-                            <div key={idx} style={controlCardStyle}>
-                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', fontFamily: 'monospace' }}>#{idx + 1}</span>
-                                    <button onClick={() => removeControl(idx)} style={closeBtnStyle}>&times;</button>
+                        {controls.length === 0 && (
+                            <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', fontStyle: 'italic' }}>No controls attached.</p>
+                        )}
+                        {controls.map((ctrl) => (
+                            <div key={ctrl.ref} style={controlCardStyle}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+                                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--calm-fg)' }}>{ctrl.parsed.identity.name}</span>
+                                        <span style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ctrl.ref}</span>
+                                    </div>
+                                    <button onClick={() => removeControl(ctrl.ref)} style={closeBtnStyle}>&times;</button>
                                 </div>
-                                <Field label="Control ID">
-                                    <input type="text" value={ctrl.id} onChange={(e) => updateControl(idx, 'id', e.target.value)}
-                                        placeholder={generateId(ctrl.description || 'control-name')} style={inputStyle} />
-                                </Field>
-                                <Field label="Description">
-                                    <input type="text" value={ctrl.description} onChange={(e) => updateControl(idx, 'description', e.target.value)} style={inputStyle} />
-                                </Field>
-                                <Field label="Requirement URL">
-                                    <input type="text" value={ctrl.requirementUrl} onChange={(e) => updateControl(idx, 'requirementUrl', e.target.value)}
-                                        placeholder="standards/tls-policy.md" style={inputStyle} />
-                                </Field>
-                                <Field label="Validation">
-                                    <select value={ctrl.validation.type}
-                                        onChange={(e) => updateValidation(idx, { ...ctrl.validation, type: e.target.value as ValidationType })} style={inputStyle}>
-                                        <option value="none">None</option>
-                                        <option value="pattern">Pattern (regex)</option>
-                                        <option value="allowed-values">Allowed values</option>
-                                    </select>
-                                </Field>
-                                {ctrl.validation.type === 'pattern' && (
-                                    <>
-                                        <Field label="Pattern">
-                                            <input type="text" value={ctrl.validation.pattern ?? ''}
-                                                onChange={(e) => updateValidation(idx, { ...ctrl.validation, pattern: e.target.value })} placeholder="^TLS1\\.[23]$" style={inputStyle} />
-                                        </Field>
-                                        <Field label="Example">
-                                            <input type="text" value={ctrl.validation.example ?? ''}
-                                                onChange={(e) => updateValidation(idx, { ...ctrl.validation, example: e.target.value })} style={inputStyle} />
-                                        </Field>
-                                    </>
-                                )}
-                                {ctrl.validation.type === 'allowed-values' && (
-                                    <Field label="Allowed values (comma-separated)">
-                                        <input type="text" value={(ctrl.validation.allowedValues ?? []).join(', ')}
-                                            onChange={(e) => updateValidation(idx, { ...ctrl.validation, allowedValues: e.target.value.split(',').map((v) => v.trim()).filter(Boolean) })}
-                                            placeholder="TLS1.2, TLS1.3" style={inputStyle} />
-                                    </Field>
-                                )}
                             </div>
                         ))}
                     </section>

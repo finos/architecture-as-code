@@ -1,20 +1,44 @@
-import React, { useState, useRef, useCallback } from 'react';
-
-interface ControlEntry { description?: string; requirements?: Array<{ 'requirement-url'?: string; config?: { value?: string } }>; metadata?: { validation?: { pattern?: string; 'allowed-values'?: string[]; example?: string } } }
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
+import { isControlCurie } from '../../extension/services/control-curie';
+import { notifyOpenControlInHub } from '../stores/sync-bridge';
+import {
+    type ControlEntry,
+    isNewControlMetadata,
+    getPropertyValue,
+    setPropertyValue,
+    hasConfigUrl,
+} from './control-metadata';
 
 interface ControlsListProps {
     controls: Record<string, ControlEntry> | undefined;
     onUpdate: (controls: Record<string, ControlEntry>) => void;
     readonly?: boolean;
-    valueOnly?: boolean;
     expandControl?: string | null;
-    onControlFocused?: (url: string | null) => void;
+    onBrowseControls?: () => void;
 }
 
-export function ControlsList({ controls, onUpdate, readonly = false, valueOnly = false, expandControl = null, onControlFocused }: ControlsListProps) {
+/** Coerce a raw input string back to the native type declared by the property. */
+function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
+    if (raw === '') return undefined;
+    if (def.type === 'boolean') return raw === 'true';
+    if (def.type === 'number' || def.type === 'integer') {
+        const n = Number(raw);
+        return Number.isNaN(n) ? undefined : n;
+    }
+    if (def.type === 'enum' && def.allowedValues) {
+        const match = def.allowedValues.find((v) => String(v) === raw);
+        return match ?? raw;
+    }
+    return raw;
+}
+
+export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onBrowseControls }: ControlsListProps) {
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+    const controlsRef = useRef(controls);
+    useEffect(() => { controlsRef.current = controls; }, [controls]);
     const lastExpand = useRef<string | null>(null);
 
     if (expandControl && expandControl !== lastExpand.current) {
@@ -34,10 +58,11 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
         setExpandedControls(next);
     };
 
-    const handleValueInput = useCallback((key: string, value: string) => {
+    const handleValueInput = useCallback((key: string, value: string, immediate = false) => {
         clearTimeout(valueTimers.current[key]);
-        valueTimers.current[key] = setTimeout(() => {
-            const updated = { ...(controls ?? {}) };
+        const flush = () => {
+            const latest = controlsRef.current ?? {};
+            const updated = { ...latest };
             const ctrl = { ...updated[key] };
             const reqs = [...(ctrl.requirements ?? [])];
             if (reqs.length === 0) reqs.push({ 'requirement-url': '' });
@@ -45,13 +70,16 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
             ctrl.requirements = reqs;
             updated[key] = ctrl;
             onUpdate(updated);
-        }, 300);
-    }, [controls, onUpdate]);
+        };
+        if (immediate) flush();
+        else valueTimers.current[key] = setTimeout(flush, 300);
+    }, [onUpdate]);
 
-    const handleRemove = (key: string) => { const u = { ...(controls ?? {}) }; delete u[key]; onUpdate(u); };
+    const handleRemove = (key: string) => { clearTimeout(valueTimers.current[key]); const u = { ...(controls ?? {}) }; delete u[key]; onUpdate(u); };
     const handleRename = (oldKey: string, newKey: string) => {
         const trimmed = newKey.trim();
         if (!trimmed || trimmed === oldKey) return;
+        clearTimeout(valueTimers.current[oldKey]);
         const existing = controls ?? {};
         if (trimmed in existing) return;
         const updated: Record<string, ControlEntry> = {};
@@ -73,8 +101,30 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
         setSectionExpanded(true);
     };
 
-    const getConfigValue = (ctrl: ControlEntry): string => ctrl?.requirements?.[0]?.config?.value ?? '';
+    const getConfigValue = (ctrl: ControlEntry): string => (ctrl?.requirements?.[0]?.config?.value as string) ?? '';
     const getValidation = (ctrl: ControlEntry) => ctrl?.metadata?.validation ?? null;
+    const getDisplayName = (ctrl: ControlEntry, key: string): string => {
+        const v = ctrl?.metadata?.validation;
+        if (isNewControlMetadata(v) && v.identity?.name && v.identity.name !== key) return v.identity.name;
+        return key;
+    };
+    const getProperties = (ctrl: ControlEntry): Record<string, RequirementPropertyDef> | null => {
+        const v = ctrl?.metadata?.validation;
+        return isNewControlMetadata(v) ? v.properties : null;
+    };
+
+    const handlePropInput = useCallback((key: string, propName: string, def: RequirementPropertyDef, raw: string, immediate = false) => {
+        const timerKey = `${key}:${propName}`;
+        clearTimeout(valueTimers.current[timerKey]);
+        const flush = () => {
+            const latest = controlsRef.current ?? {};
+            const current = latest[key];
+            if (!current) return;
+            onUpdate({ ...latest, [key]: setPropertyValue(current, propName, coerceValue(def, raw)) });
+        };
+        if (immediate) flush();
+        else valueTimers.current[timerKey] = setTimeout(flush, 300);
+    }, [onUpdate]);
 
     return (
         <div style={{ borderTop: '1px solid var(--calm-border)' }}>
@@ -90,50 +140,75 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                     {entries.length === 0 && <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', fontStyle: 'italic' }}>No controls defined</p>}
                     {entries.map(([key, control]) => {
                         const validation = getValidation(control);
+                        const properties = getProperties(control);
+                        const configUrlLocked = hasConfigUrl(control);
                         const isExpanded = expandedControls.has(key);
                         return (
                             <div key={key} style={{ border: '1px solid var(--calm-border)', borderRadius: '4px', marginBottom: '4px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', background: 'var(--calm-bg-secondary)' }}>
-                                    <button type="button" onClick={() => toggleControl(key)} style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: readonly || valueOnly ? 1 : 0, padding: '6px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)', flexShrink: 0 }}>
+                                    <button type="button" onClick={() => toggleControl(key)} style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: readonly ? 1 : 0, padding: '6px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)', flexShrink: 0 }}>
                                         <span style={{ fontSize: '7px', display: 'inline-block', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
-                                        {(readonly || valueOnly) && <span style={{ fontSize: '11px', fontWeight: 600, fontFamily: 'monospace' }}>{key}</span>}
+                                        {readonly && <span style={{ fontSize: '11px', fontWeight: 600, fontFamily: 'monospace' }}>{getDisplayName(control, key)}</span>}
                                     </button>
-                                    {!readonly && !valueOnly && (
+                                    {!readonly && (
                                         <input
                                             type="text"
-                                            defaultValue={key}
+                                            defaultValue={getDisplayName(control, key)}
                                             key={`rename-${key}`}
                                             onBlur={(e) => handleRename(key, e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
                                             style={{ flex: 1, fontSize: '11px', fontWeight: 600, fontFamily: 'monospace', color: 'var(--calm-fg)', background: 'transparent', border: 'none', outline: 'none', padding: '4px 0', minWidth: 0 }}
                                         />
                                     )}
-                                    {!readonly && !valueOnly && <button type="button" onClick={() => handleRemove(key)} style={{ width: '20px', height: '20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '14px' }}>&times;</button>}
+                                    {!readonly && <button type="button" onClick={() => handleRemove(key)} style={{ width: '20px', height: '20px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '14px' }}>&times;</button>}
                                 </div>
                                 {isExpanded && (
                                     <div style={{ padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', background: 'var(--calm-bg)' }}>
-                                        {(!valueOnly || validation) && (
+                                        {configUrlLocked && (
+                                            <p style={configLockedNoteStyle}>Uses <code>config-url</code> — remove it to edit inline values.</p>
+                                        )}
+                                        {properties ? (
+                                            Object.keys(properties).length === 0 ? (
+                                                <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>No configurable properties.</p>
+                                            ) : (
+                                                Object.entries(properties).map(([propName, def]) => (
+                                                    <PropertyField
+                                                        key={propName}
+                                                        propName={propName}
+                                                        def={def}
+                                                        value={getPropertyValue(control, propName)}
+                                                        readonly={readonly || configUrlLocked}
+                                                        onChange={(raw, immediate) => handlePropInput(key, propName, def, raw, immediate)}
+                                                    />
+                                                ))
+                                            )
+                                        ) : (
                                             <div>
                                                 <span style={fieldLabelStyle}>Value</span>
                                                 {readonly ? (
                                                     <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{getConfigValue(control) || '— not configured —'}</p>
-                                                ) : validation?.['allowed-values'] ? (
-                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} style={ctrlInputStyle}>
+                                                ) : legacyAllowedValues(validation) ? (
+                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value, true)} style={ctrlInputStyle}>
                                                         <option value="">— Select —</option>
-                                                        {validation['allowed-values'].map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                                                        {legacyAllowedValues(validation)!.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
                                                     </select>
                                                 ) : (
-                                                    <input type="text" defaultValue={getConfigValue(control)} onInput={(e) => handleValueInput(key, (e.target as HTMLInputElement).value)} placeholder={validation?.example ?? 'Enter value...'} style={ctrlInputStyle} />
+                                                    <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={legacyExample(validation) ?? 'Enter value...'} style={ctrlInputStyle} />
                                                 )}
                                             </div>
                                         )}
-                                        {valueOnly && control.description && <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>{control.description}</p>}
+                                        {control.description && <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>{control.description}</p>}
                                         {control.requirements?.some((req) => req['requirement-url']) && (
                                             <div>
-                                                {!valueOnly && <span style={fieldLabelStyle}>Requirement</span>}
-                                                {control.requirements?.map((req, idx) => (
-                                                    req['requirement-url'] && <button key={idx} type="button" onClick={() => onControlFocused?.(req['requirement-url']!)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{req['requirement-url']}</button>
-                                                ))}
+                                                <span style={fieldLabelStyle}>Requirement</span>
+                                                {control.requirements?.map((req, idx) => {
+                                                    const url = req['requirement-url'];
+                                                    if (!url) return null;
+                                                    const hubRef = isControlCurie(url);
+                                                    return hubRef
+                                                        ? <button key={idx} type="button" onClick={() => notifyOpenControlInHub(url)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url} ↗</button>
+                                                        : <span key={idx} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-fg-muted)', padding: 0 }}>{url}</span>;
+                                                })}
                                             </div>
                                         )}
                                     </div>
@@ -141,13 +216,81 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                             </div>
                         );
                     })}
-                    {!readonly && !valueOnly && <button type="button" onClick={handleAdd} style={{ padding: '4px 8px', fontSize: '11px', color: 'var(--calm-link)', background: 'none', border: '1px dashed var(--calm-link)', borderRadius: '4px', cursor: 'pointer', marginTop: '4px' }}>+ Add Control</button>}
+                    {!readonly && (
+                        <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+                            <button type="button" onClick={handleAdd} style={addControlBtnStyle}>+ Add Control</button>
+                            {onBrowseControls && <button type="button" onClick={onBrowseControls} style={addControlBtnStyle}>Browse Controls…</button>}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
 }
 
+/** Renders the correct input for a single requirement property by its declared type. */
+function PropertyField({ propName, def, value, readonly, onChange }: Readonly<{
+    propName: string;
+    def: RequirementPropertyDef;
+    value: unknown;
+    readonly: boolean;
+    onChange: (raw: string, immediate: boolean) => void;
+}>) {
+    const display = value === undefined || value === null ? '' : String(value);
+
+    let input: React.ReactNode;
+    if (readonly) {
+        input = <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{display || '— not configured —'}</p>;
+    } else if (def.type === 'boolean') {
+        // Three-state so a required boolean can be left explicitly unset.
+        input = (
+            <select value={display} onChange={(e) => onChange(e.target.value, true)} style={ctrlInputStyle}>
+                <option value="">— Select —</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+            </select>
+        );
+    } else if (def.type === 'enum') {
+        input = (
+            <select value={display} onChange={(e) => onChange(e.target.value, true)} style={ctrlInputStyle}>
+                <option value="">— Select —</option>
+                {def.allowedValues?.map((opt) => <option key={String(opt)} value={String(opt)}>{String(opt)}</option>)}
+            </select>
+        );
+    } else if (def.type === 'number' || def.type === 'integer') {
+        input = <input type="number" step={def.type === 'integer' ? 1 : 'any'} defaultValue={display} onChange={(e) => onChange(e.target.value, false)} style={ctrlInputStyle} />;
+    } else {
+        input = <input type="text" defaultValue={display} onChange={(e) => onChange(e.target.value, false)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={def.pattern ? `Pattern: ${def.pattern}` : 'Enter value...'} style={ctrlInputStyle} />;
+    }
+
+    return (
+        <div>
+            <span style={fieldLabelStyle}>{propName}{def.required && <span style={{ color: '#dc2626' }}> *</span>}</span>
+            {input}
+            {def.description && <p style={helpTextStyle}>{def.description}</p>}
+        </div>
+    );
+}
+
+function legacyAllowedValues(v: unknown): string[] | undefined {
+    if (v && typeof v === 'object' && 'allowed-values' in v) {
+        const a = (v as Record<string, unknown>)['allowed-values'];
+        return Array.isArray(a) ? (a as string[]) : undefined;
+    }
+    return undefined;
+}
+
+function legacyExample(v: unknown): string | undefined {
+    if (v && typeof v === 'object' && 'example' in v) {
+        const e = (v as Record<string, unknown>).example;
+        return typeof e === 'string' ? e : undefined;
+    }
+    return undefined;
+}
+
 const toggleStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', width: '100%', padding: '10px 14px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)' };
 const fieldLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.3px', color: 'var(--calm-fg-muted)', display: 'block', marginBottom: '3px' };
 const ctrlInputStyle: React.CSSProperties = { height: '26px', padding: '0 7px', fontSize: '11px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none', width: '100%' };
+const helpTextStyle: React.CSSProperties = { fontSize: '10px', color: 'var(--calm-fg-muted)', margin: '2px 0 0', fontStyle: 'italic' };
+const configLockedNoteStyle: React.CSSProperties = { fontSize: '10px', color: '#92400e', background: '#fef3c7', border: '1px solid #fde68a', borderRadius: '4px', padding: '4px 6px', margin: 0 };
+const addControlBtnStyle: React.CSSProperties = { padding: '4px 8px', fontSize: '11px', color: 'var(--calm-link)', background: 'none', border: '1px dashed var(--calm-link)', borderRadius: '4px', cursor: 'pointer' };

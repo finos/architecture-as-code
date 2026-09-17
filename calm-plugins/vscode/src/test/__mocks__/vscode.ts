@@ -44,30 +44,110 @@ export class RelativePattern {
     ) {}
 }
 
+export class ThemeColor {
+    constructor(public readonly id: string) {}
+}
+
+export enum StatusBarAlignment {
+    Left = 1,
+    Right = 2,
+}
+
+export enum ConfigurationTarget {
+    Global = 1,
+    Workspace = 2,
+    WorkspaceFolder = 3,
+}
+
 interface WorkspaceFolder {
     uri: Uri;
 }
 
+export class WorkspaceEdit {
+    private _edits: Array<{ uri: unknown; range: unknown; newText: string }> = [];
+    replace(uri: unknown, range: unknown, newText: string): void {
+        this._edits.push({ uri, range, newText });
+    }
+}
+
 export const workspace: {
     workspaceFolders: WorkspaceFolder[] | undefined;
-    fs: { readFile: (uri: Uri) => Promise<Uint8Array> };
+    fs: {
+        readFile: (uri: Uri) => Promise<Uint8Array>;
+        writeFile: (uri: Uri, content: Uint8Array) => Promise<void>;
+    };
     getConfiguration: (section?: string) => {
-        get: <T>(key: string) => T | undefined;
+        get: <T>(key: string, defaultValue?: T) => T | undefined;
+        update: (key: string, value: unknown, target?: ConfigurationTarget) => Promise<void>;
     };
     findFiles: (...args: unknown[]) => Promise<Uri[]>;
+    applyEdit: (edit: WorkspaceEdit) => Promise<boolean>;
 } = {
     workspaceFolders: [],
     fs: {
         readFile: async () => {
             throw new Error('ENOENT');
         },
+        writeFile: async () => {},
     },
-    getConfiguration: () => ({ get: () => undefined }),
+    getConfiguration: () => ({
+        get: () => undefined,
+        update: async () => {},
+    }),
     findFiles: async () => [],
+    applyEdit: async () => true,
 };
+
+export interface StatusBarItem {
+    text: string;
+    tooltip: string | undefined;
+    command: string | undefined;
+    backgroundColor: ThemeColor | undefined;
+    show: () => void;
+    hide: () => void;
+    dispose: () => void;
+}
+
+function createMockStatusBarItem(): StatusBarItem {
+    return {
+        text: '',
+        tooltip: undefined,
+        command: undefined,
+        backgroundColor: undefined,
+        show: () => {},
+        hide: () => {},
+        dispose: () => {},
+    };
+}
 
 export const window = {
     showWarningMessage: () => Promise.resolve(undefined),
     showErrorMessage: () => Promise.resolve(undefined),
     showInformationMessage: () => Promise.resolve(undefined),
+    showInputBox: () => Promise.resolve(undefined),
+    showOpenDialog: async () => undefined,
+    showSaveDialog: async () => undefined,
+    createStatusBarItem: (_alignment?: StatusBarAlignment, _priority?: number): StatusBarItem =>
+        createMockStatusBarItem(),
+    createOutputChannel: (_name: string) => ({
+        appendLine: () => {},
+        append: () => {},
+        clear: () => {},
+        show: () => {},
+        hide: () => {},
+        dispose: () => {},
+    }),
+};
+
+export const commands = {
+    registerCommand: (_command: string, _callback: (...args: unknown[]) => unknown) => ({
+        dispose: () => {},
+    }),
+    executeCommand: async () => undefined,
+};
+
+export const languages = {
+    registerCodeLensProvider: (_selector: unknown, _provider: unknown) => ({
+        dispose: () => {},
+    }),
 };

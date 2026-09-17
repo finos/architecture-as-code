@@ -19,7 +19,7 @@ export class CalmMoment extends CalmNode implements CalmAdaptable<CalmMomentSche
         public adrs?: string[],
         public additionalProperties?: Record<string, unknown>
     ) {
-        super(originalJson, uniqueId, 'moment', name, description, details, undefined, controls, metadata, additionalProperties);
+        super(originalJson, uniqueId, 'moment', name, description, undefined, details, undefined, controls, metadata, additionalProperties);
         this.validFrom = validFrom;
         this.adrs = adrs;
     }

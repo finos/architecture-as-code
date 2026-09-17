@@ -102,6 +102,7 @@ export function parseCALMData(
                 controls: n.controls,
                 details: n.details,
                 metadata: n.metadata,
+                'definition-id': n['definition-id'],
                 containmentType: containerVariant.get(id),
             },
             ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: computeDepth(parent, parentMap) } : {}),
