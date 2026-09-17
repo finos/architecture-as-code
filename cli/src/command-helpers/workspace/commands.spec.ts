@@ -245,23 +245,27 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
-        it('recovers a verified narrative document without creating it', async () => {
+        it.each([
+            ['1', 1],
+            ['42', 42],
+            ['123456', 123456],
+        ])('recovers a verified narrative document with canonical ID %s', async (rawDocumentId, documentId) => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
             mocks.readFile.mockResolvedValueOnce(markdown);
 
             await program.parseAsync([
                 'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
-                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+                '--calm-hub-document-id', rawDocumentId, '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
             ]);
 
             expect(mocks.CalmHubClient).toHaveBeenCalledWith(expect.objectContaining({ calmHubUrl: 'https://explicit.example.com' }));
             const client = mocks.CalmHubClient.mock.results[0].value;
-            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', 42, '1.2.0');
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', documentId, '1.2.0');
             expect(client.createNarrativeDocument).not.toHaveBeenCalled();
             expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
             expect(mocks.addFileToBundle).toHaveBeenCalledWith('/fake/bundle', expect.stringContaining('payments.md'), expect.objectContaining({
-                id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.2.0', calmHubDocumentId: 42,
-                calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/1.2.0',
+                id: 'Payments SAD', type: 'sad', namespace: 'finos', version: '1.2.0', calmHubDocumentId: documentId,
+                calmHubId: `/api/calm/namespaces/finos/documents/sad/${documentId}/versions/1.2.0`,
             }));
         });
 
@@ -291,13 +295,21 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
-        it.each([
-            ['--calm-hub-document-id', '0', '--ver', '1.2.0'],
-            ['--calm-hub-document-id', '42', '--ver', 'invalid'],
-        ])('rejects invalid recovery identity values', async (idOption, id, versionOption, version) => {
+        it.each(['0', '-1', '1.5', '1e2', ' 42', '42 ', '01', '+42', '9007199254740992'])(
+            'rejects non-canonical or unsafe narrative recovery ID %j', async (documentId) => {
+                await expect(program.parseAsync([
+                    'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                    '--calm-hub-document-id', documentId, '--ver', '1.2.0'
+                ])).rejects.toThrow();
+                expect(mocks.CalmHubClient).not.toHaveBeenCalled();
+                expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+            }
+        );
+
+        it('rejects an invalid recovery version', async () => {
             await expect(program.parseAsync([
                 'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
-                idOption, id, versionOption, version
+                '--calm-hub-document-id', '42', '--ver', 'invalid'
             ])).rejects.toThrow();
             expect(mocks.CalmHubClient).not.toHaveBeenCalled();
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();

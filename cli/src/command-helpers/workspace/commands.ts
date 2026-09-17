@@ -91,11 +91,19 @@ export function setupWorkspaceCommands(program: Command) {
                         throw new Error(`Narrative document '${file}' recovery requires --namespace.`);
                     }
 
+                    const rawDocumentId = options.calmHubDocumentId;
+                    if (typeof rawDocumentId !== 'string' || !/^[1-9]\d*$/.test(rawDocumentId)) {
+                        throw new Error(`Narrative document '${file}' calmHubDocumentId must be a positive integer.`);
+                    }
+                    const calmHubDocumentId = Number(rawDocumentId);
+                    if (!Number.isSafeInteger(calmHubDocumentId)) {
+                        throw new Error(`Narrative document '${file}' calmHubDocumentId must be a positive integer.`);
+                    }
                     const identity = {
                         namespace: options.namespace.trim(),
                         type: options.type,
                         version: options.ver,
-                        calmHubDocumentId: Number(options.calmHubDocumentId),
+                        calmHubDocumentId,
                     };
                     validateNarrativeIdentity(identity, true, file);
                     const raw = await readFile(srcPath, 'utf8');
