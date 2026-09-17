@@ -22,7 +22,7 @@ describe('HubAssetService', () => {
     });
 
     describe('refresh', () => {
-        it('fetches building blocks and standards for each namespace', async () => {
+        it('fetches building blocks for each namespace', async () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
                 { name: 'finos' },
                 { name: 'acme' },
@@ -32,11 +32,6 @@ describe('HubAssetService', () => {
                     if (ns === 'finos' && type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'microservice', name: 'Microservice', numericId: 1 },
-                        ]);
-                    }
-                    if (ns === 'finos' && type === 'standards') {
-                        return Promise.resolve([
-                            { uniqueId: 'tls-policy', name: 'TLS Policy', numericId: 2 },
                         ]);
                     }
                     if (ns === 'acme' && type === 'building-blocks') {
@@ -68,17 +63,6 @@ describe('HubAssetService', () => {
                     nodeType: 'service',
                 })
             );
-            expect(namespaces[0].standards).toHaveLength(1);
-            expect(namespaces[0].standards[0]).toEqual(
-                expect.objectContaining({
-                    id: 'tls-policy',
-                    name: 'TLS Policy',
-                    behaviour: 'apply-controls-on-drop',
-                    namespace: 'finos',
-                    sha: 'sha-latest',
-                    nodeType: 'standard',
-                })
-            );
             expect(namespaces[1].name).toBe('acme');
             expect(namespaces[1].buildingBlocks).toHaveLength(1);
         });
@@ -95,7 +79,6 @@ describe('HubAssetService', () => {
 
             expect(namespaces).toHaveLength(1);
             expect(namespaces[0].buildingBlocks).toHaveLength(0);
-            expect(namespaces[0].standards).toHaveLength(0);
             expect(namespaces[0].patterns).toHaveLength(0);
         });
 
@@ -288,33 +271,6 @@ describe('HubAssetService', () => {
         });
     });
 
-    describe('getAllStandards', () => {
-        it('returns flattened standards from all namespaces', async () => {
-            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { name: 'ns1' },
-            ]);
-            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
-                (_ns: string, type: string) => {
-                    if (type === 'standards') {
-                        return Promise.resolve([
-                            { uniqueId: 'std-a', name: 'Standard A', numericId: 1 },
-                            { uniqueId: 'std-b', name: 'Standard B', numericId: 2 },
-                        ]);
-                    }
-                    return Promise.resolve([]);
-                }
-            );
-            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['v1']);
-
-            await service.refresh();
-
-            const stds = service.getAllStandards(["ns1", "ns2"]);
-            expect(stds).toHaveLength(2);
-            expect(stds[0].behaviour).toBe('apply-controls-on-drop');
-            expect(stds[1].behaviour).toBe('apply-controls-on-drop');
-        });
-    });
-
     describe('ADR fetching', () => {
         it('flattens and normalizes ADR summaries per namespace', async () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
@@ -358,9 +314,9 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standards') {
+                    if (type === 'building-blocks') {
                         return Promise.resolve([
-                            { uniqueId: 'tls', name: 'TLS', numericId: 1 },
+                            { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
                     }
                     return Promise.resolve([]);
@@ -373,9 +329,8 @@ describe('HubAssetService', () => {
 
             const namespaces = await service.refresh();
 
-            // ADRs empty, but standards still loaded
             expect(namespaces[0].adrs).toHaveLength(0);
-            expect(namespaces[0].standards).toHaveLength(1);
+            expect(namespaces[0].buildingBlocks).toHaveLength(1);
         });
     });
 });

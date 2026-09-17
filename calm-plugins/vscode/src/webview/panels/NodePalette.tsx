@@ -20,7 +20,7 @@ interface NodePaletteProps {
 
 export function NodePalette({ buildingBlocks }: NodePaletteProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, standards: true, guidelines: true, hub: false });
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, hub: false });
 
     const packs = useMemo(() => {
         const allPacks = getAllPacks().filter((p: PackDefinition) => p.id !== 'internal');
@@ -43,8 +43,6 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
     const isSearching = lowerQuery.length > 0;
 
     const infraNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'create-node' && !n.namespace), [buildingBlocks]);
-    const standardNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'apply-controls-on-drop' && n.id?.startsWith('standards:') && !n.namespace), [buildingBlocks]);
-    const guidelineNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'apply-controls-on-drop' && n.id?.startsWith('guidelines:') && !n.namespace), [buildingBlocks]);
     const hubNodes = useMemo(() => buildingBlocks.filter((n) => !!n.namespace), [buildingBlocks]);
 
     const hubByNamespace = useMemo(() => {
@@ -77,15 +75,6 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
         [infraNodes, lowerQuery] // eslint-disable-line
     );
 
-    const filteredStandards = useMemo(() =>
-        groupByCategory(standardNodes).map((g) => ({ ...g, items: g.items.filter((n) => matchesSearch(n.name, n.description)) })).filter((g) => g.items.length > 0),
-        [standardNodes, lowerQuery] // eslint-disable-line
-    );
-
-    const filteredGuidelines = useMemo(() =>
-        groupByCategory(guidelineNodes).map((g) => ({ ...g, items: g.items.filter((n) => matchesSearch(n.name, n.description)) })).filter((g) => g.items.length > 0),
-        [guidelineNodes, lowerQuery] // eslint-disable-line
-    );
 
     const filteredPacks = useMemo(() =>
         packs.map((p: PackDefinition) => ({
@@ -160,34 +149,6 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
                             {filteredInfra.length > 1 && <div style={subgroupStyle}>{group.name} ({group.items.length})</div>}
                             {group.items.map((node) => (
                                 <PaletteItem key={node.id} icon="⬡" label={node.name} onDragStart={(e) => onDragStart(e, node)} title={node.description} />
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </Section>
-            )}
-
-            {/* Standards */}
-            {filteredStandards.length > 0 && (
-                <Section title={`STANDARDS (${standardNodes.length})`} collapsed={!isSearching && collapsed.standards} onToggle={() => toggleSection('standards')} badge="WS">
-                    {filteredStandards.map((group) => (
-                        <React.Fragment key={group.name}>
-                            <div style={subgroupStyle}>{group.name} ({group.items.length})</div>
-                            {group.items.map((node) => (
-                                <PaletteItem key={node.id} icon="📄" label={node.name} onDragStart={(e) => onDragStart(e, node)} title={node.description} />
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </Section>
-            )}
-
-            {/* Guidelines */}
-            {filteredGuidelines.length > 0 && (
-                <Section title={`GUIDELINES (${guidelineNodes.length})`} collapsed={!isSearching && collapsed.guidelines} onToggle={() => toggleSection('guidelines')} badge="WS">
-                    {filteredGuidelines.map((group) => (
-                        <React.Fragment key={group.name}>
-                            <div style={subgroupStyle}>{group.name} ({group.items.length})</div>
-                            {group.items.map((node) => (
-                                <PaletteItem key={node.id} icon="📖" label={node.name} onDragStart={(e) => onDragStart(e, node)} title={node.description} />
                             ))}
                         </React.Fragment>
                     ))}

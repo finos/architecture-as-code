@@ -53,8 +53,6 @@ export const RESERVED_PROPERTY_NAMES = new Set([
 ]);
 
 const SLUG_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
-const CONTROL_REQUIREMENT_REF =
-    'https://calm.finos.org/release/1.2/meta/control-requirement.json';
 
 /** Inline enums up to this many values; larger enums are emitted via `$defs`. */
 const INLINE_ENUM_LIMIT = 3;

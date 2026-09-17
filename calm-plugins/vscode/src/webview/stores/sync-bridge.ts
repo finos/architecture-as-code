@@ -26,8 +26,6 @@ type ModelUpdateCallback = (
 type PatternsLoadedCallback = (patterns: unknown[]) => void;
 type TemplatesLoadedCallback = (templates: unknown[]) => void;
 type BuildingBlocksLoadedCallback = (nodes: unknown[]) => void;
-type StandardsLoadedCallback = (standards: unknown[]) => void;
-type StandardProseCallback = (url: string, prose: string) => void;
 type DrillResultCallback = (
     json: string,
     label: string,
@@ -51,8 +49,6 @@ let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let templatesLoadedCallback: TemplatesLoadedCallback | undefined;
 let buildingBlocksLoadedCallback: BuildingBlocksLoadedCallback | undefined;
-let standardsLoadedCallback: StandardsLoadedCallback | undefined;
-let standardProseCallback: StandardProseCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
 let definitionResolvedCallback: DefinitionResolvedCallback | undefined;
 let definitionResolutionFailedCallback: DefinitionResolutionFailedCallback | undefined;
@@ -109,12 +105,6 @@ export function setBuildingBlocksLoadedCallback(
 ): void {
     buildingBlocksLoadedCallback = cb;
 }
-export function setStandardsLoadedCallback(cb: StandardsLoadedCallback): void {
-    standardsLoadedCallback = cb;
-}
-export function setStandardProseCallback(cb: StandardProseCallback): void {
-    standardProseCallback = cb;
-}
 export function setDrillResultCallback(cb: DrillResultCallback): void {
     drillResultCallback = cb;
 }
@@ -155,12 +145,6 @@ export function initBridge(): void {
                     break;
                 case 'buildingBlocksLoaded':
                     buildingBlocksLoadedCallback?.(msg.nodes);
-                    break;
-                case 'standardsLoaded':
-                    standardsLoadedCallback?.(msg.standards);
-                    break;
-                case 'standardProse':
-                    standardProseCallback?.(msg.url, msg.prose);
                     break;
                 case 'drillResult':
                     drillResultCallback?.(
@@ -215,10 +199,6 @@ export function notifyDrillUp(
     readonly?: boolean
 ): void {
     postMessage({ type: 'drillUp', index, filePath, readonly });
-}
-
-export function requestStandardProse(url: string): void {
-    postMessage({ type: 'requestStandardProse', url });
 }
 
 export function notifyRequestGenerateSpec(): void {

@@ -150,10 +150,9 @@ export class CanvasPanel {
             const fn = this.assetService!.getBuildingBlocks();
             const p = this.assetService!.getPatterns();
             const t = this.assetService!.getTemplates();
-            const s = this.assetService!.getStandards();
             const c = this.assetService!.getControls();
             this.log.appendLine(
-                `[CanvasPanel] Scan complete: ${fn.length} building-blocks, ${p.length} patterns, ${t.length} templates, ${s.length} standards, ${c.length} controls`
+                `[CanvasPanel] Scan complete: ${fn.length} building-blocks, ${p.length} patterns, ${t.length} templates, ${c.length} controls`
             );
             this.scanReady = true;
             // If webview was already waiting, send now
@@ -311,9 +310,6 @@ export class CanvasPanel {
             case 'drillUp':
                 void this.handleDrillUp(message.index, message.filePath);
                 break;
-            case 'requestStandardProse':
-                void this.handleRequestStandardProse(message.url);
-                break;
             case 'requestGenerateSpec':
                 void this.handleGenerateSpec();
                 break;
@@ -396,26 +392,23 @@ export class CanvasPanel {
         const localBlocks = this.assetService.getBuildingBlocks();
         const localPatterns = this.assetService.getPatterns();
         const t = this.assetService.getTemplates();
-        const s = this.assetService.getStandards();
 
         // Merge Hub-sourced assets — only show explicitly selected namespaces
         const selectedNs: string[] = vscode.workspace
             .getConfiguration('calm.hub')
             .get<string[]>('selectedNamespaces') ?? [];
         const hubBlocks = this.hubAssetService?.getAllBuildingBlocks(selectedNs) ?? [];
-        const hubStandards = this.hubAssetService?.getAllStandards(selectedNs) ?? [];
         const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
         const hubAdrs = this.hubAssetService?.getAllAdrs(selectedNs) ?? [];
-        const allBlocks = [...localBlocks, ...hubBlocks, ...hubStandards];
+        const allBlocks = [...localBlocks, ...hubBlocks];
         const allPatterns = [...localPatterns, ...hubPatterns];
 
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks + ${hubStandards.length} hub standards), ${allPatterns.length} patterns (${localPatterns.length} local + ${hubPatterns.length} hub), ${t.length} templates, ${s.length} standards, ${hubAdrs.length} ADRs`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks), ${allPatterns.length} patterns (${localPatterns.length} local + ${hubPatterns.length} hub), ${t.length} templates, ${hubAdrs.length} ADRs`
         );
         this.postMessage({ type: 'buildingBlocksLoaded', nodes: allBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
         this.postMessage({ type: 'templatesLoaded', templates: t });
-        this.postMessage({ type: 'standardsLoaded', standards: s });
         this.postMessage({ type: 'adrsLoaded', adrs: hubAdrs });
     }
 
@@ -565,18 +558,6 @@ export class CanvasPanel {
         vscode.window.showWarningMessage(`Cannot find: ${filePath}`);
     }
 
-    private async handleRequestStandardProse(url: string): Promise<void> {
-        if (!this.assetService) return;
-        const prose = await this.assetService.resolveStandardProse(url);
-        if (prose) {
-            this.postMessage({ type: 'standardProse', url, prose });
-        } else {
-            this.log.appendLine(
-                `[CanvasPanel] Could not resolve standard prose: ${url}`
-            );
-        }
-    }
-
     private async handleGenerateSpec(): Promise<void> {
         if (!this.currentDocument) return;
 
@@ -586,18 +567,6 @@ export class CanvasPanel {
         const baseName = fileName.replace(/\.(calm\.)?json$/, '');
         const sdFileName = `${baseName}-solution-design.md`;
         const sdPath = path.resolve(path.dirname(filePath), sdFileName);
-
-        const standardsContext = await this.collectStandardsContext(
-            this.currentDocument.getText()
-        );
-        const standardsSection =
-            standardsContext.length > 0
-                ? [
-                      ``,
-                      `Standards and guidelines that apply (read these for requirements):`,
-                      ...standardsContext.map((s) => `---\n${s}\n---`),
-                  ]
-                : [];
 
         const prompt = [
             `@CALM Generate a Solution Design document for the architecture at: ${filePath}`,
@@ -609,7 +578,6 @@ export class CanvasPanel {
             `- Follow the 13-section structure from .github/agents/calm-prompts/solution-design-creation.md`,
             `- ALL diagrams MUST be Mermaid syntax`,
             `- Include ALL 13 sections`,
-            ...standardsSection,
         ].join('\n');
 
         const commands = await vscode.commands.getCommands(true);
@@ -626,55 +594,7 @@ export class CanvasPanel {
         }
     }
 
-    private async collectStandardsContext(archJson: string): Promise<string[]> {
-        if (!this.assetService) return [];
 
-        const referencedUrls = new Set<string>();
-        try {
-            const arch = JSON.parse(archJson) as {
-                nodes?: Array<{ controls?: Record<string, unknown> }>;
-                controls?: Record<string, unknown>;
-            };
-            this.extractStandardUrls(arch.nodes ?? [], referencedUrls);
-            if (arch.controls) {
-                this.extractStandardUrls(
-                    [{ controls: arch.controls }],
-                    referencedUrls
-                );
-            }
-        } catch {
-            /* malformed JSON */
-        }
-
-        const prose: string[] = [];
-        for (const url of referencedUrls) {
-            const resolved = await this.assetService.resolveStandardProse(url);
-            if (resolved) prose.push(resolved);
-        }
-        return prose;
-    }
-
-    private extractStandardUrls(
-        nodes: Array<{ controls?: Record<string, unknown> }>,
-        urls: Set<string>
-    ): void {
-        for (const node of nodes) {
-            if (!node?.controls) continue;
-            for (const control of Object.values(node.controls)) {
-                const requirements =
-                    (
-                        control as {
-                            requirements?: Array<Record<string, unknown>>;
-                        }
-                    )?.requirements ?? [];
-                for (const req of requirements) {
-                    const url = req['requirement-url'];
-                    if (typeof url === 'string' && url.endsWith('.md'))
-                        urls.add(url);
-                }
-            }
-        }
-    }
 
     private async handleSaveBuildingBlock(
         filename: string,

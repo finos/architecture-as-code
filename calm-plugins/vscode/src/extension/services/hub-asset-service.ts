@@ -5,7 +5,6 @@ import type { AdrEntry } from '../types/messages';
 export interface HubNamespace {
     name: string;
     buildingBlocks: BuildingBlockDef[];
-    standards: BuildingBlockDef[];
     patterns: PatternEntry[];
     adrs: AdrEntry[];
 }
@@ -26,7 +25,6 @@ export class HubAssetService {
             const namespace: HubNamespace = {
                 name: ns.name,
                 buildingBlocks: [],
-                standards: [],
                 patterns: [],
                 adrs: [],
             };
@@ -80,38 +78,6 @@ export class HubAssetService {
                 }
             } catch {
                 /* namespace may not have building-blocks */
-            }
-
-            try {
-                const standards = await this.client.getResources(
-                    ns.name,
-                    'standards'
-                );
-                const versionResults = await Promise.all(
-                    standards.map((std) =>
-                        this.client
-                            .getVersions(ns.name, 'standards', std.uniqueId)
-                            .then((versions) => ({ std, versions }))
-                            .catch(() => ({ std, versions: [] as string[] }))
-                    )
-                );
-                for (const { std, versions } of versionResults) {
-                    const latestSha =
-                        versions.length > 0
-                            ? versions[versions.length - 1]
-                            : undefined;
-                    namespace.standards.push({
-                        id: std.uniqueId,
-                        name: std.name || humanize(std.uniqueId),
-                        behaviour: 'apply-controls-on-drop',
-                        controls: {},
-                        nodeType: 'standard',
-                        namespace: ns.name,
-                        sha: latestSha,
-                    });
-                }
-            } catch {
-                /* namespace may not have standards */
             }
 
             try {
@@ -180,11 +146,6 @@ export class HubAssetService {
     getAllBuildingBlocks(selectedNamespaces: string[]): BuildingBlockDef[] {
         const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
         return filtered.flatMap((ns) => ns.buildingBlocks);
-    }
-
-    getAllStandards(selectedNamespaces: string[]): BuildingBlockDef[] {
-        const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
-        return filtered.flatMap((ns) => ns.standards);
     }
 
     getAllPatterns(selectedNamespaces: string[]): PatternEntry[] {

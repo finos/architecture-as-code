@@ -15,7 +15,6 @@ interface ControlsListProps {
     onUpdate: (controls: Record<string, ControlEntry>) => void;
     readonly?: boolean;
     expandControl?: string | null;
-    onControlFocused?: (url: string | null) => void;
     onBrowseControls?: () => void;
 }
 
@@ -34,7 +33,7 @@ function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     return raw;
 }
 
-export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onControlFocused, onBrowseControls }: ControlsListProps) {
+export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onBrowseControls }: ControlsListProps) {
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -206,7 +205,9 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
                                                     const url = req['requirement-url'];
                                                     if (!url) return null;
                                                     const hubRef = isControlCurie(url);
-                                                    return <button key={idx} type="button" onClick={() => hubRef ? notifyOpenControlInHub(url) : onControlFocused?.(url)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url}{hubRef ? ' ↗' : ''}</button>;
+                                                    return hubRef
+                                                        ? <button key={idx} type="button" onClick={() => notifyOpenControlInHub(url)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url} ↗</button>
+                                                        : <span key={idx} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-fg-muted)', padding: 0 }}>{url}</span>;
                                                 })}
                                             </div>
                                         )}

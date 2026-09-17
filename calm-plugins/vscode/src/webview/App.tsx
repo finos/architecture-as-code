@@ -26,9 +26,7 @@ import {
     setPatternsLoadedCallback,
     setTemplatesLoadedCallback,
     setBuildingBlocksLoadedCallback,
-    setStandardsLoadedCallback,
     setDrillResultCallback,
-    setStandardProseCallback,
     setDefinitionResolvedCallback,
     setDefinitionResolutionFailedCallback,
     setUpdatesAvailableCallback,
@@ -36,7 +34,6 @@ import {
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
-    requestStandardProse,
     notifyRequestGenerateSpec,
     notifySaveBuildingBlock,
     notifyRequestImportSvg,
@@ -59,7 +56,6 @@ import { NodeAppearance } from './panels/NodeAppearance';
 import { getNodeStyleOverride } from './utils/building-block-style';
 import { PatternPicker } from './panels/PatternPicker';
 import { TemplatePicker } from './panels/TemplatePicker';
-import { StandardsPanel } from './panels/StandardsPanel';
 import { BuildingBlockCreator } from './panels/BuildingBlockCreator';
 import { ControlPicker } from './panels/ControlPicker';
 import { ControlCreator } from './panels/ControlCreator';
@@ -115,8 +111,6 @@ function CanvasApp() {
         | { type: 'building-block-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
         | null
     >(null);
-    const [activeRequirementUrl, setActiveRequirementUrl] = useState<string | null>(null);
-    const [activeStandardProse, setActiveStandardProse] = useState<string | null>(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
 
     // Undo/redo
@@ -289,14 +283,10 @@ function CanvasApp() {
         setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
         setTemplatesLoadedCallback((t) => useCanvasStore.setState({ loadedTemplates: t as any }));
         setBuildingBlocksLoadedCallback((n) => useCanvasStore.setState({ buildingBlocks: n as any }));
-        setStandardsLoadedCallback((s) => useCanvasStore.setState({ loadedStandards: s as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
             loadArchitecture(json);
-        });
-        setStandardProseCallback((_url, prose) => {
-            setActiveStandardProse(prose);
         });
         setDefinitionResolvedCallback((nodeId, controls) => {
             setNodes((nds) => nds.map((n) => {
@@ -1008,11 +998,6 @@ function CanvasApp() {
     }, [nodes, edges, store.documentControls, loadArchitecture]);
 
     // --- Control focused (standards panel) ---
-    const handleControlFocused = useCallback((url: string | null) => {
-        setActiveStandardProse(null);
-        setActiveRequirementUrl(url);
-        if (url) requestStandardProse(url);
-    }, []);
 
     // --- Control picker attach ---
     const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
@@ -1228,7 +1213,6 @@ function CanvasApp() {
                                         onUpdate={(ctrls) => onNodeUpdate(liveSelectedNode.id, 'controls', ctrls)}
                                         readonly={store.readonlyMode}
                                         expandControl={expandControlKey}
-                                        onControlFocused={handleControlFocused}
                                         onBrowseControls={() => { setControlPickerTarget({ type: 'node', nodeId: liveSelectedNode.id }); setShowControlPicker(true); }}
                                     />
                                     <NodeAppearance
@@ -1259,7 +1243,6 @@ function CanvasApp() {
                                         onUpdate={(ctrls) => { useCanvasStore.setState({ documentControls: ctrls }); setTimeout(() => emitChange(true), 0); }}
                                         readonly={store.readonlyMode}
                                         expandControl={expandControlKey}
-                                        onControlFocused={handleControlFocused}
                                         onBrowseControls={() => { setControlPickerTarget({ type: 'document' }); setShowControlPicker(true); }}
                                     />
                                     {(!store.documentControls || Object.keys(store.documentControls).length === 0) && (
@@ -1272,14 +1255,6 @@ function CanvasApp() {
                 )}
             </div>
 
-            {/* Standards Panel */}
-            {activeRequirementUrl && (
-                <StandardsPanel
-                    requirementUrl={activeRequirementUrl}
-                    prose={activeStandardProse}
-                    onClose={() => { setActiveRequirementUrl(null); setActiveStandardProse(null); }}
-                />
-            )}
 
             {/* Pattern Picker */}
             <PatternPicker

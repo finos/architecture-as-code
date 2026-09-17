@@ -39,9 +39,7 @@ export type ExtToWebviewMessage =
     | { type: 'templatesLoaded'; templates: unknown[] }
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'buildingBlocksLoaded'; nodes: unknown[] }
-    | { type: 'standardsLoaded'; standards: unknown[] }
     | { type: 'adrsLoaded'; adrs: AdrEntry[] }
-    | { type: 'standardProse'; url: string; prose: string }
     | {
           type: 'drillResult';
           json: string;
@@ -91,7 +89,6 @@ export type WebviewToExtMessage =
     | { type: 'canvasChanged'; json: string }
     | { type: 'drillInto'; label: string; path: string; calmType: string }
     | { type: 'drillUp'; index: number; filePath?: string; readonly?: boolean }
-    | { type: 'requestStandardProse'; url: string }
     | { type: 'requestGenerateSpec' }
     | { type: 'saveBuildingBlock'; filename: string; content: string }
     | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
