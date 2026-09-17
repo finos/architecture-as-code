@@ -217,6 +217,16 @@ const patternRules: RulesetDefinition = {
                 function: decisionIsDeclaredInPrefixItems,
             },
         },
+        'pattern-decision-options-must-be-declared-in-prefix-items': {
+            description: 'Decision options must be declared in options prefixItems, not in items',
+            severity: 'error',
+            message: 'Declare decision options in options prefixItems. calm generate reads prefixItems only, so an options block declared in items is never built.',
+            given: '$..relationship-type.properties.options',
+            then: {
+                field: 'items',
+                function: falsy,
+            },
+        },
         'pattern-option-relationship-must-have-max-one-item': {
             description: 'Options relationships must have max one item',
             severity: 'error',

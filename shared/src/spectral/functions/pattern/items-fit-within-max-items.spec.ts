@@ -37,6 +37,11 @@ describe('itemsFitWithinMaxItems', () => {
         expect(run({ prefixItems: [{}], maxItems: 1, items: { $ref: 'core.json#/defs/node' } })).toEqual([]);
     });
 
+    it('accepts an items block whose choice is empty, because it declares no member', () => {
+        expect(run({ prefixItems: [{}], maxItems: 1, items: { oneOf: [] } })).toEqual([]);
+        expect(run({ prefixItems: [{}], maxItems: 1, items: { anyOf: [] } })).toEqual([]);
+    });
+
     it('accepts an anyOf items block with room', () => {
         expect(run({ prefixItems: [{}], maxItems: 3, items: { anyOf: [{}] } })).toEqual([]);
     });

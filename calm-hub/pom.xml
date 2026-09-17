@@ -21,49 +21,27 @@
     </properties>
 
     <!-- dependencyManagement overrides for native-image compatibility.
-         Quarkus 3.34.7 manages Netty at 4.1.132.Final which already patches
-         CVE-2025-58057 / CVE-2026-33870 / CVE-2026-33871 (affecting <=4.1.131.Final)
-         and is native-image compatible.  Do NOT override netty-bom here: Netty
-         4.1.133+ changed netty-codec native-image config to register BrotliDecoder
-         for link-at-build-time, which requires brotli4j on the classpath, a
-         dependency we do not include.  Let Quarkus manage Netty at 4.1.132.Final. -->
-    <dependencyManagement>
-        <dependencies>
-            <!-- Override MCP server to a version with native-image fixes.
-                 quarkus-mcp-server-bom:3.34.7 (from root pom) resolves all MCP
-                 artifacts to 1.10.5, which predates the native-image fixes added
-                 in 1.12.0 (quarkiverse/quarkus-mcp-server#684 / #685).  All five
-                 artifacts (runtime + deployment) must be aligned to the same version
-                 to avoid mixed-version augmentation failures. -->
-            <dependency>
-                <groupId>io.quarkiverse.mcp</groupId>
-                <artifactId>quarkus-mcp-server-http</artifactId>
-                <version>1.12.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkiverse.mcp</groupId>
-                <artifactId>quarkus-mcp-server-http-deployment</artifactId>
-                <version>1.12.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkiverse.mcp</groupId>
-                <artifactId>quarkus-mcp-server-core</artifactId>
-                <version>1.12.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkiverse.mcp</groupId>
-                <artifactId>quarkus-mcp-server-core-deployment</artifactId>
-                <version>1.12.1</version>
-            </dependency>
-            <dependency>
-                <groupId>io.quarkiverse.mcp</groupId>
-                <artifactId>quarkus-mcp-server-sse-client</artifactId>
-                <version>1.12.1</version>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+         Do NOT override netty-bom - always take whatever Netty version the
+         Quarkus platform BOM manages. Quarkus's CleanerJava9 bytecode
+         transform (NettyProcessor) is written for Netty 4.1's class shape
+         and NPEs on every direct-buffer free under Netty 4.2 (Java 21
+         only). Quarkus won't ship Netty 4.2 until the Vert.x 5 migration
+         lands in Quarkus 4.0 (open, unmilestoned): see
+         quarkusio/quarkus#51959 (tracking epic) and quarkusio/quarkus#53309
+         (the specific incompatibility). Confirmed in this repo:
+         finos/architecture-as-code#2510 (398/398 integration tests failed
+         after Netty 4.2.13.Final landed via a grouped Renovate bump).
+         renovate.json pins netty-bom to <4.2.0, but that only blocks an
+         explicit Renovate-proposed override - re-check this note before
+         ever adopting Quarkus 4.x, where Netty 4.2 becomes the platform
+         default. -->
 
     <dependencies>
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+            <version>2.3</version>
+        </dependency>
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-jsonb</artifactId>
@@ -454,6 +432,11 @@
                             <includes>
                                 <include>**/*Integration.java</include>
                             </includes>
+                            <!-- Diagnostic aid: a stuck fork (e.g. EndToEndResource hanging in
+                                 MongoIndexInitializationStep) currently runs silently until the
+                                 CI job's own timeout kills it with no stack trace. This forces
+                                 failsafe to thread-dump and kill the fork after 5 minutes instead. -->
+                            <forkedProcessTimeoutInSeconds>300</forkedProcessTimeoutInSeconds>
                         </configuration>
                     </plugin>
                 </plugins>

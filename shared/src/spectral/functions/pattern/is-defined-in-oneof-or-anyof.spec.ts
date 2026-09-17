@@ -35,6 +35,16 @@ describe('isDefinedInOneOfOrAnyOf', () => {
         expect(messagesFor(data, 'redis')).toEqual([]);
     });
 
+    it('accepts an id declared in an items catalogue', () => {
+        const data = { properties: { nodes: { prefixItems: [], items: { oneOf: [declaration('redis')] } } } };
+        expect(messagesFor(data, 'redis')).toEqual([]);
+    });
+
+    it('accepts a relationship id declared in an items catalogue', () => {
+        const data = { properties: { relationships: { prefixItems: [], items: { anyOf: [declaration('cache-link')] } } } };
+        expect(messagesFor(data, 'cache-link', 'relationships')).toEqual([]);
+    });
+
     it('accepts an id the pattern does not declare', () => {
         const data = pattern('nodes', [declaration('webapp')]);
         expect(messagesFor(data, 'redis')).toEqual([]);
