@@ -7,8 +7,10 @@ import {
     buildDependencyGraph,
     printBundleTree,
     extractReferenceValue,
+    isNarrativeWorkspaceManifestEntry,
     MANIFEST_FILENAME,
-    REFERENCE_PROPERTIES
+    REFERENCE_PROPERTIES,
+    type WorkspaceManifestEntry,
 } from './bundle';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
@@ -46,6 +48,53 @@ describe('bundle', () => {
     describe('MANIFEST_FILENAME', () => {
         it('should be workspace-manifest.json', () => {
             expect(MANIFEST_FILENAME).toBe('workspace-manifest.json');
+        });
+    });
+
+    describe('WorkspaceManifestEntry', () => {
+        it('discriminates narrative entries by document type', () => {
+            const mapping: WorkspaceManifestEntry = { path: 'files/architecture.json', type: 'architecture' };
+            const unpublishedNarrative: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0',
+            };
+            const publishedNarrative: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/documents/sad/42/versions/1.0.0',
+            };
+
+            expect(isNarrativeWorkspaceManifestEntry(mapping)).toBe(false);
+            expect(isNarrativeWorkspaceManifestEntry(unpublishedNarrative)).toBe(true);
+            expect(isNarrativeWorkspaceManifestEntry(publishedNarrative)).toBe(true);
+            expect([mapping, publishedNarrative].filter(isNarrativeWorkspaceManifestEntry)[0].version).toBe('1.0.0');
+        });
+
+        it('rejects incomplete narrative identity and narrative-owned mapping state at compile time', () => {
+            // @ts-expect-error Published narrative entries require calmHubId.
+            const narrativeWithoutHubId: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0', calmHubDocumentId: 42,
+            };
+            // @ts-expect-error Published narrative entries require calmHubDocumentId.
+            const narrativeWithoutDocumentId: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad', version: '1.0.0', calmHubId: '/documents/sad/42/versions/1.0.0',
+            };
+            // @ts-expect-error Narrative entries require a manifest version.
+            const narrativeWithoutVersion: WorkspaceManifestEntry = {
+                path: 'files/design.md', type: 'sad',
+            };
+            // @ts-expect-error Mapping entries do not own a manifest version.
+            const invalidMapping: WorkspaceManifestEntry = {
+                path: 'files/architecture.json', type: 'architecture', version: '1.0.0',
+            };
+            // @ts-expect-error Mapping entries do not own a narrative document ID.
+            const invalidMappingId: WorkspaceManifestEntry = {
+                path: 'files/architecture.json', type: 'architecture', calmHubDocumentId: 42,
+            };
+
+            expect(narrativeWithoutHubId.type).toBe('sad');
+            expect(narrativeWithoutDocumentId.type).toBe('sad');
+            expect(narrativeWithoutVersion.type).toBe('sad');
+            expect(invalidMapping.type).toBe('architecture');
+            expect(invalidMappingId.type).toBe('architecture');
         });
     });
 
@@ -96,6 +145,15 @@ describe('bundle', () => {
 
             const manifest = await loadManifest(bundlePath);
             expect(manifest).toEqual(expected);
+        });
+
+        it('should preserve malformed persisted narrative identity for runtime validation', async () => {
+            const malformed = {
+                narrative: { path: 'files/design.md', type: 'sad', calmHubId: '/partial' },
+            };
+            await writeFile(path.join(bundlePath, MANIFEST_FILENAME), JSON.stringify(malformed));
+
+            expect(await loadManifest(bundlePath)).toEqual(malformed);
         });
 
         it('should migrate old string-value format to new entry format', async () => {
@@ -225,7 +283,7 @@ describe('bundle', () => {
             { type: 'sad' as const, version: '1.2.0', calmHubId: '/path' },
             { type: 'sad' as const, calmHubDocumentId: 42, calmHubId: '/path' },
         ])('rejects an incomplete narrative Hub identity', async (options) => {
-            await expect(addFileToBundle(bundlePath, srcFile, options)).rejects.toThrow(/Hub identity/);
+            await expect(addFileToBundle(bundlePath, srcFile, options as never)).rejects.toThrow(/Hub identity/);
         });
 
         it('should copy file when copy option is true', async () => {

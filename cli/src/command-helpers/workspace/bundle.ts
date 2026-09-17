@@ -3,7 +3,7 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
-import type { CalmDocumentType, NarrativeDocumentType } from '@finos/calm-models/types';
+import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -65,14 +65,43 @@ export function extractAllReferences(json: object): string[] {
 
 export type WorkspaceDocumentType = CalmDocumentType | NarrativeDocumentType | 'unknown';
 
-export type WorkspaceManifestEntry = {
+export type MappingWorkspaceManifestEntry = {
     path: string;
-    type: WorkspaceDocumentType;
+    type: CalmDocumentType | 'unknown';
     namespace?: string;
     calmHubId?: string;
-    version?: string;
-    calmHubDocumentId?: number;
+    version?: never;
+    calmHubDocumentId?: never;
 };
+
+type NarrativeWorkspaceManifestEntryBase = {
+    path: string;
+    type: NarrativeDocumentType;
+    namespace?: string;
+    version: string;
+};
+
+export type UnpublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+};
+
+export type PublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId: number;
+    calmHubId: string;
+};
+
+export type NarrativeWorkspaceManifestEntry =
+    | UnpublishedNarrativeWorkspaceManifestEntry
+    | PublishedNarrativeWorkspaceManifestEntry;
+
+export type WorkspaceManifestEntry = MappingWorkspaceManifestEntry | NarrativeWorkspaceManifestEntry;
+
+export function isNarrativeWorkspaceManifestEntry(
+    entry: WorkspaceManifestEntry
+): entry is NarrativeWorkspaceManifestEntry {
+    return isNarrativeDocumentType(entry.type);
+}
 
 export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
 
@@ -156,6 +185,36 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
     return path.basename(srcPath, path.extname(srcPath));
 }
 
+type AddFileToBundleCommonOptions = {
+    id?: string;
+    destName?: string;
+    copy?: boolean;
+    namespace?: string;
+};
+
+type AddMappingFileToBundleOptions = AddFileToBundleCommonOptions & {
+    type?: CalmDocumentType | 'unknown';
+    version?: never;
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+};
+
+type AddNarrativeFileToBundleOptions = AddFileToBundleCommonOptions & {
+    type: NarrativeDocumentType;
+    version: string;
+} & (
+    | { calmHubDocumentId?: never; calmHubId?: never }
+    | { calmHubDocumentId: number; calmHubId: string }
+);
+
+type AddFileToBundleOptions = AddMappingFileToBundleOptions | AddNarrativeFileToBundleOptions;
+
+function isNarrativeAddFileToBundleOptions(
+    opts: AddFileToBundleOptions | undefined
+): opts is AddNarrativeFileToBundleOptions {
+    return opts !== undefined && isNarrativeDocumentType(opts.type);
+}
+
 /**
  * Add a file into the workspace bundle and register it in the bundle manifest.
  * The file is copied into the bundle's 'files/' directory and the manifest is updated
@@ -169,16 +228,7 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: {
-        id?: string;
-        destName?: string;
-        copy?: boolean;
-        type?: WorkspaceDocumentType;
-        namespace?: string;
-        version?: string;
-        calmHubDocumentId?: number;
-        calmHubId?: string;
-    }
+    opts?: AddFileToBundleOptions
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
     const hasDocumentId = opts?.calmHubDocumentId !== undefined;
@@ -208,13 +258,24 @@ export async function addFileToBundle(
     }
 
     const manifest = await loadManifest(bundlePath);
-    manifest[id] = {
-        path: rel,
-        type: opts?.type ?? 'unknown',
-        ...(opts?.namespace ? { namespace: opts.namespace } : {}),
-        ...(opts?.version ? { version: opts.version } : {}),
-        ...(hasDocumentId ? { calmHubDocumentId: opts!.calmHubDocumentId, calmHubId: opts!.calmHubId } : {}),
-    };
+    if (isNarrativeAddFileToBundleOptions(opts)) {
+        const hubIdentity = opts.calmHubDocumentId !== undefined && opts.calmHubId !== undefined
+            ? { calmHubDocumentId: opts.calmHubDocumentId, calmHubId: opts.calmHubId }
+            : {};
+        manifest[id] = {
+            path: rel,
+            type: opts.type,
+            ...(opts.namespace ? { namespace: opts.namespace } : {}),
+            version: opts.version,
+            ...hubIdentity,
+        };
+    } else {
+        manifest[id] = {
+            path: rel,
+            type: opts?.type ?? 'unknown',
+            ...(opts?.namespace ? { namespace: opts.namespace } : {}),
+        };
+    }
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };

@@ -1,6 +1,6 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, resolveFilePath, saveManifest } from './bundle';
+import { isNarrativeWorkspaceManifestEntry, loadManifest, resolveFilePath, saveManifest } from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
 import {
     CalmHubClient,
@@ -14,7 +14,6 @@ import {
     initLogger,
     Logger,
 } from '@finos/calm-shared';
-import { isNarrativeDocumentType } from '@finos/calm-models/types';
 import { NarrativeDocumentIdentity, parseNarrativeDocument, validateNarrativeDocumentLocation, validateNarrativeIdentity, validateNarrativeNamespace } from './narrative-document';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
@@ -98,7 +97,7 @@ export async function detectChangedResources(
     for (const [id, entry] of Object.entries(manifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) {
-            if (isNarrativeDocumentType(entry.type)) throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
+            if (isNarrativeWorkspaceManifestEntry(entry)) throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
             logger.warn(`File not found for id '${id}': ${filePath}`);
             continue;
         }
@@ -107,12 +106,12 @@ export async function detectChangedResources(
         try {
             raw = await readFile(filePath, 'utf8');
         } catch (e) {
-            if (isNarrativeDocumentType(entry.type)) throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
+            if (isNarrativeWorkspaceManifestEntry(entry)) throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
             logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
             continue;
         }
 
-        if (isNarrativeDocumentType(entry.type)) {
+        if (isNarrativeWorkspaceManifestEntry(entry)) {
             // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
             const version = entry.version;
             if (!version) throw new Error(`Narrative document '${id}' has no manifest version.`);
@@ -217,6 +216,9 @@ export async function bumpWorkspace(
             const manifest = await loadManifest(bundlePath);
             const entry = manifest[c.id];
             if (!entry) throw new Error(`Narrative document '${c.id}' is no longer in the manifest.`);
+            if (!isNarrativeWorkspaceManifestEntry(entry)) {
+                throw new Error(`Narrative document '${c.id}' is no longer a narrative manifest entry.`);
+            }
             manifest[c.id] = { ...entry, version: toVersion };
             await saveManifest(bundlePath, manifest);
             bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
@@ -246,7 +248,7 @@ export async function bumpWorkspace(
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
         const jsonManifest = Object.fromEntries(
-            Object.entries(manifest).filter(([, entry]) => !isNarrativeDocumentType(entry.type))
+            Object.entries(manifest).filter(([, entry]) => !isNarrativeWorkspaceManifestEntry(entry))
         );
         const rules = await buildRefRulesFromDiskIds(jsonManifest, bundlePath);
         const refUpdates = await syncReferences(bundlePath, jsonManifest, rules);

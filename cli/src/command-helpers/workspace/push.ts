@@ -1,9 +1,8 @@
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, saveManifest, resolveFilePath } from './bundle';
+import { isNarrativeWorkspaceManifestEntry, loadManifest, saveManifest, resolveFilePath } from './bundle';
 import { CalmHubClient, DocumentMetadata, extractDocumentMetadata, initLogger, Logger } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
-import { isNarrativeDocumentType } from '@finos/calm-models/types';
 import {
     parseNarrativeDocument,
     parseNarrativeDocumentLocation,
@@ -47,7 +46,7 @@ export async function pushWorkspaceToHub(
 
         if (!existsSync(filePath)) {
             logger.warn(`File not found for id '${id}': ${filePath}`);
-            if (isNarrativeDocumentType(entry.type)) narrativeFailures.push(`${id}: file not found`);
+            if (isNarrativeWorkspaceManifestEntry(entry)) narrativeFailures.push(`${id}: file not found`);
             continue;
         }
 
@@ -56,11 +55,11 @@ export async function pushWorkspaceToHub(
             raw = await readFile(filePath, 'utf8');
         } catch (e) {
             logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            if (isNarrativeDocumentType(entry.type)) narrativeFailures.push(`${id}: file could not be read`);
+            if (isNarrativeWorkspaceManifestEntry(entry)) narrativeFailures.push(`${id}: file could not be read`);
             continue;
         }
 
-        if (isNarrativeDocumentType(entry.type)) {
+        if (isNarrativeWorkspaceManifestEntry(entry)) {
             try {
                 const version = entry.version;
                 if (!version) throw new Error('Narrative document manifest entry has no version. Re-add the document to repair it.');
