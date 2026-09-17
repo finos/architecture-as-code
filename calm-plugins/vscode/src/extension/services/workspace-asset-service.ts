@@ -291,12 +291,15 @@ export class WorkspaceAssetService {
                     const schema = JSON.parse(
                         Buffer.from(bytes).toString('utf-8')
                     );
-                    const { parsed } = parseRequirementSchema(schema);
-                    if (!parsed) continue;
-                    seen.add(relativePath);
                     const id = path
                         .basename(file.fsPath)
                         .replace(/(\.requirement)?\.json$/, '');
+                    const title = typeof schema.title === 'string' ? schema.title : id;
+                    const desc = typeof schema.description === 'string' ? schema.description : id;
+                    const fallbackIdentity = { controlId: id, name: title, description: desc };
+                    const { parsed } = parseRequirementSchema(schema, fallbackIdentity);
+                    if (!parsed) continue;
+                    seen.add(relativePath);
                     // Derive domain from subdirectory: controls/{domain}/{name}.json
                     const segments = relativePath.replace(/\\/g, '/').split('/');
                     const domain = segments[0] === 'controls' && segments.length > 2

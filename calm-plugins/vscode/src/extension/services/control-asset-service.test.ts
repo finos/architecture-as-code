@@ -87,7 +87,7 @@ describe('ControlAssetService.browseControlsForDomain', () => {
                 source: 'hub',
                 domain: 'security',
                 controlName: 'tls',
-                title: 'tls',
+                title: 'Tls',
                 description: 'TLS everywhere',
             },
         ]);
@@ -119,5 +119,27 @@ describe('ControlAssetService.browseControlsForDomain', () => {
         svc.setHubClient(hub);
         const group = await svc.browseControlsForDomain('security');
         expect(group.error).toBeUndefined();
+    });
+
+    it('humanizes slug to title when Hub control has no title', async () => {
+        const hub = mockHub({
+            getControlsForDomain: vi.fn().mockResolvedValue([
+                { id: 1, name: 'resiliency-tier', description: 'desc' },
+            ]),
+        });
+        const svc = new ControlAssetService(hub, () => []);
+        const group = await svc.browseControlsForDomain('platform');
+        expect(group.controls[0].title).toBe('Resiliency Tier');
+    });
+
+    it('uses explicit title from Hub when provided', async () => {
+        const hub = mockHub({
+            getControlsForDomain: vi.fn().mockResolvedValue([
+                { id: 1, name: 'resiliency-tier', description: 'desc', title: 'Custom Title' },
+            ]),
+        });
+        const svc = new ControlAssetService(hub, () => []);
+        const group = await svc.browseControlsForDomain('platform');
+        expect(group.controls[0].title).toBe('Custom Title');
     });
 });

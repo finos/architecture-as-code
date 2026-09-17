@@ -188,7 +188,7 @@ export function ControlPicker({
                                             const key = rowKey(entry.domain, entry.controlName);
                                             const ref = buildRef(entry);
                                             const mapKey = ref ? makeControlMapKey(ref) : '';
-                                            const duplicate = !!mapKey && existingControlKeys.has(mapKey);
+                                            const duplicate = !!mapKey && (existingControlKeys.has(mapKey) || existingControlKeys.has(entry.controlName) || existingControlKeys.has(entry.title));
                                             return (
                                                 <div key={key} style={rowStyle}>
                                                     <div style={rowHeaderStyle}>

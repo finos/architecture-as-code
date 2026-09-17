@@ -10,7 +10,7 @@ import { parseRequirementSchema } from '../../extension/services/requirement-par
 
 const base: ControlRequirementInput = {
     slug: 'micro-segmentation',
-    controlId: 'security-001',
+    domain: 'security',
     name: 'Micro-segmentation',
     description: 'Prevent lateral movement',
     properties: [],
@@ -32,21 +32,18 @@ describe('isReservedPropertyName', () => {
 });
 
 describe('buildControlRequirement', () => {
-    it('emits a CALM 1.2 requirement with base consts, allOf ref, $id and type', () => {
+    it('emits a Hub-compatible requirement with CURIE $id and top-level metadata', () => {
         const { json, fileName, $id } = buildControlRequirement(base);
         const doc = JSON.parse(json);
         expect(doc.$schema).toBe('https://json-schema.org/draft/2020-12/schema');
-        expect(doc.$id).toBe('controls/micro-segmentation.requirement.json');
+        expect(doc.$id).toBe('security:controls:micro-segmentation');
         expect($id).toBe(doc.$id);
         expect(doc.title).toBe('Micro-segmentation');
+        expect(doc.description).toBe('Prevent lateral movement');
         expect(doc.type).toBe('object');
-        expect(doc.allOf).toEqual([
-            { $ref: 'https://calm.finos.org/release/1.2/meta/control-requirement.json' },
-        ]);
-        expect(doc.properties['control-id']).toEqual({ const: 'security-001' });
-        expect(doc.properties.name).toEqual({ const: 'Micro-segmentation' });
-        expect(doc.properties.description).toEqual({ const: 'Prevent lateral movement' });
-        expect(doc.required).toEqual(['control-id', 'name', 'description']);
+        expect(doc.allOf).toBeUndefined();
+        expect(doc.properties).toEqual({});
+        expect(doc.required).toBeUndefined();
         expect(fileName).toBe('micro-segmentation.requirement.json');
     });
 
@@ -64,7 +61,7 @@ describe('buildControlRequirement', () => {
         expect(doc.properties['permit-ingress']).toEqual({ type: 'boolean' });
         expect(doc.properties.reason).toEqual({ type: 'string', pattern: '^.+$', description: 'why' });
         expect(doc.properties.retries).toEqual({ type: 'integer' });
-        expect(doc.required).toEqual(['control-id', 'name', 'description', 'permit-ingress']);
+        expect(doc.required).toEqual(['permit-ingress']);
     });
 
     it('inlines small enums (<=3 values)', () => {
@@ -91,7 +88,7 @@ describe('buildControlRequirement', () => {
         expect(doc.$defs.protocol).toEqual({ enum: ['HTTP', 'HTTPS', 'TLS', 'mTLS'] });
     });
 
-    it('produces output that the requirement parser accepts', () => {
+    it('produces output that the requirement parser accepts with fallback identity', () => {
         const { json } = buildControlRequirement({
             ...base,
             properties: [
@@ -99,9 +96,10 @@ describe('buildControlRequirement', () => {
                 { name: 'protocol', type: 'enum', required: true, enumValues: ['HTTP', 'HTTPS', 'TLS', 'mTLS'] },
             ],
         });
-        const { parsed, warnings } = parseRequirementSchema(JSON.parse(json));
-        expect(warnings).toEqual([]);
-        expect(parsed?.identity.controlId).toBe('security-001');
+        const fallback = { controlId: 'micro-segmentation', name: 'micro-segmentation', description: 'micro-segmentation' };
+        const { parsed, warnings } = parseRequirementSchema(JSON.parse(json), fallback);
+        expect(warnings).toEqual(['Identity constants partially derived from control metadata']);
+        expect(parsed?.identity.controlId).toBe('micro-segmentation');
         expect(parsed?.properties['permit-ingress'].type).toBe('boolean');
         expect(parsed?.properties.protocol).toEqual({
             type: 'enum',
@@ -115,6 +113,18 @@ describe('buildControlRequirement', () => {
 describe('validateControlRequirementInput', () => {
     it('accepts a valid input', () => {
         expect(validateControlRequirementInput(base)).toEqual([]);
+    });
+
+    it('rejects a missing domain', () => {
+        expect(validateControlRequirementInput({ ...base, domain: '' })).toContain(
+            'Domain is required'
+        );
+    });
+
+    it('rejects an invalid domain format', () => {
+        expect(validateControlRequirementInput({ ...base, domain: 'Bad Domain' })).toContain(
+            'Domain must be lowercase kebab-case (e.g. platform, api)'
+        );
     });
 
     it('rejects a bad slug', () => {

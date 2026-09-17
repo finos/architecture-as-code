@@ -1,5 +1,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
+import { isControlCurie } from '../../extension/services/control-curie';
+import { notifyOpenControlInHub } from '../stores/sync-bridge';
 import {
     type ControlEntry,
     isNewControlMetadata,
@@ -12,7 +14,6 @@ interface ControlsListProps {
     controls: Record<string, ControlEntry> | undefined;
     onUpdate: (controls: Record<string, ControlEntry>) => void;
     readonly?: boolean;
-    valueOnly?: boolean;
     expandControl?: string | null;
     onControlFocused?: (url: string | null) => void;
     onBrowseControls?: () => void;
@@ -33,7 +34,7 @@ function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     return raw;
 }
 
-export function ControlsList({ controls, onUpdate, readonly = false, valueOnly = false, expandControl = null, onControlFocused, onBrowseControls }: ControlsListProps) {
+export function ControlsList({ controls, onUpdate, readonly = false, expandControl = null, onControlFocused, onBrowseControls }: ControlsListProps) {
     const [sectionExpanded, setSectionExpanded] = useState(false);
     const [expandedControls, setExpandedControls] = useState<Set<string>>(new Set());
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
@@ -103,6 +104,11 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
 
     const getConfigValue = (ctrl: ControlEntry): string => (ctrl?.requirements?.[0]?.config?.value as string) ?? '';
     const getValidation = (ctrl: ControlEntry) => ctrl?.metadata?.validation ?? null;
+    const getDisplayName = (ctrl: ControlEntry, key: string): string => {
+        const v = ctrl?.metadata?.validation;
+        if (isNewControlMetadata(v) && v.identity?.name && v.identity.name !== key) return v.identity.name;
+        return key;
+    };
     const getProperties = (ctrl: ControlEntry): Record<string, RequirementPropertyDef> | null => {
         const v = ctrl?.metadata?.validation;
         return isNewControlMetadata(v) ? v.properties : null;
@@ -141,14 +147,14 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                         return (
                             <div key={key} style={{ border: '1px solid var(--calm-border)', borderRadius: '4px', marginBottom: '4px' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', background: 'var(--calm-bg-secondary)' }}>
-                                    <button type="button" onClick={() => toggleControl(key)} style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: readonly || valueOnly ? 1 : 0, padding: '6px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)', flexShrink: 0 }}>
+                                    <button type="button" onClick={() => toggleControl(key)} style={{ display: 'flex', alignItems: 'center', gap: '5px', flex: readonly ? 1 : 0, padding: '6px 8px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg)', flexShrink: 0 }}>
                                         <span style={{ fontSize: '7px', display: 'inline-block', transform: isExpanded ? 'rotate(90deg)' : 'none' }}>&#9654;</span>
-                                        {(readonly || valueOnly) && <span style={{ fontSize: '11px', fontWeight: 600, fontFamily: 'monospace' }}>{key}</span>}
+                                        {readonly && <span style={{ fontSize: '11px', fontWeight: 600, fontFamily: 'monospace' }}>{getDisplayName(control, key)}</span>}
                                     </button>
-                                    {!readonly && !valueOnly && (
+                                    {!readonly && (
                                         <input
                                             type="text"
-                                            defaultValue={key}
+                                            defaultValue={getDisplayName(control, key)}
                                             key={`rename-${key}`}
                                             onBlur={(e) => handleRename(key, e.target.value)}
                                             onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
@@ -178,29 +184,30 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                                                 ))
                                             )
                                         ) : (
-                                            (!valueOnly || validation) && (
-                                                <div>
-                                                    <span style={fieldLabelStyle}>Value</span>
-                                                    {readonly ? (
-                                                        <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{getConfigValue(control) || '— not configured —'}</p>
-                                                    ) : legacyAllowedValues(validation) ? (
-                                                        <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value, true)} style={ctrlInputStyle}>
-                                                            <option value="">— Select —</option>
-                                                            {legacyAllowedValues(validation)!.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                                                        </select>
-                                                    ) : (
-                                                        <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={legacyExample(validation) ?? 'Enter value...'} style={ctrlInputStyle} />
-                                                    )}
-                                                </div>
-                                            )
+                                            <div>
+                                                <span style={fieldLabelStyle}>Value</span>
+                                                {readonly ? (
+                                                    <p style={{ fontSize: '11px', color: 'var(--calm-fg-muted)', margin: 0 }}>{getConfigValue(control) || '— not configured —'}</p>
+                                                ) : legacyAllowedValues(validation) ? (
+                                                    <select defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value, true)} style={ctrlInputStyle}>
+                                                        <option value="">— Select —</option>
+                                                        {legacyAllowedValues(validation)!.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                                                    </select>
+                                                ) : (
+                                                    <input type="text" defaultValue={getConfigValue(control)} onChange={(e) => handleValueInput(key, e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }} placeholder={legacyExample(validation) ?? 'Enter value...'} style={ctrlInputStyle} />
+                                                )}
+                                            </div>
                                         )}
-                                        {valueOnly && control.description && <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>{control.description}</p>}
+                                        {control.description && <p style={{ fontSize: '10px', color: 'var(--calm-fg-muted)', margin: 0, fontStyle: 'italic' }}>{control.description}</p>}
                                         {control.requirements?.some((req) => req['requirement-url']) && (
                                             <div>
-                                                {!valueOnly && <span style={fieldLabelStyle}>Requirement</span>}
-                                                {control.requirements?.map((req, idx) => (
-                                                    req['requirement-url'] && <button key={idx} type="button" onClick={() => onControlFocused?.(req['requirement-url']!)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{req['requirement-url']}</button>
-                                                ))}
+                                                <span style={fieldLabelStyle}>Requirement</span>
+                                                {control.requirements?.map((req, idx) => {
+                                                    const url = req['requirement-url'];
+                                                    if (!url) return null;
+                                                    const hubRef = isControlCurie(url);
+                                                    return <button key={idx} type="button" onClick={() => hubRef ? notifyOpenControlInHub(url) : onControlFocused?.(url)} style={{ display: 'block', fontSize: '10px', fontFamily: 'monospace', color: 'var(--calm-link)', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left', textDecoration: 'underline dotted', padding: 0 }}>{url}{hubRef ? ' ↗' : ''}</button>;
+                                                })}
                                             </div>
                                         )}
                                     </div>
@@ -208,7 +215,7 @@ export function ControlsList({ controls, onUpdate, readonly = false, valueOnly =
                             </div>
                         );
                     })}
-                    {!readonly && !valueOnly && (
+                    {!readonly && (
                         <div style={{ display: 'flex', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
                             <button type="button" onClick={handleAdd} style={addControlBtnStyle}>+ Add Control</button>
                             {onBrowseControls && <button type="button" onClick={onBrowseControls} style={addControlBtnStyle}>Browse Controls…</button>}

@@ -150,10 +150,10 @@ export function enrichControlWithRequirement(
 
 /** Whether a control needs enrichment: it has a requirement-url but no resolved property metadata. */
 export function needsEnrichment(control: ControlEntry): boolean {
-    return (
-        !!getRequirementUrl(control) &&
-        !isNewControlMetadata(control?.metadata?.validation)
-    );
+    if (!getRequirementUrl(control)) return false;
+    const validation = control?.metadata?.validation;
+    if (!isNewControlMetadata(validation)) return true;
+    return Object.keys(validation.properties).length === 0;
 }
 
 /** Sort ascending Hub versions and return the latest (last element), or undefined. */

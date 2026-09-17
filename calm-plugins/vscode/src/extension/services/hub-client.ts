@@ -169,12 +169,32 @@ export class HubClient {
         return this.unwrapValues<ControlDetail>(data);
     }
 
+    async resolveControlId(domain: string, controlName: string): Promise<{ id: number; domain: string }> {
+        try {
+            const controls = await this.getControlsForDomain(domain);
+            const match = controls.find((c) => c.name === controlName);
+            if (match) return { id: match.id, domain };
+        } catch {
+            // Domain may not exist (e.g. CURIE uses a namespace prefix, not a Hub domain)
+        }
+        const domains = await this.getDomains();
+        for (const d of domains) {
+            if (d === domain) continue;
+            try {
+                const controls = await this.getControlsForDomain(d);
+                const match = controls.find((c) => c.name === controlName);
+                if (match) return { id: match.id, domain: d };
+            } catch { continue; }
+        }
+        throw new HubApiError(404, '', `Control "${controlName}" not found in domain "${domain}" or any other domain`);
+    }
+
     async getRequirementVersions(
         domain: string,
-        controlName: string
+        controlId: number
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlName)}/requirement/versions`
+            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions`
         );
         const data = await res.json();
         return this.unwrapValues<string>(data);
@@ -182,11 +202,11 @@ export class HubClient {
 
     async getRequirementAtVersion(
         domain: string,
-        controlName: string,
+        controlId: number,
         version: string
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/calm/domains/${encodeURIComponent(domain)}/controls/${encodeURIComponent(controlName)}/requirement/versions/${encodeURIComponent(version)}`
+            `/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`
         );
         return res.json();
     }

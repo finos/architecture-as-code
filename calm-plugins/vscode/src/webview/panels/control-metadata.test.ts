@@ -152,6 +152,14 @@ describe('needsEnrichment', () => {
         expect(needsEnrichment(enriched)).toBe(false);
     });
 
+    it('is true when metadata has empty properties (picker stub)', () => {
+        const stub: ControlEntry = {
+            requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
+            metadata: { validation: { identity: parsed.identity, properties: {} } },
+        };
+        expect(needsEnrichment(stub)).toBe(true);
+    });
+
     it('is false when there is no requirement-url', () => {
         expect(needsEnrichment({ requirements: [{ config: { value: 'x' } }] })).toBe(false);
     });

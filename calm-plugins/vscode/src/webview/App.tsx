@@ -65,11 +65,12 @@ import { ControlPicker } from './panels/ControlPicker';
 import { ControlCreator } from './panels/ControlCreator';
 import {
     type ControlEntry,
+    buildControlEntry,
     enrichControlWithRequirement,
     getRequirementUrl,
     needsEnrichment,
 } from './panels/control-metadata';
-import { isControlRef, isLocalControlPath, makeControlMapKey } from '../extension/services/control-curie';
+import { isControlRef, isLocalControlPath, makeControlMapKey, parseControlCurie } from '../extension/services/control-curie';
 import type { ParsedRequirement } from '../extension/services/requirement-parser';
 import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
@@ -198,7 +199,15 @@ function CanvasApp() {
             const local = isLocalControlPath(ref);
             if (!needsEnrichment(ctrl) && !local) continue;
             requestControlResolve(ref, (result) => {
-                if (generation !== loadGeneration.current || !result.ok) return;
+                if (generation !== loadGeneration.current) {
+                    console.warn(`[CALM] Control resolve for ${ref} discarded: generation ${generation} !== ${loadGeneration.current}`);
+                    return;
+                }
+                if (!result.ok) {
+                    console.warn(`[CALM] Control resolve failed for ${ref}: ${result.error}`);
+                    return;
+                }
+                console.log(`[CALM] Control resolved for ${ref}: ${Object.keys(result.parsed.properties).length} properties`);
                 apply(ckey, (c) => enrichControlWithRequirement(c, result.parsed));
             });
         }
@@ -1007,14 +1016,13 @@ function CanvasApp() {
 
     // --- Control picker attach ---
     const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
-        const key = makeControlMapKey(ref);
-        const entry: ControlEntry = {
-            requirements: [{ 'requirement-url': ref }],
-        };
+        const key = parsed.identity.name || makeControlMapKey(ref);
+        const entry = buildControlEntry(ref, parsed);
         const target = controlPickerTarget;
         setShowControlPicker(false);
         setControlPickerTarget(null);
         if (!target) return;
+        const generation = loadGeneration.current;
         if (target.type === 'node') {
             setNodes((nds) => nds.map((n) => {
                 if (n.id !== target.nodeId) return n;
@@ -1022,28 +1030,46 @@ function CanvasApp() {
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
                 return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
             }));
-            setTimeout(() => emitChange(true), 0);
+            setTimeout(() => {
+                emitChange(true);
+                const n = reactFlowInstance.getNodes().find((x) => x.id === target.nodeId);
+                if (n) enrichNodeControls([n], generation);
+            }, 0);
         } else if (target.type === 'document') {
             const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
             useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
-            setTimeout(() => emitChange(true), 0);
+            setTimeout(() => {
+                emitChange(true);
+                enrichAllControls(reactFlowInstance.getNodes(), generation);
+            }, 0);
         } else if (target.type === 'building-block-draft') {
             target.onAttach(ref, parsed);
         }
-    }, [controlPickerTarget, setNodes, emitChange]);
+    }, [controlPickerTarget, setNodes, emitChange, reactFlowInstance, enrichNodeControls, enrichAllControls]);
 
     const existingControlKeys = React.useMemo(() => {
         const target = controlPickerTarget;
         if (!target) return new Set<string>();
+        let controls: Record<string, unknown> | undefined;
         if (target.type === 'node') {
             const node = nodes.find((n) => n.id === target.nodeId);
-            const controls = (node?.data as Record<string, unknown>)?.controls as Record<string, unknown> | undefined;
-            return new Set(Object.keys(controls ?? {}));
+            controls = (node?.data as Record<string, unknown>)?.controls as Record<string, unknown> | undefined;
+        } else if (target.type === 'document') {
+            controls = store.documentControls as Record<string, unknown> | undefined;
+        } else {
+            return target.existingKeys ?? new Set<string>();
         }
-        if (target.type === 'document') {
-            return new Set(Object.keys(store.documentControls ?? {}));
+        const keys = new Set(Object.keys(controls ?? {}));
+        for (const ctrl of Object.values(controls ?? {})) {
+            const reqs = (ctrl as Record<string, unknown>)?.requirements as Array<Record<string, unknown>> | undefined;
+            const url = reqs?.[0]?.['requirement-url'];
+            if (typeof url === 'string') {
+                keys.add(makeControlMapKey(url));
+                const parsed = parseControlCurie(url);
+                if (parsed) keys.add(parsed.controlName);
+            }
         }
-        return target.existingKeys ?? new Set<string>();
+        return keys;
     }, [controlPickerTarget, nodes, store.documentControls]);
 
     // --- Export as Pattern ---
@@ -1201,7 +1227,6 @@ function CanvasApp() {
                                         controls={data.controls as any}
                                         onUpdate={(ctrls) => onNodeUpdate(liveSelectedNode.id, 'controls', ctrls)}
                                         readonly={store.readonlyMode}
-                                        valueOnly={!!(data.metadata as any)?.['source-building-block']}
                                         expandControl={expandControlKey}
                                         onControlFocused={handleControlFocused}
                                         onBrowseControls={() => { setControlPickerTarget({ type: 'node', nodeId: liveSelectedNode.id }); setShowControlPicker(true); }}
@@ -1233,7 +1258,6 @@ function CanvasApp() {
                                         controls={store.documentControls as any}
                                         onUpdate={(ctrls) => { useCanvasStore.setState({ documentControls: ctrls }); setTimeout(() => emitChange(true), 0); }}
                                         readonly={store.readonlyMode}
-                                        valueOnly={false}
                                         expandControl={expandControlKey}
                                         onControlFocused={handleControlFocused}
                                         onBrowseControls={() => { setControlPickerTarget({ type: 'document' }); setShowControlPicker(true); }}

@@ -401,7 +401,7 @@ describe('WorkspaceAssetService.scanControls', () => {
         expect(svc.getControls()).toHaveLength(0);
     });
 
-    it('skips requirements missing identity constants', async () => {
+    it('accepts requirements missing identity constants using fallback identity from filename', async () => {
         (vscode.workspace as any).findFiles = vi.fn(async () => [
             vscode.Uri.file('/ws/controls/no-identity.requirement.json'),
         ]);
@@ -413,7 +413,35 @@ describe('WorkspaceAssetService.scanControls', () => {
 
         const svc = new WorkspaceAssetService('/ws');
         await (svc as any).scanControls();
-        expect(svc.getControls()).toHaveLength(0);
+        expect(svc.getControls()).toHaveLength(1);
+        expect(svc.getControls()[0].id).toBe('no-identity');
+        expect(svc.getControls()[0].controlId).toBe('no-identity');
+    });
+
+    it('uses schema title and description for fallback identity', async () => {
+        (vscode.workspace as any).findFiles = vi.fn(async () => [
+            vscode.Uri.file('/ws/controls/platform/resiliency-tier.requirement.json'),
+        ]);
+        (vscode.workspace as any).fs = {
+            readFile: vi.fn(async () =>
+                encode(JSON.stringify({
+                    title: 'Resiliency Tier',
+                    description: 'Select the appropriate tier',
+                    type: 'object',
+                    properties: { value: { type: 'string', enum: ['Tier 1', 'Tier 2'] } },
+                    required: ['value'],
+                }))
+            ),
+        };
+
+        const svc = new WorkspaceAssetService('/ws');
+        await (svc as any).scanControls();
+        expect(svc.getControls()).toHaveLength(1);
+        const ctrl = svc.getControls()[0];
+        expect(ctrl.id).toBe('resiliency-tier');
+        expect(ctrl.name).toBe('Resiliency Tier');
+        expect(ctrl.description).toBe('Select the appropriate tier');
+        expect(ctrl.domain).toBe('platform');
     });
 
     it('deduplicates by relative path across roots (first root wins)', async () => {

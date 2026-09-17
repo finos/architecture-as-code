@@ -243,6 +243,10 @@ export function notifyRequestImportSvg(): void {
     postMessage({ type: 'requestImportSvg' });
 }
 
+export function notifyOpenControlInHub(ref: string): void {
+    postMessage({ type: 'openControlInHub', ref });
+}
+
 // --- Correlated control request functions. Each generates a requestId, stores
 // the callback, and cleans up on response or timeout. ---
 

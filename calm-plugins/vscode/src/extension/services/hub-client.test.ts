@@ -219,19 +219,41 @@ describe('HubClient', () => {
         });
     });
 
+    describe('resolveControlId', () => {
+        it('resolves a control name to its numeric ID and domain', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: [{ id: 42, name: 'micro-segmentation', description: 'd' }] })
+            );
+            const result = await client.resolveControlId('security', 'micro-segmentation');
+            expect(result).toEqual({ id: 42, domain: 'security' });
+        });
+
+        it('falls back to searching other domains when primary domain 404s', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({}, 404));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['platform', 'network'] }));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: 99, name: 'seg', description: '' }] }));
+            const result = await client.resolveControlId('bad-domain', 'seg');
+            expect(result).toEqual({ id: 99, domain: 'platform' });
+        });
+
+        it('throws when not found in any domain', async () => {
+            mockFetch.mockResolvedValueOnce(jsonResponse({}, 404));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: ['platform'] }));
+            mockFetch.mockResolvedValueOnce(jsonResponse({ values: [{ id: 1, name: 'other', description: '' }] }));
+            await expect(client.resolveControlId('bad', 'missing')).rejects.toThrow('not found');
+        });
+    });
+
     describe('getRequirementVersions', () => {
-        it('constructs the name-mapped requirement versions URL', async () => {
+        it('constructs the numeric-ID requirement versions URL', async () => {
             mockFetch.mockResolvedValueOnce(
                 jsonResponse({ values: ['1.0.0', '1.1.0'] })
             );
 
-            const result = await client.getRequirementVersions(
-                'security',
-                'micro-segmentation'
-            );
+            const result = await client.getRequirementVersions('security', 42);
             expect(result).toEqual(['1.0.0', '1.1.0']);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions',
+                'https://hub.example.com/api/calm/domains/security/controls/42/requirement/versions',
                 expect.any(Object)
             );
         });
@@ -242,14 +264,10 @@ describe('HubClient', () => {
             const schema = { $id: 'x', properties: {} };
             mockFetch.mockResolvedValueOnce(jsonResponse(schema));
 
-            const result = await client.getRequirementAtVersion(
-                'security',
-                'micro-segmentation',
-                '1.0.0'
-            );
+            const result = await client.getRequirementAtVersion('security', 42, '1.0.0');
             expect(result).toEqual(schema);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/calm/domains/security/controls/micro-segmentation/requirement/versions/1.0.0',
+                'https://hub.example.com/api/calm/domains/security/controls/42/requirement/versions/1.0.0',
                 expect.any(Object)
             );
         });

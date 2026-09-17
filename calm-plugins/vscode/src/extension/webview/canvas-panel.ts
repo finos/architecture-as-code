@@ -370,6 +370,9 @@ export class CanvasPanel {
                     message.content
                 );
                 break;
+            case 'openControlInHub':
+                void this.handleOpenControlInHub(message.ref);
+                break;
         }
     }
 
@@ -1003,9 +1006,10 @@ export class CanvasPanel {
         }
         try {
             await this.hubReadyPromise;
+            const resolved = await this.hubClient.resolveControlId(domain, controlName);
             const versions = await this.hubClient.getRequirementVersions(
-                domain,
-                controlName
+                resolved.domain,
+                resolved.id
             );
             this.postMessage({
                 type: 'controlVersionsResult',
@@ -1067,27 +1071,32 @@ export class CanvasPanel {
             if (this.hubClient) {
                 try {
                     await this.hubReadyPromise;
+                    const resolved = await this.hubClient.resolveControlId(
+                        parts.domain,
+                        parts.controlName
+                    );
                     // Auto-resolve to latest version when the CURIE is unversioned.
                     let version = parts.version;
                     if (!version) {
                         const versions = await this.hubClient.getRequirementVersions(
-                            parts.domain,
-                            parts.controlName
+                            resolved.domain,
+                            resolved.id
                         );
                         version = versions[versions.length - 1];
                     }
                     if (!version) throw new Error('No versions available');
                     const schema = await this.hubClient.getRequirementAtVersion(
-                        parts.domain,
-                        parts.controlName,
+                        resolved.domain,
+                        resolved.id,
                         version
                     );
                     const resolvedParts = { ...parts, version };
                     await this.putCachedRequirement(resolvedParts, schema);
+                    const s = schema as Record<string, unknown>;
                     const fallbackIdentity = {
                         controlId: parts.controlName,
-                        name: parts.controlName,
-                        description: parts.controlName,
+                        name: typeof s.title === 'string' ? s.title : parts.controlName,
+                        description: typeof s.description === 'string' ? s.description : parts.controlName,
                     };
                     this.postResolve(requestId, parseRequirementSchema(schema, fallbackIdentity));
                     return;
@@ -1172,7 +1181,12 @@ export class CanvasPanel {
             vscode.Uri.file(match.filePath)
         );
         const schema = JSON.parse(Buffer.from(bytes).toString('utf-8'));
-        return parseRequirementSchema(schema);
+        const fallbackIdentity = {
+            controlId: match.controlId,
+            name: match.name,
+            description: match.description,
+        };
+        return parseRequirementSchema(schema, fallbackIdentity);
     }
 
     private async resolveLocalRequirement(ref: string): Promise<ParseResult> {
@@ -1195,7 +1209,9 @@ export class CanvasPanel {
         }
         const bytes = await vscode.workspace.fs.readFile(vscode.Uri.file(abs));
         const schema = JSON.parse(Buffer.from(bytes).toString('utf-8'));
-        return parseRequirementSchema(schema);
+        const stem = nodePath.basename(abs).replace(/(\.requirement)?\.json$/, '');
+        const fallbackIdentity = { controlId: stem, name: stem, description: stem };
+        return parseRequirementSchema(schema, fallbackIdentity);
     }
 
     private getCachedRequirement(
@@ -1245,14 +1261,22 @@ export class CanvasPanel {
                 return;
             }
 
-            let schema: unknown;
+            let schema: Record<string, unknown>;
             try {
                 schema = JSON.parse(content);
             } catch {
                 this.postSaveError(requestId, 'Control content is not valid JSON');
                 return;
             }
-            const { parsed, warnings } = parseRequirementSchema(schema);
+
+            // Extract domain from CURIE $id (e.g. "platform:controls:slug" → "platform")
+            const idVal = typeof schema.$id === 'string' ? schema.$id : '';
+            const curieParts = parseControlCurie(idVal);
+            const domain = curieParts?.domain;
+
+            const stem = filename.replace(/(\.requirement)?\.json$/, '');
+            const fallbackIdentity = { controlId: stem, name: stem, description: stem };
+            const { parsed, warnings } = parseRequirementSchema(schema, fallbackIdentity);
             if (!parsed) {
                 this.postSaveError(
                     requestId,
@@ -1267,9 +1291,10 @@ export class CanvasPanel {
                 return;
             }
 
+            const subDir = domain ? `controls/${domain}` : 'controls';
             const controlsDir = vscode.Uri.joinPath(
                 vscode.Uri.file(targetRoot),
-                'controls'
+                subDir
             );
             try {
                 await vscode.workspace.fs.stat(controlsDir);
@@ -1278,7 +1303,7 @@ export class CanvasPanel {
             }
 
             const writePath = resolveSafeWritePath(
-                `controls/${filename}`,
+                `${subDir}/${filename}`,
                 targetRoot
             );
             if (!writePath) {
@@ -1393,6 +1418,29 @@ export class CanvasPanel {
             }
         } catch {
             /* non-JSON document or other parse error */
+        }
+    }
+
+    private async handleOpenControlInHub(ref: string): Promise<void> {
+        if (!this.hubClient) {
+            vscode.window.showWarningMessage('Hub not connected');
+            return;
+        }
+        const parts = parseControlCurie(ref);
+        if (!parts) return;
+        try {
+            const resolved = await this.hubClient.resolveControlId(
+                parts.domain,
+                parts.controlName
+            );
+            const baseUrl = this.hubClient.getBaseUrl();
+            const hubUrl = `${baseUrl}/#/${encodeURIComponent(resolved.domain)}/controls/${resolved.id}/detail`;
+            await vscode.env.openExternal(vscode.Uri.parse(hubUrl));
+        } catch (err) {
+            this.log.appendLine(
+                `[CanvasPanel] Failed to open control in Hub: ${err instanceof Error ? err.message : String(err)}`
+            );
+            vscode.window.showWarningMessage(`Could not open control in Hub: ${describeError(err)}`);
         }
     }
 

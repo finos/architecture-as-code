@@ -23,8 +23,9 @@ export interface ControlPropertyInput {
 export interface ControlRequirementInput {
     /** Lowercase-kebab Hub slug — also the file stem. */
     slug: string;
-    controlId: string;
-    /** Human display name → schema `title` and the `name` const. */
+    /** Hub domain the control belongs to (e.g. "platform", "api", "security"). */
+    domain: string;
+    /** Human display name → schema `title`. */
     name: string;
     description: string;
     properties: ControlPropertyInput[];
@@ -78,7 +79,11 @@ export function validateControlRequirementInput(
     if (!SLUG_RE.test(input.slug)) {
         errors.push('Slug must be lowercase kebab-case (e.g. micro-segmentation)');
     }
-    if (!input.controlId.trim()) errors.push('Control ID is required');
+    if (!input.domain.trim()) {
+        errors.push('Domain is required');
+    } else if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(input.domain)) {
+        errors.push('Domain must be lowercase kebab-case (e.g. platform, api)');
+    }
     if (!input.name.trim()) errors.push('Display name is required');
     if (!input.description.trim()) errors.push('Description is required');
 
@@ -122,18 +127,15 @@ export function validateControlRequirementInput(
 
 /**
  * Build the JSON Schema control-requirement document plus its target file name.
+ * Generates Hub-compatible format with CURIE `$id` and top-level metadata.
  * Assumes the input is valid (see {@link validateControlRequirementInput}).
  */
 export function buildControlRequirement(
     input: ControlRequirementInput
 ): BuiltControlRequirement {
-    const $id = `controls/${input.slug}.requirement.json`;
-    const properties: Record<string, unknown> = {
-        'control-id': { const: input.controlId },
-        name: { const: input.name },
-        description: { const: input.description },
-    };
-    const required = ['control-id', 'name', 'description'];
+    const $id = `${input.domain}:controls:${input.slug}`;
+    const properties: Record<string, unknown> = {};
+    const required: string[] = [];
     const $defs: Record<string, unknown> = {};
 
     for (const prop of input.properties) {
@@ -146,11 +148,11 @@ export function buildControlRequirement(
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         $id,
         title: input.name,
+        description: input.description,
         type: 'object',
-        allOf: [{ $ref: CONTROL_REQUIREMENT_REF }],
         properties,
-        required,
     };
+    if (required.length > 0) doc.required = required;
     if (Object.keys($defs).length > 0) doc.$defs = $defs;
 
     return {

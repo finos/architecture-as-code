@@ -89,7 +89,7 @@ export class ControlAssetService {
                     source: 'hub',
                     domain,
                     controlName: c.name,
-                    title: c.title ?? c.name,
+                    title: c.title && c.title !== c.name ? c.title : humanize(c.name),
                     description: c.description ?? '',
                 })),
             };
@@ -97,6 +97,10 @@ export class ControlAssetService {
             return { domain, controls: [], error: describeError(err) };
         }
     }
+}
+
+function humanize(slug: string): string {
+    return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function describeError(err: unknown): string {

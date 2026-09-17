@@ -19,7 +19,7 @@ const PROPERTY_TYPES: ControlPropertyType[] = ['string', 'boolean', 'number', 'i
 export function ControlCreator({ visible, onClose }: Readonly<ControlCreatorProps>) {
     const [slug, setSlug] = useState('');
     const [slugTouched, setSlugTouched] = useState(false);
-    const [controlId, setControlId] = useState('');
+    const [domain, setDomain] = useState('');
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [properties, setProperties] = useState<ControlPropertyInput[]>([]);
@@ -27,8 +27,8 @@ export function ControlCreator({ visible, onClose }: Readonly<ControlCreatorProp
     const [saveError, setSaveError] = useState<string | null>(null);
 
     const input: ControlRequirementInput = useMemo(
-        () => ({ slug, controlId, name, description, properties }),
-        [slug, controlId, name, description, properties]
+        () => ({ slug, domain, name, description, properties }),
+        [slug, domain, name, description, properties]
     );
     const errors = useMemo(() => validateControlRequirementInput(input), [input]);
     const preview = useMemo(
@@ -51,7 +51,7 @@ export function ControlCreator({ visible, onClose }: Readonly<ControlCreatorProp
         setProperties((p) => p.map((prop, i) => (i === index ? { ...prop, ...patch } : prop)));
 
     const reset = () => {
-        setSlug(''); setSlugTouched(false); setControlId(''); setName('');
+        setSlug(''); setSlugTouched(false); setDomain(''); setName('');
         setDescription(''); setProperties([]); setSaveError(null); setSaving(false);
     };
 
@@ -81,14 +81,14 @@ export function ControlCreator({ visible, onClose }: Readonly<ControlCreatorProp
                 <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
                     {/* Form */}
                     <div style={{ flex: 1, overflowY: 'auto', padding: '16px', borderRight: '1px solid var(--calm-border)' }}>
-                        <Field label="Slug">
-                            <input type="text" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="micro-segmentation" style={inputStyle} />
+                        <Field label="Domain">
+                            <input type="text" value={domain} onChange={(e) => setDomain(e.target.value)} placeholder="platform" style={inputStyle} />
                         </Field>
-                        <Field label="Control ID">
-                            <input type="text" value={controlId} onChange={(e) => setControlId(e.target.value)} placeholder="security-001" style={inputStyle} />
+                        <Field label="Slug">
+                            <input type="text" value={slug} onChange={(e) => { setSlug(e.target.value); setSlugTouched(true); }} placeholder="resiliency-tier" style={inputStyle} />
                         </Field>
                         <Field label="Display Name">
-                            <input type="text" value={name} onChange={(e) => setNameAndSlug(e.target.value)} placeholder="Micro-segmentation of K8s Cluster" style={inputStyle} />
+                            <input type="text" value={name} onChange={(e) => setNameAndSlug(e.target.value)} placeholder="Resiliency Tier" style={inputStyle} />
                         </Field>
                         <Field label="Description">
                             <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What this control requires..." style={{ ...inputStyle, resize: 'vertical' }} />
