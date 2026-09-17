@@ -412,8 +412,8 @@ describe('Pattern Options', () => {
             expect(result.prefixItems).toEqual([node('webapp'), node('cache')]);
         });
 
-        it('should remove items once its members have been promoted', () => {
-            expect(nodesOf(selectChoices(withItems(), [add('cache')]))).not.toHaveProperty('items');
+        it('should keep items once its members have been promoted, because validation still needs it', () => {
+            expect(nodesOf(selectChoices(withItems(), [add('cache')])).items).toEqual({ oneOf: [node('cache'), node('queue')] });
         });
 
         it('should promote every chosen items member', () => {
