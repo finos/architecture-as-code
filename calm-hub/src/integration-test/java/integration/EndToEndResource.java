@@ -6,6 +6,7 @@ import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.finos.calm.migration.steps.MongoControlVersionSplitStep;
+import org.finos.calm.migration.steps.MongoDocumentIndexStep;
 import org.finos.calm.migration.steps.MongoIndexInitializationStep;
 import org.finos.calm.migration.steps.MongoAdrVersionSplitStep;
 import org.finos.calm.migration.steps.MongoFlowVersionSplitStep;
@@ -48,6 +49,7 @@ public class EndToEndResource implements QuarkusTestResourceLifecycleManager {
         try (MongoClient mongoClient = MongoClients.create(connectionString)) {
             MongoDatabase database = mongoClient.getDatabase(databaseName);
             new MongoIndexInitializationStep(database).createIndexes();
+            new MongoDocumentIndexStep(database).createIndexes();
             // That step creates a unique index on architectures.namespace alone, which
             // enforces the pre-migration one-document-per-namespace shape and would make
             // a second architecture in a namespace impossible. Architecture and Pattern have
