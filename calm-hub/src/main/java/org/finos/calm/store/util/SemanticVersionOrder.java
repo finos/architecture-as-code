@@ -58,5 +58,4 @@ public final class SemanticVersionOrder {
     private static String orEmpty(String version) {
         return version == null ? "" : version;
     }
-
 }
