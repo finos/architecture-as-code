@@ -234,6 +234,28 @@ describe('pattern ruleset', () => {
             expect(codes).not.toContain('pattern-decision-must-be-declared-in-prefix-items');
         });
     });
+    describe('nodes and relationships referenced by a decision', () => {
+        it('accepts a decision option referencing a node declared in an items catalogue', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp')], items: { oneOf: [node('cache')] } },
+                    relationships: { prefixItems: [decision('add-ons', ['cache'])] }
+                }
+            });
+            expect(codes).not.toContain('nodes-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block');
+        });
+
+        it('reports a decision option referencing a node declared only as a fixed entry', async () => {
+            const codes = await codesFor({
+                properties: {
+                    nodes: { prefixItems: [node('webapp'), node('cache')] },
+                    relationships: { prefixItems: [decision('add-ons', ['cache'])] }
+                }
+            });
+            expect(codes).toContain('nodes-referenced-in-pattern-decision-must-be-in-oneof-or-anyof-block');
+        });
+    });
+
     describe('pattern-decision-options-must-be-declared-in-prefix-items', () => {
         const decisionWithOptions = (options: object) => ({
             properties: {
