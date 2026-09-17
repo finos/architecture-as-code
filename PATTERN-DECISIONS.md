@@ -129,6 +129,15 @@ branches that declare the same property discard one of the two declarations.
 an `items` member appends that member to the same list, so a selected member reaches the
 architecture and an unselected one does not.
 
+An answer comes from a decision. A decision names an `items` member in its `nodes` or
+`relationships` list, and `calm generate` then offers it. A catalogue that no decision names
+is never offered, so `calm generate` builds none of its members. That is the correct result
+for a catalogue written to constrain what an architecture may add. Declare a decision beside
+the catalogue to offer its members instead.
+
+`calm validate` keeps reading the `items` block whichever way it is written. Selecting an
+answer does not relax what a pattern permits.
+
 An `items` block that declares no `oneOf` or `anyOf` is left alone. Nothing selects from it,
 so nothing is promoted out of it.
 
