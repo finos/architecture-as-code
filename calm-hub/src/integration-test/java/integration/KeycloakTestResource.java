@@ -34,6 +34,8 @@ public class KeycloakTestResource implements QuarkusTestResourceLifecycleManager
 
     @Override
     public void stop() {
-        keycloakContainer.stop();
+        if (keycloakContainer != null) {
+            keycloakContainer.stop();
+        }
     }
 }
