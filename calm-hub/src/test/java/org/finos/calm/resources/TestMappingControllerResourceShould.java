@@ -4,6 +4,8 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.audit.AuditAction;
+import org.finos.calm.domain.audit.AuditLogEntry;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -20,6 +22,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.finos.calm.security.AuditService;
 import org.finos.calm.security.CalmHubPermissionChecker;
 
 import java.util.Collections;
@@ -52,6 +55,7 @@ public class TestMappingControllerResourceShould {
     @InjectMock DomainStore mockDomainStore;
     @InjectMock ControlStore mockControlStore;
     @InjectMock CalmHubPermissionChecker mockPermissionChecker;
+    @InjectMock AuditService mockAuditService;
 
     @org.junit.jupiter.api.BeforeEach
     void allowWritesByDefault() {
@@ -1825,5 +1829,53 @@ public class TestMappingControllerResourceShould {
 
         assertThat("the requested version must reach the store, not a hardcoded 1.0.0",
                 captor.getValue().getDotVersion(), is("1.0.0-SNAPSHOT"));
+    }
+
+    // --- Audit: snapshot deletion on promotion is recorded as a DELETE ---
+
+    /** The most recently recorded {@link AuditLogEntry} passed to {@code AuditService.record}. */
+    private AuditLogEntry lastRecordedAuditEntry() {
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(mockAuditService, atLeastOnce()).record(captor.capture());
+        List<AuditLogEntry> entries = captor.getAllValues();
+        return entries.get(entries.size() - 1);
+    }
+
+    @Test
+    void record_the_snapshot_deletion_as_a_delete_when_promoting_a_release() throws Exception {
+        // Promotion deletes the snapshot as a side effect of publishing its release. That
+        // deletion must be audited as DELETE, carrying the snapshot's own version — not the
+        // release version that triggered it. This is the accepted-single-row behaviour: see
+        // the task report for why the release write itself is not separately recorded here.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+            .contentType("application/json")
+            .body(architectureBody("test", "1.0.0"))
+        .when()
+            .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+            .statusCode(201);
+
+        AuditLogEntry entry = lastRecordedAuditEntry();
+        assertThat(entry.getAction(), is(AuditAction.DELETE));
+        assertThat(entry.getVersion(), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void not_record_a_delete_when_publishing_a_release_with_no_snapshot_to_remove() throws Exception {
+        // No snapshot existed, so deleteSnapshotForVersion never stages anything — the
+        // pre-existing path-based resolution (UPDATE for any POST to this path shape) applies.
+        givenAnExistingArchitecture("test", "1.0.0");
+
+        given()
+            .contentType("application/json")
+            .body(architectureBody("test", "1.1.0"))
+        .when()
+            .post("/calm/namespaces/finos/architectures/test/versions/1.1.0")
+        .then()
+            .statusCode(201);
+
+        assertThat(lastRecordedAuditEntry().getAction(), is(AuditAction.UPDATE));
     }
 }

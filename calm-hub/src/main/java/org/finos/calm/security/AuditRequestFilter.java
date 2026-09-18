@@ -148,6 +148,21 @@ public class AuditRequestFilter implements ContainerResponseFilter {
         STAGED_CONTEXT.set(context);
     }
 
+    /**
+     * Replaces just the {@code action} on the currently staged {@link AuditContext},
+     * leaving every other field as-is. Does nothing when no context is staged. For
+     * callers (e.g. {@code MappingControllerService#addNewVersion}) that only learn the
+     * true action after the resource layer has already staged a provisional one.
+     */
+    public static void restageAction(AuditAction action) {
+        AuditContext current = STAGED_CONTEXT.get();
+        if (current == null) {
+            return;
+        }
+        STAGED_CONTEXT.set(new AuditContext(current.entityType(), action, current.namespace(),
+                current.domain(), current.entityId(), current.version()));
+    }
+
     private static final Map<Class<?>, AuditEntityType> RESOURCE_CLASS_TO_ENTITY_TYPE = Map.ofEntries(
             Map.entry(NamespaceResource.class, AuditEntityType.NAMESPACE),
             Map.entry(DomainResource.class, AuditEntityType.DOMAIN),

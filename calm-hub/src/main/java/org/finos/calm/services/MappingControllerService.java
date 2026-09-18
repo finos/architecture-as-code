@@ -5,6 +5,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.audit.AuditAction;
+import org.finos.calm.domain.audit.AuditEntityType;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -17,6 +19,7 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
+import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.store.*;
 import org.finos.calm.store.util.CanonicalVersion;
 import org.slf4j.Logger;
@@ -516,6 +519,10 @@ public class MappingControllerService {
             String description = documentParser.extractStringField(json, "description");
 
             if (overwriting) {
+                // The resource layer stages a provisional CREATE before it knows whether this
+                // version already exists — only here, once `versions` has been fetched, is it
+                // known that this write destroys an existing snapshot rather than creating one.
+                AuditRequestFilter.restageAction(AuditAction.UPDATE);
                 updateVersionedResourceInStore(mapping.getResourceType(), namespace,
                         mapping.getNumericId(), newVersion, documentParser.stripId(json), title, description);
                 return Response.ok().build();
@@ -713,6 +720,13 @@ public class MappingControllerService {
         if (!versions.contains(snapshotVersion)) {
             return;
         }
+        // Stages a DELETE for the snapshot being removed, carrying the snapshot's own version
+        // (not the release version that triggered it) — the only record that this destructive
+        // side effect happened. See the class-level note on AuditRequestFilter's single-row
+        // limitation: this replaces whatever action was staged for the release write itself.
+        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(
+                AuditEntityType.valueOf(mapping.getResourceType().name()), AuditAction.DELETE,
+                mapping.getNamespace(), null, mapping.getCustomId(), snapshotVersion));
         try {
             deleteVersionForMapping(mapping, snapshotVersion);
         } catch (Exception e) {

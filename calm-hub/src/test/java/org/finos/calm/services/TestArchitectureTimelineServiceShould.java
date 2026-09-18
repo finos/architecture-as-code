@@ -278,6 +278,20 @@ public class TestArchitectureTimelineServiceShould {
     }
 
     @Test
+    void order_a_snapshot_into_position_rather_than_after_every_release() throws Exception {
+        // Before Semver.parse accepted the suffix, a snapshot was classified non-semver and
+        // appended after the sorted versions, so every implied timeline ended with it.
+        JsonNode timeline = impliedTimelineFor(List.of("2.0.0", "1.5.0-SNAPSHOT", "1.0.0"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(3));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.5.0-SNAPSHOT"));
+        assertThat(moments.get(2).get("unique-id").asText(), is("2.0.0"));
+        assertThat(timeline.get("current-moment").asText(), is("2.0.0"));
+    }
+
+    @Test
     void propagate_architecture_not_found_exception() throws Exception {
         when(mockTimelineStore.getTimelinesForNamespace(NAMESPACE)).thenReturn(List.of());
         when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class)))

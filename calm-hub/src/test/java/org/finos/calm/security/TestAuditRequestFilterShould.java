@@ -539,6 +539,42 @@ public class TestAuditRequestFilterShould {
         assertThat(entry.getOutcome(), is(AuditOutcome.DENIED));
     }
 
+    // --- restageAction ------------------------------------------------------------
+
+    @Test
+    void replace_only_the_action_on_the_staged_context() {
+        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(
+                AuditEntityType.ARCHITECTURE, AuditAction.CREATE, "finos", null, "my-arch", "2.0.0-SNAPSHOT"));
+
+        AuditRequestFilter.restageAction(AuditAction.UPDATE);
+
+        when(resourceInfo.getResourceClass()).thenReturn((Class) NamespaceResource.class);
+        ContainerRequestContext requestContext = mockRequest("POST", new MultivaluedHashMap<>());
+        filter.filter(requestContext, mockResponse(200, null));
+
+        AuditLogEntry entry = captureRecordedEntry();
+        assertThat(entry.getAction(), is(AuditAction.UPDATE));
+        assertThat(entry.getEntityType(), is(AuditEntityType.ARCHITECTURE));
+        assertThat(entry.getNamespace(), is("finos"));
+        assertThat(entry.getEntityId(), is("my-arch"));
+        assertThat(entry.getVersion(), is("2.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void do_nothing_when_restaging_with_no_context_staged() {
+        // No stage() call happened for this (simulated) request — restageAction must not
+        // fabricate a context of its own.
+        AuditRequestFilter.restageAction(AuditAction.DELETE);
+
+        when(resourceInfo.getResourceClass()).thenReturn((Class) NamespaceResource.class);
+        ContainerRequestContext requestContext = mockRequest("POST", new MultivaluedHashMap<>());
+        filter.filter(requestContext, mockResponse(201, null));
+
+        // Falls through to the generic path-based resolution (POST with no id param -> CREATE),
+        // proving the DELETE passed to restageAction above had no effect.
+        assertThat(captureRecordedEntry().getAction(), is(AuditAction.CREATE));
+    }
+
     @Test
     void clear_staged_context_after_each_request_to_avoid_leaking_across_requests() {
         when(resourceInfo.getResourceClass()).thenReturn((Class) NamespaceResource.class);
