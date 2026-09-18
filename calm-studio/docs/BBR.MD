@@ -16,28 +16,22 @@ v1
 
 - upravit editor tak že nové diagramy budou oteviráby do založek. Okno json editoru se bude chovat  tak že vždy bude zobrazovat  json pro diagram z aktulani záložky diagramu. Pri zavirani založky bude dialog pro uloženi diagramu. Maximalní počet založek nastav na 10 dojdeli k prekročení počtu založek dojde k uzavření nejstarší založky , pri zavirani bude dialog na uložení jsouli v diagramu změny.
 - nod který ma odkaz na detail doplnit ikonku brýli pro zvíraznění informace že se jedná o referencovaný element. Pri dvoj kliku na ikonz brýly dojde k otevření referencovaného diagramu.  
-V2
-
 ---
+V2
 
 - doplnit properties editor o editaci metadata a zajistit že se do nověho elentu doplni všechyn elemnty metadat predepsané validaci a schmetem.
 - zamezit v properties editaci pro odkazované elementy maji details elemnet
-- 
-
 ---
 
 V3
-
 - přidat tlačitko do files pro vyhledáí aktuálně otevřeného souboru ve stromu souborů
 - při uloženi souboru aktualizovat seznam nodu v adresařové struktuře v založce files.
 - pri tažení nodu  s ctrl udělat kopii nodu s novým unique-id a názvem  a na dotaz zduplikovat i vazby. Dialog pro zadání názvu a check box na duplikaci vazeb bude modálni a check box si bude pamatvat posledni stav. DEfault check boxu je nezškrtnuto tudiž se vazby neduplikuji i nanaový element. Vazby se duplikuji vraci daneho souboru ne dál.
 - po přechodu na detailový diagram  dat  fokus  referencovany node 
 - upravit layout tak aby nedocházelo k prekryvu boxu po jejich roztažení na zakaldě textu a relation se vyhibaly boxum
-
 ---
 
 V4
-
 - umožnit ve složce definici validačnich pravidel doplnujici standartní pravidla.
 - vyber pravidel zaznamenj do kořenove složky do souboru s koncovkou CALMPRJ do tohoto souboru nasledne budem ukládat dalši konfigurace souvisejici s diagramy ve složce
 - v konfiguraci projektu bude i definice struktury adresářu a jmená konvence, která se uplatni pri přechodu v nasledujicím bodu nastaveni vzchazi z CEngineering-App\docs\naming-conventions.md 
@@ -62,15 +56,27 @@ V6
 - odstranit zobrazeni ralation pro kontejnerove realce (ty co se projevi zmenou vizualizace nodu na kontejner ) nastaveni property pro  vazbu v editoru přidat do hlavičky kontejneru ikonku  pro načtení property pro vazbu do property editoru. 
 - doplnit filter na filter dle typu nodu 
 - najit kde je node použit (find usege)- vypsat všechny použití(reference na daný prvek) v ostaních calm souborech a umožnit otevřit vyhledaný diagram
+---
 V7
 - u vazeb compose of  a deployed in umožnit sloučeni vazeb na stejnem kontejneru do jedné a prislušne uprav i property tak aby umožnoval parci s vice nody v destination . 
 - vytvařet vazbu compouse of a deloyed in pretaženim nódu spolu se zmačknutou klavesou alt na nod ze kterého se má stat kontejner.  jestli že se jedná o první vazbu nech vybrat typ vazby v pripadě že jsou  již vazby typu compose of nebo deloyed in přidej pouze tento node do sezanmu na existující vazbě. Při vytaženi prvku z kontejneru se zmačknutouk klavesou alt odstran tento prvek z vaby compose of nebo deployed in.
 - v dialogu pro nastavení projektu umožni výběr adresařů u položek predstavujici adresaře u souboru umožni vyber souboru z disku
 - umožnit použivat pattern  format z CALM CLI  pro generovani z  template a nabidnout patterny jako template v nabidce - !! pro genrovani použit voláni calm cli nebo import funkčnosti na urovni zdrojového kódu. Ne nová implementace !!
+---
 V8
-- rozsirit validaci dle patternů pomoci calm cli
+- upravit layout kontejneru aby řadil vnitřni prvky do tabulky (radky a sloupce )  ne jen do jednoho směru . Rozmer tabuky nasatavit tak aby vysledek se bližil čtverci   (stehná šiřka a výška)
+- u kontejneru odtranit max velikst pro vizualni čast tak aby pri zvetšeni hranic pro editaci se zvetšil i vizulani nahled na kontejner. Aktualne muže byt  velikost dle  layout manageru vetší než je velikost gravické reprezentace.
+- umožnit uložení layoutu (rozložení prvku) a tento uložený layout pri znovu otevření použít. inspirace pro foramt jak uložit layout hledejj calm-hub. idelane taka aby byl schodný a layout se přenesel do calm hub. 
+- uprav line style pro relation na bezier
+- rozsirit validaci dle patternů pomoci  calm cli
 - v konfiguraci umožnit editaci sekce naming a patterns  
-- umožnit načtené patternů z nakofigurovaneho calm-hub konfigurace bude obsahovat url calm hubu jednotlive name space se zobrazi jako založky v nabidce patternů
+V8.1
+- umožnit načtené patternů z nakofigurovaneho calm-hub bud v konfiguraci projektu  bude obsahovat url calm hubu nebo v .calm.json v home adresaři uživatele viz konfigurace CALM-cli jednotlive name space se zobrazi jako založky v nabidce patternů 
+- umožnit referencování a prochazení elemetů a digramu z calm-hub přes name
+V8.2
+- umožnit vizualizaci patternu pro calm cli stejně jako to děla calm-hub 
+- umožnit grafickou editaci calm-cli pattern
+
 V9
 - sjednotit layout diagramů s calm_hub
 - extenzion do samostatné definice pro každou extenzion. Požadavek je aby se definice dala použit napřič spektrem tools jako je CALM-hub a calm plugin pro visual studio a calm-cli. Umožnit načist definici externě ze souboru.

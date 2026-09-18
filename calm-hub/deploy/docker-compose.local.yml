@@ -1,0 +1,33 @@
+# Overlay for a locally built JVM Hub instead of finos/calm-hub:latest.
+#
+# From this directory, after `../mvnw package`:
+#   docker compose --profile jvm -f docker-compose.yml -f docker-compose.local.yml up -d --build
+#
+# Mongo also mounts ../mongo/controls so init-mongo.js can seed controls
+# (the published compose does not, and the seed script then exits the container).
+
+services:
+  mongodb:
+    volumes:
+      - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
+      - ../../calm:/calm:ro
+      - ../mongo/controls:/controls:ro
+    environment:
+      - CALM_CONTROLS_BASE_PATH: /controls
+      - CALM_SCHEMA_BASE_PATH=/calm
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+
+  calmhub:
+    image: calm-hub:latest
+    pull_policy: never
+    build:
+      context: ..
+      dockerfile: src/main/docker/Dockerfile.jvm
+    depends_on:
+      mongodb:
+        condition: service_healthy
