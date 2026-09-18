@@ -13,10 +13,20 @@ import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findGitRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
-import { CALM_DOCUMENT_TYPES_LIST, CALM_NARRATIVE_DOCUMENT_TYPES_LIST, isNarrativeDocumentType, isValidCalmDocumentType } from '@finos/calm-models/types';
+import {
+    CALM_DOCUMENT_TYPES_LIST,
+    CALM_NARRATIVE_DOCUMENT_TYPES_LIST,
+    isValidCalmDocumentType,
+    type CalmDocumentType,
+} from '@finos/calm-models/types';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
 import { constructNarrativeDocumentPath, parseNarrativeDocument, validateNarrativeIdentity, type NarrativeDocumentIdentity } from './narrative-document';
+import {
+    dispatchWorkspaceDocumentType,
+    resolveWorkspaceDocumentType,
+    type WorkspaceDocumentTypeOperations,
+} from './document-kind';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -26,6 +36,23 @@ type NarrativeRegistrationOptions = {
     identity: NarrativeDocumentIdentity;
     verify?: (documentMarkdown: string) => Promise<void>;
 };
+
+type WorkspaceAddOptions = {
+    id?: string;
+    copy?: boolean;
+    type?: string;
+    namespace?: string;
+    calmHubDocumentId?: string;
+    ver?: string;
+    calmHubUrl?: string;
+};
+
+interface AddDocumentContext {
+    bundlePath: string;
+    file: string;
+    options: WorkspaceAddOptions;
+    srcPath: string;
+}
 
 async function registerNarrativeDocument(
     bundlePath: string,
@@ -52,6 +79,104 @@ async function registerNarrativeDocument(
         version: options.identity.version,
         ...hubIdentity,
     });
+}
+
+const ADD_DOCUMENT_OPERATIONS = {
+    mapping: addMappingDocument,
+    narrative: addNarrativeDocument,
+} satisfies WorkspaceDocumentTypeOperations<Promise<void>, [AddDocumentContext]>;
+
+async function addNarrativeDocument(
+    type: NarrativeDocumentIdentity['type'],
+    context: AddDocumentContext
+): Promise<void> {
+    const { bundlePath, file, options, srcPath } = context;
+    if (!options.namespace?.trim()) {
+        throw new Error(`Narrative document '${file}' requires --namespace.`);
+    }
+    const { id: resolvedId, destPath: finalDestPath } = await registerNarrativeDocument(
+        bundlePath,
+        srcPath,
+        file,
+        {
+            id: options.id,
+            copy: options.copy,
+            identity: {
+                namespace: options.namespace.trim(),
+                type,
+                version: '1.0.0',
+            },
+        }
+    );
+    if (options.copy) {
+        logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
+    } else {
+        logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
+    }
+}
+
+async function addMappingDocument(
+    type: CalmDocumentType | 'unknown',
+    context: AddDocumentContext
+): Promise<void> {
+    const { bundlePath, options, srcPath } = context;
+    if (!isValidCalmDocumentType(type)) {
+        throw new Error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
+    }
+
+    // Parse the file once; we manage its $id only when it is valid JSON.
+    let fileJson: Record<string, unknown> | undefined;
+    try {
+        fileJson = JSON.parse(await readFile(srcPath, 'utf8'));
+    } catch (_) {
+        fileJson = undefined;
+    }
+
+    const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
+    const existingId = fileJson && typeof fileJson['$id'] === 'string' ? (fileJson['$id'] as string) : undefined;
+    let builtNamespace: string | undefined;
+    let effectiveId = existingId;
+
+    if (fileJson) {
+        if (!existingId) {
+            // No $id present: build one interactively and write it into the file.
+            const built = await promptForDocumentId({ baseUrlDefault });
+            fileJson['$id'] = built.id;
+            await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
+            logger.info(`Set document $id to ${built.id}`);
+            builtNamespace = built.namespace;
+            effectiveId = built.id;
+        } else if (!isConformantDocumentId(existingId)) {
+            // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
+            // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+            logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
+        }
+    }
+
+    const namespace = options.namespace
+        ?? builtNamespace
+        ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
+
+    let id = options.id;
+    if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
+        id = (fileJson['title'] as string).trim();
+    }
+    if (!id) {
+        id = await input({ message: 'Enter a name for this document:' });
+    }
+
+    const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
+        id,
+        copy: options.copy,
+        type,
+        namespace: namespace?.trim()
+    });
+
+    if (options.copy) {
+        logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
+    } else {
+        logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
+    }
 }
 
 /**
@@ -92,15 +217,7 @@ export function setupWorkspaceCommands(program: Command) {
         .option('--calm-hub-document-id <id>', 'Existing CalmHub narrative document ID')
         .option('--ver <version>', 'Existing CalmHub narrative document version')
         .option('--calm-hub-url <url>', 'CalmHub URL used to verify an existing narrative document')
-        .action(async (file: string, options: {
-            id?: string;
-            copy?: boolean;
-            type?: string;
-            namespace?: string;
-            calmHubDocumentId?: string;
-            ver?: string;
-            calmHubUrl?: string;
-        }) => {
+        .action(async (file: string, options: WorkspaceAddOptions) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -118,7 +235,11 @@ export function setupWorkspaceCommands(program: Command) {
                     if (!hasDocumentId || !hasVersion) {
                         throw new Error('Narrative recovery requires both --calm-hub-document-id and --ver.');
                     }
-                    if (!options.type || !isNarrativeDocumentType(options.type)) {
+                    if (!options.type) {
+                        throw new Error('Narrative recovery requires a narrative --type.');
+                    }
+                    const recoveredType = resolveWorkspaceDocumentType(options.type);
+                    if (recoveredType?.kind !== 'narrative') {
                         throw new Error('Narrative recovery requires a narrative --type.');
                     }
                     if (!options.namespace?.trim()) {
@@ -135,7 +256,7 @@ export function setupWorkspaceCommands(program: Command) {
                     }
                     const identity = {
                         namespace: options.namespace.trim(),
-                        type: options.type,
+                        type: recoveredType.type,
                         version: options.ver,
                         calmHubDocumentId,
                     };
@@ -166,89 +287,16 @@ export function setupWorkspaceCommands(program: Command) {
 
                 const documentTypes = [...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST];
                 const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', documentTypes);
-                if (isNarrativeDocumentType(type)) {
-                    if (!options.namespace?.trim()) {
-                        throw new Error(`Narrative document '${file}' requires --namespace.`);
-                    }
-                    const { id: resolvedId, destPath: finalDestPath } = await registerNarrativeDocument(
-                        bundlePath,
-                        srcPath,
-                        file,
-                        {
-                            id: options.id,
-                            copy: options.copy,
-                            identity: {
-                                namespace: options.namespace.trim(),
-                                type,
-                                version: '1.0.0',
-                            },
-                        }
-                    );
-                    if (options.copy) {
-                        logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
-                    } else {
-                        logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
-                    }
-                    return;
-                }
-                if (!isValidCalmDocumentType(type)) {
+                const resolvedType = resolveWorkspaceDocumentType(type);
+                if (!resolvedType) {
                     logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
                     process.exit(1);
                 }
-
-                // Parse the file once; we manage its $id only when it is valid JSON.
-                let fileJson: Record<string, unknown> | undefined;
-                try {
-                    fileJson = JSON.parse(await readFile(srcPath, 'utf8'));
-                } catch (_) {
-                    fileJson = undefined;
-                }
-
-                const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
-                const existingId = fileJson && typeof fileJson['$id'] === 'string' ? (fileJson['$id'] as string) : undefined;
-                let builtNamespace: string | undefined;
-                let effectiveId = existingId;
-
-                if (fileJson) {
-                    if (!existingId) {
-                        // No $id present: build one interactively and write it into the file.
-                        const built = await promptForDocumentId({ baseUrlDefault });
-                        fileJson['$id'] = built.id;
-                        await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
-                        logger.info(`Set document $id to ${built.id}`);
-                        builtNamespace = built.namespace;
-                        effectiveId = built.id;
-                    } else if (!isConformantDocumentId(existingId)) {
-                        // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
-                        // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
-                        logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
-                    }
-                }
-
-                const namespace = options.namespace
-                    ?? builtNamespace
-                    ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
-
-                let id = options.id;
-                if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
-                    id = (fileJson['title'] as string).trim();
-                }
-                if (!id) {
-                    id = await input({ message: 'Enter a name for this document:' });
-                }
-
-                const { id: resolvedId, destPath: finalDestPath } = await addFileToBundle(bundlePath, srcPath, {
-                    id,
-                    copy: options.copy,
-                    type,
-                    namespace: namespace?.trim()
-                });
-
-                if (options.copy) {
-                    logger.info(`Copied ${srcPath} -> ${finalDestPath} (id: ${resolvedId})`);
-                } else {
-                    logger.info(`Added reference to ${finalDestPath} (id: ${resolvedId})`);
-                }
+                await dispatchWorkspaceDocumentType(
+                    resolvedType,
+                    ADD_DOCUMENT_OPERATIONS,
+                    { bundlePath, file, options, srcPath }
+                );
             } catch (err) {
                 logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);

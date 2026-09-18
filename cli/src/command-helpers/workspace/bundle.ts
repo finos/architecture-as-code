@@ -5,6 +5,9 @@ import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
 import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
 import { validateNarrativeDocumentLocation } from './narrative-document';
+import { isNarrativeWorkspaceManifestEntry } from './document-kind';
+
+export { isNarrativeWorkspaceManifestEntry } from './document-kind';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -112,12 +115,6 @@ export type NarrativeWorkspaceManifestEntry =
     | PublishedNarrativeWorkspaceManifestEntry;
 
 export type WorkspaceManifestEntry = MappingWorkspaceManifestEntry | NarrativeWorkspaceManifestEntry;
-
-export function isNarrativeWorkspaceManifestEntry(
-    entry: WorkspaceManifestEntry
-): entry is NarrativeWorkspaceManifestEntry {
-    return isNarrativeDocumentType(entry.type);
-}
 
 export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
 

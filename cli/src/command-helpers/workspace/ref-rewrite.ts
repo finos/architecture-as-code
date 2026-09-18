@@ -2,6 +2,7 @@ import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { REFERENCE_PROPERTIES, WorkspaceManifest, resolveFilePath } from './bundle';
 import { initLogger, Logger } from '@finos/calm-shared';
+import { getJsonReferenceWorkspaceManifest } from './document-kind';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -157,17 +158,18 @@ export function replaceRefsInObject(
 }
 
 /**
- * Build rewrite rules from the *current on-disk* `$id` of every tracked document. Any reference to
- * a tracked document (bare id, stale versioned path, or full URL) is mapped to that document's
- * current `$id`. Documents without a usable `$id` are skipped as targets (they can still contain
- * references that get rewritten).
+ * Build rewrite rules from the *current on-disk* `$id` of each tracked JSON document. Any reference
+ * to a tracked JSON document (bare id, stale versioned path, or full URL) is mapped to that
+ * document's current `$id`. Documents without a usable `$id` are skipped as targets (they can still
+ * contain references that get rewritten). Non-JSON handlers are excluded by document-kind policy.
  */
 export async function buildRefRulesFromDiskIds(
     manifest: WorkspaceManifest,
     bundlePath: string
 ): Promise<RefRule[]> {
     const rules: RefRule[] = [];
-    for (const [id, entry] of Object.entries(manifest)) {
+    const jsonManifest = getJsonReferenceWorkspaceManifest(manifest);
+    for (const [id, entry] of Object.entries(jsonManifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) continue;
         try {
@@ -189,9 +191,9 @@ export async function buildRefRulesFromDiskIds(
 }
 
 /**
- * Rewrite references across all tracked documents according to the given rules, writing back any
- * file that changed. Idempotent: a second run finds references already at their target and is a
- * no-op.
+ * Rewrite references across tracked JSON documents according to the given rules, writing back any
+ * file that changed. Non-JSON handlers are excluded by document-kind policy. Idempotent: a second
+ * run finds references already at their target and is a no-op.
  */
 export async function syncReferences(
     bundlePath: string,
@@ -200,7 +202,8 @@ export async function syncReferences(
 ): Promise<RefUpdateResult[]> {
     const results: RefUpdateResult[] = [];
 
-    for (const [id, entry] of Object.entries(manifest)) {
+    const jsonManifest = getJsonReferenceWorkspaceManifest(manifest);
+    for (const [id, entry] of Object.entries(jsonManifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);
         if (!existsSync(filePath)) {
             logger.warn(`File not found for '${id}': ${filePath}`);
