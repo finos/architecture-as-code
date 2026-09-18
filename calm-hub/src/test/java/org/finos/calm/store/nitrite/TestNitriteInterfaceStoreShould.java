@@ -34,6 +34,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -305,6 +306,23 @@ public class TestNitriteInterfaceStoreShould {
         store.updateInterfaceForVersion(createRequest(), NAMESPACE, INTERFACE_ID, "2.0.0-SNAPSHOT");
 
         verify(versionCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void never_touch_the_header_when_the_version_write_fails() {
+        interfaceExists();
+        stubFind(versionCollection, List.of(Document.createDocument()
+                .put("version", "1.0.0-SNAPSHOT").put("content", "{\"old\":true}")));
+        when(versionCollection.update(any(Filter.class), any(Document.class)))
+                .thenThrow(new NitriteException("write failed"));
+
+        // updateHeaderDetails is documented to run only after the version write succeeds — a
+        // rename must never land for a write that failed. Reordering the two calls would pass
+        // every other assertion in this class but is caught here.
+        assertThrows(NitriteException.class,
+                () -> store.updateInterfaceForVersion(createRequest(), NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
     }
 
     @Test

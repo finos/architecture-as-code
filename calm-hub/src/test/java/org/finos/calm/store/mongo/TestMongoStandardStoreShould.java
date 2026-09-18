@@ -343,6 +343,23 @@ public class TestMongoStandardStoreShould {
     }
 
     @Test
+    void never_touch_the_header_when_the_version_write_fails() {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        // updateHeaderDetails is documented to run only after the version write succeeds — a
+        // rename must never land for a write that failed. Reordering the two calls would pass
+        // every other assertion in this class but is caught here: the header write is stubbed
+        // to succeed in standardExists(), so a header call happening anyway would go unnoticed
+        // by anything except this "never" check.
+        assertThrows(StorageWriteException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
     void refuse_to_update_a_version_of_a_standard_that_does_not_exist() {
         standardDoesNotExist();
         CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"a\":2}");
