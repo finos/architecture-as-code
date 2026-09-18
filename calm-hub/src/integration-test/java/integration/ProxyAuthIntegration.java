@@ -7,7 +7,6 @@ import com.mongodb.client.model.Filters;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.domain.UserAccess;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
@@ -15,6 +14,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+
+import jakarta.inject.Inject;
 
 import static integration.MongoSetup.*;
 import static io.restassured.RestAssured.given;
@@ -75,10 +76,13 @@ public class ProxyAuthIntegration {
             { "name": "proxy-auth-ns", "description": "created by global admin under test" }
             """;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     void setup() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             throw new IllegalStateException("MongoDB URI is not set. Check EndToEndResource configuration.");
