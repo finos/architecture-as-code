@@ -18,6 +18,15 @@ public interface StandardStore {
     Standard createStandardForVersion(CreateStandardRequest standardRequest, String namespace, Integer standardId, String version) throws NamespaceNotFoundException, StandardNotFoundException, StandardVersionExistsException;
 
     /**
+     * Overwrites an existing version in place. Used by the snapshot path, where a version is
+     * mutable by design. Unlike {@link #createStandardForVersion} this does not reject an
+     * existing version.
+     */
+    Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                      Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException;
+
+    /**
      * Deletes a standard and all of its versions.
      */
     void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException;

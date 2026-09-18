@@ -6,6 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
@@ -294,6 +295,60 @@ public class TestMongoStandardStoreShould {
         // Standard's old shape $set both fields unconditionally, unlike Pattern and Flow
         // which guarded them. Preserved rather than harmonised — see the store's javadoc.
         verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    // --- updateStandardForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_a_standard_exception_when_updating_a_version_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void overwrite_the_content_of_an_existing_version() throws Exception {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"marker\":\"OVERWRITTEN\"}");
+
+        store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).updateOne(any(Bson.class), updateCaptor.capture(), any(UpdateOptions.class));
+        assertThat(updateCaptor.getValue().toBsonDocument().toJson(), containsString("OVERWRITTEN"));
+    }
+
+    @Test
+    void write_the_header_details_once_after_overwriting_the_version() throws Exception {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        // Overwriting an already-existing version doesn't move versionCount, so the only
+        // header write here is the name/description update — unlike create's two writes.
+        verify(headerCollection, Mockito.times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void refuse_to_update_a_version_of_a_standard_that_does_not_exist() {
+        standardDoesNotExist();
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"a\":2}");
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
     }
 
     // --- deleteStandard ---

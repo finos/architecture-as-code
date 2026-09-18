@@ -125,6 +125,25 @@ public class MongoInterfaceStore implements InterfaceStore {
         return calmInterface;
     }
 
+    @Override
+    public CalmInterface updateInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace,
+                                                   Integer interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        requireInterface(namespace, interfaceId);
+
+        Document content = Document.parse(interfaceRequest.getInterfaceJson());
+        documentStore.upsertVersion(namespace, interfaceId, version, content);
+
+        // Unconditional, matching the old shape.
+        documentStore.updateHeaderDetails(namespace, interfaceId,
+                interfaceRequest.getName(), interfaceRequest.getDescription());
+
+        CalmInterface calmInterface = new CalmInterface(interfaceRequest);
+        calmInterface.setId(interfaceId);
+        calmInterface.setVersion(version);
+        return calmInterface;
+    }
+
     private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, interfaceId)) {

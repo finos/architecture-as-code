@@ -125,6 +125,28 @@ public class NitriteStandardStore implements StandardStore {
         return standard;
     }
 
+    @Override
+    public Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                             Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        validateStandardJson(standardRequest.getStandardJson());
+        requireStandardExists(namespace, standardId);
+
+        documentStore.upsertVersion(namespace, standardId, version, standardRequest.getStandardJson());
+
+        // Unconditional, matching the old shape: Standard did not guard these on blank.
+        documentStore.updateHeaderDetails(namespace, standardId,
+                standardRequest.getName(), standardRequest.getDescription());
+
+        LOG.info("Updated version '{}' for standard {} in namespace '{}'", version, standardId, namespace);
+        Standard standard = new Standard(standardRequest);
+        standard.setVersion(version);
+        standard.setId(standardId);
+        standard.setNamespace(namespace);
+        return standard;
+    }
+
     /**
      * Validates that the supplied standard JSON is parseable, throwing
      * {@link JsonParseException} if not so the REST layer can surface a 400.

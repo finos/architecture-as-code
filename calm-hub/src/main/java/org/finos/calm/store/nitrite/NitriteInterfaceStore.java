@@ -129,6 +129,27 @@ public class NitriteInterfaceStore implements InterfaceStore {
         return calmInterface;
     }
 
+    @Override
+    public CalmInterface updateInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace,
+                                                   Integer interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        validateInterfaceJson(interfaceRequest.getInterfaceJson());
+        requireInterfaceExists(namespace, interfaceId);
+
+        documentStore.upsertVersion(namespace, interfaceId, version, interfaceRequest.getInterfaceJson());
+
+        // Unconditional, matching the old shape.
+        documentStore.updateHeaderDetails(namespace, interfaceId,
+                interfaceRequest.getName(), interfaceRequest.getDescription());
+
+        LOG.info("Updated version '{}' for interface {} in namespace '{}'", version, interfaceId, namespace);
+        CalmInterface calmInterface = new CalmInterface(interfaceRequest);
+        calmInterface.setId(interfaceId);
+        calmInterface.setVersion(version);
+        return calmInterface;
+    }
+
     /**
      * Validates that the supplied interface JSON is parseable, throwing
      * {@link JsonParseException} if not so the REST layer can surface a 400.

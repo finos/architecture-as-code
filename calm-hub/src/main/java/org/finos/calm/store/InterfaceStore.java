@@ -18,6 +18,15 @@ public interface InterfaceStore {
     CalmInterface createInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace, Integer interfaceId, String version) throws NamespaceNotFoundException, InterfaceNotFoundException, InterfaceVersionExistsException;
 
     /**
+     * Overwrites an existing version in place. Used by the snapshot path, where a version is
+     * mutable by design. Unlike {@link #createInterfaceForVersion} this does not reject an
+     * existing version.
+     */
+    CalmInterface updateInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace,
+                                            Integer interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException;
+
+    /**
      * Deletes an interface and all of its versions.
      */
     void deleteInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException;

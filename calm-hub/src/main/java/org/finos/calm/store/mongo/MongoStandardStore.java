@@ -121,6 +121,25 @@ public class MongoStandardStore implements StandardStore {
         return standard;
     }
 
+    @Override
+    public Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                             Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        requireStandard(namespace, standardId);
+
+        Document content = Document.parse(standardRequest.getStandardJson());
+        documentStore.upsertVersion(namespace, standardId, version, content);
+
+        // Unconditional, matching the old shape: Standard did not guard these on blank.
+        documentStore.updateHeaderDetails(namespace, standardId,
+                standardRequest.getName(), standardRequest.getDescription());
+
+        Standard standard = new Standard(standardRequest);
+        standard.setId(standardId);
+        standard.setVersion(version);
+        return standard;
+    }
+
     private void requireStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
         namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, standardId)) {

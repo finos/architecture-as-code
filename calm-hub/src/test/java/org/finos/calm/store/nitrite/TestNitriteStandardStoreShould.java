@@ -264,6 +264,58 @@ public class TestNitriteStandardStoreShould {
         verify(headerCollection, times(2)).update(any(Filter.class), any(Document.class));
     }
 
+    // --- updateStandardForVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void throw_a_standard_exception_when_updating_a_version_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void overwrite_the_content_of_an_existing_version() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of(Document.createDocument()
+                .put("version", "1.0.0-SNAPSHOT").put("content", "{\"old\":true}")));
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"marker\":\"OVERWRITTEN\"}");
+
+        store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("content", String.class), is(request.getStandardJson()));
+    }
+
+    @Test
+    public void create_the_version_when_updating_one_that_does_not_exist() throws Exception {
+        standardExists();
+        stubFind(versionCollection, List.of());
+
+        // Preserves the known create-on-PUT behaviour, matching Pattern's updateForVersion.
+        store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "2.0.0-SNAPSHOT");
+
+        verify(versionCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void refuse_to_update_a_version_of_a_standard_that_does_not_exist() {
+        standardDoesNotExist();
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"a\":2}");
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
     // --- deleteStandard ---
 
     @Test

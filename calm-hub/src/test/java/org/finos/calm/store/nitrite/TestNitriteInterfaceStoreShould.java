@@ -264,6 +264,58 @@ public class TestNitriteInterfaceStoreShould {
         verify(headerCollection, times(2)).update(any(Filter.class), any(Document.class));
     }
 
+    // --- updateInterfaceForVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateInterfaceForVersion(createRequest(), NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void throw_an_interface_exception_when_updating_a_version_for_a_missing_interface() {
+        interfaceDoesNotExist();
+
+        assertThrows(InterfaceNotFoundException.class,
+                () -> store.updateInterfaceForVersion(createRequest(), NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void overwrite_the_content_of_an_existing_version() throws Exception {
+        interfaceExists();
+        stubFind(versionCollection, List.of(Document.createDocument()
+                .put("version", "1.0.0-SNAPSHOT").put("content", "{\"old\":true}")));
+        CreateInterfaceRequest request = new CreateInterfaceRequest("Name", "desc", "{\"marker\":\"OVERWRITTEN\"}");
+
+        store.updateInterfaceForVersion(request, NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("content", String.class), is(request.getInterfaceJson()));
+    }
+
+    @Test
+    public void create_the_version_when_updating_one_that_does_not_exist() throws Exception {
+        interfaceExists();
+        stubFind(versionCollection, List.of());
+
+        // Preserves the known create-on-PUT behaviour, matching Pattern's updateForVersion.
+        store.updateInterfaceForVersion(createRequest(), NAMESPACE, INTERFACE_ID, "2.0.0-SNAPSHOT");
+
+        verify(versionCollection).insert(any(Document.class));
+    }
+
+    @Test
+    public void refuse_to_update_a_version_of_an_interface_that_does_not_exist() {
+        interfaceDoesNotExist();
+        CreateInterfaceRequest request = new CreateInterfaceRequest("Name", "desc", "{\"a\":2}");
+
+        assertThrows(InterfaceNotFoundException.class,
+                () -> store.updateInterfaceForVersion(request, NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+    }
+
     // --- deleteInterface ---
 
     @Test
