@@ -653,11 +653,14 @@ describe('pushWorkspaceToHub', () => {
                 .mockResolvedValueOnce(mappingId('doc-b')),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(
+            /mapping document\(s\) failed \(doc-a: create failed\)/
+        );
         expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(2);
+        expect((await loadManifest(bundlePath))['doc-b'].calmHubId).toBe(mappingId('doc-b'));
     });
 
-    it('logs error and continues when fetching existing versions fails', async () => {
+    it('fails after processing later entries when fetching existing versions fails', async () => {
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
         await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));
         await saveManifest(bundlePath, {
@@ -668,14 +671,71 @@ describe('pushWorkspaceToHub', () => {
             getMappedResourceVersions: vi.fn()
                 .mockRejectedValueOnce(new HubClientError(500, 'Internal Server Error', 'GET ...'))
                 .mockResolvedValueOnce([]),
+            createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-b')),
         });
 
-        await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/doc-a: .*Internal Server Error/);
         expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
         expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
             expect.objectContaining({ mapping: 'doc-b' }),
             JSON.stringify(docB)
         );
+        expect((await loadManifest(bundlePath))['doc-b'].calmHubId).toBe(mappingId('doc-b'));
+    });
+
+    it('reports multiple mapping failures without losing document details', async () => {
+        await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+        await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));
+        await saveManifest(bundlePath, {
+            'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+        });
+        const client = makeClient({
+            createMappedResourceVersion: vi.fn()
+                .mockRejectedValueOnce(new Error('first create failed'))
+                .mockRejectedValueOnce(new Error('second create failed')),
+        });
+
+        const push = pushWorkspaceToHub(bundlePath, client);
+        await expect(push).rejects.toThrow(/doc-a: first create failed/);
+        await expect(push).rejects.toThrow(/doc-b: second create failed/);
+        expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(2);
+    });
+
+    it('reports mapping and narrative failures together', async () => {
+        await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+        await writeFile(path.join(filesPath, 'bad.md'), '# no frontmatter');
+        await saveManifest(bundlePath, {
+            'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            bad: { path: 'files/bad.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        });
+        const client = makeClient({
+            createMappedResourceVersion: vi.fn().mockRejectedValue(new Error('mapping unavailable')),
+        });
+
+        const push = pushWorkspaceToHub(bundlePath, client);
+        await expect(push).rejects.toThrow(/mapping document\(s\) failed \(doc-a: mapping unavailable\)/);
+        await expect(push).rejects.toThrow(/narrative document\(s\) failed \(bad:/);
+    });
+
+    it('reports mapping failures and modified-version conflicts together', async () => {
+        const changedDocB = { ...docB, extra: 'edited' };
+        await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+        await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(changedDocB));
+        await saveManifest(bundlePath, {
+            'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+        });
+        const client = makeClient({
+            getMappedResourceVersions: vi.fn(async (_namespace: string, resource: string) =>
+                resource === 'doc-b' ? ['1.0.0'] : []),
+            getMappedResourceByVersion: vi.fn().mockResolvedValue(docB),
+            createMappedResourceVersion: vi.fn().mockRejectedValue(new Error('create unavailable')),
+        });
+
+        const push = pushWorkspaceToHub(bundlePath, client, { failIfModified: true });
+        await expect(push).rejects.toThrow(/doc-b@1\.0\.0/);
+        await expect(push).rejects.toThrow(/mapping document\(s\) failed \(doc-a: create unavailable\)/);
     });
 
     describe('failIfModified (strict merge-time push)', () => {
@@ -709,21 +769,26 @@ describe('pushWorkspaceToHub', () => {
             expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
         });
 
-        it('skips and does not fail when fetching the published version to compare fails', async () => {
+        it('fails after processing later entries when fetching the published version to compare fails', async () => {
             await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify({ ...docA, extra: 'edited' }));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));
             await saveManifest(bundlePath, {
-                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
             });
             const client = makeClient({
-                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0']),
+                getMappedResourceVersions: vi.fn(async (_namespace: string, resource: string) =>
+                    resource === 'doc-a' ? ['1.0.0'] : []),
                 getMappedResourceByVersion: vi.fn().mockRejectedValue(new Error('boom')),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-b')),
             });
 
-            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.not.toThrow();
-            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).rejects.toThrow(/doc-a: boom/);
+            expect(client.createMappedResourceVersion).toHaveBeenCalledOnce();
+            expect((await loadManifest(bundlePath))['doc-b'].calmHubId).toBe(mappingId('doc-b'));
         });
 
-        it('skips when the compare fetch rejects with a non-Error value', async () => {
+        it('reports a non-Error comparison failure', async () => {
             await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify({ ...docA, extra: 'edited' }));
             await saveManifest(bundlePath, {
                 'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
@@ -733,7 +798,7 @@ describe('pushWorkspaceToHub', () => {
                 getMappedResourceByVersion: vi.fn().mockRejectedValue('boom-string'),
             });
 
-            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.not.toThrow();
+            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).rejects.toThrow(/doc-a: boom-string/);
             expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
         });
 

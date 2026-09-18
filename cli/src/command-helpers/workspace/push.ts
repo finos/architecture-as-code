@@ -54,6 +54,7 @@ export async function pushWorkspaceToHub(
     }
 
     const conflicts: string[] = [];
+    const mappingFailures: string[] = [];
     const narrativeFailures: string[] = [];
 
     for (const [id, entry] of entries) {
@@ -201,7 +202,9 @@ export async function pushWorkspaceToHub(
         try {
             existingVersions = await client.getMappedResourceVersions(namespace, mappingId, resourceType);
         } catch (e) {
-            logger.error(`Failed to fetch existing versions for '${id}' from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error(`Failed to fetch existing versions for '${id}' from CalmHub: ${message}`);
+            mappingFailures.push(`${id}: ${message}`);
             continue;
         }
 
@@ -217,7 +220,9 @@ export async function pushWorkspaceToHub(
             try {
                 remote = await client.getMappedResourceByVersion(namespace, mappingId, version, resourceType);
             } catch (e) {
-                logger.error(`Failed to fetch '${id}' @ ${version} from CalmHub to compare: ${e instanceof Error ? e.message : String(e)}`);
+                const message = e instanceof Error ? e.message : String(e);
+                logger.error(`Failed to fetch '${id}' @ ${version} from CalmHub to compare: ${message}`);
+                mappingFailures.push(`${id}: ${message}`);
                 continue;
             }
 
@@ -236,17 +241,22 @@ export async function pushWorkspaceToHub(
             await saveManifest(bundlePath, manifest);
             logger.info(`Pushed '${id}' version ${version} -> ${calmHubId}`);
         } catch (e) {
-            logger.error(`Failed to push '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            const message = e instanceof Error ? e.message : String(e);
+            logger.error(`Failed to push '${id}': ${message}`);
+            mappingFailures.push(`${id}: ${message}`);
         }
     }
 
-    if (conflicts.length > 0 || narrativeFailures.length > 0) {
+    if (conflicts.length > 0 || mappingFailures.length > 0 || narrativeFailures.length > 0) {
         const summaries: string[] = [];
         if (conflicts.length > 0) {
             summaries.push(
                 `${conflicts.length} modified document(s) already exist in CalmHub at their declared version ` +
                 `(${conflicts.join(', ')}). Run \`calm workspace bump\` to create new versions for them.`
             );
+        }
+        if (mappingFailures.length > 0) {
+            summaries.push(`${mappingFailures.length} mapping document(s) failed (${mappingFailures.join('; ')})`);
         }
         if (narrativeFailures.length > 0) {
             summaries.push(`${narrativeFailures.length} narrative document(s) failed (${narrativeFailures.join('; ')})`);
