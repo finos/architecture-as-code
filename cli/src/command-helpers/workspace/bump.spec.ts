@@ -36,6 +36,16 @@ const makeClient = (opts: ClientOpts = {}): CalmHubClient => ({
     getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: opts.narrativeMarkdown ?? '' })),
 }) as unknown as CalmHubClient;
 
+const deferred = <T = void>() => {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+};
+
 describe('bump', () => {
     const bundlePath = path.join(__dirname, 'test-bump', 'bundle');
     const filesPath = path.join(bundlePath, 'files');
@@ -162,6 +172,159 @@ describe('bump', () => {
             (client.getNarrativeDocumentVersion as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Hub unavailable'));
 
             await expect(detectChangedResources(bundlePath, client)).rejects.toThrow(/Hub unavailable/);
+        });
+
+        it('checks narrative documents concurrently and returns changes in manifest order', async () => {
+            await writeFile(path.join(filesPath, 'first.md'), '---\ntitle: First\n---\n# First changed');
+            await writeFile(path.join(filesPath, 'second.md'), '---\ntitle: Second\n---\n# Second changed');
+            await saveManifest(bundlePath, {
+                first: {
+                    path: 'files/first.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 41, calmHubId: '/api/calm/namespaces/com.example/documents/sad/41/versions/1.0.0',
+                },
+                second: {
+                    path: 'files/second.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const releaseFirst = deferred();
+            const releaseSecond = deferred();
+            const secondCompleted = deferred();
+            const client = makeClient();
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 41) {
+                    firstEntered.resolve();
+                    await releaseFirst.promise;
+                } else {
+                    secondEntered.resolve();
+                    await releaseSecond.promise;
+                }
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getNarrativeDocumentVersion).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 42) secondCompleted.resolve();
+                return { documentMarkdown: '# Published' };
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            releaseSecond.resolve();
+            await secondCompleted.promise;
+            releaseFirst.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'first' }, { id: 'second' }]);
+        });
+
+        it('checks mapping documents concurrently', async () => {
+            await write('first.json', { $id: idAt('first', '1.0.0'), title: 'First changed' });
+            await write('second.json', { $id: idAt('second', '1.0.0'), title: 'Second changed' });
+            await saveManifest(bundlePath, {
+                first: { path: 'files/first.json', type: 'architecture' },
+                second: { path: 'files/second.json', type: 'architecture' },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const releaseFirst = deferred();
+            const releaseSecond = deferred();
+            const secondCompleted = deferred();
+            const client = makeClient();
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'first') {
+                    firstEntered.resolve();
+                    await releaseFirst.promise;
+                } else {
+                    secondEntered.resolve();
+                    await releaseSecond.promise;
+                }
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getMappedResourceByVersion).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'second') secondCompleted.resolve();
+                return { $id: idAt(mappingId, '1.0.0'), title: 'Published' };
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            releaseSecond.resolve();
+            await secondCompleted.promise;
+            releaseFirst.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'first' }, { id: 'second' }]);
+        });
+
+        it('overlaps mapping and narrative Hub checks', async () => {
+            await write('architecture.json', { $id: idAt('architecture', '1.0.0'), title: 'Changed' });
+            await writeFile(path.join(filesPath, 'sad.md'), '---\ntitle: SAD\n---\n# Changed');
+            await saveManifest(bundlePath, {
+                architecture: { path: 'files/architecture.json', type: 'architecture' },
+                sad: {
+                    path: 'files/sad.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const mappingEntered = deferred();
+            const narrativeEntered = deferred();
+            const releaseMapping = deferred();
+            const releaseNarrative = deferred();
+            const client = makeClient();
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async () => {
+                mappingEntered.resolve();
+                await releaseMapping.promise;
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getMappedResourceByVersion).mockResolvedValue({
+                $id: idAt('architecture', '1.0.0'), title: 'Published',
+            });
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async () => {
+                narrativeEntered.resolve();
+                await releaseNarrative.promise;
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getNarrativeDocumentVersion).mockResolvedValue({ documentMarkdown: '# Published' });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([mappingEntered.promise, narrativeEntered.promise]);
+            releaseNarrative.resolve();
+            releaseMapping.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'architecture' }, { id: 'sad' }]);
+        });
+
+        it('reports the first narrative Hub failure in manifest order', async () => {
+            await writeFile(path.join(filesPath, 'first.md'), '---\ntitle: First\n---\n# First');
+            await writeFile(path.join(filesPath, 'second.md'), '---\ntitle: Second\n---\n# Second');
+            await saveManifest(bundlePath, {
+                first: {
+                    path: 'files/first.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 41, calmHubId: '/api/calm/namespaces/com.example/documents/sad/41/versions/1.0.0',
+                },
+                second: {
+                    path: 'files/second.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const failFirst = deferred<string[]>();
+            const failSecond = deferred<string[]>();
+            const client = makeClient();
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 41) {
+                    firstEntered.resolve();
+                    return failFirst.promise;
+                }
+                secondEntered.resolve();
+                return failSecond.promise;
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            failSecond.reject(new Error('second failure'));
+            failFirst.reject(new Error('first failure'));
+
+            await expect(detection).rejects.toThrow('first failure');
         });
 
         it('treats a document with no Hub versions as new and rejects missing manifest versions', async () => {

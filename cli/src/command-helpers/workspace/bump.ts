@@ -87,10 +87,12 @@ interface DetectChangedEntryContext {
     raw: string;
 }
 
+type DetectChangedEntryCheck = () => Promise<ChangedResource | undefined>;
+
 const DETECT_CHANGED_ENTRY_OPERATIONS = {
-    mapping: detectChangedMappingEntry,
-    narrative: detectChangedNarrativeEntry,
-} satisfies WorkspaceManifestEntryOperations<Promise<ChangedResource | undefined>, [DetectChangedEntryContext]>;
+    mapping: prepareChangedMappingEntry,
+    narrative: prepareChangedNarrativeEntry,
+} satisfies WorkspaceManifestEntryOperations<DetectChangedEntryCheck | undefined, [DetectChangedEntryContext]>;
 
 /** Returns the highest-priority increment from a list (MAJOR > MINOR > PATCH). */
 export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeType {
@@ -115,62 +117,79 @@ export async function detectChangedResources(
     client: CalmHubClient
 ): Promise<ChangedResource[]> {
     const manifest = await loadManifest(bundlePath);
-    const changed: ChangedResource[] = [];
+    const checks: DetectChangedEntryCheck[] = [];
+    let preparationFailure: { reason: unknown } | undefined;
 
     for (const [id, entry] of Object.entries(manifest)) {
-        const document = resolveWorkspaceManifestEntry(entry);
-        const filePath = resolveFilePath(bundlePath, entry.path);
-        if (!existsSync(filePath)) {
-            if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
-            logger.warn(`File not found for id '${id}': ${filePath}`);
-            continue;
-        }
-
-        let raw: string;
         try {
-            raw = await readFile(filePath, 'utf8');
-        } catch (e) {
-            if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
-            logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            continue;
-        }
+            const document = resolveWorkspaceManifestEntry(entry);
+            const filePath = resolveFilePath(bundlePath, entry.path);
+            if (!existsSync(filePath)) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
+                logger.warn(`File not found for id '${id}': ${filePath}`);
+                continue;
+            }
 
-        const changedResource = await dispatchWorkspaceManifestEntry(
-            document,
-            DETECT_CHANGED_ENTRY_OPERATIONS,
-            { client, filePath, id, raw }
-        );
-        if (changedResource) changed.push(changedResource);
+            let raw: string;
+            try {
+                raw = await readFile(filePath, 'utf8');
+            } catch (e) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
+                logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+                continue;
+            }
+
+            const check = dispatchWorkspaceManifestEntry(
+                document,
+                DETECT_CHANGED_ENTRY_OPERATIONS,
+                { client, filePath, id, raw }
+            );
+            if (check) checks.push(check);
+        } catch (reason) {
+            preparationFailure = { reason };
+            break;
+        }
     }
+
+    // Run only entries before the first local failure, then inspect results in manifest order.
+    const results = await Promise.allSettled(checks.map(check => check()));
+    const changed: ChangedResource[] = [];
+    for (const result of results) {
+        if (result.status === 'rejected') throw result.reason;
+        if (result.value) changed.push(result.value);
+    }
+    if (preparationFailure) throw preparationFailure.reason;
 
     return changed;
 }
 
-async function detectChangedNarrativeEntry(
+function prepareChangedNarrativeEntry(
     entry: NarrativeWorkspaceManifestEntry,
     context: DetectChangedEntryContext
-): Promise<ChangedResource | undefined> {
+): DetectChangedEntryCheck | undefined {
     const { client, filePath, id, raw } = context;
     // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
     const { version, identity, hubIdentityAssigned } = resolveNarrativeEntry(id, entry, raw);
     if (!hubIdentityAssigned) return undefined;
     validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
-    const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId);
-    if (versions.length === 0 || !versions.includes(version)) return undefined;
-    const remote = await client.getNarrativeDocumentVersion(
-        identity.namespace, identity.type, identity.calmHubDocumentId, version
-    );
-    if (remote.documentMarkdown === raw) return undefined;
-    return {
-        id, filePath, currentVersion: version,
-        latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
+    return async () => {
+        const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId);
+        if (versions.length === 0 || !versions.includes(version)) return undefined;
+        const remote = await client.getNarrativeDocumentVersion(
+            identity.namespace, identity.type, identity.calmHubDocumentId, version
+        );
+        if (remote.documentMarkdown === raw) return undefined;
+        return {
+            id, filePath, currentVersion: version,
+            latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
+        };
     };
 }
 
-async function detectChangedMappingEntry(
+function prepareChangedMappingEntry(
     _entry: MappingWorkspaceManifestEntry,
     context: DetectChangedEntryContext
-): Promise<ChangedResource | undefined> {
+): DetectChangedEntryCheck | undefined {
     const { client, filePath, id, raw } = context;
     let metadata: DocumentMetadata;
     try {
@@ -179,39 +198,42 @@ async function detectChangedMappingEntry(
         logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
         return undefined;
     }
-    if (!metadata.namespace) {
+    const namespace = metadata.namespace;
+    if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return undefined;
     }
 
-    let versions: string[];
-    try {
-        versions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
-    } catch (e) {
-        logger.error(`Failed to fetch versions for '${id}': ${e instanceof Error ? e.message : String(e)}`);
-        return undefined;
-    }
+    return async () => {
+        let versions: string[];
+        try {
+            versions = await client.getMappedResourceVersions(namespace, metadata.mapping, metadata.type);
+        } catch (e) {
+            logger.error(`Failed to fetch versions for '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            return undefined;
+        }
 
-    if (versions.length === 0) return undefined;                 // new resource — nothing to bump
-    if (!versions.includes(metadata.version)) return undefined;  // already ahead — already bumped
+        if (versions.length === 0) return undefined;                 // new resource — nothing to bump
+        if (!versions.includes(metadata.version)) return undefined;  // already ahead — already bumped
 
-    let remote: object;
-    try {
-        remote = await client.getMappedResourceByVersion(metadata.namespace, metadata.mapping, metadata.version, metadata.type);
-    } catch (e) {
-        logger.error(`Failed to fetch '${id}' @ ${metadata.version} from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
-        return undefined;
-    }
+        let remote: object;
+        try {
+            remote = await client.getMappedResourceByVersion(namespace, metadata.mapping, metadata.version, metadata.type);
+        } catch (e) {
+            logger.error(`Failed to fetch '${id}' @ ${metadata.version} from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
+            return undefined;
+        }
 
-    if (canonicalEqual(JSON.parse(raw), remote)) return undefined;
+        if (canonicalEqual(JSON.parse(raw), remote)) return undefined;
 
-    return {
-        id,
-        filePath,
-        metadata,
-        currentVersion: metadata.version,
-        latestHubVersion: sortSemVer(versions)[versions.length - 1],
-        kind: 'mapping',
+        return {
+            id,
+            filePath,
+            metadata,
+            currentVersion: metadata.version,
+            latestHubVersion: sortSemVer(versions)[versions.length - 1],
+            kind: 'mapping',
+        };
     };
 }
 
