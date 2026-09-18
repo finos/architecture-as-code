@@ -229,6 +229,21 @@ describe('buildCalmJson', () => {
         expect(doc.nodes[2]['unique-id']).toBe('service-service-3');
     });
 
+    it('types nodes with children as network even without style props', () => {
+        const graph: ParsedSvgGraph = {
+            sourceFormat: 'generic',
+            nodes: [
+                { id: 'c1', label: 'Container', shapeHint: 'rectangle', geometry: { x: 0, y: 0, width: 500, height: 400 }, styleProps: {} },
+                { id: 'n1', label: 'Inner Service', shapeHint: 'rounded-rectangle', geometry: { x: 50, y: 50, width: 150, height: 60 }, parentId: 'c1', styleProps: {} },
+            ],
+            edges: [],
+        };
+
+        const result = buildCalmJson(graph);
+        const doc = JSON.parse(result.json);
+        expect(doc.nodes[0]['node-type']).toBe('network');
+    });
+
     it('splits multi-line labels into name and description', () => {
         const graph: ParsedSvgGraph = {
             sourceFormat: 'drawio',

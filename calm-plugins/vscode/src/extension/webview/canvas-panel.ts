@@ -1376,7 +1376,7 @@ export class CanvasPanel {
         const json = await this.importService.importSvgIntoDocument(this.currentDocument);
         if (json) {
             this.log.appendLine(`[CanvasPanel] Import successful, updating webview`);
-            this.postMessage({ type: 'modelUpdated', json, source: 'file' });
+            this.postMessage({ type: 'modelUpdated', json, source: 'import' });
         } else {
             this.log.appendLine('[CanvasPanel] Import returned null (cancelled or failed)');
         }

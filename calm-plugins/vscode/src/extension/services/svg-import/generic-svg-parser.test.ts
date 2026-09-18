@@ -236,4 +236,55 @@ describe('parseGenericSvg', () => {
         expect(result.nodes).toHaveLength(1);
         expect(result.nodes[0]?.geometry).toEqual({ x: 10, y: 10, width: 150, height: 60 });
     });
+
+    it('applies scale() transform to geometry', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="scaled" transform="scale(2)">
+                <rect x="10" y="10" width="100" height="50"/>
+                <text x="60" y="35">Scaled</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 20, y: 20, width: 200, height: 100 });
+    });
+
+    it('applies scale(sx, sy) with different axes', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="asym" transform="scale(2, 3)">
+                <rect x="10" y="10" width="100" height="50"/>
+                <text x="60" y="35">Asym</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 20, y: 30, width: 200, height: 150 });
+    });
+
+    it('extracts scale from matrix() transform', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="mat" transform="matrix(2, 0, 0, 3, 50, 100)">
+                <rect x="10" y="10" width="100" height="50"/>
+                <text x="60" y="35">Matrix</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 70, y: 130, width: 200, height: 150 });
+    });
+
+    it('assigns nearest text to standalone shape, not first within radius', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <rect x="50" y="50" width="100" height="60"/>
+            <text x="200" y="80">Far Label</text>
+            <text x="100" y="80">Near Label</text>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.label).toBe('Near Label');
+    });
 });
