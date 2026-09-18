@@ -14,9 +14,11 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
 import org.finos.calm.store.*;
+import org.finos.calm.store.util.CanonicalVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -483,18 +485,38 @@ public class MappingControllerService {
             if (versions.isEmpty()) {
                 return mappingNotFoundResponse(name);
             }
-            // Reject if the explicit version already exists.
-            if (versions.contains(versionSpec.version())) {
-                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
-                        versionSpec.version(), mapping.getResourceType(), name, namespace);
-            }
             String newVersion = versionSpec.version();
+            boolean snapshot = ResourceVersion.isSnapshot(newVersion);
+
+            // A snapshot that shadows a published release makes promotion ambiguous: publishing
+            // that release would have to both create and delete the same logical version.
+            // versions holds canonical spellings, so the raw request's release spelling must be
+            // canonicalised before comparison — 100-SNAPSHOT's release version is "100", which
+            // would never match a stored "1.0.0" otherwise.
+            if (snapshot && versions.contains(CanonicalVersion.of(ResourceVersion.releaseVersion(newVersion)))) {
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        ResourceVersion.releaseVersion(newVersion), mapping.getResourceType(), name, namespace);
+            }
+            // Releases stay immutable. A snapshot is mutable by design, so a repeat POST
+            // overwrites it — a client never has to know whether it already exists.
+            boolean overwriting = versions.contains(newVersion);
+            if (overwriting && !snapshot) {
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        newVersion, mapping.getResourceType(), name, namespace);
+            }
+
             String title = documentParser.extractStringField(json, "title");
             if (title.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity("'title' is required in the document body").build();
             }
             String description = documentParser.extractStringField(json, "description");
+
+            if (overwriting) {
+                updateVersionedResourceInStore(mapping.getResourceType(), namespace,
+                        mapping.getNumericId(), newVersion, documentParser.stripId(json), title, description);
+                return Response.ok().build();
+            }
             createVersionedResourceInStore(mapping.getResourceType(), namespace,
                     mapping.getNumericId(), newVersion, json, title, description);
 
@@ -611,8 +633,7 @@ public class MappingControllerService {
 
     /**
      * Updates an existing version of a resource in the type-specific store.
-     * Supported for {@link ResourceType#PATTERN}, {@link ResourceType#ARCHITECTURE},
-     * and {@link ResourceType#FLOW} only.
+     * Supported for all five {@link ResourceType} values.
      */
     private void updateVersionedResourceInStore(ResourceType type, String namespace, int numericId,
                                                 String version, String json, String title, String description) throws Exception {
@@ -650,7 +671,14 @@ public class MappingControllerService {
                         .build();
                 flowStore.updateFlowForVersion(flow);
             }
-            default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
+            case STANDARD -> {
+                CreateStandardRequest req = new CreateStandardRequest(title, description, json);
+                standardStore.updateStandardForVersion(req, namespace, numericId, version);
+            }
+            case INTERFACE -> {
+                CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
+                interfaceStore.updateInterfaceForVersion(req, namespace, numericId, version);
+            }
         }
     }
 

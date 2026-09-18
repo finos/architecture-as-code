@@ -268,6 +268,92 @@ public class TestMappingControllerResourceShould {
         verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
     }
 
+    // --- POST snapshot semantics: idempotent create/overwrite, shadow 409 ---
+
+    @Test
+    void create_a_snapshot_that_does_not_exist_yet() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/2.0.0-SNAPSHOT"));
+
+        verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    @Test
+    void overwrite_a_snapshot_that_already_exists() throws Exception {
+        // The point of the feature: a client must not have to know whether the snapshot is
+        // already there, so a repeat POST is an overwrite rather than a 409.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockArchitectureStore).updateArchitectureForVersion(any(Architecture.class));
+        verify(mockArchitectureStore, never()).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    @Test
+    void refuse_a_snapshot_whose_release_version_is_already_published() throws Exception {
+        // A snapshot that shadows a published version makes "promotion deletes the snapshot"
+        // ambiguous, so it is refused at the point of creation.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1.0.0-SNAPSHOT")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void refuse_a_snapshot_whose_canonical_spelling_shadows_a_published_release() throws Exception {
+        // 100-SNAPSHOT canonicalizes to 1.0.0-SNAPSHOT; its release version (100) must be
+        // compared against the stored, canonical spelling of the published release (1.0.0),
+        // not the raw request spelling.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "100-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/100-SNAPSHOT")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void still_refuse_a_release_version_that_already_exists() throws Exception {
+        // Releases stay immutable. Only the snapshot target is idempotent.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1.0.0")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1.0.0")
+                .then().statusCode(409);
+    }
+
     @Test
     void return_201_when_adding_explicit_version_to_existing_flow() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
