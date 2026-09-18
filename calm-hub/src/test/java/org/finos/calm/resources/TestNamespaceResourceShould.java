@@ -10,6 +10,7 @@ import org.finos.calm.domain.exception.NamespaceParentNotFoundException;
 import org.finos.calm.domain.namespaces.NamespaceCounts;
 import org.finos.calm.domain.namespaces.NamespaceInfo;
 import org.finos.calm.security.CalmHubPermissionChecker;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.services.CountsService;
 import org.finos.calm.services.NamespaceService;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Optional;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
@@ -43,10 +45,20 @@ public class TestNamespaceResourceShould {
     @InjectMock
     CalmHubPermissionChecker mockPermissionChecker;
 
+    // This class tests namespace-listing/CRUD logic, not the per-user filtering that
+    // ReadableScope applies — @TestSecurity(authorizationEnabled = false) bypasses
+    // declarative permission checks but does not affect NamespaceResource's own
+    // "calm.auth.enabled" + UserAccessValidator lookup, so without this the (identity-less)
+    // test principal would resolve to zero grants and every namespace would come back
+    // filtered out instead of unfiltered.
+    @InjectMock
+    UserAccessValidator mockUserAccessValidator;
+
     @BeforeEach
     void setUpPermissions() {
         lenient().when(mockPermissionChecker.hasGlobalAdmin(any())).thenReturn(true);
         lenient().when(mockPermissionChecker.allowNamespaceAdmin(any(), any())).thenReturn(false);
+        lenient().when(mockUserAccessValidator.getReadableNamespaces(any())).thenReturn(Optional.empty());
     }
 
     @Test

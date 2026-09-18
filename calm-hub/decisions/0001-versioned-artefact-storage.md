@@ -14,6 +14,13 @@ the old shape too. Both are excluded by
 revisiting with the implementation experience it was waiting for. Tracked in
 [#2884](https://github.com/finos/architecture-as-code/issues/2884).
 
+The "nothing is ever deleted" premise below described the old shape and no
+longer holds: every type this ADR covers, plus Control and Decorator, now
+has a `GLOBAL admin`-gated `DELETE` endpoint that removes a resource and all
+of its versions outright. See `PERMISSIONS.md` and
+`store/util/MongoVersionDocumentStore#deleteResource` /
+`NitriteVersionDocumentStore#deleteResource`.
+
 ## Context
 
 Every Mongo store in `calm-hub` (`store/mongo/`) uses a **one document per

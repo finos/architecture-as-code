@@ -1,5 +1,5 @@
 import { initLogger } from '@finos/calm-shared';
-import { Logger } from '@finos/calm-shared/src/logger.js';
+import { Logger } from '@finos/calm-shared';
 import { mkdir, writeFile, readFile, stat } from 'fs/promises';
 import { dirname, join, resolve } from 'path';
 

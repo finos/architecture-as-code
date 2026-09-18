@@ -152,4 +152,12 @@ public class MongoPatternStore implements PatternStore {
             throw new PatternNotFoundException();
         }
     }
+
+    @Override
+    public void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.deleteResource(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
+    }
 }

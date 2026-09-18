@@ -8,6 +8,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Pattern;
 import jakarta.ws.rs.BeanParam;
 import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.DELETE;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
@@ -32,6 +33,7 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.ArchitectureTimelineService;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.ResourceMappingStore;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -56,6 +58,7 @@ public class ArchitectureResource {
     private final ArchitectureStore store;
     private final ArchitectureTimelineService timelineService;
     private final CustomIdEnrichmentService customIds;
+    private final ResourceMappingStore mappingStore;
 
     private final Logger logger = LoggerFactory.getLogger(ArchitectureResource.class);
 
@@ -64,10 +67,11 @@ public class ArchitectureResource {
 
     @Inject
     public ArchitectureResource(ArchitectureStore store, ArchitectureTimelineService timelineService,
-                                CustomIdEnrichmentService customIds) {
+                                CustomIdEnrichmentService customIds, ResourceMappingStore mappingStore) {
         this.store = store;
         this.timelineService = timelineService;
         this.customIds = customIds;
+        this.mappingStore = mappingStore;
     }
 
     /**
@@ -299,6 +303,31 @@ public class ArchitectureResource {
             logger.error("Failed to serialise timeline for architecture [{}] in namespace [{}]", architectureId, namespace, e);
             return Response.status(Response.Status.INTERNAL_SERVER_ERROR).entity("Failed to build timeline for architecture: " + architectureId).build();
         }
+    }
+
+    @DELETE
+    @Path("{namespace}/architectures/{architectureId}")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Delete an architecture",
+            description = "Deletes an architecture and all of its versions from the given namespace. Requires global admin privilege."
+    )
+    @PermissionsAllowed(CalmHubScopes.GLOBAL_ADMIN)
+    public Response deleteArchitecture(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("architectureId") int architectureId
+    ) {
+        try {
+            store.deleteArchitecture(namespace, architectureId);
+        } catch (NamespaceNotFoundException e) {
+            logger.error("Invalid namespace [{}] when deleting architecture", namespace, e);
+            return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (ArchitectureNotFoundException e) {
+            logger.error("Invalid architecture [{}] when deleting architecture", architectureId, e);
+            return invalidArchitectureResponse(architectureId);
+        }
+        MappingCleanup.deleteMapping(mappingStore, logger, namespace, ResourceType.ARCHITECTURE, architectureId);
+        return Response.noContent().build();
     }
 
     private Response architectureWithLocationResponse(Architecture architecture) throws URISyntaxException {

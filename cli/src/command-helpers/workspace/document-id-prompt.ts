@@ -5,8 +5,9 @@ import {
     isConformantDocumentId,
     DocumentMetadata,
     ControlDocumentMetadata,
-} from '@finos/calm-shared/src/hub/document-id-utils';
-import { RESOURCE_TYPES, ResourceType } from '@finos/calm-shared/src/hub/calm-hub-client';
+    RESOURCE_TYPES,
+    ResourceType,
+} from '@finos/calm-shared';
 
 const DEFAULT_VERSION = '1.0.0';
 

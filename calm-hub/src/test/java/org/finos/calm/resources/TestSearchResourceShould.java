@@ -5,7 +5,9 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
+import org.finos.calm.security.UserAccessValidator;
 import org.finos.calm.store.SearchStore;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -31,6 +33,18 @@ public class TestSearchResourceShould {
 
     @InjectMock
     SearchStore mockSearchStore;
+
+    // See the equivalent field in TestNamespaceResourceShould: @TestSecurity(authorizationEnabled
+    // = false) bypasses declarative permission checks but not SearchResource's own ReadableScope
+    // lookup, so without this the identity-less test principal resolves to zero grants instead
+    // of the unfiltered Optional.empty() these tests expect.
+    @InjectMock
+    UserAccessValidator mockUserAccessValidator;
+
+    @BeforeEach
+    void setUpUserAccessValidator() {
+        lenient().when(mockUserAccessValidator.getReadableNamespaces(any())).thenReturn(Optional.empty());
+    }
 
     static Stream<Arguments> provideInvalidQueryParameters() {
         return Stream.of(

@@ -90,7 +90,12 @@ canWrite(username, namespace):
 | `write` | Domain `D` | Read + write content in `D` | Flat — no hierarchy |
 | `admin` | Namespace `N` | Read + write content in `N` and descendants; list/grant/revoke entitlements in `N` and descendants; create child namespaces of `N` | **OR any ancestor** |
 | `admin` | Domain `D` | Read + write content in `D`; list/grant/revoke entitlements for `D` | Flat — no hierarchy |
-| `admin` | `GLOBAL` | Create/delete any namespace or domain; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` — only `admin` is valid; `read`/`write` grants on `GLOBAL` are rejected with 400 |
+| `admin` | `GLOBAL` | Create/delete any namespace or domain; delete any architecture, pattern, flow, standard, interface, timeline, ADR, decorator, control requirement, or control configuration; read + write all content; manage all entitlements (including further `GLOBAL admin` grants) | Bypasses all checks via `hasGlobalAdmin()` — only `admin` is valid; `read`/`write` grants on `GLOBAL` are rejected with 400 |
+
+Content-resource deletion is deliberately `GLOBAL admin`-only — a namespace- or
+domain-scoped `admin` grant does not permit it, even for content the grant
+otherwise gives full read/write access to. A control requirement refuses to
+delete (`409`) while it still has configurations; delete those first.
 
 ---
 

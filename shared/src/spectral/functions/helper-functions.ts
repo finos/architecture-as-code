@@ -1,6 +1,6 @@
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
-interface JSONPathMatch {
+export interface JSONPathMatch {
     value: unknown;
     pointer: string;
 }

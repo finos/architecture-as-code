@@ -56,6 +56,8 @@ export function FloatingEdge({
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
     const badgeStyle = getBadgeStyle(hasFlowInfo, hasAIGF);
+    const isFlowActive = !!data?.flowActive;
+    const flowOpacity = style.opacity ?? 1;
 
     return (
         <>
@@ -67,6 +69,13 @@ export function FloatingEdge({
                 markerEnd={markerEnd}
                 markerStart={markerStart}
             />
+            {isFlowActive && (
+                <path
+                    d={edgePath}
+                    className="flow-dash-overlay"
+                    markerEnd={markerEnd}
+                />
+            )}
             {description && (
                 <EdgeLabelRenderer>
                     <div
@@ -75,6 +84,8 @@ export function FloatingEdge({
                             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                             pointerEvents: 'all',
                             zIndex: 1000,
+                            opacity: flowOpacity,
+                            transition: 'opacity 0.4s ease',
                         }}
                         className="nodrag nopan"
                     >

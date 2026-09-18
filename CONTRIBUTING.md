@@ -12,6 +12,10 @@ Thank you for your interest in contributing to the Architecture as Code project!
 > apply to every repository in the project and are maintained there. This document covers what is
 > specific to *this* repository: our commit conventions and release process.
 
+Maintainers working in this repository should also read
+[MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md) for repository-specific review, triage,
+merge, release, and onboarding guidance.
+
 ## 🚀 Why We Use Semantic Release
 
 We use [Semantic Release](https://semantic-release.gitbook.io/) to automate our release process for the **CLI module**, with plans to expand to other modules in the future. This ensures:

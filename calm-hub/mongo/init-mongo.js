@@ -228,7 +228,7 @@ logSection("Schema baseline");
 // Raise LATEST_SCHEMA_VERSION whenever a migration step is added, and seed that step's
 // target shape below. Document shape must match MongoSchemaVersionStore: _id
 // "schemaVersion", int version, in the calm collection.
-const LATEST_SCHEMA_VERSION = 14;
+const LATEST_SCHEMA_VERSION = 16;
 const unique = { unique: true };
 
 const existingSchemaVersion = db.calm.findOne({ _id: "schemaVersion" });
@@ -280,6 +280,8 @@ if (isEmptyDatabase) {
     db.adrVersions.createIndex({ namespace: 1, adrId: 1, version: 1 }, unique);
     db.layouts.createIndex({ namespace: 1, architectureId: 1 }, unique);
     db.pattern_layouts.createIndex({ namespace: 1, patternId: 1 }, unique);
+    db.documents.createIndex({ namespace: 1, documentType: 1, documentId: 1 }, unique);
+    db.documentVersions.createIndex({ namespace: 1, documentType: 1, documentId: 1, version: 1 }, unique);
     // Control (ADR 0007): the requirement axis is keyed exactly like the other seven types
     // above, domain standing in for namespace. The configuration axis is a second, independent
     // header/version pair keyed by a synthetic (domain::controlId) namespace, since a
@@ -2106,7 +2108,7 @@ if (isEmptyDatabase && db.flows.countDocuments() === 0) {
                     versions:
                     {
                         "1.0.0": {
-                            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+                            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
                             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
                             "unique-id": "flow-add-update-account",
                             "name": "Add or Update Account",
@@ -2115,17 +2117,17 @@ if (isEmptyDatabase && db.flows.countDocuments() === 0) {
                                 {
                                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                                     "sequence-number": 1,
-                                    "summary": "Submit Account Create/Update"
+                                    "description": "Submit Account Create/Update"
                                 },
                                 {
                                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                                     "sequence-number": 2,
-                                    "summary": "inserts or updates account"
+                                    "description": "inserts or updates account"
                                 },
                                 {
                                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                                     "sequence-number": 3,
-                                    "summary": "Returns Account Create/Update Response Status",
+                                    "description": "Returns Account Create/Update Response Status",
                                     "direction": "destination-to-source"
                                 }
                             ],
@@ -2151,7 +2153,7 @@ if (isEmptyDatabase && db.flows.countDocuments() === 0) {
                     versions:
                     {
                         "1.0.0": {
-                            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+                            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
                             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
                             "unique-id": "flow-load-list-of-accounts",
                             "name": "Load List of Accounts",
@@ -2160,23 +2162,23 @@ if (isEmptyDatabase && db.flows.countDocuments() === 0) {
                                 {
                                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                                     "sequence-number": 1,
-                                    "summary": "Load list of accounts"
+                                    "description": "Load list of accounts"
                                 },
                                 {
                                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                                     "sequence-number": 2,
-                                    "summary": "Query for all Accounts"
+                                    "description": "Query for all Accounts"
                                 },
                                 {
                                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                                     "sequence-number": 3,
-                                    "summary": "Returns list of accounts",
+                                    "description": "Returns list of accounts",
                                     "direction": "destination-to-source"
                                 },
                                 {
                                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                                     "sequence-number": 4,
-                                    "summary": "Returns list of accounts",
+                                    "description": "Returns list of accounts",
                                     "direction": "destination-to-source"
                                 }
                             ]

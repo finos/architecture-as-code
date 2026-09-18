@@ -676,4 +676,62 @@ public class TestDecoratorResourceShould {
                 .statusCode(400)
                 .body(containsString("ID must be a positive integer"));
     }
+
+    // ---- DELETE /api/calm/namespaces/{namespace}/decorators/{id} ----
+
+    @Test
+    void return_204_when_decorator_deleted_successfully() throws Exception {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/finos/decorators/1")
+                .then()
+                .statusCode(204);
+
+        verify(decoratorStore, times(1)).deleteDecorator("finos", 1);
+    }
+
+    @Test
+    void return_404_when_decorator_not_found_for_delete() throws Exception {
+        doThrow(new DecoratorNotFoundException())
+                .when(decoratorStore).deleteDecorator(anyString(), anyInt());
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/finos/decorators/999")
+                .then()
+                .statusCode(404)
+                .body(containsString("Decorator with ID 999 does not exist in namespace: finos"));
+    }
+
+    @Test
+    void return_404_when_namespace_does_not_exist_for_delete_decorator() throws Exception {
+        doThrow(new NamespaceNotFoundException())
+                .when(decoratorStore).deleteDecorator(anyString(), anyInt());
+
+        given()
+                .when()
+                .delete("/api/calm/namespaces/invalid-namespace/decorators/1")
+                .then()
+                .statusCode(404);
+    }
+
+    @Test
+    void return_400_when_namespace_has_invalid_characters_for_delete_decorator() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/invalid@namespace/decorators/1")
+                .then()
+                .statusCode(400)
+                .body(containsString("namespace must match pattern"));
+    }
+
+    @Test
+    void return_400_when_delete_id_is_zero() {
+        given()
+                .when()
+                .delete("/api/calm/namespaces/test-namespace/decorators/0")
+                .then()
+                .statusCode(400)
+                .body(containsString("ID must be a positive integer"));
+    }
 }

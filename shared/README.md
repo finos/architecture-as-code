@@ -2,7 +2,23 @@
 
 This module provides shared logic such as validation and visualization utilities, intended for use across various plugins and tools in the codebase. It simplifies code reuse and promotes a unified logic layer, making it easier to maintain and extend.
 
+## Browser entry point
 
+Browser bundles import from `@finos/calm-shared/browser`, not the package root — the root entry pulls in Node-only code (winston, `fs`, etc.).
+The browser entry covers validate (JSON Schema + Spectral), generate, diff (including `diff --timeline` via `diffTimeline`), `SchemaDirectory`, the document loaders, and auth plugins. The standalone `timeline` command is not supported in the browser — it synthesises a timeline from versioned architecture files on the local filesystem.
+Bundlers must stub out the Node builtins the browser entry's dependency chain still requests but never touches at runtime; for webpack:
+
+```js
+resolve: {
+    fallback: { fs: false, path: false, buffer: false }
+}
+```
+
+The browser entry guard's allowlist assumes bundlers resolve dependencies with the `browser` main field first (`mainFields: ['browser', 'module', 'main']`); a node/SSR-target bundle resolves the Node builds of the same dependencies instead and will see more builtin requests than the allowlist covers.
+
+`BROWSER_COMMAND_SUPPORT` (from `browser-capabilities.ts`) lists which `calm` CLI commands the browser entry can honour and why the rest are unsupported there, so consumers can report this to users instead of guessing.
+
+In a browser, `DirectUrlDocumentLoader` and `CalmHubDocumentLoader` also revalidate the final response origin against the one they requested, because the browser follows redirects transparently (axios's `maxRedirects` option only applies in Node) and a redirect from an allowed origin could otherwise be answered by another origin.
 
 # Spectral validation rules for CALM implementations
 

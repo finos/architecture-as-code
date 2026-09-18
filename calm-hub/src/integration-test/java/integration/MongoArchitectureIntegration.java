@@ -5,8 +5,8 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoDatabase;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,10 +26,13 @@ public class MongoArchitectureIntegration {
     private static final Logger logger = LoggerFactory.getLogger(MongoArchitectureIntegration.class);
     public static final String ARCHITECTURE = "{\"name\": \"demo-pattern\"}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     @BeforeEach
     public void setupArchitectures() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Safeguard: Fail fast if URI is not set
         if (mongoUri == null || mongoUri.isBlank()) {
@@ -179,5 +182,36 @@ public class MongoArchitectureIntegration {
                 .then()
                 .statusCode(200)
                 .body("values", hasSize(2));
+    }
+
+    @Test
+    @Order(9)
+    void end_to_end_delete_an_architecture() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/1")
+                .then()
+                .statusCode(204);
+
+        // Deleting removes the whole resource, all versions included — not just the latest.
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures/1/versions/1.0.0")
+                .then()
+                .statusCode(404);
+
+        given()
+                .when().get("/api/calm/namespaces/finos/architectures")
+                .then()
+                .statusCode(200)
+                .body("values", hasSize(1))
+                .body("values[0].id", equalTo(2));
+    }
+
+    @Test
+    @Order(10)
+    void end_to_end_delete_a_missing_architecture_returns_404() {
+        given()
+                .when().delete("/api/calm/namespaces/finos/architectures/999")
+                .then()
+                .statusCode(404);
     }
 }

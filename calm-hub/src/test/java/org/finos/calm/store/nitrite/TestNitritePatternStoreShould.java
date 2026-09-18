@@ -431,4 +431,33 @@ public class TestNitritePatternStoreShould {
 
         verify(versionCollection).insert(any(Document.class));
     }
+
+    // --- deletePattern ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_pattern_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class, () -> store.deletePattern(NAMESPACE, PATTERN_ID));
+    }
+
+    @Test
+    public void delete_the_header_and_all_versions_when_the_pattern_exists() throws Exception {
+        patternExists();
+        stubFind(versionCollection, List.of(
+                Document.createDocument().put("version", "1.0.0"),
+                Document.createDocument().put("version", "1.0.1")));
+
+        store.deletePattern(NAMESPACE, PATTERN_ID);
+
+        verify(versionCollection, org.mockito.Mockito.times(2)).remove(any(Document.class));
+        verify(headerCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void throw_a_pattern_exception_when_deleting_a_missing_pattern() {
+        patternDoesNotExist();
+
+        assertThrows(PatternNotFoundException.class, () -> store.deletePattern(NAMESPACE, PATTERN_ID));
+    }
 }

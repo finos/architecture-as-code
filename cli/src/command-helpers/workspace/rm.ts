@@ -1,4 +1,4 @@
-import { initLogger } from '@finos/calm-shared/src/logger';
+import { initLogger } from '@finos/calm-shared';
 import { loadManifest, saveManifest } from './bundle';
 
 const logger = initLogger(false, 'workspace-rm');

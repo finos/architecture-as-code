@@ -64,4 +64,14 @@ public interface DecoratorStore {
      * @throws DecoratorNotFoundException  if no decorator with the given ID exists
      */
     void updateDecorator(String namespace, int id, String decoratorJson) throws NamespaceNotFoundException, DecoratorNotFoundException;
+
+    /**
+     * Delete an existing decorator in the given namespace.
+     *
+     * @param namespace the namespace containing the decorator
+     * @param id        the ID of the decorator to delete
+     * @throws NamespaceNotFoundException if the namespace does not exist
+     * @throws DecoratorNotFoundException if no decorator with the given ID exists
+     */
+    void deleteDecorator(String namespace, int id) throws NamespaceNotFoundException, DecoratorNotFoundException;
 }
