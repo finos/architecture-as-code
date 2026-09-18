@@ -236,19 +236,28 @@ export async function bumpWorkspace(
     // Tracks the actual increment used for each bumped doc, so cascade passes can inherit it.
     const appliedIncrements = new Map<string, ResourceChangeType>();
 
+    const narrativeChanges = changed.filter((change): change is Extract<ChangedResource, { kind: 'narrative' }> =>
+        change.kind === 'narrative'
+    );
+    const narrativeManifest = narrativeChanges.length > 0 ? await loadManifest(bundlePath) : undefined;
+    for (const change of narrativeChanges) {
+        const entry = narrativeManifest?.[change.id];
+        if (!entry) throw new Error(`Narrative document '${change.id}' is no longer in the manifest.`);
+        const document = resolveWorkspaceManifestEntry(entry);
+        if (document.kind !== 'narrative') {
+            throw new Error(`Narrative document '${change.id}' is no longer a narrative manifest entry.`);
+        }
+        const increment = options.perDocIncrements?.get(change.id) ?? options.increment;
+        narrativeManifest[change.id] = {
+            ...document.entry,
+            version: computeSemVerBump(change.latestHubVersion, increment),
+        };
+    }
+
     for (const c of changed) {
         const docIncrement = options.perDocIncrements?.get(c.id) ?? options.increment;
         const toVersion = computeSemVerBump(c.latestHubVersion, docIncrement);
         if (c.kind === 'narrative') {
-            const manifest = await loadManifest(bundlePath);
-            const entry = manifest[c.id];
-            if (!entry) throw new Error(`Narrative document '${c.id}' is no longer in the manifest.`);
-            const document = resolveWorkspaceManifestEntry(entry);
-            if (document.kind !== 'narrative') {
-                throw new Error(`Narrative document '${c.id}' is no longer a narrative manifest entry.`);
-            }
-            manifest[c.id] = { ...document.entry, version: toVersion };
-            await saveManifest(bundlePath, manifest);
             bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
             appliedIncrements.set(c.id, docIncrement);
             bumpedIds.add(c.id);
@@ -263,6 +272,7 @@ export async function bumpWorkspace(
         bumpedIds.add(c.id);
         logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
     }
+    if (narrativeManifest) await saveManifest(bundlePath, narrativeManifest);
 
     // Cascade: sync refs, then bump any document that was modified by the sync but not yet bumped.
     // Repeat until nothing new gets changed (fixed-point). Terminates because each iteration adds
