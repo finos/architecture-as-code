@@ -16,6 +16,7 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -25,6 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -75,7 +77,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0")).when()
                 .post("/calm")
@@ -113,7 +115,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.FLOW).setNumericId(0).build());
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace("finos").setId(5).setVersion("1.0.0").setFlow("{}").build();
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"))).thenReturn(flow);
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(flow);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "flows", "my-flow", "1.0.0")).when()
                 .post("/calm")
@@ -132,7 +134,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.STANDARD).setNumericId(0).build());
         Standard standard = new Standard("", "", "{}", 3, "1.0.0");
         standard.setNamespace("finos");
-        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos"))).thenReturn(standard);
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(standard);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "standards", "my-standard", "1.0.0")).when()
                 .post("/calm")
@@ -151,7 +153,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.INTERFACE).setNumericId(0).build());
         CalmInterface iface = new CalmInterface("", "", "{}", 4, "1.0.0");
         iface.setNamespace("finos");
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("finos"))).thenReturn(iface);
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(iface);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "interfaces", "my-interface", "1.0.0")).when()
                 .post("/calm")
@@ -210,7 +212,7 @@ public class TestMappingControllerResourceShould {
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("fail-create")
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0")))
                 .thenThrow(new RuntimeException("Store failure"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "fail-create", "1.0.0")).when()
@@ -227,7 +229,7 @@ public class TestMappingControllerResourceShould {
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("rollback-me")
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0")))
                 .thenThrow(new RuntimeException("store failure"));
         doThrow(new RuntimeException("rollback failed")).when(mockMappingStore).deleteMapping("finos", ResourceType.PATTERN, "rollback-me");
 
@@ -518,7 +520,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(7).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(7).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "seed-one", "1.0.0")).when()
                 .post("/calm")
@@ -554,7 +556,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(8).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(8).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "v-new", "1.0.0")).when()
                 .post("/calm/namespaces/finos/patterns/v-new/versions/1.0.0")
@@ -1734,5 +1736,94 @@ public class TestMappingControllerResourceShould {
                 .then().statusCode(201);
 
         verify(mockInterfaceStore).deleteInterfaceVersion("finos", 64, "1.0.0-SNAPSHOT");
+    }
+
+    // --- A new resource may start at a snapshot ---
+
+    @Test
+    void create_a_brand_new_resource_at_a_snapshot_version() throws Exception {
+        // Iterating before the first publish is the main flow the feature exists for. The
+        // "first version must be 1.0.0" rule is about the release version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(70).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new", "1.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new/versions/1.0.0-SNAPSHOT")
+        .then()
+                .statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void refuse_a_brand_new_resource_at_a_later_snapshot_version() throws Exception {
+        // The release-version rule still applies: 2.0.0-SNAPSHOT is not a first version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new")).thenThrow(new MappingNotFoundException());
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new", "2.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new/versions/2.0.0-SNAPSHOT")
+        .then()
+                .statusCode(400)
+                .body(containsString("first version of a resource must be 1.0.0"));
+    }
+
+    @Test
+    void accept_a_non_canonically_spelled_first_snapshot() throws Exception {
+        // VERSION_REGEX accepts several spellings of one version ("100" == "1.0.0"), and the
+        // guard must canonicalise the release spelling before comparing it against "1.0.0" —
+        // releaseVersion alone leaves "100-SNAPSHOT" as "100", which would be wrongly refused.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new-2")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new-2"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new-2")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(71).setVersion("100-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new-2", "100-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new-2/versions/100-SNAPSHOT")
+        .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void thread_the_requested_snapshot_version_into_the_architecture_passed_to_the_store() throws Exception {
+        // The stores no longer always initialise the first version as 1.0.0 — the requested
+        // version must actually reach the store, not a hardcoded literal.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new-3")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new-3"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new-3")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(72).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
+        when(mockArchitectureStore.createArchitectureForNamespace(captor.capture())).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new-3", "1.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new-3/versions/1.0.0-SNAPSHOT")
+        .then()
+                .statusCode(201);
+
+        assertThat("the requested version must reach the store, not a hardcoded 1.0.0",
+                captor.getValue().getDotVersion(), is("1.0.0-SNAPSHOT"));
     }
 }

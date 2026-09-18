@@ -23,8 +23,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * NitriteDB-backed implementation of {@link StandardStore}, used in standalone mode.
  *
@@ -69,18 +67,18 @@ public class NitriteStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard createStandardForNamespace(CreateStandardRequest createStandardRequest, String namespace) throws NamespaceNotFoundException {
+    public Standard createStandardForNamespace(CreateStandardRequest createStandardRequest, String namespace, String version) throws NamespaceNotFoundException {
         Standard createdStandard = new Standard(createStandardRequest);
         namespaceStore.requireNamespace(namespace);
         validateStandardJson(createStandardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
         documentStore.createHeader(namespace, id, createStandardRequest.getName(), createStandardRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, createStandardRequest.getStandardJson());
+        documentStore.createFirstVersion(namespace, id, version, createStandardRequest.getStandardJson());
 
         LOG.info("Created standard with ID {} for namespace '{}'", id, namespace);
         createdStandard.setId(id);
-        createdStandard.setVersion(INITIAL_VERSION);
+        createdStandard.setVersion(version);
         return createdStandard;
     }
 

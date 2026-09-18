@@ -19,8 +19,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link StandardStore}.
  *
@@ -70,18 +68,18 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
+    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         Document content = Document.parse(standardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
         documentStore.createHeader(namespace, id, standardRequest.getName(), standardRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         Standard createdStandard = new Standard(standardRequest);
         createdStandard.setId(id);
-        createdStandard.setVersion(INITIAL_VERSION);
+        createdStandard.setVersion(version);
         return createdStandard;
     }
 

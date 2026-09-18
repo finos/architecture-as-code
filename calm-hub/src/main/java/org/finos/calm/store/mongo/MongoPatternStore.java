@@ -19,8 +19,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link PatternStore}.
  *
@@ -69,7 +67,7 @@ public class MongoPatternStore implements PatternStore {
     }
 
     @Override
-    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException {
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
@@ -78,11 +76,11 @@ public class MongoPatternStore implements PatternStore {
 
         int id = counterStore.getNextPatternSequenceValue();
         documentStore.createHeader(namespace, id, patternRequest.getName(), patternRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         return new Pattern.PatternBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setPattern(patternRequest.getPatternJson())
                 .build();

@@ -91,7 +91,7 @@ public class FlowResource {
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         try {
-            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);
+            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace, "1.0.0");
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);

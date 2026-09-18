@@ -135,7 +135,7 @@ public class TestNitriteStandardStoreShould {
     public void reject_invalid_json_when_creating_a_standard() {
         CreateStandardRequest invalid = new CreateStandardRequest("n", "d", "{invalid json}");
 
-        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE, "1.0.0"));
         verify(headerCollection, org.mockito.Mockito.never()).insert(any(Document.class));
     }
 
@@ -146,7 +146,7 @@ public class TestNitriteStandardStoreShould {
                 .put("standardId", 99).put("versionCount", 0)));
         stubFind(versionCollection, List.of());
 
-        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE);
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0");
 
         assertThat(created.getId(), is(99));
         assertThat(created.getVersion(), is("1.0.0"));
@@ -158,6 +158,23 @@ public class TestNitriteStandardStoreShould {
     }
 
     @Test
+    public void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("standardId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
+
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0-SNAPSHOT");
+
+        assertThat(created.getVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     public void remove_the_header_again_when_the_first_version_write_fails() {
         when(mockCounterStore.getNextStandardSequenceValue()).thenReturn(99);
         stubFind(headerCollection, List.of());
@@ -166,7 +183,7 @@ public class TestNitriteStandardStoreShould {
                 .thenThrow(new NitriteException("store is closed"));
 
         assertThrows(NitriteException.class,
-                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }
@@ -178,7 +195,7 @@ public class TestNitriteStandardStoreShould {
         stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0")));
 
         assertThrows(StorageWriteException.class,
-                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }

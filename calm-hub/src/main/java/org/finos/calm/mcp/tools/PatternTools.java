@@ -142,7 +142,7 @@ public class PatternTools {
 
         try {
             CreatePatternRequest request = new CreatePatternRequest(name, description, patternJson);
-            Pattern result = patternStore.createPatternForNamespace(request, namespace);
+            Pattern result = patternStore.createPatternForNamespace(request, namespace, "1.0.0");
             logger.info("Pattern created with ID [{}] in namespace [{}]", result.getId(), namespace);
             return ToolResponse.success("Pattern created successfully with ID: " + result.getId() + " (version " + result.getDotVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {

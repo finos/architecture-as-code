@@ -24,8 +24,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * NitriteDB-backed implementation of {@link InterfaceStore}, used in standalone mode.
  * Mirrors {@link org.finos.calm.store.mongo.MongoInterfaceStore}: content held as a JSON
@@ -74,18 +72,18 @@ public class NitriteInterfaceStore implements InterfaceStore {
     }
 
     @Override
-    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest createInterfaceRequest, String namespace) throws NamespaceNotFoundException {
+    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest createInterfaceRequest, String namespace, String version) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(createInterfaceRequest);
         namespaceStore.requireNamespace(namespace);
         validateInterfaceJson(createInterfaceRequest.getInterfaceJson());
 
         int id = counterStore.getNextInterfaceSequenceValue();
         documentStore.createHeader(namespace, id, createInterfaceRequest.getName(), createInterfaceRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, createInterfaceRequest.getInterfaceJson());
+        documentStore.createFirstVersion(namespace, id, version, createInterfaceRequest.getInterfaceJson());
 
         LOG.info("Created interface with ID {} for namespace '{}'", id, namespace);
         createdInterface.setId(id);
-        createdInterface.setVersion(INITIAL_VERSION);
+        createdInterface.setVersion(version);
         return createdInterface;
     }
 

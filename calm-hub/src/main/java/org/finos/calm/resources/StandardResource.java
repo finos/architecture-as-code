@@ -68,7 +68,7 @@ public class StandardResource {
             CreateStandardRequest standard
     ) throws URISyntaxException {
         try {
-            Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace);
+            Standard createdStandard = standardStore.createStandardForNamespace(standard, namespace, "1.0.0");
             return Response.created(new URI("/api/calm/namespaces/" + namespace + "/standards/" + createdStandard.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating standard", namespace, e);

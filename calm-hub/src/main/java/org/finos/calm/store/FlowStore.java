@@ -12,7 +12,7 @@ import java.util.List;
 
 public interface FlowStore {
     List<NamespaceResourceSummary> getFlowsForNamespace(String namespace) throws NamespaceNotFoundException;
-    Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException;
+    Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace, String version) throws NamespaceNotFoundException;
     List<String> getFlowVersions(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException;
     String getFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException;
     Flow createFlowForVersion(Flow flow) throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionExistsException;

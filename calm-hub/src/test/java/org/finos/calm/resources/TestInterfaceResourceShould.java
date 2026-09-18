@@ -127,7 +127,7 @@ public class TestInterfaceResourceShould {
 
     @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_interfaces() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
@@ -141,7 +141,7 @@ public class TestInterfaceResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -168,7 +168,7 @@ public class TestInterfaceResourceShould {
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
         createInterfaceRequest.setInterfaceJson("{ \"test\": \"json\" }");
-        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid")).thenReturn(storedInterface);
+        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0")).thenReturn(storedInterface);
 
         given()
                 .header("Content-Type", "application/json")
@@ -179,12 +179,12 @@ public class TestInterfaceResourceShould {
                 .statusCode(201)
                 .header("Location", containsString("/api/calm/namespaces/valid/interfaces/5/versions/1.0.0"));
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0");
     }
 
     @Test
     void return_a_400_when_invalid_json_is_provided_on_create_interface() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid")))
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid"), eq("1.0.0")))
                 .thenThrow(new JsonParseException());
 
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();

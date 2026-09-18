@@ -80,13 +80,17 @@ public class MongoArchitectureStore implements ArchitectureStore {
         // JSON can't leave a header behind with no version to go with it.
         Document content = Document.parse(architecture.getArchitectureJson());
 
+        // The version already carried on the Architecture object; callers that don't set one
+        // (the numeric-ID API, the MCP tool) still get the historical 1.0.0 default.
+        String version = architecture.getDotVersion() != null ? architecture.getDotVersion() : INITIAL_VERSION;
+
         int id = counterStore.getNextArchitectureSequenceValue();
         documentStore.createHeader(architecture.getNamespace(), id, architecture.getName(), architecture.getDescription());
-        documentStore.createFirstVersion(architecture.getNamespace(), id, content);
+        documentStore.createFirstVersion(architecture.getNamespace(), id, version, content);
 
         return new Architecture.ArchitectureBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(architecture.getNamespace())
                 .setArchitecture(architecture.getArchitectureJson())
                 .build();

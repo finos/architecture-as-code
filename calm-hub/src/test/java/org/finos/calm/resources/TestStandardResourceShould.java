@@ -103,7 +103,7 @@ public class TestStandardResourceShould {
 
     @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateStandardRequest createStandardRequest = new CreateStandardRequest();
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
@@ -117,7 +117,7 @@ public class TestStandardResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -144,7 +144,7 @@ public class TestStandardResourceShould {
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
         createStandardRequest.setStandardJson("{ \"test\": \"json\" }");
-        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid")).thenReturn(storedNist);
+        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid", "1.0.0")).thenReturn(storedNist);
 
         given()
                 .header("Content-Type", "application/json")
@@ -155,7 +155,7 @@ public class TestStandardResourceShould {
                 .statusCode(201)
                 .header("Location",  containsString(("/api/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid", "1.0.0");
     }
 
     @Test

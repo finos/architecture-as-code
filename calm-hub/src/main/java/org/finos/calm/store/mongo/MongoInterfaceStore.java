@@ -20,8 +20,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link InterfaceStore}.
  *
@@ -74,7 +72,7 @@ public class MongoInterfaceStore implements InterfaceStore {
     }
 
     @Override
-    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
+    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace, String version) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(interfaceRequest);
         namespaceStore.requireNamespace(namespace);
 
@@ -82,10 +80,10 @@ public class MongoInterfaceStore implements InterfaceStore {
 
         int id = counterStore.getNextInterfaceSequenceValue();
         documentStore.createHeader(namespace, id, interfaceRequest.getName(), interfaceRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         createdInterface.setId(id);
-        createdInterface.setVersion(INITIAL_VERSION);
+        createdInterface.setVersion(version);
         return createdInterface;
     }
 

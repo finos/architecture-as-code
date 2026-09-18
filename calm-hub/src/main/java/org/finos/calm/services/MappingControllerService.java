@@ -423,14 +423,17 @@ public class MappingControllerService {
 
     /**
      * Creates a brand-new resource (no mapping exists yet).
-     * <p>The underlying stores always initialise the first version as {@code 1.0.0}.  The first
-     * version of a resource must therefore be {@code 1.0.0}; any other requested version is
-     * rejected with {@code 400 Bad Request}.</p>
+     * <p>The first version of a resource must be {@code 1.0.0} or {@code 1.0.0-SNAPSHOT} — this
+     * is the main flow that lets a resource be iterated before its first publish. The rule is
+     * about the release version, so {@code 2.0.0-SNAPSHOT} is still rejected with
+     * {@code 400 Bad Request}.</p>
      */
     private Response createNewResource(String namespace, ResourceType resourceType, String typePath,
                                        String name, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         String finalVersion = versionSpec.version() != null ? versionSpec.version() : "1.0.0";
-        if (!"1.0.0".equals(finalVersion)) {
+        // The request's release spelling must be canonicalised before comparison — releaseVersion
+        // alone leaves "100-SNAPSHOT" as "100", which would never equal "1.0.0".
+        if (!"1.0.0".equals(CanonicalVersion.of(ResourceVersion.releaseVersion(finalVersion)))) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("The first version of a resource must be 1.0.0, but " + finalVersion + " was requested")
                     .build();
@@ -444,7 +447,7 @@ public class MappingControllerService {
         try {
             mappingStore.createMapping(namespace, name, resourceType, 0);
             try {
-                int numericId = createResourceInStore(resourceType, namespace, json, title, description);
+                int numericId = createResourceInStore(resourceType, namespace, json, title, description, finalVersion);
                 mappingStore.updateMappingNumericId(namespace, resourceType, name, numericId);
             } catch (Exception e) {
                 try {
@@ -541,24 +544,25 @@ public class MappingControllerService {
 
     /**
      * Creates a new resource in the type-specific store and returns the assigned numeric ID.
-     * The underlying stores always initialise the first stored version as {@code 1.0.0}.
+     * {@code version} is the resource's first version — {@code 1.0.0} or
+     * {@code 1.0.0-SNAPSHOT} — already validated by {@link #createNewResource}.
      */
     private int createResourceInStore(ResourceType type, String namespace, String json,
-                                       String resourceName, String description) throws Exception {
+                                       String resourceName, String description, String version) throws Exception {
         // The $id was already verified against the canonical URL; strip it before storage as it is
         // re-derived on read and MongoDB rejects a top-level $id field (write error code 55).
         json = documentParser.stripId(json);
         return switch (type) {
             case PATTERN -> {
                 CreatePatternRequest req = new CreatePatternRequest(resourceName, description, json);
-                Pattern created = patternStore.createPatternForNamespace(req, namespace);
+                Pattern created = patternStore.createPatternForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case ARCHITECTURE -> {
                 Architecture arch = new Architecture.ArchitectureBuilder()
                         .setNamespace(namespace)
                         .setArchitecture(json)
-                        .setVersion("1.0.0")
+                        .setVersion(version)
                         .setName(resourceName)
                         .setDescription(description)
                         .build();
@@ -567,17 +571,17 @@ public class MappingControllerService {
             }
             case FLOW -> {
                 CreateFlowRequest req = new CreateFlowRequest(resourceName, description, json);
-                Flow created = flowStore.createFlowForNamespace(req, namespace);
+                Flow created = flowStore.createFlowForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case STANDARD -> {
                 CreateStandardRequest req = new CreateStandardRequest(resourceName, description, json);
-                Standard created = standardStore.createStandardForNamespace(req, namespace);
+                Standard created = standardStore.createStandardForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(resourceName, description, json);
-                CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
+                CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace, version);
                 yield created.getId();
             }
         };

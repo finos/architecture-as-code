@@ -218,6 +218,23 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
+    public void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("architectureId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
+
+        Architecture created = store.createArchitectureForNamespace(architecture("1.0.0-SNAPSHOT"));
+
+        assertThat(created.getDotVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     public void remove_the_header_again_when_the_first_version_write_fails() {
         when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
         stubFind(headerCollection, List.of());

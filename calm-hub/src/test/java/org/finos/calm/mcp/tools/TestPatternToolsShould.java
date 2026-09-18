@@ -227,7 +227,7 @@ class TestPatternToolsShould {
                 .setId(42)
                 .setVersion("1.0.0")
                 .build();
-        when(patternStore.createPatternForNamespace(any(), anyString())).thenReturn(returnedPattern);
+        when(patternStore.createPatternForNamespace(any(), anyString(), anyString())).thenReturn(returnedPattern);
 
         ToolResponse result = patternTools.createPattern("workshop", "My Pattern", "A description", "{\"nodes\":[]}");
 
@@ -239,7 +239,7 @@ class TestPatternToolsShould {
 
     @Test
     void return_error_when_creating_pattern_in_missing_namespace() throws NamespaceNotFoundException {
-        when(patternStore.createPatternForNamespace(any(), anyString())).thenThrow(new NamespaceNotFoundException());
+        when(patternStore.createPatternForNamespace(any(), anyString(), anyString())).thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = patternTools.createPattern("missing", "My Pattern", "desc", "{}");
 

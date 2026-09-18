@@ -96,7 +96,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
                 + " \"title\": \"API Gateway Pattern\" }";
@@ -171,7 +171,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
                 + " \"title\": \"API Gateway Pattern\" }";
@@ -198,7 +198,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
                 + " \"title\": \"API Gateway Pattern\" }";
@@ -316,7 +316,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
         ArgumentCaptor<CreatePatternRequest> captor = ArgumentCaptor.forClass(CreatePatternRequest.class);
-        when(mockPatternStore.createPatternForNamespace(captor.capture(), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(captor.capture(), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\","
                 + " \"title\": \"API Gateway\", \"name\": \"my-pattern\" }";
@@ -329,7 +329,7 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .then()
                 .statusCode(201);
 
-        verify(mockPatternStore).createPatternForNamespace(any(), eq("finos"));
+        verify(mockPatternStore).createPatternForNamespace(any(), eq("finos"), eq("1.0.0"));
         assertThat("store does not receive the $id field (stripped before persistence)",
                 captor.getValue().getPatternJson(), not(containsString("$id")));
         assertThat("store receives the full document content",

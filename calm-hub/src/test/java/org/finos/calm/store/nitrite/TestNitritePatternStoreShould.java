@@ -176,14 +176,14 @@ public class TestNitritePatternStoreShould {
         when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.createPatternForNamespace(createRequest(), NAMESPACE));
+                () -> store.createPatternForNamespace(createRequest(), NAMESPACE, "1.0.0"));
     }
 
     @Test
     public void reject_invalid_json_when_creating_a_pattern() {
         CreatePatternRequest invalid = new CreatePatternRequest("n", "d", "{invalid json}");
 
-        assertThrows(JsonParseException.class, () -> store.createPatternForNamespace(invalid, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createPatternForNamespace(invalid, NAMESPACE, "1.0.0"));
         verify(headerCollection, never()).insert(any(Document.class));
     }
 
@@ -192,7 +192,7 @@ public class TestNitritePatternStoreShould {
         CreatePatternRequest noJson = new CreatePatternRequest("n", "d", null);
 
         // This backend validates up front; Mongo would NPE inside Document.parse instead.
-        assertThrows(JsonParseException.class, () -> store.createPatternForNamespace(noJson, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createPatternForNamespace(noJson, NAMESPACE, "1.0.0"));
     }
 
     @Test
@@ -202,7 +202,7 @@ public class TestNitritePatternStoreShould {
                 .put("patternId", 99).put("versionCount", 0)));
         stubFind(versionCollection, List.of());
 
-        Pattern created = store.createPatternForNamespace(createRequest(), NAMESPACE);
+        Pattern created = store.createPatternForNamespace(createRequest(), NAMESPACE, "1.0.0");
 
         assertThat(created.getId(), is(99));
         // Was "1-0-0" before this port, so the Location header differed by backend for the
@@ -222,6 +222,23 @@ public class TestNitritePatternStoreShould {
     }
 
     @Test
+    public void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(mockCounterStore.getNextPatternSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("patternId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
+
+        Pattern created = store.createPatternForNamespace(createRequest(), NAMESPACE, "1.0.0-SNAPSHOT");
+
+        assertThat(created.getDotVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     public void remove_the_header_again_when_the_first_version_write_fails() {
         when(mockCounterStore.getNextPatternSequenceValue()).thenReturn(99);
         stubFind(headerCollection, List.of());
@@ -230,7 +247,7 @@ public class TestNitritePatternStoreShould {
                 .thenThrow(new NitriteException("store is closed"));
 
         assertThrows(NitriteException.class,
-                () -> store.createPatternForNamespace(createRequest(), NAMESPACE));
+                () -> store.createPatternForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }
@@ -242,7 +259,7 @@ public class TestNitritePatternStoreShould {
         stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0")));
 
         assertThrows(StorageWriteException.class,
-                () -> store.createPatternForNamespace(createRequest(), NAMESPACE));
+                () -> store.createPatternForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }

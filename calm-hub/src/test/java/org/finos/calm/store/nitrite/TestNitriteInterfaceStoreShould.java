@@ -135,7 +135,7 @@ public class TestNitriteInterfaceStoreShould {
     public void reject_invalid_json_when_creating_a_interface() {
         CreateInterfaceRequest invalid = new CreateInterfaceRequest("n", "d", "{invalid json}");
 
-        assertThrows(JsonParseException.class, () -> store.createInterfaceForNamespace(invalid, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createInterfaceForNamespace(invalid, NAMESPACE, "1.0.0"));
         verify(headerCollection, org.mockito.Mockito.never()).insert(any(Document.class));
     }
 
@@ -146,7 +146,7 @@ public class TestNitriteInterfaceStoreShould {
                 .put("interfaceId", 99).put("versionCount", 0)));
         stubFind(versionCollection, List.of());
 
-        CalmInterface created = store.createInterfaceForNamespace(createRequest(), NAMESPACE);
+        CalmInterface created = store.createInterfaceForNamespace(createRequest(), NAMESPACE, "1.0.0");
 
         assertThat(created.getId(), is(99));
         assertThat(created.getVersion(), is("1.0.0"));
@@ -158,6 +158,23 @@ public class TestNitriteInterfaceStoreShould {
     }
 
     @Test
+    public void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(mockCounterStore.getNextInterfaceSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("interfaceId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
+
+        CalmInterface created = store.createInterfaceForNamespace(createRequest(), NAMESPACE, "1.0.0-SNAPSHOT");
+
+        assertThat(created.getVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     public void remove_the_header_again_when_the_first_version_write_fails() {
         when(mockCounterStore.getNextInterfaceSequenceValue()).thenReturn(99);
         stubFind(headerCollection, List.of());
@@ -166,7 +183,7 @@ public class TestNitriteInterfaceStoreShould {
                 .thenThrow(new NitriteException("store is closed"));
 
         assertThrows(NitriteException.class,
-                () -> store.createInterfaceForNamespace(createRequest(), NAMESPACE));
+                () -> store.createInterfaceForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }
@@ -178,7 +195,7 @@ public class TestNitriteInterfaceStoreShould {
         stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0")));
 
         assertThrows(StorageWriteException.class,
-                () -> store.createInterfaceForNamespace(createRequest(), NAMESPACE));
+                () -> store.createInterfaceForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).remove(any(Filter.class));
     }

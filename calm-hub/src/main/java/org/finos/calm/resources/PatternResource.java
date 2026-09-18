@@ -92,7 +92,7 @@ public class PatternResource {
             @Valid @NotNull(message = "Request must not be null") CreatePatternRequest patternRequest
     ) throws URISyntaxException {
         try {
-            return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace));
+            return patternWithLocationResponse(store.createPatternForNamespace(patternRequest, namespace, "1.0.0"));
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating pattern", namespace, e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
