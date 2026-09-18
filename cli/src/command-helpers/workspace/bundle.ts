@@ -94,8 +94,7 @@ export type UnpublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManif
 };
 
 export type NarrativeCreateRecovery = {
-    documentIdsBeforeCreate: number[];
-    documentMarkdownSha256: string;
+    pending: true;
 };
 
 export type CreateRecoveryPendingNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {

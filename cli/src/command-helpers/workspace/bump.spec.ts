@@ -94,10 +94,7 @@ describe('bump', () => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
             const entry = {
                 path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
-                createRecovery: {
-                    documentIdsBeforeCreate: [1, 2],
-                    documentMarkdownSha256: 'a'.repeat(64),
-                },
+                createRecovery: { pending: true as const },
             };
             await writeFile(path.join(filesPath, 'payments.md'), markdown);
             await saveManifest(bundlePath, { payments: entry });

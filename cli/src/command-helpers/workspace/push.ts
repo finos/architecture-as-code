@@ -1,6 +1,5 @@
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { createHash } from 'node:crypto';
 import {
     loadManifest,
     saveManifest,
@@ -14,16 +13,15 @@ import {
 import {
     CalmHubClient,
     DocumentMetadata,
+    HubClientError,
     extractDocumentMetadata,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
 import {
-    constructNarrativeDocumentPath,
     parseNarrativeDocumentLocation,
     resolveNarrativeEntry,
-    type NarrativeDocumentIdentity,
     validateNarrativeDocumentLocation,
 } from './narrative-document';
 import {
@@ -33,6 +31,7 @@ import {
 } from './document-kind';
 
 const logger: Logger = initLogger(false, 'workspace');
+const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
 
 export interface PushOptions {
     /**
@@ -139,6 +138,9 @@ async function pushNarrativeEntry(
     const { bundlePath, client, conflicts, failIfModified, id, manifest, narrativeFailures, raw } = context;
     try {
         const createRecovery = getCreateRecovery(entry);
+        if (createRecovery !== undefined) {
+            throw new Error(createReconciliationMessage(id, entry));
+        }
         const resolved = resolveNarrativeEntry(id, entry, raw);
         const { version, narrative } = resolved;
 
@@ -148,56 +150,40 @@ async function pushNarrativeEntry(
                 throw new Error('A narrative document without calmHubDocumentId must use version 1.0.0.');
             }
 
-            if (createRecovery !== undefined) {
-                if (sha256(narrative.request.documentMarkdown) !== createRecovery.documentMarkdownSha256) {
-                    throw new Error('Narrative document Markdown changed while create recovery is pending. Restore the submitted content or reconcile it explicitly.');
-                }
-                const recovered = await recoverCreatedNarrativeDocument(
-                    client, identity, createRecovery.documentIdsBeforeCreate, narrative.request.documentMarkdown
-                );
-                manifest[id] = publishNarrativeEntry(entry, recovered.documentId, recovered.location);
-                await saveManifest(bundlePath, manifest);
-                logger.info(`Recovered '${id}' version ${version} -> ${recovered.location}`);
-                return;
-            }
-
-            const documentIdsBeforeCreate = await client.getNarrativeDocumentIds(identity.namespace, identity.type);
             manifest[id] = {
                 path: entry.path,
                 type: entry.type,
                 ...(entry.namespace === undefined ? {} : { namespace: entry.namespace }),
                 version,
-                createRecovery: {
-                    documentIdsBeforeCreate,
-                    documentMarkdownSha256: sha256(narrative.request.documentMarkdown),
-                },
+                createRecovery: { pending: true },
             };
             // Persist recovery before POST because a transport failure can hide a successful create.
             await saveManifest(bundlePath, manifest);
-            const location = await client.createNarrativeDocument(identity.namespace, identity.type, narrative.request);
-
-            let documentId: number | undefined;
-            if (location !== undefined) {
-                try {
-                    documentId = parseNarrativeDocumentLocation(location, identity);
-                } catch {
-                    // The POST succeeded, but the Location cannot establish the document identity.
+            let location: string | undefined;
+            try {
+                location = await client.createNarrativeDocument(identity.namespace, identity.type, narrative.request);
+            } catch (e) {
+                if (isDefiniteCreateRejection(e)) {
+                    manifest[id] = entry;
+                    await saveManifest(bundlePath, manifest);
                 }
+                throw e;
             }
 
-            if (documentId !== undefined && location !== undefined) {
-                manifest[id] = publishNarrativeEntry(entry, documentId, location);
-                await saveManifest(bundlePath, manifest);
-                logger.info(`Pushed '${id}' version ${version} -> ${location}`);
-                return;
+            if (location === undefined) {
+                throw new Error(createReconciliationMessage(id, entry));
             }
 
-            const recovered = await recoverCreatedNarrativeDocument(
-                client, identity, documentIdsBeforeCreate, narrative.request.documentMarkdown
-            );
-            manifest[id] = publishNarrativeEntry(entry, recovered.documentId, recovered.location);
+            let documentId: number;
+            try {
+                documentId = parseNarrativeDocumentLocation(location, identity);
+            } catch {
+                throw new Error(createReconciliationMessage(id, entry));
+            }
+
+            manifest[id] = publishNarrativeEntry(entry, documentId, location);
             await saveManifest(bundlePath, manifest);
-            logger.info(`Pushed '${id}' version ${version} -> ${recovered.location}`);
+            logger.info(`Pushed '${id}' version ${version} -> ${location}`);
             return;
         }
 
@@ -320,22 +306,24 @@ function getCreateRecovery(entry: NarrativeWorkspaceManifestEntry): NarrativeCre
         throw new Error('Narrative document cannot be both published and pending create recovery.');
     }
     if (!createRecovery || typeof createRecovery !== 'object' || Array.isArray(createRecovery)) {
-        throw new Error('Narrative document createRecovery must contain a valid documentIdsBeforeCreate array.');
+        throw new Error('Narrative document createRecovery must be a pending-create marker.');
     }
-    const documentIdsBeforeCreate = (createRecovery as Record<string, unknown>).documentIdsBeforeCreate;
-    if (!Array.isArray(documentIdsBeforeCreate) ||
-        !documentIdsBeforeCreate.every((documentId: unknown) => Number.isSafeInteger(documentId) && (documentId as number) > 0)) {
-        throw new Error('Narrative document createRecovery documentIdsBeforeCreate must contain only positive safe integers.');
+    if ((createRecovery as Record<string, unknown>).pending !== true || Object.keys(createRecovery).length !== 1) {
+        throw new Error('Narrative document createRecovery must contain only pending: true.');
     }
-    const documentMarkdownSha256 = (createRecovery as Record<string, unknown>).documentMarkdownSha256;
-    if (typeof documentMarkdownSha256 !== 'string' || !/^[0-9a-f]{64}$/.test(documentMarkdownSha256)) {
-        throw new Error('Narrative document createRecovery documentMarkdownSha256 must be a lowercase SHA-256 hex digest.');
-    }
-    return { documentIdsBeforeCreate, documentMarkdownSha256 };
+    return { pending: true };
 }
 
-function sha256(value: string): string {
-    return createHash('sha256').update(value, 'utf8').digest('hex');
+function isDefiniteCreateRejection(error: unknown): boolean {
+    return error instanceof HubClientError && DEFINITE_CREATE_REJECTION_STATUSES.has(error.status);
+}
+
+function createReconciliationMessage(id: string, entry: NarrativeWorkspaceManifestEntry): string {
+    return `Narrative document '${id}' has a pending create with no authoritative CalmHub identity. ` +
+        'Explicit reconciliation is required. Confirm the CalmHub document ID, then run ' +
+        `\`calm workspace add <file> --id ${id} --type ${entry.type} --namespace ${entry.namespace ?? '<namespace>'} ` +
+        `--calm-hub-document-id <id> --ver ${entry.version}\` ` +
+        '(add `--calm-hub-url <url>` if it is not configured).';
 }
 
 function publishNarrativeEntry(
@@ -351,36 +339,4 @@ function publishNarrativeEntry(
         calmHubDocumentId: documentId,
         calmHubId: location,
     };
-}
-
-async function recoverCreatedNarrativeDocument(
-    client: CalmHubClient,
-    identity: NarrativeDocumentIdentity,
-    documentIdsBeforeCreate: number[],
-    documentMarkdown: string
-): Promise<{ documentId: number; location: string }> {
-    const documentIdsAfterCreate = await client.getNarrativeDocumentIds(identity.namespace, identity.type);
-    const existingIds = new Set(documentIdsBeforeCreate);
-    const candidateIds = [...new Set(documentIdsAfterCreate.filter((documentId) => !existingIds.has(documentId)))];
-    const matchingIds: number[] = [];
-
-    for (const candidateId of candidateIds) {
-        const candidate = await client.getNarrativeDocumentVersion(
-            identity.namespace, identity.type, candidateId, '1.0.0'
-        );
-        if (candidate.documentMarkdown === documentMarkdown) {
-            matchingIds.push(candidateId);
-        }
-    }
-
-    if (matchingIds.length === 0) {
-        throw new Error('Could not recover the created narrative document: no new document has matching Markdown.');
-    }
-    if (matchingIds.length > 1) {
-        throw new Error('Could not recover the created narrative document: multiple new documents have matching Markdown.');
-    }
-
-    const documentId = matchingIds[0];
-    const location = constructNarrativeDocumentPath({ ...identity, calmHubDocumentId: documentId });
-    return { documentId, location };
 }

@@ -21,7 +21,6 @@ describe('bundle', () => {
     const testDir = path.join(__dirname, 'test-bundle');
     const bundlePath = path.join(testDir, 'bundle');
     const filesPath = path.join(bundlePath, 'files');
-    const documentMarkdownSha256 = 'a'.repeat(64);
 
     beforeAll(async () => {
         await mkdir(testDir, { recursive: true });
@@ -65,7 +64,7 @@ describe('bundle', () => {
             };
             const pendingNarrative: WorkspaceManifestEntry = {
                 path: 'files/design.md', type: 'sad', version: '1.0.0',
-                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                createRecovery: { pending: true },
             };
 
             expect(isNarrativeWorkspaceManifestEntry(mapping)).toBe(false);
@@ -99,7 +98,7 @@ describe('bundle', () => {
             // @ts-expect-error Pending narrative entries cannot also have a published identity.
             const pendingPublishedNarrative: WorkspaceManifestEntry = {
                 path: 'files/design.md', type: 'sad', version: '1.0.0',
-                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                createRecovery: { pending: true },
                 calmHubDocumentId: 42, calmHubId: '/documents/sad/42/versions/1.0.0',
             };
 
@@ -312,7 +311,7 @@ describe('bundle', () => {
         it('rejects re-adding a narrative while create recovery is pending', async () => {
             const existing = {
                 path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
-                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                createRecovery: { pending: true as const },
             };
             await saveManifest(bundlePath, { 'source-doc': existing });
 
@@ -327,7 +326,7 @@ describe('bundle', () => {
         it('rejects replacing a pending narrative with a mapping', async () => {
             const existing = {
                 path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
-                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                createRecovery: { pending: true as const },
             };
             await saveManifest(bundlePath, { 'source-doc': existing });
 
@@ -343,7 +342,7 @@ describe('bundle', () => {
             await saveManifest(bundlePath, {
                 'source-doc': {
                     path: 'old.md', type: 'sad', namespace: 'finos', version: '1.0.0',
-                    createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                    createRecovery: { pending: true },
                 },
             });
 
@@ -367,7 +366,7 @@ describe('bundle', () => {
         ])('rejects verified identity outside the pending recovery scope', async ({ type, namespace, version }) => {
             const existing = {
                 path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
-                createRecovery: { documentIdsBeforeCreate: [1, 2], documentMarkdownSha256 },
+                createRecovery: { pending: true as const },
             };
             await saveManifest(bundlePath, { 'source-doc': existing });
 
