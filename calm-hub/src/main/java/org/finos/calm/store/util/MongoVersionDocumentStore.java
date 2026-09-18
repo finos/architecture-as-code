@@ -203,6 +203,39 @@ public class MongoVersionDocumentStore {
     }
 
     /**
+     * Removes one version document, leaving the header and every other version in place.
+     *
+     * <p>Narrower than {@link #deleteResource}: the caller is promotion, which removes a
+     * snapshot once its release version is published. The snapshot may not exist — the
+     * release may have been published without one — so an absent version is a {@code false}
+     * return, not an exception.</p>
+     *
+     * <p>Decrements the header's {@code versionCount} when, and only when, it actually
+     * deleted. {@link #createVersion} and {@link #upsertVersion} both increment on insert;
+     * without the matching decrement the count drifts permanently high and disagrees with
+     * {@link #listVersions}.</p>
+     *
+     * @return {@code true} if a version document was removed.
+     */
+    public boolean deleteVersion(String namespace, int resourceId, String version) {
+        String canonicalVersion = versionScheme.canonicalise(version);
+        boolean deleted;
+        try {
+            DeleteResult result = versionCollection.deleteOne(
+                    versionFilter(namespace, resourceId, canonicalVersion));
+            deleted = result.getDeletedCount() > 0;
+        } catch (MongoException e) {
+            LOG.error("Failed to delete version [namespace={}, {}={}, version={}]",
+                    namespace, idField, resourceId, canonicalVersion, e);
+            throw StorageWriteException.writeFailed(e);
+        }
+        if (deleted) {
+            decrementVersionCount(namespace, resourceId);
+        }
+        return deleted;
+    }
+
+    /**
      * Writes the first version of a newly created resource, removing the header again if
      * that fails, so a half-created resource never survives the request.
      *
@@ -509,6 +542,25 @@ public class MongoVersionDocumentStore {
         } catch (MongoException e) {
             LOG.warn("Failed to increment versionCount after writing a version [namespace={}, {}={}] — "
                     + "versionCount for this resource is now understated", namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Undoes {@link #incrementVersionCount}, called only after a version document has
+     * actually been deleted. Best-effort, matching {@link #incrementVersionCount}: a
+     * derived counter must not fail a delete that already succeeded.
+     */
+    private void decrementVersionCount(String namespace, int resourceId) {
+        try {
+            UpdateResult result = headerCollection.updateOne(
+                    headerFilter(namespace, resourceId), Updates.inc(VERSION_COUNT_FIELD, -1));
+            if (result.getMatchedCount() == 0) {
+                LOG.warn("Deleted a version with no matching header to count it [namespace={}, {}={}] — "
+                        + "versionCount for this resource is now overstated", namespace, idField, resourceId);
+            }
+        } catch (MongoException e) {
+            LOG.warn("Failed to decrement versionCount after deleting a version [namespace={}, {}={}] — "
+                    + "versionCount for this resource is now overstated", namespace, idField, resourceId, e);
         }
     }
 

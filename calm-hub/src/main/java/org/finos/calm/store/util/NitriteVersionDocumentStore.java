@@ -189,6 +189,31 @@ public class NitriteVersionDocumentStore {
     }
 
     /**
+     * Removes one version document, leaving the header and every other version in place.
+     * See {@link MongoVersionDocumentStore#deleteVersion} — the reasoning for the absent-version
+     * return and the versionCount decrement is the same on both backends.
+     *
+     * <p>Held under the write lock so no concurrent read sees the version gone while the
+     * header still counts it.</p>
+     */
+    public boolean deleteVersion(String namespace, int resourceId, String version) {
+        String canonicalVersion = versionScheme.canonicalise(version);
+        lock.writeLock().lock();
+        try {
+            Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
+            Document existing = versionCollection.find(filter).firstOrNull();
+            if (existing == null) {
+                return false;
+            }
+            versionCollection.remove(existing);
+            decrementVersionCount(namespace, resourceId);
+            return true;
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
+
+    /**
      * Writes the first version of a newly created resource, removing the header again if
      * that fails. See {@link MongoVersionDocumentStore#createFirstVersion} — the reasoning
      * for owning this here, and for treating {@code !created} as a real failure, is the
@@ -499,6 +524,29 @@ public class NitriteVersionDocumentStore {
         } catch (NitriteException e) {
             LOG.warn("Failed to increment versionCount after writing a version [namespace={}, {}={}] — "
                     + "versionCount for this resource is now understated", namespace, idField, resourceId, e);
+        }
+    }
+
+    /**
+     * Undoes {@link #incrementVersionCount}, called only after a version document has
+     * actually been removed. Best-effort, matching {@link #incrementVersionCount}: a
+     * derived counter must not fail a delete that already succeeded.
+     */
+    private void decrementVersionCount(String namespace, int resourceId) {
+        try {
+            Filter filter = headerFilter(namespace, resourceId);
+            Document header = headerCollection.find(filter).firstOrNull();
+            if (header == null) {
+                LOG.warn("Deleted a version with no matching header to count it [namespace={}, {}={}] — "
+                        + "versionCount for this resource is now overstated", namespace, idField, resourceId);
+                return;
+            }
+            Integer current = header.get(VERSION_COUNT_FIELD, Integer.class);
+            header.put(VERSION_COUNT_FIELD, Math.max(0, (current == null ? 0 : current) - 1));
+            headerCollection.update(filter, header);
+        } catch (NitriteException e) {
+            LOG.warn("Failed to decrement versionCount after deleting a version [namespace={}, {}={}] — "
+                    + "versionCount for this resource is now overstated", namespace, idField, resourceId, e);
         }
     }
 
