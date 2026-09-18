@@ -195,6 +195,10 @@ public class NitriteInterfaceStore implements InterfaceStore {
         if (!documentStore.headerExists(namespace, interfaceId)) {
             throw new InterfaceNotFoundException();
         }
-        return documentStore.deleteVersion(namespace, interfaceId, version);
+        boolean deleted = documentStore.deleteVersion(namespace, interfaceId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of interface {} from namespace '{}'", version, interfaceId, namespace);
+        }
+        return deleted;
     }
 }

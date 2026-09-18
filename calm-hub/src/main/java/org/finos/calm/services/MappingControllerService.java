@@ -701,7 +701,11 @@ public class MappingControllerService {
      * work in progress.</p>
      */
     private void deleteSnapshotForVersion(ResourceMapping mapping, String releaseVersion, List<String> versions) {
-        String snapshotVersion = ResourceVersion.asSnapshot(releaseVersion);
+        // versions holds canonical spellings, so the raw request's release spelling must be
+        // canonicalised first — "100"'s snapshot is stored as "1.0.0-SNAPSHOT", which would
+        // never match a naive "100-SNAPSHOT" otherwise (see the shadow check above this method's
+        // call site, which canonicalises for the same reason).
+        String snapshotVersion = ResourceVersion.asSnapshot(CanonicalVersion.of(releaseVersion));
         if (!versions.contains(snapshotVersion)) {
             return;
         }

@@ -185,6 +185,10 @@ public class NitriteFlowStore implements FlowStore {
         if (!documentStore.headerExists(namespace, flowId)) {
             throw new FlowNotFoundException();
         }
-        return documentStore.deleteVersion(namespace, flowId, version);
+        boolean deleted = documentStore.deleteVersion(namespace, flowId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of flow {} from namespace '{}'", version, flowId, namespace);
+        }
+        return deleted;
     }
 }

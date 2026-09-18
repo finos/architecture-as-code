@@ -192,6 +192,10 @@ public class NitriteStandardStore implements StandardStore {
         if (!documentStore.headerExists(namespace, standardId)) {
             throw new StandardNotFoundException();
         }
-        return documentStore.deleteVersion(namespace, standardId, version);
+        boolean deleted = documentStore.deleteVersion(namespace, standardId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of standard {} from namespace '{}'", version, standardId, namespace);
+        }
+        return deleted;
     }
 }

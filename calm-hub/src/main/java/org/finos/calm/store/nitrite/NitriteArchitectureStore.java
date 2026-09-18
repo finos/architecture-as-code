@@ -213,6 +213,10 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         if (!documentStore.headerExists(namespace, architectureId)) {
             throw new ArchitectureNotFoundException();
         }
-        return documentStore.deleteVersion(namespace, architectureId, version);
+        boolean deleted = documentStore.deleteVersion(namespace, architectureId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of architecture {} from namespace '{}'", version, architectureId, namespace);
+        }
+        return deleted;
     }
 }

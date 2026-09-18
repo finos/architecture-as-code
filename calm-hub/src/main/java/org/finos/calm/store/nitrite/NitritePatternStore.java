@@ -203,6 +203,10 @@ public class NitritePatternStore implements PatternStore {
         if (!documentStore.headerExists(namespace, patternId)) {
             throw new PatternNotFoundException();
         }
-        return documentStore.deleteVersion(namespace, patternId, version);
+        boolean deleted = documentStore.deleteVersion(namespace, patternId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of pattern {} from namespace '{}'", version, patternId, namespace);
+        }
+        return deleted;
     }
 }
