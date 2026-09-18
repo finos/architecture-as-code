@@ -15,26 +15,17 @@ import type {
 
 export const WORKSPACE_DOCUMENT_HANDLERS = {
     mapping: {
-        kind: 'mapping',
-        format: 'json',
         unreadableFile: 'warn',
         supportsJsonReferences: true,
     },
     narrative: {
-        kind: 'narrative',
-        format: 'markdown',
         unreadableFile: 'fail',
         supportsJsonReferences: false,
     },
 } as const satisfies Record<WorkspaceDocumentKind, {
-    kind: WorkspaceDocumentKind;
-    format: 'json' | 'markdown';
     unreadableFile: 'warn' | 'fail';
     supportsJsonReferences: boolean;
 }>;
-
-export type WorkspaceDocumentHandler =
-    typeof WORKSPACE_DOCUMENT_HANDLERS[keyof typeof WORKSPACE_DOCUMENT_HANDLERS];
 
 export type ResolvedWorkspaceDocumentType =
     | { kind: 'mapping'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.mapping; type: CalmDocumentType | 'unknown' }

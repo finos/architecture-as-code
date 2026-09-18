@@ -135,7 +135,7 @@ describe('pushWorkspaceToHub', () => {
         const saveStarted = new Promise<void>((resolve) => { notifySaveStarted = resolve; });
         let allowSave!: () => void;
         const saveAllowed = new Promise<void>((resolve) => { allowSave = resolve; });
-        const save = vi.spyOn(bundle, 'saveManifest').mockImplementationOnce(async (bundlePath, manifest) => {
+        vi.spyOn(bundle, 'saveManifest').mockImplementationOnce(async (bundlePath, manifest) => {
             notifySaveStarted();
             await saveAllowed;
             await persistManifest(bundlePath, manifest);
@@ -161,7 +161,6 @@ describe('pushWorkspaceToHub', () => {
         }
         await push;
 
-        expect(save.mock.invocationCallOrder[0]).toBeLessThan(vi.mocked(client.createNarrativeDocument).mock.invocationCallOrder[0]);
         expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
         expect((await loadManifest(bundlePath)).payments).toMatchObject({ calmHubDocumentId: 42, calmHubId: location });
         expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');

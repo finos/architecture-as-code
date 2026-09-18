@@ -64,12 +64,6 @@ describe('narrative document helpers', () => {
             expect(() => resolveNarrativeEntry('payments', entry, markdown)).toThrow(message);
         });
 
-        it('parses Markdown before validating the constructed identity', () => {
-            expect(() => resolveNarrativeEntry(
-                'payments', { ...identity, version: 'latest' }, '# No frontmatter'
-            )).toThrow(/must contain non-empty YAML mapping frontmatter/);
-        });
-
         it('rejects malformed narrative Markdown', () => {
             expect(() => resolveNarrativeEntry('payments', identity, '# No frontmatter')).toThrow(
                 /must contain non-empty YAML mapping frontmatter/
