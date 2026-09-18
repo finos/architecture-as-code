@@ -96,7 +96,10 @@ public class MappingControllerResource {
                     "For control requirements: {baseUrl}/calm/domains/{domain}/controls/{controlName}/requirement/versions/{version}. " +
                     "For configurations: {baseUrl}/calm/domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}. " +
                     "A version is always required. For a brand-new resource the first version must be 1.0.0. " +
-                    "For an existing resource the requested version is created (409 if it already exists)."
+                    "For an existing resource the requested version is created (409 if it already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @Authenticated
     public Response createResourceFromDocument(String requestBody) throws URISyntaxException {
@@ -241,7 +244,10 @@ public class MappingControllerResource {
             summary = "Create a specific version of a named resource",
             description = "The request body must be the raw CALM document, and its \"$id\" must equal the canonical " +
                     "versioned URL for the exact version in the path. For a brand-new resource the version must be " +
-                    "1.0.0; for an existing resource the requested version is created (409 if it already exists)."
+                    "1.0.0; for an existing resource the requested version is created (409 if it already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createResourceVersion(

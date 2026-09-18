@@ -57,6 +57,18 @@ GET  /calm/namespaces/{namespace}/architectures
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
+### Snapshot Versions
+
+A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, and interfaces only.
+
+| Request | Effect | Status |
+|:--------|:-------|:-------|
+| `POST .../versions/1.0.0-SNAPSHOT` (first time) | Creates the snapshot | `201` |
+| `POST .../versions/1.0.0-SNAPSHOT` (again) | Replaces the snapshot's content | `200` |
+| `POST .../versions/1.0.0` | Publishes the release, deletes `1.0.0-SNAPSHOT` | `201` |
+
+A snapshot cannot be created if its release version is already published — CALM Hub returns `409 Conflict`.
+
 ### Access Control
 
 Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.
