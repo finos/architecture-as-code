@@ -1,6 +1,11 @@
 import { AxiosInstance } from 'axios';
 import { getAuthHeaders } from '../authService.js';
-import { ControlConfigDetail, ControlDetail } from '../model/control.js';
+import {
+    ControlConfigDetail,
+    ControlConfigurationDoc,
+    ControlDetail,
+    ControlRequirementDoc,
+} from '../model/control.js';
 import { apiClient } from './utils/api-client.js';
 
 export class ControlService {
@@ -57,11 +62,11 @@ export class ControlService {
             });
     }
 
-    public async fetchRequirementForVersion(domain: string, controlId: number, version: string): Promise<unknown> {
+    public async fetchRequirementForVersion(domain: string, controlId: number, version: string): Promise<ControlRequirementDoc> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/requirement/versions/${encodeURIComponent(version)}`, { headers })
-            .then((res) => res.data)
+            .then((res) => res.data as ControlRequirementDoc)
             .catch((error) => {
                 const errorMessage = `Error fetching requirement version ${version} for control ${controlId}:`;
                 console.error('%s', errorMessage, error);
@@ -97,11 +102,11 @@ export class ControlService {
             });
     }
 
-    public async fetchConfigurationForVersion(domain: string, controlId: number, configId: number, version: string): Promise<unknown> {
+    public async fetchConfigurationForVersion(domain: string, controlId: number, configId: number, version: string): Promise<ControlConfigurationDoc> {
         const headers = await getAuthHeaders();
         return this.ax
             .get(`/api/calm/domains/${encodeURIComponent(domain)}/controls/${controlId}/configurations/${configId}/versions/${encodeURIComponent(version)}`, { headers })
-            .then((res) => res.data)
+            .then((res) => res.data as ControlConfigurationDoc)
             .catch((error) => {
                 const errorMessage = `Error fetching configuration version ${version} for config ${configId}:`;
                 console.error('%s', errorMessage, error);
