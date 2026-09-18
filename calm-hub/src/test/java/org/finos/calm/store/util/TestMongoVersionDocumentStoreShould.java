@@ -709,7 +709,25 @@ class TestMongoVersionDocumentStoreShould {
 
         store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
 
-        verify(headerCollection).updateOne(any(Bson.class), any(Bson.class));
+        // Asserting the update's rendered content, not merely that some update happened —
+        // otherwise an increment (+1) sent by mistake would satisfy this just as well.
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        assertThat(asJson(updateCaptor.getValue()), containsString("\"versionCount\": -1"));
+    }
+
+    @Test
+    void delete_the_version_under_any_accepted_spelling() {
+        // Canonicalisation happens on the way in, so a delete must canonicalise too or it
+        // silently deletes nothing — mirrors look_up_a_dash_spelled_version_by_its_canonical_form.
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "100-SNAPSHOT"), is(true));
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).deleteOne(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0-SNAPSHOT"));
     }
 
     @Test
