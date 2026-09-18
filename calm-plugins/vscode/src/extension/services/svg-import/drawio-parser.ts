@@ -136,7 +136,8 @@ function resolveLabel(wrapperAttrs: Record<string, string>): string {
 
 async function extractMxGraphModel(svgContent: string): Promise<string | null> {
     // Method 1: content attribute on root SVG (most common in modern draw.io)
-    const contentMatch = svgContent.match(/<svg\s[^>]*?\bcontent="([^"]*)"/);;
+    const contentMatch = svgContent.match(/<svg\s[^>]*?\bcontent="([^"]*)"/);
+
     if (contentMatch) {
         const decoded = decodeDrawioContent(contentMatch[1]!);
         const mxModel = extractMxGraphModelFromDecoded(decoded);
@@ -178,11 +179,14 @@ function decodeDrawioContent(content: string): string {
         const urlDecoded = decodeURIComponent(content);
         if (urlDecoded !== content) return urlDecoded;
     } catch {
-        // Malformed percent-encoding — decode only valid %XX escapes
+        // Malformed percent-encoding — decode only valid %XX escapes,
+        // but only use the result when it actually produced diagram XML
+        // (mixed-encoding content like HTML entities + percent-encoded font URLs
+        // should fall through to the HTML entity path below)
         const lenient = content.replace(/%([0-9A-Fa-f]{2})/g, (_, hex: string) =>
             String.fromCharCode(parseInt(hex, 16))
         );
-        if (lenient !== content) return lenient;
+        if (lenient !== content && lenient.includes('<mxGraphModel')) return lenient;
     }
 
     // HTML entity decoding (modern draw.io / Confluence exports use &lt; &gt; &quot; &amp;)
