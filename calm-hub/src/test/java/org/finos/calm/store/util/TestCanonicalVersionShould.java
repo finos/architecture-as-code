@@ -1,5 +1,6 @@
 package org.finos.calm.store.util;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -9,6 +10,7 @@ import java.util.regex.Pattern;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 class TestCanonicalVersionShould {
@@ -59,5 +61,30 @@ class TestCanonicalVersionShould {
     @Test
     void pass_a_null_version_through_rather_than_throwing() {
         assertThat(CanonicalVersion.of(null), is(nullValue()));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "1.0.0-SNAPSHOT", "1-0-0-SNAPSHOT", "1.0-0-SNAPSHOT",
+            "1-0.0-SNAPSHOT", "1.00-SNAPSHOT", "100-SNAPSHOT"})
+    void fold_every_spelling_of_a_snapshot_onto_one_document_key(String spelling) {
+        // Same reason as the release case: the API accepts all six spellings, and storing them
+        // verbatim would give one logical snapshot six documents.
+        assertThat(CanonicalVersion.of(spelling), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void keep_a_snapshot_distinct_from_its_release() {
+        // The two are different documents by design. Folding the suffix away here would make
+        // publishing 1.0.0 silently overwrite its own snapshot instead of creating a release.
+        assertThat(CanonicalVersion.of("1.0.0-SNAPSHOT"), is(not(CanonicalVersion.of("1.0.0"))));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1.0.0-snapshot", "1.2-SNAPSHOT", "-SNAPSHOT", "1.0.0-SNAPSHOT-SNAPSHOT"})
+    void return_a_malformed_snapshot_unchanged_rather_than_guessing(String rejected) {
+        // The resource layer rejects these with a 400. Rewriting them here would turn a
+        // refusable request into a document stored under a version nobody asked for.
+        assertThat(CanonicalVersion.of(rejected), is(rejected));
     }
 }
