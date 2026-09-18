@@ -1415,4 +1415,30 @@ public class TestMappingControllerResourceShould {
                 .when().post("/calm/domains/security/controls/unknown-ctrl/configurations/my-cfg/versions/1.0.0")
                 .then().statusCode(404);
     }
+
+    // --- Snapshot version acceptance on namespace resource endpoints ---
+
+    @Test
+    void accept_a_snapshot_version_in_the_path() throws Exception {
+        // Only checks the version is not rejected by validation. Mocking an existing mapping
+        // and its versions lets the request reach the handler and complete the add-version
+        // path, proving the -SNAPSHOT suffix passed the @Pattern check on {version}.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snapshot-arch")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snapshot-arch")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snapshot-arch", "1.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snapshot-arch/versions/1.0.0-SNAPSHOT")
+                .then().statusCode(not(400));
+    }
+
+    @Test
+    void reject_a_lowercase_snapshot_suffix() {
+        given().header("Content-Type", "application/json").body("{}").when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0-snapshot")
+                .then().statusCode(400);
+    }
 }

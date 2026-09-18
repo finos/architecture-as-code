@@ -102,7 +102,7 @@ public class StandardResource {
     public Response getStandardForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("standardId") Integer standardId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version
     ) {
         try {
             return Response.ok(standardStore.getStandardForVersion(namespace, standardId, version)).build();
@@ -126,7 +126,7 @@ public class StandardResource {
     public Response createStandardForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("standardId") Integer standardId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             CreateStandardRequest createStandardRequest
     ) throws URISyntaxException {
 

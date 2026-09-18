@@ -31,7 +31,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -265,7 +265,7 @@ public class TestInterfaceResourceShould {
                 .get("/api/calm/namespaces/finos/interfaces/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetInterfaceTests() {
@@ -339,7 +339,7 @@ public class TestInterfaceResourceShould {
                 .post("/api/calm/namespaces/finos/interfaces/5/versions/invalid-version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateInterfaceTests() {

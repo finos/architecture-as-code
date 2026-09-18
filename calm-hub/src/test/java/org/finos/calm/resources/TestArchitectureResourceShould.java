@@ -32,7 +32,7 @@ import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -311,7 +311,7 @@ public class TestArchitectureResourceShould {
                 .get("/api/calm/namespaces/finos/architectures/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     private void verifyExpectedGetArchitecture(String namespace) throws ArchitectureNotFoundException, NamespaceNotFoundException, ArchitectureVersionNotFoundException {
@@ -382,7 +382,7 @@ public class TestArchitectureResourceShould {
                 .post("/api/calm/namespaces/finos/architectures/20/versions/1.0.invalid1")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateArchitectureTests() {
