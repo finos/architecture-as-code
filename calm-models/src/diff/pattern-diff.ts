@@ -135,6 +135,11 @@ interface PatternPartition {
     undiffable: unknown[];
 }
 
+
+function declarationsFor(pattern: SchemaObject, key: string): SchemaObject[] {
+    return [...getPrefixItems(pattern, key), ...getCatalogue(pattern, key)];
+}
+
 /**
  * Collapses each (already alternative-expanded) prefix item and sorts it into:
  * `pinned` (has a `const` `unique-id` → diff by id), `content` (no pinned id but
@@ -142,10 +147,6 @@ interface PatternPartition {
  * node/relationship but pins nothing comparable). Unconstrained decision/options
  * constructs that don't declare a `unique-id` are skipped entirely.
  */
-function declarationsFor(pattern: SchemaObject, key: string): SchemaObject[] {
-    return [...getPrefixItems(pattern, key), ...getCatalogue(pattern, key)];
-}
-
 function partitionDeclarations(declarations: SchemaObject[]): PatternPartition {
     const pinned: Record<string, unknown>[] = [];
     const content: Record<string, unknown>[] = [];
