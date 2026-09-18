@@ -136,7 +136,8 @@ function resolveLabel(wrapperAttrs: Record<string, string>): string {
 
 async function extractMxGraphModel(svgContent: string): Promise<string | null> {
     // Method 1: content attribute on root SVG (most common in modern draw.io)
-    const contentMatch = svgContent.match(/<svg\s[^>]*?\bcontent="([^"]*)"/);;
+    const contentMatch = svgContent.match(/<svg\s[^>]*?\bcontent="([^"]*)"/);
+
     if (contentMatch) {
         const decoded = decodeDrawioContent(contentMatch[1]!);
         const mxModel = extractMxGraphModelFromDecoded(decoded);
