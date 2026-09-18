@@ -16,6 +16,7 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.finos.calm.security.CalmHubPermissionChecker;
@@ -26,6 +27,7 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -1565,5 +1567,154 @@ public class TestMappingControllerResourceShould {
         given().header("Content-Type", "application/json").body("{}").when()
                 .post("/calm/namespaces/finos/architectures/test/versions/1.0.0-snapshot")
                 .then().statusCode(400);
+    }
+
+    // --- Promotion: publishing a release deletes its snapshot ---
+
+    private static final int PROMOTION_ARCHITECTURE_ID = 60;
+
+    /** Sets up an existing architecture mapping whose only known version is {@code version}. */
+    private void givenAnExistingArchitecture(String name, String version) throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId(name)
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(PROMOTION_ARCHITECTURE_ID).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, name)).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of(version));
+    }
+
+    private static String architectureBody(String name, String version) {
+        return versionedDoc("finos", "architectures", name, version);
+    }
+
+    @Test
+    void delete_the_snapshot_when_its_release_version_is_published() throws Exception {
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void publish_a_release_normally_when_there_was_never_a_snapshot() throws Exception {
+        // A release POST for a resource with no snapshot must be exactly the operation it was
+        // before this feature, so no client needs promotion-specific code.
+        givenAnExistingArchitecture("test", "1.0.0");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.1.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.1.0")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore, never()).deleteArchitectureVersion(any(), anyInt(), any());
+    }
+
+    @Test
+    void still_publish_the_release_when_deleting_the_snapshot_fails() throws Exception {
+        // Promotion is not atomic. The release is what the user asked for; a stranded
+        // snapshot is recoverable, a lost release is not.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+        doThrow(new RuntimeException("mongo down"))
+                .when(mockArchitectureStore).deleteArchitectureVersion(any(), anyInt(), any());
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void write_the_release_before_deleting_its_snapshot() throws Exception {
+        // Promotion is deliberately not atomic, and the order is load-bearing: reversing it
+        // would delete the snapshot before knowing the release write succeeds.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+
+        InOrder order = inOrder(mockArchitectureStore);
+        order.verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+        order.verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_pattern_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-pattern")
+                .setResourceType(ResourceType.PATTERN).setNumericId(61).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "promo-pattern")).thenReturn(existing);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "promo-pattern", "1.0.0")).when()
+                .post("/calm/namespaces/finos/patterns/promo-pattern/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockPatternStore).deletePatternVersion("finos", 61, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_flow_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-flow")
+                .setResourceType(ResourceType.FLOW).setNumericId(62).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "promo-flow")).thenReturn(existing);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "flows", "promo-flow", "1.0.0")).when()
+                .post("/calm/namespaces/finos/flows/promo-flow/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockFlowStore).deleteFlowVersion("finos", 62, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_standard_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-standard")
+                .setResourceType(ResourceType.STANDARD).setNumericId(63).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "promo-standard")).thenReturn(existing);
+        when(mockStandardStore.getStandardVersions("finos", 63)).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "standards", "promo-standard", "1.0.0")).when()
+                .post("/calm/namespaces/finos/standards/promo-standard/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockStandardStore).deleteStandardVersion("finos", 63, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_an_interface_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-interface")
+                .setResourceType(ResourceType.INTERFACE).setNumericId(64).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "promo-interface")).thenReturn(existing);
+        when(mockInterfaceStore.getInterfaceVersions("finos", 64)).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "interfaces", "promo-interface", "1.0.0")).when()
+                .post("/calm/namespaces/finos/interfaces/promo-interface/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockInterfaceStore).deleteInterfaceVersion("finos", 64, "1.0.0-SNAPSHOT");
     }
 }

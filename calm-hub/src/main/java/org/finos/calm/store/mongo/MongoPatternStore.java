@@ -160,4 +160,14 @@ public class MongoPatternStore implements PatternStore {
             throw new PatternNotFoundException();
         }
     }
+
+    @Override
+    public boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, patternId, version);
+    }
 }

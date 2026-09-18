@@ -187,4 +187,14 @@ public class NitriteInterfaceStore implements InterfaceStore {
         }
         LOG.info("Deleted interface with ID {} from namespace '{}'", interfaceId, namespace);
     }
+
+    @Override
+    public boolean deleteInterfaceVersion(String namespace, int interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, interfaceId)) {
+            throw new InterfaceNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, interfaceId, version);
+    }
 }

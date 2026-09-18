@@ -195,4 +195,14 @@ public class NitritePatternStore implements PatternStore {
         }
         LOG.info("Deleted pattern with ID {} from namespace '{}'", patternId, namespace);
     }
+
+    @Override
+    public boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, patternId, version);
+    }
 }

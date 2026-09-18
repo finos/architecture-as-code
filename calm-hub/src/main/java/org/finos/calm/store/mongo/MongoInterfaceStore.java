@@ -158,4 +158,14 @@ public class MongoInterfaceStore implements InterfaceStore {
             throw new InterfaceNotFoundException();
         }
     }
+
+    @Override
+    public boolean deleteInterfaceVersion(String namespace, int interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, interfaceId)) {
+            throw new InterfaceNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, interfaceId, version);
+    }
 }

@@ -42,4 +42,13 @@ public interface PatternStore {
      * Deletes a pattern and all of its versions.
      */
     void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException;
+
+    /**
+     * Removes one version, leaving the resource and its other versions in place. Used by
+     * promotion to delete a snapshot once its release version is published.
+     *
+     * @return {@code true} if a version was removed.
+     */
+    boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException;
 }

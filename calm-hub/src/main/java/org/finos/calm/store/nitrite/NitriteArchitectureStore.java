@@ -205,4 +205,14 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         }
         LOG.info("Deleted architecture with ID {} from namespace '{}'", architectureId, namespace);
     }
+
+    @Override
+    public boolean deleteArchitectureVersion(String namespace, int architectureId, String version)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, architectureId, version);
+    }
 }

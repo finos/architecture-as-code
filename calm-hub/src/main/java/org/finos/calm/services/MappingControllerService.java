@@ -520,6 +520,10 @@ public class MappingControllerService {
             createVersionedResourceInStore(mapping.getResourceType(), namespace,
                     mapping.getNumericId(), newVersion, json, title, description);
 
+            if (!snapshot) {
+                deleteSnapshotForVersion(mapping, newVersion, versions);
+            }
+
             URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name + "/versions/" + newVersion);
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
@@ -679,6 +683,50 @@ public class MappingControllerService {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.updateInterfaceForVersion(req, namespace, numericId, version);
             }
+        }
+    }
+
+    /**
+     * Removes the snapshot belonging to a version that has just been published.
+     *
+     * <p>{@code versions} is the list already fetched at the top of {@code addNewVersion},
+     * <em>before</em> this release was written — checking it first avoids a pointless store
+     * round trip when the resource never had a snapshot, which is the common case.</p>
+     *
+     * <p>Deliberately after the release write, and deliberately not rolled back. The two are
+     * separate store operations with no transaction across them, so one of them has to go
+     * first. If this fails, the release is correct and an orphan snapshot shadows it — a
+     * state the creation rule otherwise forbids, recoverable by deleting the snapshot. If the
+     * order were reversed, a failed release write would have already destroyed the user's
+     * work in progress.</p>
+     */
+    private void deleteSnapshotForVersion(ResourceMapping mapping, String releaseVersion, List<String> versions) {
+        String snapshotVersion = ResourceVersion.asSnapshot(releaseVersion);
+        if (!versions.contains(snapshotVersion)) {
+            return;
+        }
+        try {
+            deleteVersionForMapping(mapping, snapshotVersion);
+        } catch (Exception e) {
+            logger.error("Published version [{}] of [{}] in namespace [{}] but failed to delete its "
+                            + "snapshot [{}] — the snapshot now shadows a published version and should "
+                            + "be removed manually",
+                    STRICT_SANITIZATION_POLICY.sanitize(releaseVersion),
+                    STRICT_SANITIZATION_POLICY.sanitize(mapping.getCustomId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(mapping.getNamespace()),
+                    STRICT_SANITIZATION_POLICY.sanitize(snapshotVersion), e);
+        }
+    }
+
+    private void deleteVersionForMapping(ResourceMapping mapping, String version) throws Exception {
+        String namespace = mapping.getNamespace();
+        int id = mapping.getNumericId();
+        switch (mapping.getResourceType()) {
+            case PATTERN -> patternStore.deletePatternVersion(namespace, id, version);
+            case ARCHITECTURE -> architectureStore.deleteArchitectureVersion(namespace, id, version);
+            case FLOW -> flowStore.deleteFlowVersion(namespace, id, version);
+            case STANDARD -> standardStore.deleteStandardVersion(namespace, id, version);
+            case INTERFACE -> interfaceStore.deleteInterfaceVersion(namespace, id, version);
         }
     }
 

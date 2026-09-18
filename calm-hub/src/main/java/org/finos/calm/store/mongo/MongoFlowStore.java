@@ -151,4 +151,14 @@ public class MongoFlowStore implements FlowStore {
             throw new FlowNotFoundException();
         }
     }
+
+    @Override
+    public boolean deleteFlowVersion(String namespace, int flowId, String version)
+            throws NamespaceNotFoundException, FlowNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, flowId)) {
+            throw new FlowNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, flowId, version);
+    }
 }

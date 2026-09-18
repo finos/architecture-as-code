@@ -164,4 +164,14 @@ public class MongoArchitectureStore implements ArchitectureStore {
             throw new ArchitectureNotFoundException();
         }
     }
+
+    @Override
+    public boolean deleteArchitectureVersion(String namespace, int architectureId, String version)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, architectureId, version);
+    }
 }

@@ -154,4 +154,14 @@ public class MongoStandardStore implements StandardStore {
             throw new StandardNotFoundException();
         }
     }
+
+    @Override
+    public boolean deleteStandardVersion(String namespace, int standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, standardId, version);
+    }
 }

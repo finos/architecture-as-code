@@ -177,4 +177,14 @@ public class NitriteFlowStore implements FlowStore {
         }
         LOG.info("Deleted flow with ID {} from namespace '{}'", flowId, namespace);
     }
+
+    @Override
+    public boolean deleteFlowVersion(String namespace, int flowId, String version)
+            throws NamespaceNotFoundException, FlowNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, flowId)) {
+            throw new FlowNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, flowId, version);
+    }
 }

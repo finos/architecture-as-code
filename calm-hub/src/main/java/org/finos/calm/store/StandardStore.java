@@ -30,4 +30,13 @@ public interface StandardStore {
      * Deletes a standard and all of its versions.
      */
     void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException;
+
+    /**
+     * Removes one version, leaving the resource and its other versions in place. Used by
+     * promotion to delete a snapshot once its release version is published.
+     *
+     * @return {@code true} if a version was removed.
+     */
+    boolean deleteStandardVersion(String namespace, int standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException;
 }
