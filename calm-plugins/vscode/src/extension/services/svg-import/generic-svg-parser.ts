@@ -14,8 +14,8 @@ export function parseGenericSvg(svgContent: string): ParsedSvgGraph {
     const nodes: SvgNode[] = [];
     const edges: SvgEdge[] = [];
 
-    const svgTranslate = parseTranslate(String(svg.properties.transform ?? ''));
-    extractNodesFromElement(svg, nodes, svgTranslate);
+    const svgTransform = parseTransform(String(svg.properties.transform ?? ''));
+    extractNodesFromElement(svg, nodes, svgTransform);
     extractEdgesFromElement(svg, nodes, edges);
     detectContainment(nodes);
 
@@ -32,10 +32,37 @@ function findElement(children: HastNode[], tagName: string): ElementNode | null 
     return null;
 }
 
+interface Transform2D {
+    tx: number;
+    ty: number;
+    sx: number;
+    sy: number;
+}
+
+const IDENTITY_TRANSFORM: Transform2D = { tx: 0, ty: 0, sx: 1, sy: 1 };
+
+function composeTransforms(outer: Transform2D, inner: Transform2D): Transform2D {
+    return {
+        sx: outer.sx * inner.sx,
+        sy: outer.sy * inner.sy,
+        tx: outer.sx * inner.tx + outer.tx,
+        ty: outer.sy * inner.ty + outer.ty,
+    };
+}
+
+function applyTransformToGeometry(geo: SvgNodeGeometry, accTransform: Transform2D, localTransform: Transform2D): void {
+    const localX = localTransform.sx * geo.x + localTransform.tx;
+    const localY = localTransform.sy * geo.y + localTransform.ty;
+    geo.x = accTransform.sx * localX + accTransform.tx;
+    geo.y = accTransform.sy * localY + accTransform.ty;
+    geo.width = Math.abs(accTransform.sx * localTransform.sx) * geo.width;
+    geo.height = Math.abs(accTransform.sy * localTransform.sy) * geo.height;
+}
+
 function extractNodesFromElement(
     element: ElementNode,
     nodes: SvgNode[],
-    accTransform: { tx: number; ty: number } = { tx: 0, ty: 0 }
+    accTransform: Transform2D = IDENTITY_TRANSFORM
 ): void {
     const children = element.children;
 
@@ -43,11 +70,8 @@ function extractNodesFromElement(
         if (child.type !== 'element') continue;
 
         if (child.tagName === 'g') {
-            const groupTranslate = parseTranslate(String(child.properties.transform ?? ''));
-            const childTransform = {
-                tx: accTransform.tx + groupTranslate.tx,
-                ty: accTransform.ty + groupTranslate.ty,
-            };
+            const groupTransform = parseTransform(String(child.properties.transform ?? ''));
+            const childTransform = composeTransforms(accTransform, groupTransform);
             const node = tryExtractNodeFromGroup(child, nodes.length, childTransform);
             if (node) {
                 nodes.push(node);
@@ -65,9 +89,8 @@ function extractNodesFromElement(
             const geo = getShapeGeometry(tag, child.properties);
             if (!geo || geo.width < MIN_SHAPE_SIZE || geo.height < MIN_SHAPE_SIZE) continue;
 
-            const elTranslate = parseTranslate(String(child.properties.transform ?? ''));
-            geo.x += accTransform.tx + elTranslate.tx;
-            geo.y += accTransform.ty + elTranslate.ty;
+            const elTransform = parseTransform(String(child.properties.transform ?? ''));
+            applyTransformToGeometry(geo, accTransform, elTransform);
 
             if (overlapsExisting(geo, capturedBounds)) continue;
 
@@ -88,13 +111,13 @@ function extractNodesFromElement(
 function tryExtractNodeFromGroup(
     g: ElementNode,
     index: number,
-    accTransform: { tx: number; ty: number }
+    accTransform: Transform2D
 ): SvgNode | null {
     let shapeGeo: SvgNodeGeometry | null = null;
     let shapeHint: ShapeHint = 'unknown';
     let label = '';
 
-    let shapeTransform = { tx: 0, ty: 0 };
+    let shapeTransform: Transform2D = IDENTITY_TRANSFORM;
 
     for (const child of g.children) {
         if (child.type !== 'element') continue;
@@ -103,7 +126,7 @@ function tryExtractNodeFromGroup(
         if ((tag === 'rect' || tag === 'ellipse' || tag === 'circle') && !shapeGeo) {
             shapeGeo = getShapeGeometry(tag, child.properties);
             shapeHint = classifyTag(tag, child.properties);
-            shapeTransform = parseTranslate(String(child.properties.transform ?? ''));
+            shapeTransform = parseTransform(String(child.properties.transform ?? ''));
         }
 
         if (tag === 'text' && !label) {
@@ -115,8 +138,7 @@ function tryExtractNodeFromGroup(
         return null;
     }
 
-    shapeGeo.x += accTransform.tx + shapeTransform.tx;
-    shapeGeo.y += accTransform.ty + shapeTransform.ty;
+    applyTransformToGeometry(shapeGeo, accTransform, shapeTransform);
 
     const id = String(g.properties.id ?? `node-${index}`);
     return { id, label, shapeHint, geometry: shapeGeo, styleProps: {} };
@@ -243,15 +265,44 @@ function isFullyContained(inner: SvgNodeGeometry, outer: SvgNodeGeometry): boole
     );
 }
 
-function parseTranslate(transform: string | undefined): { tx: number; ty: number } {
-    if (!transform) return { tx: 0, ty: 0 };
-    const match = transform.match(/translate\(\s*([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
-    if (match) return { tx: parseFloat(match[1]!), ty: parseFloat(match[2]!) };
-    const single = transform.match(/translate\(\s*([-\d.]+)\s*\)/);
-    if (single) return { tx: parseFloat(single[1]!), ty: 0 };
-    const matrix = transform.match(/matrix\(\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
-    if (matrix) return { tx: parseFloat(matrix[5]!), ty: parseFloat(matrix[6]!) };
-    return { tx: 0, ty: 0 };
+function parseTransform(transform: string | undefined): Transform2D {
+    if (!transform) return IDENTITY_TRANSFORM;
+
+    let tx = 0, ty = 0, sx = 1, sy = 1;
+
+    const scaleMatch = transform.match(/scale\(\s*([-\d.]+)(?:[\s,]+([-\d.]+))?\s*\)/);
+    if (scaleMatch) {
+        sx = parseFloat(scaleMatch[1]!);
+        sy = scaleMatch[2] ? parseFloat(scaleMatch[2]) : sx;
+    }
+
+    const translateMatch = transform.match(/translate\(\s*([-\d.]+)(?:[\s,]+([-\d.]+))?\s*\)/);
+    if (translateMatch) {
+        tx = parseFloat(translateMatch[1]!);
+        ty = translateMatch[2] ? parseFloat(translateMatch[2]) : 0;
+    }
+
+    const matrixMatch = transform.match(/matrix\(\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
+    if (matrixMatch) {
+        const a = parseFloat(matrixMatch[1]!);
+        const b = parseFloat(matrixMatch[2]!);
+        const c = parseFloat(matrixMatch[3]!);
+        const d = parseFloat(matrixMatch[4]!);
+        tx = parseFloat(matrixMatch[5]!);
+        ty = parseFloat(matrixMatch[6]!);
+        // Extract scale from axis-aligned matrices (b ≈ 0, c ≈ 0)
+        if (Math.abs(b) < 0.001 && Math.abs(c) < 0.001) {
+            sx = a;
+            sy = d;
+        } else {
+            sx = Math.sqrt(a * a + b * b);
+            sy = Math.sqrt(c * c + d * d);
+        }
+    }
+
+    if (!scaleMatch && !translateMatch && !matrixMatch) return IDENTITY_TRANSFORM;
+
+    return { tx, ty, sx, sy };
 }
 
 function getShapeGeometry(tag: string, props: Record<string, string | number>): SvgNodeGeometry | null {
@@ -316,6 +367,10 @@ function extractTextContent(textEl: ElementNode): string {
 function findNearbyTextInElement(element: ElementNode, geo: SvgNodeGeometry): string | null {
     const cx = geo.x + geo.width / 2;
     const cy = geo.y + geo.height / 2;
+    const threshold = Math.max(geo.width, geo.height);
+
+    let bestLabel: string | null = null;
+    let bestDist = threshold;
 
     for (const child of element.children) {
         if (child.type !== 'element' || child.tagName !== 'text') continue;
@@ -323,11 +378,12 @@ function findNearbyTextInElement(element: ElementNode, geo: SvgNodeGeometry): st
         const tx = parseFloat(String(props.x ?? '0'));
         const ty = parseFloat(String(props.y ?? '0'));
         const dist = Math.sqrt((tx - cx) ** 2 + (ty - cy) ** 2);
-        if (dist < Math.max(geo.width, geo.height)) {
-            return extractTextContent(child);
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestLabel = extractTextContent(child);
         }
     }
-    return null;
+    return bestLabel;
 }
 
 function overlapsExisting(geo: SvgNodeGeometry, existing: SvgNodeGeometry[]): boolean {

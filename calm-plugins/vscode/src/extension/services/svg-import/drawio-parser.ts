@@ -136,7 +136,7 @@ function resolveLabel(wrapperAttrs: Record<string, string>): string {
 
 async function extractMxGraphModel(svgContent: string): Promise<string | null> {
     // Method 1: content attribute on root SVG (most common in modern draw.io)
-    const contentMatch = svgContent.match(/\bcontent="([^"]*)"/);
+    const contentMatch = svgContent.match(/<svg\s[^>]*?\bcontent="([^"]*)"/);;
     if (contentMatch) {
         const decoded = decodeDrawioContent(contentMatch[1]!);
         const mxModel = extractMxGraphModelFromDecoded(decoded);
@@ -177,7 +177,13 @@ function decodeDrawioContent(content: string): string {
     try {
         const urlDecoded = decodeURIComponent(content);
         if (urlDecoded !== content) return urlDecoded;
-    } catch { /* not URL-encoded */ }
+    } catch {
+        // Malformed percent-encoding — decode only valid %XX escapes
+        const lenient = content.replace(/%([0-9A-Fa-f]{2})/g, (_, hex: string) =>
+            String.fromCharCode(parseInt(hex, 16))
+        );
+        if (lenient !== content) return lenient;
+    }
 
     // HTML entity decoding (modern draw.io / Confluence exports use &lt; &gt; &quot; &amp;)
     if (content.includes('&lt;') || content.includes('&amp;')) {
@@ -200,6 +206,7 @@ function decodeHtmlEntities(text: string): string {
 }
 
 const MAX_COMPRESSED_INPUT_BYTES = 5 * 1024 * 1024;
+const MAX_DECOMPRESSED_OUTPUT_BYTES = 20 * 1024 * 1024;
 
 async function tryDecompress(content: string): Promise<string | null> {
     try {
@@ -211,7 +218,7 @@ async function tryDecompress(content: string): Promise<string | null> {
         const buffer = Buffer.from(data, 'base64');
         if (buffer.length === 0) return null;
 
-        const inflated = await inflateRawAsync(buffer);
+        const inflated = await inflateRawAsync(buffer, { maxOutputLength: MAX_DECOMPRESSED_OUTPUT_BYTES });
         const result = inflated.toString('utf-8');
 
         try {

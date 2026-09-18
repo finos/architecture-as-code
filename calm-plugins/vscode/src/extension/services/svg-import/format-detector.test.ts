@@ -29,4 +29,19 @@ describe('detectSvgFormat', () => {
 </svg>`;
         expect(detectSvgFormat(svg)).toBe('generic');
     });
+
+    it('returns generic when mxGraphModel appears only in a text label', () => {
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg"><text>Uses mxGraphModel format</text></svg>';
+        expect(detectSvgFormat(svg)).toBe('generic');
+    });
+
+    it('detects draw.io when mxGraphModel is a proper XML tag', () => {
+        const svg = '<svg><foreignObject><mxGraphModel><root></root></mxGraphModel></foreignObject></svg>';
+        expect(detectSvgFormat(svg)).toBe('drawio');
+    });
+
+    it('detects draw.io from percent-encoded mxGraphModel in content attribute', () => {
+        const svg = '<svg content="%3CmxGraphModel%3E%3Croot%3E%3C/root%3E%3C/mxGraphModel%3E"></svg>';
+        expect(detectSvgFormat(svg)).toBe('drawio');
+    });
 });

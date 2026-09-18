@@ -135,9 +135,14 @@ export class SvgImportService {
             const format = detectSvgFormat(content);
             this.log.appendLine(`[SvgImport] Detected format: ${format}`);
 
-            const graph = format === 'drawio'
+            let graph = format === 'drawio'
                 ? await parseDrawioSvg(content)
                 : parseGenericSvg(content);
+
+            if (format === 'drawio' && graph.nodes.length === 0) {
+                this.log.appendLine('[SvgImport] Draw.io parse yielded 0 nodes, falling back to generic parser');
+                graph = parseGenericSvg(content);
+            }
 
             this.log.appendLine(
                 `[SvgImport] Parsed: ${graph.nodes.length} nodes, ${graph.edges.length} edges`
