@@ -162,6 +162,18 @@ async function pushNarrativeEntry(
             }
 
             const documentIdsBeforeCreate = await client.getNarrativeDocumentIds(identity.namespace, identity.type);
+            manifest[id] = {
+                path: entry.path,
+                type: entry.type,
+                ...(entry.namespace === undefined ? {} : { namespace: entry.namespace }),
+                version,
+                createRecovery: {
+                    documentIdsBeforeCreate,
+                    documentMarkdownSha256: sha256(narrative.request.documentMarkdown),
+                },
+            };
+            // Persist recovery before POST because a transport failure can hide a successful create.
+            await saveManifest(bundlePath, manifest);
             const location = await client.createNarrativeDocument(identity.namespace, identity.type, narrative.request);
 
             let documentId: number | undefined;
@@ -179,18 +191,6 @@ async function pushNarrativeEntry(
                 logger.info(`Pushed '${id}' version ${version} -> ${location}`);
                 return;
             }
-
-            manifest[id] = {
-                path: entry.path,
-                type: entry.type,
-                ...(entry.namespace === undefined ? {} : { namespace: entry.namespace }),
-                version,
-                createRecovery: {
-                    documentIdsBeforeCreate,
-                    documentMarkdownSha256: sha256(narrative.request.documentMarkdown),
-                },
-            };
-            await saveManifest(bundlePath, manifest);
 
             const recovered = await recoverCreatedNarrativeDocument(
                 client, identity, documentIdsBeforeCreate, narrative.request.documentMarkdown
