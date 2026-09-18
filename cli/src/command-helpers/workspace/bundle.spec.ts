@@ -251,6 +251,7 @@ describe('bundle', () => {
 
     describe('addFileToBundle', () => {
         const srcFile = path.join(testDir, 'source.json');
+        const referencedSrcPath = path.relative(bundlePath, srcFile).split(path.sep).join('/');
 
         beforeEach(async () => {
             await writeFile(srcFile, JSON.stringify({ '$id': 'source-doc', data: 'test' }));
@@ -304,7 +305,7 @@ describe('bundle', () => {
             });
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
-                path: srcFile, type: 'sad', namespace: 'finos', version: '1.0.0',
+                path: referencedSrcPath, type: 'sad', namespace: 'finos', version: '1.0.0',
             });
         });
 
@@ -352,7 +353,7 @@ describe('bundle', () => {
             });
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
-                path: srcFile, type: 'sad', namespace: 'finos', version: '1.0.0',
+                path: referencedSrcPath, type: 'sad', namespace: 'finos', version: '1.0.0',
                 calmHubDocumentId: 3,
                 calmHubId: '/api/calm/namespaces/finos/documents/sad/3/versions/1.0.0',
             });
@@ -393,14 +394,14 @@ describe('bundle', () => {
             });
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
-                path: srcFile, type: 'sad', namespace: 'finos', version: '2.3.0',
+                path: referencedSrcPath, type: 'sad', namespace: 'finos', version: '2.3.0',
                 calmHubDocumentId: 42,
                 calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
             });
         });
 
         it.each([
-            [false, srcFile],
+            [false, referencedSrcPath],
             [true, 'files/source.json'],
         ])('preserves a published narrative Hub identity when changing its stored path (copy: %s)', async (copy, expectedPath) => {
             await saveManifest(bundlePath, {
@@ -437,7 +438,7 @@ describe('bundle', () => {
             });
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
-                path: srcFile, type: 'sad', namespace: 'finos', version: '2.3.0',
+                path: referencedSrcPath, type: 'sad', namespace: 'finos', version: '2.3.0',
                 calmHubDocumentId: 42,
                 calmHubId: '/api/calm/namespaces/finos/documents/sad/42/versions/2.3.0',
             });
@@ -525,7 +526,7 @@ describe('bundle', () => {
             });
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual({
-                path: srcFile, type: 'pattern', namespace: 'other',
+                path: referencedSrcPath, type: 'pattern', namespace: 'other',
             });
         });
 
