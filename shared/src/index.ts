@@ -70,6 +70,10 @@ export { DocumentLoader, DocumentLoaderOptions, DocumentLoadError, assertJsonObj
 export { buildDocumentLoader } from './document-loader/node-document-loader.js';
 export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader.js';
 export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader.js';
+export {
+    classifyWorkspaceDocumentType,
+    type WorkspaceDocumentKind,
+} from './document-loader/workspace-document-kind.js';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,

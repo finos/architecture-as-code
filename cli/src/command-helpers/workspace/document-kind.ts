@@ -1,9 +1,11 @@
 import {
-    isNarrativeDocumentType,
-    isValidCalmDocumentType,
     type CalmDocumentType,
     type NarrativeDocumentType,
 } from '@finos/calm-models/types';
+import {
+    classifyWorkspaceDocumentType,
+    type WorkspaceDocumentKind,
+} from '@finos/calm-shared';
 import type {
     MappingWorkspaceManifestEntry,
     NarrativeWorkspaceManifestEntry,
@@ -24,11 +26,15 @@ export const WORKSPACE_DOCUMENT_HANDLERS = {
         unreadableFile: 'fail',
         supportsJsonReferences: false,
     },
-} as const;
+} as const satisfies Record<WorkspaceDocumentKind, {
+    kind: WorkspaceDocumentKind;
+    format: 'json' | 'markdown';
+    unreadableFile: 'warn' | 'fail';
+    supportsJsonReferences: boolean;
+}>;
 
 export type WorkspaceDocumentHandler =
     typeof WORKSPACE_DOCUMENT_HANDLERS[keyof typeof WORKSPACE_DOCUMENT_HANDLERS];
-export type WorkspaceDocumentKind = keyof typeof WORKSPACE_DOCUMENT_HANDLERS;
 
 export type ResolvedWorkspaceDocumentType =
     | { kind: 'mapping'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.mapping; type: CalmDocumentType | 'unknown' }
@@ -54,14 +60,16 @@ export type WorkspaceManifestEntryOperations<TResult, TArgs extends unknown[] = 
 
 /** Resolve only explicitly supported workspace types plus the legacy literal `unknown`. */
 export function resolveWorkspaceDocumentType(type: unknown): ResolvedWorkspaceDocumentType | undefined {
-    if (typeof type !== 'string') return undefined;
-    if (isValidCalmDocumentType(type) || type === 'unknown') {
-        return { kind: 'mapping', handler: WORKSPACE_DOCUMENT_HANDLERS.mapping, type };
+    const document = classifyWorkspaceDocumentType(type);
+    if (document === undefined) return undefined;
+    switch (document.kind) {
+    case 'mapping':
+        return { ...document, handler: WORKSPACE_DOCUMENT_HANDLERS.mapping };
+    case 'narrative':
+        return { ...document, handler: WORKSPACE_DOCUMENT_HANDLERS.narrative };
+    default:
+        return assertNever(document);
     }
-    if (isNarrativeDocumentType(type)) {
-        return { kind: 'narrative', handler: WORKSPACE_DOCUMENT_HANDLERS.narrative, type };
-    }
-    return undefined;
 }
 
 export function isNarrativeWorkspaceManifestEntry(

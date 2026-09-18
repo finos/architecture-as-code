@@ -25,19 +25,19 @@ const BUNDLE = '/ws';
 const PATTERN_ID = 'https://hub.example.com/calm/namespaces/ws/patterns/workshop/versions/1.0.0';
 const patternDoc = { '$id': PATTERN_ID, title: 'Workshop Pattern' };
 // A document whose $id is a host-less CalmHub path, so a full URL can match it by path.
-const STANDARD_ID = '/calm/namespaces/ws/standards/security/versions/1.0.0';
-const standardDoc = { '$id': STANDARD_ID, title: 'Security Standard' };
+const SCHEMA_ID = '/calm/namespaces/ws/schemas/security/versions/1.0.0';
+const schemaDoc = { '$id': SCHEMA_ID, title: 'Security Schema' };
 const noIdDoc = { title: 'No Id Document' };
 
 function setupBundle(extra: Record<string, string> = {}) {
     vol.fromJSON({
         '/ws/workspace-manifest.json': JSON.stringify({
             'workshop-pattern': { path: 'files/workshop-pattern.json', type: 'pattern' },
-            'security-standard': { path: 'files/security-standard.json', type: 'standard' },
+            'security-schema': { path: 'files/security-schema.json', type: 'schema' },
             'no-id-doc': { path: 'files/no-id.json', type: 'architecture' },
         }),
         '/ws/files/workshop-pattern.json': JSON.stringify(patternDoc),
-        '/ws/files/security-standard.json': JSON.stringify(standardDoc),
+        '/ws/files/security-schema.json': JSON.stringify(schemaDoc),
         '/ws/files/no-id.json': JSON.stringify(noIdDoc),
         ...extra,
     });
@@ -76,7 +76,7 @@ describe('WorkspaceDocumentLoader', () => {
             // A host-less $id should not match a ref from an arbitrary host — the ref may
             // point to a completely different service on the same CalmHub path.
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            const url = 'https://any-host.example.com/calm/namespaces/ws/standards/security/versions/3.0.0';
+            const url = 'https://any-host.example.com/calm/namespaces/ws/schemas/security/versions/3.0.0';
             expect(loader.resolvePath(url)).toBeUndefined();
         });
 
@@ -96,8 +96,8 @@ describe('WorkspaceDocumentLoader', () => {
         it('resolves an unversioned path ref that equals the $id base path', () => {
             // A $ref with no /versions/<v> segment should still resolve locally.
             const loader = new WorkspaceDocumentLoader(BUNDLE);
-            const unversioned = '/calm/namespaces/ws/standards/security';
-            expect(loader.resolvePath(unversioned)).toBe('/ws/files/security-standard.json');
+            const unversioned = '/calm/namespaces/ws/schemas/security';
+            expect(loader.resolvePath(unversioned)).toBe('/ws/files/security-schema.json');
         });
 
         it('ignores a #/... fragment when matching', () => {
@@ -173,6 +173,21 @@ describe('WorkspaceDocumentLoader', () => {
 
             await loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
 
+            expect(mocks.schemaDirectory.storeDocument).not.toHaveBeenCalled();
+        });
+
+        it('ignores unsupported future document types', async () => {
+            setupBundle({
+                '/ws/workspace-manifest.json': JSON.stringify({
+                    future: { path: 'files/future.json', type: 'future-document-kind' },
+                }),
+                '/ws/files/future.json': JSON.stringify({ '$id': 'future' }),
+            });
+            const loader = new WorkspaceDocumentLoader(BUNDLE);
+
+            await loader.initialise(mocks.schemaDirectory as unknown as SchemaDirectory);
+
+            expect(loader.resolvePath('future')).toBeUndefined();
             expect(mocks.schemaDirectory.storeDocument).not.toHaveBeenCalled();
         });
     });

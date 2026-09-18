@@ -1,10 +1,15 @@
 import { DocumentLoader, DocumentLoadError } from './document-loader';
-import { isNarrativeDocumentType, type CalmDocumentType } from '@finos/calm-models/types';
+import type { CalmDocumentType } from '@finos/calm-models/types';
 import { initLogger, Logger } from '../logger';
 import { readFile } from 'fs/promises';
 import { existsSync, readFileSync } from 'fs';
 import { SchemaDirectory } from '../schema-directory';
 import path from 'path';
+import {
+    getWorkspaceDocumentLoadPolicy,
+    WORKSPACE_DOCUMENT_LOAD_POLICIES,
+    type WorkspaceDocumentLoadPolicy,
+} from './workspace-document-kind';
 
 // Mirrors MANIFEST_FILENAME in the CLI workspace bundle module.
 const MANIFEST_FILENAME = 'workspace-manifest.json';
@@ -79,18 +84,26 @@ export class WorkspaceDocumentLoader implements DocumentLoader {
         const rules: WorkspaceRule[] = [];
         for (const [bareId, value] of Object.entries(manifest)) {
             // Manifest entries are `{ path, type, ... }`; tolerate the legacy plain-string form too.
-            const type = value && typeof value === 'object'
-                ? (value as { type?: unknown }).type
-                : undefined;
-            // Narrative documents are Markdown rather than CALM JSON documents. They cannot be
-            // schema-preloaded or resolve a CALM `$ref`, so keep them out of this JSON-only loader.
-            if (isNarrativeDocumentType(type)) continue;
             const relPath = typeof value === 'string'
                 ? value
                 : (value && typeof value === 'object' && typeof (value as { path?: unknown }).path === 'string'
                     ? (value as { path: string }).path
                     : undefined);
             if (!relPath) continue;
+
+            const type = value && typeof value === 'object'
+                ? (value as { type?: unknown }).type
+                : undefined;
+            const loadPolicy = typeof value === 'string'
+                ? WORKSPACE_DOCUMENT_LOAD_POLICIES.mapping
+                : getWorkspaceDocumentLoadPolicy(type);
+            if (loadPolicy === undefined) {
+                this.logger.warn(`Ignoring '${bareId}' with unsupported workspace document type '${String(type)}'.`);
+                continue;
+            }
+            if (!usesJsonLoader(loadPolicy)) {
+                continue;
+            }
 
             const localPath = path.isAbsolute(relPath) ? relPath : path.resolve(this.bundlePath, relPath);
             const rule: WorkspaceRule = { bareId, localPath };
@@ -211,4 +224,19 @@ export class WorkspaceDocumentLoader implements DocumentLoader {
     resolvePath(reference: string): string | undefined {
         return this.resolveRule(reference);
     }
+}
+
+function usesJsonLoader(policy: WorkspaceDocumentLoadPolicy): boolean {
+    switch (policy) {
+    case 'json':
+        return true;
+    case 'non-json':
+        return false;
+    default:
+        return assertNever(policy);
+    }
+}
+
+function assertNever(value: never): never {
+    throw new Error(`Unsupported workspace document load policy '${String(value)}'.`);
 }

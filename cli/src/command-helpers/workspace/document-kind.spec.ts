@@ -7,6 +7,10 @@ import {
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
 import type { WorkspaceManifest, WorkspaceManifestEntry } from './bundle';
+import {
+    CALM_DOCUMENT_TYPES_LIST,
+    CALM_NARRATIVE_DOCUMENT_TYPES_LIST,
+} from '@finos/calm-models/types';
 
 describe('workspace document handlers', () => {
     it('resolves mapping and narrative entries through the central handler record', () => {
@@ -45,6 +49,14 @@ describe('workspace document handlers', () => {
 
     it('does not assign unsupported future types to the mapping strategy', () => {
         expect(resolveWorkspaceDocumentType('future-document-kind')).toBeUndefined();
+    });
+
+    it('keeps the handler table exhaustive for every classified document kind', () => {
+        const resolvedKinds = [...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST]
+            .map(type => resolveWorkspaceDocumentType(type)?.kind);
+
+        expect(new Set(resolvedKinds)).toEqual(new Set(Object.keys(WORKSPACE_DOCUMENT_HANDLERS)));
+        expect(resolvedKinds).not.toContain(undefined);
     });
 
     it('selects only handlers that support JSON reference processing', () => {
