@@ -1831,7 +1831,7 @@ public class TestMappingControllerResourceShould {
                 captor.getValue().getDotVersion(), is("1.0.0-SNAPSHOT"));
     }
 
-    // --- Audit: snapshot deletion on promotion is recorded as a DELETE ---
+    // --- Audit: promotion must not clobber the release write's own audit row ---
 
     /** The most recently recorded {@link AuditLogEntry} passed to {@code AuditService.record}. */
     private AuditLogEntry lastRecordedAuditEntry() {
@@ -1842,11 +1842,11 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
-    void record_the_snapshot_deletion_as_a_delete_when_promoting_a_release() throws Exception {
-        // Promotion deletes the snapshot as a side effect of publishing its release. That
-        // deletion must be audited as DELETE, carrying the snapshot's own version — not the
-        // release version that triggered it. This is the accepted-single-row behaviour: see
-        // the task report for why the release write itself is not separately recorded here.
+    void keep_the_releases_own_audit_row_when_promotion_deletes_a_snapshot() throws Exception {
+        // AuditRequestFilter records exactly one row per request. deleteSnapshotForVersion must
+        // NOT stage a DELETE for the snapshot it removes, or it would overwrite the release
+        // write's own row — leaving no record of the release itself. The release write is the
+        // durable event; the snapshot delete is cleanup of the same request.
         givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
 
         given()
@@ -1858,24 +1858,88 @@ public class TestMappingControllerResourceShould {
             .statusCode(201);
 
         AuditLogEntry entry = lastRecordedAuditEntry();
-        assertThat(entry.getAction(), is(AuditAction.DELETE));
-        assertThat(entry.getVersion(), is("1.0.0-SNAPSHOT"));
+        assertThat(entry.getAction(), is(not(AuditAction.DELETE)));
+        assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    // --- Snapshot scope: generic POST /calm accepts it for namespace resources, but domain
+    // --- controls (out of scope for this feature) must keep rejecting it.
+
+    @Test
+    void accept_a_snapshot_id_for_a_namespace_resource_via_generic_post() throws Exception {
+        // The $id-driven POST /calm is a separate validation path (CalmDocumentParser#parseCanonicalId)
+        // from the path-driven POST .../versions/{version} (which already accepted snapshots).
+        // The two must agree on what's a valid version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-generic"))
+                .thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("snap-generic"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("snap-generic")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(80).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(80).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-generic", "1.0.0-SNAPSHOT")).when()
+                .post("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
     }
 
     @Test
-    void not_record_a_delete_when_publishing_a_release_with_no_snapshot_to_remove() throws Exception {
-        // No snapshot existed, so deleteSnapshotForVersion never stages anything — the
-        // pre-existing path-based resolution (UPDATE for any POST to this path shape) applies.
-        givenAnExistingArchitecture("test", "1.0.0");
+    void record_a_snapshot_overwrite_via_generic_post_as_an_update_not_a_create() throws Exception {
+        // Now that the generic /calm endpoint can reach a snapshot at all (the fix above),
+        // this exercises the addNewVersion overwrite branch's AuditRequestFilter.restageAction
+        // call through the ONE endpoint that both accepts snapshots AND stages a context
+        // (createResourceFromDocument stages CREATE; the specific-version-path endpoint never
+        // stages anything at all, so it can't exercise this).
+        givenAnExistingArchitecture("test", "2.0.0-SNAPSHOT");
 
         given()
             .contentType("application/json")
-            .body(architectureBody("test", "1.1.0"))
+            .body(architectureBody("test", "2.0.0-SNAPSHOT"))
         .when()
-            .post("/calm/namespaces/finos/architectures/test/versions/1.1.0")
+            .post("/calm")
         .then()
-            .statusCode(201);
+            .statusCode(200);
 
         assertThat(lastRecordedAuditEntry().getAction(), is(AuditAction.UPDATE));
+    }
+
+    @Test
+    void still_reject_a_snapshot_id_for_a_control_requirement_via_generic_post() throws Exception {
+        // Domain controls are deliberately out of snapshot scope — validateVersion (a
+        // different check from parseCanonicalId's) must keep rejecting -SNAPSHOT here.
+        //
+        // The control is mocked as already EXISTING so that, if validateVersion's own gate
+        // were ever bypassed, the request would fall through to the "add a version to an
+        // existing control" success path (201) rather than coincidentally hitting the
+        // unrelated "a new control's first version must be 1.0.0" 400 — isolating this test
+        // to the version-format check it's meant to pin.
+        when(mockControlStore.getControlsForDomain("security"))
+                .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/requirement/versions/1.0.0-SNAPSHOT\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void still_reject_a_snapshot_id_for_a_control_configuration_via_generic_post() throws Exception {
+        // Same isolation rationale as the requirement test above: mock both the control and
+        // the configuration as already existing.
+        when(mockControlStore.getControlsForDomain("security"))
+                .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "my-cfg")));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/configurations/my-cfg/versions/1.0.0-SNAPSHOT\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(400);
     }
 }

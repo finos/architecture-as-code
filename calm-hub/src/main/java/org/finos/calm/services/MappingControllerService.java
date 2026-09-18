@@ -6,7 +6,6 @@ import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.audit.AuditAction;
-import org.finos.calm.domain.audit.AuditEntityType;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -720,13 +719,13 @@ public class MappingControllerService {
         if (!versions.contains(snapshotVersion)) {
             return;
         }
-        // Stages a DELETE for the snapshot being removed, carrying the snapshot's own version
-        // (not the release version that triggered it) — the only record that this destructive
-        // side effect happened. See the class-level note on AuditRequestFilter's single-row
-        // limitation: this replaces whatever action was staged for the release write itself.
-        AuditRequestFilter.stage(new AuditRequestFilter.AuditContext(
-                AuditEntityType.valueOf(mapping.getResourceType().name()), AuditAction.DELETE,
-                mapping.getNamespace(), null, mapping.getCustomId(), snapshotVersion));
+        // Deliberately does NOT stage a DELETE for this snapshot removal. AuditRequestFilter
+        // supports exactly one recorded row per request (a single ThreadLocal, read once at the
+        // end of the request) — staging here would overwrite, not add to, whatever was staged
+        // for the release write itself. The release write is the durable event an auditor asks
+        // about ("who published 1.0.0?"); the snapshot delete is cleanup of the same request. If
+        // a second row is ever wanted, the filter needs to support more than one context per
+        // request — do not re-add a stage() call here without that.
         try {
             deleteVersionForMapping(mapping, snapshotVersion);
         } catch (Exception e) {

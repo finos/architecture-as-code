@@ -208,7 +208,13 @@ public class CalmDocumentParser {
             throw new IllegalArgumentException(
                     "'versions' is a reserved path segment and cannot be used as a resource name");
         }
-        if (!version.matches(VERSION_REGEX)) {
+        // SNAPSHOT_VERSION_REGEX, not VERSION_REGEX: this is the $id-driven sibling of
+        // createResourceVersion's path-driven POST, which already accepts a -SNAPSHOT
+        // suffix via its @Pattern(SNAPSHOT_VERSION_REGEX) path param. Without this, the two
+        // POST /calm entry points for the same five namespace-resource types disagreed on
+        // whether a snapshot version is valid. Domain controls use validateVersion (below),
+        // not this method, and deliberately keep the strict VERSION_REGEX.
+        if (!version.matches(SNAPSHOT_VERSION_REGEX)) {
             throw new IllegalArgumentException("Invalid version in $id: " + version);
         }
         ResourceType resourceType = TYPE_MAP.get(type.toLowerCase());
