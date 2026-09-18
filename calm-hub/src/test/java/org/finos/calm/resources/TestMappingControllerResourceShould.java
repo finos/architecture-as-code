@@ -355,6 +355,45 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void overwrite_a_standard_snapshot_that_already_exists() throws Exception {
+        // STANDARD's update arm is only reachable via this snapshot-overwrite path: PUT
+        // hard-returns 501 for STANDARD, and the pre-existing STANDARD tests only exercise
+        // create. This is the only test that can catch a broken updateStandardForVersion call.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-standard")
+                .setResourceType(ResourceType.STANDARD).setNumericId(30).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "snap-standard")).thenReturn(existing);
+        when(mockStandardStore.getStandardVersions("finos", 30)).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "standards", "snap-standard", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/standards/snap-standard/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockStandardStore).updateStandardForVersion(any(CreateStandardRequest.class), eq("finos"), eq(30), eq("2.0.0-SNAPSHOT"));
+        verify(mockStandardStore, never()).createStandardForVersion(any(CreateStandardRequest.class), any(), any(), any());
+    }
+
+    @Test
+    void overwrite_an_interface_snapshot_that_already_exists() throws Exception {
+        // Same rationale as the STANDARD case above: PUT hard-returns 501 for INTERFACE too,
+        // so this snapshot-overwrite path is the only caller reaching updateInterfaceForVersion.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-interface")
+                .setResourceType(ResourceType.INTERFACE).setNumericId(40).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "snap-interface")).thenReturn(existing);
+        when(mockInterfaceStore.getInterfaceVersions("finos", 40)).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "interfaces", "snap-interface", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/interfaces/snap-interface/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockInterfaceStore).updateInterfaceForVersion(any(CreateInterfaceRequest.class), eq("finos"), eq(40), eq("2.0.0-SNAPSHOT"));
+        verify(mockInterfaceStore, never()).createInterfaceForVersion(any(CreateInterfaceRequest.class), any(), any(), any());
+    }
+
+    @Test
     void return_201_when_adding_explicit_version_to_existing_flow() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-flow")
