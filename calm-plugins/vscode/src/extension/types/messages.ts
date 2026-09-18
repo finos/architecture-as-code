@@ -44,4 +44,5 @@ export type WebviewToExtMessage =
     | { type: 'requestStandardProse'; url: string }
     | { type: 'requestGenerateSpec' }
     | { type: 'saveBuildingBlock'; filename: string; content: string }
-    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string };
+    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
+    | { type: 'requestImportSvg' };
