@@ -60,5 +60,13 @@ describe('mapShapeToNodeType', () => {
         it('does not override when no keyword matches', () => {
             expect(mapShapeToNodeType('cylinder', 'Cache Layer')).toBe('database');
         });
+
+        it('prefers database over actor when both keywords appear', () => {
+            expect(mapShapeToNodeType('rectangle', 'Customer Database')).toBe('database');
+        });
+
+        it('prefers network over actor for "Client VPC"', () => {
+            expect(mapShapeToNodeType('rectangle', 'Client VPC')).toBe('network');
+        });
     });
 });

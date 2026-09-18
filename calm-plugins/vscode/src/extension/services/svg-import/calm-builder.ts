@@ -5,10 +5,11 @@ export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
     const warnings: string[] = [];
     const nodeIdMap = new Map<string, string>();
     const usedIds = new Set<string>();
+    const geometricParentIds = new Set(graph.nodes.filter(n => n.parentId).map(n => n.parentId!));
 
     const nodes = graph.nodes.map((n, i) => {
         const { name, description } = splitLabel(n.label);
-        const isContainer = isContainerNode(n);
+        const isContainer = isContainerNode(n) || geometricParentIds.has(n.id);
         const nodeType = isContainer ? 'network' : mapShapeToNodeType(n.shapeHint, name);
         const calmId = generateCalmId(nodeType, name, i, usedIds);
         nodeIdMap.set(n.id, calmId);
