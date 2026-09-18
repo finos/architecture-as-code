@@ -12,8 +12,8 @@ import { colors } from '../../../theme/colors.js';
 import type { DrawerProps, Control, Decorator } from '../../contracts/contracts.js';
 
 /**
- * Detect whether JSON data is a CALM pattern (JSON Schema) or an architecture instance.
- * Patterns have properties.nodes.prefixItems; architectures have nodes directly.
+ * A pattern declares its nodes under `properties.nodes`, as `prefixItems` or `items`.
+ * An architecture carries `nodes` directly.
  */
 function isPatternData(data: unknown): boolean {
     if (!data || typeof data !== 'object') return false;
@@ -23,9 +23,6 @@ function isPatternData(data: unknown): boolean {
     return !!(nodes && typeof nodes === 'object' && (nodes['prefixItems'] || nodes['items']));
 }
 
-/**
- * Extract the unique-id from a CALM node or relationship
- */
 function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
     return item?.['unique-id'] || '';
 }
@@ -43,13 +40,9 @@ export function Drawer({
     const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
     const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
-    // Set when a dropped/browsed file can't be read as JSON, so the empty state
-    // can surface the failure instead of throwing an unhandled rejection.
     const [dropError, setDropError] = useState<string | undefined>(undefined);
     const [decoratorsState, setDecoratorsState] = useState<Decorator[]>([]);
-    // Default to collapsed as per user request
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
-    // Height of the metadata panel when expanded (in pixels)
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
     const onDrop = useCallback(async (acceptedFiles: File[]) => {
@@ -60,54 +53,37 @@ export function Drawer({
             setDropError(undefined);
             setFileInstance(parsed);
         } catch {
-            // Non-JSON or malformed file: surface the failure rather than
-            // accepting it and throwing an unhandled rejection downstream.
+            // Surfaced in the empty state rather than thrown, which would go unhandled.
             setDropError(
                 "Couldn't read that file — expected CALM JSON (architecture / pattern)."
             );
         }
     }, []);
 
-    // Clear any prior error as soon as a new drag begins, so a fresh attempt
-    // starts from a clean slate.
     const onDragEnter = useCallback(() => setDropError(undefined), []);
 
-    // No `accept` filter: CALM JSON is often saved with a non-.json extension
-    // (.calm, .txt, none), and an extension/MIME filter would reject those before
-    // onDrop ever runs. onDrop parses the file and surfaces a clear dropError on
-    // anything that isn't valid JSON, so validation lives there, not in the filter.
+    // No `accept` filter on purpose: CALM JSON is often saved as .calm, .txt or with no
+    // extension, and a filter would reject those silently before onDrop ran.
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         onDragEnter,
     });
 
-    // Identifies the diagram (ignoring version) so its viewport can be remembered
-    // across version/moment switches and refreshes. A dropped file has no identity,
-    // so it must never resolve to `viewportKeyOverride` (DiagramSection's resolved
-    // namespace/numeric-architectureId for the *currently loaded* architecture) —
-    // otherwise dragging a node on a dropped file would write scratch positions,
-    // and "Save as default layout" would write server positions, under the loaded
-    // architecture's key using the dropped file's unrelated layout.
-    // `viewportKeyOverride` takes precedence when present and no file is dropped,
-    // so scratch storage and the server layout share one key regardless of whether
-    // this architecture was reached via a slug or numeric route. An explicit `null`
-    // override (a slug that finished resolving with no match) suppresses the
-    // fallback rather than triggering it — falling back to the slug here would
-    // reintroduce exactly the key split the override exists to close.
-    // The calmType component guards against a second, independent collision:
-    // architecture ids and pattern ids are allocated from separate counters, so
-    // an Architecture 7 and a Pattern 7 can coexist in the same namespace —
-    // without it they'd share one scratch-position entry and one viewport entry.
+    // Remembers pan and zoom for one diagram across version switches and refreshes.
+    //
+    // A dropped file has no identity, so it must never borrow the override: its positions
+    // would then be saved under the loaded architecture's key.
+    // A `null` override means a slug resolved to nothing, so it suppresses the fallback
+    // rather than triggering it.
+    // `calmType` is in the key because architecture and pattern ids come from separate
+    // counters, so Architecture 7 and Pattern 7 would otherwise collide.
     const computedViewportKey = !fileInstance && data ? buildViewportKey(data.name, data.calmType, data.id) : undefined;
     const viewportKey = fileInstance || viewportKeyOverride === null ? undefined : (viewportKeyOverride ?? computedViewportKey);
 
-    // `defaultLayout`/`layoutEpoch` must collapse alongside `viewportKey` for the same
-    // reason: they describe the currently-*loaded* resource's saved server layout, not
-    // whatever was just dropped. Without this, dragging in a locally-edited copy of the
-    // same file would re-apply the loaded resource's saved positions (matched by node id)
-    // onto the dropped file's freshly-parsed nodes instead of a fresh auto-layout — the
-    // graph's `awaitingDefaultLayout` gate only reads these two props, it doesn't know
-    // about `fileInstance`.
+    // Dropped alongside `viewportKey`, and for the same reason: these describe the loaded
+    // resource's saved layout. Otherwise dropping an edited copy of an open file re-applies
+    // the saved positions by node id instead of laying it out fresh. The graph's
+    // `awaitingDefaultLayout` gate reads only these two props and cannot see `fileInstance`.
     const effectiveDefaultLayout = fileInstance ? undefined : defaultLayout;
     const effectiveLayoutEpoch = fileInstance ? undefined : layoutEpoch;
 
@@ -138,7 +114,6 @@ export function Drawer({
     const decorators = decoratorsProp ?? decoratorsState;
 
 
-    // Extract ADR links from CALM data
     const adrs = useMemo((): string[] => {
         const calmData = calmInstance as CalmArchitectureSchema & { adrs?: unknown };
         const rawAdrs = calmData?.adrs;
@@ -151,7 +126,6 @@ export function Drawer({
             .filter((adr) => adr.length > 0);
     }, [calmInstance]);
 
-    // Extract controls from CALM data (from root, nodes, and relationships)
     const controls = useMemo((): Record<string, Control> => {
         const calmData = calmInstance as CalmArchitectureSchema & {
             controls?: Record<string, Control>;
@@ -162,7 +136,6 @@ export function Drawer({
         const nodeControls: Record<string, Control> = {};
         const relationshipControls: Record<string, Control> = {};
 
-        // Extract controls from nodes
         const nodes = calmData.nodes || [];
         nodes.forEach((node) => {
             if (node.controls) {
@@ -179,7 +152,6 @@ export function Drawer({
             }
         });
 
-        // Extract controls from relationships
         const relationships = calmData.relationships || [];
         relationships.forEach((relationship) => {
             if (relationship.controls) {
@@ -196,7 +168,6 @@ export function Drawer({
             }
         });
 
-        // Merge all control sources (root-level takes precedence)
         return { ...nodeControls, ...relationshipControls, ...rootControls };
     }, [calmInstance]);
 
@@ -208,7 +179,6 @@ export function Drawer({
         onItemSelect?.(null);
     }, [onItemSelect]);
 
-    // Pattern-specific click handlers
     const handlePatternNodeClick = useCallback((nodeData: Record<string, unknown>) => {
         onItemSelect?.({ data: toSidebarNodeData(nodeData) });
     }, [onItemSelect]);
@@ -226,7 +196,6 @@ export function Drawer({
     }, [onItemSelect]);
 
 
-    // Handle node click from controls panel
     const handleControlNodeClick = useCallback(
         (nodeId: string) => {
             const node = calmInstance?.nodes?.find((n) => n['unique-id'] === nodeId);
@@ -273,9 +242,6 @@ export function Drawer({
                                 viewportKey={viewportKey}
                                 defaultLayout={effectiveDefaultLayout}
                                 layoutEpoch={effectiveLayoutEpoch}
-                                // See ReactFlowVisualizer's onPositionsChange below: never
-                                // reported for a dropped file, which has no stable identity
-                                // to save a shared default layout against.
                                 onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : calmInstance ? (
@@ -287,15 +253,10 @@ export function Drawer({
                                 viewportKey={viewportKey}
                                 defaultLayout={effectiveDefaultLayout}
                                 layoutEpoch={effectiveLayoutEpoch}
-                                // Never reported for a dropped file: `onPositionsChange`
-                                // ultimately feeds DiagramSection's "Save as default
-                                // layout", which is scoped to the *loaded architecture*
-                                // (via `viewportKeyOverride`/`defaultLayoutState`, not
-                                // this component's local `fileInstance` state). Passing
-                                // it through unconditionally would let a locally-dropped
-                                // file's on-screen positions be saved as the shared
-                                // default layout for the architecture actually being
-                                // viewed.
+                                // Withheld for a dropped file. This feeds DiagramSection's
+                                // "Save as default layout", which is scoped to the loaded
+                                // architecture, so passing it through would save a dropped
+                                // file's positions as that architecture's shared default.
                                 onPositionsChange={fileInstance ? undefined : onPositionsChange}
                             />
                         ) : null}
