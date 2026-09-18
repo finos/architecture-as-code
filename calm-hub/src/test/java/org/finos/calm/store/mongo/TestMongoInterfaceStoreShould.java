@@ -393,4 +393,43 @@ public class TestMongoInterfaceStoreShould {
 
         assertThrows(InterfaceNotFoundException.class, () -> store.deleteInterface(NAMESPACE, INTERFACE_ID));
     }
+
+    // --- deleteInterfaceVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteInterfaceVersion(NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_an_interface_exception_when_deleting_a_version_of_a_missing_interface() {
+        interfaceDoesNotExist();
+
+        assertThrows(InterfaceNotFoundException.class,
+                () -> store.deleteInterfaceVersion(NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void delete_the_version_document_when_the_snapshot_exists() throws Exception {
+        interfaceExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        boolean deleted = store.deleteInterfaceVersion(NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(true));
+        verify(versionCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void return_false_when_the_version_to_delete_does_not_exist() throws Exception {
+        interfaceExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        boolean deleted = store.deleteInterfaceVersion(NAMESPACE, INTERFACE_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(false));
+    }
 }

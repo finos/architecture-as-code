@@ -1636,6 +1636,24 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void delete_the_snapshot_when_publishing_a_non_canonical_release_spelling() throws Exception {
+        // VERSION_REGEX accepts several spellings of one version ("100" == "1.0.0"). The
+        // release spelling must be canonicalised before it's compared against — and used to
+        // delete — the canonically stored snapshot, or the snapshot is silently orphaned.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "100"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/100")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
     void write_the_release_before_deleting_its_snapshot() throws Exception {
         // Promotion is deliberately not atomic, and the order is load-bearing: reversing it
         // would delete the snapshot before knowing the release write succeeds.

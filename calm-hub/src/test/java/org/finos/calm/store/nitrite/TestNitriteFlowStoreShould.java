@@ -418,4 +418,43 @@ public class TestNitriteFlowStoreShould {
 
         assertThrows(FlowNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
     }
+
+    // --- deleteFlowVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void throw_a_flow_exception_when_deleting_a_version_of_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class,
+                () -> store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void delete_the_version_document_when_the_snapshot_exists() throws Exception {
+        flowExists();
+        stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0-SNAPSHOT")));
+
+        boolean deleted = store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(true));
+        verify(versionCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void return_false_when_the_version_to_delete_does_not_exist() throws Exception {
+        flowExists();
+        stubFind(versionCollection, List.of());
+
+        boolean deleted = store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(false));
+    }
 }
