@@ -504,7 +504,10 @@ public class MappingControllerService {
             }
             // Releases stay immutable. A snapshot is mutable by design, so a repeat POST
             // overwrites it — a client never has to know whether it already exists.
-            boolean overwriting = versions.contains(newVersion);
+            // versions holds canonical spellings, so the raw request spelling must be
+            // canonicalised before comparison, exactly as the shadow check above and
+            // deleteSnapshotForVersion below already do.
+            boolean overwriting = versions.contains(CanonicalVersion.of(newVersion));
             if (overwriting && !snapshot) {
                 return CalmResourceErrorResponses.versionAlreadyExistsResponse(
                         newVersion, mapping.getResourceType(), name, namespace);
