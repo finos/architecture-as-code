@@ -443,7 +443,7 @@ Example:
         .option('--auth-plugin-path <path>', 'Path to the CALM Hub authentication plugin')
         .option('--direct-url-auth-module <path>', 'Optional path to the direct URL authentication plugin module')
         .option('--direct-url-auth-config-path <path>', 'Optional config path for the direct URL authentication plugin module')
-        .option('--direct-url-auth-authenticated-hosts <hosts>', 'Optional comma-separated hostnames requiring direct URL authentication plugin module')
+        .option('--direct-url-auth-authenticated-hosts <hosts>', 'If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module')
         .action(async (options) => {
             const existingConfig = await cliConfig.loadCliConfig() ?? {};
 

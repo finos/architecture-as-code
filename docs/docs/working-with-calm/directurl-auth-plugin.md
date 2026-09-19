@@ -41,7 +41,7 @@ This page walks through a local test environment for the CALM CLI's `directUrlAu
 
 Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer \<token\>). The token can be used to authenticate the request and/or determine authorization.
 
-`directUrlAuthModule` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+`directUrlAuthModule` should be a local `.js` file that `export default` a class. The CLI loads it once and instantiates it as:
 
 ```ts
 new DefaultExport(configPath?)
