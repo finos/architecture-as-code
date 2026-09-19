@@ -209,6 +209,18 @@ public class TestTimelineResourceShould {
                 .body(containsString(VERSION_MESSAGE));
     }
 
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_get_timeline_version() {
+        // Timeline endpoints keep the strict VERSION_REGEX -- snapshots are scoped to the five
+        // namespace resource types only, and must stay refused here.
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetTimelineTests() {
         return Stream.of(
                 Arguments.of("invalid", new NamespaceNotFoundException(), 404),
@@ -261,6 +273,34 @@ public class TestTimelineResourceShould {
                 .body(envelopeBody)
                 .when()
                 .post("/api/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_create_new_timeline_version() {
+        String envelopeBody = "{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(envelopeBody)
+                .when()
+                .post("/api/calm/namespaces/test/timelines/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_put_timeline_version() {
+        // Bean validation on the {version} path param runs before allow.put.operations is
+        // checked, so this still 400s even with PUT disabled by default.
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}")
+                .when()
+                .put("/api/calm/namespaces/test/timelines/20/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
