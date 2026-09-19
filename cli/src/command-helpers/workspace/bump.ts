@@ -1,6 +1,12 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, resolveFilePath } from './bundle';
+import {
+    loadManifest,
+    resolveFilePath,
+    saveManifest,
+    type MappingWorkspaceManifestEntry,
+    type NarrativeWorkspaceManifestEntry,
+} from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
 import {
     CalmHubClient,
@@ -14,6 +20,12 @@ import {
     initLogger,
     Logger,
 } from '@finos/calm-shared';
+import { resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narrative-document';
+import {
+    dispatchWorkspaceManifestEntry,
+    resolveWorkspaceManifestEntry,
+    type WorkspaceManifestEntryOperations,
+} from './document-kind';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -40,13 +52,16 @@ function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
     return JSON.stringify(json, null, 2);
 }
 
-export interface ChangedResource {
+interface ChangedResourceBase {
     id: string;
     filePath: string;
-    metadata: DocumentMetadata;
     currentVersion: string;
     latestHubVersion: string;
 }
+
+export type ChangedResource =
+    | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata })
+    | (ChangedResourceBase & { kind: 'narrative' });
 
 export interface BumpResult {
     bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string; triggeredBy?: string; increment?: ResourceChangeType }>;
@@ -64,6 +79,20 @@ export interface BumpOptions {
      *  When absent, the cascade default (max of triggering increments) is used silently. */
     getCascadeIncrement?: (docId: string, triggeredBy: string, defaultIncrement: ResourceChangeType) => Promise<ResourceChangeType>;
 }
+
+interface DetectChangedEntryContext {
+    client: CalmHubClient;
+    filePath: string;
+    id: string;
+    raw: string;
+}
+
+type DetectChangedEntryCheck = () => Promise<ChangedResource | undefined>;
+
+const DETECT_CHANGED_ENTRY_OPERATIONS = {
+    mapping: prepareChangedMappingEntry,
+    narrative: prepareChangedNarrativeEntry,
+} satisfies WorkspaceManifestEntryOperations<DetectChangedEntryCheck | undefined, [DetectChangedEntryContext]>;
 
 /** Returns the highest-priority increment from a list (MAJOR > MINOR > PATCH). */
 export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeType {
@@ -88,66 +117,124 @@ export async function detectChangedResources(
     client: CalmHubClient
 ): Promise<ChangedResource[]> {
     const manifest = await loadManifest(bundlePath);
-    const changed: ChangedResource[] = [];
+    const checks: DetectChangedEntryCheck[] = [];
+    let preparationFailure: { reason: unknown } | undefined;
 
     for (const [id, entry] of Object.entries(manifest)) {
-        const filePath = resolveFilePath(bundlePath, entry.path);
-        if (!existsSync(filePath)) {
-            logger.warn(`File not found for id '${id}': ${filePath}`);
-            continue;
-        }
-
-        let raw: string;
         try {
-            raw = await readFile(filePath, 'utf8');
-        } catch (e) {
-            logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            continue;
-        }
+            const document = resolveWorkspaceManifestEntry(entry);
+            const filePath = resolveFilePath(bundlePath, entry.path);
+            if (!existsSync(filePath)) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
+                logger.warn(`File not found for id '${id}': ${filePath}`);
+                continue;
+            }
 
-        let metadata: DocumentMetadata;
-        try {
-            metadata = extractDocumentMetadata(raw);
-        } catch (e) {
-            logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
-            continue;
-        }
-        if (!metadata.namespace) {
-            logger.warn(`Skipping '${id}': document $id has no namespace.`);
-            continue;
-        }
+            let raw: string;
+            try {
+                raw = await readFile(filePath, 'utf8');
+            } catch (e) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
+                logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+                continue;
+            }
 
+            const check = dispatchWorkspaceManifestEntry(
+                document,
+                DETECT_CHANGED_ENTRY_OPERATIONS,
+                { client, filePath, id, raw }
+            );
+            if (check) checks.push(check);
+        } catch (reason) {
+            preparationFailure = { reason };
+            break;
+        }
+    }
+
+    // Run only entries before the first local failure, then inspect results in manifest order.
+    const results = await Promise.allSettled(checks.map(check => check()));
+    const changed: ChangedResource[] = [];
+    for (const result of results) {
+        if (result.status === 'rejected') throw result.reason;
+        if (result.value) changed.push(result.value);
+    }
+    if (preparationFailure) throw preparationFailure.reason;
+
+    return changed;
+}
+
+function prepareChangedNarrativeEntry(
+    entry: NarrativeWorkspaceManifestEntry,
+    context: DetectChangedEntryContext
+): DetectChangedEntryCheck | undefined {
+    const { client, filePath, id, raw } = context;
+    // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
+    const { version, identity, hubIdentityAssigned } = resolveNarrativeEntry(id, entry, raw);
+    if (!hubIdentityAssigned) return undefined;
+    validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
+    return async () => {
+        const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId);
+        if (versions.length === 0 || !versions.includes(version)) return undefined;
+        const remote = await client.getNarrativeDocumentVersion(
+            identity.namespace, identity.type, identity.calmHubDocumentId, version
+        );
+        if (remote.documentMarkdown === raw) return undefined;
+        return {
+            id, filePath, currentVersion: version,
+            latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
+        };
+    };
+}
+
+function prepareChangedMappingEntry(
+    _entry: MappingWorkspaceManifestEntry,
+    context: DetectChangedEntryContext
+): DetectChangedEntryCheck | undefined {
+    const { client, filePath, id, raw } = context;
+    let metadata: DocumentMetadata;
+    try {
+        metadata = extractDocumentMetadata(raw);
+    } catch (e) {
+        logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
+        return undefined;
+    }
+    const namespace = metadata.namespace;
+    if (!namespace) {
+        logger.warn(`Skipping '${id}': document $id has no namespace.`);
+        return undefined;
+    }
+
+    return async () => {
         let versions: string[];
         try {
-            versions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
+            versions = await client.getMappedResourceVersions(namespace, metadata.mapping, metadata.type);
         } catch (e) {
             logger.error(`Failed to fetch versions for '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            continue;
+            return undefined;
         }
 
-        if (versions.length === 0) continue;                 // new resource — nothing to bump
-        if (!versions.includes(metadata.version)) continue;  // already ahead — already bumped
+        if (versions.length === 0) return undefined;                 // new resource — nothing to bump
+        if (!versions.includes(metadata.version)) return undefined;  // already ahead — already bumped
 
         let remote: object;
         try {
-            remote = await client.getMappedResourceByVersion(metadata.namespace, metadata.mapping, metadata.version, metadata.type);
+            remote = await client.getMappedResourceByVersion(namespace, metadata.mapping, metadata.version, metadata.type);
         } catch (e) {
             logger.error(`Failed to fetch '${id}' @ ${metadata.version} from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
-            continue;
+            return undefined;
         }
 
-        if (canonicalEqual(JSON.parse(raw), remote)) continue; // unchanged
+        if (canonicalEqual(JSON.parse(raw), remote)) return undefined;
 
-        changed.push({
+        return {
             id,
             filePath,
             metadata,
             currentVersion: metadata.version,
             latestHubVersion: sortSemVer(versions)[versions.length - 1],
-        });
-    }
-
-    return changed;
+            kind: 'mapping',
+        };
+    };
 }
 
 /**
@@ -171,9 +258,34 @@ export async function bumpWorkspace(
     // Tracks the actual increment used for each bumped doc, so cascade passes can inherit it.
     const appliedIncrements = new Map<string, ResourceChangeType>();
 
+    const narrativeChanges = changed.filter((change): change is Extract<ChangedResource, { kind: 'narrative' }> =>
+        change.kind === 'narrative'
+    );
+    const narrativeManifest = narrativeChanges.length > 0 ? await loadManifest(bundlePath) : undefined;
+    for (const change of narrativeChanges) {
+        const entry = narrativeManifest?.[change.id];
+        if (!entry) throw new Error(`Narrative document '${change.id}' is no longer in the manifest.`);
+        const document = resolveWorkspaceManifestEntry(entry);
+        if (document.kind !== 'narrative') {
+            throw new Error(`Narrative document '${change.id}' is no longer a narrative manifest entry.`);
+        }
+        const increment = options.perDocIncrements?.get(change.id) ?? options.increment;
+        narrativeManifest[change.id] = {
+            ...document.entry,
+            version: computeSemVerBump(change.latestHubVersion, increment),
+        };
+    }
+
     for (const c of changed) {
         const docIncrement = options.perDocIncrements?.get(c.id) ?? options.increment;
         const toVersion = computeSemVerBump(c.latestHubVersion, docIncrement);
+        if (c.kind === 'narrative') {
+            bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
+            appliedIncrements.set(c.id, docIncrement);
+            bumpedIds.add(c.id);
+            logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
+            continue;
+        }
         const raw = await readFile(c.filePath, 'utf8');
         const updated = bumpDocumentContent(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
@@ -182,6 +294,7 @@ export async function bumpWorkspace(
         bumpedIds.add(c.id);
         logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
     }
+    if (narrativeManifest) await saveManifest(bundlePath, narrativeManifest);
 
     // Cascade: sync refs, then bump any document that was modified by the sync but not yet bumped.
     // Repeat until nothing new gets changed (fixed-point). Terminates because each iteration adds

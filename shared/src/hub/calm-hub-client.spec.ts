@@ -15,6 +15,89 @@ describe('CalmHubClient', () => {
         client = new CalmHubClient({ calmHubUrl: 'http://localhost:8080' }, ax);
     });
 
+    describe('narrative documents', () => {
+        const request = { name: 'Payments SAD', description: 'Decisions', documentMarkdown: '---\ntitle: Payments SAD\n---\n# Payments' };
+
+        it('creates a narrative document using the first-class endpoint', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).resolves.toContain('/42/versions/1.0.0');
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
+        it('returns undefined after a confirmed create response without Location', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {});
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).resolves.toBeUndefined();
+        });
+
+        it('still rejects a genuine narrative create failure', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad';
+            mock.onPost(endpoint).reply(500, { error: 'unavailable' });
+
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).rejects.toMatchObject({
+                status: 500,
+                request: `POST ${endpoint}`,
+            });
+        });
+
+        it('lists narrative document IDs from the type-scoped endpoint', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad';
+            mock.onGet(endpoint).reply(200, { values: [1, 2, 42] });
+
+            await expect(client.getNarrativeDocumentIds('finos', 'sad')).resolves.toEqual([1, 2, 42]);
+            expect(mock.history.get[0].url).toBe(endpoint);
+        });
+
+        it.each([
+            {},
+            { values: '1' },
+            { values: [0] },
+            { values: [-1] },
+            { values: [1.5] },
+            { values: [Number.MAX_SAFE_INTEGER + 1] },
+            { values: ['1'] },
+        ])('rejects a malformed narrative document ID list: %j', async (body) => {
+            mock.onGet('/api/calm/namespaces/finos/documents/sad').reply(200, body);
+
+            await expect(client.getNarrativeDocumentIds('finos', 'sad')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('creates a typed later version at the version endpoint', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/knowledge/42/versions/1.1.0';
+            mock.onPost(endpoint).reply(201, null, { location: endpoint });
+
+            await expect(client.createNarrativeDocumentVersion('finos', 'knowledge', 42, '1.1.0', request)).resolves.toBe(endpoint);
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
+        it('reads typed Markdown and rejects malformed success bodies', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0';
+            mock.onGet(endpoint).replyOnce(200, { documentMarkdown: '# Payments' });
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).resolves.toEqual({ documentMarkdown: '# Payments' });
+            mock.onGet(endpoint).replyOnce(200, {});
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('requires a string version array', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(200, { values: ['1.0.0'] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).resolves.toEqual(['1.0.0']);
+            mock.onGet(endpoint).replyOnce(200, { values: [42] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it.each([404, 500])('wraps a %i response from a narrative endpoint', async (status) => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(status, { error: 'unavailable' });
+
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toMatchObject({
+                status,
+                request: `GET ${endpoint}`,
+            });
+        });
+    });
+
     // ── createNamespace ──────────────────────────────────────────────────────
 
     describe('createNamespace', () => {
@@ -131,6 +214,28 @@ describe('CalmHubClient', () => {
             authMock.onGet('/api/calm/namespaces').reply(200, { values: [] });
 
             await authClient.listNamespaces();
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on narrative document requests', async () => {
+            authMock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+
+            await authClient.createNarrativeDocument('finos', 'sad', {
+                name: 'Payments SAD', documentMarkdown: '# Payments',
+            });
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers when listing narrative document IDs', async () => {
+            authMock.onGet('/api/calm/namespaces/finos/documents/sad').reply(200, { values: [] });
+
+            await authClient.getNarrativeDocumentIds('finos', 'sad');
 
             expect(getAuthHeaders).toHaveBeenCalledOnce();
             expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');

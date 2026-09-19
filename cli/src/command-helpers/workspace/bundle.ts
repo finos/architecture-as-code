@@ -3,7 +3,11 @@ import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
-import type { CalmDocumentType } from '@finos/calm-models/types';
+import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
+import { validateNarrativeDocumentLocation } from './narrative-document';
+import { isNarrativeWorkspaceManifestEntry } from './document-kind';
+
+export { isNarrativeWorkspaceManifestEntry } from './document-kind';
 
 /**
  * Property names that can contain document references (URLs or paths) in CALM JSON.
@@ -64,14 +68,53 @@ export function extractAllReferences(json: object): string[] {
     return Array.from(new Set(allRefs));
 }
 
-export type WorkspaceDocumentType = CalmDocumentType | 'unknown';
+export type WorkspaceDocumentType = CalmDocumentType | NarrativeDocumentType | 'unknown';
 
-export type WorkspaceManifestEntry = {
+export type MappingWorkspaceManifestEntry = {
     path: string;
-    type: WorkspaceDocumentType;
+    type: CalmDocumentType | 'unknown';
     namespace?: string;
     calmHubId?: string;
+    version?: never;
+    calmHubDocumentId?: never;
+    createRecovery?: never;
 };
+
+type NarrativeWorkspaceManifestEntryBase = {
+    path: string;
+    type: NarrativeDocumentType;
+    namespace?: string;
+    version: string;
+};
+
+export type UnpublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+    createRecovery?: never;
+};
+
+export type NarrativeCreateRecovery = {
+    pending: true;
+};
+
+export type CreateRecoveryPendingNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+    createRecovery: NarrativeCreateRecovery;
+};
+
+export type PublishedNarrativeWorkspaceManifestEntry = NarrativeWorkspaceManifestEntryBase & {
+    calmHubDocumentId: number;
+    calmHubId: string;
+    createRecovery?: never;
+};
+
+export type NarrativeWorkspaceManifestEntry =
+    | UnpublishedNarrativeWorkspaceManifestEntry
+    | CreateRecoveryPendingNarrativeWorkspaceManifestEntry
+    | PublishedNarrativeWorkspaceManifestEntry;
+
+export type WorkspaceManifestEntry = MappingWorkspaceManifestEntry | NarrativeWorkspaceManifestEntry;
 
 export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
 
@@ -155,6 +198,83 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
     return path.basename(srcPath, path.extname(srcPath));
 }
 
+type AddFileToBundleCommonOptions = {
+    id?: string;
+    destName?: string;
+    copy?: boolean;
+    namespace?: string;
+};
+
+type AddMappingFileToBundleOptions = AddFileToBundleCommonOptions & {
+    type?: CalmDocumentType | 'unknown';
+    version?: never;
+    calmHubDocumentId?: never;
+    calmHubId?: never;
+};
+
+type AddNarrativeFileToBundleOptions = AddFileToBundleCommonOptions & {
+    type: NarrativeDocumentType;
+    version: string;
+} & (
+    | { calmHubDocumentId?: never; calmHubId?: never }
+    | { calmHubDocumentId: number; calmHubId: string }
+);
+
+type AddFileToBundleOptions = AddMappingFileToBundleOptions | AddNarrativeFileToBundleOptions;
+
+function isNarrativeAddFileToBundleOptions(
+    opts: AddFileToBundleOptions | undefined
+): opts is AddNarrativeFileToBundleOptions {
+    return opts !== undefined && isNarrativeDocumentType(opts.type);
+}
+
+function isPublishedNarrativeWorkspaceManifestEntry(
+    entry: WorkspaceManifestEntry | undefined
+): entry is PublishedNarrativeWorkspaceManifestEntry {
+    return entry !== undefined &&
+        isNarrativeWorkspaceManifestEntry(entry) &&
+        entry.calmHubDocumentId !== undefined &&
+        entry.calmHubId !== undefined;
+}
+
+function hasNarrativeCreateRecovery(
+    entry: WorkspaceManifestEntry | undefined
+): entry is CreateRecoveryPendingNarrativeWorkspaceManifestEntry {
+    return entry !== undefined &&
+        isNarrativeWorkspaceManifestEntry(entry) &&
+        Object.prototype.hasOwnProperty.call(entry, 'createRecovery');
+}
+
+function hasEquivalentPublishedNarrativeIdentity(
+    entry: PublishedNarrativeWorkspaceManifestEntry,
+    opts: AddNarrativeFileToBundleOptions & { calmHubDocumentId: number; calmHubId: string }
+): boolean {
+    if (
+        entry.namespace === undefined ||
+        opts.namespace === undefined ||
+        entry.namespace !== opts.namespace ||
+        entry.type !== opts.type ||
+        entry.version !== opts.version ||
+        entry.calmHubDocumentId !== opts.calmHubDocumentId
+    ) {
+        return false;
+    }
+
+    const identity = {
+        namespace: entry.namespace,
+        type: entry.type,
+        version: entry.version,
+        calmHubDocumentId: entry.calmHubDocumentId,
+    };
+    try {
+        validateNarrativeDocumentLocation(entry.calmHubId, identity);
+        validateNarrativeDocumentLocation(opts.calmHubId, identity);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 /**
  * Add a file into the workspace bundle and register it in the bundle manifest.
  * The file is copied into the bundle's 'files/' directory and the manifest is updated
@@ -168,10 +288,79 @@ export async function determineDocumentId(srcPath: string, explicitId?: string):
 export async function addFileToBundle(
     bundlePath: string,
     srcPath: string,
-    opts?: { id?: string; destName?: string; copy?: boolean; type?: WorkspaceDocumentType; namespace?: string }
+    opts?: AddFileToBundleOptions
 ): Promise<{ id: string; destPath: string; rel: string }> {
 
+    const hasDocumentId = opts?.calmHubDocumentId !== undefined;
+    const hasHubId = opts?.calmHubId !== undefined;
+    if (hasDocumentId !== hasHubId || ((hasDocumentId || hasHubId) && !opts?.version)) {
+        throw new Error('Narrative document Hub identity requires calmHubDocumentId, calmHubId, and version.');
+    }
+
     const id = await determineDocumentId(srcPath, opts?.id);
+    const manifest = await loadManifest(bundlePath);
+    const existingEntry = manifest[id];
+    let narrativeIdentity: Pick<PublishedNarrativeWorkspaceManifestEntry, 'version' | 'calmHubDocumentId' | 'calmHubId'> | undefined;
+
+    if (hasNarrativeCreateRecovery(existingEntry)) {
+        if (
+            !isNarrativeAddFileToBundleOptions(opts) ||
+            opts.calmHubDocumentId === undefined ||
+            opts.calmHubId === undefined
+        ) {
+            throw new Error(`Narrative document '${id}' has pending create recovery and cannot be re-added until it is reconciled.`);
+        }
+        if (
+            existingEntry.type !== opts.type ||
+            existingEntry.namespace !== opts.namespace ||
+            existingEntry.version !== opts.version
+        ) {
+            throw new Error(`Narrative document '${id}' recovery identity conflicts with its pending create recovery scope.`);
+        }
+        try {
+            validateNarrativeDocumentLocation(opts.calmHubId, {
+                namespace: opts.namespace ?? '',
+                type: opts.type,
+                version: opts.version,
+                calmHubDocumentId: opts.calmHubDocumentId,
+            });
+        } catch {
+            throw new Error(`Narrative document '${id}' recovery identity conflicts with its pending create recovery scope.`);
+        }
+    }
+
+    if (
+        isPublishedNarrativeWorkspaceManifestEntry(existingEntry) &&
+        !isNarrativeAddFileToBundleOptions(opts)
+    ) {
+        throw new Error(`Published narrative document '${id}' cannot be replaced with a non-narrative document.`);
+    }
+
+    if (isNarrativeAddFileToBundleOptions(opts)) {
+        if (opts.calmHubDocumentId !== undefined && opts.calmHubId !== undefined) {
+            if (
+                isPublishedNarrativeWorkspaceManifestEntry(existingEntry) &&
+                !hasEquivalentPublishedNarrativeIdentity(existingEntry, opts)
+            ) {
+                throw new Error(`Narrative document '${id}' recovery identity conflicts with its existing published Hub identity.`);
+            }
+            narrativeIdentity = {
+                version: opts.version,
+                calmHubDocumentId: opts.calmHubDocumentId,
+                calmHubId: opts.calmHubId,
+            };
+        } else if (isPublishedNarrativeWorkspaceManifestEntry(existingEntry)) {
+            if (existingEntry.type !== opts.type || existingEntry.namespace !== opts.namespace) {
+                throw new Error(`Narrative document '${id}' type or namespace conflicts with its existing published Hub identity.`);
+            }
+            narrativeIdentity = {
+                version: existingEntry.version,
+                calmHubDocumentId: existingEntry.calmHubDocumentId,
+                calmHubId: existingEntry.calmHubId,
+            };
+        }
+    }
+
     let rel: string;
     let destPath: string;
 
@@ -191,8 +380,24 @@ export async function addFileToBundle(
         rel = path.relative(bundlePath, destPath).split(path.sep).join('/');
     }
 
-    const manifest = await loadManifest(bundlePath);
-    manifest[id] = { path: rel, type: opts?.type ?? 'unknown', ...(opts?.namespace ? { namespace: opts.namespace } : {}) };
+    if (isNarrativeAddFileToBundleOptions(opts)) {
+        const hubIdentity = narrativeIdentity
+            ? { calmHubDocumentId: narrativeIdentity.calmHubDocumentId, calmHubId: narrativeIdentity.calmHubId }
+            : {};
+        manifest[id] = {
+            path: rel,
+            type: opts.type,
+            ...(opts.namespace ? { namespace: opts.namespace } : {}),
+            version: narrativeIdentity?.version ?? opts.version,
+            ...hubIdentity,
+        };
+    } else {
+        manifest[id] = {
+            path: rel,
+            type: opts?.type ?? 'unknown',
+            ...(opts?.namespace ? { namespace: opts.namespace } : {}),
+        };
+    }
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
