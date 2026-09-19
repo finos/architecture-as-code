@@ -440,6 +440,10 @@ Example:
         .description('Create or update the CALM CLI configuration file (~/.calm.json).')
         .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
         .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .option('--auth-plugin-path <path>', 'Path to the CALM Hub authentication plugin')
+        .option('--direct-url-auth-module <path>', 'Optional path to the direct URL authentication plugin module')
+        .option('--direct-url-auth-config-path <path>', 'Optional config path for the direct URL authentication plugin module')
+        .option('--direct-url-auth-authenticated-hosts <hosts>', 'Optional comma-separated hostnames requiring direct URL authentication plugin module')
         .action(async (options) => {
             const existingConfig = await cliConfig.loadCliConfig() ?? {};
 
@@ -452,6 +456,24 @@ Example:
 
             if (options.calmHubUrl) {
                 existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            if (options.authPluginPath) {
+                existingConfig.authPluginPath = options.authPluginPath;
+            }
+
+            if (options.directUrlAuthModule) {
+                existingConfig.directUrlAuthModule = options.directUrlAuthModule;
+            }
+
+            if (options.directUrlAuthConfigPath) {
+                existingConfig.directUrlAuthConfigPath = options.directUrlAuthConfigPath;
+            }
+
+            if (options.directUrlAuthAuthenticatedHosts) {
+                const newHosts = (options.directUrlAuthAuthenticatedHosts as string).split(',').map((host: string) => host.trim()).filter(Boolean);
+                const existingHosts = existingConfig.directUrlAuthAuthenticatedHosts ?? [];
+                existingConfig.directUrlAuthAuthenticatedHosts = [...new Set([...existingHosts, ...newHosts])];
             }
 
             const configPath = cliConfig.getUserConfigLocation();

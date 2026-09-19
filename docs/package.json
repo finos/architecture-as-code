@@ -16,10 +16,11 @@
         "dependency-check": "dependency-check --project 'calm-docs' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
     },
     "dependencies": {
-        "@finos/calm-docusaurus-plugin": "*",
         "@docusaurus/core": "3.10.2",
         "@docusaurus/preset-classic": "3.10.2",
         "@docusaurus/react-loadable": "6.0.0",
+        "@docusaurus/theme-mermaid": "^3.10.2",
+        "@finos/calm-docusaurus-plugin": "*",
         "@mdx-js/react": "^3.1.0",
         "clsx": "^2.1.1",
         "prism-react-renderer": "^2.4.1",

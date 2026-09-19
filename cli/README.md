@@ -617,14 +617,26 @@ Usage: calm init-config [options]
 Create or update the CALM CLI configuration file (~/.calm.json).
 
 Options:
-  --allowed-remote-hosts <hosts>  Comma-separated list of trusted remote hosts to allow for direct URL loading
-  --calm-hub-url <url>            URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
-  -h, --help                      display help for command
+  --allowed-remote-hosts <hosts>                     Comma-separated list of trusted remote hosts to allow for direct URL loading
+  --calm-hub-url <url>                               URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
+  --auth-plugin-path <path>                          Path to the CALM Hub authentication plugin
+  --direct-url-auth-module <path>                    Path to the direct URL authentication module
+  --direct-url-auth-config-path <path>               Optional config path for the direct URL authentication module
+  --direct-url-auth-authenticated-hosts <hosts>       Comma-separated hostnames requiring direct URL authentication
+  -h, --help                                         display help for command
 ```
 
 ```shell
-% calm init-config --calm-hub-url https://calmhub.example.com --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org
+calm init-config \
+  --calm-hub-url https://calmhub.example.com \
+  --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org \
+  --auth-plugin-path ~/plugins/auth-plugin.js \
+  --direct-url-auth-module ~/plugins/direct-url-auth.js \
+  --direct-url-auth-config-path ~/plugins/direct-url-auth.config.json \
+  --direct-url-auth-authenticated-hosts protected.example.com,secure.example.com
 ```
+
+The two host-list options trim whitespace, remove empty entries, and merge new hosts with the existing values without duplicates. Scalar options replace their existing values when supplied. Plugin and module paths are stored as provided and validated when the CLI uses them.
 
 ## Authentication plugins
 
