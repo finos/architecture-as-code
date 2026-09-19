@@ -776,3 +776,18 @@ All `hub` subcommands support a `-f, --format <format>` option with two choices:
 
 - **`json`** _(default)_ — outputs the raw JSON response from CALM Hub. Suitable for piping into other tools or scripts.
 - **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push` and `pull` commands it formats the response in a more readable way.
+
+---
+
+## Interacting with non-CALM Hub repository
+
+Not every CALM document lives in a CALM Hub instance. The CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server, an internal artifact repository, or a Git-hosted content server — without going through CALM Hub.
+
+Access to these endpoints is controlled by two pieces of configuration in `~/.calm.json`:
+
+- **`allowedRemoteHosts`**: an allow-list of hostnames the CLI is permitted to fetch documents from.
+- **`directUrlAuth`**: an optional plugin that supplies authentication for those requests. It points to a `module` (a JavaScript module implementing a `getAuthHeaders(url, requestBody)` function) and a `configPath` (a JSON file with the settings that module needs, such as a static token or OAuth2 client-credentials details). The same settings can be supplied instead as `CALM_DIRECT_URL_AUTH_MODULE`, `CALM_DIRECT_URL_AUTH_CONFIG_PATH`, and `CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS` environment variables.
+
+This plugin model means the auth scheme is not fixed by the CLI itself — a module can implement anything from a hard-coded header, to OAuth2 client-credentials, to a secret pulled from a vault at request time.
+
+See [DirectUrlAuth Plugin Testing](directurl-auth-plugin) for a walkthrough of a local test environment that exercises this plugin.
