@@ -183,7 +183,7 @@ post_document() {
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$name' in namespace $namespace"
@@ -217,7 +217,7 @@ post_named_document() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/calm/namespaces/$namespace/$resource/$slug/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$slug' version $version in namespace $namespace"
@@ -263,7 +263,7 @@ post_architecture_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created architecture '$name' version $version in namespace $namespace"
@@ -297,7 +297,7 @@ post_pattern_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
