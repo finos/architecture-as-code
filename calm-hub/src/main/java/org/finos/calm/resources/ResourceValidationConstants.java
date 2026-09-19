@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 
@@ -18,7 +19,7 @@ public class ResourceValidationConstants {
     // VERSION_REGEX: ADR runs on the NUMERIC version scheme, where a suffixed value is an
     // unparseable revision rather than a version.
     public static final String SNAPSHOT_VERSION_REGEX =
-            "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$";
+            "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?$";
     public static final String SNAPSHOT_VERSION_MESSAGE =
             "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$'";
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).
