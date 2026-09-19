@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -339,7 +340,26 @@ public class TestInterfaceResourceShould {
                 .post("/api/calm/namespaces/finos/interfaces/5/versions/invalid-version")
                 .then()
                 .statusCode(400)
-                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_interface() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
+        createInterfaceRequest.setName("amazing-interface");
+        createInterfaceRequest.setDescription("An amazing interface");
+        createInterfaceRequest.setInterfaceJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createInterfaceRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/interfaces/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForCreateInterfaceTests() {

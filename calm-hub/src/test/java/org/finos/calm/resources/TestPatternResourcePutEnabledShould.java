@@ -21,6 +21,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 
@@ -54,7 +55,21 @@ public class TestPatternResourcePutEnabledShould {
                 .put("/api/calm/namespaces/finos/patterns/20/versions/1.0invalid.1")
                 .then()
                 .statusCode(400)
-                .body(containsString("version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$"));
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_put_pattern_version() {
+        // PUT on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API.
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
+                .put("/api/calm/namespaces/finos/patterns/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForPutPatternTests() {

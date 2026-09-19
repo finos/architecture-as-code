@@ -36,6 +36,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REG
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
 @Path("/api/calm/namespaces")
@@ -210,7 +212,7 @@ public class FlowResource {
     public Response createVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
-            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()
@@ -249,7 +251,7 @@ public class FlowResource {
     public Response updateVersionedFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
-            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE)  String version,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE)  String version,
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         Flow flow = new Flow.FlowBuilder()

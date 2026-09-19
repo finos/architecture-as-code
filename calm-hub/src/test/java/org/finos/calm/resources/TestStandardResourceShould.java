@@ -30,6 +30,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.*;
@@ -296,7 +297,41 @@ public class TestStandardResourceShould {
                 .post("/api/calm/namespaces/finos/standards/5/versions/invalid-version")
                 .then()
                 .statusCode(400)
-                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_standard() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createStandardRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void not_reject_a_snapshot_version_on_get_standard() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockStandardStore.getStandardForVersion(eq("finos"), eq(5), eq("1.0.0-SNAPSHOT")))
+                .thenThrow(new StandardVersionNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(404);
     }
 
     static Stream<Arguments> provideParametersForCreateStandardTests() {

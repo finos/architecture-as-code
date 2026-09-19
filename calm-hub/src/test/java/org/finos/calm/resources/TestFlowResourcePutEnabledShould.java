@@ -19,7 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
-import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
 
@@ -43,7 +43,7 @@ public class TestFlowResourcePutEnabledShould {
                 .put("/api/calm/namespaces/test/flows/20/versions/invalid-version")
                 .then()
                 .statusCode(400)
-                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
+                .body(containsString(VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForPutFlowTests() {

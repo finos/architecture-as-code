@@ -134,7 +134,7 @@ public class InterfaceResource {
     public Response createInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
-            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
             @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest createInterfaceRequest
     ) throws URISyntaxException {
         try {
