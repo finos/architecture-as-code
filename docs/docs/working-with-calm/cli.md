@@ -781,13 +781,19 @@ All `hub` subcommands support a `-f, --format <format>` option with two choices:
 
 ## Interacting with non-CALM Hub repository
 
-Not every CALM document lives in a CALM Hub instance. The CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server, an internal artifact repository, or a Git-hosted content server — without going through CALM Hub.
+For an organization that does not require the full functionality of CALM Hub and only needs the ability to store CALM artifactions in a central repository, the CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server or an internal artifact repository — without going through CALM Hub.
 
 Access to these endpoints is controlled by two pieces of configuration in `~/.calm.json`:
 
 - **`allowedRemoteHosts`**: an allow-list of hostnames the CLI is permitted to fetch documents from.
 - **`directUrlAuth`**: an optional plugin that supplies authentication for those requests. It points to a `module` (a JavaScript module implementing a `getAuthHeaders(url, requestBody)` function) and a `configPath` (a JSON file with the settings that module needs, such as a static token or OAuth2 client-credentials details). The same settings can be supplied instead as `CALM_DIRECT_URL_AUTH_MODULE`, `CALM_DIRECT_URL_AUTH_CONFIG_PATH`, and `CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS` environment variables.
 
+:::warning
+The `directUrlAuth` plugin mechanism exists to let end user organizations implement their own authentication/authorization method based on HTTP(S) headers. Building, configuring, and securing that plugin is the sole responsibility of the end user organization. The CALM project provides this mechanism and documentation as-is, with no warranty as to the security or correctness of any organization-specific plugin implementation.
+:::
+
+The direct URL auth plugin is a CALM authentication adapter that turns an outbound request into the headers required to access a remote endpoint, typically by acquiring and refreshing a bearer token for the target service. It is designed to be a thin, host-agnostic hook: CALM decides which URLs are allowed to use it, and the plugin simply returns the appropriate authentication metadata for the request.
+
 This plugin model means the auth scheme is not fixed by the CLI itself — a module can implement anything from a hard-coded header, to OAuth2 client-credentials, to a secret pulled from a vault at request time.
 
-See [DirectUrlAuth Plugin Testing](directurl-auth-plugin) for a walkthrough of a local test environment that exercises this plugin.
+[DirectUrlAuth Plugin](directurl-auth-plugin) page provides technical details for writing and testing the plugin.
