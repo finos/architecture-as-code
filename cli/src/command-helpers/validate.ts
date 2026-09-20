@@ -69,9 +69,34 @@ export async function runValidate(options: ValidateOptions) {
         const message = err instanceof Error ? err.message : String(err);
         const stack = err instanceof Error ? err.stack : undefined;
         logger.error('An error occurred while validating: ' + message);
+        if (options.verbose) {
+            for (const causeMessage of formatErrorCauseChain(err)) {
+                logger.error(causeMessage);
+            }
+        }
         if (stack) logger.debug(stack);
         process.exit(1);
     }
+}
+
+function formatErrorCauseChain(error: unknown): string[] {
+    const messages: string[] = [];
+    let currentCause = getErrorCause(error);
+    let isFirst = true;
+
+    while (currentCause instanceof Error) {
+        messages.push(`${isFirst ? 'Cause' : 'Caused by'}: ${currentCause.message}`);
+        currentCause = getErrorCause(currentCause);
+        isFirst = false;
+    }
+
+    return messages;
+}
+
+function getErrorCause(error: unknown): unknown {
+    return error instanceof Error && 'cause' in error
+        ? error.cause
+        : undefined;
 }
 
 

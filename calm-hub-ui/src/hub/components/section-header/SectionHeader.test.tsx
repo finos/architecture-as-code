@@ -1,8 +1,14 @@
+import React from 'react';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SectionHeader } from './SectionHeader.js';
+import { MemoryRouter } from 'react-router-dom';
+import { SectionHeader as SectionHeaderRaw } from './SectionHeader.js';
 import { describe, it, expect, vi } from 'vitest';
 import type { BreadcrumbItem } from '../../../model/calm.js';
+
+function SectionHeader(props: React.ComponentProps<typeof SectionHeaderRaw>) {
+    return <MemoryRouter><SectionHeaderRaw {...props} /></MemoryRouter>;
+}
 
 describe('SectionHeader', () => {
     it('renders icon, namespace, id, and version', () => {
@@ -45,6 +51,50 @@ describe('SectionHeader', () => {
         expect(heading).toHaveTextContent('Trading System');
         // The numeric id is no longer shown as the label (kept as a tooltip).
         expect(heading).not.toHaveTextContent('42');
+    });
+
+    it('links the namespace and type label to the correct namespace/filtered-type routes', () => {
+        render(
+            <SectionHeader
+                icon={<span>Icon</span>}
+                namespace="my-namespace"
+                id="42"
+                version="1.0.0"
+                typeSegment="architectures"
+                typeLabel="Architecture"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'my-namespace' })).toHaveAttribute(
+            'href',
+            '/namespace/my-namespace'
+        );
+        expect(screen.getByRole('link', { name: 'Architecture' })).toHaveAttribute(
+            'href',
+            '/namespace/my-namespace?type=architectures'
+        );
+    });
+
+    it('encodes namespace and type segments containing reserved URL characters', () => {
+        render(
+            <SectionHeader
+                icon={<span>Icon</span>}
+                namespace="my namespace"
+                id="42"
+                version="1.0.0"
+                typeSegment="building blocks"
+                typeLabel="Building Block"
+            />
+        );
+
+        expect(screen.getByRole('link', { name: 'my namespace' })).toHaveAttribute(
+            'href',
+            '/namespace/my%20namespace'
+        );
+        expect(screen.getByRole('link', { name: 'Building Block' })).toHaveAttribute(
+            'href',
+            '/namespace/my%20namespace?type=building%20blocks'
+        );
     });
 
     it('renders right content when provided', () => {

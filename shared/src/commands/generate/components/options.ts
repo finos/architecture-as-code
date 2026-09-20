@@ -1,4 +1,5 @@
 import { initLogger } from '../../../logger';
+import { ALTERNATIVE_KEYWORDS, declaresOptions } from '../../../spectral/functions/pattern/declaration-paths';
 
 /**
  * A node within a CALM pattern's JSON schema. The pattern is unvalidated JSON
@@ -19,10 +20,6 @@ export interface CalmOption {
     optionId: string,
     prompt: string,
     choices: CalmChoice[],
-}
-
-function isOptionsRelationship(relationship: SchemaNode): boolean {
-    return relationship['properties']?.['relationship-type']?.['properties']?.['options'] !== undefined;
 }
 
 function getItemsInOptionsRelationship(optionsRelationship: SchemaNode): SchemaNode[] {
@@ -84,7 +81,7 @@ export function extractOptions(pattern: object, debug: boolean = false): CalmOpt
     }
 
     const options: CalmOption[] = calmItems
-        .filter((rel: SchemaNode) => isOptionsRelationship(rel))
+        .filter((rel: SchemaNode) => declaresOptions(rel))
         .flatMap((optionsRel: SchemaNode) => [
             ...extractOptionsFromBlock(optionsRel, 'oneOf'),
             ...extractOptionsFromBlock(optionsRel, 'anyOf')
@@ -99,36 +96,40 @@ type Item = {
     anyOf?: object[],
 }
 
-/**
- * This function flattens oneOf and anyOf blocks into their constituent items if they match the selection predicate.
- * If the passed item is not a oneOf or anyOf block, it returns the item as is in a list.
- * @param item - The item to flatten
- * @param selectionPredicate - A function that takes an item and returns true if it should be included in the flattened result
- * @returns A list of items that match the selection predicate, or the item itself if it is not a oneOf or anyOf block
- */
+function alternativesOf(item: Item | undefined): object[] | undefined {
+    const keyword = ALTERNATIVE_KEYWORDS.find(name => item?.[name]);
+    return keyword ? item?.[keyword] : undefined;
+}
+
 function flattenOneOfAndAnyOf(item: Item, selectionPredicate: (item: SchemaNode) => boolean): object[] {
-    if (!(item.oneOf || item.anyOf)) {
-        // If it isn't a oneOf or anyOf block, there isn't anything to flatten so return the item
+    const alternatives = alternativesOf(item);
+    if (!alternatives) {
         return [item];
     }
 
-    const items: object[] = item.oneOf ?? item.anyOf ?? [];
-
-    return items
-        .flatMap((x: object) => x)
-        .filter((x: SchemaNode) => selectionPredicate(x));
+    return alternatives.filter((x: SchemaNode) => selectionPredicate(x));
 }
 
-function flattenCalmItems(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
-    const calmItems = pattern['properties'][calmType]['prefixItems'];
+/**
+ * Selected `items` members are promoted into `prefixItems`, so the instantiator only ever
+ * reads positions. The `items` block itself stays, because validation compiles this same
+ * pattern and needs it to keep constraining whatever the architecture adds.
+ */
+function selectDeclarations(pattern: SchemaNode, calmType: 'nodes' | 'relationships', ids: string[]): void {
+    const declarations = pattern['properties'][calmType];
+    if (!declarations) {
+        return;
+    }
 
     const selectionPredicate = (x: SchemaNode) => ids.includes(x['properties']['unique-id']['const']);
-    pattern['properties'][calmType]['prefixItems'] = calmItems
+    const catalogue: Item[] = alternativesOf(declarations['items']) ? [declarations['items']] : [];
+
+    declarations['prefixItems'] = [...(declarations['prefixItems'] ?? []), ...catalogue]
         .flatMap((item: Item) => flattenOneOfAndAnyOf(item, selectionPredicate));
 }
 
 function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoice[]): SchemaNode {
-    if (!isOptionsRelationship(relationship)) {
+    if (!declaresOptions(relationship)) {
         return relationship;
     }
 
@@ -141,7 +142,12 @@ function flattenOptionsRelationship(relationship: SchemaNode, choices: CalmChoic
 }
 
 function flattenOptionsRelationships(pattern: SchemaNode, choices: CalmChoice[]): void {
-    pattern['properties']['relationships']['prefixItems'] = pattern['properties']['relationships']['prefixItems']
+    const relationships = pattern['properties']['relationships'];
+    if (!relationships?.['prefixItems']) {
+        return;
+    }
+
+    relationships['prefixItems'] = relationships['prefixItems']
         .map((rel: SchemaNode) => flattenOptionsRelationship(rel, choices));
 }
 
@@ -160,8 +166,8 @@ export function selectChoices(inputPattern: object, choices: CalmChoice[], debug
     const nodeIds: string[] = choices.flatMap(choice => choice.nodes);
     const relationshipIds: string[] = choices.flatMap(choice => choice.relationships);
 
-    flattenCalmItems(pattern, 'nodes', nodeIds);
-    flattenCalmItems(pattern, 'relationships', relationshipIds);
+    selectDeclarations(pattern, 'nodes', nodeIds);
+    selectDeclarations(pattern, 'relationships', relationshipIds);
 
     flattenOptionsRelationships(pattern, choices);
     

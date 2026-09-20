@@ -1,6 +1,5 @@
 package org.finos.calm.security;
 
-import io.quarkus.arc.profile.IfBuildProfile;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
@@ -17,8 +16,22 @@ import java.util.stream.Collectors;
 import static org.finos.calm.security.CalmHubPermissionChecker.GLOBAL_ACCESS;
 import static org.finos.calm.security.CalmHubPermissionChecker.ancestorChain;
 
+/**
+ * Unconditionally registered — deliberately not {@code @IfBuildProfile}-gated to a
+ * specific set of auth profiles (it previously was, to "secure"/"proxy-auth" only).
+ * {@code @IfBuildProfile} bean selection is fixed at Maven build time and does not
+ * respond to a runtime {@code -Dquarkus.profile}/{@code QUARKUS_PROFILE} override — but
+ * this module's own documented deployment path (see {@code calm-hub/deploy/docker-compose.yml})
+ * builds one artifact (CI runs a plain {@code mvn package}, no {@code -Dquarkus.profile})
+ * and selects the auth profile at container runtime. Under that path, a build-time-gated
+ * bean here would never exist for ANY profile, silently leaving {@link
+ * org.finos.calm.resources.SearchResource}, {@link org.finos.calm.resources.DomainResource}
+ * and friends unfiltered — see the tracking issue linked from this class's git history
+ * for the fuller writeup. Every caller already checks {@code calm.auth.enabled} (a
+ * genuinely runtime-mutable property) before doing anything with this bean, so having it
+ * registered under no-auth/standalone too is inert, not unsafe.
+ */
 @ApplicationScoped
-@IfBuildProfile(anyOf = {"secure", "proxy-auth"})
 public class UserAccessValidator {
 
     private static final Logger logger = LoggerFactory.getLogger(UserAccessValidator.class);
