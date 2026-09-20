@@ -85,13 +85,9 @@ If the end user organization writes the plugin in TypeScript,it must be complied
 
 ### Illustrative Code
 
-:::note
-The following are for illustrative purposes only.  The end user organization must adapt modify as needed to meet their specific needs.
-:::
-
 #### Assumed Infrastructure
 
-This illustrarive code example assumes the following infrastructure is available:
+This illustrative code example assumes the following infrastructure services are available:
 
 * A centralized secrets management service (aka Vault service) containing the client secret. The authentication module must have authorized access to retrieve the secret for the configured secret path.
 * An identity provider or OAuth 2.0 token service that accepts the client credentials grant and returns an `access_token`. The token service must trust the client identifier and the secret returned by Vault.
@@ -115,6 +111,12 @@ The local configuration file contains the token endpoint, client identifier, Vau
 The module uses Node's built-in `http` and `https` clients for both Vault and token requests. It accepts only HTTP and HTTPS endpoints, sends a `GET` request for the Vault secret, and sends a form-encoded `POST` request to the token endpoint. Non-2xx responses, invalid JSON, missing token fields, invalid URLs, and missing configuration values cause the module to reject with an error.
 
 The CLI invokes the module only for hosts listed in `directUrlAuthAuthenticatedHosts`. The module is responsible for obtaining the credentials and returning headers; the CLI remains responsible for deciding which direct URLs are eligible for authentication and attaching the returned headers to the document request.
+
+:::note
+The following are for illustrative purposes only.  The end user organization must adapt or modify as needed to meet their specific needs.
+:::
+
+
 
 #### Directory structure
 
