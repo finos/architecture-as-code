@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/extensions/k8s/k8s.standard.json",
+  "title": "CALM Kubernetes Extension Standard",
+  "description": "CALM 1.2 overlay Standard for the Kubernetes pack. Extends node-type with the pack's type ids. Architecture shape remains https://calm.finos.org/release/1.2/meta/calm.json. Hosts write this $id into architecture $schema when the pack is first used, even before the URI is published on calm.finos.org.",
+  "$comment": "Proposed until published under calm.finos.org. Load from extensions/standards/ on the filesystem.",
+  "$defs": {
+    "node-type": {
+      "type": "string",
+      "enum": [
+        "k8s:pod",
+        "k8s:deployment",
+        "k8s:statefulset",
+        "k8s:daemonset",
+        "k8s:job",
+        "k8s:cronjob",
+        "k8s:service",
+        "k8s:ingress",
+        "k8s:configmap",
+        "k8s:secret",
+        "k8s:persistent-volume",
+        "k8s:pvc",
+        "k8s:namespace",
+        "k8s:hpa"
+      ],
+      "description": "Kubernetes node-type values."
+    }
+  }
+}

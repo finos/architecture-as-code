@@ -5,11 +5,13 @@
 	import ValidationBadge from './ValidationBadge.svelte';
 	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
 	import { getNodeInterfaces } from './nodeData';
+	import { nodeStyleOverrideCss } from '$lib/canvas/buildingBlockStyle';
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
 	const dataClassification = $derived((data as Record<string, unknown>)['data-classification'] as string | undefined);
+	const chromeStyle = $derived(nodeStyleOverrideCss((data as Record<string, unknown>).metadata));
 
 	/** Returns badge style for a data-classification value */
 	function getClassificationStyle(dc: string): string {
@@ -34,7 +36,7 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
+<div class="node" class:selected style={chromeStyle}>
 	<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	<span class="label">{data.label ?? data.calmId}</span>

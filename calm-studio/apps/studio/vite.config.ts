@@ -24,8 +24,10 @@ export default defineConfig({
 			// The package.json exports map only exposes '.', so test-fixtures must be aliased here.
 			'@calmstudio/calm-core/test-fixtures': path.resolve('../../packages/calm-core/test-fixtures/index.ts'),
 			'@finos/calm-shared/generate': path.resolve('../../../shared/src/commands/generate/generate-core.ts'),
+			'@finos/calm-shared/validate': path.resolve('../../../shared/src/commands/validate/validate-core.ts'),
 			'@finos/calm-shared/document-loader-types': path.resolve('../../../shared/src/document-loader/types.ts'),
 			'$calm-release': path.resolve('../../../calm/release'),
+			'$calm-draft': path.resolve('../../../calm/draft'),
 			// generate-core → SchemaDirectory → logger imports winston (Node). Stub for the browser.
 			winston: path.resolve('src/lib/shims/winston.ts'),
 		},

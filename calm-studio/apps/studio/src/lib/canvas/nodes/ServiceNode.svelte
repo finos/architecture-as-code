@@ -6,6 +6,7 @@
 	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
 	import { getNodeInterfaces } from './nodeData';
 	import { estimateRectangleNodeSize } from '$lib/canvas/rectangleNodeSize';
+	import { nodeStyleOverrideCss } from '$lib/canvas/buildingBlockStyle';
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
@@ -17,6 +18,7 @@
 			(typeof details?.['detailed-architecture'] === 'string' && details['detailed-architecture'].length > 0),
 	);
 	const minSize = $derived(estimateRectangleNodeSize(label, { hasReference }));
+	const chromeStyle = $derived(nodeStyleOverrideCss((data as Record<string, unknown>).metadata));
 </script>
 
 <NodeResizer minWidth={minSize.width} minHeight={minSize.height} isVisible={selected} />
@@ -31,7 +33,7 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
+<div class="node" class:selected style={chromeStyle}>
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	<div class="icon">
 		<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--node-service-stroke)" stroke-width="1.5" aria-hidden="true">

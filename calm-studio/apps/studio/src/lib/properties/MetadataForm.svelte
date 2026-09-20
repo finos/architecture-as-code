@@ -8,9 +8,17 @@
 	import {
 		readMetadataPath,
 		writeMetadataPath,
+		groupMetadataFields,
+		previewNestedMetadata,
 		type MetadataFieldDescriptor,
 	} from '$lib/metadata/metadataForm';
 	import { writeArchimateRelationshipMetadata } from '$lib/metadata/relationshipVariantSync';
+	import {
+		extraMetadataEntries,
+		removeExtraMetadata,
+		upsertExtraMetadata,
+	} from '$lib/metadata/extraMetadata';
+	import NestedMetadataDialog from './NestedMetadataDialog.svelte';
 
 	let {
 		elementId,
@@ -36,6 +44,18 @@
 
 	let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 	let firstEditSignaled = $state(false);
+	let extraKey = $state('');
+	let extraValue = $state('');
+	let extraError = $state<string | null>(null);
+
+	const schemaPaths = $derived((fields ?? []).map((f) => f.path));
+	const extraEntries = $derived(extraMetadataEntries(metadata, schemaPaths));
+	const grouped = $derived(groupMetadataFields(fields ?? []));
+	let nestedEdit = $state<
+		| { kind: 'schema'; key: string; fields: MetadataFieldDescriptor[] }
+		| { kind: 'extra'; key: string; raw: unknown }
+		| null
+	>(null);
 
 	$effect(() => {
 		const _ = elementId;
@@ -61,16 +81,42 @@
 			onCommit(next);
 		}, 300);
 	}
+
+	function commitExtra(next: Record<string, unknown>) {
+		if (readonly || !onCommit) return;
+		signalFirstEdit();
+		onCommit(next);
+	}
+
+	function handleAddExtra() {
+		const key = extraKey.trim();
+		if (!key) return;
+		if (key === '_layout' || key === 'building-block-style' || key === 'fidelity-style') {
+			extraError = 'Reserved key — edit layout and colors elsewhere';
+			return;
+		}
+		extraError = null;
+		commitExtra(upsertExtraMetadata(metadata, key, extraValue));
+		extraKey = '';
+		extraValue = '';
+	}
+
+	function handleExtraValue(key: string, value: string) {
+		commitExtra(upsertExtraMetadata(metadata, key, value));
+	}
+
+	function handleRemoveExtra(key: string) {
+		commitExtra(removeExtraMetadata(metadata, key));
+	}
 </script>
 
-{#if fields && fields.length > 0}
-	<div class="section">
-		<div class="section-header">
-			<span class="section-label">Metadata</span>
-		</div>
+<div class="section">
+	<div class="section-header">
+		<span class="section-label">Metadata</span>
+	</div>
 
 		<div class="fields">
-			{#each fields as field (field.key)}
+			{#each grouped.top as field (field.key)}
 				{@const value = readMetadataPath(metadata, field.path)}
 				{@const displayValue = value || fallbackValues[field.key] || ''}
 				<div class="field">
@@ -110,8 +156,105 @@
 					{/if}
 				</div>
 			{/each}
+
+			{#each grouped.nested as group (group.key)}
+				<div class="field">
+					<span class="field-label">{group.key}</span>
+					<div class="nested-preview">
+						<code class="preview-text">{previewNestedMetadata(metadata, group.key)}</code>
+						{#if !readonly && onCommit}
+							<button
+								type="button"
+								class="add-btn"
+								onclick={() => (nestedEdit = { kind: 'schema', key: group.key, fields: group.fields })}
+							>
+								Edit…
+							</button>
+						{/if}
+					</div>
+				</div>
+			{/each}
+
+			{#if (!fields || fields.length === 0) && grouped.top.length === 0 && grouped.nested.length === 0}
+				<p class="extra-hint">No pack schema fields for this element. Add extra keys below.</p>
+			{/if}
+
+			{#each extraEntries as entry (entry.key)}
+				<div class="field extra-row">
+					<label class="field-label" for="extra-{elementId}-{entry.key}">{entry.key}</label>
+					{#if readonly}
+						<div class="read-only-field" id="extra-{elementId}-{entry.key}">{entry.value}</div>
+					{:else if entry.nested}
+						<div class="nested-preview">
+							<code class="preview-text">{entry.value}</code>
+							<button
+								type="button"
+								class="add-btn"
+								onclick={() => (nestedEdit = { kind: 'extra', key: entry.key, raw: entry.raw })}
+							>
+								Edit…
+							</button>
+							<button
+								type="button"
+								class="remove-btn"
+								onclick={() => handleRemoveExtra(entry.key)}
+								aria-label="Remove {entry.key}"
+							>
+								×
+							</button>
+						</div>
+					{:else}
+						<div class="extra-edit">
+							<input
+								id="extra-{elementId}-{entry.key}"
+								class="field-input"
+								type="text"
+								value={entry.value}
+								oninput={(e) =>
+									handleExtraValue(entry.key, (e.currentTarget as HTMLInputElement).value)}
+								aria-label={entry.key}
+							/>
+							<button
+								type="button"
+								class="remove-btn"
+								onclick={() => handleRemoveExtra(entry.key)}
+								aria-label="Remove {entry.key}"
+							>
+								×
+							</button>
+						</div>
+					{/if}
+				</div>
+			{/each}
+
+			{#if !readonly && onCommit}
+				<div class="extra-add">
+					<input class="field-input" bind:value={extraKey} placeholder="key" aria-label="Extra metadata key" />
+					<input class="field-input" bind:value={extraValue} placeholder="value or JSON" aria-label="Extra metadata value" />
+					<button type="button" class="add-btn" onclick={handleAddExtra} disabled={!extraKey.trim()}>
+						Add
+					</button>
+				</div>
+				{#if extraError}
+					<p class="extra-error">{extraError}</p>
+				{/if}
+			{/if}
 		</div>
 	</div>
+
+{#if nestedEdit}
+	<NestedMetadataDialog
+		title={nestedEdit.kind === 'schema' ? `Edit ${nestedEdit.key}` : `Edit ${nestedEdit.key}`}
+		fields={nestedEdit.kind === 'schema' ? nestedEdit.fields : null}
+		{metadata}
+		rawKey={nestedEdit.kind === 'extra' ? nestedEdit.key : ''}
+		rawValue={nestedEdit.kind === 'extra' ? nestedEdit.raw : null}
+		onconfirm={(next) => {
+			commitExtra(next);
+			nestedEdit = null;
+		}}
+		oncancel={() => (nestedEdit = null)}
+	/>
 {/if}
 
 <style>
@@ -213,5 +356,43 @@
 		background: #1e293b;
 		border-color: #334155;
 		color: #e2e8f0;
+	}
+
+	.extra-hint,
+	.extra-error {
+		margin: 0;
+		font-size: 11px;
+		color: #64748b;
+	}
+	.extra-error {
+		color: #b91c1c;
+	}
+	.extra-edit,
+	.extra-add,
+	.nested-preview {
+		display: flex;
+		gap: 6px;
+		align-items: center;
+	}
+	.preview-text {
+		flex: 1;
+		min-width: 0;
+		font-size: 11px;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.remove-btn,
+	.add-btn {
+		height: 32px;
+		padding: 0 8px;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 6px;
+		background: #fff;
+		cursor: pointer;
+		font-size: 12px;
+	}
+	.remove-btn {
+		color: #b91c1c;
 	}
 </style>

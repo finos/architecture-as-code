@@ -1,0 +1,566 @@
+{
+  "$schema": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "$id": "https://calm.finos.org/extensions/packs/archimate.extension.json",
+  "id": "archimate",
+  "label": "Archimate Model",
+  "version": "1.0.0",
+  "standard": {
+    "$id": "https://calm.finos.org/extensions/archimate/calm-archimate-extension.schema.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "href": "../standards/archimate.standard.json",
+    "calmVersion": "1.2",
+    "status": "published"
+  },
+  "color": {
+    "bg": "#f5f0ff",
+    "border": "#8b5cf6",
+    "stroke": "#7c3aed",
+    "badge": "[ARCHIMATE]"
+  },
+  "nodes": [
+    {
+      "typeId": "archimate:businessActor",
+      "label": "Business Actor",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"250 721 31 54\"><g transform=\"translate(0.5,0.5)\"><ellipse cx=\"265.25\" cy=\"730.5\" rx=\"7.949999999999999\" ry=\"7.5\" fill=\"#ffff99\" stroke=\"#000000\" /><path d=\"M 265.25 738 L 265.25 760.5 M 252 745.5 L 278.5 745.5 M 252 773 L 265.25 760.5 L 278.5 773\" fill=\"none\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Business actor",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Business",
+            "element": "archimate:businessActor",
+            "viewpoint": "SystemContext"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:businessRole",
+      "label": "Business Role",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"26 728 64 39\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 76 730 L 40 730 C 33.37 730 28 737.84 28 747.5 C 28 757.16 33.37 765 40 765 L 76 765\" fill=\"#ffff99\" stroke=\"#000000\" /><ellipse cx=\"76\" cy=\"747.5\" rx=\"12\" ry=\"17.5\" fill=\"#ffff99\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Business role",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Business",
+            "element": "archimate:businessRole",
+            "viewpoint": "SystemContext"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:businessProcess",
+      "label": "Business Process",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"426 733 64 34\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 428 744 L 464 744 L 464 735 L 488 750 L 464 765 L 464 756 L 428 756 Z\" fill=\"#ffff99\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Business process",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Business",
+            "element": "archimate:businessProcess",
+            "viewpoint": "SystemContext"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:dataObject",
+      "label": "Data Object",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"385 535 74 44\"><g transform=\"translate(0.5,0.5)\"><rect x=\"387.5\" y=\"537.5\" width=\"70\" height=\"40\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Data Object is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:dataObject",
+            "viewpoint": "InformationStructure"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:dataStore",
+      "label": "Data Store",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\"><ellipse cx=\"8\" cy=\"4\" rx=\"5\" ry=\"2\" fill=\"#99ffff\" stroke=\"#000000\" stroke-width=\"1.2\"/><path d=\"M3 4v8c0 1.1 2.24 2 5 2s5-.9 5-2V4\" fill=\"#99ffff\" stroke=\"#000000\" stroke-width=\"1.2\"/></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Data Store is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:dataStore",
+            "viewpoint": "InformationStructure"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationService",
+      "label": "Application Service",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"230 538 64 39\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 275 540 C 284.66 540 292.5 547.84 292.5 557.5 C 292.5 567.16 284.66 575 275 575 L 250 575 C 240.34 575 232.5 567.16 232.5 557.5 C 232.5 547.84 240.34 540 250 540 Z\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Service is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationService",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationEvent",
+      "label": "Application Event",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"70 528 64 39\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 115 530 C 124.66 530 132.5 537.84 132.5 547.5 C 132.5 557.16 124.66 565 115 565 L 72.5 565 L 90 547.5 L 72.5 530 Z\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Event is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationEvent",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationProcess",
+      "label": "Application Process",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"395 318 64 34\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 397.5 329 L 433.5 329 L 433.5 320 L 457.5 335 L 433.5 350 L 433.5 341 L 397.5 341 Z\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Process is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationProcess",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationInteraction",
+      "label": "Application Interaction",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"233 328 44 44\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 257.5 330 C 267.44 330 275.5 338.95 275.5 350 C 275.5 361.05 267.44 370 257.5 370 Z M 253.5 330 C 243.56 330 235.5 338.95 235.5 350 C 235.5 361.05 243.56 370 253.5 370 Z\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Interaction is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationInteraction",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationFunction",
+      "label": "Application Function",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"58 328 64 44\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 90 330 L 120 338 L 120 370 L 90 362 L 60 370 L 60 338 Z\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Function is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationFunction",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationInterface",
+      "label": "Application Interface",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"408 98 39 39\"><g transform=\"translate(0.5,0.5)\"><ellipse cx=\"427.5\" cy=\"117.5\" rx=\"17.5\" ry=\"17.5\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Interface is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationInterface",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationComponent",
+      "label": "Application Component",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"75 98 52 44\"><g transform=\"translate(0.5,0.5)\"><rect x=\"89\" y=\"100\" width=\"36\" height=\"40\" fill=\"#99ffff\" stroke=\"#000000\" /><rect x=\"77\" y=\"110\" width=\"24\" height=\"6\" fill=\"#99ffff\" stroke=\"#000000\" /><rect x=\"77\" y=\"124\" width=\"24\" height=\"6\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Component is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationComponent",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:applicationCollaboration",
+      "label": "Application Collaboration",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"233 88 64 39\"><g transform=\"translate(0.5,0.5)\"><ellipse cx=\"253\" cy=\"107.5\" rx=\"18\" ry=\"17.5\" fill=\"#99ffff\" stroke=\"#000000\" /><ellipse cx=\"277\" cy=\"107.5\" rx=\"18\" ry=\"17.5\" fill=\"#99ffff\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Application Collaboration is a collection of data",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Application",
+            "element": "archimate:applicationCollaboration",
+            "viewpoint": "ApplicationCooperation"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:node",
+      "label": "Node",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"78 878 74 44\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 80 890 L 97.5 880 L 150 880 L 150 910 L 132.5 920 L 80 920 Z M 80 890 L 132.5 890 L 132.5 920 M 150 880 L 132.5 890\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Technology node",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:node",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:device",
+      "label": "Device",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"231 883 74 39\"><g transform=\"translate(0.5,0.5)\"><rect x=\"233\" y=\"885\" width=\"70\" height=\"30.8\" rx=\"7\" ry=\"3.5\" fill=\"#afffaf\" stroke=\"#000000\" /><path d=\"M 240 915.8 L 233 920 L 303 920 L 296 915.8\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Device",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:device",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:systemSoftware",
+      "label": "System Software",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"45 1088 45 44\"><g transform=\"translate(0.5,0.5)\"><ellipse cx=\"74\" cy=\"1104\" rx=\"14\" ry=\"14\" fill=\"#afffaf\" stroke=\"#000000\" /><ellipse cx=\"67.6\" cy=\"1110.4\" rx=\"19.6\" ry=\"19.6\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "System software",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:systemSoftware",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:technologyService",
+      "label": "Technology Service",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"226 1088 64 39\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 270.5 1090 C 280.16 1090 288 1097.84 288 1107.5 C 288 1117.16 280.16 1125 270.5 1125 L 245.5 1125 C 235.84 1125 228 1117.16 228 1107.5 C 228 1097.84 235.84 1090 245.5 1090 Z\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Technology service",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:technologyService",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:technologyInterface",
+      "label": "Technology Interface",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"481 1098 39 39\"><g transform=\"translate(0.5,0.5)\"><ellipse cx=\"500.5\" cy=\"1117.5\" rx=\"17.5\" ry=\"17.5\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Technology interface",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:technologyInterface",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:artifact",
+      "label": "Artifact",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"621 536 74 39\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 623 538 L 679 538 L 693 552 L 693 573 L 623 573 L 623 538 Z\" fill=\"#afffaf\" stroke=\"#000000\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Deployable artifact",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:artifact",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:path",
+      "label": "Path",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"526 798 19 9\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 531 805 L 528 802.5 L 531 800 M 540 805 L 543 802.5 L 540 800\" fill=\"none\" stroke=\"#000000\" /><path d=\"M 528 802.5 L 543 802.5\" fill=\"none\" stroke=\"#000000\" stroke-dasharray=\"3 3\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Communication path",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:path",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    },
+    {
+      "typeId": "archimate:communicationNetwork",
+      "label": "Communication Network",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"626 890 69 50\"><g transform=\"translate(0.5,0.5)\"><path d=\"M 654 901.2 L 683.25 901.2 L 667 928.8 L 637.75 928.8 Z\" fill=\"none\" stroke=\"#000000\" /><ellipse cx=\"654\" cy=\"901.2\" rx=\"9.75\" ry=\"9.200000000000001\" fill=\"#000000\" stroke=\"none\" /><ellipse cx=\"683.25\" cy=\"901.2\" rx=\"9.75\" ry=\"9.200000000000001\" fill=\"#000000\" stroke=\"none\" /><ellipse cx=\"637.75\" cy=\"928.8\" rx=\"9.75\" ry=\"9.200000000000001\" fill=\"#000000\" stroke=\"none\" /><ellipse cx=\"667\" cy=\"928.8\" rx=\"9.75\" ry=\"9.200000000000001\" fill=\"#000000\" stroke=\"none\" /></g></svg>",
+      "color": {
+        "bg": "#f0f0ff",
+        "border": "#6366f1",
+        "stroke": "#4f46e5"
+      },
+      "description": "Communication network",
+      "rectangleLayout": true,
+      "defaults": {
+        "metadata": {
+          "owner": "TBD",
+          "archimate": {
+            "layer": "Technology",
+            "element": "archimate:communicationNetwork",
+            "viewpoint": "TechnologyDeployment"
+          }
+        }
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "typeId": "archimate:Serving",
+      "label": "Serving",
+      "calmCoreVariant": "interacts",
+      "description": "ArchiMate Serving (CALM interacts)"
+    },
+    {
+      "typeId": "archimate:Composition",
+      "label": "Composition",
+      "calmCoreVariant": "composed-of",
+      "description": "ArchiMate Composition (CALM composed-of)"
+    },
+    {
+      "typeId": "archimate:Aggregation",
+      "label": "Aggregation",
+      "calmCoreVariant": "composed-of",
+      "description": "ArchiMate Aggregation (CALM composed-of)"
+    },
+    {
+      "typeId": "archimate:Deployment",
+      "label": "Deployment",
+      "calmCoreVariant": "deployed-in",
+      "description": "ArchiMate Deployment (CALM deployed-in)"
+    },
+    {
+      "typeId": "archimate:Assignment",
+      "label": "Assignment",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Assignment (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Realization",
+      "label": "Realization",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Realization (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Access",
+      "label": "Access",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Access (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Influence",
+      "label": "Influence",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Influence (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Triggering",
+      "label": "Triggering",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Triggering (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Flow",
+      "label": "Flow",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Flow (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Specialization",
+      "label": "Specialization",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Specialization (CALM connects)"
+    },
+    {
+      "typeId": "archimate:Association",
+      "label": "Association",
+      "calmCoreVariant": "connects",
+      "description": "ArchiMate Association (CALM connects)"
+    }
+  ],
+  "relationshipDefaults": {
+    "metadata": {
+      "archimate": {
+        "relationship": "Association",
+        "calm-core-variant": "connects"
+      }
+    }
+  }
+}

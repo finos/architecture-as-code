@@ -76,7 +76,7 @@
         "calm.externalAssetsPath": {
           "type": "string",
           "default": "",
-          "markdownDescription": "Absolute path to an external folder containing shared `nodes/`, `standards/`, `patterns/`, and `templates/` folders."
+          "markdownDescription": "Absolute path to an external folder containing shared `nodes/`, `standards/`, `patterns/`, `templates/`, and `extensions/` folders."
         },
         "calm.packs.enabled": {
           "type": "array",
@@ -84,7 +84,7 @@
             "type": "string"
           },
           "default": [],
-          "markdownDescription": "List of extension pack IDs to show in the palette (e.g. `[\"aws\", \"k8s\"]`). Leave empty to show all packs. Available packs: `core`, `fluxnova`, `ai`, `aws`, `gcp`, `azure`, `k8s`, `messaging`, `identity`, `opengris`."
+          "markdownDescription": "List of extension pack IDs to show in the palette (e.g. `[\"aws\", \"k8s\"]`). Leave empty to show all packs. Available packs: `core`, `fluxnova`, `ai`, `aws`, `gcp`, `azure`, `k8s`, `messaging`, `identity`, `opengris`, `archimate`."
         },
         "calm.packs.excludeNodes": {
           "type": "array",
@@ -93,6 +93,14 @@
           },
           "default": [],
           "markdownDescription": "List of node type IDs to hide from the palette (e.g. `[\"core:ldap\", \"aws:s3\"]`). Use the `packId:nodeType` format."
+        },
+        "calm.packs.folders": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "Extra directories of `*.extension.json` palette packs (absolute or workspace-relative). Loaded after workspace `extensions/` and `calm.externalAssetsPath/extensions`. Same pack `id` overwrites."
         }
       }
     }

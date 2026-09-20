@@ -63,3 +63,20 @@ export function mergeArchitectureBody(
 	}
 	return next;
 }
+
+export type ArchitectureWithMetadata = CalmArchitecture & {
+	metadata?: Record<string, unknown>;
+};
+
+export function withArchitectureMetadata(
+	arch: CalmArchitecture,
+	metadata: Record<string, unknown>
+): ArchitectureWithMetadata {
+	const next = { ...arch } as ArchitectureWithMetadata;
+	if (Object.keys(metadata).length === 0) {
+		delete next.metadata;
+		return next;
+	}
+	next.metadata = metadata;
+	return next;
+}

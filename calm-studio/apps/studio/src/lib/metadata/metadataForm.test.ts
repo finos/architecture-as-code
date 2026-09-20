@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, expect, it } from 'vitest';
-import { readMetadataPath, writeMetadataPath, getMetadataFieldsForRelationship } from './metadataForm';
+import { readMetadataPath, writeMetadataPath, getMetadataFieldsForRelationship, groupMetadataFields } from './metadataForm';
 
 describe('metadataForm paths', () => {
 	it('reads nested archimate fields', () => {
@@ -39,5 +39,34 @@ describe('getMetadataFieldsForRelationship', () => {
 
 	it('returns null for core-only relationships', () => {
 		expect(getMetadataFieldsForRelationship('service', 'database')).toBeNull();
+	});
+});
+
+describe('groupMetadataFields', () => {
+	it('keeps top-level fields inline and groups nested paths for the dialog', () => {
+		const grouped = groupMetadataFields([
+			{ key: 'owner', label: 'Owner', required: true, kind: 'string', path: ['owner'] },
+			{
+				key: 'layer',
+				label: 'Layer',
+				required: true,
+				kind: 'enum',
+				enumValues: ['Application'],
+				path: ['archimate', 'layer'],
+			},
+			{
+				key: 'viewpoint',
+				label: 'Viewpoint',
+				required: false,
+				kind: 'enum',
+				enumValues: ['SystemContext'],
+				path: ['archimate', 'viewpoint'],
+			},
+		]);
+		expect(grouped.top).toHaveLength(1);
+		expect(grouped.top[0]?.key).toBe('owner');
+		expect(grouped.nested).toHaveLength(1);
+		expect(grouped.nested[0]?.key).toBe('archimate');
+		expect(grouped.nested[0]?.fields.map((f) => f.key)).toEqual(['layer', 'viewpoint']);
 	});
 });

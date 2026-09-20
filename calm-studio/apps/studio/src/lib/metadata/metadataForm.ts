@@ -187,3 +187,42 @@ export function writeMetadataPath(
 	}
 	return root;
 }
+
+export function groupMetadataFields(fields: MetadataFieldDescriptor[]): {
+	top: MetadataFieldDescriptor[];
+	nested: Array<{ key: string; fields: MetadataFieldDescriptor[] }>;
+} {
+	const top: MetadataFieldDescriptor[] = [];
+	const nestedMap = new Map<string, MetadataFieldDescriptor[]>();
+	for (const field of fields) {
+		if (field.path.length > 1) {
+			const key = field.path[0]!;
+			const list = nestedMap.get(key) ?? [];
+			list.push(field);
+			nestedMap.set(key, list);
+		} else {
+			top.push(field);
+		}
+	}
+	return {
+		top,
+		nested: [...nestedMap.entries()].map(([key, nestedFields]) => ({
+			key,
+			fields: nestedFields,
+		})),
+	};
+}
+
+export function previewNestedMetadata(
+	metadata: Record<string, unknown> | undefined,
+	key: string
+): string {
+	const value = metadata?.[key];
+	if (value === undefined) return '—';
+	if (typeof value === 'string') return value;
+	try {
+		return JSON.stringify(value);
+	} catch {
+		return '—';
+	}
+}

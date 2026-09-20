@@ -1,10 +1,18 @@
 import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { defineConfig } from 'vitest/config';
 import { jsonFromDisk } from './json-from-disk';
+
+const repoRoot = path.resolve(fileURLToPath(new URL('../..', import.meta.url)));
 
 export default defineConfig({
     plugins: [jsonFromDisk()],
     json: { stringify: true },
+    server: {
+        fs: {
+            allow: [repoRoot],
+        },
+    },
     test: {
         include: ['src/**/*.test.{ts,tsx}'],
         environment: 'node',

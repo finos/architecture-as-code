@@ -2,14 +2,18 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-export type { PackDefinition, NodeTypeEntry, PackColor } from './types.js';
+export type { PackDefinition, NodeTypeEntry, PackColor, RelationshipTypeEntry } from './types.js';
 export {
   registerPack,
   resolvePackNode,
   getAllPacks,
   getPacksForTypes,
+  getPackForNodeType,
   resetRegistry,
+  subscribePackRegistry,
 } from './registry.js';
+export { parsePackJson, duplicateTypeIdWarnings, PACK_SCHEMA_ID } from './json/parsePack.js';
+export { loadPacksFromDirectories, orderedPackDirectories } from './json/loadPacksFromFs.js';
 export { corePack } from './packs/core.js';
 export { awsPack } from './packs/aws.js';
 export { gcpPack } from './packs/gcp.js';
@@ -21,31 +25,23 @@ export { messagingPack } from './packs/messaging.js';
 export { identityPack } from './packs/identity.js';
 export { openGrisPack } from './packs/opengris.js';
 
-import { registerPack } from './registry.js';
-import { corePack } from './packs/core.js';
-import { awsPack } from './packs/aws.js';
-import { gcpPack } from './packs/gcp.js';
-import { azurePack } from './packs/azure.js';
-import { kubernetesPack } from './packs/kubernetes.js';
-import { aiPack } from './packs/ai.js';
-import { fluxnovaPack } from './packs/fluxnova.js';
-import { messagingPack } from './packs/messaging.js';
-import { identityPack } from './packs/identity.js';
-import { openGrisPack } from './packs/opengris.js';
+import { resetRegistry } from './registry.js';
+import { loadBundledPackDocuments } from './json/bundledPacks.js';
+import { registerPackDocuments } from './json/registerPackDocuments.js';
 
 /**
- * Register all built-in packs (core + 9 extension packs).
- * Call once at application startup before resolving any pack nodes.
+ * Register bundled pack JSON (webview fallback until the host posts FS packs).
  */
 export function initAllPacks(): void {
-  registerPack(corePack);
-  registerPack(fluxnovaPack);
-  registerPack(aiPack);
-  registerPack(awsPack);
-  registerPack(gcpPack);
-  registerPack(azurePack);
-  registerPack(kubernetesPack);
-  registerPack(messagingPack);
-  registerPack(identityPack);
-  registerPack(openGrisPack);
+  registerPackDocuments(
+    loadBundledPackDocuments().map((value, index) => ({
+      source: `bundled[${index}]`,
+      value,
+    }))
+  );
+}
+
+export function resetToBundledPacks(): void {
+  resetRegistry();
+  initAllPacks();
 }

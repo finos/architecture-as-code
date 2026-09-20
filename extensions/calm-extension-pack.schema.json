@@ -1,0 +1,263 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "title": "CALM Extension Pack",
+  "description": "Tooling catalog for one CALM extension pack (palette, icons, colors). Distinct from a CALM Standard: the Standard is a JSON Schema overlay on architecture documents; this pack file tells Studio, the VS Code plugin, Hub, and CLI how to present the types that Standard defines. Canonical files live at the monorepo root under extensions/. Hosts load these JSON files from the filesystem.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "id",
+    "label",
+    "version",
+    "standard",
+    "color",
+    "nodes",
+    "relationships"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "https://calm.finos.org/schemas/calm-extension-pack.schema.json"
+    },
+    "$id": {
+      "type": "string",
+      "format": "uri",
+      "description": "Canonical URI of this pack file."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Short pack identifier used as the node-type prefix (except core, which is unprefixed)."
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable pack name in the palette."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(-[A-Za-z0-9.-]+)?$",
+      "description": "Semantic version of this pack definition (independent of the Standard version)."
+    },
+    "description": {
+      "type": "string"
+    },
+    "standard": {
+      "$ref": "#/$defs/standardRef",
+      "description": "Reference to the CALM Standard (JSON Schema) that validates architectures using this pack."
+    },
+    "color": {
+      "$ref": "#/$defs/packColor"
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/nodeTypeEntry"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Relationship types offered in the palette for this pack. Each entry maps to a CALM 1.2 relationship-type variant.",
+      "items": {
+        "$ref": "#/$defs/relationshipTypeEntry"
+      }
+    },
+    "relationshipDefaults": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Default relationship metadata when connecting nodes from this pack.",
+      "properties": {
+        "metadata": {
+          "type": "object"
+        }
+      }
+    }
+  },
+  "$defs": {
+    "standardRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "$id"
+      ],
+      "properties": {
+        "$id": {
+          "type": "string",
+          "format": "uri",
+          "description": "Canonical $id of the CALM Standard JSON Schema. Hosts write this URI into architecture $schema (alongside the CALM 1.2 meta-schema) when the pack is first used — including when the URI is not yet published on calm.finos.org."
+        },
+        "href": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Filesystem path to the Standard JSON Schema, relative to this pack file. Core omits href and uses the published CALM 1.2 meta-schema."
+        },
+        "$schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "Meta-schema of the Standard document itself. CALM Standards are JSON Schema 2020-12 documents."
+        },
+        "calmVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+$",
+          "description": "CALM release the Standard composes with (for example 1.2)."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "published",
+            "proposed"
+          ],
+          "description": "published = Standard exists at $id (or is bundled). proposed = pack exists; Standard document is not yet published."
+        }
+      }
+    },
+    "packColor": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "bg",
+        "border",
+        "stroke"
+      ],
+      "properties": {
+        "bg": {
+          "$ref": "#/$defs/cssColor"
+        },
+        "border": {
+          "$ref": "#/$defs/cssColor"
+        },
+        "stroke": {
+          "$ref": "#/$defs/cssColor"
+        },
+        "badge": {
+          "type": "string",
+          "description": "Short palette badge, for example [AWS]."
+        }
+      }
+    },
+    "cssColor": {
+      "type": "string",
+      "pattern": "^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6}|[0-9A-Fa-f]{8})$"
+    },
+    "icon": {
+      "description": "Inline SVG (current packs) or an external SVG/PNG URI. Hosts that cannot render SVG from a URI fall back to a generic extension glyph.",
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "description": "Inline SVG markup, typically 16x16 viewBox, stroke-based."
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "href"
+          ],
+          "properties": {
+            "href": {
+              "type": "string",
+              "minLength": 1,
+              "description": "URI or pack-relative path to an icon file (svg, png)."
+            },
+            "mediaType": {
+              "type": "string",
+              "enum": [
+                "image/svg+xml",
+                "image/png"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "nodeTypeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "typeId",
+        "label",
+        "icon",
+        "color"
+      ],
+      "properties": {
+        "typeId": {
+          "type": "string",
+          "minLength": 1,
+          "description": "CALM node-type. Colon-prefixed for extension packs (aws:lambda); unprefixed for core (actor)."
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "icon": {
+          "$ref": "#/$defs/icon"
+        },
+        "color": {
+          "$ref": "#/$defs/packColor"
+        },
+        "description": {
+          "type": "string"
+        },
+        "isContainer": {
+          "type": "boolean",
+          "description": "If true, the node renders as a container that accepts children."
+        },
+        "rectangleLayout": {
+          "type": "boolean",
+          "description": "If true, render as a bordered rectangle with icon beside the label (ArchiMate / core style)."
+        },
+        "defaultChildren": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Child typeIds auto-placed when this container is dropped from the palette."
+        },
+        "defaults": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Values written onto a new node when placed from the palette.",
+          "properties": {
+            "metadata": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "relationshipTypeEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "typeId",
+        "label"
+      ],
+      "properties": {
+        "typeId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "calmCoreVariant": {
+          "type": "string",
+          "enum": [
+            "connects",
+            "composed-of",
+            "deployed-in",
+            "interacts",
+            "options"
+          ]
+        }
+      }
+    }
+  }
+}

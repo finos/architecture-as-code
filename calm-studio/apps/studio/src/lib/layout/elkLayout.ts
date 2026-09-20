@@ -23,6 +23,7 @@ import type {
 	CalmRelationshipVariant
 } from '@calmstudio/calm-core';
 import { resolveSiblingOverlaps } from '../canvas/edgeRouting/obstacleRouter';
+import { packChildrenInSquareGrid } from './containerGrid';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -272,43 +273,16 @@ export async function layoutCalm(
 				}
 			}
 
+			// Nested children: 2D table (rows + columns) targeting a near-square bbox (R46).
+			// Rectpacking with aspectRatio ~1; do not fall back to a one-axis strip.
+			elkNode.layoutOptions = {
+				'elk.algorithm': 'rectpacking',
+				'elk.padding': '[top=56,left=40,bottom=40,right=40]',
+				'elk.spacing.nodeNode': '80',
+				'elk.aspectRatio': '1',
+			};
 			if (innerEdges.length > 0) {
 				elkNode.edges = innerEdges;
-			}
-
-			// Build layout options based on child structure:
-			// 1. Children with edges AND some children are sub-containers (e.g., VPC
-			//    with subnets): use layered with same direction to preserve vertical
-			//    stacking of sub-containers in TTB mode.
-			// 2. Children with edges but all are leaf nodes (e.g., Order Management
-			//    System with services): use layered with perpendicular direction
-			//    so services spread horizontally in TTB mode.
-			// 3. No edges (e.g., subnets with instances): use rectpacking for
-			//    horizontal row in TTB, vertical column in LTR.
-			const hasSubContainers = childArray.some((id) => parentChildren.has(id));
-			const nestedDir = asLayeredDirection(direction);
-			if (innerEdges.length > 0) {
-				const edgeDirection = hasSubContainers
-					? nestedDir
-					: nestedDir === 'RIGHT' ? 'DOWN' : 'RIGHT';
-				elkNode.layoutOptions = {
-					'elk.algorithm': 'layered',
-					'elk.direction': edgeDirection,
-					'elk.padding': '[top=56,left=40,bottom=40,right=40]',
-					'elk.spacing.nodeNode': '80',
-					'elk.layered.spacing.nodeNodeBetweenLayers': '100',
-					'elk.spacing.edgeNode': '40',
-					'elk.spacing.edgeEdge': '25',
-					'elk.layered.spacing.edgeNodeBetweenLayers': '40',
-					'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-				};
-			} else {
-				elkNode.layoutOptions = {
-					'elk.algorithm': 'rectpacking',
-					'elk.padding': '[top=56,left=40,bottom=40,right=40]',
-					'elk.spacing.nodeNode': '80',
-					'elk.aspectRatio': asLayeredDirection(direction) === 'DOWN' ? '99' : '0.01',
-				};
 			}
 		}
 
@@ -458,6 +432,20 @@ export async function layoutCalm(
 	}
 
 	let result: PositionMap = positionMap;
+
+	const nestedGroups = Array.from(parentChildren.entries())
+		.map(([parentId, children]) => ({ parentId, ids: Array.from(children) }))
+		.filter((g) => g.ids.length > 0)
+		.sort((a, b) => depthOf(b.ids[0]!) - depthOf(a.ids[0]!));
+	for (const group of nestedGroups) {
+		result = packChildrenInSquareGrid(result, group.ids, {
+			gap: 80,
+			padding: PAD,
+			defaultWidth: NODE_WIDTH,
+			defaultHeight: NODE_HEIGHT,
+		});
+	}
+
 	for (const group of groupsByDepth) {
 		result = resolveSiblingOverlaps(result, group, GAP);
 	}

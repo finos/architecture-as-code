@@ -32,6 +32,7 @@
 		onexportscalertoml,
 		onloaddemo,
 		ontemplates,
+		onhubbrowse,
 		filename = null,
 		isDirty = false,
 		c4Level = null,
@@ -60,6 +61,7 @@
 		onexportscalertoml?: (() => void) | undefined;
 		onloaddemo?: (demo: { id: string; name: string; path: string }) => void;
 		ontemplates?: () => void;
+		onhubbrowse?: () => void;
 		filename?: string | null;
 		isDirty?: boolean;
 		/** Current C4 view level. null = "All" (show everything), or 'context' | 'container' | 'component'. */
@@ -169,6 +171,18 @@
 					<rect x="14" y="14" width="7" height="7" rx="1" />
 				</svg>
 				<span class="btn-label">Templates</span>
+			</button>
+		{/if}
+
+		{#if onhubbrowse}
+			<button
+				type="button"
+				class="toolbar-btn templates-btn"
+				onclick={onhubbrowse}
+				aria-label="Browse CALM Hub"
+				title="Hub"
+			>
+				<span class="btn-label">Hub</span>
 			</button>
 		{/if}
 

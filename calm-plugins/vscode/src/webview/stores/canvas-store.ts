@@ -32,6 +32,7 @@ export interface CanvasState {
     loadedPatterns: unknown[];
     loadedTemplates: unknown[];
     loadedStandards: unknown[];
+    packRevision: number;
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -66,6 +67,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     loadedPatterns: [],
     loadedTemplates: [],
     loadedStandards: [],
+    packRevision: 0,
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),

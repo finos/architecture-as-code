@@ -12,8 +12,10 @@ const config = {
 		}),
 		alias: {
 			'@finos/calm-shared/generate': path.resolve('../../../shared/src/commands/generate/generate-core.ts'),
+			'@finos/calm-shared/validate': path.resolve('../../../shared/src/commands/validate/validate-core.ts'),
 			'@finos/calm-shared/document-loader-types': path.resolve('../../../shared/src/document-loader/types.ts'),
 			'$calm-release': path.resolve('../../../calm/release'),
+			'$calm-draft': path.resolve('../../../calm/draft'),
 			winston: path.resolve('src/lib/shims/winston.ts'),
 		}
 	}

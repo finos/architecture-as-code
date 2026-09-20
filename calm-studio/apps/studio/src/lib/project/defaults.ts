@@ -72,5 +72,51 @@ export function isCalmProjectConfig(value: unknown): value is CalmProjectConfig 
 		const patterns = v['patterns'] as Record<string, unknown>;
 		if (typeof patterns['dir'] !== 'string') return false;
 	}
+	if (v['extensions'] !== undefined) {
+		if (!v['extensions'] || typeof v['extensions'] !== 'object' || Array.isArray(v['extensions'])) {
+			return false;
+		}
+		const extensions = v['extensions'] as Record<string, unknown>;
+		if (extensions['dir'] !== undefined && typeof extensions['dir'] !== 'string') return false;
+		if (extensions['disabled'] !== undefined) {
+			if (!Array.isArray(extensions['disabled'])) return false;
+			if (extensions['disabled'].some((id) => typeof id !== 'string')) return false;
+		}
+	}
+	if (v['hub'] !== undefined) {
+		if (!v['hub'] || typeof v['hub'] !== 'object') return false;
+		const hub = v['hub'] as Record<string, unknown>;
+		if (typeof hub['url'] !== 'string') return false;
+	}
 	return true;
+}
+
+export function validateNamingConfig(naming: CalmProjectConfig['naming']): string | null {
+	if (!naming.profile.trim()) return 'Naming profile is required';
+	if (naming.rootDirs) {
+		for (const [key, value] of Object.entries(naming.rootDirs)) {
+			if (!key.trim() || !value.trim()) return 'rootDirs keys and values must be non-empty';
+		}
+	}
+	for (const [type, pattern] of Object.entries(naming.patterns)) {
+		if (!type.trim()) return 'Pattern type cannot be empty';
+		if (!pattern.dir.trim() || !pattern.file.trim()) {
+			return `Pattern "${type}" needs both dir and file templates`;
+		}
+	}
+	return null;
+}
+
+export function validateHubUrlInput(url: string): string | null {
+	const trimmed = url.trim();
+	if (!trimmed) return null;
+	try {
+		const parsed = new URL(trimmed);
+		if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+			return 'Hub URL must be http(s)';
+		}
+	} catch {
+		return 'Hub URL is not a valid URL';
+	}
+	return null;
 }

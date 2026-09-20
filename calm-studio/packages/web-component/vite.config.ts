@@ -13,6 +13,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    fs: {
+      allow: ['../../..'],
+    },
+  },
   build: {
     lib: {
       entry: 'src/index.ts',

@@ -1,0 +1,223 @@
+{
+  "$schema": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "$id": "https://calm.finos.org/extensions/packs/k8s.extension.json",
+  "id": "k8s",
+  "label": "Kubernetes",
+  "version": "1.0.0",
+  "standard": {
+    "$id": "https://calm.finos.org/extensions/k8s/k8s.standard.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "href": "../standards/k8s.standard.json",
+    "calmVersion": "1.2",
+    "status": "proposed"
+  },
+  "color": {
+    "bg": "#f0f4ff",
+    "border": "#326ce5",
+    "stroke": "#2054c8",
+    "badge": "[K8s]"
+  },
+  "nodes": [
+    {
+      "typeId": "k8s:pod",
+      "label": "Pod",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><ellipse cx=\"8\" cy=\"8\" rx=\"5.5\" ry=\"4\"/><circle cx=\"8\" cy=\"8\" r=\"2\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "The smallest deployable unit in Kubernetes"
+    },
+    {
+      "typeId": "k8s:deployment",
+      "label": "Deployment",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"5\" width=\"5\" height=\"4\" rx=\"1\"/><rect x=\"9\" y=\"5\" width=\"5\" height=\"4\" rx=\"1\"/><path d=\"M7 7h2\" stroke-linecap=\"round\"/><path d=\"M4.5 3v2M11.5 3v2M4.5 9v2M11.5 9v2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Manages a set of identical pods with rolling updates"
+    },
+    {
+      "typeId": "k8s:statefulset",
+      "label": "StatefulSet",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"3\" y=\"3\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"9\" y=\"3\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"3\" y=\"9\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"9\" y=\"9\" width=\"4\" height=\"4\" rx=\"1\"/><path d=\"M7 5h2M5 7v2M9 7v2M7 11h2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Manages stateful applications with stable storage"
+    },
+    {
+      "typeId": "k8s:daemonset",
+      "label": "DaemonSet",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><ellipse cx=\"8\" cy=\"8\" rx=\"5.5\" ry=\"4\"/><path d=\"M5 8h6M8 5v6\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Ensures a pod copy runs on each cluster node"
+    },
+    {
+      "typeId": "k8s:job",
+      "label": "Job",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"1.5\"/><path d=\"M5 8l2 2 4-4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Runs pods to completion for batch workloads"
+    },
+    {
+      "typeId": "k8s:cronjob",
+      "label": "CronJob",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"8\" r=\"5.5\"/><path d=\"M8 4v4l2.5 1.5\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M2 4l1.5 1.5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Schedules jobs on a recurring time basis"
+    },
+    {
+      "typeId": "k8s:service",
+      "label": "Service",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"8\" r=\"5.5\"/><path d=\"M8 4v8M5 5.5l6 5M11 5.5l-6 5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Exposes a set of pods as a stable network endpoint"
+    },
+    {
+      "typeId": "k8s:ingress",
+      "label": "Ingress",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M1 8h7M4 5l4 3-4 3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><rect x=\"9\" y=\"4\" width=\"6\" height=\"8\" rx=\"1.5\"/><path d=\"M11 7h2M11 9h2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Manages external HTTP/S access to cluster services"
+    },
+    {
+      "typeId": "k8s:configmap",
+      "label": "ConfigMap",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"10\" rx=\"1.5\"/><path d=\"M5 6h6M5 8h4M5 10h5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Stores non-sensitive configuration data"
+    },
+    {
+      "typeId": "k8s:secret",
+      "label": "Secret",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"3\" y=\"7.5\" width=\"10\" height=\"6.5\" rx=\"1.5\"/><path d=\"M5.5 7.5V5.5a2.5 2.5 0 0 1 5 0v2\"/><circle cx=\"8\" cy=\"10.5\" r=\"1\"/><path d=\"M8 11.5v1\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Stores sensitive configuration such as credentials"
+    },
+    {
+      "typeId": "k8s:persistent-volume",
+      "label": "Persistent Volume",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"2\"/><circle cx=\"8\" cy=\"8\" r=\"2.5\"/><path d=\"M5 4V2.5M11 4V2.5M5 12v1.5M11 12v1.5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Cluster-wide storage resource provisioning"
+    },
+    {
+      "typeId": "k8s:pvc",
+      "label": "PVC",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"2\"/><path d=\"M6 8h4M8 6v4\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Persistent Volume Claim — a pod request for storage"
+    },
+    {
+      "typeId": "k8s:namespace",
+      "label": "Namespace",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\" stroke-dasharray=\"3 2\"><rect x=\"1.5\" y=\"1.5\" width=\"13\" height=\"13\" rx=\"2.5\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Virtual cluster partition for resource isolation",
+      "isContainer": true
+    },
+    {
+      "typeId": "k8s:hpa",
+      "label": "HPA",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"6\" width=\"3\" height=\"4\" rx=\"0.8\"/><rect x=\"6.5\" y=\"4\" width=\"3\" height=\"8\" rx=\"0.8\"/><rect x=\"11\" y=\"2\" width=\"3\" height=\"12\" rx=\"0.8\"/><path d=\"M1 13.5h14\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0f4ff",
+        "border": "#326ce5",
+        "stroke": "#2054c8",
+        "badge": "[K8s]"
+      },
+      "description": "Horizontal Pod Autoscaler — scales pods based on load"
+    }
+  ],
+  "relationships": [
+    {
+      "typeId": "connects",
+      "label": "Connects",
+      "calmCoreVariant": "connects",
+      "description": "Directed connection from a source node to a destination node"
+    },
+    {
+      "typeId": "composed-of",
+      "label": "Composed of",
+      "calmCoreVariant": "composed-of",
+      "description": "Containment: container is composed of member nodes"
+    },
+    {
+      "typeId": "deployed-in",
+      "label": "Deployed in",
+      "calmCoreVariant": "deployed-in",
+      "description": "Deployment: nodes are deployed in a container"
+    },
+    {
+      "typeId": "interacts",
+      "label": "Interacts",
+      "calmCoreVariant": "interacts",
+      "description": "An actor interacts with one or more nodes"
+    },
+    {
+      "typeId": "options",
+      "label": "Options",
+      "calmCoreVariant": "options",
+      "description": "Choice among alternative relationship options"
+    }
+  ]
+}

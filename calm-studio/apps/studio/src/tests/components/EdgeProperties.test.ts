@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { render } from '@testing-library/svelte';
+import { render, fireEvent } from '@testing-library/svelte';
 import type { Edge } from '@xyflow/svelte';
 import EdgeProperties from '$lib/properties/EdgeProperties.svelte';
 import { applyFromJson, resetModel } from '$lib/stores/calmModel.svelte';
@@ -114,7 +114,7 @@ describe('EdgeProperties', () => {
 		expect(getByText('rel-1')).toBeTruthy();
 	});
 
-	it('shows metadata section for archimate relationships', () => {
+	it('shows metadata section for archimate relationships', async () => {
 		resetModel();
 		applyFromJson({
 			nodes: [
@@ -181,6 +181,8 @@ describe('EdgeProperties', () => {
 			props: { edge, onmutate: () => {} },
 		});
 		expect(getByText('Metadata')).toBeTruthy();
+		expect(getByText(/"relationship":"Serving"/)).toBeTruthy();
+		await fireEvent.click(getByText('Edit…'));
 		const select = getByLabelText(/archimate relationship/i) as HTMLSelectElement;
 		expect(select.value).toBe('Serving');
 	});

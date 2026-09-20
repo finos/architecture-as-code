@@ -18,16 +18,24 @@
 -->
 
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { getTemplatesByCategory, getAllCategories } from './registry';
-	import { getAllPatterns, type CalmPatternCard } from './patternRegistry';
+	import { getAllPatterns } from './patternRegistry';
+	import { getProjectConfig } from '$lib/project/projectStore.svelte';
+	import { hubUrlFromProject } from '$lib/hub/hubUrl';
+	import { listHubNamespaces, listHubPatterns, type HubPatternSummary } from '$lib/hub/hubClient';
 
 	let {
 		onselect,
 		onpatternselect,
+		onhubpatternselect,
+		onopenpattern,
 		oncancel,
 	}: {
 		onselect: (id: string) => void;
 		onpatternselect?: (id: string) => void;
+		onhubpatternselect?: (pattern: object, name: string, url?: string) => void;
+		onopenpattern?: (pattern: object, name: string, source: 'local' | 'hub', url?: string) => void;
 		oncancel: () => void;
 	} = $props();
 
@@ -40,8 +48,9 @@
 			'ai-governance': 'AI Governance',
 			general: 'General',
 			opengris: 'OpenGRIS',
-			patterns: 'Patterns',
+			patterns: hubUrl ? 'Local' : 'Patterns',
 		};
+		if (cat.startsWith('hub:')) return cat.slice(4);
 		return map[cat] ?? cat.charAt(0).toUpperCase() + cat.slice(1);
 	}
 
@@ -58,17 +67,50 @@
 
 	// ─── State ────────────────────────────────────────────────────────────────
 
-	const categories = $derived(
-		getAllPatterns().length > 0
+	const hubUrl = hubUrlFromProject(getProjectConfig());
+	let hubNamespaces = $state<string[]>([]);
+	let hubPatterns = $state<Record<string, HubPatternSummary[]>>({});
+	let hubError = $state<string | null>(null);
+
+	const categories = $derived.by(() => {
+		const showLocal = getAllPatterns().length > 0 || !!hubUrl;
+		const base = showLocal
 			? [...getAllCategories().filter((c) => c !== 'patterns'), 'patterns']
-			: getAllCategories()
-	);
+			: getAllCategories();
+		return [...base, ...hubNamespaces.map((ns) => `hub:${ns}`)];
+	});
 	let activeCategory = $state(getAllCategories()[0] ?? 'fluxnova');
 
 	const activeTemplates = $derived(
-		activeCategory === 'patterns' ? [] : getTemplatesByCategory(activeCategory)
+		activeCategory === 'patterns' || activeCategory.startsWith('hub:')
+			? []
+			: getTemplatesByCategory(activeCategory)
 	);
 	const activePatterns = $derived(activeCategory === 'patterns' ? getAllPatterns() : []);
+	const activeHubNs = $derived(activeCategory.startsWith('hub:') ? activeCategory.slice(4) : null);
+	const activeHubPatterns = $derived(activeHubNs ? (hubPatterns[activeHubNs] ?? []) : []);
+
+	onMount(() => {
+		if (!hubUrl) return;
+		void (async () => {
+			try {
+				const nss = await listHubNamespaces(hubUrl);
+				hubNamespaces = nss.map((n) => n.name);
+				const next: Record<string, HubPatternSummary[]> = {};
+				for (const ns of hubNamespaces) {
+					try {
+						next[ns] = await listHubPatterns(hubUrl, ns);
+					} catch {
+						hubError = `Could not load Hub patterns for ${ns}`;
+						next[ns] = [];
+					}
+				}
+				hubPatterns = next;
+			} catch (e) {
+				hubError = (e as Error).message;
+			}
+		})();
+	});
 
 	// ─── Keyboard handling ────────────────────────────────────────────────────
 
@@ -100,6 +142,9 @@
 			<div class="modal-title-group">
 				<h2 class="modal-title">Start from a template</h2>
 				<p class="modal-subtitle">Choose an architecture template to load onto the canvas</p>
+				{#if hubError}
+					<p class="hub-error" role="status">{hubError}</p>
+				{/if}
 			</div>
 			<button
 				type="button"
@@ -129,7 +174,13 @@
 					<span class="cat-dot" style="background: {categoryColor(cat)}"></span>
 					{categoryLabel(cat)}
 					<span class="cat-count">
-						{cat === 'patterns' ? getAllPatterns().length : getTemplatesByCategory(cat).length}
+						{#if cat === 'patterns'}
+							{getAllPatterns().length}
+						{:else if cat.startsWith('hub:')}
+							{(hubPatterns[cat.slice(4)] ?? []).length}
+						{:else}
+							{getTemplatesByCategory(cat).length}
+						{/if}
 					</span>
 				</button>
 			{/each}
@@ -166,25 +217,63 @@
 			{/each}
 
 			{#each activePatterns as pat (pat.id)}
-				<button
-					type="button"
-					class="template-card"
-					onclick={() => onpatternselect?.(pat.id)}
-					aria-label="Generate from pattern: {pat.name}"
-				>
-					<div class="card-header">
-						<span class="card-dot" style="background: {categoryColor('patterns')}"></span>
-						<span class="card-name">{pat.name}</span>
-						<span class="pattern-badge">Pattern</span>
-					</div>
-					<p class="card-description">{pat.description}</p>
-					<div class="card-tags" aria-label="Tags">
-						<span class="tag-pill">{pat.relativePath}</span>
-					</div>
-				</button>
+				<div class="template-card pattern-card">
+					<button
+						type="button"
+						class="card-main"
+						onclick={() => onpatternselect?.(pat.id)}
+						aria-label="Generate from pattern: {pat.name}"
+					>
+						<div class="card-header">
+							<span class="card-dot" style="background: {categoryColor('patterns')}"></span>
+							<span class="card-name">{pat.name}</span>
+							<span class="pattern-badge">Pattern</span>
+						</div>
+						<p class="card-description">{pat.description}</p>
+						<div class="card-tags" aria-label="Tags">
+							<span class="tag-pill">{pat.relativePath}</span>
+						</div>
+					</button>
+					{#if onopenpattern}
+						<button
+							type="button"
+							class="open-pattern-btn"
+							onclick={() => onopenpattern(pat.pattern, pat.name, 'local')}
+						>
+							Open pattern
+						</button>
+					{/if}
+				</div>
 			{/each}
 
-			{#if activeTemplates.length === 0 && activePatterns.length === 0}
+			{#each activeHubPatterns as pat (pat.id)}
+				<div class="template-card pattern-card">
+					<button
+						type="button"
+						class="card-main"
+						onclick={() => onhubpatternselect?.(pat.pattern, pat.name, pat.url)}
+						aria-label="Generate from Hub pattern: {pat.name}"
+					>
+						<div class="card-header">
+							<span class="card-dot" style="background: #0ea5e9"></span>
+							<span class="card-name">{pat.name}</span>
+							<span class="pattern-badge">Hub</span>
+						</div>
+						<p class="card-description">{pat.namespace}{pat.version ? ` @ ${pat.version}` : ''}</p>
+					</button>
+					{#if onopenpattern}
+						<button
+							type="button"
+							class="open-pattern-btn"
+							onclick={() => onopenpattern(pat.pattern, pat.name, 'hub', pat.url)}
+						>
+							Open pattern
+						</button>
+					{/if}
+				</div>
+			{/each}
+
+			{#if activeTemplates.length === 0 && activePatterns.length === 0 && activeHubPatterns.length === 0}
 				<p class="empty-category">No templates in this category yet.</p>
 			{/if}
 		</div>
@@ -265,6 +354,12 @@
 		font-family: var(--font-sans, system-ui, sans-serif);
 		color: var(--color-text-secondary, #64748b);
 		margin: 0;
+	}
+
+	.hub-error {
+		margin: 6px 0 0;
+		font-size: 12px;
+		color: #b91c1c;
 	}
 
 	:global(.dark) .modal-subtitle {
@@ -532,5 +627,29 @@
 		color: var(--color-text-secondary, #64748b);
 		padding: 40px 0;
 		margin: 0;
+	}
+
+	.pattern-card {
+		padding: 0;
+		gap: 0;
+	}
+	.card-main {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+		padding: 14px 16px 8px;
+		border: none;
+		background: transparent;
+		text-align: left;
+		cursor: pointer;
+	}
+	.open-pattern-btn {
+		margin: 0 12px 12px;
+		padding: 5px 8px;
+		border: 1px solid #cbd5e1;
+		border-radius: 6px;
+		background: #fff;
+		font-size: 11px;
+		cursor: pointer;
 	}
 </style>

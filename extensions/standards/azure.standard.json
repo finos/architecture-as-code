@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/extensions/azure/azure.standard.json",
+  "title": "CALM Azure Extension Standard",
+  "description": "CALM 1.2 overlay Standard for the Azure pack. Extends node-type with the pack's type ids. Architecture shape remains https://calm.finos.org/release/1.2/meta/calm.json. Hosts write this $id into architecture $schema when the pack is first used, even before the URI is published on calm.finos.org.",
+  "$comment": "Proposed until published under calm.finos.org. Load from extensions/standards/ on the filesystem.",
+  "$defs": {
+    "node-type": {
+      "type": "string",
+      "enum": [
+        "azure:functions",
+        "azure:app-service",
+        "azure:aks",
+        "azure:sql-database",
+        "azure:cosmos-db",
+        "azure:service-bus",
+        "azure:blob-storage",
+        "azure:front-door",
+        "azure:api-management",
+        "azure:key-vault",
+        "azure:active-directory",
+        "azure:cognitive-services",
+        "azure:event-hub",
+        "azure:redis-cache",
+        "azure:container-instances"
+      ],
+      "description": "Azure node-type values."
+    }
+  }
+}

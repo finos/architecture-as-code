@@ -4,6 +4,10 @@
 
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const repoRoot = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 
 export default defineConfig({
   plugins: [
@@ -14,6 +18,11 @@ export default defineConfig({
       },
     }),
   ],
+  server: {
+    fs: {
+      allow: [repoRoot],
+    },
+  },
   test: {
     environment: 'node',
   },

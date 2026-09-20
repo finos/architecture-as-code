@@ -71,9 +71,9 @@ describe('OpenGRIS integration via initAllPacks', () => {
 		resetRegistry();
 	});
 
-	it('initAllPacks() registers 10 packs total', () => {
+	it('initAllPacks() registers 11 packs total', () => {
 		initAllPacks();
-		expect(getAllPacks()).toHaveLength(10);
+		expect(getAllPacks()).toHaveLength(11);
 	});
 
 	it('resolvePackNode("opengris:scheduler") returns non-null after initAllPacks()', () => {

@@ -22,6 +22,9 @@ export function GenericNode({ id, data, selected }: NodeProps) {
                 ...(isBlock ? buildingBlockStyle : {}),
                 ...(selected ? selectedStyle : {}),
                 ...(override.background ? { background: override.background } : {}),
+                ...((data as { rectangleLayout?: boolean }).rectangleLayout
+                    ? { borderRadius: '4px' }
+                    : {}),
             }}>
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <div style={iconStyle}>

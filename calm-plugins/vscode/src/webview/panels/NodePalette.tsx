@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '../../extensions/index.js';
+import { useCanvasStore } from '../stores/canvas-store';
 
 initAllPacks();
 
@@ -17,6 +18,7 @@ interface NodePaletteProps {
 }
 
 export function NodePalette({ buildingBlocks }: NodePaletteProps) {
+    const packRevision = useCanvasStore((s) => s.packRevision);
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, standards: true, guidelines: true });
 
@@ -35,7 +37,7 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
             })).filter((p) => p.nodes.length > 0);
         }
         return filtered;
-    }, []);
+    }, [packRevision]);
 
     const lowerQuery = searchQuery.toLowerCase().trim();
     const isSearching = lowerQuery.length > 0;

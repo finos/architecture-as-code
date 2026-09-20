@@ -7,6 +7,7 @@
 	import { getNodeInterfaces } from './nodeData';
 	import { resolvePackNode } from '@calmstudio/extensions';
 	import { estimateRectangleNodeSize, ARCHIMATE_ICON_WIDTH } from '$lib/canvas/rectangleNodeSize';
+	import { getNodeStyleOverride } from '$lib/canvas/buildingBlockStyle';
 
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
@@ -18,7 +19,11 @@
 
 	const rectangleLayout = $derived(meta?.rectangleLayout === true);
 	const strokeColor = $derived(meta?.color.stroke ?? 'currentColor');
-	const bgColor = $derived(meta?.color.bg ?? 'var(--node-generic-bg, #f8f9fa)');
+	const bgColor = $derived(
+		getNodeStyleOverride((data as Record<string, unknown>).metadata).background ??
+			(meta?.color.bg ?? 'var(--node-generic-bg, #f8f9fa)')
+	);
+	const labelColor = $derived(getNodeStyleOverride((data as Record<string, unknown>).metadata).text);
 	const borderColor = $derived(meta?.color.border ?? 'var(--node-generic-border, #94a3b8)');
 	const label = $derived((data as Record<string, unknown>).label as string ?? (data as Record<string, unknown>).calmId as string ?? calmType);
 	const dataClassification = $derived((data as Record<string, unknown>)['data-classification'] as string | undefined);
@@ -80,6 +85,8 @@
 	class:rectangle-layout={rectangleLayout}
 	style:--node-bg={rectangleLayout ? bgColor : undefined}
 	style:--node-border={rectangleLayout ? borderColor : undefined}
+	style:color={labelColor}
+	style:background={rectangleLayout ? undefined : bgColor}
 >
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	{#if rectangleLayout}

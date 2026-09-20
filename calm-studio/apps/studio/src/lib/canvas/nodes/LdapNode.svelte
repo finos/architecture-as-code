@@ -5,10 +5,12 @@
 	import ValidationBadge from './ValidationBadge.svelte';
 	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
 	import { getNodeInterfaces } from './nodeData';
+	import { nodeStyleOverrideVars } from '$lib/canvas/buildingBlockStyle';
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const chromeStyle = $derived(nodeStyleOverrideVars((data as Record<string, unknown>).metadata, '--node-ldap-bg', '--node-ldap-stroke'));
 </script>
 
 <Handle type="target" position={Position.Top} />
@@ -22,7 +24,7 @@
 	{/each}
 {/if}
 
-<div class="node" class:selected>
+<div class="node" class:selected style={chromeStyle}>
 	<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 	<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 	<svg width="40" height="48" viewBox="0 0 40 48" fill="none" aria-hidden="true">

@@ -12,6 +12,7 @@ import {
 	routeEdgeOrthogonal,
 	type HandlePosition,
 } from './obstacleRouter';
+import { orthogonalPathToBezier } from './bezierPath';
 
 export const CANVAS_NODES_CONTEXT = 'calm-canvas-nodes';
 
@@ -58,5 +59,5 @@ export function getRoutedEdgePath(
 		obstacles,
 		padding: 8,
 	});
-	return [result.path, result.labelX, result.labelY];
+	return [orthogonalPathToBezier(result.path), result.labelX, result.labelY];
 }

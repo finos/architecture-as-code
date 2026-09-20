@@ -5,6 +5,7 @@
 import type { ExplorerTreeEntry } from './types';
 
 let explorerTree = $state<ExplorerTreeEntry[]>([]);
+let selectedExplorerPath = $state<string | null>(null);
 
 export function setExplorerTree(entries: ExplorerTreeEntry[]): void {
 	explorerTree = entries;
@@ -12,4 +13,12 @@ export function setExplorerTree(entries: ExplorerTreeEntry[]): void {
 
 export function getExplorerTree(): ExplorerTreeEntry[] {
 	return explorerTree;
+}
+
+export function setSelectedExplorerPath(path: string | null): void {
+	selectedExplorerPath = path;
+}
+
+export function getSelectedExplorerPath(): string | null {
+	return selectedExplorerPath;
 }

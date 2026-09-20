@@ -125,3 +125,29 @@ export function updateFileInTree(
 		return entry;
 	});
 }
+
+export function findDirectoryInTree(
+	entries: ExplorerTreeEntry[],
+	relativePath: string
+): ExplorerDirectoryEntry | null {
+	if (!relativePath) return null;
+	for (const entry of entries) {
+		if (entry.kind === 'directory' && entry.relativePath === relativePath) {
+			return entry;
+		}
+		if (entry.kind === 'directory') {
+			const found = findDirectoryInTree(entry.children, relativePath);
+			if (found) return found;
+		}
+	}
+	return null;
+}
+
+export function listJsonFilesInTree(entries: ExplorerTreeEntry[]): ExplorerFileEntry[] {
+	const files: ExplorerFileEntry[] = [];
+	for (const entry of entries) {
+		if (entry.kind === 'file') files.push(entry);
+		else files.push(...listJsonFilesInTree(entry.children));
+	}
+	return files;
+}

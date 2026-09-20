@@ -19,7 +19,16 @@ import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmInterface, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
 import { flowToCalm } from '$lib/stores/projection';
 import { mergeContainmentRelationships } from '$lib/stores/mergeContainmentRelationships';
-import { ensureSchemaOnFirstElement, mergeArchitectureBody } from '$lib/stores/documentEnvelope';
+import {
+	ensureSchemaOnFirstElement,
+	mergeArchitectureBody,
+	withArchitectureMetadata,
+	type ArchitectureWithMetadata,
+} from '$lib/stores/documentEnvelope';
+import {
+	flowNodesToLayoutMap,
+	mergeLayoutIntoMetadata,
+} from '$lib/layout/layoutPersist';
 
 // ─── Module-level state ───────────────────────────────────────────────────────
 
@@ -194,7 +203,10 @@ export function buildPersistedArchitecture(
 		}
 	}
 
-	return mergeArchitectureBody(envelope, { nodes: canvasBody.nodes, relationships });
+	const merged = mergeArchitectureBody(envelope, { nodes: canvasBody.nodes, relationships });
+	const existingMeta = (envelope as ArchitectureWithMetadata).metadata;
+	const layout = flowNodesToLayoutMap(flowNodes);
+	return withArchitectureMetadata(merged, mergeLayoutIntoMetadata(existingMeta, layout));
 }
 
 export function applyFromCanvas(nodes: Node[], edges: Edge[]): boolean {

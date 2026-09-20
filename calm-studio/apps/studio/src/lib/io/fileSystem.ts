@@ -134,13 +134,14 @@ export async function saveFile(
 export async function saveFileAs(
 	content: string,
 	filename: string,
+	options?: { startIn?: FileSystemHandle }
 ): Promise<FileSystemFileHandle | string | null> {
 	if (isTauri()) {
 		return saveFileAsTauri(content, filename);
 	}
 
 	if (typeof (window as unknown as Record<string, unknown>)['showSaveFilePicker'] === 'function') {
-		const handle = await (window as unknown as { showSaveFilePicker: (opts?: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+		const pickerOpts: Record<string, unknown> = {
 			suggestedName: filename,
 			types: [
 				{
@@ -148,7 +149,9 @@ export async function saveFileAs(
 					accept: { 'application/json': ['.json', '.calm.json'] },
 				},
 			],
-		});
+		};
+		if (options?.startIn) pickerOpts.startIn = options.startIn;
+		const handle = await (window as unknown as { showSaveFilePicker: (opts?: unknown) => Promise<FileSystemFileHandle> }).showSaveFilePicker(pickerOpts);
 		const writable = await handle.createWritable();
 		await writable.write(content);
 		await writable.close();

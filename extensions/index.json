@@ -1,0 +1,83 @@
+{
+  "description": "Catalog of CALM extension packs at the monorepo root. Hosts load each href from the filesystem (or a bundled copy when no folder is open).",
+  "schema": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "packs": [
+    {
+      "id": "core",
+      "label": "CALM Core",
+      "href": "./packs/core.extension.json",
+      "standard": "https://calm.finos.org/release/1.2/meta/calm.json",
+      "standardHref": null
+    },
+    {
+      "id": "fluxnova",
+      "label": "FluxNova",
+      "href": "./packs/fluxnova.extension.json",
+      "standard": "https://calm.finos.org/extensions/fluxnova/fluxnova.standard.json",
+      "standardHref": "./standards/fluxnova.standard.json"
+    },
+    {
+      "id": "ai",
+      "label": "AI / Agentic",
+      "href": "./packs/ai.extension.json",
+      "standard": "https://calm.finos.org/extensions/ai/ai.standard.json",
+      "standardHref": "./standards/ai.standard.json"
+    },
+    {
+      "id": "aws",
+      "label": "AWS",
+      "href": "./packs/aws.extension.json",
+      "standard": "https://calm.finos.org/extensions/aws/aws.standard.json",
+      "standardHref": "./standards/aws.standard.json"
+    },
+    {
+      "id": "gcp",
+      "label": "GCP",
+      "href": "./packs/gcp.extension.json",
+      "standard": "https://calm.finos.org/extensions/gcp/gcp.standard.json",
+      "standardHref": "./standards/gcp.standard.json"
+    },
+    {
+      "id": "azure",
+      "label": "Azure",
+      "href": "./packs/azure.extension.json",
+      "standard": "https://calm.finos.org/extensions/azure/azure.standard.json",
+      "standardHref": "./standards/azure.standard.json"
+    },
+    {
+      "id": "k8s",
+      "label": "Kubernetes",
+      "href": "./packs/k8s.extension.json",
+      "standard": "https://calm.finos.org/extensions/k8s/k8s.standard.json",
+      "standardHref": "./standards/k8s.standard.json"
+    },
+    {
+      "id": "messaging",
+      "label": "Messaging",
+      "href": "./packs/messaging.extension.json",
+      "standard": "https://calm.finos.org/extensions/messaging/messaging.standard.json",
+      "standardHref": "./standards/messaging.standard.json"
+    },
+    {
+      "id": "identity",
+      "label": "Identity & Access",
+      "href": "./packs/identity.extension.json",
+      "standard": "https://calm.finos.org/extensions/identity/identity.standard.json",
+      "standardHref": "./standards/identity.standard.json"
+    },
+    {
+      "id": "opengris",
+      "label": "OpenGRIS",
+      "href": "./packs/opengris.extension.json",
+      "standard": "https://calm.finos.org/extensions/opengris/opengris.standard.json",
+      "standardHref": "./standards/opengris.standard.json"
+    },
+    {
+      "id": "archimate",
+      "label": "Archimate Model",
+      "href": "./packs/archimate.extension.json",
+      "standard": "https://calm.finos.org/extensions/archimate/calm-archimate-extension.schema.json",
+      "standardHref": "./standards/archimate.standard.json"
+    }
+  ]
+}

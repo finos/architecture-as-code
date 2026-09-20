@@ -56,9 +56,9 @@ describe('FluxNova integration via initAllPacks', () => {
 		resetRegistry();
 	});
 
-	it('initAllPacks() registers 10 packs total', () => {
+	it('initAllPacks() registers 11 packs total', () => {
 		initAllPacks();
-		expect(getAllPacks()).toHaveLength(10);
+		expect(getAllPacks()).toHaveLength(11);
 	});
 
 	it('resolvePackNode("fluxnova:engine") returns non-null after initAllPacks()', () => {

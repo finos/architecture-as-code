@@ -19,9 +19,12 @@
 			relativePath: string,
 			handle: FileSystemFileHandle
 		) => void;
+		onhubbrowse?: () => void;
+		onbeforefoldermove?: (movedPaths: string[]) => boolean;
+		onfoldermove?: (mapping: Record<string, string>, sourcePrefix: string, destPrefix: string) => void;
 	}
 
-	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile }: Props = $props();
+	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile, onhubbrowse, onbeforefoldermove, onfoldermove }: Props = $props();
 
 	function loadInitialTab(): LeftPanelTab {
 		if (typeof sessionStorage === 'undefined') return 'palette';
@@ -91,6 +94,9 @@
 				bind:this={fileExplorer}
 				{currentFileRelativePath}
 				onopenfile={onopenexplorerfile}
+				{onhubbrowse}
+				{onbeforefoldermove}
+				{onfoldermove}
 			/>
 		</div>
 	</div>

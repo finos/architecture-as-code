@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/extensions/identity/identity.standard.json",
+  "title": "CALM Identity & Access Extension Standard",
+  "description": "CALM 1.2 overlay Standard for the Identity & Access pack. Extends node-type with the pack's type ids. Architecture shape remains https://calm.finos.org/release/1.2/meta/calm.json. Hosts write this $id into architecture $schema when the pack is first used, even before the URI is published on calm.finos.org.",
+  "$comment": "Proposed until published under calm.finos.org. Load from extensions/standards/ on the filesystem.",
+  "$defs": {
+    "node-type": {
+      "type": "string",
+      "enum": [
+        "identity:identity-provider",
+        "identity:oauth-server",
+        "identity:oidc-provider",
+        "identity:saml-provider",
+        "identity:certificate-authority",
+        "identity:token-service",
+        "identity:mfa-service",
+        "identity:policy-engine"
+      ],
+      "description": "Identity & Access node-type values."
+    }
+  }
+}

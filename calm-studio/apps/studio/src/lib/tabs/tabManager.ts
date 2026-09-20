@@ -21,6 +21,11 @@ export interface DiagramTabState {
 	cleanSnapshot: string;
 	selectedNodeId: string | null;
 	selectedEdgeId: string | null;
+	/** Hub architecture tabs are read-only (R54). Pattern canvas is editable (R55–R56). */
+	kind?: 'architecture' | 'pattern' | 'hub';
+	readonly?: boolean;
+	/** Original CLI pattern JSON Schema for Save round-trip (R56). */
+	patternBase?: object;
 }
 
 export interface OpenTabRequest {
@@ -34,6 +39,9 @@ export interface OpenTabRequest {
 	cleanSnapshot: string;
 	selectedNodeId?: string | null;
 	selectedEdgeId?: string | null;
+	kind?: 'architecture' | 'pattern' | 'hub';
+	readonly?: boolean;
+	patternBase?: object;
 }
 
 export interface TabManagerResult {
@@ -116,6 +124,9 @@ export function openOrActivateTab(
 		cleanSnapshot: request.cleanSnapshot,
 		selectedNodeId: request.selectedNodeId ?? null,
 		selectedEdgeId: request.selectedEdgeId ?? null,
+		kind: request.kind,
+		readonly: request.readonly,
+		patternBase: request.patternBase,
 	};
 
 	let nextTabs = [...tabs, newTab];
@@ -174,6 +185,9 @@ export function patchTabState(
 			| 'label'
 			| 'fileHandle'
 			| 'relativePath'
+			| 'kind'
+			| 'readonly'
+			| 'patternBase'
 		>
 	>
 ): DiagramTabState[] {

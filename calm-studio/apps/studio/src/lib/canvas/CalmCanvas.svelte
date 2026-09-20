@@ -66,6 +66,16 @@
 		CANVAS_NODES_CONTEXT,
 		type CanvasNodesGetter,
 	} from './edgeRouting/routedEdgePath';
+	import { alignBoxes, type AlignMode } from './selectionAlign';
+	import { containerSizeForChildren, packChildrenInSquareGrid } from '$lib/layout/containerGrid';
+	import {
+		effectiveMouseMode,
+		isSpacePanIgnored,
+		svelteFlowInteraction,
+		type MouseCanvasMode,
+	} from './mousePanSelect';
+	import MouseModeToolbar from './MouseModeToolbar.svelte';
+	import CanvasMinimap from './CanvasMinimap.svelte';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -186,6 +196,7 @@
 		onfileimport,
 		oncanvaschange,
 		readonly = false,
+		readonlyReason = '',
 		ondblclicknode,
 		onnavigatereference,
 		onfindneighbors,
@@ -204,6 +215,7 @@
 		oncanvaschange?: () => void;
 		/** When true, disables dragging, connecting, delete keys, and all mutation handlers. Used for C4 navigation mode. */
 		readonly?: boolean;
+		readonlyReason?: string;
 		/** Called when a node is double-clicked in readonly mode. Used for C4 drill-down navigation. */
 		ondblclicknode?: (node: Node) => void;
 		/** Called when user double-clicks reference glasses on a node. */
@@ -232,6 +244,100 @@
 	 */
 	function notifyChange() {
 		if (!readonly) oncanvaschange?.();
+	}
+
+	const selectedCount = $derived(nodes.filter((n) => n.selected).length);
+	const selectedContainer = $derived(
+		nodes.find((n) => n.selected && nodes.some((c) => c.parentId === n.id)) ?? null
+	);
+	let tableCols = $state('');
+	let tableRows = $state('');
+	let preferredMouseMode = $state<MouseCanvasMode>('select');
+	let spaceHeld = $state(false);
+	const mouseMode = $derived(
+		effectiveMouseMode({
+			preferred: preferredMouseMode,
+			spaceHeld,
+			readonly,
+		})
+	);
+	const flowInteraction = $derived(svelteFlowInteraction(mouseMode));
+
+	function handleWindowKeydown(event: KeyboardEvent) {
+		if (event.key !== ' ') return;
+		if (event.repeat) return;
+		if (isSpacePanIgnored(event.target)) return;
+		event.preventDefault();
+		spaceHeld = true;
+	}
+
+	function handleWindowKeyup(event: KeyboardEvent) {
+		if (event.key !== ' ') return;
+		spaceHeld = false;
+	}
+
+	function handleWindowBlur() {
+		spaceHeld = false;
+	}
+
+	function applyAlign(mode: AlignMode) {
+		if (readonly) return;
+		const selected = nodes.filter((n) => n.selected);
+		if (selected.length < 2 && mode !== 'table') return;
+		pushSnapshot(nodes, edges);
+		const boxes = selected.map((n) => ({
+			id: n.id,
+			x: n.position.x,
+			y: n.position.y,
+			width: n.width ?? 180,
+			height: n.height ?? 70,
+		}));
+		const next = alignBoxes(boxes, mode);
+		const byId = new Map(next.map((b) => [b.id, b]));
+		nodes = nodes.map((n) => {
+			const box = byId.get(n.id);
+			if (!box) return n;
+			return {
+				...n,
+				position: { x: box.x, y: box.y },
+				width: box.width,
+				height: box.height,
+			};
+		});
+		notifyChange();
+	}
+
+	function arrangeSelectedContainer() {
+		if (readonly || !selectedContainer) return;
+		const childIds = nodes.filter((n) => n.parentId === selectedContainer.id).map((n) => n.id);
+		if (childIds.length === 0) return;
+		pushSnapshot(nodes, edges);
+		const padding = { top: 56, left: 40, bottom: 40, right: 40 };
+		const positions = new Map(
+			nodes.map((n) => [
+				n.id,
+				{ x: n.position.x, y: n.position.y, width: n.width, height: n.height },
+			])
+		);
+		const cols = Number.parseInt(tableCols, 10);
+		const rows = Number.parseInt(tableRows, 10);
+		const packed = packChildrenInSquareGrid(positions, childIds, {
+			gap: 40,
+			padding,
+			cols: Number.isFinite(cols) && cols > 0 ? cols : undefined,
+			rows: Number.isFinite(rows) && rows > 0 ? rows : undefined,
+		});
+		const size = containerSizeForChildren(packed, childIds, padding);
+		nodes = nodes.map((n) => {
+			if (n.id === selectedContainer.id) {
+				return { ...n, width: size.width, height: size.height };
+			}
+			if (n.parentId !== selectedContainer.id) return n;
+			const p = packed.get(n.id);
+			if (!p) return n;
+			return { ...n, position: { x: p.x, y: p.y } };
+		});
+		notifyChange();
 	}
 
 	// ─── Svelte Flow context ─────────────────────────────────────────────────
@@ -1010,12 +1116,12 @@
 	}
 
 	function handleCopy() {
-		if (readonly) return;
+		if (readonly || pendingDuplicate) return;
 		copy(nodes);
 	}
 
 	function handlePaste() {
-		if (readonly) return;
+		if (readonly || pendingDuplicate) return;
 		const newNodes = paste(nodes);
 		if (newNodes.length > 0) {
 			pushSnapshot(nodes, edges);
@@ -1025,6 +1131,7 @@
 	}
 
 	function handleSelectAll() {
+		if (pendingDuplicate) return;
 		nodes = nodes.map((n) => ({ ...n, selected: true }));
 	}
 
@@ -1064,6 +1171,12 @@
 	}
 </script>
 
+<svelte:window
+	onkeydown={handleWindowKeydown}
+	onkeyup={handleWindowKeyup}
+	onblur={handleWindowBlur}
+/>
+
 <!--
   Full-size canvas wrapper. ondragover + ondrop handle palette drops.
   The wrapper div must fill its parent (h-full w-full) so SvelteFlow
@@ -1073,6 +1186,7 @@
 -->
 <div
 	class="relative h-full w-full"
+	class:canvas-pan={mouseMode === 'pan'}
 	ondragover={handleDragOver}
 	ondrop={handleDrop}
 	role="main"
@@ -1094,14 +1208,14 @@
 		{nodeTypes}
 		{edgeTypes}
 		deleteKey={readonly ? [] : ['Delete', 'Backspace']}
-		nodesDraggable={!readonly}
+		nodesDraggable={flowInteraction.nodesDraggable}
 		nodesConnectable={!readonly}
-		selectionKey="Shift"
-		multiSelectionKey="Meta"
+		selectionOnDrag={flowInteraction.selectionOnDrag}
+		multiSelectionKey="Shift"
+		panOnDrag={flowInteraction.panOnDrag}
 		fitView
 		fitViewOptions={{ maxZoom: 1.2, padding: 0.2 }}
 		zoomOnScroll={true}
-		panOnDrag={true}
 		panOnScroll={false}
 		onconnect={handleConnect}
 		onnodedragstart={handleNodeDragStart}
@@ -1117,7 +1231,43 @@
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 		<EdgeMarkers />
+		<CanvasMinimap />
 	</SvelteFlow>
+
+	<MouseModeToolbar
+		mode={mouseMode}
+		locked={readonly}
+		onchange={(next) => (preferredMouseMode = next)}
+	/>
+
+	{#if readonlyReason}
+		<div class="readonly-banner" role="status">{readonlyReason}</div>
+	{/if}
+
+	{#if !readonly && selectedCount >= 2}
+		<div class="align-toolbar" role="toolbar" aria-label="Selection alignment">
+			<button type="button" onclick={() => applyAlign('top')}>Top</button>
+			<button type="button" onclick={() => applyAlign('bottom')}>Bottom</button>
+			<button type="button" onclick={() => applyAlign('center-y')}>Row axis</button>
+			<button type="button" onclick={() => applyAlign('left')}>Left</button>
+			<button type="button" onclick={() => applyAlign('right')}>Right</button>
+			<button type="button" onclick={() => applyAlign('center-x')}>Col axis</button>
+			<button type="button" onclick={() => applyAlign('distribute-x')}>Even X</button>
+			<button type="button" onclick={() => applyAlign('distribute-y')}>Even Y</button>
+			<button type="button" onclick={() => applyAlign('same-width')}>Same W</button>
+			<button type="button" onclick={() => applyAlign('same-height')}>Same H</button>
+			<button type="button" onclick={() => applyAlign('same-size')}>Same size</button>
+			<button type="button" onclick={() => applyAlign('table')}>Table</button>
+		</div>
+	{/if}
+
+	{#if !readonly && selectedContainer}
+		<div class="align-toolbar table-toolbar" role="toolbar" aria-label="Arrange container">
+			<input class="table-input" bind:value={tableCols} placeholder="cols" aria-label="Columns" />
+			<input class="table-input" bind:value={tableRows} placeholder="rows" aria-label="Rows" />
+			<button type="button" onclick={arrangeSelectedContainer}>Arrange to table</button>
+		</div>
+	{/if}
 
 	<!-- Floating search panel — shown when Cmd+F is pressed -->
 	{#if searchOpen}
@@ -1258,6 +1408,76 @@
 	.edge-menu-item:disabled {
 		opacity: 0.45;
 		cursor: not-allowed;
+	}
+
+	.canvas-pan :global(.svelte-flow),
+	.canvas-pan :global(.svelte-flow .svelte-flow__pane),
+	.canvas-pan :global(.svelte-flow .svelte-flow__node) {
+		cursor: grab;
+	}
+
+	.canvas-pan:active :global(.svelte-flow),
+	.canvas-pan:active :global(.svelte-flow .svelte-flow__pane),
+	.canvas-pan:active :global(.svelte-flow .svelte-flow__node) {
+		cursor: grabbing;
+	}
+
+	.readonly-banner {
+		position: absolute;
+		top: 8px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		padding: 6px 12px;
+		border-radius: 6px;
+		background: #334155;
+		color: #fff;
+		font-size: 12px;
+	}
+
+	.align-toolbar {
+		position: absolute;
+		bottom: 12px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		max-width: 90%;
+		padding: 6px;
+		border-radius: 8px;
+		background: var(--color-surface, #fff);
+		border: 1px solid var(--color-border, #e2e8f0);
+	}
+
+	.table-toolbar {
+		bottom: 52px;
+	}
+
+	:global(.svelte-flow__minimap.canvas-minimap) {
+		z-index: 8;
+		margin: 8px;
+		overflow: hidden;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+	}
+
+	.align-toolbar button,
+	.table-input {
+		height: 26px;
+		padding: 0 8px;
+		font-size: 11px;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 4px;
+		background: #fff;
+		cursor: pointer;
+	}
+
+	.table-input {
+		width: 52px;
+		cursor: text;
 	}
 
 	:global(.dark) .edge-menu-item {

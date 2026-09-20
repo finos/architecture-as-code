@@ -3,10 +3,10 @@
 
 <script lang="ts">
 	import { EditorView } from '@codemirror/view';
+	import { EditorState, type Extension } from '@codemirror/state';
 	import { json, jsonParseLinter } from '@codemirror/lang-json';
 	import { linter, lintGutter } from '@codemirror/lint';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import type { Extension } from '@codemirror/state';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { isDark } from '$lib/stores/theme.svelte';
 	import { findNodeOffset, findRelationshipOffset } from './useJsonSync';
@@ -22,9 +22,10 @@
 		selectedNodeId?: string | null;
 		/** When set, scrolls the editor to the corresponding edge JSON block. */
 		selectedEdgeId?: string | null;
+		readonly?: boolean;
 	}
 
-	let { value, onchange, parseError, selectedNodeId, selectedEdgeId }: Props = $props();
+	let { value, onchange, parseError, selectedNodeId, selectedEdgeId, readonly = false }: Props = $props();
 
 	let editorView = $state<EditorView | undefined>(undefined);
 	let localValue = $state(value);
@@ -37,6 +38,8 @@
 		linter(jsonParseLinter()),
 		lintGutter(),
 		EditorView.lineWrapping,
+		EditorView.editable.of(!readonly),
+		EditorState.readOnly.of(readonly),
 	]);
 
 	// Sync external model → editor only when not actively typing.
@@ -77,6 +80,7 @@
 	});
 
 	function handleChange(newValue: string) {
+		if (readonly) return;
 		localValue = newValue;
 		onchange?.(newValue);
 	}

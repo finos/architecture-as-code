@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/extensions/gcp/gcp.standard.json",
+  "title": "CALM GCP Extension Standard",
+  "description": "CALM 1.2 overlay Standard for the GCP pack. Extends node-type with the pack's type ids. Architecture shape remains https://calm.finos.org/release/1.2/meta/calm.json. Hosts write this $id into architecture $schema when the pack is first used, even before the URI is published on calm.finos.org.",
+  "$comment": "Proposed until published under calm.finos.org. Load from extensions/standards/ on the filesystem.",
+  "$defs": {
+    "node-type": {
+      "type": "string",
+      "enum": [
+        "gcp:cloud-run",
+        "gcp:cloud-functions",
+        "gcp:gke",
+        "gcp:cloud-sql",
+        "gcp:bigquery",
+        "gcp:pub-sub",
+        "gcp:cloud-storage",
+        "gcp:firestore",
+        "gcp:spanner",
+        "gcp:cloud-cdn",
+        "gcp:cloud-dns",
+        "gcp:cloud-armor",
+        "gcp:vertex-ai",
+        "gcp:cloud-endpoints",
+        "gcp:memorystore"
+      ],
+      "description": "GCP node-type values."
+    }
+  }
+}
