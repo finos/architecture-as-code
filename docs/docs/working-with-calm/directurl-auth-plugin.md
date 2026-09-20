@@ -85,6 +85,18 @@ If the end user organization writes the plugin in TypeScript,it must be complied
 
 ### Illustrative Code
 
+:::note
+The following are for illustrative purposes only.  The end user organization must adapt modify as needed to meet their specific needs.
+:::
+
+#### Assumed Infrastructure
+
+This illustrarive code example assumes the following infrastructure is available:
+
+* A centralized secrets management service (aka Vault service) containing the client secret. The authentication module must have authorized access to retrieve the secret for the configured secret path.
+* An identity provider or OAuth 2.0 token service that accepts the client credentials grant and returns an `access_token`. The token service must trust the client identifier and the secret returned by Vault.
+* A protected document service that accepts the bearer token in the `Authorization` header and serves the direct URLs listed in `directUrlAuthAuthenticatedHosts`.
+
 #### How the Module Works
 
 The module is loaded by the CALM CLI when direct URL authentication is configured. The CLI dynamically imports the JavaScript module, creates an instance, and passes `directUrlAuthConfigPath` as the constructor argument. The module stores this path and reads the configuration file when it first needs to create an access token.
