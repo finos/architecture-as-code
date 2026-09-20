@@ -88,15 +88,16 @@ export function useGraphInteractions({
     const handleNodeMouseEnter = useCallback(
         (_event: React.MouseEvent, node: Node) => {
             setNodes((nds) =>
-                nds.map((n) => ({
-                    ...n,
-                    style: {
-                        ...n.style,
-                        zIndex: n.id === node.id && !isGroupType(n.type) ? 1000
-                            : isGroupType(n.type) ? -1
-                            : 1,
-                    },
-                }))
+                nds.map((n) => {
+                    const zIndex = n.id === node.id && !isGroupType(n.type) ? 1000
+                        : isGroupType(n.type) ? -1
+                        : 1;
+                    // Only allocate a new node object when the value actually
+                    // changes, so memoized node components (CustomNode,
+                    // SystemGroupNode) don't re-render for untouched nodes.
+                    if (n.style?.zIndex === zIndex) return n;
+                    return { ...n, style: { ...n.style, zIndex } };
+                })
             );
         },
         [setNodes, isGroupType]
@@ -104,13 +105,11 @@ export function useGraphInteractions({
 
     const handleNodeMouseLeave = useCallback(() => {
         setNodes((nds) =>
-            nds.map((n) => ({
-                ...n,
-                style: {
-                    ...n.style,
-                    zIndex: isGroupType(n.type) ? -1 : 1,
-                },
-            }))
+            nds.map((n) => {
+                const zIndex = isGroupType(n.type) ? -1 : 1;
+                if (n.style?.zIndex === zIndex) return n;
+                return { ...n, style: { ...n.style, zIndex } };
+            })
         );
     }, [setNodes, isGroupType]);
 
