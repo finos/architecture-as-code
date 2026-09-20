@@ -36,9 +36,6 @@ graph TB
 
 ```
 
-
-This page walks through a local test environment for the CALM CLI's `directUrlAuth` plugin, focused on the `start-webserver-mixedenv` setup.
-
 ## Overview of the Authentication Plugin
 
 :::warning
