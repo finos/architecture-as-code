@@ -78,12 +78,11 @@ What each part means:
   Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
 
 
+### Illustrative Code
 :::note
-If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+The following are for illustrative purposes only.  The end user organization must adapt or modify as needed to meet their specific needs.
 :::
 
-
-### Illustrative Code
 
 #### Assumed Infrastructure
 
@@ -112,12 +111,6 @@ The module uses Node's built-in `http` and `https` clients for both Vault and to
 
 The CLI invokes the module only for hosts listed in `directUrlAuthAuthenticatedHosts`. The module is responsible for obtaining the credentials and returning headers; the CLI remains responsible for deciding which direct URLs are eligible for authentication and attaching the returned headers to the document request.
 
-:::note
-The following are for illustrative purposes only.  The end user organization must adapt or modify as needed to meet their specific needs.
-:::
-
-
-
 #### Directory structure
 
 Assuming the following directory structure and configuration files with the following TypeScript source code is in the `src/` directory: 
@@ -132,6 +125,12 @@ direct-url-auth-plugin/
 
 
 ####  Direct URL Authentication Plugin
+
+:::note
+If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+:::
+
+
 
 `direct-url-auth-plugin.ts`
 ```typescript
