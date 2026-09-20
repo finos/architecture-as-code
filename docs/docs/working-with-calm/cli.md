@@ -788,12 +788,15 @@ Access to these endpoints is controlled by two pieces of configuration in `~/.ca
 - **`allowedRemoteHosts`**: an allow-list of hostnames the CLI is permitted to fetch documents from repositories that allow anonymous, public access.
 - **`directUrlAuth`**: For non-CALM Hub repositories, an optional plugin that allows an end user organization to provide the required authentication/authorization header to be attached to the request.  This plugin is a JavaScript module that exports a `default class` implementing a `getAuthHeaders(url, requestBody)` function. 
 
+::::note
+The `directUrlAuth` plugin mechanism exists to let end user organizations implement their own authentication/authorization method based on HTTP(S) headers. Building, configuring, and securing that plugin is the sole responsibility of the end user organization. The CALM project provides this mechanism and documentation as-is, with no warranty or support.  
 :::warning
-The `directUrlAuth` plugin mechanism exists to let end user organizations implement their own authentication/authorization method based on HTTP(S) headers. Building, configuring, and securing that plugin is the sole responsibility of the end user organization. The CALM project provides this mechanism and documentation as-is, with no warranty as to the security or correctness of any organization-specific plugin implementation.
+The end user organization is solely responsible for security or correctness of the plugin implementation.
 :::
+::::
 
-The direct URL auth plugin is a CALM authentication adapter that turns an outbound request into the headers required to access a remote endpoint, typically by acquiring and refreshing a bearer token for the target service. It is designed to be a thin, host-agnostic hook: CALM decides which URLs are allowed to use it, and the plugin simply returns the appropriate authentication metadata for the request.
+The direct URL auth plugin is an end user organization provided authentication adapter that returns a header to be attached to the URL request for retrieving CALM artifact from the remote endpoint, typically a HTTP header containing a bearer token. Based on the user provided configuration, CALM CLI will call this plugin for endpoints requiring authenticated access. The plugin simply returns the appropriate authentication metadata for the request.
 
-This plugin model means the auth scheme is not fixed by the CLI itself — a module can implement anything from a hard-coded header, to OAuth2 client-credentials, to a secret pulled from a vault at request time.
+This plugin approach means the auth scheme is not fixed by the CLI itself — the end user supplied  module can implement anything from a hard-coded header, to OAuth2 client-credentials, to a secret pulled from a vault at request time.
 
 [DirectUrlAuth Plugin](directurl-auth-plugin) page provides technical details for writing and configuring the plugin.
