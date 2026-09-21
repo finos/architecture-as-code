@@ -2,7 +2,7 @@ import { get } from 'lodash';
 
 export type CalmType = 'nodes' | 'relationships';
 
-const ALTERNATIVE_KEYWORDS = ['oneOf', 'anyOf'];
+export const ALTERNATIVE_KEYWORDS = ['oneOf', 'anyOf'] as const;
 const ID = 'properties.unique-id.const';
 const OPTIONS = 'properties.relationship-type.properties.options';
 const INTERFACES = 'properties.interfaces.prefixItems[*]';
