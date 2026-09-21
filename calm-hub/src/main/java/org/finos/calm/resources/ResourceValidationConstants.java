@@ -4,6 +4,8 @@ import org.finos.calm.domain.ResourceVersion;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 
+import java.util.Set;
+
 public class ResourceValidationConstants {
     public static final String NAMESPACE_REGEX = "^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)*$";
     public static final String NAMESPACE_MESSAGE = "namespace must match pattern '^[A-Za-z0-9-]+([.][A-Za-z0-9-]+)*$'";
@@ -22,6 +24,8 @@ public class ResourceValidationConstants {
             "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?$";
     public static final String SNAPSHOT_VERSION_MESSAGE =
             "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$'";
+    /** Temporary narrative document types pending a shared Java-consumable contract. */
+    public static final Set<String> NARRATIVE_DOCUMENT_TYPES = Set.of("knowledge", "sad");
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).
     public static final String CUSTOM_ID_REGEX = "^[a-z][a-z0-9]*(-[a-z0-9]+)*$";
     public static final String CUSTOM_ID_MESSAGE = "customId must match pattern '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'";

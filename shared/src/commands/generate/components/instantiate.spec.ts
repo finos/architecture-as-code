@@ -294,4 +294,22 @@ describe('instantiate', () => {
             'nested-placeholder': '[[ NESTED_PLACEHOLDER ]]'
         });
     });
+    it('emits an empty array for an array with no prefixItems', async () => {
+        const patternWithUnselectedItems = {
+            $schema: 'schema#',
+            $id: 'test-pattern-items-only',
+            properties: {
+                nodes: { type: 'array', items: { oneOf: [{ properties: { 'unique-id': { const: 'cache' } } }] } },
+                relationships: { type: 'array', prefixItems: [] }
+            }
+        };
+
+        (fs.readFileSync as Mock).mockImplementation(function () { return JSON.stringify(patternWithUnselectedItems); });
+
+        const pattern = JSON.parse(fs.readFileSync(patternPath, { encoding: 'utf-8' }));
+        const result = await instantiate(pattern, true, new SchemaDirectory(null as unknown as DocumentLoader)) as TestInstantiatedPattern;
+
+        expect(result.nodes).toEqual([]);
+        expect(result.relationships).toEqual([]);
+    });
 });
