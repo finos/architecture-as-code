@@ -316,11 +316,8 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void overwrite_a_snapshot_whose_raw_request_spelling_differs_from_the_stored_canonical_spelling() throws Exception {
-        // versions holds the canonical spelling ("2.0.0-SNAPSHOT"); the request uses a
-        // different accepted spelling ("200-SNAPSHOT") for the same logical version. The
-        // create-versus-overwrite decision must canonicalise the raw request before comparing
-        // against the stored list, or this lands on the create branch and fails with a 400
-        // when the store rejects the duplicate.
+        // "200-SNAPSHOT" must canonicalise to the stored "2.0.0-SNAPSHOT" to be recognised
+        // as an overwrite, or this wrongly falls through to the create branch and fails with 400.
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("snap-test")
                 .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
@@ -386,10 +383,8 @@ public class TestMappingControllerResourceShould {
 
     @Test
     void refuse_a_release_version_whose_raw_request_spelling_differs_from_the_stored_canonical_spelling() throws Exception {
-        // versions holds the canonical spelling ("1.0.0"); the request uses a different
-        // accepted spelling ("100") for the same logical release. Without canonicalising the
-        // raw request first, this fails to detect the clash, falls through to the create
-        // branch and returns a 400 from the store instead of the correct 409.
+        // "100" must canonicalise to the stored "1.0.0" to be recognised as a clash, or
+        // this falls through to the create branch and returns 400 instead of 409.
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("snap-test")
                 .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();

@@ -504,9 +504,7 @@ public class MappingControllerService {
             }
             // Releases stay immutable. A snapshot is mutable by design, so a repeat POST
             // overwrites it — a client never has to know whether it already exists.
-            // versions holds canonical spellings, so the raw request spelling must be
-            // canonicalised before comparison, exactly as the shadow check above and
-            // deleteSnapshotForVersion below already do.
+            // Canonicalised before comparing, as above.
             boolean overwriting = versions.contains(CanonicalVersion.of(newVersion));
             if (overwriting && !snapshot) {
                 return CalmResourceErrorResponses.versionAlreadyExistsResponse(
@@ -714,10 +712,7 @@ public class MappingControllerService {
      * work in progress.</p>
      */
     private void deleteSnapshotForVersion(ResourceMapping mapping, String releaseVersion, List<String> versions) {
-        // versions holds canonical spellings, so the raw request's release spelling must be
-        // canonicalised first — "100"'s snapshot is stored as "1.0.0-SNAPSHOT", which would
-        // never match a naive "100-SNAPSHOT" otherwise (see the shadow check above this method's
-        // call site, which canonicalises for the same reason).
+        // Canonicalised before comparing, as in the shadow check above this method's call site.
         String snapshotVersion = ResourceVersion.asSnapshot(CanonicalVersion.of(releaseVersion));
         if (!versions.contains(snapshotVersion)) {
             return;

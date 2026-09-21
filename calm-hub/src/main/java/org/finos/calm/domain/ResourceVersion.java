@@ -17,7 +17,6 @@ package org.finos.calm.domain;
  */
 public final class ResourceVersion {
 
-    /** The fixed, case-sensitive marker of a mutable version. */
     public static final String SNAPSHOT_SUFFIX = "-SNAPSHOT";
 
     private ResourceVersion() {
@@ -47,7 +46,7 @@ public final class ResourceVersion {
         return version.substring(0, version.length() - SNAPSHOT_SUFFIX.length());
     }
 
-    /** @return the snapshot form of a version. Idempotent. */
+    /** @return {@code version} unchanged if it is {@code null} or already a snapshot. */
     public static String asSnapshot(String version) {
         if (version == null || isSnapshot(version)) {
             return version;
