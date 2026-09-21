@@ -39,7 +39,7 @@ graph TB
 ## Overview of the Authentication Plugin
 
 :::warning
-The end user organization is solely responsible for security or correctness of the plugin implementation.
+The following information is provided as-is, with no warranty or support.  The end user organization is solely responsible for security or correctness of the plugin implementation.
 :::
 
 Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer \<token\>). The token can be used to authenticate the request and/or determine authorization.
