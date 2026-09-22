@@ -1,6 +1,6 @@
 import { CalmNode, CalmNodeDetails } from './node.js';
 import { CalmNodeSchema, CalmNodeDetailsSchema } from '../types/core-types.js';
-import { ResolvableAndAdaptable } from './resolvable';
+import { Resolvable, ResolvableAndAdaptable } from './resolvable';
 import { CalmCore } from './core';
 
 describe('CalmNodeDetails', () => {
@@ -295,5 +295,68 @@ describe('CalmNode', () => {
         const node = CalmNode.fromSchema(schema);
         expect(node.additionalProperties).toEqual({ foo: 'bar', bar: 42 });
         expect(node.toCanonicalSchema().additionalProperties).toEqual({ foo: 'bar', bar: 42 });
+    });
+
+    describe('definition-id', () => {
+        it('should create a Resolvable from definition-id when present', () => {
+            const schema: CalmNodeSchema = {
+                'unique-id': 'node-def-1',
+                'node-type': 'service',
+                name: 'Def Node',
+                description: 'A node with definition-id',
+                'definition-id': 'fae-calm:building-blocks:my-block@a1b2c3d'
+            };
+            const node = CalmNode.fromSchema(schema);
+            expect(node.definitionId).toBeInstanceOf(Resolvable);
+            expect(node.definitionId?.reference).toBe('fae-calm:building-blocks:my-block@a1b2c3d');
+        });
+
+        it('should leave definitionId undefined when definition-id is absent', () => {
+            const schema: CalmNodeSchema = {
+                'unique-id': 'node-def-2',
+                'node-type': 'service',
+                name: 'No Def Node',
+                description: 'A node without definition-id'
+            };
+            const node = CalmNode.fromSchema(schema);
+            expect(node.definitionId).toBeUndefined();
+        });
+
+        it('should include definition-id in toCanonicalSchema() when present', () => {
+            const schema: CalmNodeSchema = {
+                'unique-id': 'node-def-3',
+                'node-type': 'service',
+                name: 'Canonical Def Node',
+                description: 'Node with definition-id for canonical',
+                'definition-id': 'fae-calm:building-blocks:my-block@a1b2c3d'
+            };
+            const node = CalmNode.fromSchema(schema);
+            const canonical = node.toCanonicalSchema();
+            expect(canonical['definition-id']).toBe('fae-calm:building-blocks:my-block@a1b2c3d');
+        });
+
+        it('should not include definition-id in toCanonicalSchema() when absent', () => {
+            const schema: CalmNodeSchema = {
+                'unique-id': 'node-def-4',
+                'node-type': 'service',
+                name: 'No Def Canonical Node',
+                description: 'Node without definition-id for canonical'
+            };
+            const node = CalmNode.fromSchema(schema);
+            const canonical = node.toCanonicalSchema();
+            expect('definition-id' in canonical).toBe(false);
+        });
+
+        it('should not leak definition-id into additionalProperties', () => {
+            const schema: CalmNodeSchema = {
+                'unique-id': 'node-def-5',
+                'node-type': 'service',
+                name: 'No Leak Node',
+                description: 'definition-id should not appear in additional',
+                'definition-id': 'fae-calm:building-blocks:test@abc123'
+            };
+            const node = CalmNode.fromSchema(schema);
+            expect(node.additionalProperties).toBeUndefined();
+        });
     });
 });
