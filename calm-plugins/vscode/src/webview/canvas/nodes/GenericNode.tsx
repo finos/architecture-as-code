@@ -11,7 +11,6 @@ export function GenericNode({ id, data, selected }: NodeProps) {
 
     return (
         <>
-            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: '#6366f1' }} handleStyle={{ width: '6px', height: '6px', background: '#6366f1', borderRadius: '2px' }} />
             <Handle type="target" position={Position.Top} style={handleStyle} />
             <Handle type="source" position={Position.Bottom} style={handleStyle} />
             <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
@@ -23,6 +22,7 @@ export function GenericNode({ id, data, selected }: NodeProps) {
                 ...(selected ? selectedStyle : {}),
                 ...(override.background ? { background: override.background } : {}),
             }}>
+                <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: '#6366f1' }} handleStyle={{ width: '6px', height: '6px', background: '#6366f1', borderRadius: '2px' }} />
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <div style={iconStyle}>
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={override.text ?? (isBlock ? CUSTOM_TEXT : '#64748b')} strokeWidth="1.5">
@@ -39,7 +39,7 @@ export function GenericNode({ id, data, selected }: NodeProps) {
 
 const baseStyle: React.CSSProperties = {
     position: 'relative', display: 'flex', alignItems: 'center', gap: '7px',
-    width: '100%', height: '100%', padding: '8px 10px',
+    width: '100%', height: '100%', padding: '8px 10px', boxSizing: 'border-box',
     background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
 };
