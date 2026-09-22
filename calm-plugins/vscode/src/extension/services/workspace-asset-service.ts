@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import * as YAML from 'yaml';
+import { parseRequirementSchema } from './requirement-parser';
 
 export interface BuildingBlockDef {
     id: string;
@@ -9,6 +9,28 @@ export interface BuildingBlockDef {
     controls: Record<string, unknown>;
     category?: string;
     nodeType?: string;
+    /** Hub namespace — present when this block was fetched from a remote CalmHub. */
+    namespace?: string;
+    /** Content-addressable SHA — present when this block was fetched from a remote CalmHub. */
+    sha?: string;
+}
+
+/** A locally-authored standalone control requirement discovered under `controls/`. */
+export interface LocalControlDef {
+    /** File stem, e.g. "micro-segmentation". */
+    id: string;
+    /** `properties.control-id.const` from the requirement schema. */
+    controlId: string;
+    /** `properties.name.const`. */
+    name: string;
+    /** `properties.description.const`. */
+    description: string;
+    /** Absolute path on disk. */
+    filePath: string;
+    /** Normalized workspace-relative path — used for local file resolution. */
+    relativePath: string;
+    /** Domain derived from the first subdirectory under `controls/`, if any. */
+    domain?: string;
 }
 
 export interface PatternEntry {
@@ -27,54 +49,12 @@ export interface CalmTemplate {
     content: unknown;
 }
 
-export interface StandardDef {
-    id: string;
-    name: string;
-    filePath: string;
-}
-
-/**
- * Convert a markdown front-matter `controls` array into the CALM control-map
- * shape used on nodes: `{ [id]: { description, requirements:[{requirement-url,config}], metadata } }`.
- * Pure and exported so it can be unit-tested without the VS Code API.
- */
-export function frontMatterControlsToMap(
-    controls: unknown,
-    requirementUrl: string
-): Record<string, unknown> {
-    if (!Array.isArray(controls)) return {};
-    const map: Record<string, unknown> = {};
-    for (const raw of controls) {
-        if (!raw || typeof raw !== 'object') continue;
-        const ctrl = raw as Record<string, unknown>;
-        const idVal =
-            typeof ctrl.id === 'string'
-                ? ctrl.id
-                : typeof ctrl.name === 'string'
-                  ? ctrl.name
-                  : '';
-        if (!idVal) continue;
-        const entry: Record<string, unknown> = {
-            description:
-                (typeof ctrl.description === 'string'
-                    ? ctrl.description
-                    : undefined) ??
-                (typeof ctrl.name === 'string' ? ctrl.name : ''),
-            requirements: [{ 'requirement-url': requirementUrl, config: {} }],
-        };
-        if (ctrl.metadata && typeof ctrl.metadata === 'object') {
-            entry.metadata = ctrl.metadata;
-        }
-        map[idVal] = entry;
-    }
-    return map;
-}
 
 export class WorkspaceAssetService {
     private buildingBlocks: BuildingBlockDef[] = [];
     private patterns: PatternEntry[] = [];
     private templates: CalmTemplate[] = [];
-    private standards: StandardDef[] = [];
+    private controls: LocalControlDef[] = [];
     private watchers: vscode.FileSystemWatcher[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -95,11 +75,14 @@ export class WorkspaceAssetService {
     }
 
     async scanAll(): Promise<void> {
+        // Controls must be scanned before building blocks, because
+        // addStandardsPaletteItems() (invoked from scanBuildingBlocks) resolves
+        // standard control-refs against the scanned local controls.
+        await this.scanControls();
         await Promise.all([
             this.scanBuildingBlocks(),
             this.scanPatterns(),
             this.scanTemplates(),
-            this.scanStandards(),
         ]);
     }
 
@@ -112,8 +95,8 @@ export class WorkspaceAssetService {
     getTemplates(): CalmTemplate[] {
         return this.templates;
     }
-    getStandards(): StandardDef[] {
-        return this.standards;
+    getControls(): LocalControlDef[] {
+        return this.controls;
     }
 
     registerWatchers(
@@ -125,8 +108,7 @@ export class WorkspaceAssetService {
             'building-blocks/**/*.{calm.json,architecture.json}',
             'patterns/**/*.pattern.json',
             'templates/**/*.template.json',
-            'standards/**/*.md',
-            'guidelines/**/*.md',
+            'controls/**/*.json',
         ];
 
         const roots = this.getRoots();
@@ -150,6 +132,59 @@ export class WorkspaceAssetService {
             await this.scanAll();
             onRescan();
         }, 500);
+    }
+
+    private async scanControls(): Promise<void> {
+        const controls: LocalControlDef[] = [];
+        const seen = new Set<string>();
+
+        for (const root of this.getRoots()) {
+            // Any `controls/**/*.json` is considered; parseRequirementSchema
+            // below skips files that aren't valid control requirements.
+            const glob = new vscode.RelativePattern(
+                root,
+                'controls/**/*.json'
+            );
+            const files = await vscode.workspace.findFiles(glob);
+            for (const file of files) {
+                const relativePath = this.toRelativeUrl(root, file);
+                // Multi-root: the first root to yield a given relative path wins.
+                if (seen.has(relativePath)) continue;
+                try {
+                    const bytes = await vscode.workspace.fs.readFile(file);
+                    const schema = JSON.parse(
+                        Buffer.from(bytes).toString('utf-8')
+                    );
+                    const id = path
+                        .basename(file.fsPath)
+                        .replace(/(\.requirement)?\.json$/, '');
+                    const title = typeof schema.title === 'string' ? schema.title : id;
+                    const desc = typeof schema.description === 'string' ? schema.description : id;
+                    const fallbackIdentity = { controlId: id, name: title, description: desc };
+                    const { parsed } = parseRequirementSchema(schema, fallbackIdentity);
+                    if (!parsed) continue;
+                    seen.add(relativePath);
+                    // Derive domain from subdirectory: controls/{domain}/{name}.json
+                    const segments = relativePath.replace(/\\/g, '/').split('/');
+                    const domain = segments[0] === 'controls' && segments.length > 2
+                        ? segments[1]
+                        : undefined;
+                    controls.push({
+                        id,
+                        controlId: parsed.identity.controlId,
+                        name: parsed.identity.name,
+                        description: parsed.identity.description,
+                        filePath: file.fsPath,
+                        relativePath,
+                        domain,
+                    });
+                } catch {
+                    /* skip malformed requirement files */
+                }
+            }
+        }
+
+        this.controls = controls;
     }
 
     private async scanBuildingBlocks(): Promise<void> {
@@ -217,70 +252,7 @@ export class WorkspaceAssetService {
             }
         }
 
-        // Also convert standards/guidelines markdown to palette items
-        for (const root of roots) {
-            await this.addStandardsPaletteItems(nodes, root, 'standards');
-            await this.addStandardsPaletteItems(nodes, root, 'guidelines');
-        }
-
         this.buildingBlocks = nodes;
-    }
-
-    private async addStandardsPaletteItems(
-        nodes: BuildingBlockDef[],
-        root: vscode.Uri,
-        folder: 'standards' | 'guidelines'
-    ): Promise<void> {
-        const pattern = new vscode.RelativePattern(root, `${folder}/**/*.md`);
-        const files = await vscode.workspace.findFiles(pattern);
-
-        for (const file of files) {
-            const stem = this.stem(file);
-            if (stem === 'README') continue;
-            const id = `${folder}:${stem}`;
-            const category = this.extractCategory(file, folder) || 'General';
-            const requirementUrl = this.toRelativeUrl(root, file);
-            const fm = await this.readFrontMatter(file, requirementUrl);
-            const name =
-                fm?.name ??
-                stem
-                    .replace(/-/g, ' ')
-                    .replace(/\b\w/g, (c) => c.toUpperCase());
-
-            nodes.push({
-                id,
-                name,
-                behaviour: 'apply-controls-on-drop',
-                controls: fm?.controls ?? {},
-                category,
-                nodeType: 'standard',
-            });
-        }
-    }
-
-    /**
-     * Parse a standard/guideline markdown's YAML front matter to extract its
-     * display name and control definitions, so dropping it applies validatable
-     * controls onto the target node.
-     */
-    private async readFrontMatter(
-        file: vscode.Uri,
-        requirementUrl: string
-    ): Promise<{ name?: string; controls: Record<string, unknown> } | null> {
-        try {
-            const bytes = await vscode.workspace.fs.readFile(file);
-            const text = Buffer.from(bytes).toString('utf-8');
-            const match = /^---\s*\r?\n([\s\S]*?)\r?\n---/.exec(text);
-            if (!match) return null;
-            const fm = YAML.parse(match[1]) as Record<string, unknown> | null;
-            if (!fm || typeof fm !== 'object') return null;
-            return {
-                name: typeof fm.name === 'string' ? fm.name : undefined,
-                controls: frontMatterControlsToMap(fm.controls, requirementUrl),
-            };
-        } catch {
-            return null;
-        }
     }
 
     private toRelativeUrl(root: vscode.Uri, file: vscode.Uri): string {
@@ -380,56 +352,6 @@ export class WorkspaceAssetService {
         }
 
         this.templates = templates;
-    }
-
-    private async scanStandards(): Promise<void> {
-        const standards: StandardDef[] = [];
-        const dirs = ['standards', 'guidelines'];
-
-        for (const dir of dirs) {
-            const dirPath = path.join(this.workspaceRoot, dir);
-            try {
-                const uri = vscode.Uri.file(dirPath);
-                const entries = await vscode.workspace.fs.readDirectory(uri);
-                for (const [name, type] of entries) {
-                    if (type !== vscode.FileType.File || !name.endsWith('.md'))
-                        continue;
-                    standards.push({
-                        id: name.replace('.md', ''),
-                        name: name.replace('.md', '').replace(/-/g, ' '),
-                        filePath: path.join(dirPath, name),
-                    });
-                }
-            } catch {
-                /* directory doesn't exist */
-            }
-        }
-
-        this.standards = standards;
-    }
-
-    /**
-     * Resolve the raw markdown prose for a standard/guideline referenced by a
-     * control requirement URL (e.g. `standards/tls-policy.md`). Searches every
-     * workspace root plus the configured external assets path.
-     */
-    async resolveStandardProse(requirementUrl: string): Promise<string | null> {
-        if (requirementUrl.includes('..') || requirementUrl.startsWith('/') || /^[a-zA-Z]:/.test(requirementUrl)) {
-            return null;
-        }
-        for (const root of this.getRoots()) {
-            const uri = vscode.Uri.joinPath(root, requirementUrl);
-            if (!uri.fsPath.startsWith(root.fsPath)) {
-                continue;
-            }
-            try {
-                const bytes = await vscode.workspace.fs.readFile(uri);
-                return Buffer.from(bytes).toString('utf-8');
-            } catch {
-                /* try next root */
-            }
-        }
-        return null;
     }
 
     dispose(): void {
