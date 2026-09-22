@@ -95,6 +95,15 @@ describe('ExploreRail', () => {
         expect(screen.getByText('No namespaces match your filter')).toBeInTheDocument();
     });
 
+    it('says nothing was fetched, not that the filter missed, when the namespace list is empty', () => {
+        renderRail('/', { namespaceCounts: [] });
+
+        fireEvent.change(screen.getByLabelText('Filter namespaces'), { target: { value: 'anything' } });
+
+        expect(screen.getByText('Nothing here')).toBeInTheDocument();
+        expect(screen.queryByText('No namespaces match your filter')).not.toBeInTheDocument();
+    });
+
     it('marks the namespace row matching the URL as active', async () => {
         renderRail('/namespace/traderx');
         const active = await screen.findByRole('link', { name: /traderx/ });

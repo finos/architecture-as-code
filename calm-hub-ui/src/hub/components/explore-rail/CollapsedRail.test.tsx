@@ -69,14 +69,36 @@ describe('CollapsedRail', () => {
         expect(screen.getByText('calm')).toBeInTheDocument();
     });
 
-    it('closes the fly-out on Escape', () => {
+    it('closes the fly-out on Escape and returns focus to the trigger', () => {
         renderRail();
         const finosInitial = screen.getByRole('button', { name: 'finos' });
         fireEvent.focus(finosInitial);
+        const calmLink = screen.getByRole('link', { name: /calm/ });
+        calmLink.focus();
+
+        fireEvent.keyDown(calmLink, { key: 'Escape' });
+
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+        expect(document.activeElement).toBe(finosInitial);
+    });
+
+    it('keeps the fly-out open when the pointer leaves but focus is still inside', () => {
+        renderRail();
+        const finosInitial = screen.getByRole('button', { name: 'finos' });
+        finosInitial.focus();
+        fireEvent.focus(finosInitial);
         expect(screen.getByText('calm')).toBeInTheDocument();
 
-        fireEvent.keyDown(finosInitial, { key: 'Escape' });
-        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+        fireEvent.mouseLeave(finosInitial.closest('.relative') as HTMLElement);
+
+        expect(screen.getByText('calm')).toBeInTheDocument();
+    });
+
+    it('caps the fly-out height so a deep subtree can scroll', () => {
+        renderRail();
+        fireEvent.focus(screen.getByRole('button', { name: 'finos' }));
+        const panel = screen.getByText('calm').closest('div[style*="max-height"]');
+        expect(panel).toHaveStyle({ maxHeight: '60vh', overflowY: 'auto' });
     });
 
     it('renders a group-only root row inside the fly-out without a link', () => {

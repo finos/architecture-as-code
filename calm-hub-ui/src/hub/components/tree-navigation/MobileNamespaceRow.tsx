@@ -3,9 +3,7 @@ import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { CountBadge } from '../explore-rail/CountBadge.js';
 import { NestedCountBadge } from '../explore-rail/NestedCountBadge.js';
-import { type NamespaceRow } from '../explore-rail/namespace-tree.js';
-
-const INDENT_PER_DEPTH = 16;
+import { indentFor, isNamespace, type NamespaceRow } from '../explore-rail/namespace-tree.js';
 
 interface MobileNamespaceRowProps {
     row: NamespaceRow;
@@ -22,10 +20,10 @@ interface MobileNamespaceRowProps {
  */
 export function MobileNamespaceRow({ row, active, onToggleCollapsed, onOpen }: MobileNamespaceRowProps) {
     const { node, hasChildren, collapsed, depth, descendantTotal } = row;
-    const isNamespace = node.total !== null;
+    const namespaceRow = isNamespace(node);
 
     return (
-        <div className="flex items-stretch" style={{ paddingLeft: depth * INDENT_PER_DEPTH }}>
+        <div className="flex items-stretch" style={{ paddingLeft: indentFor(depth) }}>
             {hasChildren ? (
                 <button
                     type="button"
@@ -48,7 +46,7 @@ export function MobileNamespaceRow({ row, active, onToggleCollapsed, onOpen }: M
                 <span className="shrink-0" style={{ width: 40, minHeight: 44 }} aria-hidden="true" />
             )}
 
-            {isNamespace ? (
+            {namespaceRow ? (
                 <button
                     type="button"
                     className="flex-1 min-w-0 flex items-center gap-2 px-4 text-left hover:bg-base-200 active:bg-base-200"

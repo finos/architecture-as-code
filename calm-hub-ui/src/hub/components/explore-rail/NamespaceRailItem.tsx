@@ -5,9 +5,7 @@ import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { CountBadge } from './CountBadge.js';
 import { NestedCountBadge } from './NestedCountBadge.js';
-import { splitOnMatch, type NamespaceTreeNode } from './namespace-tree.js';
-
-const MAX_INDENT_GUIDES = 4;
+import { INDENT_STEP, isNamespace, splitOnMatch, type NamespaceTreeNode } from './namespace-tree.js';
 
 interface NamespaceRailItemProps {
     node: NamespaceTreeNode;
@@ -36,10 +34,13 @@ function highlight(label: string, needle: string): ReactNode {
 }
 
 /**
- * One row of the namespace tree: indent guides, a disclosure chevron (only
- * when there are children), and a link-or-plain label. The chevron is a
- * sibling of the link rather than a descendant — a `<button>` inside an `<a>`
- * is invalid, and the two are independent hit targets.
+ * One row of the namespace tree: indent guides, a disclosure chevron and a
+ * link-or-plain label. The chevron is a sibling of the link rather than a
+ * descendant — a `<button>` inside an `<a>` is invalid, and the two are
+ * independent hit targets.
+ *
+ * Filter mode hides the chevron: filtering ignores the collapsed set, so the
+ * toggle would rewrite persisted state with no visible effect until cleared.
  */
 export function NamespaceRailItem({
     node,
@@ -52,7 +53,7 @@ export function NamespaceRailItem({
     needle,
     onToggleCollapsed,
 }: NamespaceRailItemProps) {
-    const isNamespace = node.total !== null;
+    const namespaceRow = isNamespace(node);
     const label = filtering ? node.path : node.segment;
     const labelContent = filtering ? highlight(label, needle) : label;
 
@@ -65,12 +66,12 @@ export function NamespaceRailItem({
     return (
         <div className={`flex items-center gap-1 pr-1.5 py-1 rounded-[7px] text-[13px] ${active ? 'font-semibold' : ''}`} style={rowStyle}>
             <div className="flex items-center shrink-0" aria-hidden="true">
-                {Array.from({ length: Math.min(depth, MAX_INDENT_GUIDES) }).map((_, i) => (
-                    <span key={i} style={{ display: 'inline-block', width: 14, height: 20, borderLeft: `1px solid ${colors.redesign.border}` }} />
+                {Array.from({ length: depth }).map((_, i) => (
+                    <span key={i} style={{ display: 'inline-block', width: INDENT_STEP, height: 20, borderLeft: `1px solid ${colors.redesign.border}` }} />
                 ))}
             </div>
 
-            {hasChildren ? (
+            {hasChildren && !filtering ? (
                 <button
                     type="button"
                     aria-expanded={!collapsed}
@@ -92,7 +93,7 @@ export function NamespaceRailItem({
                 <span className="shrink-0" style={{ width: 24, height: 24 }} aria-hidden="true" />
             )}
 
-            {isNamespace ? (
+            {namespaceRow ? (
                 <Link
                     to={`/namespace/${encodeURIComponent(node.path)}`}
                     aria-current={active ? 'page' : undefined}

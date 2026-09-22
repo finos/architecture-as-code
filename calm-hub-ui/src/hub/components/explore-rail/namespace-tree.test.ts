@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-    ancestorPathsOf,
-    buildNamespaceTree,
-    filterNamespaceTree,
-    flattenNamespaceTree,
-    splitOnMatch,
-    type NamespaceTreeNode,
-} from './namespace-tree.js';
+import { ancestorPathsOf, buildNamespaceTree, filterNamespaceTree, flattenNamespaceTree, splitOnMatch, type NamespaceTreeNode, INDENT_STEP, indentFor, isNamespace } from './namespace-tree.js';
 import type { NamespaceCounts } from '../../../model/counts.js';
 
 function nc(namespace: string, total: number): NamespaceCounts {
@@ -157,5 +150,19 @@ describe('no path compression', () => {
         expect(tree[0].total).toBeNull();
         expect(tree[0].children).toHaveLength(1);
         expect(tree[0].children[0].path).toBe('org.finos');
+    });
+
+    describe('shared row helpers', () => {
+        it('indents by a fixed step per level, with no cap, so no two depths collide', () => {
+            const widths = [0, 1, 2, 5, 12].map(indentFor);
+            expect(widths).toEqual([0, INDENT_STEP, 2 * INDENT_STEP, 5 * INDENT_STEP, 12 * INDENT_STEP]);
+            expect(new Set(widths).size).toBe(widths.length);
+        });
+
+        it('separates a real namespace from a grouping-only ancestor', () => {
+            const [platform] = buildNamespaceTree([nc('platform.payments', 4)]);
+            expect(isNamespace(platform)).toBe(false);
+            expect(isNamespace(platform.children[0])).toBe(true);
+        });
     });
 });

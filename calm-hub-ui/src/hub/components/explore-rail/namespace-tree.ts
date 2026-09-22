@@ -52,6 +52,24 @@ export function buildNamespaceTree(namespaceCounts: NamespaceCounts[]): Namespac
         .map(([segment, trie]) => toTreeNode(segment, segment, trie));
 }
 
+/**
+ * Pixels of indent per nesting level, shared by the rail, the fly-out and the
+ * mobile drill-down so a row sits at the same depth on every surface. Small
+ * enough that a deep tree still leaves room for the label — a cap would make
+ * two different depths render identically.
+ */
+export const INDENT_STEP = 8;
+
+/** Left indent for a row at `depth`, in pixels. */
+export function indentFor(depth: number): number {
+    return depth * INDENT_STEP;
+}
+
+/** True when the node is a real namespace rather than a synthetic grouping-only ancestor. */
+export function isNamespace(node: NamespaceTreeNode): boolean {
+    return node.total !== null;
+}
+
 /** Strict ancestor paths of `path`, nearest root first — excludes `path` itself. */
 export function ancestorPathsOf(path: string): string[] {
     const segments = path.split('.');

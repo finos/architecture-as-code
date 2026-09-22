@@ -137,7 +137,15 @@ describe('NamespaceRailItem', () => {
         expect(screen.queryByTestId('nested-count-badge')).not.toBeInTheDocument();
     });
 
-    it('renders one indent guide per depth level, capped at 4', () => {
+    it('hides the chevron while filtering, so a click cannot rewrite the collapsed set unseen', () => {
+        const onToggleCollapsed = vi.fn();
+        renderItem({ hasChildren: true, filtering: true, needle: 'calm', onToggleCollapsed });
+
+        expect(screen.queryByRole('button', { name: /finos.calm/ })).not.toBeInTheDocument();
+        expect(onToggleCollapsed).not.toHaveBeenCalled();
+    });
+
+    it('renders one indent guide per depth level, uncapped', () => {
         const { container, rerender } = renderItem({ depth: 2 });
         expect(container.querySelectorAll('span[style*="border-left"]')).toHaveLength(2);
 
@@ -156,7 +164,7 @@ describe('NamespaceRailItem', () => {
                 />
             </MemoryRouter>
         );
-        expect(container.querySelectorAll('span[style*="border-left"]')).toHaveLength(4);
+        expect(container.querySelectorAll('span[style*="border-left"]')).toHaveLength(6);
     });
 
     it('marks the active row with the accent treatment and aria-current', () => {

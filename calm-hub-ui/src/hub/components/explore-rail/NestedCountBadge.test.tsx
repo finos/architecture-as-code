@@ -9,6 +9,11 @@ describe('NestedCountBadge', () => {
         expect(screen.getByTestId('nested-count-badge')).toHaveTextContent('+8');
     });
 
+    it('renders nothing for a zero count, which would promise hidden items that do not exist', () => {
+        render(<NestedCountBadge count={0} />);
+        expect(screen.queryByTestId('nested-count-badge')).not.toBeInTheDocument();
+    });
+
     it('renders with the faint badge treatment', () => {
         render(<NestedCountBadge count={3} />);
         const badge = screen.getByTestId('nested-count-badge');

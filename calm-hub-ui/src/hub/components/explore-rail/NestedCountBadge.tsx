@@ -9,9 +9,12 @@ interface NestedCountBadgeProps {
  * Ghost `+N` pill shown on a collapsed namespace row for the items hidden
  * beneath it. A distinct component (not a {@link CountBadge} variant) so the
  * existing `data-testid="count-badge"` keeps meaning "this row's own count"
- * everywhere it is asserted.
+ * everywhere it is asserted. Renders nothing for a zero count — a subtree of
+ * empty namespaces hides no items.
  */
 export function NestedCountBadge({ count }: NestedCountBadgeProps) {
+    if (count <= 0) return null;
+
     return (
         <span
             data-testid="nested-count-badge"
