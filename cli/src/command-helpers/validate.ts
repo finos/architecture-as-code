@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, HttpReferenceResolver } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { readFileSync, writeFileSync } from 'fs';
@@ -12,6 +12,7 @@ export interface ValidateOptions {
     timelinePath?: string;
     metaSchemaPath: string;
     calmHubUrl?: string;
+    assetsPath?: string;
     urlToLocalFileMapping?: string;
     verbose: boolean;
     strict: boolean;
@@ -59,7 +60,8 @@ export async function runValidate(options: ValidateOptions) {
         if (!architecture && !pattern && !timeline) {
             throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
-        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose);
+        const curieResolver = buildCurieResolverChain(options);
+        const outcome = await validate(architecture, pattern, timeline, schemaDirectory, options.verbose, curieResolver);
         enrichWithDocumentPositions(outcome, documentContexts);
         const content = getFormattedOutput(outcome, options.outputFormat, toFormattingOptions(documentContexts));
         writeOutputFile(options.outputPath, content);
@@ -69,38 +71,40 @@ export async function runValidate(options: ValidateOptions) {
         const message = err instanceof Error ? err.message : String(err);
         const stack = err instanceof Error ? err.stack : undefined;
         logger.error('An error occurred while validating: ' + message);
-        if (options.verbose) {
-            for (const causeMessage of formatErrorCauseChain(err)) {
-                logger.error(causeMessage);
-            }
-        }
         if (stack) logger.debug(stack);
         process.exit(1);
     }
 }
 
-function formatErrorCauseChain(error: unknown): string[] {
-    const messages: string[] = [];
-    let currentCause = getErrorCause(error);
-    let isFirst = true;
 
-    while (currentCause instanceof Error) {
-        messages.push(`${isFirst ? 'Cause' : 'Caused by'}: ${currentCause.message}`);
-        currentCause = getErrorCause(currentCause);
-        isFirst = false;
+
+
+/**
+ * Build the CURIE resolution chain based on CLI options.
+ * Order: SHA cache → local path → Hub → HTTP (absolute URLs)
+ * Returns undefined if no CURIE resolution is configured.
+ */
+function buildCurieResolverChain(options: ValidateOptions): CalmReferenceResolver | undefined {
+    const resolvers: CalmReferenceResolver[] = [];
+
+    // SHA cache is always available (offline-first)
+    resolvers.push(new ShaCacheReferenceResolver());
+
+    // Local assets path (resolves CURIEs without a Hub)
+    if (options.assetsPath) {
+        resolvers.push(new LocalCurieReferenceResolver(path.resolve(options.assetsPath)));
     }
 
-    return messages;
+    // CalmHub (expand CURIE to Hub URL and fetch)
+    if (options.calmHubUrl) {
+        resolvers.push(new CurieReferenceResolver(options.calmHubUrl, new HttpReferenceResolver()));
+    }
+
+    // HTTP resolver for absolute URLs in requirement-url
+    resolvers.push(new HttpReferenceResolver());
+
+    return resolvers.length > 0 ? new ChainReferenceResolver(resolvers) : undefined;
 }
-
-function getErrorCause(error: unknown): unknown {
-    return error instanceof Error && 'cause' in error
-        ? error.cause
-        : undefined;
-}
-
-
-
 
 export function writeOutputFile(output: string, validationsOutput: string) {
     if (output) {

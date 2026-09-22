@@ -1,23 +1,39 @@
 import { readFile, writeFile } from 'fs/promises';
-import { initLogger, AuthPlugin, DirectUrlAuthPlugin } from '@finos/calm-shared';
+import { initLogger, AuthPlugin } from '@finos/calm-shared';
 import { existsSync } from 'fs';
 import { homedir } from 'os';
 import { join } from 'path';
 import { pathToFileURL } from 'url';
 
-export interface DirectUrlAuthConfig {
-    module: string
-    configPath?: string
-    authenticatedHosts: string[]
-}
-
+// TODO: Add built-in CalmHub authentication for the CLI.
+// Currently auth uses a pluggable AuthPlugin (.js file) — works but requires custom code.
+//
+// Two modes needed:
+//
+// A) Developer workstation (interactive, one-time):
+//    `calm login` — OIDC Auth Code + PKCE via localhost callback (like VS Code plugin),
+//    chains into GitHub OAuth via Hub's PluginAuthResource, stores tokens in
+//    ~/.calm/credentials (encrypted or OS keychain). Subsequent commands auto-inject headers.
+//
+// B) CI / non-interactive (the harder problem):
+//    No browser, no human. Options to explore:
+//    - OAuth2 Client Credentials grant (machine-to-machine app registration in IdP)
+//    - Pre-obtained token via env var (CALM_HUB_TOKEN) — simplest, user provisions externally
+//    - GitHub Actions OIDC: runner gets a JWT from GitHub's OIDC provider, Hub trusts it
+//      as a federated identity (Azure Workload Identity Federation / similar)
+//    - GitHub App installation token: Hub accepts a GitHub App token directly for API access
+//    - Service principal / managed identity: Azure MI / AWS IAM Role → token exchange
+//
+//    The Hub needs to support at least one non-interactive grant type. Client Credentials
+//    is the most universal (works in any CI). GitHub Actions OIDC is zero-secret but
+//    GitHub-specific. Both may be needed.
+//
+// Hub-side: PluginAuthResource (or a new /api/calm/auth/token endpoint) must accept
+// client_credentials or token-exchange grants alongside the existing browser-based flow.
 export interface CLIConfig {
     calmHubUrl?: string
     allowedRemoteHosts?: string[]
     authPluginPath?: string
-    directUrlAuthModule?: string
-    directUrlAuthConfigPath?: string
-    directUrlAuthAuthenticatedHosts?: string[]
 }
 
 export function getUserConfigLocation(): string {
@@ -61,27 +77,6 @@ export function mergeWithEnvVars(config: CLIConfig): CLIConfig {
         calmHubUrl: process.env.CALM_HUB_URL || config.calmHubUrl,
         allowedRemoteHosts: process.env.CALM_ALLOWED_REMOTE_HOSTS ? process.env.CALM_ALLOWED_REMOTE_HOSTS.split(',') : config.allowedRemoteHosts,
         authPluginPath: process.env.CALM_AUTH_PLUGIN_PATH || config.authPluginPath,
-        directUrlAuthModule: process.env.CALM_DIRECT_URL_AUTH_MODULE || config.directUrlAuthModule,
-        directUrlAuthConfigPath: process.env.CALM_DIRECT_URL_AUTH_CONFIG_PATH || config.directUrlAuthConfigPath,
-        directUrlAuthAuthenticatedHosts: process.env.CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS
-            ? process.env.CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS.split(',').map(host => host.trim()).filter(Boolean)
-            : config.directUrlAuthAuthenticatedHosts,
-    };
-}
-
-export function getDirectUrlAuthConfig(config: CLIConfig): DirectUrlAuthConfig | undefined {
-    const hasDirectUrlAuthConfig = config.directUrlAuthModule !== undefined
-        || config.directUrlAuthConfigPath !== undefined
-        || config.directUrlAuthAuthenticatedHosts !== undefined;
-
-    if (!hasDirectUrlAuthConfig) {
-        return undefined;
-    }
-
-    return {
-        module: config.directUrlAuthModule as string,
-        configPath: config.directUrlAuthConfigPath,
-        authenticatedHosts: config.directUrlAuthAuthenticatedHosts as string[],
     };
 }
 
@@ -92,96 +87,35 @@ export function resolveHomeDir(path: string): string {
     return path;
 }
 
-function isHost(value: string): boolean {
-    if (!value || value !== value.trim() || value.includes('*')) {
-        return false;
-    }
-
-    try {
-        const url = new URL(`http://${value}`);
-        return url.hostname.toLowerCase() === value.toLowerCase();
-    } catch {
-        return false;
-    }
-}
-
-export function validateDirectUrlAuthConfig(config: unknown): asserts config is DirectUrlAuthConfig {
-    if (!config || typeof config !== 'object') {
-        throw new Error('directUrlAuth must be an object.');
-    }
-
-    const candidate = config as { module?: unknown; configPath?: unknown; authenticatedHosts?: unknown };
-    if (typeof candidate.module !== 'string' || !candidate.module.trim()) {
-        throw new Error('directUrlAuth.module must be a non-empty string.');
-    }
-    if (candidate.configPath !== undefined && (typeof candidate.configPath !== 'string' || !candidate.configPath.trim())) {
-        throw new Error('directUrlAuth.configPath must be a non-empty string when specified.');
-    }
-    if (!Array.isArray(candidate.authenticatedHosts) || candidate.authenticatedHosts.length === 0) {
-        throw new Error('directUrlAuth.authenticatedHosts must be a non-empty array of hostnames.');
-    }
-    if (!candidate.authenticatedHosts.every(host => typeof host === 'string' && isHost(host))) {
-        throw new Error('directUrlAuth.authenticatedHosts must contain hostnames only; URLs, ports, paths, and wildcards are not supported.');
-    }
-}
-
-async function loadPluginClassInstance<T>(
-    filename: string,
-    debug: boolean,
-    logPrefix: string,
-    validationMessage: string,
-    constructorArgs: unknown[]
-): Promise<T> {
-    const logger = initLogger(debug, logPrefix);
+export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
+    const logger = initLogger(debug, 'auth-plugin');
 
     filename = resolveHomeDir(filename);
-
+    
     if (!existsSync(filename)) {
-        logger.error(`❌ ${logPrefix} file not found: ${filename}`);
-        throw new Error(`❌ ${logPrefix} file not found: ${filename}`);
+        logger.error(`❌ Auth plugin file not found: ${filename}`);
+        throw new Error(`❌ Auth plugin file not found: ${filename}`);
     }
     if (!filename.endsWith('.js')) {
-        logger.error(`❌ ${logPrefix} file must have a .js extension: ${filename}`);
-        throw new Error(`❌ ${logPrefix} file must have a .js extension: ${filename}`);
+        logger.error(`❌ Auth plugin file must have a .js extension: ${filename}`);
+        throw new Error(`❌ Auth plugin file must have a .js extension: ${filename}`);
     }
-    logger.info(`🔍 Loading ${logPrefix}: ${filename}`);
+    logger.info(`🔍 Loading auth plugin: ${filename}`);
 
     try {
         const url = pathToFileURL(filename).href;
         const mod = await import(/* @vite-ignore */ url);
-        const PluginClass = mod.default;
-        if (typeof PluginClass !== 'function') {
-            throw new Error(`❌ ${logPrefix} must export a default class. Did you forget to export default?`);
+        const AuthPluginClass = mod.default;
+        if (typeof AuthPluginClass !== 'function') {
+            throw new Error('❌ Auth plugin must export a default class. Did you forget to export default?');
         }
-        const instance = new PluginClass(...constructorArgs) as T;
-        const candidate = instance as { getAuthHeaders?: unknown };
-        if (typeof candidate.getAuthHeaders !== 'function') {
-            throw new Error(validationMessage);
+        const instance = new AuthPluginClass() as AuthPlugin;
+        if (typeof instance.getAuthHeaders !== 'function') {
+            throw new Error('❌ Auth plugin class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>');
         }
         return instance;
     } catch (error) {
-        logger.error(`❌ Error loading ${logPrefix}: ${error}`);
-        throw new Error(`❌ Error loading ${logPrefix}: ${error}`);
+        logger.error(`❌ Error loading auth plugin: ${error}`);
+        throw new Error(`❌ Error loading auth plugin: ${error}`);
     }
-}
-
-export async function loadAuthPlugin(filename: string, debug: boolean): Promise<AuthPlugin> {
-    return loadPluginClassInstance<AuthPlugin>(
-        filename,
-        debug,
-        'auth plugin',
-        '❌ Auth plugin class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
-        []
-    );
-}
-
-export async function loadDirectUrlAuthPlugin(config: DirectUrlAuthConfig, debug: boolean): Promise<DirectUrlAuthPlugin> {
-    validateDirectUrlAuthConfig(config);
-    return loadPluginClassInstance<DirectUrlAuthPlugin>(
-        config.module,
-        debug,
-        'direct URL auth module',
-        '❌ Direct URL auth module class must implement getAuthHeaders(url, requestBody): Promise<Record<string, string>>',
-        [config.configPath ? resolveHomeDir(config.configPath) : undefined]
-    );
 }

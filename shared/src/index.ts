@@ -46,7 +46,6 @@ export { initLogger, registerNodeLoggerFactory } from './logger.js';
 export type { Logger, LogLevel, NodeLoggerFactory } from './logger.js';
 export { createWinstonLogger } from './logger.node.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
-export { DirectUrlAuthPlugin } from './auth/direct-url-auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
@@ -112,6 +111,18 @@ export {
 } from './hub/document-id-utils.js';
 export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
+export {
+    isCurie,
+    parseCurie,
+    expandCurie,
+    type CurieComponents,
+} from './hub/curie.js';
+export { CurieReferenceResolver } from './resolver/curie-resolver.js';
+export { LocalCurieReferenceResolver } from './resolver/local-curie-resolver.js';
+export { ShaCacheReferenceResolver } from './resolver/sha-cache-resolver.js';
+export { ChainReferenceResolver } from './resolver/chain-reference-resolver.js';
+export { type CalmReferenceResolver, HttpReferenceResolver } from './resolver/calm-reference-resolver.js';
+export { mergeControls } from './controls/merge-controls.js';
 export {
     enrichWithDocumentPositions,
     parseDocumentWithPositions,
