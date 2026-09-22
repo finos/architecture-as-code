@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import * as nodePath from 'path';
 import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
+import { HubClient, HubApiError } from '../services/hub-client';
+import { HubAssetService } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
+import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
 import {
     parseRequirementSchema,
@@ -81,8 +85,21 @@ export function pinControlCuries(
     return pinned;
 }
 
-/** Human-readable message for a caught error. */
+/** First 8 hex chars of the SHA-256 of the normalized (lower-cased) base URL. */
+function shortHash(input: string): string {
+    return crypto
+        .createHash('sha256')
+        .update(input.trim().toLowerCase())
+        .digest('hex')
+        .slice(0, 8);
+}
+
+/** Human-readable message for a caught error, with a friendly 403 for Hub calls. */
 function describeError(err: unknown): string {
+    if (err instanceof HubApiError) {
+        if (err.status === 403) return 'Access denied (403)';
+        return `Hub request failed (${err.status})`;
+    }
     return err instanceof Error ? err.message : String(err);
 }
 
@@ -94,7 +111,11 @@ export class CanvasPanel {
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
     private exportService = new DiagramExportService();
+    private hubClient: HubClient | undefined;
+    private hubAssetService: HubAssetService | undefined;
     private controlAssetService: ControlAssetService;
+    private shaCache = new ShaCacheService();
+    private hubBaseHash = '';
     private importService: SvgImportService | undefined;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
@@ -104,6 +125,8 @@ export class CanvasPanel {
     private webviewReady = false;
     /** Resolves once the initial local asset scan completes. */
     private scanReadyPromise: Promise<void> = Promise.resolve();
+    /** Resolves once an authenticated Hub client is connected and refreshed. Never resolves while disconnected. */
+    private hubReadyPromise: Promise<void> = new Promise<void>(() => {});
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -117,6 +140,8 @@ export class CanvasPanel {
             `[CanvasPanel] constructor, workspaceRoot: ${workspaceRoot}`
         );
         this.assetService = new WorkspaceAssetService(workspaceRoot);
+        // The Hub client is owned by extension.ts and injected via
+        // setHubConnection(); the panel never creates one itself.
         this.controlAssetService = new ControlAssetService(
             undefined,
             () => this.assetService?.getControls() ?? []
@@ -130,6 +155,7 @@ export class CanvasPanel {
                 `[CanvasPanel] Scan complete: ${fn.length} building-blocks, ${p.length} patterns, ${t.length} templates, ${c.length} controls`
             );
             this.scanReady = true;
+            // If webview was already waiting, send now
             if (this.webviewReady) {
                 this.log.appendLine(
                     '[CanvasPanel] Webview was waiting — sending assets now'
@@ -139,8 +165,53 @@ export class CanvasPanel {
         });
         this.assetService.registerWatchers(context, () => {
             this.sendAssets();
+            // A local requirement file may have changed — ask the webview to
+            // re-resolve affected controls.
             this.postMessage({ type: 'controlsChanged' });
         });
+    }
+
+    /**
+     * Inject (or clear) the authenticated Hub client. This is the sole way the
+     * panel gains Hub access — extension.ts owns the client and calls this on
+     * connect, disconnect, refresh, and when a panel opens while already
+     * connected. Passing `undefined` tears the connection down.
+     */
+    async setHubConnection(client?: HubClient): Promise<void> {
+        if (!client) {
+            this.hubClient = undefined;
+            this.hubAssetService = undefined;
+            this.hubBaseHash = '';
+            this.controlAssetService.setHubClient(undefined);
+            // A never-resolving promise (not a rejected one) avoids
+            // unhandled-rejection noise; handlers check `hubClient` first.
+            this.hubReadyPromise = new Promise<void>(() => {});
+            this.log.appendLine('[CanvasPanel] Hub connection cleared');
+            this.sendAssets();
+            return;
+        }
+
+        this.hubClient = client;
+        this.hubBaseHash = shortHash(client.getBaseUrl());
+        this.hubAssetService = new HubAssetService(client);
+        this.controlAssetService.setHubClient(client);
+        // Refresh Hub assets so sendAssets() posts fresh Hub data. The `.catch`
+        // keeps the promise resolving even on failure so awaiting handlers never
+        // hang.
+        this.hubReadyPromise = this.hubAssetService
+            .refresh()
+            .then(() => {
+                this.log.appendLine(
+                    `[CanvasPanel] Hub asset refresh complete: ${this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.buildingBlocks.length, 0)} blocks`
+                );
+            })
+            .catch((err) => {
+                this.log.appendLine(
+                    `[CanvasPanel] Hub asset refresh failed: ${String(err)}`
+                );
+            });
+        await this.hubReadyPromise;
+        this.sendAssets();
     }
 
     reveal(document: vscode.TextDocument): void {
@@ -257,6 +328,12 @@ export class CanvasPanel {
             case 'requestExportPattern':
                 void this.handleExportPattern(message.doc);
                 break;
+            case 'resolveDefinitionId':
+                void this.handleResolveDefinitionId(
+                    message.nodeId,
+                    message.curie
+                );
+                break;
             case 'requestImportSvg':
                 void this.handleImportSvg();
                 break;
@@ -302,6 +379,8 @@ export class CanvasPanel {
             json: this.currentDocument.getText(),
             source: 'file',
         });
+        // Kick off update check after initial data is sent
+        void this.checkForUpdates();
     }
 
     public refreshAssets(): void {
@@ -314,14 +393,31 @@ export class CanvasPanel {
         const localPatterns = this.assetService.getPatterns();
         const t = this.assetService.getTemplates();
 
+        // Merge Hub-sourced assets — only show explicitly selected namespaces
+        const selectedNs: string[] = vscode.workspace
+            .getConfiguration('calm.hub')
+            .get<string[]>('selectedNamespaces') ?? [];
+        const hubBlocks = this.hubAssetService?.getAllBuildingBlocks(selectedNs) ?? [];
+        const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
+        const hubAdrs = this.hubAssetService?.getAllAdrs(selectedNs) ?? [];
+        const allBlocks = [...localBlocks, ...hubBlocks];
+        const allPatterns = [...localPatterns, ...hubPatterns];
+
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns, ${t.length} templates`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub blocks), ${allPatterns.length} patterns (${localPatterns.length} local + ${hubPatterns.length} hub), ${t.length} templates, ${hubAdrs.length} ADRs`
         );
-        this.postMessage({ type: 'buildingBlocksLoaded', nodes: localBlocks });
-        this.postMessage({ type: 'patternsLoaded', patterns: localPatterns });
+        this.postMessage({ type: 'buildingBlocksLoaded', nodes: allBlocks });
+        this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
         this.postMessage({ type: 'templatesLoaded', templates: t });
+        this.postMessage({ type: 'adrsLoaded', adrs: hubAdrs });
     }
 
+    /**
+     * Restore a breadcrumb level. `index === 0` (or a missing filePath) returns
+     * to the root document; any deeper index reloads the building block at
+     * `filePath`. Uses `modelUpdated` (not `drillResult`) so the webview does not
+     * re-push onto its own drill stack — it has already truncated on navigate.
+     */
     private async handleDrillUp(
         index: number,
         filePath?: string
@@ -375,6 +471,7 @@ export class CanvasPanel {
             calmType.startsWith('building-block:') ||
             filePath.includes('building-blocks/');
 
+        // Allowed roots for containment check
         const allowedRoots: string[] = [];
         for (const folder of vscode.workspace.workspaceFolders ?? []) {
             allowedRoots.push(folder.uri.fsPath);
@@ -389,12 +486,15 @@ export class CanvasPanel {
             return allowedRoots.some((root) => canonical.startsWith(root + path.sep) || canonical === root);
         };
 
+        // Strategy: try multiple resolution paths
         const candidates: string[] = [];
 
+        // 1. Try workspace roots (building-blocks are at workspace root level)
         for (const folder of vscode.workspace.workspaceFolders ?? []) {
             candidates.push(path.join(folder.uri.fsPath, filePath));
         }
 
+        // 2. Try relative to current document
         if (this.currentDocument) {
             candidates.push(
                 path.resolve(
@@ -404,6 +504,7 @@ export class CanvasPanel {
             );
         }
 
+        // 3. For building blocks, also search recursively with glob
         const stem = path.basename(filePath, '.calm.json');
         if (filePath.includes('building-blocks/')) {
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
@@ -422,6 +523,7 @@ export class CanvasPanel {
             }
         }
 
+        // Try each candidate (with containment check)
         for (const resolvedPath of candidates) {
             if (!isContained(resolvedPath)) {
                 this.log.appendLine(
@@ -661,6 +763,89 @@ export class CanvasPanel {
         await this.handleSavePattern(fileName, JSON.stringify(pattern, null, 2));
     }
 
+    private async handleResolveDefinitionId(
+        nodeId: string,
+        curie: string
+    ): Promise<void> {
+        this.log.appendLine(
+            `[CanvasPanel] resolveDefinitionId: nodeId="${nodeId}", curie="${curie}"`
+        );
+        try {
+            const { namespace, type, slug, version } = parseCurie(curie);
+            if (this.hubClient && version) {
+                // Check SHA cache first for offline-capable resolution
+                const cached = await this.shaCache.get(
+                    namespace,
+                    type,
+                    slug,
+                    version
+                );
+                if (cached) {
+                    const rawControls =
+                        (
+                            cached as {
+                                nodes?: Array<{
+                                    controls?: Record<string, unknown>;
+                                }>;
+                            }
+                        )?.nodes?.[0]?.controls ?? {};
+                    const controls = pinControlCuries(rawControls, version);
+                    this.postMessage({
+                        type: 'definitionResolved',
+                        nodeId,
+                        controls,
+                    });
+                    this.log.appendLine(
+                        `[CanvasPanel] definitionResolved (cache hit): nodeId="${nodeId}", controls=${Object.keys(controls).length} keys`
+                    );
+                    return;
+                }
+
+                // Cache miss — fetch from Hub, then cache
+                const content = (await this.hubClient.getResourceAtVersion(
+                    namespace,
+                    type,
+                    slug,
+                    version
+                )) as { nodes?: Array<{ controls?: Record<string, unknown> }> };
+
+                await this.shaCache.put(
+                    namespace,
+                    type,
+                    slug,
+                    version,
+                    content
+                );
+
+                const rawControls = content?.nodes?.[0]?.controls ?? {};
+                const controls = pinControlCuries(rawControls, version);
+                this.postMessage({
+                    type: 'definitionResolved',
+                    nodeId,
+                    controls,
+                });
+                this.log.appendLine(
+                    `[CanvasPanel] definitionResolved (fetched + cached): nodeId="${nodeId}", controls=${Object.keys(controls).length} keys`
+                );
+            } else {
+                this.postMessage({
+                    type: 'definitionResolutionFailed',
+                    nodeId,
+                    error: 'Hub client not connected or no version in CURIE',
+                });
+            }
+        } catch (error) {
+            this.postMessage({
+                type: 'definitionResolutionFailed',
+                nodeId,
+                error: String(error),
+            });
+            this.log.appendLine(
+                `[CanvasPanel] definitionResolutionFailed: nodeId="${nodeId}", error="${String(error)}"`
+            );
+        }
+    }
+
     /** Local controls are always available; Hub domains are fetched lazily per-domain. */
     private async handleControlBrowse(requestId: string): Promise<void> {
         try {
@@ -686,12 +871,33 @@ export class CanvasPanel {
         requestId: string,
         domain: string
     ): Promise<void> {
-        this.postMessage({
-            type: 'controlDomainResult',
-            requestId,
-            ok: false,
-            error: 'Hub not connected',
-        });
+        if (!this.hubClient) {
+            this.postMessage({
+                type: 'controlDomainResult',
+                requestId,
+                ok: false,
+                error: 'Hub not connected',
+            });
+            return;
+        }
+        try {
+            await this.hubReadyPromise;
+            const group =
+                await this.controlAssetService.browseControlsForDomain(domain);
+            this.postMessage({
+                type: 'controlDomainResult',
+                requestId,
+                ok: true,
+                group,
+            });
+        } catch (err) {
+            this.postMessage({
+                type: 'controlDomainResult',
+                requestId,
+                ok: false,
+                error: describeError(err),
+            });
+        }
     }
 
     private async handleControlVersions(
@@ -699,6 +905,7 @@ export class CanvasPanel {
         domain: string,
         controlName: string
     ): Promise<void> {
+        // Local controls have a single implicit "current" version.
         if (domain === LOCAL_DOMAIN) {
             this.postMessage({
                 type: 'controlVersionsResult',
@@ -708,27 +915,58 @@ export class CanvasPanel {
             });
             return;
         }
-        this.postMessage({
-            type: 'controlVersionsResult',
-            requestId,
-            ok: false,
-            error: 'Hub not connected',
-        });
+        if (!this.hubClient) {
+            this.postMessage({
+                type: 'controlVersionsResult',
+                requestId,
+                ok: false,
+                error: 'Hub not connected',
+            });
+            return;
+        }
+        try {
+            await this.hubReadyPromise;
+            const resolved = await this.hubClient.resolveControlId(domain, controlName);
+            const versions = await this.hubClient.getRequirementVersions(
+                resolved.domain,
+                resolved.id
+            );
+            this.postMessage({
+                type: 'controlVersionsResult',
+                requestId,
+                ok: true,
+                versions,
+            });
+        } catch (err) {
+            this.postMessage({
+                type: 'controlVersionsResult',
+                requestId,
+                ok: false,
+                error: describeError(err),
+            });
+        }
     }
 
+    /**
+     * Classify and resolve a control reference to its parsed requirement. The
+     * webview never constructs URLs — it passes the raw ref and the extension
+     * classifies (canonical URL → CURIE → local path) and resolves securely.
+     */
     private async handleControlResolve(
         requestId: string,
         ref: string
     ): Promise<void> {
         try {
+            // Local path — resolve from disk, no Hub needed.
             if (isLocalControlPath(ref)) {
                 await this.scanReadyPromise;
                 this.postResolve(requestId, await this.resolveLocalRequirement(ref));
                 return;
             }
 
+            // Hub ref (canonical URL or CURIE).
             const parts = isCanonicalControlUrl(ref)
-                ? parseCanonicalControlUrl(ref)
+                ? this.parseAndValidateCanonicalUrl(ref)
                 : parseControlCurie(ref);
             if (!parts) {
                 this.postMessage({
@@ -738,6 +976,56 @@ export class CanvasPanel {
                     error: 'Unrecognized or invalid control reference',
                 });
                 return;
+            }
+
+            // Cache-first: check the SHA cache before awaiting Hub readiness so a
+            // cache hit resolves even while offline.
+            const cached = await this.getCachedRequirement(parts);
+            if (cached) {
+                this.postResolve(requestId, parseRequirementSchema(cached));
+                return;
+            }
+
+            // Try Hub when a client is available.
+            let hubError: unknown;
+            if (this.hubClient) {
+                try {
+                    await this.hubReadyPromise;
+                    const resolved = await this.hubClient.resolveControlId(
+                        parts.domain,
+                        parts.controlName
+                    );
+                    // Auto-resolve to latest version when the CURIE is unversioned.
+                    let version = parts.version;
+                    if (!version) {
+                        const versions = await this.hubClient.getRequirementVersions(
+                            resolved.domain,
+                            resolved.id
+                        );
+                        version = versions[versions.length - 1];
+                    }
+                    if (!version) throw new Error('No versions available');
+                    const schema = await this.hubClient.getRequirementAtVersion(
+                        resolved.domain,
+                        resolved.id,
+                        version
+                    );
+                    const resolvedParts = { ...parts, version };
+                    await this.putCachedRequirement(resolvedParts, schema);
+                    const s = schema as Record<string, unknown>;
+                    const fallbackIdentity = {
+                        controlId: parts.controlName,
+                        name: typeof s.title === 'string' ? s.title : parts.controlName,
+                        description: typeof s.description === 'string' ? s.description : parts.controlName,
+                    };
+                    this.postResolve(requestId, parseRequirementSchema(schema, fallbackIdentity));
+                    return;
+                } catch (err) {
+                    hubError = err;
+                    this.log.appendLine(
+                        `[CanvasPanel] Hub control resolve failed for ${parts.domain}/${parts.controlName}: ${err instanceof Error ? err.message : String(err)}`
+                    );
+                }
             }
 
             // Local fallback: match by slug against scanned workspace controls.
@@ -752,7 +1040,9 @@ export class CanvasPanel {
                 type: 'controlResolveResult',
                 requestId,
                 ok: false,
-                error: `Control "${parts.controlName}" not found locally (Hub not connected)`,
+                error: hubError
+                    ? describeError(hubError)
+                    : `Control "${parts.controlName}" not found on Hub or locally`,
             });
         } catch (err) {
             this.postMessage({
@@ -781,6 +1071,26 @@ export class CanvasPanel {
             parsed: result.parsed,
             warnings: result.warnings,
         });
+    }
+
+    /** Verify a canonical URL originates from the configured Hub before trusting it. */
+    private parseAndValidateCanonicalUrl(
+        ref: string
+    ): ControlCurieResult | null {
+        const parts = parseCanonicalControlUrl(ref);
+        if (!parts || !this.hubClient) return null;
+        try {
+            const refUrl = new URL(ref);
+            const baseUrl = new URL(this.hubClient.getBaseUrl());
+            if (refUrl.origin !== baseUrl.origin) return null;
+            const basePath = baseUrl.pathname.replace(/\/$/, '');
+            if (!refUrl.pathname.startsWith(`${basePath}/calm/domains/`)) {
+                return null;
+            }
+        } catch {
+            return null;
+        }
+        return parts;
     }
 
     private async resolveLocalControlBySlug(slug: string): Promise<ParseResult | null> {
@@ -824,6 +1134,37 @@ export class CanvasPanel {
         return parseRequirementSchema(schema, fallbackIdentity);
     }
 
+    private getCachedRequirement(
+        parts: ControlCurieResult
+    ): Promise<unknown | null> {
+        if (!parts.version) return Promise.resolve(null);
+        return this.shaCache.get(
+            `${this.hubBaseHash}-domain-controls`,
+            parts.domain,
+            parts.controlName,
+            parts.version
+        );
+    }
+
+    private putCachedRequirement(
+        parts: ControlCurieResult,
+        schema: unknown
+    ): Promise<void> {
+        if (!parts.version) return Promise.resolve();
+        return this.shaCache.put(
+            `${this.hubBaseHash}-domain-controls`,
+            parts.domain,
+            parts.controlName,
+            parts.version,
+            schema
+        );
+    }
+
+    /**
+     * Persist a standalone control requirement to `controls/` in the workspace
+     * folder holding the current document, then rescan (standards may now
+     * resolve previously-missing control-refs) and refresh the webview.
+     */
     private async handleSaveControl(
         requestId: string,
         filename: string,
@@ -832,6 +1173,7 @@ export class CanvasPanel {
         try {
             await this.scanReadyPromise;
 
+            // Slug stem with either `.requirement.json` (convention) or plain `.json`.
             if (
                 !/^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.requirement)?\.json$/.test(filename)
             ) {
@@ -847,6 +1189,7 @@ export class CanvasPanel {
                 return;
             }
 
+            // Extract domain from CURIE $id (e.g. "platform:controls:slug" → "platform")
             const idVal = typeof schema.$id === 'string' ? schema.$id : '';
             const curieParts = parseControlCurie(idVal);
             const domain = curieParts?.domain;
@@ -909,6 +1252,7 @@ export class CanvasPanel {
                 Buffer.from(content, 'utf-8')
             );
 
+            // Full rescan: standards with previously-missing control-refs may now resolve.
             await this.assetService!.scanAll();
             this.sendAssets();
             this.postMessage({ type: 'saveControlResult', requestId, ok: true });
@@ -935,8 +1279,89 @@ export class CanvasPanel {
         return folders[0]?.uri.fsPath;
     }
 
+    /**
+     * Check for available updates by comparing pinned SHAs in the current document
+     * against the latest versions from the Hub. Sends an `updatesAvailable` message
+     * to the webview with a list of nodes that have newer versions.
+     */
+    private async checkForUpdates(): Promise<void> {
+        if (!this.hubClient || !this.currentDocument) return;
+
+        try {
+            const text = this.currentDocument.getText();
+            if (!text.trim()) return;
+            const arch = JSON.parse(text) as {
+                nodes?: Array<{
+                    'unique-id'?: string;
+                    'definition-id'?: string;
+                }>;
+            };
+            if (!arch?.nodes) return;
+
+            const updates: Array<{
+                nodeId: string;
+                currentSha: string;
+                latestSha: string;
+            }> = [];
+
+            for (const node of arch.nodes) {
+                const defId = node['definition-id'];
+                if (!defId) continue;
+                const { namespace, type, slug, version } = parseCurie(defId);
+                if (!version) continue;
+
+                try {
+                    const versions = await this.hubClient.getVersions(
+                        namespace,
+                        type,
+                        slug
+                    );
+                    if (versions.length === 0) continue;
+                    const latestSha = versions[versions.length - 1];
+                    if (latestSha !== version) {
+                        updates.push({
+                            nodeId: node['unique-id'] ?? '',
+                            currentSha: version,
+                            latestSha,
+                        });
+                    }
+                } catch {
+                    /* skip nodes that fail version lookup */
+                }
+            }
+
+            if (updates.length > 0) {
+                this.postMessage({ type: 'updatesAvailable', updates });
+                this.log.appendLine(
+                    `[CanvasPanel] ${updates.length} update(s) available`
+                );
+            }
+        } catch {
+            /* non-JSON document or other parse error */
+        }
+    }
+
     private async handleOpenControlInHub(ref: string): Promise<void> {
-        vscode.window.showWarningMessage('Hub not connected');
+        if (!this.hubClient) {
+            vscode.window.showWarningMessage('Hub not connected');
+            return;
+        }
+        const parts = parseControlCurie(ref);
+        if (!parts) return;
+        try {
+            const resolved = await this.hubClient.resolveControlId(
+                parts.domain,
+                parts.controlName
+            );
+            const baseUrl = this.hubClient.getBaseUrl();
+            const hubUrl = `${baseUrl}/#/${encodeURIComponent(resolved.domain)}/controls/${resolved.id}/detail`;
+            await vscode.env.openExternal(vscode.Uri.parse(hubUrl));
+        } catch (err) {
+            this.log.appendLine(
+                `[CanvasPanel] Failed to open control in Hub: ${err instanceof Error ? err.message : String(err)}`
+            );
+            vscode.window.showWarningMessage(`Could not open control in Hub: ${describeError(err)}`);
+        }
     }
 
     private async handleImportSvg(): Promise<void> {
@@ -974,6 +1399,10 @@ export class CanvasPanel {
 
     private registerFileWatcher(_document: vscode.TextDocument): void {
         this.fileWatcher?.dispose();
+        // Watch every CALM document type across the workspace; pushFileToWebview filters to the
+        // file this panel is showing. A workspace-wide watcher (rather than one bound to a single
+        // file, which VS Code's RelativePattern can't express with a file as its base) keeps
+        // working even if the panel is later revealed for a different document.
         this.fileWatcher = vscode.workspace.createFileSystemWatcher(
             '**/*.{calm.json,architecture.json,solution.json,pattern.json,template.json}'
         );
@@ -988,6 +1417,8 @@ export class CanvasPanel {
             this.disposables
         );
 
+        // In-editor saves are the primary trigger and fire reliably even for documents that live
+        // outside the workspace folders (which the file-system watcher above would miss).
         vscode.workspace.onDidSaveTextDocument(
             (doc) => void this.pushFileToWebview(doc.uri),
             null,
@@ -995,6 +1426,11 @@ export class CanvasPanel {
         );
     }
 
+    /**
+     * Push the on-disk contents of `uri` to the webview as a file-sourced model update — but only
+     * when it is the document this panel is showing and we are not echoing our own canvas write
+     * (guarded by the sync coordinator's suppression window).
+     */
     private async pushFileToWebview(uri: vscode.Uri): Promise<void> {
         if (!this.currentDocument) return;
         if (uri.fsPath !== this.currentDocument.uri.fsPath) return;

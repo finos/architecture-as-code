@@ -33,12 +33,26 @@ type DrillResultCallback = (
     readonly?: boolean,
     solution?: unknown
 ) => void;
+type DefinitionResolvedCallback = (
+    nodeId: string,
+    controls: Record<string, unknown>
+) => void;
+type DefinitionResolutionFailedCallback = (
+    nodeId: string,
+    error: string
+) => void;
+type UpdatesAvailableCallback = (
+    updates: Array<{ nodeId: string; currentSha: string; latestSha: string }>
+) => void;
 
 let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let templatesLoadedCallback: TemplatesLoadedCallback | undefined;
 let buildingBlocksLoadedCallback: BuildingBlocksLoadedCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
+let definitionResolvedCallback: DefinitionResolvedCallback | undefined;
+let definitionResolutionFailedCallback: DefinitionResolutionFailedCallback | undefined;
+let updatesAvailableCallback: UpdatesAvailableCallback | undefined;
 
 type ControlsChangedCallback = () => void;
 let controlsChangedCallback: ControlsChangedCallback | undefined;
@@ -94,6 +108,21 @@ export function setBuildingBlocksLoadedCallback(
 export function setDrillResultCallback(cb: DrillResultCallback): void {
     drillResultCallback = cb;
 }
+export function setDefinitionResolvedCallback(
+    cb: DefinitionResolvedCallback
+): void {
+    definitionResolvedCallback = cb;
+}
+export function setDefinitionResolutionFailedCallback(
+    cb: DefinitionResolutionFailedCallback
+): void {
+    definitionResolutionFailedCallback = cb;
+}
+export function setUpdatesAvailableCallback(
+    cb: UpdatesAvailableCallback
+): void {
+    updatesAvailableCallback = cb;
+}
 
 export function setControlsChangedCallback(cb: ControlsChangedCallback): void {
     controlsChangedCallback = cb;
@@ -125,6 +154,15 @@ export function initBridge(): void {
                         msg.readonly,
                         msg.solution
                     );
+                    break;
+                case 'definitionResolved':
+                    definitionResolvedCallback?.(msg.nodeId, msg.controls);
+                    break;
+                case 'definitionResolutionFailed':
+                    definitionResolutionFailedCallback?.(msg.nodeId, msg.error);
+                    break;
+                case 'updatesAvailable':
+                    updatesAvailableCallback?.(msg.updates);
                     break;
                 case 'controlsChanged':
                     controlsChangedCallback?.();

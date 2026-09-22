@@ -27,6 +27,9 @@ import {
     setTemplatesLoadedCallback,
     setBuildingBlocksLoadedCallback,
     setDrillResultCallback,
+    setDefinitionResolvedCallback,
+    setDefinitionResolutionFailedCallback,
+    setUpdatesAvailableCallback,
     setControlsChangedCallback,
     notifyCanvasChanged,
     notifyDrillInto,
@@ -255,6 +258,13 @@ function CanvasApp() {
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
+            // Request resolution for any nodes with definition-id references
+            for (const node of layoutedNodes) {
+                const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
+                if (defId) {
+                    postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
+                }
+            }
             // Enrich controls with resolved requirement metadata (covers initial
             // load, drill, file-watcher, SVG import, undo/redo). Both node-level and
             // document-level controls are scanned; local refs always re-resolve.
@@ -279,6 +289,29 @@ function CanvasApp() {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
             loadArchitecture(json);
+        });
+        setDefinitionResolvedCallback((nodeId, controls) => {
+            setNodes((nds) => nds.map((n) => {
+                if (n.id !== nodeId) return n;
+                const data = n.data as Record<string, unknown>;
+                // Only set controls if node doesn't already have them (from saved file)
+                const existingControls = data.controls as Record<string, unknown> | undefined;
+                const hasExisting = existingControls && Object.keys(existingControls).length > 0;
+                return { ...n, data: { ...data, controls: hasExisting ? existingControls : controls, _resolvedControls: controls } };
+            }));
+            // Enrich the freshly-resolved controls once React has committed them.
+            const generation = loadGeneration.current;
+            setTimeout(() => {
+                if (generation !== loadGeneration.current) return;
+                const n = reactFlowInstance.getNodes().find((x) => x.id === nodeId);
+                if (n) enrichNodeControls([n], generation);
+            }, 0);
+        });
+        setDefinitionResolutionFailedCallback((nodeId, error) => {
+            console.warn(`[CALM Canvas] Failed to resolve definition for node ${nodeId}: ${error}`);
+        });
+        setUpdatesAvailableCallback((updates) => {
+            useCanvasStore.setState({ availableUpdates: updates });
         });
         setControlsChangedCallback(() => {
             // A local requirement file changed — re-resolve all controls.
@@ -708,9 +741,15 @@ function CanvasApp() {
                     },
             };
             setNodes((nds) => [...nds, newNode]);
+            // Request resolution for Hub-sourced blocks so the webview can render controls
+            if (isHubSourced) {
+                postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
+            }
             setTimeout(() => emitChange(true), 0);
             // Local building-block controls may carry local requirement refs — enrich them.
-            setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+            if (!isHubSourced) {
+                setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
+            }
             return;
         }
 
