@@ -46,7 +46,7 @@ export function installPackedCli(repoRoot: string, prefix: string): CliInstall {
         run(args, opts) {
             const cp = execa(calmBin, args, {
                 cwd: opts?.cwd ?? tempDir,
-                env: { ...process.env, HOME: tempDir, ...opts?.env },
+                env: opts?.env ? { ...process.env, ...opts.env } : process.env,
             });
             cp.stdout?.pipe(process.stdout);
             cp.stderr?.pipe(process.stderr);

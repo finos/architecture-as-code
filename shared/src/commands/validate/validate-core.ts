@@ -5,6 +5,8 @@ import { ValidationContext, ValidationMode } from './validation-rule.js';
 import { createDefaultValidationEngine, ValidationEngine } from './validation-engine.js';
 import { CachingTrackingResolver } from '../../resolver/caching-tracking-resolver.js';
 import { SchemaDirectoryReferenceResolver } from '../../resolver/schema-directory-reference-resolver.js';
+import { ChainReferenceResolver } from '../../resolver/chain-reference-resolver.js';
+import { CalmReferenceResolver } from '../../resolver/calm-reference-resolver.js';
 
 let logger: Logger; // defined later at startup
 
@@ -38,13 +40,14 @@ export async function validate(
     patternOrSchema: object | undefined,
     timeline: object | undefined,
     schemaDirectory?: SchemaDirectory,
-    debug: boolean = false
+    debug: boolean = false,
+    additionalResolver?: CalmReferenceResolver
 ): Promise<ValidationOutcome> {
     logger = initLogger(debug, 'calm-validate');
 
     try {
         const engine = createDefaultValidationEngine();
-        const context = buildValidationContext(architecture, patternOrSchema, timeline, schemaDirectory, debug, engine);
+        const context = buildValidationContext(architecture, patternOrSchema, timeline, schemaDirectory, debug, engine, additionalResolver);
         return await engine.validate(context);
     } catch (error) {
         logger.error('An error occurred:' + error);
@@ -62,9 +65,14 @@ function buildValidationContext(
     timeline: object | undefined,
     schemaDirectory: SchemaDirectory | undefined,
     debug: boolean,
-    engine: ValidationEngine
+    engine: ValidationEngine,
+    additionalResolver?: CalmReferenceResolver
 ): ValidationContext {
-    const references = new CachingTrackingResolver(new SchemaDirectoryReferenceResolver(schemaDirectory));
+    const schemaResolver = new SchemaDirectoryReferenceResolver(schemaDirectory);
+    const baseResolver: CalmReferenceResolver = additionalResolver
+        ? new ChainReferenceResolver([additionalResolver, schemaResolver])
+        : schemaResolver;
+    const references = new CachingTrackingResolver(baseResolver);
     const base = { references, debug, engine };
 
     if (timeline) {

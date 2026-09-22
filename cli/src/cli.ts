@@ -128,6 +128,7 @@ Validation requires:
         .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option('--assets-path <path>', 'Local path to CALM assets directory (resolves CURIEs without a Hub)')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
@@ -146,6 +147,7 @@ Validation requires:
                 timelinePath: options.timeline,
                 metaSchemaPath: options.schemaDirectory,
                 calmHubUrl: options.calmHubUrl,
+                assetsPath: options.assetsPath,
                 urlToLocalFileMapping: options.urlToLocalFileMapping,
                 verbose: !!options.verbose,
                 strict: options.strict,
@@ -945,26 +947,6 @@ export async function parseDocumentLoaderConfig(
             logger.debug('Auth plugin loaded successfully');
         } catch (err) {
             logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
-        }
-    }
-
-    const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(userConfig);
-    if (directUrlAuthConfig) {
-        try {
-            cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
-            const directUrlAuthConfigPath = directUrlAuthConfig.configPath !== undefined
-                ? directUrlAuthConfig.configPath
-                : 'not specified';
-            logger.info('Loading direct URL auth module from config file: ' + directUrlAuthConfig.module);
-            logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
-            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(directUrlAuthConfig, !!options.verbose);
-            docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
-            docLoaderOpts.directUrlAuthAuthenticatedHosts = directUrlAuthConfig.authenticatedHosts;
-            logger.debug('Direct URL auth module loaded successfully');
-        } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
-            logger.error('Direct URL authentication setup failed: ' + message);
-            throw new Error('Direct URL authentication setup failed: ' + message);
         }
     }
 
