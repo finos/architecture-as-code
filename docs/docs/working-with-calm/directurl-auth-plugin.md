@@ -3,7 +3,7 @@ id: directurl-auth-plugin
 title: Direct URL Document Loader - Authentication Plugin
 ---
 
-The diagram illustrates a standard integration pattern in which an organization supplies its own identity-aware auth module to the CALM runtime. The organization develops a local implementation of the Identity Provider (IdP) client, builds it into a deployable module, and configures the CALM CLI to load that module as the direct URL auth handler. At runtime, CALM invokes the module for authenticated direct URL access, and the module obtains the necessary header by communicating with the organization’s identity provider.
+The diagram illustrates a standard integration pattern in which an end-user organization supplies an identity-aware authentication module to the CALM runtime. The organization implements an Identity Provider (IdP) client, builds it as a deployable module, and configures the CALM CLI to load it as the direct URL authentication handler. For configured hosts, CALM invokes the plugin before fetching a document, and the plugin obtains and returns the request headers required by the organization’s IdP, typically an `Authorization: Bearer <token>` header. The CALM CLI then uses the returned header on the request to retrieve the CALM artifact.
 
 This pattern keeps authentication logic outside the core CLI and allows each organization to adapt the direct URL flow to its own IdP and security requirements while preserving a consistent integration point with CALM.
 
@@ -441,6 +441,10 @@ export CALM_DIRECT_URL_AUTH_MODULE="/path/to/direct-url-auth-plugin/dist/direct-
 export CALM_DIRECT_URL_AUTH_CONFIG_PATH="/path/to/direct-url-auth-plugin/direct-url-auth.config.json"
 export CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS="internal-calm.example.org"
 ```
+:::note
+Environment variables have precedence over configuration file parameters in `~/.calm.json`.
+:::
+
 
 Multiple authenticated hosts must be separated by commas:
 
