@@ -113,6 +113,35 @@ The runtime flow is:
 * The module sends the client credentials to the token endpoint.
 * The returned access token and expiry time are cached for later requests.
 
+```mermaid
+sequenceDiagram
+    participant CLI as CALM CLI
+    participant Plugin as DirectUrlAuthPlugin
+    participant Config as Local config file
+    participant Vault as Vault KV v2
+    participant IdP as OAuth token endpoint
+    participant Docs as Protected document service
+
+    CLI->>Plugin: getAuthHeaders(url, requestBody)
+    Plugin->>Plugin: Check cached token and 60-second refresh window
+
+    alt Cached token is still valid
+        Plugin-->>CLI: Authorization: Bearer cached-token
+    else Token is missing or expired
+        Plugin->>Config: Read configPath
+        Config-->>Plugin: AuthConfig
+        Plugin->>Vault: GET /v1/{vaultSecretPath}\nX-Vault-Token
+        Vault-->>Plugin: Client secret in KV v2 response
+        Plugin->>IdP: POST client credentials\n(client_id, client_secret, grant_type)
+        IdP-->>Plugin: access_token, expires_in
+        Plugin->>Plugin: Cache token and expiry time
+        Plugin-->>CLI: Authorization: Bearer access-token
+    end
+
+    CLI->>Docs: GET direct URL with Authorization header
+    Docs-->>CLI: CALM document
+```
+
 The local configuration file contains the token endpoint, client identifier, Vault endpoint, Vault token, secret path, and optional secret field name. The client secret is retrieved from Vault at runtime instead of being stored in the local configuration file. The module caches both the configuration read and the Vault request so concurrent document requests do not repeat the same work.
 
 The module uses Node's built-in `http` and `https` clients for both Vault and token requests. It accepts only HTTP and HTTPS endpoints, sends a `GET` request for the Vault secret, and sends a form-encoded `POST` request to the token endpoint. Non-2xx responses, invalid JSON, missing token fields, invalid URLs, and missing configuration values cause the module to reject with an error.
