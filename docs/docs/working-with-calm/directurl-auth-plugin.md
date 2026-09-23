@@ -18,6 +18,11 @@ graph TB
           CLI["@finos/calm-cli"]
         end
 
+        subgraph ORG_DIRECT_URL_REPO["End User non-CALM Hub Repo"]
+            direction TB
+            DIRECT_URL_REPO["Repo of CALM Artifacts"]
+        end
+
         subgraph INHOUSE["End User Organization Integration (Local GIT Repo)"]
           direction TB
           ORG_SRC["src/end-user-idp-client.ts\nimplements IdPClient"]
@@ -25,14 +30,17 @@ graph TB
           ORG_IDP["End User Organization IDP"]
         end
 
+
         ORG_SRC -- "npm install / npm build" --> ORG_AUTH
         CALM_CLI -- "via configuration directUrlAuth.module integrate with" --> INHOUSE
         ORG_AUTH -- "retrieve required header" --> ORG_IDP
+        CALM_CLI -- "With Authorization Header obtained from plugin" --> ORG_DIRECT_URL_REPO
     end
 
 
     style INHOUSE fill:#e8f0fb,stroke:#3a6bc4
     style ORG fill:#f0f4ff,stroke:#3a6bc4
+    style ORG_DIRECT_URL_REPO fill:#e8f0fb:stroke:#3a6bc4
 
 ```
 
