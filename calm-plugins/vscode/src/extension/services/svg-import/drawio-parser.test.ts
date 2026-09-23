@@ -156,6 +156,42 @@ describe('parseDrawioSvg - edge cases', () => {
     });
 });
 
+describe('parseDrawioSvg - AWS/Azure container shapes', () => {
+    it('keeps AWS group shapes as nodes and preserves child containment', async () => {
+        const svg = `<svg content="${encodeURIComponent(
+            '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="aws-cloud" value="AWS Cloud" style="points=[];shape=mxgraph.aws4.group;grIcon=mxgraph.aws4.group_aws_cloud;fillColor=none;strokeColor=#AAB7B8;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="500" height="400" as="geometry"/></mxCell>' +
+            '<mxCell id="svc1" value="Lambda" style="rounded=1;" vertex="1" parent="aws-cloud"><mxGeometry x="50" y="80" width="120" height="60" as="geometry"/></mxCell>' +
+            '</root></mxGraphModel>'
+        )}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+
+        const cloud = result.nodes.find(n => n.label === 'AWS Cloud');
+        const lambda = result.nodes.find(n => n.label === 'Lambda');
+        expect(cloud).toBeDefined();
+        expect(lambda).toBeDefined();
+        expect(lambda?.parentId).toBe('aws-cloud');
+    });
+
+    it('still skips real draw.io groups (group=1 style flag)', async () => {
+        const svg = `<svg content="${encodeURIComponent(
+            '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="g1" value="" style="group" vertex="1" parent="1"><mxGeometry x="0" y="0" width="300" height="200" as="geometry"/></mxCell>' +
+            '<mxCell id="n1" value="Child" style="rounded=1;" vertex="1" parent="g1"><mxGeometry x="10" y="10" width="100" height="50" as="geometry"/></mxCell>' +
+            '</root></mxGraphModel>'
+        )}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+
+        const groupNode = result.nodes.find(n => n.id === 'g1');
+        expect(groupNode).toBeUndefined();
+        const child = result.nodes.find(n => n.label === 'Child');
+        expect(child).toBeDefined();
+        expect(child?.parentId).toBeUndefined();
+    });
+});
+
 describe('classifyDrawioStyle', () => {
     it('classifies cylinder shape', () => {
         expect(classifyDrawioStyle({ shape: 'cylinder' })).toBe('cylinder');

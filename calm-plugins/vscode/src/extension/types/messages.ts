@@ -20,7 +20,7 @@ export type ExtToWebviewMessage =
     | {
           type: 'modelUpdated';
           json: string;
-          source: 'file' | 'ai' | 'text-editor';
+          source: 'file' | 'ai' | 'text-editor' | 'import';
       }
     | { type: 'templatesLoaded'; templates: unknown[] }
     | { type: 'patternsLoaded'; patterns: unknown[] }

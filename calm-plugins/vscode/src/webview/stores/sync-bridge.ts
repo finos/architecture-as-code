@@ -3,7 +3,7 @@ import { postMessage } from '../vscode-api';
 
 type ModelUpdateCallback = (
     json: string,
-    source: 'file' | 'ai' | 'text-editor'
+    source: 'file' | 'ai' | 'text-editor' | 'import'
 ) => void;
 type PatternsLoadedCallback = (patterns: unknown[]) => void;
 type TemplatesLoadedCallback = (templates: unknown[]) => void;

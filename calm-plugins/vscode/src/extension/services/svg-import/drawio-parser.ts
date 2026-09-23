@@ -41,7 +41,7 @@ export async function parseDrawioSvg(svgContent: string): Promise<ParsedSvgGraph
     const decorativeParentIds = new Set<string>();
     for (const info of allCells) {
         const style = info.cellAttrs.style ?? '';
-        if (style.includes('group')) {
+        if (parseStyleString(style)['group'] === '1') {
             groupIds.add(info.id);
             if (info.cellAttrs.connectable === '0') {
                 decorativeParentIds.add(info.id);

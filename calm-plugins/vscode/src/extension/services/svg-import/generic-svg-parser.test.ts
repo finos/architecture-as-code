@@ -276,6 +276,36 @@ describe('parseGenericSvg', () => {
         expect(result.nodes[0]?.geometry).toEqual({ x: 70, y: 130, width: 200, height: 150 });
     });
 
+    it('detects edges from line inside a translated group', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="a"><rect x="10" y="10" width="100" height="50"/><text x="60" y="35">A</text></g>
+            <g id="b"><rect x="310" y="210" width="100" height="50"/><text x="360" y="235">B</text></g>
+            <g transform="translate(300, 200)">
+                <line x1="-190" y1="-165" x2="60" y2="35" stroke="#000"/>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0]?.sourceId).toBe('a');
+        expect(result.edges[0]?.targetId).toBe('b');
+    });
+
+    it('detects polyline edges inside a translated group', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="a"><rect x="10" y="10" width="100" height="50"/><text x="60" y="35">A</text></g>
+            <g id="b"><rect x="310" y="10" width="100" height="50"/><text x="360" y="35">B</text></g>
+            <g transform="translate(200, 0)">
+                <polyline points="-90,35 110,35" stroke="#000"/>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0]?.sourceId).toBe('a');
+        expect(result.edges[0]?.targetId).toBe('b');
+    });
+
     it('assigns nearest text to standalone shape, not first within radius', () => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg">
             <rect x="50" y="50" width="100" height="60"/>

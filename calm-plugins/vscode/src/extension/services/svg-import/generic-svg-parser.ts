@@ -16,7 +16,7 @@ export function parseGenericSvg(svgContent: string): ParsedSvgGraph {
 
     const svgTransform = parseTransform(String(svg.properties.transform ?? ''));
     extractNodesFromElement(svg, nodes, svgTransform);
-    extractEdgesFromElement(svg, nodes, edges);
+    extractEdgesFromElement(svg, nodes, edges, svgTransform);
     detectContainment(nodes);
 
     return { nodes, edges, sourceFormat: 'generic' };
@@ -144,21 +144,31 @@ function tryExtractNodeFromGroup(
     return { id, label, shapeHint, geometry: shapeGeo, styleProps: {} };
 }
 
-function extractEdgesFromElement(element: ElementNode, nodes: SvgNode[], edges: SvgEdge[]): void {
+function applyPoint(point: { x: number; y: number }, t: Transform2D): { x: number; y: number } {
+    return { x: t.sx * point.x + t.tx, y: t.sy * point.y + t.ty };
+}
+
+function extractEdgesFromElement(
+    element: ElementNode,
+    nodes: SvgNode[],
+    edges: SvgEdge[],
+    accTransform: Transform2D = IDENTITY_TRANSFORM
+): void {
     for (const child of element.children) {
         if (child.type !== 'element') continue;
         const tag = child.tagName;
         const props = child.properties;
+        const elTransform = composeTransforms(accTransform, parseTransform(String(props.transform ?? '')));
 
         if (tag === 'line') {
-            const edge = tryMatchLine(props, nodes, edges.length);
+            const edge = tryMatchLine(props, nodes, edges.length, elTransform);
             if (edge) edges.push(edge);
         } else if (tag === 'polyline') {
             const points = String(props.points ?? '');
             const coords = points.split(/\s+/).map(p => p.split(',').map(Number));
             if (coords.length >= 2) {
-                const start = { x: coords[0]![0]!, y: coords[0]![1]! };
-                const end = { x: coords[coords.length - 1]![0]!, y: coords[coords.length - 1]![1]! };
+                const start = applyPoint({ x: coords[0]![0]!, y: coords[0]![1]! }, elTransform);
+                const end = applyPoint({ x: coords[coords.length - 1]![0]!, y: coords[coords.length - 1]![1]! }, elTransform);
                 const source = findNearestNode(start, nodes);
                 const target = findNearestNode(end, nodes);
                 if (source && target && source !== target) {
@@ -170,12 +180,12 @@ function extractEdgesFromElement(element: ElementNode, nodes: SvgNode[], edges: 
                 }
             }
         } else if (tag === 'g') {
-            extractEdgesFromElement(child, nodes, edges);
+            extractEdgesFromElement(child, nodes, edges, elTransform);
         }
     }
 }
 
-function tryMatchLine(props: Record<string, string | number>, nodes: SvgNode[], index: number): SvgEdge | null {
+function tryMatchLine(props: Record<string, string | number>, nodes: SvgNode[], index: number, transform: Transform2D = IDENTITY_TRANSFORM): SvgEdge | null {
     const x1 = parseFloat(String(props.x1 ?? ''));
     const y1 = parseFloat(String(props.y1 ?? ''));
     const x2 = parseFloat(String(props.x2 ?? ''));
@@ -183,8 +193,10 @@ function tryMatchLine(props: Record<string, string | number>, nodes: SvgNode[], 
 
     if (isNaN(x1) || isNaN(y1) || isNaN(x2) || isNaN(y2)) return null;
 
-    const source = findNearestNode({ x: x1, y: y1 }, nodes);
-    const target = findNearestNode({ x: x2, y: y2 }, nodes);
+    const start = applyPoint({ x: x1, y: y1 }, transform);
+    const end = applyPoint({ x: x2, y: y2 }, transform);
+    const source = findNearestNode(start, nodes);
+    const target = findNearestNode(end, nodes);
 
     if (!source || !target || source === target) return null;
 
