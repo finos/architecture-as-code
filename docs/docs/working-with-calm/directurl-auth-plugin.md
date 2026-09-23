@@ -19,9 +19,9 @@ graph TB
           CLI["@finos/calm-cli"]
         end
 
-        subgraph ORG_DIRECT_URL_REPO["End User non-CALM Hub Repo"]
+        subgraph ORG_DIRECT_URL_REPO["Non-CALM Hub Repo\nwith Authentication"]
             direction TB
-            DIRECT_URL_REPO["Repo of CALM Artifacts"]
+            DIRECT_URL_REPO[(CALM Artifacts)]
         end
 
         subgraph INHOUSE_REPO["End User Organization Local GIT Repo"]
