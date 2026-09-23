@@ -10,7 +10,8 @@ This pattern keeps authentication logic outside the core CLI and allows each org
 
 ```mermaid
 graph TB
-    subgraph ORG["End User Organisation"]
+    subgraph ORG["End User Organisation directUrlAuth Integration"]
+        direction TB
 
         subgraph CALM_CLI["Locally installed calm cli run-time"]
           direction TB
@@ -23,24 +24,33 @@ graph TB
             DIRECT_URL_REPO["Repo of CALM Artifacts"]
         end
 
-        subgraph INHOUSE["End User Organization Integration (Local GIT Repo)"]
+        subgraph INHOUSE_REPO["End User Organization Local GIT Repo"]
           direction TB
           ORG_SRC["src/end-user-idp-client.ts\nimplements IdPClient"]
-          ORG_AUTH["built end-user-idp-client"]
-          ORG_IDP["End User Organization IDP"]
         end
 
+        subgraph INHOUSE_DIST["Built directUrlAuth Plugin"]
+          direction TB
+          ORG_AUTH["built end-user-idp-client"]
+        end
+
+        subgraph END_USER_IDP_SERVICE["End User Organization IDP Service"]
+          direction TB
+          ORG_IDP["Identity Provider"]
+        end
 
         ORG_SRC -- "npm install / npm build" --> ORG_AUTH
-        CALM_CLI -- "via configuration directUrlAuth.module integrate with" --> INHOUSE
-        ORG_AUTH -- "retrieve required header" --> ORG_IDP
-        CALM_CLI -- "With Authorization Header obtained from plugin" --> ORG_DIRECT_URL_REPO
+        CALM_CLI -- "Obtain Authorization Header" --> INHOUSE_DIST
+        ORG_AUTH -- "Retrieve access token" --> END_USER_IDP_SERVICE
+        CALM_CLI -- "With Authorization Header obtained from plugin retrieve CALM artifact" --> ORG_DIRECT_URL_REPO
     end
 
 
-    style INHOUSE fill:#e8f0fb,stroke:#3a6bc4
+    style INHOUSE_DIST fill:#e8f0fb,stroke:#3a6bc4
+    style END_USER_IDP_SERVICE fill:#e8f0fb,stroke:#3a6bc4
     style ORG fill:#f0f4ff,stroke:#3a6bc4
-    style ORG_DIRECT_URL_REPO fill:#e8f0fb:stroke:#3a6bc4
+    style ORG_DIRECT_URL_REPO fill:#e8f0fb,stroke:#3a6bc4
+    style INHOUSE_REPO fill:#e8f0fb,stroke:#3a6bc4
 
 ```
 
