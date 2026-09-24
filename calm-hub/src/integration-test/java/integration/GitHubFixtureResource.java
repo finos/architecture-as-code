@@ -52,13 +52,23 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
 
         String baseUrl = originRoot.toUri().toString().replaceAll("/$", "");
 
-        return Map.of(
+        Map<String, String> config = Map.of(
                 "calm.database.mode", "github",
                 "calm.auth.enabled", "true",
                 "calm.github.oauth.base-url", baseUrl,
                 "calm.github.clone-directory", cloneDirectory.toString(),
                 "calm.github.namespaces", "finos|finos-repo|main|group1,other|other-repo|main|group2"
         );
+
+        // Belt-and-braces alongside the returned Map above, mirroring EndToEndResource and
+        // KeycloakTestResource - the Map alone has been unreliable across Quarkus versions
+        // for propagating test resource config into @ConfigProperty-injected values
+        // (quarkusio/quarkus#52919). Without this, GitHubStartupInitializer's onStart() sees
+        // calm.database.mode still resolve to the %test. default ("mongo") and returns before
+        // registering any namespace, leaving the registry permanently empty for the test.
+        config.forEach(System::setProperty);
+
+        return config;
     }
 
     private void createRepo(Path repoDir, Map<String, String> filesByRelativePath) throws Exception {
@@ -78,6 +88,10 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
     public void stop() {
         deleteRecursively(originRoot);
         deleteRecursively(cloneDirectory);
+        for (String key : new String[]{"calm.database.mode", "calm.auth.enabled", "calm.github.oauth.base-url",
+                "calm.github.clone-directory", "calm.github.namespaces"}) {
+            System.clearProperty(key);
+        }
     }
 
     private void deleteRecursively(Path root) {
