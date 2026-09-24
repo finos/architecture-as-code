@@ -343,12 +343,14 @@ class TestGitHubControlStoreShould {
     }
 
     @Test
-    void return_empty_versions_when_the_registry_is_mid_rebuild_between_the_two_lookups() throws Exception {
+    void throw_control_not_found_when_the_registry_is_mid_rebuild_between_the_two_lookups() throws Exception {
         // findControlEntry and findNamespaceForControl each re-derive the entry's namespace
         // independently by re-walking the registry - a genuine (if rare) registry-rebuild
         // race can have the entry present for the first walk and gone by the second. This
         // simulates exactly that with consecutive stubbing, rather than a namespace/domain
-        // mismatch which is a different scenario entirely.
+        // mismatch which is a different scenario entirely. Fails closed the same way
+        // getRequirementForVersion does for the identical condition, rather than silently
+        // reporting "no versions" for a control that was just found to exist.
         RegistryEntry entry = new RegistryEntry(UNIQUE_ID, Path.of("controls/security/my-control.json"),
                 RegistryResourceType.CONTROL, "My Control", Instant.now());
         RegistrySnapshot snapshot = new RegistrySnapshot(
@@ -359,9 +361,7 @@ class TestGitHubControlStoreShould {
                 .thenReturn(List.of(entry), List.of());
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
-        List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
-
-        assertThat(versions, is(empty()));
+        assertThrows(ControlNotFoundException.class, () -> store.getRequirementVersions(DOMAIN, HASH_ID));
     }
 
     @Test

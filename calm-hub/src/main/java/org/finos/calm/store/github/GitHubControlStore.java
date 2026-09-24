@@ -104,7 +104,14 @@ public class GitHubControlStore implements ControlStore {
         RegistryEntry entry = findControlEntry(domain, controlId);
         String namespace = findNamespaceForControl(entry);
         if (namespace == null) {
-            return List.of();
+            // Same transient registry-consistency condition getRequirementForVersion below
+            // fails closed on (see its comment) - a genuine 404 there and a silent empty
+            // list here would tell two callers of the same control two different, contradictory
+            // things. Fail closed here too, rather than claiming "no versions" for a control that
+            // was just found to exist.
+            LOG.error("Could not resolve namespace for control [{}] in domain [{}] - registry may be mid-rebuild",
+                    entry.uniqueId(), domain);
+            throw new ControlNotFoundException();
         }
         String repo = cloneManager.getRepoForNamespace(namespace);
         String branch = cloneManager.getBranchForNamespace(namespace);
