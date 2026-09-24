@@ -306,6 +306,75 @@ describe('parseGenericSvg', () => {
         expect(result.edges[0]?.targetId).toBe('b');
     });
 
+    it('matches line edge endpoints to inner nodes, not enclosing container', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="box"><rect x="0" y="0" width="600" height="400"/><text x="10" y="20">Container</text></g>
+            <g id="a"><rect x="50" y="150" width="100" height="60"/><text x="100" y="180">A</text></g>
+            <g id="b"><rect x="400" y="150" width="100" height="60"/><text x="450" y="180">B</text></g>
+            <line x1="150" y1="180" x2="400" y2="180" stroke="#000"/>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0]?.sourceId).toBe('a');
+        expect(result.edges[0]?.targetId).toBe('b');
+    });
+
+    it('matches polyline edge endpoints to inner nodes, not enclosing container', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="box"><rect x="0" y="0" width="600" height="400"/><text x="10" y="20">Container</text></g>
+            <g id="a"><rect x="50" y="150" width="100" height="60"/><text x="100" y="180">A</text></g>
+            <g id="b"><rect x="400" y="150" width="100" height="60"/><text x="450" y="180">B</text></g>
+            <polyline points="150,180 275,180 400,180" stroke="#000"/>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0]?.sourceId).toBe('a');
+        expect(result.edges[0]?.targetId).toBe('b');
+    });
+
+    it('composes scale then translate in correct SVG order', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="st" transform="scale(2) translate(10,10)">
+                <rect x="0" y="0" width="50" height="30"/>
+                <text x="25" y="15">ST</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        // scale(2) translate(10,10): translate first → (0+10, 0+10), then scale → (20, 20)
+        expect(result.nodes[0]?.geometry).toEqual({ x: 20, y: 20, width: 100, height: 60 });
+    });
+
+    it('composes translate then scale in correct SVG order', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="ts" transform="translate(10,10) scale(2)">
+                <rect x="0" y="0" width="50" height="30"/>
+                <text x="25" y="15">TS</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        // translate(10,10) scale(2): scale first → (0*2, 0*2)=(0,0), then translate → (10, 10)
+        expect(result.nodes[0]?.geometry).toEqual({ x: 10, y: 10, width: 100, height: 60 });
+    });
+
+    it('composes multiple translate transforms', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="tt" transform="translate(10,10) translate(20,30)">
+                <rect x="0" y="0" width="100" height="50"/>
+                <text x="50" y="25">TT</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.geometry).toEqual({ x: 30, y: 40, width: 100, height: 50 });
+    });
+
     it('assigns nearest text to standalone shape, not first within radius', () => {
         const svg = `<svg xmlns="http://www.w3.org/2000/svg">
             <rect x="50" y="50" width="100" height="60"/>

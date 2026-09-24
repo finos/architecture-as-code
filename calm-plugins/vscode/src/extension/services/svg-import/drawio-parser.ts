@@ -65,11 +65,48 @@ export async function parseDrawioSvg(svgContent: string): Promise<ParsedSvgGraph
         }
     }
 
-    // Remove parentId references to groups (since groups are skipped as nodes)
-    for (const node of nodes) {
-        if (node.parentId && groupIds.has(node.parentId)) {
-            node.parentId = undefined;
+    // Convert group children from relative to absolute coords, then re-parent
+    const groupGeoMap = new Map<string, { x: number; y: number; parent: string }>();
+    for (const info of allCells) {
+        if (groupIds.has(info.id)) {
+            const geo = extractGeometry(info.cell);
+            groupGeoMap.set(info.id, {
+                x: geo?.x ?? 0,
+                y: geo?.y ?? 0,
+                parent: info.cellAttrs.parent ?? '',
+            });
         }
+    }
+
+    function resolveGroupOffset(groupId: string): { x: number; y: number } {
+        let totalX = 0, totalY = 0;
+        let current = groupId;
+        const visited = new Set<string>();
+        while (current && groupGeoMap.has(current) && !visited.has(current)) {
+            visited.add(current);
+            const g = groupGeoMap.get(current)!;
+            totalX += g.x;
+            totalY += g.y;
+            current = g.parent;
+        }
+        return { x: totalX, y: totalY };
+    }
+
+    const nodeIds = new Set(nodes.map(n => n.id));
+    for (const node of nodes) {
+        if (!node.parentId || !groupIds.has(node.parentId)) continue;
+
+        const offset = resolveGroupOffset(node.parentId);
+        node.geometry.x += offset.x;
+        node.geometry.y += offset.y;
+
+        let ancestor = groupGeoMap.get(node.parentId)?.parent ?? '';
+        while (ancestor && groupIds.has(ancestor)) {
+            ancestor = groupGeoMap.get(ancestor)?.parent ?? '';
+        }
+        node.parentId = (ancestor && ancestor !== '0' && ancestor !== '1' && nodeIds.has(ancestor))
+            ? ancestor
+            : undefined;
     }
 
     return { nodes, edges, sourceFormat: 'drawio' };

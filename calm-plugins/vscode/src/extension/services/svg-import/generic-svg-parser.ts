@@ -210,12 +210,19 @@ function tryMatchLine(props: Record<string, string | number>, nodes: SvgNode[], 
 function findNearestNode(point: { x: number; y: number }, nodes: SvgNode[]): SvgNode | null {
     let closest: SvgNode | null = null;
     let minDist = EDGE_PROXIMITY_THRESHOLD;
+    let minArea = Infinity;
 
     for (const node of nodes) {
         const dist = distanceToNodeBorder(point, node.geometry);
+        const area = node.geometry.width * node.geometry.height;
+
         if (dist < minDist) {
             minDist = dist;
             closest = node;
+            minArea = area;
+        } else if (dist === 0 && minDist === 0 && area < minArea) {
+            closest = node;
+            minArea = area;
         }
     }
 
@@ -280,41 +287,43 @@ function isFullyContained(inner: SvgNodeGeometry, outer: SvgNodeGeometry): boole
 function parseTransform(transform: string | undefined): Transform2D {
     if (!transform) return IDENTITY_TRANSFORM;
 
-    let tx = 0, ty = 0, sx = 1, sy = 1;
+    const fnPattern = /(translate|scale|matrix)\(([^)]+)\)/g;
+    let result = IDENTITY_TRANSFORM;
+    let matched = false;
+    let m: RegExpExecArray | null;
 
-    const scaleMatch = transform.match(/scale\(\s*([-\d.]+)(?:[\s,]+([-\d.]+))?\s*\)/);
-    if (scaleMatch) {
-        sx = parseFloat(scaleMatch[1]!);
-        sy = scaleMatch[2] ? parseFloat(scaleMatch[2]) : sx;
-    }
+    while ((m = fnPattern.exec(transform)) !== null) {
+        matched = true;
+        const fn = m[1];
+        const args = m[2]!.split(/[\s,]+/).map(Number);
+        let step: Transform2D;
 
-    const translateMatch = transform.match(/translate\(\s*([-\d.]+)(?:[\s,]+([-\d.]+))?\s*\)/);
-    if (translateMatch) {
-        tx = parseFloat(translateMatch[1]!);
-        ty = translateMatch[2] ? parseFloat(translateMatch[2]) : 0;
-    }
-
-    const matrixMatch = transform.match(/matrix\(\s*([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)[\s,]+([-\d.]+)\s*\)/);
-    if (matrixMatch) {
-        const a = parseFloat(matrixMatch[1]!);
-        const b = parseFloat(matrixMatch[2]!);
-        const c = parseFloat(matrixMatch[3]!);
-        const d = parseFloat(matrixMatch[4]!);
-        tx = parseFloat(matrixMatch[5]!);
-        ty = parseFloat(matrixMatch[6]!);
-        // Extract scale from axis-aligned matrices (b ≈ 0, c ≈ 0)
-        if (Math.abs(b) < 0.001 && Math.abs(c) < 0.001) {
-            sx = a;
-            sy = d;
-        } else {
-            sx = Math.sqrt(a * a + b * b);
-            sy = Math.sqrt(c * c + d * d);
+        switch (fn) {
+            case 'translate':
+                step = { tx: args[0] ?? 0, ty: args[1] ?? 0, sx: 1, sy: 1 };
+                break;
+            case 'scale': {
+                const sx = args[0] ?? 1;
+                step = { tx: 0, ty: 0, sx, sy: args[1] ?? sx };
+                break;
+            }
+            case 'matrix': {
+                const [a = 1, b = 0, c = 0, d = 1, e = 0, f = 0] = args;
+                if (Math.abs(b) < 0.001 && Math.abs(c) < 0.001) {
+                    step = { sx: a, sy: d, tx: e, ty: f };
+                } else {
+                    step = { sx: Math.sqrt(a * a + b * b), sy: Math.sqrt(c * c + d * d), tx: e, ty: f };
+                }
+                break;
+            }
+            default:
+                continue;
         }
+
+        result = composeTransforms(result, step);
     }
 
-    if (!scaleMatch && !translateMatch && !matrixMatch) return IDENTITY_TRANSFORM;
-
-    return { tx, ty, sx, sy };
+    return matched ? result : IDENTITY_TRANSFORM;
 }
 
 function getShapeGeometry(tag: string, props: Record<string, string | number>): SvgNodeGeometry | null {

@@ -189,6 +189,57 @@ describe('parseDrawioSvg - AWS/Azure container shapes', () => {
         const child = result.nodes.find(n => n.label === 'Child');
         expect(child).toBeDefined();
         expect(child?.parentId).toBeUndefined();
+        expect(child?.geometry).toEqual({ x: 10, y: 10, width: 100, height: 50 });
+    });
+
+    it('converts group children to absolute coordinates when clearing parentId', async () => {
+        const svg = `<svg content="${encodeURIComponent(
+            '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="g1" value="" style="group" vertex="1" parent="1"><mxGeometry x="800" y="200" width="300" height="200" as="geometry"/></mxCell>' +
+            '<mxCell id="n1" value="Inside" style="rounded=1;" vertex="1" parent="g1"><mxGeometry x="10" y="10" width="100" height="50" as="geometry"/></mxCell>' +
+            '</root></mxGraphModel>'
+        )}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+
+        const child = result.nodes.find(n => n.label === 'Inside');
+        expect(child).toBeDefined();
+        expect(child?.parentId).toBeUndefined();
+        expect(child?.geometry).toEqual({ x: 810, y: 210, width: 100, height: 50 });
+    });
+
+    it('accumulates offsets through nested groups', async () => {
+        const svg = `<svg content="${encodeURIComponent(
+            '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="g1" value="" style="group" vertex="1" parent="1"><mxGeometry x="100" y="200" width="500" height="400" as="geometry"/></mxCell>' +
+            '<mxCell id="g2" value="" style="group" vertex="1" parent="g1"><mxGeometry x="50" y="50" width="300" height="200" as="geometry"/></mxCell>' +
+            '<mxCell id="n1" value="Deep" style="rounded=1;" vertex="1" parent="g2"><mxGeometry x="10" y="10" width="100" height="50" as="geometry"/></mxCell>' +
+            '</root></mxGraphModel>'
+        )}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+
+        const child = result.nodes.find(n => n.label === 'Deep');
+        expect(child).toBeDefined();
+        expect(child?.parentId).toBeUndefined();
+        expect(child?.geometry).toEqual({ x: 160, y: 260, width: 100, height: 50 });
+    });
+
+    it('re-parents group child to nearest non-group ancestor', async () => {
+        const svg = `<svg content="${encodeURIComponent(
+            '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="vpc" value="VPC" style="rounded=1;dashed=1;fillColor=none;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="600" height="400" as="geometry"/></mxCell>' +
+            '<mxCell id="g1" value="" style="group" vertex="1" parent="vpc"><mxGeometry x="50" y="50" width="300" height="200" as="geometry"/></mxCell>' +
+            '<mxCell id="svc" value="Service" style="rounded=1;" vertex="1" parent="g1"><mxGeometry x="10" y="10" width="120" height="60" as="geometry"/></mxCell>' +
+            '</root></mxGraphModel>'
+        )}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+
+        const svc = result.nodes.find(n => n.label === 'Service');
+        expect(svc).toBeDefined();
+        expect(svc?.parentId).toBe('vpc');
+        expect(svc?.geometry).toEqual({ x: 60, y: 60, width: 120, height: 60 });
     });
 });
 
