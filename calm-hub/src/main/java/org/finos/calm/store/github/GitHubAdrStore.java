@@ -34,9 +34,6 @@ import java.util.List;
 @Typed(GitHubAdrStore.class)
 public class GitHubAdrStore extends AbstractGitHubStore implements AdrStore {
 
-    private static final String VERSION_UNSUPPORTED =
-            "Version history via GitHub API is not yet implemented.";
-
     @Inject
     public GitHubAdrStore(ResourceRegistry registryService) {
         super(registryService);
@@ -59,19 +56,26 @@ public class GitHubAdrStore extends AbstractGitHubStore implements AdrStore {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
+    // ADRs always report zero for the namespace listing above, so a lookup of one specific
+    // ADR is never going to find it either - answer "not found," the same as any other GET
+    // for an ADR that doesn't exist, rather than a write-unsupported error for a request that
+    // was never trying to write.
     @Override
     public AdrMeta getAdr(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
+        verifyNamespace(adrMeta.getNamespace());
+        throw new AdrNotFoundException();
     }
 
     @Override
     public List<Integer> getAdrRevisions(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException {
-        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
+        verifyNamespace(adrMeta.getNamespace());
+        throw new AdrNotFoundException();
     }
 
     @Override
     public AdrMeta getAdrRevision(AdrMeta adrMeta) throws NamespaceNotFoundException, AdrNotFoundException, AdrRevisionNotFoundException, AdrParseException {
-        throw new GitHubWriteNotSupportedException(VERSION_UNSUPPORTED);
+        verifyNamespace(adrMeta.getNamespace());
+        throw new AdrNotFoundException();
     }
 
     @Override

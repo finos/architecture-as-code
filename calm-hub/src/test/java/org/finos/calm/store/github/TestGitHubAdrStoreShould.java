@@ -2,6 +2,7 @@ package org.finos.calm.store.github;
 
 import org.finos.calm.domain.adr.AdrMeta;
 import org.finos.calm.domain.adr.Status;
+import org.finos.calm.domain.exception.AdrNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.adr.NamespaceAdrSummary;
 import org.finos.calm.store.github.registry.ResourceRegistry;
@@ -86,21 +87,38 @@ class TestGitHubAdrStoreShould {
     }
 
     @Test
-    void throw_unsupported_on_get_adr() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getAdr(new AdrMeta()));
+    void throw_adr_not_found_on_get_adr() {
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        assertThrows(AdrNotFoundException.class,
+                () -> store.getAdr(new AdrMeta.AdrMetaBuilder().setNamespace("finos").build()));
     }
 
     @Test
-    void throw_unsupported_on_get_adr_revisions() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getAdrRevisions(new AdrMeta()));
+    void throw_adr_not_found_on_get_adr_revisions() {
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        assertThrows(AdrNotFoundException.class,
+                () -> store.getAdrRevisions(new AdrMeta.AdrMetaBuilder().setNamespace("finos").build()));
     }
 
     @Test
-    void throw_unsupported_on_get_adr_revision() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> store.getAdrRevision(new AdrMeta()));
+    void throw_adr_not_found_on_get_adr_revision() {
+        RegistrySnapshot snapshot = new RegistrySnapshot(Map.of("finos", List.of()), Map.of());
+        when(registryService.getSnapshot()).thenReturn(snapshot);
+
+        assertThrows(AdrNotFoundException.class,
+                () -> store.getAdrRevision(new AdrMeta.AdrMetaBuilder().setNamespace("finos").build()));
+    }
+
+    @Test
+    void throw_namespace_not_found_on_get_adr_for_unknown_namespace() {
+        when(registryService.getSnapshot()).thenReturn(RegistrySnapshot.EMPTY);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.getAdr(new AdrMeta.AdrMetaBuilder().setNamespace("nonexistent").build()));
     }
 
     @Test
