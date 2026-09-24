@@ -314,7 +314,12 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
-            boolean hasShas = versions.stream().anyMatch(v -> v.matches("[0-9a-f]{7,40}"));
+            // VERSION_REGEX's optional separators make an all-digit string like "1234567"
+            // valid semver *and* SHA-shaped. Only treat a version as a real git SHA - and so
+            // skip semver sorting for the whole list - when it isn't also a valid semver on
+            // its own terms; a genuine SHA containing a letter can never satisfy VERSION_REGEX.
+            boolean hasShas = versions.stream()
+                    .anyMatch(v -> v.matches("[0-9a-f]{7,40}") && !v.matches(VERSION_REGEX));
             List<String> sortedVersions;
             if (hasShas) {
                 sortedVersions = versions;
