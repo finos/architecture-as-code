@@ -7,10 +7,12 @@ import org.finos.calm.domain.search.GroupedSearchResults;
 import org.finos.calm.domain.search.SearchResult;
 import org.finos.calm.store.SearchStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.RegistrySnapshot;
 import org.finos.calm.store.github.registry.ResourceRegistry;
 import org.finos.calm.store.github.registry.RegistryEntry;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -49,20 +51,34 @@ public class GitHubSearchStore implements SearchStore {
         // The registry is an in-memory index, not an external call, so there's no cost
         // reason to cut the merge short.
         String lowerQuery = query.toLowerCase();
-        List<RegistryEntry> allEntries = registryService.getSnapshot().getNamespaces().stream()
+
+        // One snapshot for the whole request: a background registry rebuild landing between
+        // two independent getSnapshot() calls must not change which namespace a result is
+        // attributed to. namespaceByEntry is built from the same readable-namespace-filtered
+        // pass as allEntries, so an entry from a namespace this caller cannot read is never
+        // available to attribute a result to, however the reverse lookup is done.
+        RegistrySnapshot snapshot = registryService.getSnapshot();
+        List<String> readable = snapshot.getNamespaces().stream()
                 .filter(ns -> readableNamespaces.isEmpty() || readableNamespaces.get().contains(ns))
-                .flatMap(ns -> registryService.getSnapshot().listAll(ns).stream())
+                .toList();
+
+        Map<RegistryEntry, String> namespaceByEntry = readable.stream()
+                .flatMap(ns -> snapshot.listAll(ns).stream().map(e -> Map.entry(e, ns)))
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (first, second) -> first));
+
+        List<RegistryEntry> allEntries = readable.stream()
+                .flatMap(ns -> snapshot.listAll(ns).stream())
                 .filter(e -> matchesQuery(e, lowerQuery))
                 .toList();
 
         return new GroupedSearchResults(
-                filterByType(allEntries, RegistryResourceType.ARCHITECTURE),
-                filterByType(allEntries, RegistryResourceType.PATTERN),
-                filterByType(allEntries, RegistryResourceType.FLOW),
-                filterByType(allEntries, RegistryResourceType.STANDARD),
-                filterByType(allEntries, RegistryResourceType.INTERFACE),
-                filterByType(allEntries, RegistryResourceType.CONTROL),
-                filterByType(allEntries, RegistryResourceType.ADR)
+                filterByType(allEntries, RegistryResourceType.ARCHITECTURE, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.PATTERN, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.FLOW, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.STANDARD, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.INTERFACE, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.CONTROL, namespaceByEntry),
+                filterByType(allEntries, RegistryResourceType.ADR, namespaceByEntry)
         );
     }
 
@@ -71,17 +87,16 @@ public class GitHubSearchStore implements SearchStore {
                 || (entry.uniqueId() != null && entry.uniqueId().toLowerCase().contains(lowerQuery));
     }
 
-    private List<SearchResult> filterByType(List<RegistryEntry> entries, RegistryResourceType type) {
+    private List<SearchResult> filterByType(List<RegistryEntry> entries, RegistryResourceType type,
+                                              Map<RegistryEntry, String> namespaceByEntry) {
         return entries.stream()
                 .filter(e -> e.type() == type)
                 .limit(MAX_RESULTS_PER_TYPE)
                 .map(e -> new SearchResult(
-                        registryService.getSnapshot().getNamespaces().stream()
-                                .filter(ns -> registryService.getSnapshot().listAll(ns).contains(e))
-                                .findFirst().orElse(""),
+                        namespaceByEntry.getOrDefault(e, ""),
                         (e.uniqueId().hashCode() & 0x7FFFFFFF),
                         e.name(),
-                        e.uniqueId()
+                        null
                 ))
                 .collect(Collectors.toList());
     }
