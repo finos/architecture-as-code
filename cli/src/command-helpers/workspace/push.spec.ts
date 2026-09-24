@@ -311,4 +311,42 @@ describe('pushWorkspaceToHub', () => {
             expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
         });
     });
+
+    describe('snapshot versions', () => {
+        it('always pushes (overwrites) a snapshot version that already exists, even without --fail-if-modified', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A', extra: 'edited again' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a', '1.1.0-SNAPSHOT')),
+            });
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.1.0-SNAPSHOT' }),
+                JSON.stringify(snapshotDoc)
+            );
+            expect(client.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('--fail-if-modified has no effect on a snapshot version — it still overwrites instead of conflicting', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A', extra: 'edited again' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.1.0-SNAPSHOT']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a', '1.1.0-SNAPSHOT')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.not.toThrow();
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+        });
+    });
 });

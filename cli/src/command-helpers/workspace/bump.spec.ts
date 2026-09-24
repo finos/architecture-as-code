@@ -85,6 +85,18 @@ describe('bump', () => {
             expect(changed[0]).toMatchObject({ id: 'a', currentVersion: '1.0.0', latestHubVersion: '1.0.0' });
         });
 
+        it('skips a modified snapshot version — no bump is ever required for it', async () => {
+            await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.1.0-SNAPSHOT': { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' } },
+            });
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(changed).toHaveLength(0);
+            expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
+        });
+
         it('warns and skips a doc with an unmappable $id', async () => {
             await write('a.json', { $id: 'bare-id', title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
