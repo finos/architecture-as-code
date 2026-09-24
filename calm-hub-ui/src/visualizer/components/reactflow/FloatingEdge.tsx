@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
 import { getEdgeParams } from './utils/floatingEdges.js';
-import { EdgeTooltip } from './edge-components/index.js';
+import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 
 export function FloatingEdge({
@@ -74,6 +74,13 @@ export function FloatingEdge({
     const isFlowActive = !!data?.flowActive;
     const flowOpacity = style.opacity ?? 1;
 
+    // An edge can carry flow/AIGF metadata with no description or protocol text at all -
+    // the badge is the only signal that metadata exists, independent of edgeLabel.
+    const hasFlowInfo = flowTransitions.length > 0;
+    const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
+    const badgeStyle = getBadgeStyle(hasFlowInfo, hasAIGF);
+    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF;
+
     return (
         <>
             <path
@@ -91,7 +98,7 @@ export function FloatingEdge({
                     markerEnd={markerEnd}
                 />
             )}
-            {edgeLabel && (
+            {hasIndicator && (
                 <EdgeLabelRenderer>
                     <div
                         style={{
@@ -101,14 +108,28 @@ export function FloatingEdge({
                             zIndex: 1000,
                             opacity: flowOpacity,
                             transition: 'opacity 0.4s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                         }}
                         className="nodrag nopan"
                         onMouseEnter={() => setIsHovered(true)}
                         onMouseLeave={() => setIsHovered(false)}
                     >
-                        <span className="text-[0.625rem] leading-tight px-1 py-0.5 rounded bg-base-100/90 border border-base-300 text-base-content/60 max-w-[10rem] truncate inline-block">
-                            {edgeLabel}
-                        </span>
+                        {(hasFlowInfo || hasAIGF) && (
+                            <EdgeBadge
+                                hasFlowInfo={hasFlowInfo}
+                                hasAIGF={hasAIGF}
+                                badgeStyle={badgeStyle}
+                                onMouseEnter={() => setIsHovered(true)}
+                                onMouseLeave={() => setIsHovered(false)}
+                            />
+                        )}
+                        {edgeLabel && (
+                            <span className="text-[0.625rem] leading-tight px-1 py-0.5 rounded bg-base-100/90 border border-base-300 text-base-content/60 max-w-[10rem] truncate inline-block">
+                                {edgeLabel}
+                            </span>
+                        )}
                     </div>
 
                     {isHovered && (
