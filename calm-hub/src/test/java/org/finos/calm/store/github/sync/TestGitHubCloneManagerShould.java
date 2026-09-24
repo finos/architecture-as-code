@@ -145,10 +145,29 @@ class TestGitHubCloneManagerShould {
         when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
         cloneManager.cloneAll();
 
+        // pullAll falls back to cloneRepo when the dir is still invalid, same as cloneAll -
+        // this only fails when that retry itself fails, not merely because the dir was invalid.
         when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(false);
         cloneManager.pullAll();
 
         assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.FAILED));
+    }
+
+    @Test
+    void recover_via_clone_fallback_on_pull_all_when_the_clone_dir_is_invalid() {
+        cloneManager.registerNamespace("ns1", "org/repo1", "main", Set.of());
+        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
+        cloneManager.cloneAll();
+
+        // A namespace whose initial clone left an invalid dir must be able to recover on the
+        // very next pullAll tick, without a restart, by falling back to cloneRepo again.
+        when(repoSync.isValidRepo(any())).thenReturn(false);
+        when(repoSync.cloneRepo(any(), any(), any(), any())).thenReturn(true);
+        cloneManager.pullAll();
+
+        assertThat(cloneManager.getState(), equalTo(GitHubCloneManager.State.READY));
     }
 
     @Test
