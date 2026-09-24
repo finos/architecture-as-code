@@ -22,7 +22,9 @@ import java.util.Optional;
  * (2026-09-10, #3052) agreed it should be modelled as a {@code Standard} instead. Keeping
  * the directory case here (rather than deleting it) means repos already using the VSCode
  * plugin's building-blocks-directory convention for CALM/architecture JSON files keep
- * working — only the domain concept goes away, not the file layout.</p>
+ * working — only the domain concept goes away, not the file layout. This alias covers
+ * the schema-contract half of the original ask only; a distributable catalogue of
+ * concrete, reusable node definitions is tracked separately in #3102.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped

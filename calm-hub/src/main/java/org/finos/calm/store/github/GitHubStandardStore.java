@@ -30,7 +30,8 @@ import java.util.List;
  * GitHub-mode {@link StandardStore}: standards are read from files under {@code standards/}
  * and {@code building-blocks/} in the namespace's clone (the two directories are merged into
  * one listing - see {@link org.finos.calm.store.github.registry.CalmContentDetector} for why
- * {@code building-blocks/} maps to {@code STANDARD} rather than a separate concept). Id
+ * {@code building-blocks/} maps to {@code STANDARD} rather than a separate concept, and for
+ * the node-catalogue half of that ask this store does not cover - #3102). Id
  * lookup, version listing and version-content resolution all delegate to
  * {@link AbstractReadOnlyGitHubStore} - see its class javadoc for why an unresolvable version
  * 404s rather than silently reading whatever HEAD holds. The one thing this store adds beyond
@@ -57,7 +58,7 @@ public class GitHubStandardStore extends AbstractReadOnlyGitHubStore implements 
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.STANDARD);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
     }
 
