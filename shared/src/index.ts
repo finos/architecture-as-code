@@ -103,7 +103,15 @@ export {
     type ControlDocumentMetadata,
     type ControlDocumentKind
 } from './hub/document-id-utils.js';
-export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
+export {
+    computeSemVerBump,
+    compareSemVer,
+    sortSemVer,
+    isSnapshotVersion,
+    toSnapshotVersion,
+    toReleaseVersion,
+    SNAPSHOT_SUFFIX
+} from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
 export {
     enrichWithDocumentPositions,

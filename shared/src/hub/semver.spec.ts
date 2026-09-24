@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeSemVerBump, compareSemVer, sortSemVer } from './semver';
+import { computeSemVerBump, compareSemVer, sortSemVer, isSnapshotVersion, toSnapshotVersion, toReleaseVersion } from './semver';
 
 describe('computeSemVerBump', () => {
     describe('MAJOR', () => {
@@ -68,6 +68,48 @@ describe('computeSemVerBump', () => {
         it('throws on an unknown change type', () => {
             expect(() => computeSemVerBump('1.2.3', 'SIDEWAYS' as never)).toThrow(/Unknown change type/);
         });
+
+        it('strips a -SNAPSHOT suffix before computing the bump', () => {
+            expect(computeSemVerBump('1.2.3-SNAPSHOT', 'PATCH')).toBe('1.2.4');
+        });
+    });
+});
+
+describe('isSnapshotVersion', () => {
+    it('returns true for a version with the -SNAPSHOT suffix', () => {
+        expect(isSnapshotVersion('1.2.3-SNAPSHOT')).toBe(true);
+    });
+
+    it('returns false for a plain release version', () => {
+        expect(isSnapshotVersion('1.2.3')).toBe(false);
+    });
+
+    it('returns false for the bare suffix with nothing in front of it', () => {
+        expect(isSnapshotVersion('-SNAPSHOT')).toBe(false);
+    });
+
+    it('is case-sensitive', () => {
+        expect(isSnapshotVersion('1.2.3-snapshot')).toBe(false);
+    });
+});
+
+describe('toSnapshotVersion', () => {
+    it('appends the suffix to a release version', () => {
+        expect(toSnapshotVersion('1.2.3')).toBe('1.2.3-SNAPSHOT');
+    });
+
+    it('is a no-op if the suffix is already present', () => {
+        expect(toSnapshotVersion('1.2.3-SNAPSHOT')).toBe('1.2.3-SNAPSHOT');
+    });
+});
+
+describe('toReleaseVersion', () => {
+    it('strips the suffix from a snapshot version', () => {
+        expect(toReleaseVersion('1.2.3-SNAPSHOT')).toBe('1.2.3');
+    });
+
+    it('is a no-op on a plain release version', () => {
+        expect(toReleaseVersion('1.2.3')).toBe('1.2.3');
     });
 });
 
@@ -103,6 +145,19 @@ describe('compareSemVer', () => {
     it('throws on an invalid version', () => {
         expect(() => compareSemVer('1.2', '1.2.3')).toThrow(/Invalid semantic version/);
     });
+
+    it('orders a snapshot before its release', () => {
+        expect(compareSemVer('1.2.3-SNAPSHOT', '1.2.3')).toBeLessThan(0);
+        expect(compareSemVer('1.2.3', '1.2.3-SNAPSHOT')).toBeGreaterThan(0);
+    });
+
+    it('treats two equal snapshots as equal', () => {
+        expect(compareSemVer('1.2.3-SNAPSHOT', '1.2.3-SNAPSHOT')).toBe(0);
+    });
+
+    it('still orders by numeric segments first even when one side is a snapshot', () => {
+        expect(compareSemVer('1.3.0-SNAPSHOT', '1.2.3')).toBeGreaterThan(0);
+    });
 });
 
 describe('sortSemVer', () => {
@@ -128,5 +183,11 @@ describe('sortSemVer', () => {
 
     it('throws on an invalid version in the array', () => {
         expect(() => sortSemVer(['1.0.0', 'nope'])).toThrow(/Invalid semantic version/);
+    });
+
+    it('sorts a snapshot immediately before its release', () => {
+        expect(sortSemVer(['1.0.0', '1.1.0-SNAPSHOT', '0.9.0'])).toEqual([
+            '0.9.0', '1.0.0', '1.1.0-SNAPSHOT'
+        ]);
     });
 });

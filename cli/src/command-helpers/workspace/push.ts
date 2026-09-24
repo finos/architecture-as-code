@@ -1,7 +1,7 @@
 import { readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, saveManifest, resolveFilePath } from './bundle';
-import { CalmHubClient, DocumentMetadata, extractDocumentMetadata, initLogger, Logger } from '@finos/calm-shared';
+import { CalmHubClient, DocumentMetadata, extractDocumentMetadata, isSnapshotVersion, initLogger, Logger } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -78,7 +78,9 @@ export async function pushWorkspaceToHub(
             continue;
         }
 
-        if (existingVersions.includes(version)) {
+        // Snapshot versions are mutable: CalmHub overwrites them in place (200 OK) rather than
+        // conflicting, so the "already exists" skip/conflict logic below never applies to them.
+        if (existingVersions.includes(version) && !isSnapshotVersion(version)) {
             if (!failIfModified) {
                 logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
                 continue;
