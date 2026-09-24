@@ -101,6 +101,24 @@ public class TestFlowResourceShould {
     }
 
     @Test
+    void return_the_latest_release_rather_than_a_snapshot_ranked_higher() throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        // A 1.1.0-SNAPSHOT past the published 1.0.0 must not shadow it as "latest".
+        String flowJson = "{ \"test\": \"json\" }";
+        Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("1.0.0", "1.1.0-SNAPSHOT"));
+        Flow expectedFlow = mockFlowBuilder.setVersion("1.0.0").build();
+        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/validNamespace/flows/1")
+                .then()
+                .statusCode(200);
+
+        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+    }
+
+    @Test
     void return_404_with_invalid_namespace_response_when_namespace_not_found() throws NamespaceNotFoundException, FlowNotFoundException {
         String invalidNamespace = "invalidNamespace";
         int validFlowId = 1;

@@ -15,7 +15,6 @@ import org.finos.calm.domain.flow.CreateFlowRequest;
 import org.finos.calm.domain.interfaces.CreateInterfaceRequest;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
-import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
 import org.finos.calm.security.AuditRequestFilter;
@@ -437,7 +436,7 @@ public class MappingControllerService {
         // alone leaves "100-SNAPSHOT" as "100", which would never equal "1.0.0".
         if (!"1.0.0".equals(CanonicalVersion.of(ResourceVersion.releaseVersion(finalVersion)))) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("The first version of a resource must be 1.0.0, but " + finalVersion + " was requested")
+                    .entity("The first version of a resource must be 1.0.0 or 1.0.0-SNAPSHOT, but " + finalVersion + " was requested")
                     .build();
         }
         String title = documentParser.extractStringField(json, "title");
