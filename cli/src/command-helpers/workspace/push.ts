@@ -15,6 +15,7 @@ import {
     DocumentMetadata,
     HubClientError,
     extractDocumentMetadata,
+    isSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -269,7 +270,9 @@ async function pushMappingEntry(
         return;
     }
 
-    if (existingVersions.includes(version)) {
+    // Snapshot versions are mutable: CalmHub overwrites them in place (200 OK) rather than
+    // conflicting, so the "already exists" skip/conflict logic below never applies to them.
+    if (existingVersions.includes(version) && !isSnapshotVersion(version)) {
         if (!failIfModified) {
             logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
             return;

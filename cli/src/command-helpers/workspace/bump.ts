@@ -18,6 +18,7 @@ import {
     computeSemVerBump,
     sortSemVer,
     canonicalEqual,
+    isSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -43,8 +44,11 @@ const logger: Logger = initLogger(false, 'workspace');
  *
  * Unlike `updateDocumentMetadata` this parses/stringifies the document exactly once and only
  * touches `description` when it was already present, leaving description-less documents untouched.
+ *
+ * Exported for reuse by `snapshot.ts`, which applies the same `$id`/`title`/`description` rewrite
+ * when marking a document as a snapshot or releasing one.
  */
-function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
+export function applyVersionToDocument(raw: string, metadata: DocumentMetadata): string {
     const json = JSON.parse(raw);
     json['$id'] = constructDocumentId(metadata);
     json[documentNameField(json, metadata.type)] = metadata.name;
@@ -109,6 +113,8 @@ export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeTy
  *
  * Per document (identity comes from the `$id`):
  *  - unmappable `$id` → warn and skip
+ *  - on-disk version is a `-SNAPSHOT` → skip; it's mutable, `workspace push` overwrites it in
+ *    place and no bump is ever required
  *  - no versions in CalmHub (brand-new resource) → skip (push will create it; nothing to bump)
  *  - on-disk version not present in CalmHub → skip — it is already ahead (bumped, not yet pushed);
  *    this is the idempotency guard that prevents a second bump from incrementing again
@@ -215,6 +221,7 @@ function prepareChangedMappingEntry(
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return undefined;
     }
+    if (isSnapshotVersion(metadata.version)) return undefined; // mutable; push overwrites, no bump needed
 
     return async () => {
         let versions: string[];
@@ -299,7 +306,7 @@ export async function bumpWorkspace(
             continue;
         }
         const raw = await readFile(c.filePath, 'utf8');
-        const updated = bumpDocumentContent(raw, { ...c.metadata, version: toVersion });
+        const updated = applyVersionToDocument(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
         bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
         appliedIncrements.set(c.id, docIncrement);
@@ -359,7 +366,7 @@ export async function bumpWorkspace(
                 : cascadeDefault;
 
             const toVersion = computeSemVerBump(metadata.version, cascadeIncrement);
-            const updated = bumpDocumentContent(raw, { ...metadata, version: toVersion });
+            const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
             await writeFile(filePath, updated, 'utf8');
             bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion, triggeredBy: triggerLabel, increment: cascadeIncrement });
             appliedIncrements.set(candidate.docId, cascadeIncrement);
