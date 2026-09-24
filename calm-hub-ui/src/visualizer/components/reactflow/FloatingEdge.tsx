@@ -70,8 +70,9 @@ export function FloatingEdge({
     const mitigations = aigf?.mitigations || [];
     const risks = aigf?.risks || [];
 
-
     const edgeLabel = description || protocol || '';
+    const isFlowActive = !!data?.flowActive;
+    const flowOpacity = style.opacity ?? 1;
 
     return (
         <>
@@ -83,6 +84,13 @@ export function FloatingEdge({
                 markerEnd={markerEnd}
                 markerStart={markerStart}
             />
+            {isFlowActive && (
+                <path
+                    d={edgePath}
+                    className="flow-dash-overlay"
+                    markerEnd={markerEnd}
+                />
+            )}
             {edgeLabel && (
                 <EdgeLabelRenderer>
                     <div
@@ -91,6 +99,8 @@ export function FloatingEdge({
                             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                             pointerEvents: 'all',
                             zIndex: 1000,
+                            opacity: flowOpacity,
+                            transition: 'opacity 0.4s ease',
                         }}
                         className="nodrag nopan"
                         onMouseEnter={() => setIsHovered(true)}

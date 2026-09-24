@@ -109,13 +109,12 @@ async function instantiateFromProperties(
                     return await instantiateObject(resolvedItem, schemaDir, [key, `${idx}`]);
                 })
             );
+        } else if (resolvedDef.const !== undefined) {
+            output[key] = resolvedDef.const;
+        } else if (resolvedDef.type === 'array') {
+            output[key] = [];
         } else {
-            // Check for const values at the top level
-            if (resolvedDef.const !== undefined) {
-                output[key] = resolvedDef.const;
-            } else {
-                output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
-            }
+            output[key] = await instantiateObject(resolvedDef, schemaDir, [key]);
         }
     }
 
