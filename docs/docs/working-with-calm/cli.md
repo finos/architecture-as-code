@@ -799,7 +799,7 @@ Union of `allowedRemoteHosts` and `directUrlAuthAuthenticatedHosts` are hosts th
 ::::note
 The `directUrlAuth` plugin mechanism exists to let end user organizations implement their own authentication/authorization method based on HTTP(S) headers. Building, configuring, and securing that plugin is the sole responsibility of the end user organization. The JavaScript plugin module exports a `default class` implementing a `getAuthHeaders(url, requestBody)` function.
 
-The CALM project provides this mechanism and documentation as-is, with no warranty or support. 
+**The CALM project provides this mechanism and documentation as-is, with no warranty or support**. 
 
 :::warning
 The end user organization is solely responsible for security or correctness of the plugin implementation.
