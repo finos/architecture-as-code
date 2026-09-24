@@ -50,7 +50,7 @@ public class GitHubArchitectureStore extends AbstractReadOnlyGitHubStore impleme
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.ARCHITECTURE);
         return entries.stream()
-                .map(e -> new NamespaceResourceSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
+                .map(e -> new NamespaceResourceSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF), 0))
                 .toList();
     }
 

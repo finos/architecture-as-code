@@ -51,7 +51,7 @@ public class GitHubTimelineStore extends AbstractReadOnlyGitHubStore implements 
         verifyNamespace(namespace);
         List<RegistryEntry> entries = registryService.listByType(namespace, RegistryResourceType.TIMELINE);
         return entries.stream()
-                .map(e -> new NamespaceTimelineSummary(e.name(), e.uniqueId(), (e.uniqueId().hashCode() & 0x7FFFFFFF)))
+                .map(e -> new NamespaceTimelineSummary(e.name(), null, (e.uniqueId().hashCode() & 0x7FFFFFFF)))
                 .toList();
     }
 
