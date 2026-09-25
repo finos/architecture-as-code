@@ -1,10 +1,13 @@
+import { lazy, Suspense } from 'react';
 import { HashRouter as Router, Navigate, Route, Routes } from 'react-router-dom';
 import Hub from './hub/Hub.js';
 import { AdminPage } from './admin/AdminPage.js';
-import { NamespacesPanel } from './admin/panels/NamespacesPanel.js';
-import { DomainsPanel } from './admin/panels/DomainsPanel.js';
-import { EntitlementsPanel } from './admin/panels/EntitlementsPanel.js';
 import { UserAccessProvider } from './admin/context/UserAccessContext.js';
+
+// Lazy: AdminPage itself (the entitlement gate + nav shell) stays eager so
+// the "you do not have permission" check never waits on a chunk fetch. Only
+// the panels behind that gate — reached exclusively by admins — are deferred.
+const AdminPanels = lazy(() => import('./admin/AdminPanels.js'));
 
 function App() {
     //TODO: The artifacts route will eventually need to be changed/replaced once we create a unique identifier for resources that can be used across CalmHubs.
@@ -25,10 +28,26 @@ function App() {
                     <Route path="/broken-reference" element={<Hub />} />
                     <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
                     <Route path="/admin" element={<AdminPage />}>
-                        <Route index element={<Navigate to="entitlements" replace />} />
-                        <Route path="namespaces" element={<NamespacesPanel />} />
-                        <Route path="domains" element={<DomainsPanel />} />
-                        <Route path="entitlements" element={<EntitlementsPanel />} />
+                        {/* A bare "/admin" has no further path segment, so it
+                            never matches the sibling path="*" route below —
+                            it needs its own index route. This redirect is
+                            plain/eager (no panel code needed), so it doesn't
+                            wait on the AdminPanels chunk either. */}
+                        <Route index element={<Navigate to="/admin/entitlements" replace />} />
+                        <Route
+                            path="*"
+                            element={
+                                <Suspense
+                                    fallback={
+                                        <div className="flex justify-center py-12">
+                                            <span className="loading loading-spinner loading-lg" aria-label="Loading" />
+                                        </div>
+                                    }
+                                >
+                                    <AdminPanels />
+                                </Suspense>
+                            }
+                        />
                     </Route>
                 </Routes>
             </Router>
