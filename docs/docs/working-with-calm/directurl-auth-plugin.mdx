@@ -5,11 +5,15 @@ title: Direct URL Document Loader - Authentication Plugin
 
 import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
 
+## Concept of Operation
+
 The diagram illustrates a standard integration pattern in which an end-user organization supplies an identity-aware authentication module to the CALM runtime. The organization implements an Identity Provider (IdP) client, builds it as a deployable module, and configures the CALM CLI to load it as the direct URL authentication handler. For configured hosts, CALM invokes the plugin before fetching a document, and the plugin obtains and returns the request headers required by the organization’s IdP, typically an `Authorization: Bearer <token>` header. The CALM CLI then uses the returned header on the request to retrieve the CALM artifact.
 
 This pattern keeps authentication logic outside the core CLI and allows each organization to adapt the direct URL flow to its own IdP and security requirements while preserving a consistent integration point with CALM.
 
-<CalmDiagram src="./architectures/directurl-auth-plugin.calm.json" />
+### Conceptual Overview 
+
+<CalmDiagram src="./architectures/directurl-auth-plugin.calm.json" interactive={false}/>
 
 
 ## Overview of the Authentication Plugin
@@ -67,6 +71,8 @@ This illustrative code example assumes the following infrastructure services are
 * A centralized secrets management service (aka Vault service) containing the client secret. The authentication module must have authorized access to retrieve the secret for the configured secret path.
 * An identity provider or OAuth 2.0 token service that accepts the client credentials grant and returns an `access_token`. The token service must trust the client identifier and the secret returned by Vault.
 * A protected document service that accepts the bearer token in the `Authorization` header and serves the direct URLs listed in `directUrlAuthAuthenticatedHosts`.
+
+<CalmDiagram src="./architectures/illustrative-example.calm.json" interactive={false}/>
 
 #### How the Module Works
 
