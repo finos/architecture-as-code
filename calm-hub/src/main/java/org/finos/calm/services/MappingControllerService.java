@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.buildingblocks.CreateBuildingBlockRequest;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -44,6 +45,7 @@ public class MappingControllerService {
     private final FlowStore flowStore;
     private final StandardStore standardStore;
     private final InterfaceStore interfaceStore;
+    private final BuildingBlockStore buildingBlockStore;
     private final DomainStore domainStore;
     private final ControlStore controlStore;
     private final CalmDocumentParser documentParser;
@@ -55,6 +57,7 @@ public class MappingControllerService {
                                     FlowStore flowStore,
                                     StandardStore standardStore,
                                     InterfaceStore interfaceStore,
+                                    BuildingBlockStore buildingBlockStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
                                     CalmDocumentParser documentParser) {
@@ -64,6 +67,7 @@ public class MappingControllerService {
         this.flowStore = flowStore;
         this.standardStore = standardStore;
         this.interfaceStore = interfaceStore;
+        this.buildingBlockStore = buildingBlockStore;
         this.domainStore = domainStore;
         this.controlStore = controlStore;
         this.documentParser = documentParser;
@@ -157,6 +161,7 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockVersions(mapping.getNamespace(), mapping.getNumericId());
         };
     }
 
@@ -188,6 +193,7 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
         };
     }
 
@@ -566,6 +572,11 @@ public class MappingControllerService {
                 CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
                 yield created.getId();
             }
+            case BUILDING_BLOCK -> {
+                CreateBuildingBlockRequest req = new CreateBuildingBlockRequest(resourceName, description, json);
+                BuildingBlock created = buildingBlockStore.createBuildingBlockForNamespace(req, namespace);
+                yield created.getId();
+            }
         };
     }
 
@@ -617,6 +628,10 @@ public class MappingControllerService {
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
+            }
+            case BUILDING_BLOCK -> {
+                CreateBuildingBlockRequest req = new CreateBuildingBlockRequest(title, description, json);
+                buildingBlockStore.createBuildingBlockForVersion(req, namespace, numericId, version);
             }
         }
     }

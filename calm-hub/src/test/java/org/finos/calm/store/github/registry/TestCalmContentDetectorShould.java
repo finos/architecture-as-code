@@ -250,25 +250,25 @@ class TestCalmContentDetectorShould {
     }
 
     @Test
-    void detect_standard_from_nodes_in_building_blocks_directory() {
-        // building-blocks/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052) —
-        // "Building Block" was removed as its own CALM Hub resource type.
+    void detect_building_block_from_nodes_in_building_blocks_directory() {
+        // building-blocks/ is its own type again (PR #3066 review discussion, byrash,
+        // 2026-09-24) - restored after the 2026-09-10 alias to STANDARD (#3052).
         String json = "{\"nodes\": [{\"unique-id\": \"svc\"}], \"relationships\": []}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("building-blocks/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.of(RegistryResourceType.BUILDING_BLOCK)));
     }
 
     @Test
-    void detect_standard_from_building_blocks_directory_only() {
+    void detect_building_block_from_building_blocks_directory_only() {
         String json = "{\"title\": \"Auth Building Block\"}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("building-blocks/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.of(RegistryResourceType.BUILDING_BLOCK)));
     }
 
     @Test
-    void detect_standard_from_nested_building_blocks_path() {
+    void detect_building_block_from_nested_building_blocks_path() {
         String json = "{\"nodes\": []}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("building-blocks/sub/auth-block.json"));
-        assertThat(type, equalTo(Optional.of(RegistryResourceType.STANDARD)));
+        assertThat(type, equalTo(Optional.of(RegistryResourceType.BUILDING_BLOCK)));
     }
 }

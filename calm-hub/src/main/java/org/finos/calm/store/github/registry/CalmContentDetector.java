@@ -16,15 +16,13 @@ import java.util.Optional;
  * JSON structure signals (nodes[], relationships[], moments[]) and parent
  * directory naming conventions (architectures/, patterns/, etc.).
  *
- * <p>{@code building-blocks/} is deliberately aliased to {@link RegistryResourceType#STANDARD}
- * rather than kept as its own type. "Building Block" was introduced as a new CALM Hub
- * resource type without going through the CALM concept design process; Office Hours
- * (2026-09-10, #3052) agreed it should be modelled as a {@code Standard} instead. Keeping
- * the directory case here (rather than deleting it) means repos already using the VSCode
- * plugin's building-blocks-directory convention for CALM/architecture JSON files keep
- * working — only the domain concept goes away, not the file layout. This alias covers
- * the schema-contract half of the original ask only; a distributable catalogue of
- * concrete, reusable node definitions is tracked separately in #3102.</p>
+ * <p>{@code building-blocks/} classifies as its own {@link RegistryResourceType#BUILDING_BLOCK}
+ * type, not aliased to {@code Standard}. Office Hours (2026-09-10, #3052) had aliased it to
+ * {@code Standard}; PR #3066 review discussion (byrash, 2026-09-24) asked for the separate
+ * store and API surface back, since a Building Block is a reusable composable node
+ * definition, not a governance rule. Naming (a rename to "Node Interface" was proposed via
+ * #3102) and any broader node-catalogue scope are still pending a follow-up alignment call -
+ * this restores exactly the prior scope, no more.</p>
  */
 @LookupIfProperty(name = "calm.database.mode", stringValue = "github")
 @ApplicationScoped
@@ -94,7 +92,8 @@ public class CalmContentDetector {
         return switch (parentDir.toLowerCase()) {
             case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
             case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
-            case "standards", "building-blocks" -> Optional.of(RegistryResourceType.STANDARD);
+            case "standards" -> Optional.of(RegistryResourceType.STANDARD);
+            case "building-blocks" -> Optional.of(RegistryResourceType.BUILDING_BLOCK);
             case "flows" -> Optional.of(RegistryResourceType.FLOW);
             case "interfaces" -> Optional.of(RegistryResourceType.INTERFACE);
             case "adrs" -> Optional.of(RegistryResourceType.ADR);
@@ -108,7 +107,8 @@ public class CalmContentDetector {
         return switch (parentDir.toLowerCase()) {
             case "architectures" -> Optional.of(RegistryResourceType.ARCHITECTURE);
             case "patterns" -> Optional.of(RegistryResourceType.PATTERN);
-            case "standards", "building-blocks" -> Optional.of(RegistryResourceType.STANDARD);
+            case "standards" -> Optional.of(RegistryResourceType.STANDARD);
+            case "building-blocks" -> Optional.of(RegistryResourceType.BUILDING_BLOCK);
             case "controls" -> Optional.of(RegistryResourceType.CONTROL);
             case "adrs" -> Optional.of(RegistryResourceType.ADR);
             case "flows" -> Optional.of(RegistryResourceType.FLOW);

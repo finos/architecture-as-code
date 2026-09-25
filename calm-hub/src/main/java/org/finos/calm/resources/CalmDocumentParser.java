@@ -33,7 +33,8 @@ public class CalmDocumentParser {
             "architectures", ResourceType.ARCHITECTURE,
             "flows",         ResourceType.FLOW,
             "standards",     ResourceType.STANDARD,
-            "interfaces",    ResourceType.INTERFACE
+            "interfaces",    ResourceType.INTERFACE,
+            "building-blocks", ResourceType.BUILDING_BLOCK
     );
 
     /** Maps {@link ResourceType} back to its plural URL segment. */
@@ -42,7 +43,8 @@ public class CalmDocumentParser {
             ResourceType.ARCHITECTURE, "architectures",
             ResourceType.FLOW,         "flows",
             ResourceType.STANDARD,     "standards",
-            ResourceType.INTERFACE,    "interfaces"
+            ResourceType.INTERFACE,    "interfaces",
+            ResourceType.BUILDING_BLOCK, "building-blocks"
     );
 
     @ConfigProperty(name = "calm.hub.base-url", defaultValue = "http://localhost:8080")

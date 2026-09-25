@@ -206,21 +206,22 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void index_a_markdown_file_under_building_blocks_as_a_standard() throws IOException {
-        // building-blocks/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052).
+    void index_a_markdown_file_under_building_blocks_as_a_building_block() throws IOException {
+        // building-blocks/ is its own type again (PR #3066 review discussion, byrash,
+        // 2026-09-24) - restored after the 2026-09-10 alias to STANDARD (#3052).
         Path bbDir = tempDir.resolve("building-blocks");
         Files.createDirectories(bbDir);
         Files.writeString(bbDir.resolve("auth-block.md"), "# Auth Block\n\nDescribes the auth building block.");
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.BUILDING_BLOCK);
         assertThat(entries, hasSize(1));
         assertThat(entries.get(0).uniqueId(), equalTo("auth-block"));
     }
 
     @Test
-    void merge_building_blocks_and_standards_entries_into_one_listing() throws IOException {
+    void keep_building_blocks_and_standards_entries_in_separate_listings() throws IOException {
         Path stdDir = tempDir.resolve("standards");
         Files.createDirectories(stdDir);
         Files.writeString(stdDir.resolve("api-design.json"),
@@ -233,8 +234,13 @@ class TestResourceRegistryShould {
 
         registryService.rebuild(Map.of("finos", tempDir));
 
-        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
-        assertThat(entries, hasSize(2));
+        List<RegistryEntry> standards = registryService.listByType("finos", RegistryResourceType.STANDARD);
+        assertThat(standards, hasSize(1));
+        assertThat(standards.get(0).uniqueId(), equalTo("api-design"));
+
+        List<RegistryEntry> buildingBlocks = registryService.listByType("finos", RegistryResourceType.BUILDING_BLOCK);
+        assertThat(buildingBlocks, hasSize(1));
+        assertThat(buildingBlocks.get(0).uniqueId(), equalTo("auth-block"));
     }
 
     @Test

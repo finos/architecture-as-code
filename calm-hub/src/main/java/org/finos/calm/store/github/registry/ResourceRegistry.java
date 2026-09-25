@@ -176,7 +176,8 @@ public class ResourceRegistry {
         for (int i = 0; i < relativePath.getNameCount() - 1; i++) {
             String segment = relativePath.getName(i).toString().toLowerCase();
             switch (segment) {
-                case "standards", "building-blocks": return RegistryResourceType.STANDARD;
+                case "standards": return RegistryResourceType.STANDARD;
+                case "building-blocks": return RegistryResourceType.BUILDING_BLOCK;
                 case "adrs": return RegistryResourceType.ADR;
                 default: break;
             }

@@ -173,7 +173,7 @@ public class MappingControllerResource {
             description = "Only available when allow.put.operations=true. The request body must be the raw CALM " +
                     "document whose \"$id\" equals the versioned canonical URL of the version to replace. " +
                     "Returns 403 Forbidden when PUT operations are disabled. " +
-                    "Returns 501 Not Implemented for standards and interfaces."
+                    "Returns 501 Not Implemented for standards, interfaces, and building blocks."
     )
     @Authenticated
     public Response updateResourceFromDocument(String requestBody) throws URISyntaxException {
@@ -202,7 +202,8 @@ public class MappingControllerResource {
                             + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
         }
         if (canonical.resourceType() == ResourceType.STANDARD
-                || canonical.resourceType() == ResourceType.INTERFACE) {
+                || canonical.resourceType() == ResourceType.INTERFACE
+                || canonical.resourceType() == ResourceType.BUILDING_BLOCK) {
             return Response.status(Response.Status.NOT_IMPLEMENTED)
                     .entity("PUT is not supported for resource type: " + canonical.type()).build();
         }
@@ -266,7 +267,7 @@ public class MappingControllerResource {
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
-                            + ". Supported: patterns, architectures, flows, standards, interfaces").build();
+                            + ". Supported: patterns, architectures, flows, standards, interfaces, building-blocks").build();
         }
         if ("versions".equals(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -337,7 +338,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | BuildingBlockNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (Exception e) {
@@ -384,12 +385,12 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | BuildingBlockNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException
                  | FlowVersionNotFoundException | StandardVersionNotFoundException
-                 | InterfaceVersionNotFoundException e) {
+                 | InterfaceVersionNotFoundException | BuildingBlockVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided: " + version).build();
         } catch (Exception e) {

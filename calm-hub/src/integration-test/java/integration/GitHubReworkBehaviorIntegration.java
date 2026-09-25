@@ -28,8 +28,11 @@ import static org.hamcrest.Matchers.not;
  * verify because they depend on real clone/registry wiring:
  *
  * <ul>
- *   <li>a {@code building-blocks/} file classifies as a {@code Standard}, not a dropped or
- *       separately-typed concept (Phase 1)</li>
+ *   <li>a {@code building-blocks/} file classifies as its own {@code BUILDING_BLOCK} type -
+ *       restored (PR #3066 review discussion, byrash, 2026-09-24) after having been aliased
+ *       to {@code Standard} (#3052); reachable only through the generic front controller
+ *       ({@link org.finos.calm.resources.MappingControllerResource}), since there is no
+ *       dedicated resource for it</li>
  *   <li>a version list never contains the literal {@code "latest"} - it's either a real SHA
  *       or the clone's current HEAD SHA (Phase 3/5)</li>
  *   <li>{@code GET .../versions/latest} is rejected with 400 by the shared validation regex,
@@ -76,21 +79,19 @@ class GitHubReworkBehaviorIntegration {
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
-    void classify_a_building_blocks_file_as_a_standard() {
+    void classify_a_building_blocks_file_as_a_building_block() {
         given()
-                .when().get("/api/calm/namespaces/finos/standards")
+                .when().get("/calm/namespaces/finos/building-blocks")
                 .then()
                 .statusCode(200)
-                .body("values.name", hasItem("Rate Limit Policy"));
+                .body("values.customId", hasItem("rate-limit-policy"));
     }
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void never_return_the_literal_latest_in_a_version_list_and_return_a_real_sha_instead() {
-        int standardId = rateLimitPolicyStandardId();
-
         List<String> versions = given()
-                .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions")
+                .when().get("/calm/namespaces/finos/building-blocks/rate-limit-policy/versions")
                 .then()
                 .statusCode(200)
                 .extract().jsonPath().getList("values", String.class);
@@ -102,10 +103,8 @@ class GitHubReworkBehaviorIntegration {
     @Test
     @TestSecurity(user = "alice", roles = "group1")
     void reject_the_latest_version_alias_with_a_400_in_github_mode_too() {
-        int standardId = rateLimitPolicyStandardId();
-
         given()
-                .when().get("/api/calm/namespaces/finos/standards/" + standardId + "/versions/latest")
+                .when().get("/calm/namespaces/finos/building-blocks/rate-limit-policy/versions/latest")
                 .then()
                 .statusCode(400);
     }
@@ -118,13 +117,5 @@ class GitHubReworkBehaviorIntegration {
                 .then()
                 .statusCode(400)
                 .body(org.hamcrest.Matchers.containsString("Unsupported resource type"));
-    }
-
-    private int rateLimitPolicyStandardId() {
-        return given()
-                .when().get("/api/calm/namespaces/finos/standards")
-                .then()
-                .statusCode(200)
-                .extract().jsonPath().getInt("values.find { it.name == 'Rate Limit Policy' }.id");
     }
 }
