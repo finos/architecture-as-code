@@ -167,7 +167,9 @@ direct-url-auth-plugin/
 ├── package.json
 ├── tsconfig.json
 └── src/
-    └── directurl-auth-plugin.ts
+|   └── directurl-auth-plugin.ts
+└── dist/  (location for the built directUrlAuth plugin Javascript module)
+
 ```
 
 
