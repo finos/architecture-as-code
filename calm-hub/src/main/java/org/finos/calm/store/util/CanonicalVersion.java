@@ -1,9 +1,7 @@
 package org.finos.calm.store.util;
 
-import org.finos.calm.resources.ResourceValidationConstants;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Folds every accepted spelling of a version onto one canonical
@@ -11,9 +9,9 @@ import java.util.regex.Pattern;
  * document.
  *
  * <h2>Why this is needed now and wasn't before</h2>
- * {@code VERSION_REGEX} makes both separators optional:
- * {@code ^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$}. Six
- * different request paths therefore denote version 1.0.0 — {@code 1.0.0},
+ * {@code VERSION_REGEX} (see {@code ResourceValidationConstants}) makes both
+ * separators optional: {@code ^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$}.
+ * Six different request paths therefore denote version 1.0.0 — {@code 1.0.0},
  * {@code 1-0-0}, {@code 1.0-0}, {@code 1-0.0}, {@code 1.00} and {@code 100}
  * — and the API accepts all of them.
  *
@@ -36,23 +34,28 @@ import java.util.regex.Pattern;
  * the callers instead would mean seven resource types each having to
  * remember to do it.
  *
- * <h2>Coupling note</h2>
- * This deliberately reuses {@code ResourceValidationConstants.VERSION_REGEX}
- * rather than restating the pattern, even though it points from the store
- * layer at the resource layer. The set of spellings this must fold is
- * exactly the set the API accepts, so a second copy of the pattern would be
- * a correctness bug waiting for the two to drift apart.
+ * <h2>Why this isn't a regex</h2>
+ * A single {@code Pattern} equivalent to {@code VERSION_REGEX} is exactly
+ * what CodeQL's {@code java/polynomial-redos} query flags on uncontrolled
+ * input: the three digit groups, each optionally un-separated from its
+ * neighbours, give the backtracking engine multiple ways to partition a long
+ * digit run between them. {@link #of} instead walks the string once, trying
+ * each group's length longest-first and preferring a separator when one is
+ * present — the same resolution order {@code Pattern}'s backtracking search
+ * would settle on for this exact grammar, just written out directly instead
+ * of left to the regex engine. That makes it a plain bounded search over at
+ * most three groups, not a construct the redos query's regex-AST analysis
+ * applies to at all, and it stays linear in the input length rather than
+ * polynomial.
  */
 public final class CanonicalVersion {
 
-    private static final Pattern VERSION = Pattern.compile(ResourceValidationConstants.VERSION_REGEX);
+    private static final int GROUP_COUNT = 3;
 
-    // VERSION_REGEX's three digit groups, each optionally un-separated from its neighbours,
-    // give the engine multiple ways to partition a long run of digits between them - CodeQL
-    // flags this as a polynomial ReDoS on uncontrolled input (java/polynomial-redos). No real
-    // version is anywhere close to this long; bounding the length before matching removes the
-    // attack surface without changing the outcome for any input this method would otherwise
-    // accept or leave unchanged.
+    // No real version is anywhere near this long. The search below is bounded and linear
+    // per level rather than regex-driven, but it's still a plain O(n^2) walk across the
+    // grammar's three groups - failing fast on a pathologically long input keeps that a
+    // non-issue regardless, rather than relying solely on the algorithm's own shape.
     private static final int MAX_VERSION_LENGTH = 50;
 
     private CanonicalVersion() {
@@ -61,7 +64,7 @@ public final class CanonicalVersion {
     /**
      * @param version any accepted spelling, or {@code null}
      * @return the {@code major.minor.patch} form. Input that doesn't match
-     * {@code VERSION_REGEX} (including {@code null} or a string longer than
+     * the version grammar (including {@code null} or a string longer than
      * {@link #MAX_VERSION_LENGTH}) is returned unchanged: validation belongs
      * to the resource layer, and a store that quietly rewrote unrecognised
      * input would turn a rejectable request into a document stored under a
@@ -71,10 +74,80 @@ public final class CanonicalVersion {
         if (version == null || version.length() > MAX_VERSION_LENGTH) {
             return version;
         }
-        Matcher matcher = VERSION.matcher(version);
-        if (!matcher.matches()) {
+        List<String> groups = split(version, 0, GROUP_COUNT);
+        if (groups == null) {
             return version;
         }
-        return matcher.group(1) + "." + matcher.group(2) + "." + matcher.group(3);
+        return String.join(".", groups);
+    }
+
+    /**
+     * Finds the first (leftmost-longest) way to read exactly {@code groupsRemaining}
+     * groups from {@code s} starting at {@code pos}, consuming the string exactly to
+     * its end. Mirrors {@code Pattern}'s own backtracking order for
+     * {@code (0|[1-9][0-9]*)([-.]?(0|[1-9][0-9]*))*}: try the longest possible group
+     * first, and for a given group length prefer a separator to be present over
+     * absent, backtracking to shorter groups (and then to no separator) only when a
+     * later group can't otherwise be found.
+     */
+    private static List<String> split(String s, int pos, int groupsRemaining) {
+        if (groupsRemaining == 0) {
+            return pos == s.length() ? new ArrayList<>() : null;
+        }
+        if (pos >= s.length()) {
+            return null;
+        }
+        char first = s.charAt(pos);
+        if (first < '0' || first > '9') {
+            return null;
+        }
+
+        int maxEnd;
+        if (first == '0') {
+            // "0" is the only valid group starting with '0' - a leading zero followed
+            // by more digits matches neither alternative in the grammar.
+            maxEnd = pos + 1;
+        } else {
+            int end = pos + 1;
+            while (end < s.length() && Character.isDigit(s.charAt(end))) {
+                end++;
+            }
+            maxEnd = end;
+        }
+
+        if (groupsRemaining == 1) {
+            // The last group must consume everything remaining - it's a single candidate
+            // (the whole digit run), not a range to search.
+            return maxEnd == s.length() ? List.of(s.substring(pos)) : null;
+        }
+
+        for (int end = maxEnd; end > pos; end--) {
+            String group = s.substring(pos, end);
+            if (end < s.length() && isSeparator(s.charAt(end))) {
+                List<String> rest = split(s, end + 1, groupsRemaining - 1);
+                if (rest != null) {
+                    return prepend(group, rest);
+                }
+            }
+            List<String> rest = split(s, end, groupsRemaining - 1);
+            if (rest != null) {
+                return prepend(group, rest);
+            }
+            if (first == '0') {
+                break; // only one possible length ("0") was ever available here
+            }
+        }
+        return null;
+    }
+
+    private static List<String> prepend(String group, List<String> rest) {
+        List<String> result = new ArrayList<>(rest.size() + 1);
+        result.add(group);
+        result.addAll(rest);
+        return result;
+    }
+
+    private static boolean isSeparator(char c) {
+        return c == '-' || c == '.';
     }
 }
