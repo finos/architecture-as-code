@@ -296,6 +296,23 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_a_location_header_in_the_canonical_version_spelling() throws Exception {
+        // SNAPSHOT_VERSION_REGEX accepts dash separators, but the store folds them to dots.
+        // A Location pointing at the requested spelling would not match what GET versions lists.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("2.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1-0-0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1-0-0-SNAPSHOT")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void overwrite_a_snapshot_that_already_exists() throws Exception {
         // The point of the feature: a client must not have to know whether the snapshot is
         // already there, so a repeat POST is an overwrite rather than a 409.
@@ -683,6 +700,24 @@ public class TestMappingControllerResourceShould {
                 .body("values", hasSize(2))
                 .body("values[0]", is("1.0.0"))
                 .body("values[1]", is("1.1.0"));
+    }
+
+    @Test
+    void return_a_snapshot_before_the_release_it_belongs_to() throws Exception {
+        // Semver.tryParse strips the -SNAPSHOT suffix, so a release and its snapshot tie and
+        // fall back to storage order. Ordering must come from SemanticVersionOrder.
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snapshot-sort-test")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "snapshot-sort-test")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+                .thenReturn(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+
+        given().when().get("/calm/namespaces/finos/patterns/snapshot-sort-test/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", is("1.0.0-SNAPSHOT"))
+                .body("values[1]", is("1.0.0"));
     }
 
     @Test

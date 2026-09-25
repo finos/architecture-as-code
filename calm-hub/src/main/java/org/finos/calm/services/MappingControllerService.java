@@ -110,7 +110,7 @@ public class MappingControllerService {
                                             String name, int numericId, String version,
                                             String title, String description, String storedBody) throws URISyntaxException {
         try {
-            updateVersionedResourceInStore(resourceType, namespace, numericId, version, title, description, storedBody);
+            updateVersionedResourceInStore(resourceType, namespace, numericId, version, storedBody, title, description);
             URI location = new URI("/calm/namespaces/" + namespace + "/" + type
                     + "/" + name + "/versions/" + version);
             return Response.created(location).build();
@@ -436,7 +436,8 @@ public class MappingControllerService {
         // alone leaves "100-SNAPSHOT" as "100", which would never equal "1.0.0".
         if (!"1.0.0".equals(CanonicalVersion.of(ResourceVersion.releaseVersion(finalVersion)))) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("The first version of a resource must be 1.0.0 or 1.0.0-SNAPSHOT, but " + finalVersion + " was requested")
+                    .entity("The first version of a resource must be 1.0.0 or 1.0.0-SNAPSHOT, but "
+                            + STRICT_SANITIZATION_POLICY.sanitize(finalVersion) + " was requested")
                     .build();
         }
         String title = documentParser.extractStringField(json, "title");
@@ -533,7 +534,10 @@ public class MappingControllerService {
                 deleteSnapshotForVersion(mapping, newVersion, versions);
             }
 
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name + "/versions/" + newVersion);
+            // The store folds the requested spelling to canonical form, so a Location built from
+            // newVersion would not match the version GET .../versions lists.
+            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name
+                    + "/versions/" + CanonicalVersion.of(newVersion));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource",
@@ -693,6 +697,7 @@ public class MappingControllerService {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.updateInterfaceForVersion(req, namespace, numericId, version);
             }
+            default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
         }
     }
 
@@ -745,6 +750,8 @@ public class MappingControllerService {
             case FLOW -> flowStore.deleteFlowVersion(namespace, id, version);
             case STANDARD -> standardStore.deleteStandardVersion(namespace, id, version);
             case INTERFACE -> interfaceStore.deleteInterfaceVersion(namespace, id, version);
+            default -> throw new UnsupportedOperationException(
+                    "Delete not supported for resource type: " + mapping.getResourceType());
         }
     }
 

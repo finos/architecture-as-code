@@ -22,12 +22,12 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.MappingControllerService;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
 import java.util.List;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
@@ -322,8 +322,9 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
+            // Semver::tryParse strips the -SNAPSHOT suffix, so a release and its snapshot tie.
             List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(Semver::tryParse))
+                    .sorted(SemanticVersionOrder.ASCENDING)
                     .toList();
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
