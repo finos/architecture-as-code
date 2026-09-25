@@ -88,6 +88,13 @@ export function isCalmProjectConfig(value: unknown): value is CalmProjectConfig 
 		const hub = v['hub'] as Record<string, unknown>;
 		if (typeof hub['url'] !== 'string') return false;
 	}
+	if (v['urlMapping'] !== undefined) {
+		if (!v['urlMapping'] || typeof v['urlMapping'] !== 'object' || Array.isArray(v['urlMapping'])) {
+			return false;
+		}
+		const urlMapping = v['urlMapping'] as Record<string, unknown>;
+		if (typeof urlMapping['path'] !== 'string') return false;
+	}
 	return true;
 }
 

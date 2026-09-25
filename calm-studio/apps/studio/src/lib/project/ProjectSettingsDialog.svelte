@@ -15,6 +15,7 @@
 		setExtensionsDir,
 		setExtensionsDisabled,
 		setHubUrl,
+		setUrlMappingPath,
 		setNamingConfig,
 		applyUserConfig,
 		getUserConfig,
@@ -45,6 +46,7 @@
 	let patternsDir = $state(getProjectConfig()?.patterns?.dir ?? '');
 	let extensionsDir = $state(getProjectConfig()?.extensions?.dir ?? '');
 	let hubUrl = $state(normalizeHubUrl(getProjectFileConfig()?.hub?.url) ?? '');
+	let urlMappingPath = $state(getProjectFileConfig()?.urlMapping?.path ?? '');
 	let namingProfile = $state(getProjectFileConfig()?.naming.profile ?? '');
 	let namingRootDirs = $state(
 		Object.entries(getProjectFileConfig()?.naming.rootDirs ?? {}).map(([key, value]) => ({ key, value }))
@@ -61,7 +63,15 @@
 	let formError = $state<string | null>(null);
 	let saving = $state(false);
 	let settingsTab = $state<
-		'naming' | 'patterns' | 'hub' | 'extensions' | 'validation' | 'templates' | 'neighbors' | 'user'
+		| 'naming'
+		| 'patterns'
+		| 'hub'
+		| 'extensions'
+		| 'validation'
+		| 'templates'
+		| 'neighbors'
+		| 'urlMapping'
+		| 'user'
 	>('naming');
 
 	const BUNDLED_PACK_IDS = [
@@ -217,8 +227,10 @@
 		setNamingConfig(naming);
 		setPatternsDir(patternsDir);
 		setHubUrl(hubUrl);
+		setUrlMappingPath(urlMappingPath);
 		setExtensionsDisabled(disabledPacks);
 		hubUrl = getProjectFileConfig()?.hub?.url ?? '';
+		urlMappingPath = getProjectFileConfig()?.urlMapping?.path ?? '';
 		await persist();
 	}
 
@@ -235,6 +247,27 @@
 		} finally {
 			saving = false;
 		}
+	}
+
+	async function saveUrlMappingPath() {
+		setUrlMappingPath(urlMappingPath);
+		await persist();
+	}
+
+	async function browseUrlMapping() {
+		const result = await pickProjectFile(getProjectRootHandle(), [
+			{
+				description: 'URL mapping',
+				accept: { 'application/json': ['.json'] },
+			},
+		]);
+		if ('cancelled' in result) return;
+		if ('error' in result) {
+			status = result.error;
+			return;
+		}
+		urlMappingPath = result.path;
+		await saveUrlMappingPath();
 	}
 
 	function toggleDisabledPack(id: string, checked: boolean) {
@@ -299,6 +332,7 @@
 				['validation', 'validation'],
 				['templates', 'templates'],
 				['neighbors', 'neighbors'],
+				['urlMapping', 'urlMapping'],
 				['user', 'user'],
 			] as [id, label]}
 				<button
@@ -510,6 +544,27 @@
 				<h3 class="section-title">CALM Hub URL</h3>
 				<p class="hint">Host and port only, for example <code>http://localhost:8080</code>. Do not include <code>/api</code> or <code>/calm</code>. Overrides <code>~/.calm.json</code> when both exist. Browser Studio never reads the home directory.</p>
 				<input class="input full" bind:value={hubUrl} placeholder="http://localhost:8080" aria-label="CALM Hub URL" />
+			</section>
+			{/if}
+
+			{#if settingsTab === 'urlMapping'}
+			<section class="section">
+				<h3 class="section-title">URL mapping</h3>
+				<p class="hint">
+					Project-relative path to a <code>url-mapping.json</code> (same shape as
+					<code>calm validate -u</code>). Keys are canonical URLs; values are paths relative to
+					the mapping file. Hub instance URLs are not mapped. Edit entries in the JSON file —
+					Studio only stores the path.
+				</p>
+				<div class="add-row">
+					<input class="input" bind:value={urlMappingPath} placeholder="url-mapping.json" aria-label="URL mapping path" />
+					<button type="button" class="btn" onclick={() => void browseUrlMapping()} disabled={saving}>
+						Browse…
+					</button>
+					<button type="button" class="btn" onclick={() => void saveUrlMappingPath()} disabled={saving}>
+						Save
+					</button>
+				</div>
 			</section>
 			{/if}
 

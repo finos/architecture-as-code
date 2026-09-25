@@ -363,6 +363,7 @@
 	<MetadataForm
 		elementId={nd.calmId}
 		fields={getMetadataFieldsForNodeType(calmType)}
+		nodeType={calmType}
 		metadata={(nd.metadata as Record<string, unknown> | undefined) ?? {}}
 		fallbackValues={{ element: calmType }}
 		readonly={isReference}

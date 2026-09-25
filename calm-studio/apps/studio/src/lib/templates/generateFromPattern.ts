@@ -15,7 +15,10 @@ import {
 	type CalmChoice,
 	type CalmOption,
 } from '@finos/calm-shared/generate';
-import { createBundledCalmDocumentLoader } from './bundledCalmSchemas';
+import {
+	createProjectCalmDocumentLoader,
+	type UrlMappingSource,
+} from './mappedCalmLoader';
 
 export function patternGenerateOptions(pattern: object): CalmOption[] {
 	return extractOptions(pattern);
@@ -23,9 +26,10 @@ export function patternGenerateOptions(pattern: object): CalmOption[] {
 
 export async function generateArchitectureFromPattern(
 	pattern: object,
-	choices?: CalmChoice[]
+	choices?: CalmChoice[],
+	mapping?: UrlMappingSource
 ): Promise<CalmArchitecture> {
-	const loader = createBundledCalmDocumentLoader();
+	const { loader } = await createProjectCalmDocumentLoader(mapping);
 	const schemaDirectory = new SchemaDirectory(loader, false);
 	const result = await generateArchitecture(pattern, false, schemaDirectory, choices);
 	if (!result || typeof result !== 'object') {

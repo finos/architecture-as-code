@@ -59,6 +59,13 @@ export interface CalmProjectConfig {
 	};
 	/** Optional CALM Hub origin (scheme + host + port, no `/api`). Overrides `~/.calm.json` when both exist. */
 	hub?: { url: string };
+	/** Project-relative path to a CLI-shaped `url-mapping.json` (R75). */
+	urlMapping?: CalmProjectUrlMappingConfig;
+}
+
+/** Canonical URL → local file map used by `calm validate -u` (R75). */
+export interface CalmProjectUrlMappingConfig {
+	path: string;
 }
 
 export interface NamingResolveContext {

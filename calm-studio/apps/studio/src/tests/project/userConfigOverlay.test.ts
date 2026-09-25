@@ -34,6 +34,15 @@ describe('user config overlay', () => {
 		const cfg = { ...createDefaultProjectConfig('x'), extensions: { disabled: ['core'] } };
 		expect(isCalmProjectConfig(cfg)).toBe(true);
 	});
+
+	it('lets project urlMapping.path win over user defaults', () => {
+		const user = createDefaultProjectConfig('user');
+		user.urlMapping = { path: 'user-mapping.json' };
+		const project = createDefaultProjectConfig('proj');
+		project.urlMapping = { path: 'url-mapping.json' };
+		const merged = overlayProjectConfig(user, project);
+		expect(merged.urlMapping?.path).toBe('url-mapping.json');
+	});
 });
 
 describe('save as defaults', () => {

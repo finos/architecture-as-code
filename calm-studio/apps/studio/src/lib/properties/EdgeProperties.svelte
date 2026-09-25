@@ -376,8 +376,10 @@
 	<MetadataForm
 		elementId={edge.id}
 		fields={metadataFields}
+		nodeType={sourceType}
 		metadata={edgeMetadata}
 		autoBindCalmCoreVariant={true}
+		schemaKind="relationship"
 		onBeforeFirstEdit={signalFirstEdit}
 		onCommit={
 			onmutate

@@ -80,7 +80,11 @@ async function runPatternValidation(model: ReturnType<typeof getModel>): Promise
 	const out: ValidationIssue[] = [];
 	for (const card of patterns) {
 		try {
-			const found = await validateArchitectureAgainstPattern(model, card.pattern);
+			const found = await validateArchitectureAgainstPattern(model, card.pattern, {
+				root: getProjectRootHandle(),
+				mappingPath: config?.urlMapping?.path,
+				hubUrl: config?.hub?.url,
+			});
 			for (const issue of found) {
 				out.push({
 					...issue,

@@ -16,6 +16,7 @@ import {
 import { applyProjectTemplates } from '$lib/templates/projectTemplates';
 import { applyProjectPatterns } from '$lib/templates/projectPatterns';
 import { applyProjectPacks } from './projectPacks';
+import { loadUrlMappingFromProject } from './urlMappingLoad';
 import { resetToBundledPacks } from '@calmstudio/extensions';
 
 let rootHandle = $state<FileSystemDirectoryHandle | null>(null);
@@ -34,7 +35,13 @@ async function refreshDerivedProjectAssets(
 	const templates = await applyProjectTemplates(handle, cfg);
 	const patterns = await applyProjectPatterns(handle, cfg);
 	const packs = await applyProjectPacks(handle, cfg);
-	templateWarnings = [...templates.warnings, ...patterns.warnings, ...packs.warnings];
+	const mapping = await loadUrlMappingFromProject(handle, cfg?.urlMapping?.path);
+	templateWarnings = [
+		...templates.warnings,
+		...patterns.warnings,
+		...packs.warnings,
+		...mapping.warnings,
+	];
 }
 
 export function getProjectRootHandle(): FileSystemDirectoryHandle | null {
@@ -290,6 +297,21 @@ export function setExtensionsDisabled(ids: string[]): void {
 	setProjectFile({
 		...projectFileConfig,
 		extensions: { ...projectFileConfig.extensions, ...(dir ? { dir } : {}), disabled },
+	});
+}
+
+/** Set project-relative url-mapping.json path (R75). Empty string removes the key. */
+export function setUrlMappingPath(path: string): void {
+	if (!projectFileConfig) return;
+	const trimmed = path.replace(/\\/g, '/').replace(/^\/+|\/+$/g, '').trim();
+	if (!trimmed) {
+		const { urlMapping: _omit, ...rest } = projectFileConfig;
+		setProjectFile(rest);
+		return;
+	}
+	setProjectFile({
+		...projectFileConfig,
+		urlMapping: { path: trimmed },
 	});
 }
 

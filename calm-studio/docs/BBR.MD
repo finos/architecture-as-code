@@ -120,7 +120,14 @@ V10
 - otevirat diagramy z reference na calm-hub v "detailed-architecture" 
 - neumožnit na read-only digramy vkladat prvky z calm-hub a UZAMKNOUT EDITACI JSON.
 - editory unichž zdroj  pochazejici z calm-hub otervírat jako readonly
+- pro nalezení lokace artefaktu dle URL použít soubor `url-mapping.json` (stejný formát jako CALM CLI `-u` / CEngineering-App); umístění souboru definovat v konfiguraci projektu
 - 
+V11
+- upravit vybíráni skupiny nodu takto: zmačknu schift a buď táhnu a vybiram přes vyber čtvercem nebo klikam na jednotlive nody bez schit pri zmačknutem schift se nody vždy přidávaji do výběru. bez zmacknuteho schiftu je chovani normálni viz aktulni mod pan. Tento mechanizmus nahradí prepinani fukce kurzoru select/pan a jemožne tento prepínač odstranit
+- prochánzeni hubu a přidávani elementu z hub udělaj obdobně jako panel files. Tj umísti ho vedle pallete a files jako založku hub. Obsah hubu vzkresli jako strom. Pri iniciaci načti jen uroven namespace. Další uzly načitej postupně pri rozkliknutí. Obdobně jako v dialogu.Pridavani elementu do aktualniho diagramu bude pretaženim tak jako u files.
+- přesouvani souboru ve stromě files. Umožnit přesouvat i jednotlivé soubory v ramci stromu adresářů. Při přesunu je potřeba upravit reference v ostatníh souborech.
+- vizualizace relations tak aby použivala přimou nejkratší cestu. Neobchazet kontejner,ve kterem je alespon jeden node z relace.  
+- použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```
 ## fix
 ```

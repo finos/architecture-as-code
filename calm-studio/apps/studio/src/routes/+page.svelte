@@ -1336,7 +1336,12 @@
 
 	async function generatePatternIntoNewTab(pattern: object, choices?: CalmChoice[]): Promise<void> {
 		try {
-			const arch = await generateArchitectureFromPattern(pattern, choices);
+			const cfg = getProjectConfig();
+			const arch = await generateArchitectureFromPattern(pattern, choices, {
+				root: getProjectRootHandle(),
+				mappingPath: cfg?.urlMapping?.path,
+				hubUrl: cfg?.hub?.url,
+			});
 			await openGeneratedArchitecture(arch);
 		} catch (e) {
 			importError = (e as Error).message;

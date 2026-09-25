@@ -111,8 +111,24 @@ export async function pickDirectoryMaybeOutside(
 	}
 }
 
+export type ProjectFilePickerAccept = {
+	description: string;
+	accept: Record<string, string[]>;
+};
+
+const DEFAULT_PROJECT_FILE_TYPES: ProjectFilePickerAccept[] = [
+	{
+		description: 'Ruleset',
+		accept: {
+			'application/json': ['.json'],
+			'text/yaml': ['.yaml', '.yml'],
+		},
+	},
+];
+
 export async function pickProjectFile(
-	root: FileSystemDirectoryHandle | null
+	root: FileSystemDirectoryHandle | null,
+	types: ProjectFilePickerAccept[] = DEFAULT_PROJECT_FILE_TYPES
 ): Promise<{ path: string } | { error: string } | { cancelled: true }> {
 	if (!root) return { error: 'Open a project folder first' };
 	const picker = (
@@ -126,15 +142,7 @@ export async function pickProjectFile(
 	try {
 		const [handle] = await picker({
 			multiple: false,
-			types: [
-				{
-					description: 'Ruleset',
-					accept: {
-						'application/json': ['.json'],
-						'text/yaml': ['.yaml', '.yml'],
-					},
-				},
-			],
+			types,
 		});
 		if (!handle) return { cancelled: true };
 		const rel = await relativePathOfFile(root, handle);

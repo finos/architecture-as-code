@@ -19,6 +19,18 @@
 		upsertExtraMetadata,
 	} from '$lib/metadata/extraMetadata';
 	import NestedMetadataDialog from './NestedMetadataDialog.svelte';
+	import { getModel } from '$lib/stores/calmModel.svelte';
+	import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
+	import { getPackForNodeType } from '@calmstudio/extensions';
+	import {
+		logMetadataSchemaResolution,
+		resolveMetadataSchemas,
+		seedMetadataSchemaUrls,
+	} from '$lib/metadata/metadataSchemaResolve';
+	import {
+		metadataFieldsFromSchemas,
+		type MetadataSchemaKind,
+	} from '$lib/metadata/metadataFieldsFromSchema';
 
 	let {
 		elementId,
@@ -27,6 +39,8 @@
 		fallbackValues = {},
 		readonly = false,
 		autoBindCalmCoreVariant = false,
+		nodeType = '',
+		schemaKind = 'node',
 		onBeforeFirstEdit,
 		onCommit,
 	}: {
@@ -38,6 +52,9 @@
 		readonly?: boolean;
 		/** When true, changing archimate.relationship also sets calm-core-variant. */
 		autoBindCalmCoreVariant?: boolean;
+		/** Node-type (or relationship source type) used to pick pack schemaUrl. */
+		nodeType?: string;
+		schemaKind?: MetadataSchemaKind;
 		onBeforeFirstEdit?: () => void;
 		onCommit?: (next: Record<string, unknown>) => void;
 	} = $props();
@@ -48,9 +65,11 @@
 	let extraValue = $state('');
 	let extraError = $state<string | null>(null);
 
-	const schemaPaths = $derived((fields ?? []).map((f) => f.path));
+	let schemaFields = $state<MetadataFieldDescriptor[]>([]);
+	const effectiveFields = $derived(fields?.length ? fields : schemaFields);
+	const schemaPaths = $derived(effectiveFields.map((f) => f.path));
 	const extraEntries = $derived(extraMetadataEntries(metadata, schemaPaths));
-	const grouped = $derived(groupMetadataFields(fields ?? []));
+	const grouped = $derived(groupMetadataFields(effectiveFields));
 	let nestedEdit = $state<
 		| { kind: 'schema'; key: string; fields: MetadataFieldDescriptor[] }
 		| { kind: 'extra'; key: string; raw: unknown }
@@ -60,6 +79,48 @@
 	$effect(() => {
 		const _ = elementId;
 		firstEditSignaled = false;
+	});
+
+	let lastSchemaLogKey = '';
+	let schemaLogGen = 0;
+	$effect(() => {
+		const documentSchema = getModel()['$schema'];
+		const mappingPath = getProjectConfig()?.urlMapping?.path;
+		const packSchemaUrl = nodeType ? getPackForNodeType(nodeType)?.schemaUrl : undefined;
+		const packFieldCount = fields?.length ?? 0;
+		const key = JSON.stringify({
+			elementId,
+			nodeType,
+			schemaKind,
+			documentSchema,
+			mappingPath: mappingPath ?? '',
+			packSchemaUrl: packSchemaUrl ?? '',
+			packFieldCount,
+		});
+		if (key === lastSchemaLogKey) return;
+		lastSchemaLogKey = key;
+		const gen = ++schemaLogGen;
+		schemaFields = [];
+		const seedUrls = seedMetadataSchemaUrls({ documentSchema, packSchemaUrl });
+		void resolveMetadataSchemas(seedUrls, {
+			root: getProjectRootHandle(),
+			mappingPath,
+			hubUrl: getProjectConfig()?.hub?.url,
+		}).then((result) => {
+			if (gen !== schemaLogGen) return;
+			const extracted = metadataFieldsFromSchemas(result.documents, schemaKind);
+			schemaFields = extracted.fields;
+			const formFieldCount = packFieldCount > 0 ? packFieldCount : extracted.fields.length;
+			logMetadataSchemaResolution({
+				elementId,
+				nodeType,
+				formFieldCount,
+				schemaFieldSource: packFieldCount > 0 ? undefined : extracted.source,
+				seedUrls,
+				mappingPath,
+				result,
+			});
+		});
 	});
 
 	function signalFirstEdit() {
@@ -175,7 +236,7 @@
 				</div>
 			{/each}
 
-			{#if (!fields || fields.length === 0) && grouped.top.length === 0 && grouped.nested.length === 0}
+			{#if (!effectiveFields || effectiveFields.length === 0) && grouped.top.length === 0 && grouped.nested.length === 0}
 				<p class="extra-hint">No pack schema fields for this element. Add extra keys below.</p>
 			{/if}
 

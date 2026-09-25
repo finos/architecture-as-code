@@ -7,6 +7,7 @@ export type {
 	CalmProjectNaming,
 	CalmProjectNamingPattern,
 	CalmProjectRulesetEntry,
+	CalmProjectUrlMappingConfig,
 	NamingResolveContext,
 	NamingResolveResult,
 } from './types';
