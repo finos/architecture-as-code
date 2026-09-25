@@ -1,4 +1,4 @@
-package org.finos.calm.store.github.util;
+package org.finos.calm.store.github.api;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Caches responses from the GitHub REST API on behalf of {@code GitHubVersionService}:
+ * Caches responses from the GitHub REST API on behalf of {@link GitHubFileHistoryClient}:
  * version lists for a file (5 minutes) and file content at an immutable commit SHA
  * (365 days).
  *
@@ -58,10 +58,12 @@ public class GitHubApiResponseCache {
         this(maxSize, Ticker.systemTicker());
     }
 
-    // Package-private: lets tests drive expiry deterministically with a fake Ticker
-    // instead of Thread.sleep, the same pattern used by SchemaMigrationInProgressFilter's
-    // injectable LongSupplier.
-    GitHubApiResponseCache(long maxSize, Ticker ticker) {
+    // Public rather than the package-private form this started as: lets tests drive
+    // expiry deterministically with a fake Ticker instead of Thread.sleep, the same
+    // pattern used by SchemaMigrationInProgressFilter's injectable LongSupplier. Public
+    // because a test now belongs to a different package than the production class -
+    // package-private visibility is not a seam once encapsulation is real.
+    public GitHubApiResponseCache(long maxSize, Ticker ticker) {
         this.versionsCache = buildCache(maxSize, ticker, VERSIONS_TTL);
         this.contentCache = buildCache(maxSize, ticker, CONTENT_TTL);
     }
@@ -75,21 +77,26 @@ public class GitHubApiResponseCache {
     }
 
     /**
-     * Reads the cached commit-SHA version list for a file, if present and not
-     * expired.
+     * Reads the cached commit-SHA version list for a file on a given branch, if
+     * present and not expired.
      */
-    public Optional<List<String>> getVersions(String repoFullName, String filePath) {
-        return read(versionsCache, versionsKey(repoFullName, filePath));
+    public Optional<List<String>> getVersions(String repoFullName, String branch, String filePath) {
+        return read(versionsCache, versionsKey(repoFullName, branch, filePath));
     }
 
     /**
-     * Caches the commit-SHA version list for a file for {@link #VERSIONS_TTL}. A
-     * {@code null} list is silently ignored. Stores an immutable copy, so a caller
-     * mutating the list it passed in — or held onto after a {@link #getVersions}
-     * call — can never corrupt the cached entry.
+     * Caches the commit-SHA version list for a file on a given branch for
+     * {@link #VERSIONS_TTL}. A {@code null} list is silently ignored. Stores an
+     * immutable copy, so a caller mutating the list it passed in — or held onto
+     * after a {@link #getVersions} call — can never corrupt the cached entry.
+     *
+     * <p>Branch is part of the key, not just the upstream request: two namespaces can
+     * map to the same {@code repoFullName} on different branches
+     * ({@code calm.github.namespaces} supports that), and without it in the key they'd
+     * share one cache entry holding whichever branch's history was fetched first.
      */
-    public void putVersions(String repoFullName, String filePath, List<String> versions) {
-        write(versionsCache, versionsKey(repoFullName, filePath), versions == null ? null : List.copyOf(versions));
+    public void putVersions(String repoFullName, String branch, String filePath, List<String> versions) {
+        write(versionsCache, versionsKey(repoFullName, branch, filePath), versions == null ? null : List.copyOf(versions));
     }
 
     /**
@@ -119,8 +126,8 @@ public class GitHubApiResponseCache {
         cache.put(key, value);
     }
 
-    private static String versionsKey(String repoFullName, String filePath) {
-        return "versions:" + repoFullName + ":" + filePath;
+    private static String versionsKey(String repoFullName, String branch, String filePath) {
+        return "versions:" + repoFullName + ":" + branch + ":" + filePath;
     }
 
     private static String contentKey(String repoFullName, String filePath, String sha) {

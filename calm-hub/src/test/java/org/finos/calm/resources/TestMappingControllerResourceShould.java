@@ -269,6 +269,25 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_501_not_400_when_adding_a_version_in_github_mode() throws Exception {
+        // addNewVersion() previously had no explicit GitHubWriteNotSupportedException
+        // catch before its broad catch(Exception), unlike its sibling create/update
+        // paths - the broad catch swallowed it into a misleading 400 instead of the 501
+        // every other GitHub-mode write path correctly returns.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-arch")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(2).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "my-arch")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+        doThrow(new GitHubWriteNotSupportedException("Write operations are not yet available."))
+                .when(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+
+        given().header("Content-Type", "application/json").body(versionedDoc("finos", "architectures", "my-arch", "2.0.0")).when()
+                .post("/calm")
+                .then().statusCode(501);
+    }
+
+    @Test
     void return_201_when_adding_explicit_version_to_existing_flow() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-flow")
@@ -591,6 +610,15 @@ public class TestMappingControllerResourceShould {
 
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0")
                 .then().statusCode(200).body(containsString("1.0.0"));
+    }
+
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_on_the_shared_front_controller() {
+        // "latest" is not a version anywhere on this backend-agnostic route - it never
+        // reaches parseTypePlural/the store, it's rejected by bean validation before
+        // either is invoked.
+        given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/latest")
+                .then().statusCode(400).body(containsString(ResourceValidationConstants.VERSION_OR_SHA_MESSAGE));
     }
 
     @Test
@@ -1125,6 +1153,35 @@ public class TestMappingControllerResourceShould {
     @Test
     void return_400_when_get_version_has_invalid_resource_type() {
         given().when().get("/calm/namespaces/finos/bananas/my-res/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    // =========================================================================
+    // Namespace-scoped "controls" is not a supported type on the generic front
+    // controller - controls are domain-scoped (/calm/domains/{domain}/controls/...,
+    // tested above), not namespace-scoped. A prior revision wired CONTROL into
+    // ResourceType/TYPE_MAP here; that was reverted because a control mapping can
+    // never carry a domain through this namespace-keyed dispatch (see MappingControllerService
+    // and GitHubResourceMappingStore, which no longer produce a CONTROL arm).
+    // =========================================================================
+
+    @Test
+    void return_400_when_posting_a_control_via_the_namespace_scoped_front_controller() {
+        given().header("Content-Type", "application/json")
+                .body("{\"$id\":\"http://localhost:8080/calm/namespaces/finos/controls/access-control/versions/1.0.0\"}")
+                .when().post("/calm/namespaces/finos/controls/access-control/versions/1.0.0")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_400_when_listing_control_versions_via_the_namespace_scoped_front_controller() {
+        given().when().get("/calm/namespaces/finos/controls/access-control/versions")
+                .then().statusCode(400).body(containsString("Unsupported resource type"));
+    }
+
+    @Test
+    void return_400_when_getting_a_control_version_via_the_namespace_scoped_front_controller() {
+        given().when().get("/calm/namespaces/finos/controls/access-control/versions/1.0.0")
                 .then().statusCode(400).body(containsString("Unsupported resource type"));
     }
 

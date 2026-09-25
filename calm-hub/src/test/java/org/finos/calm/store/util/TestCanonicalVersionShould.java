@@ -60,4 +60,26 @@ class TestCanonicalVersionShould {
     void pass_a_null_version_through_rather_than_throwing() {
         assertThat(CanonicalVersion.of(null), is(nullValue()));
     }
+
+    @Test
+    void return_an_overlong_input_unchanged_without_walking_it() {
+        // No real version is anywhere near this long - the length guard exists purely so a
+        // pathologically long value fails fast rather than exercising the group search at all.
+        String pathological = "1" + "0".repeat(200) + "1";
+        assertThat(CanonicalVersion.of(pathological), is(pathological));
+    }
+
+    @Test
+    void backtrack_across_all_three_groups_when_the_split_is_ambiguous() {
+        // "1000" has no separators, so the group boundaries are entirely ambiguous from the
+        // digits alone. The first two candidate splits (1000/-/- and 100/0/-) both leave a
+        // later group with nothing to consume; only 10/0/0 lets all three groups succeed.
+        assertThat(CanonicalVersion.of("1000"), is("10.0.0"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"1..0", "1-", "1.0.", ".1.0"})
+    void reject_a_separator_with_no_digit_group_on_one_side(String malformed) {
+        assertThat(CanonicalVersion.of(malformed), is(malformed));
+    }
 }

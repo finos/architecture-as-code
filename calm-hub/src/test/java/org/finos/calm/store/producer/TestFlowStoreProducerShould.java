@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.FlowStore;
+import org.finos.calm.store.github.GitHubFlowStore;
 import org.finos.calm.store.mongo.MongoFlowStore;
 import org.finos.calm.store.nitrite.NitriteFlowStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestFlowStoreProducerShould {
     @Mock
     Instance<NitriteFlowStore> nitriteFlowStoreInstance;
 
+    @Mock
+    GitHubFlowStore gitHubFlowStore;
+
+    @Mock
+    Instance<GitHubFlowStore> gitHubFlowStoreInstance;
+
     private FlowStoreProducer flowStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestFlowStoreProducerShould {
         flowStoreProducer.mongoFlowStore = mongoFlowStoreInstance;
         when(nitriteFlowStoreInstance.get()).thenReturn(nitriteFlowStore);
         flowStoreProducer.standaloneFlowStore = nitriteFlowStoreInstance;
+        when(gitHubFlowStoreInstance.get()).thenReturn(gitHubFlowStore);
+        flowStoreProducer.gitHubFlowStore = gitHubFlowStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestFlowStoreProducerShould {
 
     @Test
     void return_mongo_flow_store_when_database_mode_is_not_recognized() {
-        // Given
         flowStoreProducer.databaseMode = "unknown";
 
-        // When
         FlowStore result = flowStoreProducer.produceFlowStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoFlowStore)));
+    }
+
+    @Test
+    void return_github_flow_store_when_database_mode_is_github() {
+        flowStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        FlowStore result = flowStoreProducer.produceFlowStore();
+
+        assertThat(result, is(sameInstance(gitHubFlowStore)));
     }
 }

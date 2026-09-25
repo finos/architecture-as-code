@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.SearchStore;
+import org.finos.calm.store.github.GitHubSearchStore;
 import org.finos.calm.store.mongo.MongoSearchStore;
 import org.finos.calm.store.nitrite.NitriteSearchStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestSearchStoreProducerShould {
     @Mock
     Instance<NitriteSearchStore> nitriteSearchStoreInstance;
 
+    @Mock
+    GitHubSearchStore gitHubSearchStore;
+
+    @Mock
+    Instance<GitHubSearchStore> gitHubSearchStoreInstance;
+
     private SearchStoreProducer searchStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestSearchStoreProducerShould {
         searchStoreProducer.mongoSearchStore = mongoSearchStoreInstance;
         when(nitriteSearchStoreInstance.get()).thenReturn(nitriteSearchStore);
         searchStoreProducer.standaloneSearchStore = nitriteSearchStoreInstance;
+        when(gitHubSearchStoreInstance.get()).thenReturn(gitHubSearchStore);
+        searchStoreProducer.gitHubSearchStore = gitHubSearchStoreInstance;
     }
 
     @Test
@@ -69,5 +79,14 @@ public class TestSearchStoreProducerShould {
         SearchStore result = searchStoreProducer.produceSearchStore();
 
         assertThat(result, is(sameInstance(mongoSearchStore)));
+    }
+
+    @Test
+    void return_github_search_store_when_database_mode_is_github() {
+        searchStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        SearchStore result = searchStoreProducer.produceSearchStore();
+
+        assertThat(result, is(sameInstance(gitHubSearchStore)));
     }
 }

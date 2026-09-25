@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.DomainStore;
+import org.finos.calm.store.github.GitHubDomainStore;
 import org.finos.calm.store.mongo.MongoDomainStore;
 import org.finos.calm.store.nitrite.NitriteDomainStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestDomainStoreProducerShould {
     @Mock
     Instance<NitriteDomainStore> nitriteDomainStoreInstance;
 
+    @Mock
+    GitHubDomainStore gitHubDomainStore;
+
+    @Mock
+    Instance<GitHubDomainStore> gitHubDomainStoreInstance;
+
     private DomainStoreProducer domainStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestDomainStoreProducerShould {
         domainStoreProducer.mongoDomainStore = mongoDomainStoreInstance;
         when(nitriteDomainStoreInstance.get()).thenReturn(nitriteDomainStore);
         domainStoreProducer.standaloneDomainStore = nitriteDomainStoreInstance;
+        when(gitHubDomainStoreInstance.get()).thenReturn(gitHubDomainStore);
+        domainStoreProducer.gitHubDomainStore = gitHubDomainStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestDomainStoreProducerShould {
 
     @Test
     void return_mongo_domain_store_when_database_mode_is_not_recognized() {
-        // Given
         domainStoreProducer.databaseMode = "unknown";
 
-        // When
         DomainStore result = domainStoreProducer.produceDomainStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoDomainStore)));
+    }
+
+    @Test
+    void return_github_domain_store_when_database_mode_is_github() {
+        domainStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        DomainStore result = domainStoreProducer.produceDomainStore();
+
+        assertThat(result, is(sameInstance(gitHubDomainStore)));
     }
 }

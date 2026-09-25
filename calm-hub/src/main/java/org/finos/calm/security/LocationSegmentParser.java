@@ -36,7 +36,7 @@ final class LocationSegmentParser {
             // .../schemas/{version}/meta
             case SCHEMA -> new LocationIds(segmentBefore(segments, "meta"), null);
             // .../{plural}/{id}/versions/{version}
-            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, DOCUMENT, TIMELINE ->
+            case ARCHITECTURE, PATTERN, FLOW, INTERFACE, STANDARD, DOCUMENT, TIMELINE, BUILDING_BLOCK ->
                     new LocationIds(
                             segmentBefore(segments, "versions"),
                             segmentAfter(segments, "versions"));

@@ -173,7 +173,7 @@ public class MappingControllerResource {
             description = "Only available when allow.put.operations=true. The request body must be the raw CALM " +
                     "document whose \"$id\" equals the versioned canonical URL of the version to replace. " +
                     "Returns 403 Forbidden when PUT operations are disabled. " +
-                    "Returns 501 Not Implemented for standards and interfaces."
+                    "Returns 501 Not Implemented for standards, interfaces, and building blocks."
     )
     @Authenticated
     public Response updateResourceFromDocument(String requestBody) throws URISyntaxException {
@@ -202,7 +202,8 @@ public class MappingControllerResource {
                             + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
         }
         if (canonical.resourceType() == ResourceType.STANDARD
-                || canonical.resourceType() == ResourceType.INTERFACE) {
+                || canonical.resourceType() == ResourceType.INTERFACE
+                || canonical.resourceType() == ResourceType.BUILDING_BLOCK) {
             return Response.status(Response.Status.NOT_IMPLEMENTED)
                     .entity("PUT is not supported for resource type: " + canonical.type()).build();
         }
@@ -266,7 +267,7 @@ public class MappingControllerResource {
         if (resourceType == null) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity("Unsupported resource type: " + STRICT_SANITIZATION_POLICY.sanitize(type)
-                            + ". Supported: patterns, architectures, flows, standards, interfaces").build();
+                            + ". Supported: patterns, architectures, flows, standards, interfaces, building-blocks").build();
         }
         if ("versions".equals(name)) {
             return Response.status(Response.Status.BAD_REQUEST)
@@ -314,9 +315,20 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
-            List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(Semver::tryParse))
-                    .toList();
+            // VERSION_REGEX's optional separators make an all-digit string like "1234567"
+            // valid semver *and* SHA-shaped. Only treat a version as a real git SHA - and so
+            // skip semver sorting for the whole list - when it isn't also a valid semver on
+            // its own terms; a genuine SHA containing a letter can never satisfy VERSION_REGEX.
+            boolean hasShas = versions.stream()
+                    .anyMatch(v -> v.matches("[0-9a-f]{7,40}") && !v.matches(VERSION_REGEX));
+            List<String> sortedVersions;
+            if (hasShas) {
+                sortedVersions = versions;
+            } else {
+                sortedVersions = versions.stream()
+                        .sorted(Comparator.comparing(Semver::tryParse))
+                        .toList();
+            }
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -326,7 +338,7 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | BuildingBlockNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (Exception e) {
@@ -345,7 +357,7 @@ public class MappingControllerResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Get a specific version of a named resource",
-            description = "Returns the resource at the specified semver version. " +
+            description = "Returns the resource at the specified version (semver or git SHA). " +
                     "The \"$id\" in the returned document is rewritten to the versioned canonical URL."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -353,7 +365,7 @@ public class MappingControllerResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -373,12 +385,12 @@ public class MappingControllerResource {
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (PatternNotFoundException | ArchitectureNotFoundException | FlowNotFoundException
-                 | StandardNotFoundException | InterfaceNotFoundException e) {
+                 | StandardNotFoundException | InterfaceNotFoundException | BuildingBlockNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Resource not found: " + STRICT_SANITIZATION_POLICY.sanitize(name)).build();
         } catch (PatternVersionNotFoundException | ArchitectureVersionNotFoundException
                  | FlowVersionNotFoundException | StandardVersionNotFoundException
-                 | InterfaceVersionNotFoundException e) {
+                 | InterfaceVersionNotFoundException | BuildingBlockVersionNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
                     .entity("Invalid version provided: " + version).build();
         } catch (Exception e) {

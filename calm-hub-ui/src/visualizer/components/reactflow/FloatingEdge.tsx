@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { EdgeProps, getBezierPath, EdgeLabelRenderer, useStore } from 'reactflow';
+import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
 import { getEdgeParams } from './utils/floatingEdges.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
@@ -8,12 +8,19 @@ export function FloatingEdge({
     id,
     source,
     target,
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
     style = {},
     markerEnd,
     markerStart,
     data,
 }: EdgeProps<EdgeData>) {
     const [isHovered, setIsHovered] = useState(false);
+    const routing = data?.metadata?.routing as string | undefined;
 
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
     const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
@@ -22,7 +29,12 @@ export function FloatingEdge({
         return null;
     }
 
-    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
+    // For smoothstep/straight: use ReactFlow's native handle-based positions (precise attachment)
+    // For bezier (default): use floating edge calculation (curves naturally into nodes)
+    const useNativePositions = routing === 'smoothstep' || routing === 'straight';
+    const { sx, sy, tx, ty, sourcePos, targetPos } = useNativePositions
+        ? { sx: sourceX, sy: sourceY, tx: targetX, ty: targetY, sourcePos: sourcePosition, targetPos: targetPosition }
+        : getEdgeParams(sourceNode, targetNode);
 
     // Calculate perpendicular offset for bidirectional edges
     const direction = data?.direction;
@@ -32,14 +44,19 @@ export function FloatingEdge({
         sx, sy, tx, ty, offset, direction
     );
 
-    const [edgePath, labelX, labelY] = getBezierPath({
+    const pathParams = {
         sourceX: adjustedSourceX,
         sourceY: adjustedSourceY,
         sourcePosition: sourcePos,
         targetX: adjustedTargetX,
         targetY: adjustedTargetY,
         targetPosition: targetPos,
-    });
+    };
+
+    const [edgePath, labelX, labelY] =
+        routing === 'straight' ? getStraightPath(pathParams) :
+        routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
+        getBezierPath(pathParams);
 
     // Extract edge data
     const description = data?.description || '';
@@ -53,11 +70,16 @@ export function FloatingEdge({
     const mitigations = aigf?.mitigations || [];
     const risks = aigf?.risks || [];
 
+    const edgeLabel = description || protocol || '';
+    const isFlowActive = !!data?.flowActive;
+    const flowOpacity = style.opacity ?? 1;
+
+    // An edge can carry flow/AIGF metadata with no description or protocol text at all -
+    // the badge is the only signal that metadata exists, independent of edgeLabel.
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
     const badgeStyle = getBadgeStyle(hasFlowInfo, hasAIGF);
-    const isFlowActive = !!data?.flowActive;
-    const flowOpacity = style.opacity ?? 1;
+    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF;
 
     return (
         <>
@@ -76,7 +98,7 @@ export function FloatingEdge({
                     markerEnd={markerEnd}
                 />
             )}
-            {description && (
+            {hasIndicator && (
                 <EdgeLabelRenderer>
                     <div
                         style={{
@@ -86,16 +108,28 @@ export function FloatingEdge({
                             zIndex: 1000,
                             opacity: flowOpacity,
                             transition: 'opacity 0.4s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
                         }}
                         className="nodrag nopan"
+                        onMouseEnter={() => setIsHovered(true)}
+                        onMouseLeave={() => setIsHovered(false)}
                     >
-                        <EdgeBadge
-                            hasFlowInfo={hasFlowInfo}
-                            hasAIGF={hasAIGF}
-                            badgeStyle={badgeStyle}
-                            onMouseEnter={() => setIsHovered(true)}
-                            onMouseLeave={() => setIsHovered(false)}
-                        />
+                        {(hasFlowInfo || hasAIGF) && (
+                            <EdgeBadge
+                                hasFlowInfo={hasFlowInfo}
+                                hasAIGF={hasAIGF}
+                                badgeStyle={badgeStyle}
+                                onMouseEnter={() => setIsHovered(true)}
+                                onMouseLeave={() => setIsHovered(false)}
+                            />
+                        )}
+                        {edgeLabel && (
+                            <span className="text-[0.625rem] leading-tight px-1 py-0.5 rounded bg-base-100/90 border border-base-300 text-base-content/60 max-w-[10rem] truncate inline-block">
+                                {edgeLabel}
+                            </span>
+                        )}
                     </div>
 
                     {isHovered && (

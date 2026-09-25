@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.buildingblocks.CreateBuildingBlockRequest;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -44,6 +45,7 @@ public class MappingControllerService {
     private final FlowStore flowStore;
     private final StandardStore standardStore;
     private final InterfaceStore interfaceStore;
+    private final BuildingBlockStore buildingBlockStore;
     private final DomainStore domainStore;
     private final ControlStore controlStore;
     private final CalmDocumentParser documentParser;
@@ -55,6 +57,7 @@ public class MappingControllerService {
                                     FlowStore flowStore,
                                     StandardStore standardStore,
                                     InterfaceStore interfaceStore,
+                                    BuildingBlockStore buildingBlockStore,
                                     DomainStore domainStore,
                                     ControlStore controlStore,
                                     CalmDocumentParser documentParser) {
@@ -64,6 +67,7 @@ public class MappingControllerService {
         this.flowStore = flowStore;
         this.standardStore = standardStore;
         this.interfaceStore = interfaceStore;
+        this.buildingBlockStore = buildingBlockStore;
         this.domainStore = domainStore;
         this.controlStore = controlStore;
         this.documentParser = documentParser;
@@ -115,6 +119,10 @@ public class MappingControllerService {
             logger.error("Invalid namespace [{}] when updating resource via PUT",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (GitHubWriteNotSupportedException e) {
+            // Rethrow rather than let the broad catch below swallow it into a bodyless
+            // 500 - UnsupportedOperationExceptionMapper turns this into the intended 501.
+            throw e;
         } catch (Exception e) {
             logger.error("Error updating resource [{}] in namespace [{}] via PUT",
                     STRICT_SANITIZATION_POLICY.sanitize(name),
@@ -153,6 +161,7 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardVersions(mapping.getNamespace(), mapping.getNumericId());
             case INTERFACE -> interfaceStore.getInterfaceVersions(mapping.getNamespace(), mapping.getNumericId());
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockVersions(mapping.getNamespace(), mapping.getNumericId());
         };
     }
 
@@ -184,6 +193,7 @@ public class MappingControllerService {
             }
             case STANDARD -> standardStore.getStandardForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
             case INTERFACE -> interfaceStore.getInterfaceForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
+            case BUILDING_BLOCK -> buildingBlockStore.getBuildingBlockForVersion(mapping.getNamespace(), mapping.getNumericId(), version);
         };
     }
 
@@ -462,6 +472,10 @@ public class MappingControllerService {
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
         } catch (DuplicateMappingException e) {
             return CalmResourceErrorResponses.resourceAlreadyExistsResponse(resourceType, name, namespace);
+        } catch (GitHubWriteNotSupportedException e) {
+            // Rethrow rather than let the broad catch below swallow it into a 400 -
+            // UnsupportedOperationExceptionMapper turns this into the intended 501.
+            throw e;
         } catch (Exception e) {
             logger.error("Error creating resource [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -504,6 +518,10 @@ public class MappingControllerService {
             logger.error("Invalid namespace [{}] when updating resource",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
             return CalmResourceErrorResponses.invalidNamespaceResponse(namespace);
+        } catch (GitHubWriteNotSupportedException e) {
+            // Rethrow rather than let the broad catch below swallow it into a 400 -
+            // UnsupportedOperationExceptionMapper turns this into the intended 501.
+            throw e;
         } catch (Exception e) {
             logger.error("Error updating resource [{}] in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(name), STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
@@ -552,6 +570,11 @@ public class MappingControllerService {
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(resourceName, description, json);
                 CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
+                yield created.getId();
+            }
+            case BUILDING_BLOCK -> {
+                CreateBuildingBlockRequest req = new CreateBuildingBlockRequest(resourceName, description, json);
+                BuildingBlock created = buildingBlockStore.createBuildingBlockForNamespace(req, namespace);
                 yield created.getId();
             }
         };
@@ -605,6 +628,10 @@ public class MappingControllerService {
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
                 interfaceStore.createInterfaceForVersion(req, namespace, numericId, version);
+            }
+            case BUILDING_BLOCK -> {
+                CreateBuildingBlockRequest req = new CreateBuildingBlockRequest(title, description, json);
+                buildingBlockStore.createBuildingBlockForVersion(req, namespace, numericId, version);
             }
         }
     }
