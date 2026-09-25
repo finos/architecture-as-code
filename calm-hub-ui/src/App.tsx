@@ -9,6 +9,20 @@ import { UserAccessProvider } from './admin/context/UserAccessContext.js';
 // the panels behind that gate — reached exclusively by admins — are deferred.
 const AdminPanels = lazy(() => import('./admin/AdminPanels.js'));
 
+function adminPanel(view: 'namespaces' | 'domains' | 'entitlements') {
+    return (
+        <Suspense
+            fallback={
+                <div className="flex justify-center py-12">
+                    <span className="loading loading-spinner loading-lg" aria-label="Loading" />
+                </div>
+            }
+        >
+            <AdminPanels view={view} />
+        </Suspense>
+    );
+}
+
 function App() {
     //TODO: The artifacts route will eventually need to be changed/replaced once we create a unique identifier for resources that can be used across CalmHubs.
     //When this happens the logic to handle params in TreeNavigation will also have to be updated.
@@ -28,26 +42,10 @@ function App() {
                     <Route path="/broken-reference" element={<Hub />} />
                     <Route path="/:namespace/:type/:id/:version" element={<Hub />} />
                     <Route path="/admin" element={<AdminPage />}>
-                        {/* A bare "/admin" has no further path segment, so it
-                            never matches the sibling path="*" route below —
-                            it needs its own index route. This redirect is
-                            plain/eager (no panel code needed), so it doesn't
-                            wait on the AdminPanels chunk either. */}
-                        <Route index element={<Navigate to="/admin/entitlements" replace />} />
-                        <Route
-                            path="*"
-                            element={
-                                <Suspense
-                                    fallback={
-                                        <div className="flex justify-center py-12">
-                                            <span className="loading loading-spinner loading-lg" aria-label="Loading" />
-                                        </div>
-                                    }
-                                >
-                                    <AdminPanels />
-                                </Suspense>
-                            }
-                        />
+                        <Route index element={<Navigate to="entitlements" replace />} />
+                        <Route path="namespaces" element={adminPanel('namespaces')} />
+                        <Route path="domains" element={adminPanel('domains')} />
+                        <Route path="entitlements" element={adminPanel('entitlements')} />
                     </Route>
                 </Routes>
             </Router>
