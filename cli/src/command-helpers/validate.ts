@@ -144,6 +144,13 @@ function buildDocumentContexts(options: ValidateOptions, logger: Logger): Record
         }
     }
 
+    if (options.timelinePath) {
+        const context = loadDocumentContext(options.timelinePath, 'timeline', logger);
+        if (context) {
+            contexts['timeline'] = context;
+        }
+    }
+
     return contexts;
 }
 
