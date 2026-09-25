@@ -3,56 +3,14 @@ id: directurl-auth-plugin
 title: Direct URL Document Loader - Authentication Plugin
 ---
 
+import { CalmDiagram } from '@finos/calm-docusaurus-plugin'
+
 The diagram illustrates a standard integration pattern in which an end-user organization supplies an identity-aware authentication module to the CALM runtime. The organization implements an Identity Provider (IdP) client, builds it as a deployable module, and configures the CALM CLI to load it as the direct URL authentication handler. For configured hosts, CALM invokes the plugin before fetching a document, and the plugin obtains and returns the request headers required by the organization’s IdP, typically an `Authorization: Bearer <token>` header. The CALM CLI then uses the returned header on the request to retrieve the CALM artifact.
 
 This pattern keeps authentication logic outside the core CLI and allows each organization to adapt the direct URL flow to its own IdP and security requirements while preserving a consistent integration point with CALM.
 
+<CalmDiagram src="./architectures/directurl-auth-plugin.calm.json" />
 
-```mermaid
-graph TB
-    subgraph ORG["End User Organisation directUrlAuth Integration"]
-        direction TB
-
-        subgraph CALM_CLI["Locally installed calm cli run-time"]
-          direction TB
-          SHARED["@finos/calm-shared"]
-          CLI["@finos/calm-cli"]
-        end
-
-        subgraph ORG_DIRECT_URL_REPO["Non-CALM Hub Repo\nwith Authentication"]
-            direction TB
-            DIRECT_URL_REPO[(CALM Artifacts)]
-        end
-
-        subgraph INHOUSE_REPO["End User Organization Local GIT Repo"]
-          direction TB
-          ORG_SRC["src/end-user-idp-client.ts\nimplements IdPClient"]
-        end
-
-        subgraph INHOUSE_DIST["Built directUrlAuth Plugin"]
-          direction TB
-          ORG_AUTH["built end-user-idp-client"]
-        end
-
-        subgraph END_USER_IDP_SERVICE["End User Organization IDP Service"]
-          direction TB
-          ORG_IDP["Identity Provider"]
-        end
-
-        ORG_SRC -- "npm install / npm build" --> ORG_AUTH
-        CALM_CLI -- "Obtain Authorization Header" --> INHOUSE_DIST
-        ORG_AUTH -- "Retrieve access token" --> END_USER_IDP_SERVICE
-        CALM_CLI -- "With Authorization Header obtained from plugin retrieve CALM artifact" --> ORG_DIRECT_URL_REPO
-    end
-
-
-    style INHOUSE_DIST fill:#e8f0fb,stroke:#3a6bc4
-    style END_USER_IDP_SERVICE fill:#e8f0fb,stroke:#3a6bc4
-    style ORG fill:#f0f4ff,stroke:#3a6bc4
-    style ORG_DIRECT_URL_REPO fill:#e8f0fb,stroke:#3a6bc4
-    style INHOUSE_REPO fill:#e8f0fb,stroke:#3a6bc4
-
-```
 
 ## Overview of the Authentication Plugin
 
