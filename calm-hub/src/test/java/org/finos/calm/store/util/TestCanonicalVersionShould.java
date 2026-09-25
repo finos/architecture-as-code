@@ -60,4 +60,14 @@ class TestCanonicalVersionShould {
     void pass_a_null_version_through_rather_than_throwing() {
         assertThat(CanonicalVersion.of(null), is(nullValue()));
     }
+
+    @Test
+    void return_an_overlong_input_unchanged_without_attempting_the_regex() {
+        // Guards the CodeQL polynomial-ReDoS fix: VERSION_REGEX's three digit groups give the
+        // engine multiple ways to partition a long unseparated digit run. No real version is
+        // anywhere near this long, so the length guard never affects a legitimate caller - it
+        // only keeps a pathologically long value from reaching the vulnerable regex at all.
+        String pathological = "1" + "0".repeat(200) + "1";
+        assertThat(CanonicalVersion.of(pathological), is(pathological));
+    }
 }

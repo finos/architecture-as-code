@@ -47,20 +47,29 @@ public final class CanonicalVersion {
 
     private static final Pattern VERSION = Pattern.compile(ResourceValidationConstants.VERSION_REGEX);
 
+    // VERSION_REGEX's three digit groups, each optionally un-separated from its neighbours,
+    // give the engine multiple ways to partition a long run of digits between them - CodeQL
+    // flags this as a polynomial ReDoS on uncontrolled input (java/polynomial-redos). No real
+    // version is anywhere close to this long; bounding the length before matching removes the
+    // attack surface without changing the outcome for any input this method would otherwise
+    // accept or leave unchanged.
+    private static final int MAX_VERSION_LENGTH = 50;
+
     private CanonicalVersion() {
     }
 
     /**
      * @param version any accepted spelling, or {@code null}
      * @return the {@code major.minor.patch} form. Input that doesn't match
-     * {@code VERSION_REGEX} (including {@code null}) is returned unchanged:
-     * validation belongs to the resource layer, and a store that quietly
-     * rewrote unrecognised input would turn a rejectable request into a
-     * document stored under a version nobody asked for.
+     * {@code VERSION_REGEX} (including {@code null} or a string longer than
+     * {@link #MAX_VERSION_LENGTH}) is returned unchanged: validation belongs
+     * to the resource layer, and a store that quietly rewrote unrecognised
+     * input would turn a rejectable request into a document stored under a
+     * version nobody asked for.
      */
     public static String of(String version) {
-        if (version == null) {
-            return null;
+        if (version == null || version.length() > MAX_VERSION_LENGTH) {
+            return version;
         }
         Matcher matcher = VERSION.matcher(version);
         if (!matcher.matches()) {
