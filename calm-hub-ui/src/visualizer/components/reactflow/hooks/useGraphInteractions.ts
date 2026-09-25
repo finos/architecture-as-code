@@ -92,9 +92,9 @@ export function useGraphInteractions({
                     const zIndex = n.id === node.id && !isGroupType(n.type) ? 1000
                         : isGroupType(n.type) ? -1
                         : 1;
-                    // Only allocate a new node object when the value actually
-                    // changes, so memoized node components (CustomNode,
-                    // SystemGroupNode) don't re-render for untouched nodes.
+                    // Return the untouched node as-is: ReactFlow's memoised
+                    // NodeWrapper compares `style` by reference, so a fresh
+                    // object here re-renders every node on each hover.
                     if (n.style?.zIndex === zIndex) return n;
                     return { ...n, style: { ...n.style, zIndex } };
                 })
