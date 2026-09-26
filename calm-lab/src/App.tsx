@@ -1,8 +1,11 @@
+import { useEffect, useState } from 'react';
 import ColorModeToggle from './ColorModeToggle';
 import ErrorBoundary from './ErrorBoundary';
 import Lab from './lab/Lab';
+import { lastLessonId, rememberLesson } from './lab/storage';
 import { LESSONS } from './lessons';
-import { QUICK_START } from './lessons/quick-start/lesson';
+import { lessonUrl, selectLesson } from './lessons/select';
+import type { Lesson } from './lessons/types';
 import { useColorMode } from './theme';
 
 const DOCS_URL = 'https://calm.finos.org';
@@ -32,10 +35,25 @@ function LabCrashed() {
     );
 }
 
-export default function App() {
+export default function App({ lessons = LESSONS }: { lessons?: readonly Lesson[] } = {}) {
     const { mode, toggle } = useColorMode();
     // The white icon variant in dark mode, as the docs navbar's `srcDark` does.
     const logo = mode === 'dark' ? '/img/2025_CALM_Icon_WHT.svg' : '/img/2025_CALM_Icon.svg';
+    const [selection, setSelection] = useState(() => selectLesson(window.location.search, lastLessonId(), lessons));
+    const { lesson, unknownId } = selection;
+
+    useEffect(() => {
+        // Preserves no other query parameters — the lab has none, so this is fine.
+        window.history.replaceState(null, '', lessonUrl(lesson.id));
+        rememberLesson(lesson.id);
+    }, [lesson.id]);
+
+    const selectById = (id: string) => {
+        const next = lessons.find((candidate) => candidate.id === id);
+        if (next) {
+            setSelection({ lesson: next });
+        }
+    };
     return (
         <div className="app">
             <header className="navbar" role="banner">
@@ -61,8 +79,13 @@ export default function App() {
                     <ColorModeToggle mode={mode} onToggle={toggle} />
                 </nav>
             </header>
+            {unknownId !== undefined && (
+                <p className="app-notice" role="status">
+                    There is no lesson called “{unknownId}”. Opened “{lesson.title}” instead.
+                </p>
+            )}
             <ErrorBoundary fallback={<LabCrashed />}>
-                <Lab lesson={QUICK_START} lessons={LESSONS} onSelectLesson={() => undefined} />
+                <Lab key={lesson.id} lesson={lesson} lessons={lessons} onSelectLesson={selectById} />
             </ErrorBoundary>
         </div>
     );

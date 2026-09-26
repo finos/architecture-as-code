@@ -169,6 +169,23 @@ describe('Lab', () => {
         expect(stepOneCompleted()).toBe(false);
     });
 
+    it('drops an in-flight validate when the lesson is switched', async () => {
+        const inFlight: {resolve: (() => void) | null} = {resolve: null};
+        engine.validateOutcome.mockImplementationOnce(() => new Promise((resolve) => {
+            inFlight.resolve = () => resolve(engine.okOutcome());
+        }));
+        const other = {...QUICK_START, id: 'other'};
+        const {rerender} = render(<Lab key="quick-start" lesson={QUICK_START} lessons={[QUICK_START, other]} onSelectLesson={vi.fn()} />);
+        const input = screen.getByLabelText('Terminal input');
+        fireEvent.change(input, {target: {value: VALIDATE_COMMAND}});
+        fireEvent.keyDown(input, {key: 'Enter'});
+        rerender(<Lab key="other" lesson={other} lessons={[QUICK_START, other]} onSelectLesson={vi.fn()} />);
+        await act(async () => { inFlight.resolve!(); });
+        // The run belongs to the lesson it ran in: it may tick quick-start, never the new lesson.
+        expect(localStorage.getItem('calm-lab-progress-v2:other')).toBeNull();
+        expect(JSON.parse(localStorage.getItem('calm-lab-progress-v2:quick-start') ?? '[]')).toContain('look-around');
+    });
+
     it('needs a validate after the last save when a step asks for one', async () => {
         // Parse the text the engine is given, so state.doc follows the saved file.
         engine.validateArchitecture.mockImplementation(async (text: string) => ({...engine.okResult(), doc: JSON.parse(text)}));
