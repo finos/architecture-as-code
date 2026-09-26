@@ -1,7 +1,7 @@
 import { BROWSER_COMMAND_SUPPORT } from '@finos/calm-shared/browser';
 import type { Line } from '../shell';
 import { optionSpecs } from './options';
-import { CLI_DOCS } from './unsupported';
+import { CLI_DOCS, VALIDATE_LAB_FORMATS } from './unsupported';
 
 const LAB_COMMANDS = ['validate', 'diff'] as const;
 
@@ -26,8 +26,9 @@ export function helpFor(command?: (typeof LAB_COMMANDS)[number]): Line[] {
     const rows = optionSpecs(command)
         .filter((spec) => spec.supported)
         .map((spec): [string, string] => {
+            const choices = command === 'validate' && spec.long === '--format' ? VALIDATE_LAB_FORMATS : spec.choices;
             const extras = [
-                spec.choices && `choices: ${spec.choices.join(', ')}`,
+                choices && `choices: ${choices.join(', ')}`,
                 spec.defaultValue !== undefined && `default: ${spec.defaultValue}`,
             ].filter(Boolean);
             return [spec.flags, extras.length ? `${spec.description} (${extras.join('; ')})` : spec.description];

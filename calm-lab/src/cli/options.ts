@@ -35,77 +35,85 @@ export function optionSpecs(command: string): OptionSpec[] {
     return entry?.status === 'supported' && entry.options ? entry.options.map(toSpec) : [];
 }
 
-function unknownOption(token: string, specs: OptionSpec[]): string {
+const NEGATIVE_NUMBER = /^-(\d+|\d*\.\d+)(e[+-]?\d+)?$/;
+
+/** Commander's unknown-option error; long flags get a suggestion from the visible options. */
+export function unknownOption(token: string, specs: OptionSpec[]): string {
     const candidates = token.startsWith('--')
         ? [...specs.filter((spec) => !spec.hidden).map((spec) => spec.long), '--help', '--version']
         : [];
     return `error: unknown option '${token}'${suggestSimilar(token, candidates)}`;
 }
 
+/** The program-level `-V, --version`, which commander honours anywhere before `--`. */
+export function requestsVersion(args: string[]): boolean {
+    const end = args.indexOf('--');
+    return (end === -1 ? args : args.slice(0, end)).some((arg) => arg === '--version' || arg.startsWith('-V'));
+}
+
+function findSpec(token: string, specs: OptionSpec[]): { spec: OptionSpec; attached?: string; rest?: string } | undefined {
+    const exact = specs.find((spec) => spec.long === token || spec.short === token);
+    if (exact) {
+        return { spec: exact };
+    }
+    if (token.length > 2 && token[0] === '-' && token[1] !== '-') {
+        const spec = specs.find((candidate) => candidate.short === token.slice(0, 2));
+        if (spec) {
+            // `-ax.json` is `-a x.json`; `-vf pretty` is `-v -f pretty`.
+            return spec.takesValue ? { spec, attached: token.slice(2) } : { spec, rest: `-${token.slice(2)}` };
+        }
+    }
+    const equals = token.indexOf('=');
+    if (token.startsWith('--') && equals > 2) {
+        const spec = specs.find((candidate) => candidate.long === token.slice(0, equals));
+        if (spec?.takesValue) {
+            return { spec, attached: token.slice(equals + 1) };
+        }
+    }
+    return undefined;
+}
+
+/** Mirrors commander's parseOptions, then its help, unknown-option and excess-argument checks in that order. */
 export function parseArgs(command: string, args: string[]): ParsedArgs {
     const specs = optionSpecs(command);
     const values: Record<string, string | true> = {};
     const given: OptionSpec[] = [];
     const operands: string[] = [];
+    const unknown: string[] = [];
+    let dest = operands;
     for (const spec of specs) {
         if (spec.defaultValue !== undefined) {
             values[spec.attribute] = spec.defaultValue;
         }
     }
 
-    const queue = [...args];
-    let onlyOperands = false;
-    while (queue.length) {
-        const token = queue.shift()!;
-        if (onlyOperands) {
-            operands.push(token);
-            continue;
-        }
+    let group: string | undefined;
+    let i = 0;
+    while (i < args.length || group !== undefined) {
+        const token = group ?? args[i++];
+        group = undefined;
         if (token === '--') {
-            onlyOperands = true;
+            if (dest === unknown) {
+                dest.push(token);
+            }
+            dest.push(...args.slice(i));
+            break;
+        }
+
+        const found = token.length > 1 && token[0] === '-' ? findSpec(token, specs) : undefined;
+        if (!found) {
+            // Commander keeps parsing known options after an unknown one; the rest of the args join the unknown list.
+            if (dest === operands && token.length > 1 && token[0] === '-' && !NEGATIVE_NUMBER.test(token)) {
+                dest = unknown;
+            }
+            dest.push(token);
             continue;
         }
-        if (HELP.has(token)) {
-            return { kind: 'help' };
-        }
-        if (!token.startsWith('-') || token === '-') {
-            operands.push(token);
-            continue;
-        }
 
-        let spec: OptionSpec | undefined;
-        let attached: string | undefined;
-        if (token.startsWith('--')) {
-            const equals = token.indexOf('=');
-            const name = equals === -1 ? token : token.slice(0, equals);
-            attached = equals === -1 ? undefined : token.slice(equals + 1);
-            spec = specs.find((candidate) => candidate.long === name);
-            if (spec && !spec.takesValue && attached !== undefined) {
-                // Commander doesn't accept `=value` on a boolean option; the whole token is unknown.
-                spec = undefined;
-            }
-        } else {
-            spec = specs.find((candidate) => candidate.short === token.slice(0, 2));
-            if (spec && token.length > 2) {
-                if (spec.takesValue) {
-                    attached = token.slice(2);
-                } else {
-                    // Combined boolean shorts: `-vf pretty` is `-v -f pretty`.
-                    queue.unshift(`-${token.slice(2)}`);
-                }
-            }
-        }
-
-        if (!spec) {
-            // Commander stops parsing options at the first unknown one, but still honours a later --help.
-            if (queue.some((rest) => HELP.has(rest))) {
-                return { kind: 'help' };
-            }
-            return { kind: 'error', message: unknownOption(token, specs) };
-        }
-
+        const { spec, attached, rest } = found;
+        group = rest;
         if (spec.takesValue) {
-            const value = attached ?? queue.shift();
+            const value = attached ?? args[i++];
             if (value === undefined) {
                 return { kind: 'error', message: `error: option '${spec.flags}' argument missing` };
             }
@@ -124,6 +132,12 @@ export function parseArgs(command: string, args: string[]): ParsedArgs {
         }
     }
 
+    if (unknown.some((token) => HELP.has(token))) {
+        return { kind: 'help' };
+    }
+    if (unknown.length) {
+        return { kind: 'error', message: unknownOption(unknown[0], specs) };
+    }
     if (operands.length) {
         return {
             kind: 'error',

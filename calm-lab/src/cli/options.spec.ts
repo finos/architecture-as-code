@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseArgs, optionSpecs } from './options';
+import { parseArgs, optionSpecs, requestsVersion } from './options';
 
 describe('optionSpecs', () => {
     it('derives short, long, attribute and arity from the manifest flags', () => {
@@ -37,13 +37,28 @@ describe('parseArgs matches commander', () => {
         [['--strict=1', '-a', 'a.json'], "error: unknown option '--strict=1'\n(Did you mean --strict?)"],
         [['-a', 'a.json', '--verbose=x'], "error: unknown option '--verbose=x'\n(Did you mean --verbose?)"],
         [['--versio'], "error: unknown option '--versio'\n(Did you mean --version?)"],
+        [['-h', '-a'], "error: option '-a, --architecture <file>' argument missing"],
+        [['-h', '-f', 'xml'], "error: option '-f, --format <format>' argument 'xml' is invalid. Allowed choices are json, junit, pretty."],
+        [['--bogus', '-a'], "error: option '-a, --architecture <file>' argument missing"],
+        [['--bogus', '-f', 'xml'], "error: option '-f, --format <format>' argument 'xml' is invalid. Allowed choices are json, junit, pretty."],
+        [['--bogus', '-a', '--help'], "error: unknown option '--bogus'"],
+        [['--bogus', 'extra'], "error: unknown option '--bogus'"],
+        [['-vz'], "error: unknown option '-z'"],
+        [['-1'], "error: too many arguments for 'validate'. Expected 0 arguments but got 1."],
+        [['--', '--help'], "error: too many arguments for 'validate'. Expected 0 arguments but got 1."],
     ])('rejects %j like commander', (args, message) => {
         expect(parseArgs('validate', args)).toEqual({ kind: 'error', message });
     });
 
-    it('asks for help on -h or --help, even after an unknown option', () => {
-        expect(parseArgs('validate', ['-h'])).toEqual({ kind: 'help' });
-        expect(parseArgs('validate', ['--bogus', '--help'])).toEqual({ kind: 'help' });
+    it.each([[['-h']], [['--bogus', '--help']], [['-h', 'extra']], [['extra', '--bogus', '-h']], [['--bogus', '--', '--help']]])(
+        'asks for help on %j, ahead of unknown options and excess arguments',
+        (args) => {
+            expect(parseArgs('validate', args)).toEqual({ kind: 'help' });
+        },
+    );
+
+    it('keeps parsing known options after an unknown one', () => {
+        expect(parseArgs('validate', ['--bogus', '-a', 'x.json', '-f', 'pretty'])).toEqual({ kind: 'error', message: "error: unknown option '--bogus'" });
     });
 
     it('lets a value-taking option consume --help as its value', () => {
@@ -58,5 +73,19 @@ describe('parseArgs matches commander', () => {
     it('reports which options were given', () => {
         const parsed = parseArgs('validate', ['-a', 'x.json', '--strict', '-v']);
         expect(parsed.kind === 'ok' && parsed.given.map((spec) => spec.long)).toEqual(['--architecture', '--strict', '--verbose']);
+    });
+});
+
+describe('requestsVersion', () => {
+    it.each([
+        [['--version'], true],
+        [['-a', 'a.json', '-V'], true],
+        [['-a', '-V'], true],
+        [['-Vx'], true],
+        [['--', '-V'], false],
+        [['-vV'], false],
+        [['-a', 'a.json'], false],
+    ])('%j -> %s, like the program-level -V, --version', (args, expected) => {
+        expect(requestsVersion(args)).toBe(expected);
     });
 });

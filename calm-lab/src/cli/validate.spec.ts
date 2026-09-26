@@ -88,6 +88,23 @@ describe('calm validate', () => {
         expect(onEvent).not.toHaveBeenCalled();
     });
 
+    it('reports a directory as the CLI does', async () => {
+        const { ctx, onEvent } = context({ '/workspace/a.json': A });
+        expect(await runValidate(['-a', '.'], ctx)).toEqual([
+            { text: 'error [multi-strategy-document-loader]:    Loader FileSystemDocumentLoader failed fatally loading document: .. Enable debug logging for the full loader report.', kind: 'err' },
+            { text: 'error [calm-validate]:    An error occurred while validating: EISDIR: illegal operation on a directory, read', kind: 'err' },
+        ]);
+        expect(onEvent).not.toHaveBeenCalled();
+    });
+
+    it.each([['-a'], ['--architecture']])('says %s <url> is not supported in the lab yet', async (flag) => {
+        const { ctx } = context({});
+        expect(await runValidate([flag, 'https://example.com/a.json'], ctx)).toEqual([{
+            text: "The browser lab doesn't support `--architecture <url>` for `calm validate` yet. Use the CLI — https://calm.finos.org/working-with-calm/cli",
+            kind: 'dim',
+        }]);
+    });
+
     it('reports invalid JSON as the CLI does', async () => {
         const { ctx } = context({ '/workspace/broken.json': '{ nope' });
         const lines = await runValidate(['-a', 'broken.json'], ctx);

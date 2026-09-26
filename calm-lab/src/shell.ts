@@ -11,7 +11,10 @@
 import { runDiff } from './cli/diff';
 import { runValidate } from './cli/validate';
 import { helpFor } from './cli/help';
+import { requestsVersion, unknownOption } from './cli/options';
+import { suggestSimilar } from './cli/suggest';
 import { CLI_DOCS } from './cli/unsupported';
+import { BROWSER_COMMAND_SUPPORT } from '@finos/calm-shared/browser';
 import { commandSupport, hubCommands, CLI_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
 
@@ -47,17 +50,47 @@ const HELP_LINES: Line[] = [
     { text: '  calm help                      what the lab runs', kind: 'dim' },
 ];
 
-async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
-    const [sub, ...rest] = args;
-    if (!sub || sub === 'help' || sub === '--help' || sub === '-h') {
-        return helpFor();
+/** The `calm` program's commands (commander's candidates for "Did you mean"), from the manifest. */
+const CLI_COMMANDS: readonly string[] = [...new Set(BROWSER_COMMAND_SUPPORT.map((entry) => entry.command.split(' ')[0])), 'help'];
+
+const errLines = (message: string): Line[] => message.split('\n').map((text) => ({ text, kind: 'err' }));
+
+function unknownCommand(name: string, candidates: readonly string[]): Line[] {
+    return errLines(`error: unknown command '${name}'${suggestSimilar(name, [...candidates])}`);
+}
+
+/** Commander shows the program help when -h/--help is among the args it could not place. */
+function programHelpRequested(args: string[]): boolean {
+    let unplaced = false;
+    for (const [index, arg] of args.entries()) {
+        if (arg === '--') {
+            return unplaced && args.slice(index + 1).some((rest) => rest === '-h' || rest === '--help');
+        }
+        unplaced ||= arg.length > 1 && arg.startsWith('-');
+        if (unplaced && (arg === '-h' || arg === '--help')) {
+            return true;
+        }
     }
-    if (sub === '--version' || sub === '-V') {
+    return false;
+}
+
+async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
+    // Commander parses the program's options first, so `-V` wins wherever it appears before `--`.
+    if (requestsVersion(args)) {
         return [{ text: CLI_VERSION, kind: 'out' }];
     }
-    // Commander's default is `-V, --version`; `calm -v` is unknown, as in the real CLI.
-    if (sub.startsWith('-')) {
-        return [{ text: `error: unknown option '${sub}'`, kind: 'err' }];
+    const [sub, ...rest] = args;
+    if (!sub || sub === '--help' || sub === '-h') {
+        return helpFor();
+    }
+    if (sub === 'help') {
+        return rest[0] === 'validate' || rest[0] === 'diff' ? helpFor(rest[0]) : helpFor();
+    }
+    if (sub.startsWith('-') || !CLI_COMMANDS.includes(sub)) {
+        if (programHelpRequested(args)) {
+            return helpFor();
+        }
+        return sub.startsWith('-') ? errLines(unknownOption(sub, [])) : unknownCommand(sub, CLI_COMMANDS);
     }
     if (sub === 'validate') {
         return runValidate(rest, ctx);
@@ -67,7 +100,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     }
     // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,
     // so a bare `calm hub` lists them rather than claiming `hub` is unknown.
-    if (sub === 'hub' && !rest[0]) {
+    if (sub === 'hub' && (!rest[0] || rest[0].startsWith('-'))) {
         const entries = hubCommands();
         if (entries.length) {
             return [
@@ -80,7 +113,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
             ];
         }
     }
-    const command = sub === 'hub' && rest[0] ? `hub ${rest[0]}` : sub;
+    const command = sub === 'hub' ? `hub ${rest[0]}` : sub;
     const support = commandSupport(command);
     if (support?.status === 'unsupported') {
         return [{ text: `\`calm ${command}\` isn't available in the browser lab: ${support.reason}. Use the CLI — ${CLI_DOCS}`, kind: 'dim' }];
@@ -88,7 +121,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     if (support?.status === 'supported') {
         return [{ text: `\`calm ${command}\` isn't wired into the lab yet — the engine supports it; see ${CLI_DOCS}`, kind: 'dim' }];
     }
-    return [{ text: `calm: unknown command '${sub}' — try \`calm help\``, kind: 'err' }];
+    return unknownCommand(rest[0], [...hubCommands().map((entry) => entry.command.split(' ')[1]), 'help']);
 }
 
 function longestCommonPrefix(values: string[]): string {

@@ -3,7 +3,7 @@ import type { Line, ShellContext } from '../shell';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
-import { unsupportedInLab } from './unsupported';
+import { isUrl, readError, unsupportedInLab } from './unsupported';
 
 const err = (text: string): Line => ({ text, kind: 'err' });
 
@@ -40,13 +40,17 @@ export async function runDiff(args: string[], ctx: ShellContext): Promise<Line[]
 
     const a = values.documentA as string;
     const b = values.documentB as string;
+    const url = [['--document-a', a], ['--document-b', b]].find(([, reference]) => isUrl(reference));
+    if (url) {
+        return [unsupportedInLab('diff', `${url[0]} <url>`)];
+    }
     const lines: Line[] = [{ text: logLine('info', 'calm-diff', `Comparing ${a} -> ${b}`), kind: 'dim' }];
     try {
         const [docA, docB] = [a, b].map((reference) => {
             const path = ctx.vfs.resolve(ctx.getCwd(), reference);
             const content = ctx.vfs.read(path);
             if (content === null) {
-                throw new Error(`ENOENT: no such file or directory, open '${path}'`);
+                throw new Error(readError(ctx.vfs, path));
             }
             return JSON.parse(content) as Record<string, unknown>;
         });

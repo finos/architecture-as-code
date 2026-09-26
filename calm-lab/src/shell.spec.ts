@@ -65,9 +65,20 @@ describe('other calm commands', () => {
         expect(text[text.length - 1]).toContain('https://calm.finos.org/working-with-calm/cli');
     });
 
-    it('rejects unknown subcommands', async () => {
+    it.each([
+        ['calm valdate', ["error: unknown command 'valdate'", '(Did you mean validate?)']],
+        ['calm hlep', ["error: unknown command 'hlep'", '(Did you mean help?)']],
+        ['calm dif', ["error: unknown command 'dif'", '(Did you mean diff?)']],
+        ['calm genrate', ["error: unknown command 'genrate'", '(Did you mean generate?)']],
+        ['calm xyz', ["error: unknown command 'xyz'"]],
+        ['calm valdate --bogus', ["error: unknown command 'valdate'", '(Did you mean validate?)']],
+        ['calm hub pul', ["error: unknown command 'pul'", '(Did you mean pull?)']],
+        ['calm hub frob', ["error: unknown command 'frob'"]],
+        ['calm --bogus', ["error: unknown option '--bogus'"]],
+        ['calm --versio', ["error: unknown option '--versio'", '(Did you mean --version?)']],
+    ])('%s is rejected like the CLI', async (input, expected) => {
         const { ctx } = context({});
-        expect((await runCommand('calm frobnicate', ctx))[0].text).toMatch(/unknown command/);
+        expect(await runCommand(input, ctx)).toEqual(expected.map((text) => ({ text, kind: 'err' })));
     });
 
     it('prints the CLI version like `calm --version`', async () => {
@@ -76,19 +87,46 @@ describe('other calm commands', () => {
         expect(CLI_VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
 
+    it.each([
+        'calm validate --version',
+        'calm validate -a a.json -V',
+        'calm diff --version',
+        'calm validate -a -V',
+        'calm validate -f xml -V',
+        'calm validate -h -V',
+        'calm valdate -V',
+        'calm help -V',
+        'calm -Vx',
+    ])('%s prints the version, as commander honours -V anywhere', async (input) => {
+        const { ctx } = context({});
+        expect(await runCommand(input, ctx)).toEqual([{ text: CLI_VERSION, kind: 'out' }]);
+    });
+
+    it('treats -V after -- as an argument', async () => {
+        const { ctx } = context({});
+        expect(await runCommand('calm validate -- -V', ctx)).toEqual([
+            { text: "error: too many arguments for 'validate'. Expected 0 arguments but got 1.", kind: 'err' },
+        ]);
+    });
+
     it('rejects -v like the CLI', async () => {
         const { ctx } = context({});
         expect(await runCommand('calm -v', ctx)).toEqual([{ text: "error: unknown option '-v'", kind: 'err' }]);
     });
 
-    it.each(['calm help', 'calm --help', 'calm -h'])('%s prints the lab help', async (input) => {
+    it.each(['calm help', 'calm --help', 'calm -h', 'calm help nope', 'calm valdate -h', 'calm --bogus --help', 'calm -z -- -h'])('%s prints the lab help', async (input) => {
         const { ctx } = context({});
         expect((await runCommand(input, ctx))[0].text).toBe('calm in the browser lab — the commands it runs:');
     });
 
-    it('calm validate --help prints the validate options', async () => {
+    it.each([
+        ['calm validate --help', 'validate'],
+        ['calm help validate', 'validate'],
+        ['calm diff -h', 'diff'],
+        ['calm help diff', 'diff'],
+    ])('%s prints the lab help for the command', async (input, command) => {
         const { ctx } = context({});
-        expect((await runCommand('calm validate --help', ctx))[0].text).toBe('calm validate in the browser lab — the options it supports:');
+        expect((await runCommand(input, ctx))[0].text).toBe(`calm ${command} in the browser lab — the options it supports:`);
     });
 
     it('completes calm subcommands', () => {

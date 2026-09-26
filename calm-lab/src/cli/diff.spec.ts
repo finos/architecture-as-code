@@ -61,6 +61,26 @@ describe('calm diff', () => {
         expect(lines[1].text).toMatch(/^error \[calm-diff\]: {4}An error occurred while diffing CALM documents: Expected property name/);
     });
 
+    it.each([
+        [['-a', '.', '-b', 'a.json'], 'Comparing . -> a.json'],
+        [['-a', 'a.json', '-b', '.'], 'Comparing a.json -> .'],
+    ])('reports a directory as the CLI does for %j', async (args, comparing) => {
+        expect(await runDiff(args, context(files))).toEqual([
+            { text: `info [calm-diff]:     ${comparing}`, kind: 'dim' },
+            { text: 'error [calm-diff]:    An error occurred while diffing CALM documents: EISDIR: illegal operation on a directory, read', kind: 'err' },
+        ]);
+    });
+
+    it.each([
+        [['-a', 'https://example.com/a.json', '-b', 'b.json'], '--document-a <url>'],
+        [['-a', 'a.json', '--document-b', 'http://example.com/b.json'], '--document-b <url>'],
+        [['--architecture-a', 'a.json', '--architecture-b', 'b.json'], '--architecture-a'],
+    ])('says %j is not in the lab yet', async (args, what) => {
+        expect(await runDiff(args, context(files))).toEqual([
+            { text: `The browser lab doesn't support \`${what}\` for \`calm diff\` yet. Use the CLI — https://calm.finos.org/working-with-calm/cli`, kind: 'dim' },
+        ]);
+    });
+
     it('says unsupported options are not in the lab yet', async () => {
         const [line] = await runDiff(['-a', 'a.json', '-b', 'b.json', '--exit-code'], context(files));
         expect(line.text).toBe("The browser lab doesn't support `--exit-code` for `calm diff` yet. Use the CLI — https://calm.finos.org/working-with-calm/cli");

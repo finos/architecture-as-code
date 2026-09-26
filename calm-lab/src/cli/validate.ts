@@ -4,7 +4,7 @@ import type { Line, ShellContext } from '../shell';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
-import { unsupportedInLab } from './unsupported';
+import { isUrl, readError, unsupportedInLab, VALIDATE_LAB_FORMATS } from './unsupported';
 
 const PATTERN = '-p, --pattern <file>';
 const ARCHITECTURE = '-a, --architecture <file>';
@@ -42,15 +42,18 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
         return [unsupportedInLab('validate', unsupported.long)];
     }
     const format = values.format as OutputFormat;
-    if (format === 'junit') {
+    if (!VALIDATE_LAB_FORMATS.includes(format)) {
         return [unsupportedInLab('validate', `--format ${format}`)];
     }
 
     const reference = values.architecture as string;
+    if (isUrl(reference)) {
+        return [unsupportedInLab('validate', '--architecture <url>')];
+    }
     const path = ctx.vfs.resolve(ctx.getCwd(), reference);
     const content = ctx.vfs.read(path);
     if (content === null) {
-        return loadFailure(reference, `ENOENT: no such file or directory, open '${path}'`);
+        return loadFailure(reference, readError(ctx.vfs, path));
     }
     let architecture: object;
     try {

@@ -13,7 +13,11 @@ describe('helpFor', () => {
         const text = helpFor('validate').map((line) => line.text);
         expect(text[0]).toBe('calm validate in the browser lab — the options it supports:');
         expect(text).toContain('  -a, --architecture <file>  Path to the architecture file to use. May be a file path or a URL.');
-        expect(text).toContain('  -f, --format <format>      The format of the output (choices: json, junit, pretty; default: json)');
+        expect(text).toContain('  -f, --format <format>      The format of the output (choices: json, pretty; default: json)');
         expect(text.some((line) => line.includes('--pattern'))).toBe(false);
+    });
+
+    it('keeps the CLI choices for diff -f', () => {
+        expect(helpFor('diff').map((line) => line.text)).toContain('  -f, --format <format>    Output format (choices: json, summary; default: json)');
     });
 });
