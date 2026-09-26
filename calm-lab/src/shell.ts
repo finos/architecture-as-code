@@ -10,8 +10,9 @@
 
 import { runDiff } from './cli/diff';
 import { runValidate } from './cli/validate';
+import { helpFor } from './cli/help';
 import { CLI_DOCS } from './cli/unsupported';
-import { commandSupport, hubCommands, ENGINE_VERSION } from './engine';
+import { commandSupport, hubCommands, CLI_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
@@ -41,26 +42,22 @@ const HELP_LINES: Line[] = [
     { text: '  pwd                  print working directory', kind: 'dim' },
     { text: '  echo <text>          print text', kind: 'dim' },
     { text: '  clear                clear the terminal', kind: 'dim' },
-    { text: '  calm validate <file> validate a CALM architecture', kind: 'dim' },
-    { text: '  calm diff <a> <b>    compare two architectures', kind: 'dim' },
-    { text: '  calm --version       show the lab engine version', kind: 'dim' },
-];
-
-const CALM_HELP_LINES: Line[] = [
-    { text: 'calm — CALM in your browser', kind: 'out' },
-    { text: '  calm validate <file>       validate against the CALM schemas and rules', kind: 'dim' },
-    { text: '  calm diff <file-a> <file-b> compare two architectures', kind: 'dim' },
-    { text: '  calm --version             show the engine version', kind: 'dim' },
-    { text: '  calm help                  show this help', kind: 'dim' },
+    { text: '  calm validate -a <file>        validate a CALM architecture', kind: 'dim' },
+    { text: '  calm diff -a <file> -b <file>  compare two CALM documents', kind: 'dim' },
+    { text: '  calm help                      what the lab runs', kind: 'dim' },
 ];
 
 async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     const [sub, ...rest] = args;
-    if (!sub || sub === 'help' || sub === '--help') {
-        return CALM_HELP_LINES;
+    if (!sub || sub === 'help' || sub === '--help' || sub === '-h') {
+        return helpFor();
     }
-    if (sub === '--version' || sub === '-v') {
-        return [{ text: `browser lab · @finos/calm-shared ${ENGINE_VERSION}`, kind: 'out' }];
+    if (sub === '--version' || sub === '-V') {
+        return [{ text: CLI_VERSION, kind: 'out' }];
+    }
+    // Commander's default is `-V, --version`; `calm -v` is unknown, as in the real CLI.
+    if (sub.startsWith('-')) {
+        return [{ text: `error: unknown option '${sub}'`, kind: 'err' }];
     }
     if (sub === 'validate') {
         return runValidate(rest, ctx);

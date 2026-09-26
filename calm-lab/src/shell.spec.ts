@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runCommand, completeCommand, CALM_SUBCOMMANDS } from './shell';
 import { createVfs } from './lab/vfs';
-import { ENGINE_VERSION } from './engine';
+import { CLI_VERSION } from './engine';
 
 const valid = JSON.stringify({
     $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
@@ -70,9 +70,25 @@ describe('other calm commands', () => {
         expect((await runCommand('calm frobnicate', ctx))[0].text).toMatch(/unknown command/);
     });
 
-    it('prints the engine version', async () => {
+    it('prints the CLI version like `calm --version`', async () => {
         const { ctx } = context({});
-        expect((await runCommand('calm --version', ctx))[0].text).toBe(`browser lab · @finos/calm-shared ${ENGINE_VERSION}`);
+        expect(await runCommand('calm --version', ctx)).toEqual([{ text: CLI_VERSION, kind: 'out' }]);
+        expect(CLI_VERSION).toMatch(/^\d+\.\d+\.\d+/);
+    });
+
+    it('rejects -v like the CLI', async () => {
+        const { ctx } = context({});
+        expect(await runCommand('calm -v', ctx)).toEqual([{ text: "error: unknown option '-v'", kind: 'err' }]);
+    });
+
+    it.each(['calm help', 'calm --help', 'calm -h'])('%s prints the lab help', async (input) => {
+        const { ctx } = context({});
+        expect((await runCommand(input, ctx))[0].text).toBe('calm in the browser lab — the commands it runs:');
+    });
+
+    it('calm validate --help prints the validate options', async () => {
+        const { ctx } = context({});
+        expect((await runCommand('calm validate --help', ctx))[0].text).toBe('calm validate in the browser lab — the options it supports:');
     });
 
     it('completes calm subcommands', () => {
