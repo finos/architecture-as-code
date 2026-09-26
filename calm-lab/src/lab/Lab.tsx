@@ -430,7 +430,7 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
                                         ? completed.size
                                         : loadProgress(candidate.id, candidate.steps.map((step) => step.id)).size;
                                     return (
-                                        <option key={candidate.id} value={candidate.id}>
+                                        <option key={candidate.id} value={candidate.id} title={candidate.summary}>
                                             {candidate.title} — {done}/{candidate.steps.length}
                                         </option>
                                     );
@@ -448,6 +448,17 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
                                 «
                             </button>
                         </div>
+                        <p className={styles.lessonSummary}>
+                            {lesson.summary}
+                            {lesson.tutorial && (
+                                <>
+                                    {' '}
+                                    <a href={lesson.tutorial} target="_blank" rel="noopener noreferrer">
+                                        Tutorial ↗
+                                    </a>
+                                </>
+                            )}
+                        </p>
                         <div className={styles.guideScroll}>
                             <ol className={styles.stepsList}>
                                 {steps.map((step, index) => (

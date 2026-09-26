@@ -221,6 +221,29 @@ describe('Lab', () => {
         expect(onSelectLesson).toHaveBeenCalledWith('other');
     });
 
+    it('describes each lesson in the picker and under it', async () => {
+        const other = {...QUICK_START, id: 'other', title: 'Other lesson', summary: 'Another summary.'};
+        await act(async () => { renderLab({lessons: [QUICK_START, other]}); });
+        expect(screen.getByRole('option', {name: /Quick start/})).toHaveAttribute('title', QUICK_START.summary);
+        expect(screen.getByRole('option', {name: /Other lesson/})).toHaveAttribute('title', 'Another summary.');
+        expect(screen.getByText(QUICK_START.summary)).toBeInTheDocument();
+        expect(screen.queryByText('Another summary.')).toBeNull();
+    });
+
+    it('links the tutorial a lesson adapts, in a new tab', async () => {
+        const lesson = {...QUICK_START, tutorial: 'https://calm.finos.org/tutorials/beginner/01-setup'};
+        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
+        const link = screen.getByRole('link', {name: /Tutorial/});
+        expect(link).toHaveAttribute('href', lesson.tutorial);
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    });
+
+    it('shows no tutorial link when the lesson has none', async () => {
+        await act(async () => { renderLab(); });
+        expect(screen.queryByRole('link', {name: /Tutorial/})).toBeNull();
+    });
+
     it('resets only the current lesson', async () => {
         localStorage.setItem('calm-lab-progress-v2:other', '["x"]');
         await act(async () => { renderLab(); });
