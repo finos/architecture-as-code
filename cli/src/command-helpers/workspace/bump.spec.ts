@@ -72,6 +72,31 @@ describe('bump', () => {
     });
 
     describe('detectChangedResources', () => {
+        it.each([undefined, 'future-document-kind'])('checks later valid entries and reports unsupported type %s before bumping', async (type) => {
+            const mapping = { $id: idAt('a', '1.0.0'), title: 'Changed' };
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed';
+            await write('a.json', mapping);
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await writeFile(path.join(bundlePath, 'workspace-manifest.json'), JSON.stringify({
+                invalid: { path: 'files/invalid.json', ...(type === undefined ? {} : { type }) },
+                a: { path: 'files/a.json', type: 'architecture' },
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            }));
+            const client = makeClient({ versions: { a: ['1.0.0'] }, narrativeVersions: ['1.0.0'] });
+
+            await expect(bumpWorkspace(bundlePath, client, { increment: 'MINOR' })).rejects.toThrow(
+                `invalid: Unsupported workspace document type '${String(type)}'`
+            );
+            expect(client.getMappedResourceByVersion).toHaveBeenCalledOnce();
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledOnce();
+            expect(await read('a.json')).toEqual(mapping);
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.0.0');
+        });
+
         it('treats new, already-bumped, and unchanged narrative documents as clean', async () => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
             await writeFile(path.join(filesPath, 'payments.md'), markdown);

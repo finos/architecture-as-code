@@ -17,6 +17,7 @@ const mocks = vi.hoisted(() => {
         getTemplatesForType: vi.fn(async () => ['empty']),
         pushWorkspaceToHub: vi.fn(async () => { }),
         detectChangedResources: vi.fn(async () => []),
+        loggerError: vi.fn(),
         bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
         runPostBumpValidation: vi.fn(async () => []),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
@@ -121,7 +122,7 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
     initLogger: () => ({
         info: vi.fn(),
         warn: vi.fn(),
-        error: vi.fn(),
+        error: mocks.loggerError,
         debug: vi.fn(),
     }),
 }));
@@ -717,6 +718,18 @@ describe('setupWorkspaceCommands', () => {
         it('exits on detectChangedResources error', async () => {
             mocks.detectChangedResources.mockRejectedValueOnce(new Error('boom'));
             await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('reports an unsupported manifest entry in the check result', async () => {
+            mocks.detectChangedResources.mockRejectedValueOnce(
+                new Error('Unsupported workspace entry/entries: invalid: Unsupported workspace document type \'undefined\'.')
+            );
+
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.loggerError).toHaveBeenCalledWith(
+                'Failed to check workspace: Unsupported workspace entry/entries: invalid: Unsupported workspace document type \'undefined\'.'
+            );
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 

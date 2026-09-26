@@ -579,6 +579,26 @@ describe('pushWorkspaceToHub', () => {
         expect((await loadManifest(bundlePath))['doc-b'].calmHubId).toBe(mappingId('doc-b'));
     });
 
+    it.each([undefined, 'future-document-kind'])('reports unsupported type %s and pushes later mapping and narrative entries', async (type) => {
+        const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+        await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
+        await writeFile(path.join(filesPath, 'payments.md'), markdown);
+        await writeFile(path.join(bundlePath, 'workspace-manifest.json'), JSON.stringify({
+            invalid: { path: 'files/invalid.json', ...(type === undefined ? {} : { type }) },
+            'doc-a': { path: 'files/doc-a.json', type: 'architecture' },
+            payments: { path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+        }));
+        const client = makeClient();
+
+        await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(
+            `invalid: Unsupported workspace document type '${String(type)}'`
+        );
+        expect(client.createMappedResourceVersion).toHaveBeenCalledOnce();
+        expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
+        expect((await loadManifest(bundlePath))['doc-a'].calmHubId).toBeDefined();
+        expect((await loadManifest(bundlePath)).payments).toMatchObject({ calmHubDocumentId: 42 });
+    });
+
     it('fails after processing later entries when fetching existing versions fails', async () => {
         await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docA));
         await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docB));

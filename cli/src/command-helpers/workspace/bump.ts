@@ -24,6 +24,7 @@ import { resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narr
 import {
     dispatchWorkspaceManifestEntry,
     resolveWorkspaceManifestEntry,
+    type ResolvedWorkspaceManifestEntry,
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
 
@@ -119,10 +120,17 @@ export async function detectChangedResources(
     const manifest = await loadManifest(bundlePath);
     const checks: DetectChangedEntryCheck[] = [];
     let preparationFailure: { reason: unknown } | undefined;
+    const unsupportedFailures: string[] = [];
 
     for (const [id, entry] of Object.entries(manifest)) {
+        let document: ResolvedWorkspaceManifestEntry;
         try {
-            const document = resolveWorkspaceManifestEntry(entry);
+            document = resolveWorkspaceManifestEntry(entry);
+        } catch (reason) {
+            unsupportedFailures.push(`${id}: ${reason instanceof Error ? reason.message : String(reason)}`);
+            continue;
+        }
+        try {
             const filePath = resolveFilePath(bundlePath, entry.path);
             if (!existsSync(filePath)) {
                 if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
@@ -159,6 +167,9 @@ export async function detectChangedResources(
         if (result.value) changed.push(result.value);
     }
     if (preparationFailure) throw preparationFailure.reason;
+    if (unsupportedFailures.length > 0) {
+        throw new Error(`Unsupported workspace entry/entries: ${unsupportedFailures.join('; ')}`);
+    }
 
     return changed;
 }
