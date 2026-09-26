@@ -139,6 +139,8 @@ export const INTERMEDIATE_09: Lesson = {
         message:
             'You mapped business processes onto your architecture as flows. Each flow is an ordered sequence ' +
             'of transitions over your relationships, and a transition direction can model a response that flows back.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-10', label: 'Next lesson: Link architecture decision records' },
+        ],
     },
 };

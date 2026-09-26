@@ -160,6 +160,9 @@ describe('intermediate-09 lesson', () => {
     });
 
     it('has no completion links yet', () => {
-        expect(INTERMEDIATE_09.completion.links).toEqual([]);
+        expect(INTERMEDIATE_09.completion.links).toContainEqual({
+            to: '?lesson=intermediate-10',
+            label: 'Next lesson: Link architecture decision records',
+        });
     });
 });
