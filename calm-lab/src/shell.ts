@@ -8,10 +8,10 @@
  * scrollback.
  */
 
-import { diffDocuments } from '@finos/calm-shared/browser';
+import { runDiff } from './cli/diff';
 import { runValidate } from './cli/validate';
 import { CLI_DOCS } from './cli/unsupported';
-import { parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
+import { commandSupport, hubCommands, ENGINE_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
@@ -66,26 +66,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
         return runValidate(rest, ctx);
     }
     if (sub === 'diff') {
-        const [a, b] = rest;
-        if (!a || !b) {
-            return [{ text: 'usage: calm diff <file-a> <file-b>', kind: 'err' }];
-        }
-        const contents = [a, b].map((name) => ctx.vfs.read(ctx.vfs.resolve(ctx.getCwd(), name)));
-        const missing = [a, b].find((_, index) => contents[index] === null);
-        if (missing) {
-            return [{ text: `calm diff: file not found: ${missing}`, kind: 'err' }];
-        }
-        try {
-            const docA = parseJson(contents[0]!, a) as Record<string, unknown>;
-            const docB = parseJson(contents[1]!, b) as Record<string, unknown>;
-            const diff = diffDocuments(docA, docB, { format: 'summary', labels: [a, b] });
-            if (!diff.hasChanges) {
-                return [{ text: `no changes between ${a} and ${b}`, kind: 'ok' }];
-            }
-            return diff.formatted.split('\n').map((text): Line => ({ text, kind: 'out' }));
-        } catch (error) {
-            return [{ text: `calm diff: ${error instanceof Error ? error.message : String(error)}`, kind: 'err' }];
-        }
+        return runDiff(rest, ctx);
     }
     // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,
     // so a bare `calm hub` lists them rather than claiming `hub` is unknown.

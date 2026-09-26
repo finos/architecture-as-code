@@ -31,27 +31,10 @@ describe('calm validate', () => {
 });
 
 describe('calm diff', () => {
-    it('summarises the difference between two files', async () => {
+    it('dispatches to the CLI-compatible diff', async () => {
         const { ctx } = context({ '/workspace/a.json': valid, '/workspace/b.json': withB });
-        const lines = await runCommand('calm diff a.json b.json', ctx);
-        expect(lines.map((l) => l.text).join('\n')).toContain('Nodes added:');
-    });
-
-    it('says so when there are no changes', async () => {
-        const { ctx } = context({ '/workspace/a.json': valid });
-        expect(await runCommand('calm diff a.json a.json', ctx)).toEqual([{ text: 'no changes between a.json and a.json', kind: 'ok' }]);
-    });
-
-    it('needs two files', async () => {
-        const { ctx } = context({});
-        expect(await runCommand('calm diff a.json', ctx)).toEqual([{ text: 'usage: calm diff <file-a> <file-b>', kind: 'err' }]);
-    });
-
-    it('reports a JSON parse error naming the file', async () => {
-        const { ctx } = context({ '/workspace/a.json': '{ nope', '/workspace/b.json': valid });
-        const [line] = await runCommand('calm diff a.json b.json', ctx);
-        expect(line.kind).toBe('err');
-        expect(line.text).toMatch(/^calm diff: a\.json is not valid JSON/);
+        const lines = await runCommand('calm diff -a a.json -b b.json -f summary', ctx);
+        expect(lines.map((l) => l.text)).toContain('Nodes added:');
     });
 });
 
