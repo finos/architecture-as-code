@@ -184,7 +184,7 @@ export const BEGINNER_03: Lesson = {
             title: 'Validate the full architecture',
             body:
                 'Run `calm validate -a architectures/my-first-architecture.json -f pretty`. The summary should ' +
-                'report 0 errors. Check the Diagram tab to see all 4 nodes and 3 relationships.',
+                'report 0 errors. Open the Diagram tab to see your nodes and the relationships that connect them.',
             hint: {
                 kind: 'commands',
                 commands: ['calm validate -a architectures/my-first-architecture.json -f pretty'],
