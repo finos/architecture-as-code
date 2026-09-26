@@ -34,6 +34,9 @@ describe('parseArgs matches commander', () => {
         [['-a', '-f', 'pretty'], "error: too many arguments for 'validate'. Expected 0 arguments but got 1."],
         [['-a', 'x.json', 'extra', '--bogus'], "error: unknown option '--bogus'"],
         [['-a', 'x.json', '--', '-f'], "error: too many arguments for 'validate'. Expected 0 arguments but got 1."],
+        [['--strict=1', '-a', 'a.json'], "error: unknown option '--strict=1'\n(Did you mean --strict?)"],
+        [['-a', 'a.json', '--verbose=x'], "error: unknown option '--verbose=x'\n(Did you mean --verbose?)"],
+        [['--versio'], "error: unknown option '--versio'\n(Did you mean --version?)"],
     ])('rejects %j like commander', (args, message) => {
         expect(parseArgs('validate', args)).toEqual({ kind: 'error', message });
     });

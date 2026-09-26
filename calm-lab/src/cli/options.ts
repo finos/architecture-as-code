@@ -37,7 +37,7 @@ export function optionSpecs(command: string): OptionSpec[] {
 
 function unknownOption(token: string, specs: OptionSpec[]): string {
     const candidates = token.startsWith('--')
-        ? [...specs.filter((spec) => !spec.hidden).map((spec) => spec.long), '--help']
+        ? [...specs.filter((spec) => !spec.hidden).map((spec) => spec.long), '--help', '--version']
         : [];
     return `error: unknown option '${token}'${suggestSimilar(token, candidates)}`;
 }
@@ -80,6 +80,10 @@ export function parseArgs(command: string, args: string[]): ParsedArgs {
             const name = equals === -1 ? token : token.slice(0, equals);
             attached = equals === -1 ? undefined : token.slice(equals + 1);
             spec = specs.find((candidate) => candidate.long === name);
+            if (spec && !spec.takesValue && attached !== undefined) {
+                // Commander doesn't accept `=value` on a boolean option; the whole token is unknown.
+                spec = undefined;
+            }
         } else {
             spec = specs.find((candidate) => candidate.short === token.slice(0, 2));
             if (spec && token.length > 2) {
