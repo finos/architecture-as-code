@@ -130,8 +130,11 @@ describe('intermediate-09 lesson', () => {
         expect(stockFlowStep.check(state({ doc: doc([orderFlow, stockFlow]) }))).toBe(true);
         // Right shape, invalid document: must not tick.
         expect(stockFlowStep.check(state({ doc: doc([orderFlow, stockFlow]), validation: { ok: false } }))).toBe(false);
-        // A second flow, but with a dangling transition: must not tick.
-        const stockFlowDangling = { ...stockFlow, transitions: [transition('does-not-exist', 1)] };
+        // A second flow with enough transitions, but one names a relationship that does not exist: must not tick.
+        const stockFlowDangling = {
+            ...stockFlow,
+            transitions: [transition('gateway-to-inventory', 1), transition('does-not-exist', 2)],
+        };
         expect(stockFlowStep.check(state({ doc: doc([orderFlow, stockFlowDangling]) }))).toBe(false);
     });
 
@@ -140,7 +143,7 @@ describe('intermediate-09 lesson', () => {
         expect(validate.check(state({ doc: doc([orderFlow, stockFlow]) }))).toBe(false);
         expect(validate.check(state({ doc: doc([orderFlow, stockFlow]), commands: [editorValidate] }))).toBe(true);
         expect(validate.check(state({ doc: doc([orderFlow, stockFlow]), commands: [validateOutcome(INTERMEDIATE_09.editorFile, false)] }))).toBe(false);
-        // A stale validate from before the second flow was saved: must not tick.
+        // A fresh validate, but the document has only the order flow: must not tick.
         expect(validate.check(state({ doc: doc([orderFlow]), commands: [editorValidate] }))).toBe(false);
     });
 
