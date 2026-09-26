@@ -339,4 +339,11 @@ describe('Lab with more than one editable file', () => {
         expect(screen.queryByRole('combobox', {name: 'File'})).toBeNull();
         expect(screen.getByText('✓ schema-valid')).toBeInTheDocument();
     });
+
+    it('colours the open architecture file as JSON, but not a markdown ADR', async () => {
+        await act(async () => { renderLab({lesson: multi, lessons: [multi]}); });
+        expect(document.body.querySelector('[class*="tokKey"]')).not.toBeNull();
+        openFile(ADR);
+        expect(document.body.querySelector('[class*="tok"]')).toBeNull();
+    });
 });
