@@ -68,8 +68,6 @@ export function extractAllReferences(json: object): string[] {
     return Array.from(new Set(allRefs));
 }
 
-export type WorkspaceDocumentType = CalmDocumentType | NarrativeDocumentType | 'unknown';
-
 export type MappingWorkspaceManifestEntry = {
     path: string;
     type: CalmDocumentType | 'unknown';
