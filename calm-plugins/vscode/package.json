@@ -37,6 +37,11 @@
           "light": "media/calm-canvas.svg",
           "dark": "media/calm-canvas.svg"
         }
+      },
+      {
+        "command": "calm.importSvg",
+        "title": "Import SVG as CALM Architecture",
+        "category": "CALM"
       }
     ],
     "keybindings": [
@@ -66,6 +71,11 @@
         {
           "command": "calm.openCanvas",
           "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/",
+          "group": "navigation"
+        },
+        {
+          "command": "calm.importSvg",
+          "when": "resourceExtname == .svg",
           "group": "navigation"
         }
       ]
@@ -109,6 +119,8 @@
   },
   "dependencies": {
     "@finos/calm-models": "file:../../calm-models",
+    "svg-parser": "^2.0.4",
+    "xml2js": "^0.5.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reactflow": "^11.11.4",
@@ -130,6 +142,7 @@
     "@types/vscode": "^1.88.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
+    "@types/xml2js": "^0.4.14",
     "typescript": "^5.8.0",
     "vitest": "^4.1.0",
     "@vscode/vsce": "^3.0.0"
