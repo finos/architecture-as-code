@@ -10,7 +10,7 @@ export function selectLesson(search: string, remembered: string | undefined, les
     // LESSONS is never empty (see the invariants spec), so this always resolves.
     const fallback = byId(DEFAULT_LESSON_ID) ?? lessons[0]!;
     const requested = new URLSearchParams(search).get('lesson');
-    if (requested !== null) {
+    if (requested) {
         const lesson = byId(requested);
         return lesson ? { lesson } : { lesson: fallback, unknownId: requested };
     }

@@ -16,6 +16,11 @@ describe('selectLesson', () => {
         expect(selectLesson('?lesson=nope', 'other', lessons)).toEqual({ lesson: QUICK_START, unknownId: 'nope' });
     });
 
+    it('treats an empty ?lesson= as no parameter', () => {
+        expect(selectLesson('?lesson=', 'other', lessons)).toEqual({ lesson: other });
+        expect(selectLesson('?lesson=', undefined, lessons)).toEqual({ lesson: QUICK_START });
+    });
+
     it('ignores a remembered lesson that no longer exists', () => {
         expect(selectLesson('', 'gone', lessons)).toEqual({ lesson: QUICK_START });
     });
