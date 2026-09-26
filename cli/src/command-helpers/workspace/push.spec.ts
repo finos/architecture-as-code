@@ -205,7 +205,16 @@ describe('pushWorkspaceToHub', () => {
             getNarrativeDocumentIds: vi.fn().mockResolvedValue([77]),
             getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
         });
-        await expect(pushWorkspaceToHub(bundlePath, retryClient)).rejects.toThrow(/Explicit reconciliation is required/);
+        const retry = pushWorkspaceToHub(bundlePath, retryClient);
+        await expect(retry).rejects.toThrow('Explicit reconciliation is required.');
+        await expect(retry).rejects.toThrow('If the document exists in CalmHub, confirm its document ID');
+        await expect(retry).rejects.toThrow(
+            'calm workspace add <file> --id payments --type sad --namespace com.example --calm-hub-document-id <id> --ver 1.0.0'
+        );
+        await expect(retry).rejects.toThrow('(add `--calm-hub-url <url>` if it is not configured).');
+        await expect(retry).rejects.toThrow(
+            'If you confirm that no document was created, run `calm workspace rm payments` and add the file again.'
+        );
 
         expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
         expect(retryClient.getNarrativeDocumentIds).not.toHaveBeenCalled();

@@ -904,6 +904,11 @@ Push every document in the workspace manifest to a CalmHub instance. JSON mappin
 
 Narrative Markdown documents use `--type knowledge` or `--type sad`. They require YAML frontmatter with a `title` and `--namespace`. The first push stores the Hub numeric document id, location, and version (`1.0.0`) in `workspace-manifest.json`. Later changes require `workspace bump`; the command updates the manifest version without rewriting the Markdown.
 
+If a create request has an uncertain outcome, the entry stays pending and another push requires explicit reconciliation. The document might exist in CalmHub, or the request might not have reached the server. Check CalmHub before choosing a recovery path:
+
+- If the document exists, confirm its numeric document ID and run `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace> --calm-hub-document-id <document-id> --ver <version>`. Use the pending entry's workspace ID, type, namespace, and version. The local Markdown must exactly match the Hub version. Add `--calm-hub-url <url>` if it is not configured.
+- If you confirm that no document was created, run `calm workspace rm <workspace-id>`, then `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace>`. Removal clears the pending entry and keeps the file. Re-adding starts at version `1.0.0`. Correct the Hub URL or connection problem before pushing again.
+
 ```
 calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
 ```

@@ -333,10 +333,11 @@ function isDefiniteCreateRejection(error: unknown): boolean {
 
 function createReconciliationMessage(id: string, entry: NarrativeWorkspaceManifestEntry): string {
     return `Narrative document '${id}' has a pending create with no authoritative CalmHub identity. ` +
-        'Explicit reconciliation is required. Confirm the CalmHub document ID, then run ' +
+        'Explicit reconciliation is required. If the document exists in CalmHub, confirm its document ID, then run ' +
         `\`calm workspace add <file> --id ${id} --type ${entry.type} --namespace ${entry.namespace ?? '<namespace>'} ` +
         `--calm-hub-document-id <id> --ver ${entry.version}\` ` +
-        '(add `--calm-hub-url <url>` if it is not configured).';
+        '(add `--calm-hub-url <url>` if it is not configured). ' +
+        `If you confirm that no document was created, run \`calm workspace rm ${id}\` and add the file again.`;
 }
 
 function publishNarrativeEntry(
