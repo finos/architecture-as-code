@@ -129,7 +129,6 @@ public class GitHubResourceMappingStore implements ResourceMappingStore {
             case FLOW -> RegistryResourceType.FLOW;
             case STANDARD -> RegistryResourceType.STANDARD;
             case INTERFACE -> RegistryResourceType.INTERFACE;
-            case BUILDING_BLOCK -> RegistryResourceType.BUILDING_BLOCK;
         };
     }
 

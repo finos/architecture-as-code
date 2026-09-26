@@ -29,6 +29,5 @@ public enum RegistryResourceType {
     FLOW,
     INTERFACE,
     TIMELINE,
-    DECORATOR,
-    BUILDING_BLOCK
+    DECORATOR
 }
