@@ -1606,6 +1606,75 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('init-config command', () => {
+        it('saves all supported authentication options', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--calm-hub-url', 'https://calmhub.example.com',
+                '--allowed-remote-hosts', 'schemas.example.com, calm.finos.org',
+                '--auth-plugin-path', '~/plugins/auth-plugin.js',
+                '--direct-url-auth-module', '~/plugins/direct-url-auth.js',
+                '--direct-url-auth-config-path', '~/plugins/direct-url-auth.config.json',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com, secure.example.com',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://calmhub.example.com',
+                allowedRemoteHosts: ['schemas.example.com', 'calm.finos.org'],
+                authPluginPath: '~/plugins/auth-plugin.js',
+                directUrlAuthModule: '~/plugins/direct-url-auth.js',
+                directUrlAuthConfigPath: '~/plugins/direct-url-auth.config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('preserves existing values and deduplicates authenticated hosts', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', ' protected.example.com, secure.example.com, ',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('replaces scalar values when they are supplied', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                authPluginPath: '/old/auth-plugin.js',
+                directUrlAuthModule: '/old/direct-url-auth.js',
+                directUrlAuthConfigPath: '/old/config.json',
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--auth-plugin-path', '/new/auth-plugin.js',
+                '--direct-url-auth-module', '/new/direct-url-auth.js',
+                '--direct-url-auth-config-path', '/new/config.json',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                authPluginPath: '/new/auth-plugin.js',
+                directUrlAuthModule: '/new/direct-url-auth.js',
+                directUrlAuthConfigPath: '/new/config.json',
+            });
+        });
+    });
+
 });
 
 describe('parseDocumentLoaderConfig', () => {

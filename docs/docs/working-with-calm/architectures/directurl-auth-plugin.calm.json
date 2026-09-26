@@ -1,0 +1,186 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "nodes": [
+        {
+            "unique-id": "calm-shared",
+            "node-type": "service",
+            "name": "@finos/calm-shared",
+            "description": "Shared CALM runtime package used by the locally installed CALM CLI."
+        },
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "@finos/calm-cli",
+            "description": "Locally installed CALM CLI runtime used by the end user organization."
+        },
+        {
+            "unique-id": "locally-installed-calm-cli",
+            "node-type": "system",
+            "name": "Locally installed CALM CLI",
+            "description": "The locally installed CALM CLI system composed of the CALM shared runtime package and CLI package."
+        },
+        {
+            "unique-id": "direct-url-artifact-repository",
+            "node-type": "datastore",
+            "name": "CALM Artifacts",
+            "description": "A repository outside CALM Hub that stores CALM artifacts and requires authentication."
+        },
+        {
+            "unique-id": "non-calm-hub-repo-with-authentication",
+            "node-type": "system",
+            "name": "Non-CALM Hub Repo with Authn",
+            "description": "The authenticated Non-CALM Hub repository system containing the CALM artifact repository."
+        },
+        {
+            "unique-id": "end-user-idp-client-source",
+            "node-type": "datastore",
+            "name": "End User IdP Client Source",
+            "description": "The end user organization's local Git repository source at src/end-user-idp-client.ts, implementing IdPClient."
+        },
+        {
+            "unique-id": "end-user-organization-git-repo",
+            "node-type": "system",
+            "name": "End User Organization GIT Repo",
+            "description": "The end user organization's Git repository containing the IdP client source."
+        },
+        {
+            "unique-id": "end-user-idp-client-plugin",
+            "node-type": "service",
+            "name": "Built directUrlAuth Plugin",
+            "description": "The built end-user-idp-client directUrlAuth plugin produced from the organization's local source repository."
+        },
+        {
+            "unique-id": "end-user-identity-provider",
+            "node-type": "service",
+            "name": "Identity Provider",
+            "description": "The identity provider service that issues access tokens to the directUrlAuth plugin."
+        },
+        {
+            "unique-id": "end-user-orgnization-idp",
+            "node-type": "system",
+            "name": "End User Orgnization IDP",
+            "description": "The end user organization identity provider system containing the Identity Provider service."
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "locally-installed-calm-cli-composed-of",
+            "description": "Composed of the shared runtime package and CLI package",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "locally-installed-calm-cli",
+                    "nodes": [
+                        "calm-shared",
+                        "calm-cli"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "end-user-orgnization-idp-composed-of",
+            "description": "Composed of the Identity Provider service",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "end-user-orgnization-idp",
+                    "nodes": [
+                        "end-user-identity-provider"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "non-calm-hub-repo-with-authentication-composed-of",
+            "description": "Composed of the Non-CALM Hub artifact repository",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "non-calm-hub-repo-with-authentication",
+                    "nodes": [
+                        "direct-url-artifact-repository"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "end-user-organization-git-repo-composed-of",
+            "description": "Composed of the End User IdP Client Source",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "end-user-organization-git-repo",
+                    "nodes": [
+                        "end-user-idp-client-source"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "calm-shared-supports-cli",
+            "description": "Provides shared runtime functionality to",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-shared"
+                    },
+                    "destination": {
+                        "node": "calm-cli"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "build-direct-url-auth-plugin",
+            "description": "Installs dependencies and builds",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "end-user-idp-client-source"
+                    },
+                    "destination": {
+                        "node": "end-user-idp-client-plugin"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "cli-obtains-authorization-header",
+            "description": "Obtains authorization header from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "end-user-idp-client-plugin"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "plugin-retrieves-access-token",
+            "description": "Retrieves an access token from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "end-user-idp-client-plugin"
+                    },
+                    "destination": {
+                        "node": "end-user-identity-provider"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "cli-retrieves-calm-artifact",
+            "description": "Uses the authorization header obtained from the plugin to retrieve a CALM artifact from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "direct-url-artifact-repository"
+                    }
+                }
+            }
+        }
+    ]
+}

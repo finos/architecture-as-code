@@ -38,7 +38,8 @@ const config = {
     markdown: {
         hooks: {
             onBrokenMarkdownLinks: 'warn'
-        }
+        },
+        mermaid: true,
     },
 
     headTags: [
@@ -78,6 +79,8 @@ const config = {
     ],
 
     plugins: ['@finos/calm-docusaurus-plugin'],
+
+    themes: ['@docusaurus/theme-mermaid'],
 
     themeConfig:
     /** @type {import('@docusaurus/preset-classic').ThemeConfig} */
