@@ -91,8 +91,10 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
 
 - Use the helpers in `src/lessons/checks.ts`. Add a new helper there, with tests, rather than
   inline JSON walking in a lesson. Helpers must never throw on a half-edited document.
-- A check reads state (`doc`, `validation`, `commands`), never event order. For "run X after the last
-  change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A check reads state (`doc`, `validation`, `commands`, `files`), never event order. For "run X after
+  the last change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A check reads a file other than the editor file only through `fileText`, `fileJson` or
+  `markdownSection`. They see the saved text and never throw.
 - A file hint is the complete target file, never a fragment.
 - Every `calm` command in the step copy, hints or completion message must be one the lab
   runs (`validate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each

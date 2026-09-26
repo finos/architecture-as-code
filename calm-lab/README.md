@@ -37,17 +37,19 @@ the lab has no lesson picker.
    | Field | What it is |
    |---|---|
    | `id` | Lowercase, hyphenated. It is the `?lesson=` value and the storage key. Do not change it after release. |
-   | `title` | The lesson's name, used in notices. |
-   | `tutorial` | The tutorial page this lesson follows: `{ title, url }`, with the page's own title. The top of the lesson guide links to it in a new tab. |
-   | `editorFile` | The file the editor opens, the diagram shows and the checks read. |
+   | `title` | The lesson's name in the picker. |
+   | `summary` | One short sentence. It is the picker option's tooltip and the line under the picker. |
+   | `tutorial` | The docs page this lesson adapts, if any. It shows as a "Tutorial ↗" link after the summary. |
+   | `editorFile` | The lesson's main architecture. The editor opens it first, and `state.doc` and the status badge describe it. |
+   | `editableFiles` | The files the learner can open in the editor, for example an ADR next to the architecture. It must include `editorFile`, and each file must be in `seedFiles`. Default: `[editorFile]`. With more than one file, a "File" selector shows in the editor tab bar. The diagram shows the open file when it is an architecture (it has a `nodes` array), else `editorFile`. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
    | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`, imported from `src/lessons/chain.ts` (not `index.ts`, to avoid a circular import). |
    | `steps` | Ordered steps, below. |
    | `completion` | Heading, message and links shown when every step is done. |
 
 2. Write each step: `id`, `title`, `body` (inline code in backticks) and a `hint`:
-   - `{ kind: 'file', content }` — the **complete** editor file after the step, so paste-and-save
-     always works;
+   - `{ kind: 'file', content, path? }` — the **complete** file after the step, so paste-and-save
+     always works. `path` is the file to write; it must be in `editableFiles`. Default: `editorFile`;
    - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`.
 
 3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
@@ -56,13 +58,18 @@ the lab has no lesson picker.
    names in the hint, so any valid answer passes. File paths given to `ranOk` and `ranFailed` are
    absolute: use `state.editorFile` or a `/workspace/...` path.
 
+   To read another saved file, use `fileText(state, path)` (the text, or `null`) or
+   `fileJson(state, path)` (a JSON object, or `null`). `markdownSection(text, heading)` gives the
+   trimmed text under `## heading` (case-insensitive), or `''`.
+
 4. Register the lesson in `src/lessons/index.ts`, add it to the table above, and add
    `src/lessons/<id>/lesson.spec.ts`. For each step, it must have:
    - a passing answer that uses different names from the hint, which the check accepts;
    - at least one wrong answer, which the check rejects.
 
 `src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine:
-files live under `/workspace`, no step is complete before its hint, each hint completes its step
+files live under `/workspace`, editable files are seeded and include the editor file, file hints
+write only to editable files, no step is complete before its hint, each hint completes its step
 and prints no error, the end state validates, every `calm` command in the copy runs in the lab's
 shell, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
 state.

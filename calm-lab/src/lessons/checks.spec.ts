@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith, nodeById, nodeInterfaces, nodes,
-    nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
+    controlsIn, fileJson, fileText, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith, markdownSection,
+    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind,
+    validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -337,7 +338,7 @@ const outcome = (over: Partial<CommandOutcome>): CommandOutcome => ({
     snapshot: { '/workspace/a.json': 'v1' },
     ...over,
 });
-const state = (commands: CommandOutcome[]): LessonState => ({ doc: null, validation: { ok: true }, commands, editorFile: '/workspace/a.json' });
+const state = (commands: CommandOutcome[]): LessonState => ({ doc: null, validation: { ok: true }, commands, editorFile: '/workspace/a.json', files: {} });
 
 describe('command outcomes', () => {
     it('drop an outcome once a file it read has changed', () => {
@@ -355,5 +356,86 @@ describe('command outcomes', () => {
         expect(ranOk(s, 'diff')).toBe(false);
         expect(ranFailed(s, 'diff', { documentB: '/workspace/b.json' })).toBe(true);
         expect(validatedEditorFile(s)).toBe(true);
+    });
+});
+
+describe('workspace file helpers', () => {
+    const withFiles = (files: Record<string, string>): LessonState =>
+        ({ doc: null, validation: { ok: true }, commands: [], editorFile: '/workspace/a.json', files });
+
+    it('fileText returns the saved text, or null for a missing file', () => {
+        const state = withFiles({ '/workspace/docs/adr.md': '# ADR' });
+        expect(fileText(state, '/workspace/docs/adr.md')).toBe('# ADR');
+        expect(fileText(state, '/workspace/missing.md')).toBeNull();
+        expect(fileText(withFiles({ '/workspace/empty.md': '' }), '/workspace/empty.md')).toBe('');
+    });
+
+    it('fileJson parses a JSON object, and gives null for a missing, non-JSON or non-object file', () => {
+        const state = withFiles({
+            '/workspace/a.json': '{"nodes": []}',
+            '/workspace/adr.md': '# not json',
+            '/workspace/half.json': '{"nodes": [',
+            '/workspace/list.json': '[1, 2]',
+            '/workspace/num.json': '3',
+            '/workspace/null.json': 'null',
+        });
+        expect(fileJson(state, '/workspace/a.json')).toEqual({ nodes: [] });
+        for (const path of ['/workspace/missing.json', '/workspace/adr.md', '/workspace/half.json', '/workspace/list.json', '/workspace/num.json', '/workspace/null.json']) {
+            expect(fileJson(state, path), path).toBeNull();
+        }
+    });
+
+    describe('markdownSection', () => {
+        const adr = [
+            '# ADR 1: Use a queue',
+            '',
+            '## Status',
+            'Accepted',
+            '',
+            '## Context',
+            '',
+            'Orders arrive in bursts.',
+            '### Detail',
+            'Peaks of 10k/s.',
+            '',
+            '## Decision',
+            '  Use a message queue.  ',
+            '',
+        ].join('\n');
+
+        it('returns the trimmed body under a level-2 heading, keeping deeper headings', () => {
+            expect(markdownSection(adr, 'Status')).toBe('Accepted');
+            expect(markdownSection(adr, 'Context')).toBe('Orders arrive in bursts.\n### Detail\nPeaks of 10k/s.');
+        });
+
+        it('returns the last section up to the end of the file', () => {
+            expect(markdownSection(adr, 'Decision')).toBe('Use a message queue.');
+        });
+
+        it('matches the heading case-insensitively and ignores extra spaces', () => {
+            expect(markdownSection('##   status  \nAccepted', 'Status')).toBe('Accepted');
+        });
+
+        it('ends a section at the next level-1 heading', () => {
+            expect(markdownSection('## A\none\n# B\ntwo', 'A')).toBe('one');
+        });
+
+        it('handles Windows line endings', () => {
+            expect(markdownSection('## Status\r\nAccepted\r\n## Next\r\nx', 'Status')).toBe('Accepted');
+        });
+
+        it('returns an empty string when the heading is absent or only at another level', () => {
+            expect(markdownSection(adr, 'Consequences')).toBe('');
+            expect(markdownSection('### Status\nAccepted', 'Status')).toBe('');
+            expect(markdownSection('# Status\nAccepted', 'Status')).toBe('');
+            expect(markdownSection('## Statuses\nAccepted', 'Status')).toBe('');
+        });
+
+        it('never throws', () => {
+            expect(markdownSection(null, 'Status')).toBe('');
+            expect(markdownSection('', 'Status')).toBe('');
+            expect(markdownSection('## Status', 'Status')).toBe('');
+            expect(markdownSection('## (a+\nx', '(a+')).toBe('x');
+        });
     });
 });

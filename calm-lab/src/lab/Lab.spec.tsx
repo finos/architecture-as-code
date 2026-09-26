@@ -2,11 +2,13 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import Lab, {type LabProps} from './Lab';
 import {QUICK_START} from '../test-support/quick-start-lesson';
-import {nodes, validatedEditorFile} from '../lessons/checks';
+import {fileText, markdownSection, nodes, validatedEditorFile} from '../lessons/checks';
 import {HOME_DIR, type Lesson} from '../lessons/types';
+import {workspaceKey} from './storage';
 
 // ReactFlow needs a measured canvas; the diagram is not what these tests are about.
-vi.mock('./HubDiagram', () => ({default: () => null}));
+// It echoes its input so a test can see which file it was given.
+vi.mock('./HubDiagram', () => ({default: ({jsonText}: {jsonText: string}) => <pre data-testid="diagram">{jsonText}</pre>}));
 
 // shell.ts resolves `./engine` to the same module, so this one mock covers the
 // terminal path and Lab's own recompute.
@@ -251,5 +253,90 @@ describe('Lab', () => {
         await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
         expect(localStorage.getItem('calm-lab-progress-v2:other')).toBe('["x"]');
         expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).toBeNull();
+    });
+});
+
+describe('Lab with more than one editable file', () => {
+    const ADR = `${HOME_DIR}/docs/adr.md`;
+    const SECOND = `${HOME_DIR}/architecture/second.json`;
+    const SECOND_TEXT = '{"nodes": [{"unique-id": "second"}], "relationships": []}';
+    const multi: Lesson = {
+        ...QUICK_START,
+        id: 'multi',
+        editableFiles: [QUICK_START.editorFile, ADR, SECOND, `${HOME_DIR}/not-seeded.md`],
+        seedFiles: {...QUICK_START.seedFiles, [ADR]: '# ADR\n\n## Decision\n', [SECOND]: SECOND_TEXT},
+        steps: [{
+            id: 'decided',
+            title: 'Write the decision',
+            body: '',
+            hint: {kind: 'file', path: ADR, content: '# ADR\n\n## Decision\nUse a queue.\n'},
+            check: (state) => markdownSection(fileText(state, ADR), 'Decision') !== '',
+        }],
+    };
+    const fileSelect = () => screen.getByRole('combobox', {name: 'File'});
+    const openFile = (path: string) => fireEvent.change(fileSelect(), {target: {value: path}});
+
+    it('lists the editable files that exist, and opens the chosen one', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        expect(screen.getAllByRole('option', {name: /^(architecture|docs)\//}).map((option) => option.textContent)).toEqual([
+            QUICK_START.editorFile.slice(HOME_DIR.length + 1), 'docs/adr.md', 'architecture/second.json',
+        ]);
+        openFile(ADR);
+        expect(screen.getByLabelText('Edit docs/adr.md')).toHaveValue('# ADR\n\n## Decision\n');
+        expect(screen.getByRole('tab', {name: /docs\/adr\.md/})).toBeInTheDocument();
+    });
+
+    it('locks the file switcher while the open file has unsaved changes', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        expect(fileSelect()).not.toBeDisabled();
+        fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: 'edited'}});
+        expect(fileSelect()).toBeDisabled();
+        expect(fileSelect().closest('[title]')).toHaveAttribute('title', expect.stringMatching(/save/i));
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Save (⌘S)'})); });
+        expect(fileSelect()).not.toBeDisabled();
+    });
+
+    it('saves only the open file, still validates the editor file, and gives checks every saved file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        const editorText = (screen.getByLabelText(/^Edit /) as HTMLTextAreaElement).value;
+        openFile(ADR);
+        engine.validateArchitecture.mockClear();
+        await saveEditor('# ADR\n\n## Decision\nUse a queue.\n');
+        await waitFor(() => expect(screen.getByRole('button', {name: /Write the decision \(completed\)/})).toBeInTheDocument());
+        expect(engine.validateArchitecture).toHaveBeenLastCalledWith(editorText);
+        const saved = JSON.parse(localStorage.getItem(workspaceKey('multi')) ?? '{}');
+        expect(saved.files[ADR]).toBe('# ADR\n\n## Decision\nUse a queue.\n');
+        expect(saved.files[QUICK_START.editorFile]).toBe(editorText);
+    });
+
+    it('names the file the status badge checks, apart from the open file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        openFile(ADR);
+        expect(screen.getByText(new RegExp(`✓ ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)} schema-valid`))).toBeInTheDocument();
+        expect(screen.getByText(/docs\/adr\.md · 4 lines/)).toBeInTheDocument();
+    });
+
+    it('draws the open file when it is an architecture, else the editor file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        const editorText = (screen.getByLabelText(/^Edit /) as HTMLTextAreaElement).value;
+        openFile(ADR);
+        fireEvent.click(screen.getByRole('tab', {name: /Diagram/}));
+        expect(screen.getByTestId('diagram').textContent).toBe(editorText);
+        openFile(SECOND);
+        expect(screen.getByTestId('diagram').textContent).toBe(SECOND_TEXT);
+    });
+
+    it('returns to the editor file on reset', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        openFile(ADR);
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
+        expect(fileSelect()).toHaveValue(QUICK_START.editorFile);
+        expect(screen.getByLabelText(`Edit ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)}`)).toBeInTheDocument();
+    });
+
+    it('shows no file switcher when the lesson has one editable file', async () => {
+        await act(async () => { renderLab(); });
+        expect(screen.queryByRole('combobox', {name: 'File'})).toBeNull();
+        expect(screen.getByText('✓ schema-valid')).toBeInTheDocument();
     });
 });

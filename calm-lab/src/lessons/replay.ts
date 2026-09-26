@@ -43,11 +43,12 @@ export function startReplay(lesson: Lesson): Replay {
                 validation,
                 commands: freshOutcomes(outcomes, (path) => vfs.read(path)),
                 editorFile: lesson.editorFile,
+                files: vfs.toJSON().files,
             };
         },
         async runHint(step) {
             if (step.hint.kind === 'file') {
-                vfs.write(lesson.editorFile, step.hint.content);
+                vfs.write(step.hint.path ?? lesson.editorFile, step.hint.content);
                 return;
             }
             cwd = HOME_DIR;
