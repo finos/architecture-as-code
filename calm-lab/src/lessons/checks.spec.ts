@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
-    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
+    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
+    controlsIn, freshOutcomes, hasMetadata, interactsWith, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed,
+    ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -186,6 +187,57 @@ describe('hasMetadata', () => {
     it('never throws on a partial or wrong-shaped item', () => {
         for (const bad of [null, undefined, {}, { metadata: null }, { metadata: 'x' }, { metadata: 3 }, { metadata: [null, 3] }]) {
             expect(hasMetadata(bad as never)).toBe(false);
+        }
+    });
+});
+
+describe('controlsIn', () => {
+    const configured = {
+        controls: {
+            security: {
+                description: 'Data encryption requirements',
+                requirements: [
+                    { 'requirement-url': 'https://policy.example.com/encryption', config: { algorithm: 'AES-256' } },
+                    { 'requirement-url': 'https://policy.example.com/tls', 'config-url': 'https://configs.example.com/tls.yaml' },
+                ],
+            },
+        },
+    };
+
+    it('matches a domain whose requirements each have a requirement-url and a config or config-url', () => {
+        expect(controlsIn(configured).map(([domain]) => domain)).toEqual(['security']);
+    });
+
+    it('does not match a domain with an empty requirements array', () => {
+        const empty = { controls: { security: { description: 'x', requirements: [] } } };
+        expect(controlsIn(empty)).toEqual([]);
+    });
+
+    it('does not match a requirement missing requirement-url, or missing both config and config-url', () => {
+        const missingUrl = { controls: { security: { description: 'x', requirements: [{ config: { a: 1 } }] } } };
+        const missingConfig = { controls: { security: { description: 'x', requirements: [{ 'requirement-url': 'https://x' }] } } };
+        expect(controlsIn(missingUrl)).toEqual([]);
+        expect(controlsIn(missingConfig)).toEqual([]);
+    });
+
+    it('only counts domains that pass among a mix', () => {
+        const mixed = {
+            controls: {
+                security: configured.controls.security,
+                compliance: { description: 'x', requirements: [] },
+            },
+        };
+        expect(controlsIn(mixed).map(([domain]) => domain)).toEqual(['security']);
+    });
+
+    it('never throws on a partial or wrong-shaped item', () => {
+        const bad = [
+            null, undefined, {}, { controls: 'x' }, { controls: [] }, { controls: {} },
+            { controls: { security: 'x' } }, { controls: { security: { requirements: 'x' } } },
+            { controls: { security: { requirements: [null, 3] } } },
+        ];
+        for (const item of bad) {
+            expect(controlsIn(item as never)).toEqual([]);
         }
     });
 });
