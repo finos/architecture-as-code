@@ -76,4 +76,15 @@ describe('quick-start lesson', () => {
         expect(connect.check(state({ doc: withRelationship, validation: { ok: false } }))).toBe(false);
         expect(connect.check(state({ doc: withRelationship, validation: { ok: true } }))).toBe(true);
     });
+
+    it('links to the tutorials, the Learn hub and the next lesson', () => {
+        expect(QUICK_START.completion.links).toEqual([
+            {
+                to: 'https://calm.finos.org/tutorials/beginner/01-setup',
+                label: 'Continue with the full beginner tutorials →',
+            },
+            { to: 'https://calm.finos.org/learn', label: 'Back to the Learn hub' },
+            { to: '?lesson=beginner-02', label: 'Next lesson: Create your first node' },
+        ]);
+    });
 });

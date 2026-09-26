@@ -144,6 +144,7 @@ export const QUICK_START: Lesson = {
                 label: 'Continue with the full beginner tutorials →',
             },
             { to: 'https://calm.finos.org/learn', label: 'Back to the Learn hub' },
+            { to: '?lesson=beginner-02', label: 'Next lesson: Create your first node' },
         ],
     },
 };
