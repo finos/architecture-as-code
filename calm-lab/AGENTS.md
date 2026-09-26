@@ -58,6 +58,8 @@ shim here.
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
+| `src/lessons/` | Lesson model, check helpers, registry and one folder per lesson |
+| `src/lab/storage.ts` | Progress and UI prefs in localStorage, one key per lesson |
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
@@ -79,6 +81,24 @@ input disabled.
 
 A step is complete when there are no **errors**. Warnings are listed in the Problems panel but
 never fail a step.
+
+Switching lessons remounts `Lab` (`key={lesson.id}`), so the epoch guard also drops work from the
+previous lesson.
+
+## Writing a lesson
+
+Follow "Write a lesson" in `README.md`. The rules an agent is most likely to break:
+
+- Use the helpers in `src/lessons/checks.ts`. Add a new helper there, with tests, rather than
+  inline JSON walking in a lesson. Helpers must never throw on a half-edited document.
+- A check reads state (`doc`, `validation`, `commands`), never event order. For "run X after the last
+  change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A file hint is the complete target file, never a fragment.
+- Every `calm` command in step copy or hints must be one the real CLI accepts. The invariants spec
+  parses them; do not weaken it to make a lesson pass.
+- A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`.
+  Never copy the previous lesson's JSON.
+- Never rename a released lesson id: it is the URL and the storage key.
 
 ## The diagram renders untrusted input
 

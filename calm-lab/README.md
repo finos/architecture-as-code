@@ -16,31 +16,45 @@ real state — the saved workspace and the engine's validation result — so any
 
 ## Lessons
 
-A lesson is data: seed files for the virtual filesystem, an ordered list of steps, and a
-completion panel (see `src/lessons/types.ts`). Today the lab ships one lesson, defined in
-`src/lessons/quick-start/lesson.ts` and registered in `src/lessons/index.ts`:
+A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
+(e.g. `https://lab.calm.finos.org/?lesson=quick-start`) or pick it in the lab.
 
-| Field | What it is |
+| Lesson | Tutorial |
 |---|---|
-| `seedFiles` | The workspace at the start of the lesson — a map of absolute path → file contents under `HOME_DIR` (`/workspace`). Seeded on first visit and on "Reset lesson". |
-| `editorFile` | The file the editor opens and the checks read. |
-| `steps` | Ordered steps: `{ id, title, body, hint, check }`. `body` is the instruction (inline code in backticks); `hint` is what the learner can copy — either `{ kind: 'commands', commands }` or, for editing steps, `{ kind: 'file', content }` with the **complete** target file, so paste-replace-save always yields a valid result. |
-| `completion` | Heading, message and links shown when every step is ticked. |
+| `quick-start` | — |
 
-A step's `check(state)` is a pure function of a `LessonState`: `doc` is the saved architecture
-parsed as JSON (or `null`), `validation` is the engine's result for the saved file (`ok` is true
-when there are no errors), and `commands` are the terminal outcomes still fresh for the files they
-read (see `src/lessons/checks.ts`). Checks are deliberately state-based rather than event-ordered,
-so the order in which a learner edits, saves and validates never wedges a step. Keep checks about
-the model (does the document contain the thing the step asked for, and is it valid?), not about
-how the learner got there.
+### Write a lesson
 
-To change or extend a lesson, edit its `lesson.ts` and cover the new checks in its `lesson.spec.ts`;
-`src/lessons/invariants.spec.ts` checks every registered lesson against the same rules (unique ids,
-seeded editor file, hints that actually complete each step, only real `calm` commands in the copy).
-Publishing **multiple** lessons end-to-end — a lesson picker, per-lesson progress, and "try it in
-your browser" links from the tutorials — is Phase A of
-[#2879](https://github.com/finos/architecture-as-code/issues/2879) and is not supported yet.
+1. Create `src/lessons/<id>/lesson.ts` that exports a `Lesson` (see `src/lessons/types.ts`):
+
+   | Field | What it is |
+   |---|---|
+   | `id` | Lowercase, hyphenated. It is the `?lesson=` value and the storage key. Do not change it after release. |
+   | `title`, `summary` | Shown in the lesson picker. |
+   | `tutorial` | The docs page this lesson adapts, if any. |
+   | `editorFile` | The file the editor opens, the diagram shows and the checks read. |
+   | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
+   | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`. |
+   | `steps` | Ordered steps, below. |
+   | `completion` | Heading, message and links shown when every step is done. |
+
+2. Write each step: `id`, `title`, `body` (inline code in backticks) and a `hint`:
+   - `{ kind: 'file', content }` — the **complete** editor file after the step, so paste-and-save
+     always works;
+   - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`.
+
+3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
+   history: `state.doc` (the saved editor file), `state.validation.ok`, and `state.commands` (the
+   commands whose files have not changed since they ran). Check what the step asked for, not the
+   names in the hint, so any valid answer passes.
+
+4. Register the lesson in `src/lessons/index.ts`, add it to the table above, and add
+   `src/lessons/<id>/lesson.spec.ts` with at least one wrong answer per step that its check rejects.
+
+`src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine: no
+step is complete at the start, each hint completes its step, the end state validates, every `calm`
+command in the copy parses as the real CLI would parse it, and a chained lesson starts from its
+predecessor's end state.
 
 ## Development
 
