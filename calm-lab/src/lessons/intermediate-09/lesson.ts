@@ -17,7 +17,7 @@ const ORDER_FLOW_ITEM = `        {
                 {
                     "relationship-unique-id": "customer-to-gateway",
                     "sequence-number": 1,
-                    "description": "Customer submits an order through the web interface",
+                    "description": "Customer submits an order to the API Gateway",
                     "direction": "source-to-destination"
                 },
                 {
@@ -136,8 +136,8 @@ export const INTERMEDIATE_09: Lesson = {
     completion: {
         heading: 'Lesson complete',
         message:
-            'You mapped business processes onto your architecture as flows, each an ordered sequence of ' +
-            'transitions over your relationships, including a bidirectional request-response pattern.',
+            'You mapped business processes onto your architecture as flows. Each flow is an ordered sequence ' +
+            'of transitions over your relationships, and a transition direction can model a response that flows back.',
         links: [],
     },
 };
