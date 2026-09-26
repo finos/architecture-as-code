@@ -14,6 +14,7 @@ import { helpFor } from './cli/help';
 import { requestsVersion, unknownOption } from './cli/options';
 import { suggestSimilar } from './cli/suggest';
 import { CLI_DOCS } from './cli/unsupported';
+import type { CommandEvent } from './cli/outcome';
 import { BROWSER_COMMAND_SUPPORT } from '@finos/calm-shared/browser';
 import { commandSupport, hubCommands, CLI_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
@@ -24,7 +25,7 @@ export interface ShellContext {
     vfs: Vfs;
     getCwd(): string;
     setCwd(dir: string): void;
-    onEvent?(event: { type: 'validate'; file: string; ok: boolean }): void;
+    onEvent?(event: CommandEvent): void;
 }
 
 export interface CompletionCandidates { candidates: string[] }

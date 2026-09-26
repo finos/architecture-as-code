@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { runDiff } from './diff';
 import { createVfs } from '../lab/vfs';
 
@@ -84,5 +84,21 @@ describe('calm diff', () => {
     it('says unsupported options are not in the lab yet', async () => {
         const [line] = await runDiff(['-a', 'a.json', '-b', 'b.json', '--exit-code'], context(files));
         expect(line.text).toBe("The browser lab doesn't support `--exit-code` for `calm diff` yet. Use the CLI — https://calm.finos.org/working-with-calm/cli");
+    });
+
+    it('emits a diff outcome with both resolved files', async () => {
+        const ctx = { ...context(files), onEvent: vi.fn() };
+        await runDiff(['-a', 'a.json', '-b', 'b.json'], ctx);
+        expect(ctx.onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'diff', ok: true, files: { documentA: '/workspace/a.json', documentB: '/workspace/b.json' },
+        }) });
+    });
+
+    it('emits a failed diff outcome when both files were read but one is not valid JSON', async () => {
+        const ctx = { ...context({ ...files, '/workspace/broken.json': '{ nope' }), onEvent: vi.fn() };
+        await runDiff(['-a', 'a.json', '-b', 'broken.json'], ctx);
+        expect(ctx.onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'diff', ok: false, files: { documentA: '/workspace/a.json', documentB: '/workspace/broken.json' },
+        }) });
     });
 });

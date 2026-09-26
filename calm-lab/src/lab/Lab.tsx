@@ -8,6 +8,7 @@ import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
+import type {CommandEvent} from '../cli/outcome';
 import {
     ARCHITECTURE_FILE,
     COMPLETION,
@@ -350,14 +351,15 @@ export default function Lab() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleEvent = (event: {type: 'validate'; file: string; ok: boolean}) => {
-        if (event.type !== 'validate' || !event.ok) {
+    const handleEvent = (event: CommandEvent) => {
+        const {outcome} = event;
+        if (outcome.command !== 'validate' || !outcome.ok) {
             return;
         }
         // Compare resolved-to-resolved so any path spelling that reaches
         // the lesson file ('./x', 'architecture//x', relative from a cd'd
         // directory, ...) counts.
-        const eventFile = vfs.resolve('/', event.file || '');
+        const eventFile = vfs.resolve('/', outcome.files.architecture || '');
         const lessonFile = vfs.resolve('/', ARCHITECTURE_FILE);
         if (eventFile === lessonFile) {
             flagsRef.current.hasValidatedOk = true;

@@ -26,7 +26,9 @@ describe('calm validate', () => {
         const { ctx, onEvent } = context({ '/workspace/a.json': valid });
         const lines = await runCommand('calm validate -a a.json -f pretty', ctx);
         expect(lines[0].text).toBe('Summary');
-        expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'validate', files: { architecture: '/workspace/a.json' }, ok: true,
+        }) });
     });
 });
 
