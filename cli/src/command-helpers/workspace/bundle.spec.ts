@@ -1,4 +1,5 @@
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
+import * as narrativeDocument from './narrative-document';
 import {
     loadManifest,
     saveManifest,
@@ -338,6 +339,33 @@ describe('bundle', () => {
             expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
         });
 
+        it.each([
+            { storedNamespace: undefined, namespace: undefined },
+            { storedNamespace: 'finos', namespace: undefined },
+            { storedNamespace: '', namespace: '' },
+        ])('rejects pending recovery before Location validation with namespaces $storedNamespace / $namespace', async ({ storedNamespace, namespace }) => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: storedNamespace, version: '1.0.0',
+                createRecovery: { pending: true as const },
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+            const validateLocation = vi.spyOn(narrativeDocument, 'validateNarrativeDocumentLocation');
+
+            try {
+                await expect(addFileToBundle(bundlePath, srcFile, {
+                    copy: true, type: 'sad', namespace,
+                    version: '1.0.0', calmHubDocumentId: 3,
+                    calmHubId: '/api/calm/namespaces/finos/documents/sad/3/versions/1.0.0',
+                })).rejects.toThrow('Narrative document \'source-doc\' namespace must be a non-empty valid namespace.');
+
+                expect(validateLocation).not.toHaveBeenCalled();
+                expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+                expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+            } finally {
+                validateLocation.mockRestore();
+            }
+        });
+
         it('allows a full compatible verified identity to reconcile pending recovery', async () => {
             await saveManifest(bundlePath, {
                 'source-doc': {
@@ -374,6 +402,22 @@ describe('bundle', () => {
                 copy: true, type, namespace, version, calmHubDocumentId: 3,
                 calmHubId: `/api/calm/namespaces/${namespace}/documents/${type}/3/versions/${version}`,
             })).rejects.toThrow(/pending create recovery scope/);
+
+            expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
+            expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);
+        });
+
+        it('rejects a conflicting Location during pending recovery', async () => {
+            const existing = {
+                path: 'old.md', type: 'sad' as const, namespace: 'finos', version: '1.0.0',
+                createRecovery: { pending: true as const },
+            };
+            await saveManifest(bundlePath, { 'source-doc': existing });
+
+            await expect(addFileToBundle(bundlePath, srcFile, {
+                copy: true, type: 'sad', namespace: 'finos', version: '1.0.0', calmHubDocumentId: 3,
+                calmHubId: '/api/calm/namespaces/other/documents/sad/3/versions/1.0.0',
+            })).rejects.toThrow('Narrative document \'source-doc\' recovery identity conflicts with its pending create recovery scope.');
 
             expect((await loadManifest(bundlePath))['source-doc']).toEqual(existing);
             expect(existsSync(path.join(filesPath, 'source.json'))).toBe(false);

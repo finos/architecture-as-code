@@ -4,7 +4,7 @@ import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
 import { printBundleTreeFromGraph } from './tree';
 import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
-import { validateNarrativeDocumentLocation } from './narrative-document';
+import { validateNarrativeDocumentLocation, validateNarrativeNamespace } from './narrative-document';
 import { isNarrativeWorkspaceManifestEntry } from './document-kind';
 
 export { isNarrativeWorkspaceManifestEntry } from './document-kind';
@@ -310,6 +310,7 @@ export async function addFileToBundle(
         ) {
             throw new Error(`Narrative document '${id}' has pending create recovery and cannot be re-added until it is reconciled.`);
         }
+        validateNarrativeNamespace(opts.namespace, id);
         if (
             existingEntry.type !== opts.type ||
             existingEntry.namespace !== opts.namespace ||
@@ -319,7 +320,7 @@ export async function addFileToBundle(
         }
         try {
             validateNarrativeDocumentLocation(opts.calmHubId, {
-                namespace: opts.namespace ?? '',
+                namespace: opts.namespace,
                 type: opts.type,
                 version: opts.version,
                 calmHubDocumentId: opts.calmHubDocumentId,
