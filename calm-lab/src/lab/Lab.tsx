@@ -6,6 +6,7 @@ import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
+import {loadUiPrefs, saveUiPrefs} from './storage';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent} from '../cli/outcome';
@@ -20,7 +21,6 @@ import {
 } from './lesson';
 
 const PROGRESS_KEY = 'calm-lab-progress-v1';
-const UI_PREFS_KEY = 'calm-lab-ui-v1';
 const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
@@ -52,29 +52,6 @@ function saveProgress(completed: Set<string>): void {
 function clearProgress() {
     try {
         window.localStorage?.removeItem(PROGRESS_KEY);
-    } catch {
-        // ignore
-    }
-}
-
-function loadUiPrefs(): Record<string, unknown> {
-    try {
-        const raw = window.localStorage?.getItem(UI_PREFS_KEY);
-        if (raw) {
-            const prefs: unknown = JSON.parse(raw);
-            if (prefs && typeof prefs === 'object') {
-                return prefs as Record<string, unknown>;
-            }
-        }
-    } catch {
-        // ignore
-    }
-    return {};
-}
-
-function saveUiPrefs(prefs: Record<string, unknown>): void {
-    try {
-        window.localStorage?.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
     } catch {
         // ignore
     }
@@ -215,7 +192,7 @@ function ProgressDots({completed, currentId, vertical}: {completed: Set<string>;
 export default function Lab() {
     const vfsRef = useRef<Vfs | null>(null);
     if (!vfsRef.current) {
-        vfsRef.current = createVfs(SEED_FILES);
+        vfsRef.current = createVfs(SEED_FILES, 'calm-lab-workspace-v2:quick-start');
     }
     const vfs = vfsRef.current;
 

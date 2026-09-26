@@ -13,7 +13,7 @@ const A = `{
 const BAD = '{"$schema": "https://calm.finos.org/release/1.2/meta/calm.json", "nodes": "nope", "relationships": []}';
 
 function context(files: Record<string, string>, cwd = '/workspace') {
-    const vfs = createVfs(files);
+    const vfs = createVfs(files, null);
     const onEvent = vi.fn();
     return { ctx: { vfs, getCwd: () => cwd, setCwd: () => undefined, onEvent }, onEvent };
 }

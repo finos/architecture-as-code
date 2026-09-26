@@ -15,7 +15,7 @@ const withB = JSON.stringify({
 });
 
 function context(files: Record<string, string>) {
-    const vfs = createVfs(files);
+    const vfs = createVfs(files, null);
     let cwd = '/workspace';
     const onEvent = vi.fn();
     return { ctx: { vfs, getCwd: () => cwd, setCwd: (dir: string) => { cwd = dir; }, onEvent }, onEvent };

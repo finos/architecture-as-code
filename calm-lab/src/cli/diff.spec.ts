@@ -8,7 +8,7 @@ const doc = (ids: string[]) => JSON.stringify({
     relationships: [],
 });
 function context(files: Record<string, string>) {
-    const vfs = createVfs(files);
+    const vfs = createVfs(files, null);
     return { vfs, getCwd: () => '/workspace', setCwd: () => undefined };
 }
 const files = { '/workspace/a.json': doc(['a']), '/workspace/b.json': doc(['a', 'b']) };
