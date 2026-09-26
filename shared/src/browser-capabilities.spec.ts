@@ -4,7 +4,7 @@ import { BROWSER_COMMAND_SUPPORT, browserSupportFor } from './browser-capabiliti
 describe('browser capability manifest', () => {
     it('marks the pure engine commands as supported', () => {
         for (const cmd of ['validate', 'generate', 'diff']) {
-            expect(browserSupportFor(cmd)).toEqual({ command: cmd, status: 'supported' });
+            expect(browserSupportFor(cmd)).toEqual(expect.objectContaining({ command: cmd, status: 'supported' }));
         }
     });
 
@@ -29,5 +29,13 @@ describe('browser capability manifest', () => {
     it('has no duplicate keys', () => {
         const keys = BROWSER_COMMAND_SUPPORT.map((e) => e.command);
         expect(new Set(keys).size).toBe(keys.length);
+    });
+
+    it('marks at least one option of each described command as supported', () => {
+        for (const entry of BROWSER_COMMAND_SUPPORT) {
+            if (entry.status === 'supported' && entry.options) {
+                expect(entry.options.some((option) => option.supported), entry.command).toBe(true);
+            }
+        }
     });
 });
