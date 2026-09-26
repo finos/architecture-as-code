@@ -20,7 +20,7 @@ import {
     initLogger,
     Logger,
 } from '@finos/calm-shared';
-import { resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narrative-document';
+import { narrativeMarkdownEqual, resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narrative-document';
 import {
     dispatchWorkspaceManifestEntry,
     resolveWorkspaceManifestEntry,
@@ -189,7 +189,7 @@ function prepareChangedNarrativeEntry(
         const remote = await client.getNarrativeDocumentVersion(
             identity.namespace, identity.type, identity.calmHubDocumentId, version
         );
-        if (remote.documentMarkdown === raw) return undefined;
+        if (narrativeMarkdownEqual(raw, remote.documentMarkdown)) return undefined;
         return {
             id, filePath, currentVersion: version,
             latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',

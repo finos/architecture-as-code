@@ -402,6 +402,25 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).rejects.toThrow(/payments@1.0.0/);
     });
 
+    it.each(['local LF', 'local CRLF'])('strictly accepts equivalent narrative line endings (%s)', async (direction) => {
+        const lf = '---\ntitle: Payments SAD\n---\n# Payments\n';
+        const crlf = lf.replace(/\n/g, '\r\n');
+        await writeFile(path.join(filesPath, 'payments.md'), direction === 'local LF' ? lf : crlf);
+        await saveManifest(bundlePath, {
+            payments: {
+                path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            },
+        });
+        const client = makeClient({
+            getNarrativeDocumentVersions: vi.fn().mockResolvedValue(['1.0.0']),
+            getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: direction === 'local LF' ? crlf : lf }),
+        });
+
+        await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.toBeUndefined();
+        expect(client.createNarrativeDocumentVersion).not.toHaveBeenCalled();
+    });
+
     it('idempotently skips an existing narrative version and accepts an exact strict comparison', async () => {
         const markdown = '---\ntitle: Payments SAD\n---\n# Payments\n';
         await writeFile(path.join(filesPath, 'payments.md'), markdown);

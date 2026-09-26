@@ -269,6 +269,22 @@ describe('setupWorkspaceCommands', () => {
             }));
         });
 
+        it.each(['local LF', 'local CRLF'])('recovers equivalent narrative line endings (%s)', async (direction) => {
+            const lf = '---\ntitle: Payments SAD\n---\n# Payments\n';
+            const crlf = lf.replace(/\n/g, '\r\n');
+            mocks.readFile.mockResolvedValueOnce(direction === 'local LF' ? lf : crlf);
+            const client = { getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: direction === 'local LF' ? crlf : lf }) };
+            mocks.CalmHubClient.mockImplementationOnce(function() { return client; });
+
+            await program.parseAsync([
+                'node', 'test', 'workspace', 'add', 'payments.md', '--type', 'sad', '--namespace', 'finos',
+                '--calm-hub-document-id', '42', '--ver', '1.2.0', '--calm-hub-url', 'https://explicit.example.com'
+            ]);
+
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledWith('finos', 'sad', 42, '1.2.0');
+            expect(mocks.addFileToBundle).toHaveBeenCalledOnce();
+        });
+
         it('uses configured CalmHub URL and authentication for recovery', async () => {
             const authPlugin = { getAuthHeaders: vi.fn(async () => ({})) };
             mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://configured.example.com', authPluginPath: 'auth.ts' });

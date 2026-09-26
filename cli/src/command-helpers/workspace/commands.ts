@@ -21,7 +21,7 @@ import {
 } from '@finos/calm-models/types';
 import { loadCliConfig } from '../../cli-config';
 import { resolveCalmHubOptions } from '../hub-commands';
-import { constructNarrativeDocumentPath, parseNarrativeDocument, validateNarrativeIdentity, type NarrativeDocumentIdentity } from './narrative-document';
+import { constructNarrativeDocumentPath, narrativeMarkdownEqual, parseNarrativeDocument, validateNarrativeIdentity, type NarrativeDocumentIdentity } from './narrative-document';
 import {
     dispatchWorkspaceDocumentType,
     resolveWorkspaceDocumentType,
@@ -275,7 +275,7 @@ export function setupWorkspaceCommands(program: Command) {
                                 const remote = await client.getNarrativeDocumentVersion(
                                     identity.namespace, identity.type, identity.calmHubDocumentId, identity.version
                                 );
-                                if (remote.documentMarkdown !== raw) {
+                                if (!narrativeMarkdownEqual(raw, remote.documentMarkdown)) {
                                     throw new Error(`Narrative document '${file}' does not match CalmHub version ${identity.version}.`);
                                 }
                             },

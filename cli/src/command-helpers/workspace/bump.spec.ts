@@ -115,6 +115,22 @@ describe('bump', () => {
             expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown }))).toEqual([]);
         });
 
+        it.each(['local LF', 'local CRLF'])('ignores narrative line endings in drift detection (%s)', async (direction) => {
+            const lf = '---\ntitle: Payments SAD\n---\n# Published\n';
+            const crlf = lf.replace(/\n/g, '\r\n');
+            await writeFile(path.join(filesPath, 'payments.md'), direction === 'local LF' ? lf : crlf);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+
+            expect(await detectChangedResources(bundlePath, makeClient({
+                narrativeVersions: ['1.0.0'], narrativeMarkdown: direction === 'local LF' ? crlf : lf,
+            }))).toEqual([]);
+        });
+
         it('treats pending create recovery as unassigned without mutating the fence', async () => {
             const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
             const entry = {

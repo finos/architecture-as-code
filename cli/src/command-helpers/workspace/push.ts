@@ -20,6 +20,7 @@ import {
 } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
 import {
+    narrativeMarkdownEqual,
     parseNarrativeDocumentLocation,
     resolveNarrativeEntry,
     validateNarrativeDocumentLocation,
@@ -223,7 +224,7 @@ async function pushNarrativeEntry(
         const remote = await client.getNarrativeDocumentVersion(
             identity.namespace, identity.type, identity.calmHubDocumentId, version
         );
-        if (remote.documentMarkdown !== raw) {
+        if (!narrativeMarkdownEqual(raw, remote.documentMarkdown)) {
             logger.error(`'${id}' version ${version} already exists in CalmHub but differs on disk. Bump it before pushing.`);
             conflicts.push(`${id}@${version}`);
         } else {

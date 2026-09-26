@@ -41,6 +41,11 @@ export type ResolvedNarrativeEntry = {
     }
 );
 
+export function narrativeMarkdownEqual(local: string, remote: string): boolean {
+    const normalizeLineEndings = (markdown: string) => markdown.replace(/\r\n?/g, '\n');
+    return normalizeLineEndings(local) === normalizeLineEndings(remote);
+}
+
 export function resolveNarrativeEntry(
     id: string,
     entry: NarrativeEntryInput,

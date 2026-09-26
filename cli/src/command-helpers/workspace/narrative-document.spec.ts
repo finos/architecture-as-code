@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CALM_NARRATIVE_DOCUMENT_TYPES_LIST } from '@finos/calm-models/types';
 import {
     constructNarrativeDocumentPath,
+    narrativeMarkdownEqual,
     parseNarrativeDocument,
     parseNarrativeDocumentLocation,
     resolveNarrativeEntry,
@@ -12,6 +13,16 @@ import {
 describe('narrative document helpers', () => {
     const identity = { namespace: 'finos', type: 'sad' as const, version: '1.0.0' };
     const markdown = '---\ntitle: Payments SAD\ndescription: Decisions\n---\n# Content\n';
+
+    it('compares Markdown with equivalent line endings only', () => {
+        const crlf = markdown.replace(/\n/g, '\r\n');
+        expect(narrativeMarkdownEqual(markdown, crlf)).toBe(true);
+        expect(narrativeMarkdownEqual(crlf, markdown)).toBe(true);
+        expect(narrativeMarkdownEqual(markdown, markdown.replace(/\n/g, '\r'))).toBe(true);
+        expect(narrativeMarkdownEqual(markdown, markdown.replace('Content', 'Changed'))).toBe(false);
+        expect(narrativeMarkdownEqual(markdown, `${markdown} `)).toBe(false);
+        expect(narrativeMarkdownEqual(markdown, markdown.trimEnd())).toBe(false);
+    });
 
     describe('resolveNarrativeEntry', () => {
         it('resolves a valid unpublished narrative', () => {
