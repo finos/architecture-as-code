@@ -20,6 +20,8 @@ import {
 } from './navigation-loaders.js';
 import { ExplorerSearch } from '../../../components/navbar/ExplorerSearch.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
+import { useNamespaceTree } from '../explore-rail/useNamespaceTree.js';
+import { MobileNamespaceRow } from './MobileNamespaceRow.js';
 
 const RESOURCE_TYPES: TypeInUI[] = ['Architectures', 'Patterns', 'Flows', 'Standards', 'ADRs', 'Interfaces'];
 
@@ -38,6 +40,8 @@ interface MobileNavMenuProps {
     domainsFailed?: boolean;
     /** Dismiss the menu (e.g. after a resource is chosen). */
     onClose: () => void;
+    /** Storage for the namespace tree's persisted collapsed set. Defaults to localStorage. Inject a fake in tests. */
+    storage?: Storage;
 }
 
 type HubParams = {
@@ -65,10 +69,12 @@ interface LeafItem {
 
 /**
  * Mobile navigation as an iOS-style drill-down: each tap pushes the next level
- * as a flat list rather than expanding an inline tree. Leaf taps navigate to the
- * resource URL; deep-link loading is owned by {@link Hub}'s `useResourceFromRoute`
- * (a single shared owner), so this panel only drives navigation and its own
- * drill-down list state.
+ * as a flat list rather than expanding an inline tree — except the `namespaces`
+ * level, which nests the dot-prefix namespace tree in place ({@link MobileNamespaceRow}),
+ * since that hierarchy is already latent in the dotted names. Leaf taps navigate
+ * to the resource URL; deep-link loading is owned by {@link Hub}'s
+ * `useResourceFromRoute` (a single shared owner), so this panel only drives
+ * navigation and its own drill-down list state.
  *
  * Phase 1 adds a mono count badge per namespace/domain row and a brand-tint
  * active treatment for the row matching the current URL. Counts are owned by
@@ -83,6 +89,7 @@ export function MobileNavMenu({
     namespacesFailed,
     domainsFailed,
     onClose,
+    storage = localStorage,
 }: MobileNavMenuProps) {
     const navigate = useNavigate();
     const params = useParams<HubParams>();
@@ -100,13 +107,14 @@ export function MobileNavMenu({
     // Derive the namespace/domain lists from the counts Hub already fetched, rather than
     // re-fetching them here. Avoids two redundant requests and keeps the row labels in the
     // same snapshot as the count badges.
-    const namespaces = useMemo(() => namespaceCounts.map((c) => c.namespace), [namespaceCounts]);
     const domains = useMemo(() => domainCounts.map((c) => c.domain), [domainCounts]);
 
-    const namespaceTotal = useCallback(
-        (ns: string) => namespaceCounts.find((c) => c.namespace === ns)?.total,
-        [namespaceCounts]
-    );
+    const { rows: namespaceRows, toggleCollapsed } = useNamespaceTree({
+        namespaceCounts,
+        needle: '',
+        activeNamespace: params.ns ?? params.namespace,
+        storage,
+    });
     const domainControlCount = useCallback(
         (d: string) => domainCounts.find((c) => c.domain === d)?.controlCount,
         [domainCounts]
@@ -255,15 +263,9 @@ export function MobileNavMenu({
                     { key: 'namespaces', label: 'Namespaces', isLeaf: false, onClick: () => setView({ level: 'namespaces' }) },
                     { key: 'domains', label: 'Control Domains', isLeaf: false, onClick: () => setView({ level: 'domains' }) },
                 ];
+            // Namespaces render as a nested tree via `namespaceRows`, not a flat Row list.
             case 'namespaces':
-                return namespaces.map((ns) => ({
-                    key: ns,
-                    label: ns,
-                    isLeaf: false,
-                    count: namespaceTotal(ns),
-                    active: ns === params.ns || ns === params.namespace,
-                    onClick: () => setView({ level: 'types', namespace: ns }),
-                }));
+                return [];
             case 'types':
                 return RESOURCE_TYPES.map((t) => {
                     const count = typeCount(view.namespace, t);
@@ -315,7 +317,7 @@ export function MobileNavMenu({
     // "Loading" that doesn't tell a screen-reader user which section.
     const loadingLabel =
         view.level === 'namespaces' ? 'Loading namespaces' : view.level === 'domains' ? 'Loading control domains' : 'Loading';
-    const isEmpty = !showLoading && rows.length === 0;
+    const isEmpty = !showLoading && (view.level === 'namespaces' ? namespaceRows.length === 0 : rows.length === 0);
     // Distinguish "the fetch failed" from "there's genuinely nothing here" — a
     // failed counts fetch is unknown, not zero (mirrors Hub's own namespaceCountsFailed).
     // No retry action exists here (Hub fetches counts once on mount), so the copy
@@ -355,7 +357,19 @@ export function MobileNavMenu({
                     {isEmpty && (
                         <li className="px-4 py-8 text-center text-base-content/50 text-sm">{emptyMessage}</li>
                     )}
+                    {!showLoading && view.level === 'namespaces' &&
+                        namespaceRows.map((nr) => (
+                            <li key={nr.node.path}>
+                                <MobileNamespaceRow
+                                    row={nr}
+                                    active={nr.node.path === params.ns || nr.node.path === params.namespace}
+                                    onToggleCollapsed={toggleCollapsed}
+                                    onOpen={(namespace) => setView({ level: 'types', namespace })}
+                                />
+                            </li>
+                        ))}
                     {!showLoading &&
+                        view.level !== 'namespaces' &&
                         rows.map((row) => (
                             <li key={row.key}>
                                 <button
