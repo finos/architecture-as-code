@@ -217,7 +217,10 @@ describe('beginner-05 lesson', () => {
         expect(validate.check(state({ doc: withBothInterfaces, commands: [validateOutcome(BEGINNER_05.editorFile, true)] }))).toBe(false);
     });
 
-    it('has no completion links yet', () => {
-        expect(BEGINNER_05.completion.links).toEqual([]);
+    it('links to the tutorial and the next lesson', () => {
+        expect(BEGINNER_05.completion.links).toContainEqual({
+            to: '?lesson=beginner-06',
+            label: 'Next lesson',
+        });
     });
 });

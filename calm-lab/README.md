@@ -25,6 +25,7 @@ the lab has no lesson picker.
 | `beginner-02` | [02-first-node](https://calm.finos.org/tutorials/beginner/02-first-node) | Released |
 | `beginner-03` | [03-relationships](https://calm.finos.org/tutorials/beginner/03-relationships) | Released |
 | `beginner-05` | [05-interfaces](https://calm.finos.org/tutorials/beginner/05-interfaces) | Released |
+| `beginner-06` | [06-metadata](https://calm.finos.org/tutorials/beginner/06-metadata) | Released |
 
 ### Write a lesson
 
