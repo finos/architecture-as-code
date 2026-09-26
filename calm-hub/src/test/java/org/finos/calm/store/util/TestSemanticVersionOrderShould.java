@@ -9,6 +9,7 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 class TestSemanticVersionOrderShould {
 
@@ -113,5 +114,62 @@ class TestSemanticVersionOrderShould {
     @Test
     void treat_two_null_versions_as_equal() {
         assertThat(SemanticVersionOrder.ASCENDING.compare(null, null), is(0));
+    }
+
+    @Test
+    void rank_a_snapshot_below_its_release() {
+        // Standard semver pre-release ordering. Under the shadowing rule the two cannot
+        // coexist, so this is defensive — but leaving it unspecified is how a version ends
+        // up sorting as 0.0.0.
+        List<String> versions = new ArrayList<>(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.0.0-SNAPSHOT", "1.0.0"));
+    }
+
+    @Test
+    void sort_a_snapshot_into_position_rather_than_last() {
+        // Before the Semver fix a snapshot parsed as 0.0.0 and sorted first, so the last
+        // element of a sorted list — the "latest" version — could be stale content.
+        List<String> versions = new ArrayList<>(List.of("2.0.0", "1.0.0", "1.5.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.0.0", "1.5.0-SNAPSHOT", "2.0.0"));
+    }
+
+    @Test
+    void order_two_snapshots_by_their_release_versions() {
+        List<String> versions = new ArrayList<>(List.of("1.10.0-SNAPSHOT", "1.9.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.9.0-SNAPSHOT", "1.10.0-SNAPSHOT"));
+    }
+
+    @Test
+    void resolve_latest_release_to_null_for_a_null_or_empty_list() {
+        assertThat(SemanticVersionOrder.latestRelease(null), is(nullValue()));
+        assertThat(SemanticVersionOrder.latestRelease(List.of()), is(nullValue()));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_highest_version_when_there_are_no_snapshots() {
+        assertThat(SemanticVersionOrder.latestRelease(List.of("1.0.0", "2.0.0", "1.5.0")), is("2.0.0"));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_highest_release_even_when_a_snapshot_ranks_higher() {
+        // The whole reason this method exists: an in-progress 1.1.0-SNAPSHOT must not shadow
+        // the published 1.0.0 release for a READ consumer resolving "latest".
+        assertThat(SemanticVersionOrder.latestRelease(List.of("1.0.0", "1.1.0-SNAPSHOT")), is("1.0.0"));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_highest_snapshot_when_nothing_is_published_yet() {
+        assertThat(SemanticVersionOrder.latestRelease(List.of("1.0.0-SNAPSHOT")), is("1.0.0-SNAPSHOT"));
+        assertThat(SemanticVersionOrder.latestRelease(List.of("1.1.0-SNAPSHOT", "1.0.0-SNAPSHOT")), is("1.1.0-SNAPSHOT"));
+    }
+
+    @Test
+    void not_mutate_the_input_list_when_resolving_latest_release() {
+        List<String> versions = new ArrayList<>(List.of("2.0.0", "1.0.0"));
+        SemanticVersionOrder.latestRelease(versions);
+        assertThat(versions, contains("2.0.0", "1.0.0"));
     }
 }

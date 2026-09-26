@@ -6,6 +6,7 @@ import com.mongodb.WriteError;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.result.DeleteResult;
 import com.mongodb.client.result.UpdateResult;
 import io.quarkus.test.InjectMock;
@@ -159,14 +160,14 @@ public class TestMongoStandardStoreShould {
         when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0"));
     }
 
     @Test
     void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
         CreateStandardRequest invalid = new CreateStandardRequest("n", "d", "{invalid json}");
 
-        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createStandardForNamespace(invalid, NAMESPACE, "1.0.0"));
 
         verify(counterStore, never()).getNextStandardSequenceValue();
         verify(headerCollection, never()).insertOne(any(Document.class));
@@ -178,7 +179,7 @@ public class TestMongoStandardStoreShould {
         when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE);
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0");
 
         assertThat(created.getId(), is(99));
         assertThat(created.getVersion(), is("1.0.0"));
@@ -189,6 +190,22 @@ public class TestMongoStandardStoreShould {
     }
 
     @Test
+    void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(counterStore.getNextStandardSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        Standard created = store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0-SNAPSHOT");
+
+        assertThat(created.getVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void remove_the_header_again_when_the_first_version_write_fails() {
         when(counterStore.getNextStandardSequenceValue()).thenReturn(99);
         doAnswer(invocation -> {
@@ -196,7 +213,7 @@ public class TestMongoStandardStoreShould {
         }).when(versionCollection).insertOne(any(Document.class));
 
         assertThrows(StorageWriteException.class,
-                () -> store.createStandardForNamespace(createRequest(), NAMESPACE));
+                () -> store.createStandardForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).deleteOne(any(Bson.class));
     }
@@ -296,6 +313,77 @@ public class TestMongoStandardStoreShould {
         verify(headerCollection, Mockito.times(2)).updateOne(any(Bson.class), any(Bson.class));
     }
 
+    // --- updateStandardForVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_updating_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_a_standard_exception_when_updating_a_version_for_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void overwrite_the_content_of_an_existing_version() throws Exception {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"marker\":\"OVERWRITTEN\"}");
+
+        store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).updateOne(any(Bson.class), updateCaptor.capture(), any(UpdateOptions.class));
+        assertThat(updateCaptor.getValue().toBsonDocument().toJson(), containsString("OVERWRITTEN"));
+    }
+
+    @Test
+    void write_the_header_details_once_after_overwriting_the_version() throws Exception {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        // Overwriting an already-existing version doesn't move versionCount, so the only
+        // header write here is the name/description update — unlike create's two writes.
+        verify(headerCollection, Mockito.times(1)).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void never_touch_the_header_when_the_version_write_fails() {
+        standardExists();
+        when(versionCollection.updateOne(any(Bson.class), any(Bson.class), any(UpdateOptions.class)))
+                .thenThrow(writeError(10334, "object to insert too large"));
+
+        // updateHeaderDetails is documented to run only after the version write succeeds — a
+        // rename must never land for a write that failed. Reordering the two calls would pass
+        // every other assertion in this class but is caught here: the header write is stubbed
+        // to succeed in standardExists(), so a header call happening anyway would go unnoticed
+        // by anything except this "never" check.
+        assertThrows(StorageWriteException.class,
+                () -> store.updateStandardForVersion(createRequest(), NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
+
+    @Test
+    void refuse_to_update_a_version_of_a_standard_that_does_not_exist() {
+        standardDoesNotExist();
+        CreateStandardRequest request = new CreateStandardRequest("Name", "desc", "{\"a\":2}");
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.updateStandardForVersion(request, NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
     // --- deleteStandard ---
 
     @Test
@@ -320,5 +408,44 @@ public class TestMongoStandardStoreShould {
         when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
 
         assertThrows(StandardNotFoundException.class, () -> store.deleteStandard(NAMESPACE, STANDARD_ID));
+    }
+
+    // --- deleteStandardVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteStandardVersion(NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_a_standard_exception_when_deleting_a_version_of_a_missing_standard() {
+        standardDoesNotExist();
+
+        assertThrows(StandardNotFoundException.class,
+                () -> store.deleteStandardVersion(NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void delete_the_version_document_when_the_snapshot_exists() throws Exception {
+        standardExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        boolean deleted = store.deleteStandardVersion(NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(true));
+        verify(versionCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void return_false_when_the_version_to_delete_does_not_exist() throws Exception {
+        standardExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        boolean deleted = store.deleteStandardVersion(NAMESPACE, STANDARD_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(false));
     }
 }

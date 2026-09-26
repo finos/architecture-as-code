@@ -20,8 +20,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link InterfaceStore}.
  *
@@ -74,7 +72,7 @@ public class MongoInterfaceStore implements InterfaceStore {
     }
 
     @Override
-    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
+    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace, String version) throws NamespaceNotFoundException {
         CalmInterface createdInterface = new CalmInterface(interfaceRequest);
         namespaceStore.requireNamespace(namespace);
 
@@ -82,10 +80,10 @@ public class MongoInterfaceStore implements InterfaceStore {
 
         int id = counterStore.getNextInterfaceSequenceValue();
         documentStore.createHeader(namespace, id, interfaceRequest.getName(), interfaceRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         createdInterface.setId(id);
-        createdInterface.setVersion(INITIAL_VERSION);
+        createdInterface.setVersion(version);
         return createdInterface;
     }
 
@@ -125,6 +123,25 @@ public class MongoInterfaceStore implements InterfaceStore {
         return calmInterface;
     }
 
+    @Override
+    public CalmInterface updateInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace,
+                                                   Integer interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        requireInterface(namespace, interfaceId);
+
+        Document content = Document.parse(interfaceRequest.getInterfaceJson());
+        documentStore.upsertVersion(namespace, interfaceId, version, content);
+
+        // Unconditional, matching the old shape.
+        documentStore.updateHeaderDetails(namespace, interfaceId,
+                interfaceRequest.getName(), interfaceRequest.getDescription());
+
+        CalmInterface calmInterface = new CalmInterface(interfaceRequest);
+        calmInterface.setId(interfaceId);
+        calmInterface.setVersion(version);
+        return calmInterface;
+    }
+
     private void requireInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, interfaceId)) {
@@ -138,5 +155,15 @@ public class MongoInterfaceStore implements InterfaceStore {
         if (!documentStore.deleteResource(namespace, interfaceId)) {
             throw new InterfaceNotFoundException();
         }
+    }
+
+    @Override
+    public boolean deleteInterfaceVersion(String namespace, int interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, interfaceId)) {
+            throw new InterfaceNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, interfaceId, version);
     }
 }

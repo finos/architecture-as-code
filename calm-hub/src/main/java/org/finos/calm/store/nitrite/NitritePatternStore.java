@@ -23,8 +23,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * NitriteDB-backed implementation of {@link PatternStore}, used in standalone mode.
  *
@@ -73,13 +71,13 @@ public class NitritePatternStore implements PatternStore {
     }
 
     @Override
-    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException {
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException {
         namespaceStore.requireNamespace(namespace);
         validatePatternJson(patternRequest.getPatternJson());
 
         int id = counterStore.getNextPatternSequenceValue();
         documentStore.createHeader(namespace, id, patternRequest.getName(), patternRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, patternRequest.getPatternJson());
+        documentStore.createFirstVersion(namespace, id, version, patternRequest.getPatternJson());
 
         LOG.info("Created pattern with ID {} for namespace '{}'", id, namespace);
         return new Pattern.PatternBuilder()
@@ -87,7 +85,7 @@ public class NitritePatternStore implements PatternStore {
                 // Dot-separated, matching the Mongo store and what is actually stored. This
                 // backend used to return "1-0-0" here, so the Location header differed by
                 // backend for the same operation.
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setPattern(patternRequest.getPatternJson())
                 .build();
@@ -194,5 +192,19 @@ public class NitritePatternStore implements PatternStore {
             throw new PatternNotFoundException();
         }
         LOG.info("Deleted pattern with ID {} from namespace '{}'", patternId, namespace);
+    }
+
+    @Override
+    public boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, patternId)) {
+            throw new PatternNotFoundException();
+        }
+        boolean deleted = documentStore.deleteVersion(namespace, patternId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of pattern {} from namespace '{}'", version, patternId, namespace);
+        }
+        return deleted;
     }
 }

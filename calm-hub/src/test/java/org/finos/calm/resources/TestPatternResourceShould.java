@@ -31,6 +31,7 @@ import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -177,7 +178,7 @@ public class TestPatternResourceShould {
 
     @Test
     void return_a_404_when_invalid_namespace_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
@@ -190,12 +191,12 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
     void return_a_400_when_invalid_pattern_json_is_provided_on_create_pattern() throws NamespaceNotFoundException {
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString()))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), anyString(), anyString()))
                 .thenThrow(new JsonParseException());
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"invalid json\" }";
@@ -208,7 +209,7 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(400);
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq("invalid"), eq("1.0.0"));
     }
 
     @Test
@@ -238,7 +239,7 @@ public class TestPatternResourceShould {
                 .setNamespace(namespace)
                 .build();
 
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace))).thenReturn(stubbedReturnPattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace), eq("1.0.0"))).thenReturn(stubbedReturnPattern);
 
         String requestBody = "{ \"name\": \"Test\", \"description\": \"desc\", \"patternJson\": \"{ \\\"test\\\": \\\"json\\\" }\" }";
 
@@ -252,7 +253,7 @@ public class TestPatternResourceShould {
                 //Derived from stubbed pattern in resource
                 .header("Location", containsString("/api/calm/namespaces/finos/patterns/12/versions/1.0.0"));
 
-        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace));
+        verify(mockPatternStore, times(1)).createPatternForNamespace(any(CreatePatternRequest.class), eq(namespace), eq("1.0.0"));
     }
 
     @Test
@@ -328,7 +329,7 @@ public class TestPatternResourceShould {
                 .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {
@@ -400,6 +401,34 @@ public class TestPatternResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_create_new_pattern_version() {
+        // POST/PUT on the numeric API keep the strict VERSION_REGEX -- snapshots are only
+        // accepted through the name-based /calm/... API, which holds the snapshot rules.
+        given()
+                .when()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"patternJson\":\"{ \\\"test\\\": \\\"json\\\" }\"}")
+                .post("/api/calm/namespaces/finos/patterns/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void not_reject_a_snapshot_version_on_get_pattern() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenThrow(new PatternVersionNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(404);
     }
 
     @Test

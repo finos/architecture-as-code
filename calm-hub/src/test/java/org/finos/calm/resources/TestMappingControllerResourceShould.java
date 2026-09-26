@@ -4,6 +4,8 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.security.TestSecurity;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.audit.AuditAction;
+import org.finos.calm.domain.audit.AuditLogEntry;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -16,16 +18,21 @@ import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InOrder;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.finos.calm.security.AuditService;
 import org.finos.calm.security.CalmHubPermissionChecker;
 
 import java.util.Collections;
 import java.util.List;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
@@ -48,6 +55,7 @@ public class TestMappingControllerResourceShould {
     @InjectMock DomainStore mockDomainStore;
     @InjectMock ControlStore mockControlStore;
     @InjectMock CalmHubPermissionChecker mockPermissionChecker;
+    @InjectMock AuditService mockAuditService;
 
     @org.junit.jupiter.api.BeforeEach
     void allowWritesByDefault() {
@@ -73,7 +81,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0")).when()
                 .post("/calm")
@@ -111,7 +119,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.FLOW).setNumericId(0).build());
         Flow flow = new Flow.FlowBuilder()
                 .setNamespace("finos").setId(5).setVersion("1.0.0").setFlow("{}").build();
-        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"))).thenReturn(flow);
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(flow);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "flows", "my-flow", "1.0.0")).when()
                 .post("/calm")
@@ -130,7 +138,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.STANDARD).setNumericId(0).build());
         Standard standard = new Standard("", "", "{}", 3, "1.0.0");
         standard.setNamespace("finos");
-        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos"))).thenReturn(standard);
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(standard);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "standards", "my-standard", "1.0.0")).when()
                 .post("/calm")
@@ -149,7 +157,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.INTERFACE).setNumericId(0).build());
         CalmInterface iface = new CalmInterface("", "", "{}", 4, "1.0.0");
         iface.setNamespace("finos");
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("finos"))).thenReturn(iface);
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(iface);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "interfaces", "my-interface", "1.0.0")).when()
                 .post("/calm")
@@ -208,7 +216,7 @@ public class TestMappingControllerResourceShould {
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("fail-create")
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0")))
                 .thenThrow(new RuntimeException("Store failure"));
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "fail-create", "1.0.0")).when()
@@ -225,7 +233,7 @@ public class TestMappingControllerResourceShould {
                 .thenReturn(new ResourceMapping.ResourceMappingBuilder()
                         .setNamespace("finos").setCustomId("rollback-me")
                         .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos")))
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0")))
                 .thenThrow(new RuntimeException("store failure"));
         doThrow(new RuntimeException("rollback failed")).when(mockMappingStore).deleteMapping("finos", ResourceType.PATTERN, "rollback-me");
 
@@ -266,6 +274,183 @@ public class TestMappingControllerResourceShould {
                 .header("Location", containsString("/calm/namespaces/finos/architectures/my-arch/versions/2.0.0"));
 
         verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    // --- POST snapshot semantics: idempotent create/overwrite, shadow 409 ---
+
+    @Test
+    void create_a_snapshot_that_does_not_exist_yet() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/2.0.0-SNAPSHOT"));
+
+        verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    @Test
+    void return_a_location_header_in_the_canonical_version_spelling() throws Exception {
+        // SNAPSHOT_VERSION_REGEX accepts dash separators, but the store folds them to dots.
+        // A Location pointing at the requested spelling would not match what GET versions lists.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("2.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1-0-0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1-0-0-SNAPSHOT")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void overwrite_a_snapshot_that_already_exists() throws Exception {
+        // The point of the feature: a client must not have to know whether the snapshot is
+        // already there, so a repeat POST is an overwrite rather than a 409.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockArchitectureStore).updateArchitectureForVersion(any(Architecture.class));
+        verify(mockArchitectureStore, never()).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    @Test
+    void overwrite_a_snapshot_whose_raw_request_spelling_differs_from_the_stored_canonical_spelling() throws Exception {
+        // "200-SNAPSHOT" must canonicalise to the stored "2.0.0-SNAPSHOT" to be recognised
+        // as an overwrite, or this wrongly falls through to the create branch and fails with 400.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "200-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/200-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockArchitectureStore).updateArchitectureForVersion(any(Architecture.class));
+        verify(mockArchitectureStore, never()).createArchitectureForVersion(any(Architecture.class));
+    }
+
+    @Test
+    void refuse_a_snapshot_whose_release_version_is_already_published() throws Exception {
+        // A snapshot that shadows a published version makes "promotion deletes the snapshot"
+        // ambiguous, so it is refused at the point of creation.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1.0.0-SNAPSHOT")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void refuse_a_snapshot_whose_canonical_spelling_shadows_a_published_release() throws Exception {
+        // 100-SNAPSHOT canonicalizes to 1.0.0-SNAPSHOT; its release version (100) must be
+        // compared against the stored, canonical spelling of the published release (1.0.0),
+        // not the raw request spelling.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "100-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/100-SNAPSHOT")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void still_refuse_a_release_version_that_already_exists() throws Exception {
+        // Releases stay immutable. Only the snapshot target is idempotent.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "1.0.0")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/1.0.0")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void refuse_a_release_version_whose_raw_request_spelling_differs_from_the_stored_canonical_spelling() throws Exception {
+        // "100" must canonicalise to the stored "1.0.0" to be recognised as a clash, or
+        // this falls through to the create branch and returns 400 instead of 409.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-test")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-test")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-test", "100")).when()
+                .post("/calm/namespaces/finos/architectures/snap-test/versions/100")
+                .then().statusCode(409);
+    }
+
+    @Test
+    void overwrite_a_standard_snapshot_that_already_exists() throws Exception {
+        // STANDARD's update arm is only reachable via this snapshot-overwrite path: PUT
+        // hard-returns 501 for STANDARD, and the pre-existing STANDARD tests only exercise
+        // create. This is the only test that can catch a broken updateStandardForVersion call.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-standard")
+                .setResourceType(ResourceType.STANDARD).setNumericId(30).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "snap-standard")).thenReturn(existing);
+        when(mockStandardStore.getStandardVersions("finos", 30)).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "standards", "snap-standard", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/standards/snap-standard/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockStandardStore).updateStandardForVersion(any(CreateStandardRequest.class), eq("finos"), eq(30), eq("2.0.0-SNAPSHOT"));
+        verify(mockStandardStore, never()).createStandardForVersion(any(CreateStandardRequest.class), any(), any(), any());
+    }
+
+    @Test
+    void overwrite_an_interface_snapshot_that_already_exists() throws Exception {
+        // Same rationale as the STANDARD case above: PUT hard-returns 501 for INTERFACE too,
+        // so this snapshot-overwrite path is the only caller reaching updateInterfaceForVersion.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snap-interface")
+                .setResourceType(ResourceType.INTERFACE).setNumericId(40).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "snap-interface")).thenReturn(existing);
+        when(mockInterfaceStore.getInterfaceVersions("finos", 40)).thenReturn(List.of("2.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "interfaces", "snap-interface", "2.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/interfaces/snap-interface/versions/2.0.0-SNAPSHOT")
+                .then().statusCode(200);
+
+        verify(mockInterfaceStore).updateInterfaceForVersion(any(CreateInterfaceRequest.class), eq("finos"), eq(40), eq("2.0.0-SNAPSHOT"));
+        verify(mockInterfaceStore, never()).createInterfaceForVersion(any(CreateInterfaceRequest.class), any(), any(), any());
     }
 
     @Test
@@ -391,7 +576,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(7).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(7).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "seed-one", "1.0.0")).when()
                 .post("/calm")
@@ -427,7 +612,7 @@ public class TestMappingControllerResourceShould {
                         .setResourceType(ResourceType.PATTERN).setNumericId(8).build());
         Pattern pattern = new Pattern.PatternBuilder()
                 .setNamespace("finos").setId(8).setVersion("1.0.0").setPattern("{}").build();
-        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"))).thenReturn(pattern);
+        when(mockPatternStore.createPatternForNamespace(any(CreatePatternRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(pattern);
 
         given().header("Content-Type", "application/json").body(versionedDoc("finos", "patterns", "v-new", "1.0.0")).when()
                 .post("/calm/namespaces/finos/patterns/v-new/versions/1.0.0")
@@ -515,6 +700,24 @@ public class TestMappingControllerResourceShould {
                 .body("values", hasSize(2))
                 .body("values[0]", is("1.0.0"))
                 .body("values[1]", is("1.1.0"));
+    }
+
+    @Test
+    void return_a_snapshot_before_the_release_it_belongs_to() throws Exception {
+        // Semver.tryParse strips the -SNAPSHOT suffix, so a release and its snapshot tie and
+        // fall back to storage order. Ordering must come from SemanticVersionOrder.
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snapshot-sort-test")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "snapshot-sort-test")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+                .thenReturn(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+
+        given().when().get("/calm/namespaces/finos/patterns/snapshot-sort-test/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(2))
+                .body("values[0]", is("1.0.0-SNAPSHOT"))
+                .body("values[1]", is("1.0.0"));
     }
 
     @Test
@@ -1414,5 +1617,399 @@ public class TestMappingControllerResourceShould {
                 .body(body)
                 .when().post("/calm/domains/security/controls/unknown-ctrl/configurations/my-cfg/versions/1.0.0")
                 .then().statusCode(404);
+    }
+
+    // --- Snapshot version acceptance on namespace resource endpoints ---
+
+    @Test
+    void accept_a_snapshot_version_in_the_path() throws Exception {
+        // Only checks the version is not rejected by validation. Mocking an existing mapping
+        // and its versions lets the request reach the handler and complete the add-version
+        // path, proving the -SNAPSHOT suffix passed the @Pattern check on {version}.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("snapshot-arch")
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(20).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snapshot-arch")).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snapshot-arch", "1.0.0-SNAPSHOT")).when()
+                .post("/calm/namespaces/finos/architectures/snapshot-arch/versions/1.0.0-SNAPSHOT")
+                .then().statusCode(not(400));
+    }
+
+    @Test
+    void reject_a_lowercase_snapshot_suffix() {
+        given().header("Content-Type", "application/json").body("{}").when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0-snapshot")
+                .then().statusCode(400);
+    }
+
+    // --- Promotion: publishing a release deletes its snapshot ---
+
+    private static final int PROMOTION_ARCHITECTURE_ID = 60;
+
+    /** Sets up an existing architecture mapping whose only known version is {@code version}. */
+    private void givenAnExistingArchitecture(String name, String version) throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId(name)
+                .setResourceType(ResourceType.ARCHITECTURE).setNumericId(PROMOTION_ARCHITECTURE_ID).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, name)).thenReturn(existing);
+        when(mockArchitectureStore.getArchitectureVersions(any(Architecture.class))).thenReturn(List.of(version));
+    }
+
+    private static String architectureBody(String name, String version) {
+        return versionedDoc("finos", "architectures", name, version);
+    }
+
+    @Test
+    void delete_the_snapshot_when_its_release_version_is_published() throws Exception {
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void publish_a_release_normally_when_there_was_never_a_snapshot() throws Exception {
+        // A release POST for a resource with no snapshot must be exactly the operation it was
+        // before this feature, so no client needs promotion-specific code.
+        givenAnExistingArchitecture("test", "1.0.0");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.1.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.1.0")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore, never()).deleteArchitectureVersion(any(), anyInt(), any());
+    }
+
+    @Test
+    void still_publish_the_release_when_deleting_the_snapshot_fails() throws Exception {
+        // Promotion is not atomic. The release is what the user asked for; a stranded
+        // snapshot is recoverable, a lost release is not.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+        doThrow(new RuntimeException("mongo down"))
+                .when(mockArchitectureStore).deleteArchitectureVersion(any(), anyInt(), any());
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_non_canonical_release_spelling() throws Exception {
+        // VERSION_REGEX accepts several spellings of one version ("100" == "1.0.0"). The
+        // release spelling must be canonicalised before it's compared against — and used to
+        // delete — the canonically stored snapshot, or the snapshot is silently orphaned.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "100"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/100")
+        .then()
+                .statusCode(201);
+
+        verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void write_the_release_before_deleting_its_snapshot() throws Exception {
+        // Promotion is deliberately not atomic, and the order is load-bearing: reversing it
+        // would delete the snapshot before knowing the release write succeeds.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("test", "1.0.0"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+                .statusCode(201);
+
+        InOrder order = inOrder(mockArchitectureStore);
+        order.verify(mockArchitectureStore).createArchitectureForVersion(any(Architecture.class));
+        order.verify(mockArchitectureStore).deleteArchitectureVersion("finos", PROMOTION_ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_pattern_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-pattern")
+                .setResourceType(ResourceType.PATTERN).setNumericId(61).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "promo-pattern")).thenReturn(existing);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "promo-pattern", "1.0.0")).when()
+                .post("/calm/namespaces/finos/patterns/promo-pattern/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockPatternStore).deletePatternVersion("finos", 61, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_flow_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-flow")
+                .setResourceType(ResourceType.FLOW).setNumericId(62).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "promo-flow")).thenReturn(existing);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "flows", "promo-flow", "1.0.0")).when()
+                .post("/calm/namespaces/finos/flows/promo-flow/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockFlowStore).deleteFlowVersion("finos", 62, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_a_standard_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-standard")
+                .setResourceType(ResourceType.STANDARD).setNumericId(63).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.STANDARD, "promo-standard")).thenReturn(existing);
+        when(mockStandardStore.getStandardVersions("finos", 63)).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "standards", "promo-standard", "1.0.0")).when()
+                .post("/calm/namespaces/finos/standards/promo-standard/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockStandardStore).deleteStandardVersion("finos", 63, "1.0.0-SNAPSHOT");
+    }
+
+    @Test
+    void delete_the_snapshot_when_publishing_an_interface_release() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("promo-interface")
+                .setResourceType(ResourceType.INTERFACE).setNumericId(64).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.INTERFACE, "promo-interface")).thenReturn(existing);
+        when(mockInterfaceStore.getInterfaceVersions("finos", 64)).thenReturn(List.of("1.0.0-SNAPSHOT"));
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "interfaces", "promo-interface", "1.0.0")).when()
+                .post("/calm/namespaces/finos/interfaces/promo-interface/versions/1.0.0")
+                .then().statusCode(201);
+
+        verify(mockInterfaceStore).deleteInterfaceVersion("finos", 64, "1.0.0-SNAPSHOT");
+    }
+
+    // --- A new resource may start at a snapshot ---
+
+    @Test
+    void create_a_brand_new_resource_at_a_snapshot_version() throws Exception {
+        // Iterating before the first publish is the main flow the feature exists for. The
+        // "first version must be 1.0.0" rule is about the release version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(70).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new", "1.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new/versions/1.0.0-SNAPSHOT")
+        .then()
+                .statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void refuse_a_brand_new_resource_at_a_later_snapshot_version() throws Exception {
+        // The release-version rule still applies: 2.0.0-SNAPSHOT is not a first version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new")).thenThrow(new MappingNotFoundException());
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new", "2.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new/versions/2.0.0-SNAPSHOT")
+        .then()
+                .statusCode(400)
+                .body(containsString("first version of a resource must be 1.0.0"));
+    }
+
+    @Test
+    void accept_a_non_canonically_spelled_first_snapshot() throws Exception {
+        // VERSION_REGEX accepts several spellings of one version ("100" == "1.0.0"), and the
+        // guard must canonicalise the release spelling before comparing it against "1.0.0" —
+        // releaseVersion alone leaves "100-SNAPSHOT" as "100", which would be wrongly refused.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new-2")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new-2"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new-2")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(71).setVersion("100-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new-2", "100-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new-2/versions/100-SNAPSHOT")
+        .then()
+                .statusCode(201);
+    }
+
+    @Test
+    void thread_the_requested_snapshot_version_into_the_architecture_passed_to_the_store() throws Exception {
+        // The stores no longer always initialise the first version as 1.0.0 — the requested
+        // version must actually reach the store, not a hardcoded literal.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "brand-new-3")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("brand-new-3"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("brand-new-3")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(0).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(72).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        ArgumentCaptor<Architecture> captor = ArgumentCaptor.forClass(Architecture.class);
+        when(mockArchitectureStore.createArchitectureForNamespace(captor.capture())).thenReturn(arch);
+
+        given()
+                .contentType("application/json")
+                .body(architectureBody("brand-new-3", "1.0.0-SNAPSHOT"))
+        .when()
+                .post("/calm/namespaces/finos/architectures/brand-new-3/versions/1.0.0-SNAPSHOT")
+        .then()
+                .statusCode(201);
+
+        assertThat("the requested version must reach the store, not a hardcoded 1.0.0",
+                captor.getValue().getDotVersion(), is("1.0.0-SNAPSHOT"));
+    }
+
+    // --- Audit: promotion must not clobber the release write's own audit row ---
+
+    /** The most recently recorded {@link AuditLogEntry} passed to {@code AuditService.record}. */
+    private AuditLogEntry lastRecordedAuditEntry() {
+        ArgumentCaptor<AuditLogEntry> captor = ArgumentCaptor.forClass(AuditLogEntry.class);
+        verify(mockAuditService, atLeastOnce()).record(captor.capture());
+        List<AuditLogEntry> entries = captor.getAllValues();
+        return entries.get(entries.size() - 1);
+    }
+
+    @Test
+    void keep_the_releases_own_audit_row_when_promotion_deletes_a_snapshot() throws Exception {
+        // AuditRequestFilter records exactly one row per request. deleteSnapshotForVersion must
+        // NOT stage a DELETE for the snapshot it removes, or it would overwrite the release
+        // write's own row — leaving no record of the release itself. The release write is the
+        // durable event; the snapshot delete is cleanup of the same request.
+        givenAnExistingArchitecture("test", "1.0.0-SNAPSHOT");
+
+        given()
+            .contentType("application/json")
+            .body(architectureBody("test", "1.0.0"))
+        .when()
+            .post("/calm/namespaces/finos/architectures/test/versions/1.0.0")
+        .then()
+            .statusCode(201);
+
+        AuditLogEntry entry = lastRecordedAuditEntry();
+        assertThat(entry.getAction(), is(not(AuditAction.DELETE)));
+        assertThat(entry.getVersion(), is("1.0.0"));
+    }
+
+    // --- Snapshot scope: generic POST /calm accepts it for namespace resources, but domain
+    // --- controls (out of scope for this feature) must keep rejecting it.
+
+    @Test
+    void accept_a_snapshot_id_for_a_namespace_resource_via_generic_post() throws Exception {
+        // The $id-driven POST /calm is a separate validation path (CalmDocumentParser#parseCanonicalId)
+        // from the path-driven POST .../versions/{version} (which already accepted snapshots).
+        // The two must agree on what's a valid version.
+        when(mockMappingStore.getMapping("finos", ResourceType.ARCHITECTURE, "snap-generic"))
+                .thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("snap-generic"), eq(ResourceType.ARCHITECTURE), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("snap-generic")
+                        .setResourceType(ResourceType.ARCHITECTURE).setNumericId(80).build());
+        Architecture arch = new Architecture.ArchitectureBuilder()
+                .setNamespace("finos").setId(80).setVersion("1.0.0-SNAPSHOT").setArchitecture("{}").build();
+        when(mockArchitectureStore.createArchitectureForNamespace(any(Architecture.class))).thenReturn(arch);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "architectures", "snap-generic", "1.0.0-SNAPSHOT")).when()
+                .post("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void record_a_snapshot_overwrite_via_generic_post_as_an_update_not_a_create() throws Exception {
+        // Now that the generic /calm endpoint can reach a snapshot at all (the fix above),
+        // this exercises the addNewVersion overwrite branch's AuditRequestFilter.restageAction
+        // call through the ONE endpoint that both accepts snapshots AND stages a context
+        // (createResourceFromDocument stages CREATE; the specific-version-path endpoint never
+        // stages anything at all, so it can't exercise this).
+        givenAnExistingArchitecture("test", "2.0.0-SNAPSHOT");
+
+        given()
+            .contentType("application/json")
+            .body(architectureBody("test", "2.0.0-SNAPSHOT"))
+        .when()
+            .post("/calm")
+        .then()
+            .statusCode(200);
+
+        assertThat(lastRecordedAuditEntry().getAction(), is(AuditAction.UPDATE));
+    }
+
+    @Test
+    void still_reject_a_snapshot_id_for_a_control_requirement_via_generic_post() throws Exception {
+        // Domain controls are deliberately out of snapshot scope — validateVersion (a
+        // different check from parseCanonicalId's) must keep rejecting -SNAPSHOT here.
+        //
+        // The control is mocked as already EXISTING so that, if validateVersion's own gate
+        // were ever bypassed, the request would fall through to the "add a version to an
+        // existing control" success path (201) rather than coincidentally hitting the
+        // unrelated "a new control's first version must be 1.0.0" 400 — isolating this test
+        // to the version-format check it's meant to pin.
+        when(mockControlStore.getControlsForDomain("security"))
+                .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/requirement/versions/1.0.0-SNAPSHOT\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(400);
+    }
+
+    @Test
+    void still_reject_a_snapshot_id_for_a_control_configuration_via_generic_post() throws Exception {
+        // Same isolation rationale as the requirement test above: mock both the control and
+        // the configuration as already existing.
+        when(mockControlStore.getControlsForDomain("security"))
+                .thenReturn(List.of(new ControlDetail(5, "my-ctrl", "Desc")));
+        when(mockControlStore.getConfigurationDetailsForControl("security", 5))
+                .thenReturn(List.of(new ControlConfigDetail(10, "my-cfg")));
+
+        String body = "{\"$id\":\"http://localhost:8080/calm/domains/security/controls/my-ctrl/configurations/my-cfg/versions/1.0.0-SNAPSHOT\"}";
+        given().header("Content-Type", "application/json")
+                .body(body)
+                .when().post("/calm")
+                .then().statusCode(400);
     }
 }

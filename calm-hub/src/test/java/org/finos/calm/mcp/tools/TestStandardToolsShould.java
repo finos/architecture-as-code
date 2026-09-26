@@ -259,7 +259,7 @@ class TestStandardToolsShould {
         Standard created = new Standard(new CreateStandardRequest("My Standard", "A description", "{}"));
         created.setId(42);
         created.setVersion("1.0.0");
-        when(standardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos")))
+        when(standardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("finos"), anyString()))
                 .thenReturn(created);
 
         ToolResponse result = standardTools.createStandard("finos", "My Standard", "A description", "{}");
@@ -271,7 +271,7 @@ class TestStandardToolsShould {
 
     @Test
     void return_error_when_namespace_not_found_for_create_standard() throws Exception {
-        when(standardStore.createStandardForNamespace(any(), anyString()))
+        when(standardStore.createStandardForNamespace(any(), anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = standardTools.createStandard("missing", "My Standard", "A description", "{}");

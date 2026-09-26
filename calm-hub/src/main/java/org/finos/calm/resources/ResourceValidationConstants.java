@@ -1,5 +1,6 @@
 package org.finos.calm.resources;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.owasp.html.HtmlPolicyBuilder;
 import org.owasp.html.PolicyFactory;
 
@@ -15,6 +16,14 @@ public class ResourceValidationConstants {
     public static final String DOMAIN_MESSAGE = "domain name must match pattern '^[A-Za-z0-9-]+$'";
     public static final String VERSION_REGEX = "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$";
     public static final String VERSION_MESSAGE = "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$'";
+    // The same pattern as VERSION_REGEX, plus an optional fixed -SNAPSHOT marker. Applied only
+    // to the five namespace resource types. ADR, timeline, control and layout endpoints keep
+    // VERSION_REGEX: ADR runs on the NUMERIC version scheme, where a suffixed value is an
+    // unparseable revision rather than a version.
+    public static final String SNAPSHOT_VERSION_REGEX =
+            "^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(" + ResourceVersion.SNAPSHOT_SUFFIX + ")?$";
+    public static final String SNAPSHOT_VERSION_MESSAGE =
+            "version must match pattern '^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)(-SNAPSHOT)?$'";
     /** Temporary narrative document types pending a shared Java-consumable contract. */
     public static final Set<String> NARRATIVE_DOCUMENT_TYPES = Set.of("knowledge", "sad");
     // First character must be a letter so slugs are never purely numeric (avoids clash with legacy numeric IDs).

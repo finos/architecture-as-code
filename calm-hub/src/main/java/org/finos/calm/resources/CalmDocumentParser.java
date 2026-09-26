@@ -208,7 +208,9 @@ public class CalmDocumentParser {
             throw new IllegalArgumentException(
                     "'versions' is a reserved path segment and cannot be used as a resource name");
         }
-        if (!version.matches(VERSION_REGEX)) {
+        // Matches createResourceVersion's path-driven POST, which already accepts -SNAPSHOT;
+        // domain controls use validateVersion instead and deliberately stay strict.
+        if (!version.matches(SNAPSHOT_VERSION_REGEX)) {
             throw new IllegalArgumentException("Invalid version in $id: " + version);
         }
         ResourceType resourceType = TYPE_MAP.get(type.toLowerCase());

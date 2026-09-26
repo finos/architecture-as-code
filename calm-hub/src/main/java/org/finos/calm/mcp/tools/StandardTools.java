@@ -129,7 +129,7 @@ public class StandardTools {
 
         try {
             CreateStandardRequest request = new CreateStandardRequest(name, description, standardJson);
-            Standard result = standardStore.createStandardForNamespace(request, namespace);
+            Standard result = standardStore.createStandardForNamespace(request, namespace, "1.0.0");
             logger.info("Standard created with ID [{}] in namespace [{}]", result.getId(), namespace);
             return ToolResponse.success("Standard created successfully with ID: " + result.getId() + " (version " + result.getVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {

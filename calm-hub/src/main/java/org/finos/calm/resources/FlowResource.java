@@ -24,6 +24,7 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.ResourceMappingStore;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -34,6 +35,8 @@ import java.util.List;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
@@ -91,7 +94,7 @@ public class FlowResource {
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         try {
-            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);
+            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace, "1.0.0");
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);
@@ -121,7 +124,7 @@ public class FlowResource {
 
         try {
             List<String> versions =  store.getFlowVersions(flow);
-            String lastVersion = versions.getLast();
+            String lastVersion = SemanticVersionOrder.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
@@ -172,7 +175,7 @@ public class FlowResource {
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version
     ) {
         return getFlowInternal(namespace, flowId, version);
     }

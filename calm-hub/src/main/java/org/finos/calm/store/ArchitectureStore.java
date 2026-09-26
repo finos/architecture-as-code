@@ -40,4 +40,13 @@ public interface ArchitectureStore {
      * Deletes an architecture and all of its versions.
      */
     void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException;
+
+    /**
+     * Removes one version, leaving the resource and its other versions in place. Used by
+     * promotion to delete a snapshot once its release version is published.
+     *
+     * @return {@code true} if a version was removed.
+     */
+    boolean deleteArchitectureVersion(String namespace, int architectureId, String version)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException;
 }

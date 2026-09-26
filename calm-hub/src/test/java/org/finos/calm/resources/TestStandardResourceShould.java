@@ -29,6 +29,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -103,7 +104,7 @@ public class TestStandardResourceShould {
 
     @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_standards() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockStandardStore.createStandardForNamespace(any(CreateStandardRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateStandardRequest createStandardRequest = new CreateStandardRequest();
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
@@ -117,7 +118,7 @@ public class TestStandardResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -144,7 +145,7 @@ public class TestStandardResourceShould {
         createStandardRequest.setName("nist");
         createStandardRequest.setDescription("NIST Standard");
         createStandardRequest.setStandardJson("{ \"test\": \"json\" }");
-        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid")).thenReturn(storedNist);
+        when(mockStandardStore.createStandardForNamespace(createStandardRequest, "valid", "1.0.0")).thenReturn(storedNist);
 
         given()
                 .header("Content-Type", "application/json")
@@ -155,7 +156,7 @@ public class TestStandardResourceShould {
                 .statusCode(201)
                 .header("Location",  containsString(("/api/calm/namespaces/valid/standards/5/versions/1.0.0")));
 
-        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid");
+        verify(mockStandardStore).createStandardForNamespace(createStandardRequest, "valid", "1.0.0");
     }
 
     @Test
@@ -222,7 +223,7 @@ public class TestStandardResourceShould {
                 .get("/api/calm/namespaces/finos/standards/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetStandardTests() {
@@ -297,6 +298,40 @@ public class TestStandardResourceShould {
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_standard() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateStandardRequest createStandardRequest = new CreateStandardRequest();
+        createStandardRequest.setName("amazing-standard");
+        createStandardRequest.setDescription("An amazing standard");
+        createStandardRequest.setStandardJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createStandardRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void not_reject_a_snapshot_version_on_get_standard() throws Exception {
+        // GET keeps SNAPSHOT_VERSION_REGEX, so a snapshot created via the name-based API stays
+        // readable here. A 404 (not 400) proves the path param passed validation and reached
+        // the store.
+        when(mockStandardStore.getStandardForVersion(eq("finos"), eq(5), eq("1.0.0-SNAPSHOT")))
+                .thenThrow(new StandardVersionNotFoundException());
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/standards/5/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(404);
     }
 
     static Stream<Arguments> provideParametersForCreateStandardTests() {

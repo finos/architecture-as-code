@@ -43,6 +43,8 @@ import java.net.URISyntaxException;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
@@ -174,7 +176,7 @@ public class ArchitectureResource {
     public Response getArchitecture(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("architectureId") int architectureId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version) {
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version) {
         Architecture architecture = new Architecture.ArchitectureBuilder()
                 .setNamespace(namespace)
                 .setId(architectureId)

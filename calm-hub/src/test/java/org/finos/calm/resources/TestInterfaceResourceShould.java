@@ -31,6 +31,7 @@ import java.util.stream.Stream;
 
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -127,7 +128,7 @@ public class TestInterfaceResourceShould {
 
     @Test
     void return_a_404_when_namespace_is_provided_that_does_not_exist_on_create_interfaces() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"))).thenThrow(new NamespaceNotFoundException());
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("invalid"), eq("1.0.0"))).thenThrow(new NamespaceNotFoundException());
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
@@ -141,7 +142,7 @@ public class TestInterfaceResourceShould {
                 .then()
                 .statusCode(404);
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "invalid", "1.0.0");
     }
 
     @Test
@@ -168,7 +169,7 @@ public class TestInterfaceResourceShould {
         createInterfaceRequest.setName("tcp-port");
         createInterfaceRequest.setDescription("TCP Port Interface");
         createInterfaceRequest.setInterfaceJson("{ \"test\": \"json\" }");
-        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid")).thenReturn(storedInterface);
+        when(mockInterfaceStore.createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0")).thenReturn(storedInterface);
 
         given()
                 .header("Content-Type", "application/json")
@@ -179,12 +180,12 @@ public class TestInterfaceResourceShould {
                 .statusCode(201)
                 .header("Location", containsString("/api/calm/namespaces/valid/interfaces/5/versions/1.0.0"));
 
-        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid");
+        verify(mockInterfaceStore).createInterfaceForNamespace(createInterfaceRequest, "valid", "1.0.0");
     }
 
     @Test
     void return_a_400_when_invalid_json_is_provided_on_create_interface() throws NamespaceNotFoundException, JsonProcessingException {
-        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid")))
+        when(mockInterfaceStore.createInterfaceForNamespace(any(CreateInterfaceRequest.class), eq("valid"), eq("1.0.0")))
                 .thenThrow(new JsonParseException());
 
         CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
@@ -265,7 +266,7 @@ public class TestInterfaceResourceShould {
                 .get("/api/calm/namespaces/finos/interfaces/5/versions/invalid_version")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetInterfaceTests() {
@@ -337,6 +338,25 @@ public class TestInterfaceResourceShould {
                 .body(createInterfaceRequest)
                 .when()
                 .post("/api/calm/namespaces/finos/interfaces/5/versions/invalid-version")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_when_creating_new_version_of_interface() {
+        // POST on the numeric API keeps the strict VERSION_REGEX -- snapshots are only accepted
+        // through the name-based /calm/... API, which holds the snapshot rules.
+        CreateInterfaceRequest createInterfaceRequest = new CreateInterfaceRequest();
+        createInterfaceRequest.setName("amazing-interface");
+        createInterfaceRequest.setDescription("An amazing interface");
+        createInterfaceRequest.setInterfaceJson("{}");
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(createInterfaceRequest)
+                .when()
+                .post("/api/calm/namespaces/finos/interfaces/5/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));

@@ -675,4 +675,67 @@ class TestMongoVersionDocumentStoreShould {
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED),
                 contains(new NamespaceResourceSummary("Architecture 7", "", 7, 0)));
     }
+
+    // --- deleteVersion ---
+
+    @Test
+    void delete_one_version_and_report_that_it_removed_it() {
+        DeleteResult result = DeleteResult.acknowledged(1);
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(result);
+        // A successful delete always follows up with the count decrement, matching the
+        // increment every other write-path test in this file already stubs for.
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT"), is(true));
+
+        verify(versionCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void report_that_it_removed_nothing_when_the_version_is_absent() {
+        // Promotion deletes a snapshot that may never have existed. That is not an error.
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT"), is(false));
+    }
+
+    @Test
+    void decrement_the_version_count_when_it_deleted_a_version() {
+        // createVersion and upsertVersion both increment. Without the matching decrement the
+        // header's versionCount drifts permanently high and disagrees with the version list.
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
+
+        // Asserting the update's rendered content, not merely that some update happened —
+        // otherwise an increment (+1) sent by mistake would satisfy this just as well.
+        ArgumentCaptor<Bson> updateCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(any(Bson.class), updateCaptor.capture());
+        assertThat(asJson(updateCaptor.getValue()), containsString("\"versionCount\": -1"));
+    }
+
+    @Test
+    void delete_the_version_under_any_accepted_spelling() {
+        // Canonicalisation happens on the way in, so a delete must canonicalise too or it
+        // silently deletes nothing — mirrors look_up_a_dash_spelled_version_by_its_canonical_form.
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class))).thenReturn(acknowledged(1, null));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "100-SNAPSHOT"), is(true));
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(versionCollection).deleteOne(filterCaptor.capture());
+        assertThat(asJson(filterCaptor.getValue()), containsString("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void not_decrement_the_version_count_when_nothing_was_deleted() {
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
+
+        verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
+    }
 }

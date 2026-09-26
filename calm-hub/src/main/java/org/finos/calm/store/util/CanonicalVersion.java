@@ -1,5 +1,6 @@
 package org.finos.calm.store.util;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.resources.ResourceValidationConstants;
 
 import java.util.regex.Matcher;
@@ -36,6 +37,13 @@ import java.util.regex.Pattern;
  * the callers instead would mean seven resource types each having to
  * remember to do it.
  *
+ * <h2>Snapshots</h2>
+ * A snapshot folds exactly as its release version does, and keeps the suffix:
+ * {@code 100-SNAPSHOT} and {@code 1-0-0-SNAPSHOT} both store as {@code 1.0.0-SNAPSHOT}.
+ * The suffix is deliberately <em>not</em> folded away — a snapshot and its release are two
+ * different documents, and merging them would make publishing a release overwrite its own
+ * snapshot instead of creating a new version.
+ *
  * <h2>Coupling note</h2>
  * This deliberately reuses {@code ResourceValidationConstants.VERSION_REGEX}
  * rather than restating the pattern, even though it points from the store
@@ -62,10 +70,12 @@ public final class CanonicalVersion {
         if (version == null) {
             return null;
         }
-        Matcher matcher = VERSION.matcher(version);
+        String release = ResourceVersion.releaseVersion(version);
+        Matcher matcher = VERSION.matcher(release);
         if (!matcher.matches()) {
             return version;
         }
-        return matcher.group(1) + "." + matcher.group(2) + "." + matcher.group(3);
+        String canonical = matcher.group(1) + "." + matcher.group(2) + "." + matcher.group(3);
+        return ResourceVersion.isSnapshot(version) ? ResourceVersion.asSnapshot(canonical) : canonical;
     }
 }

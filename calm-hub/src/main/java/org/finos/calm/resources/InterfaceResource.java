@@ -73,7 +73,7 @@ public class InterfaceResource {
             @Valid @NotNull(message = "Request must not be null") CreateInterfaceRequest interfaceRequest
     ) throws URISyntaxException {
         try {
-            CalmInterface createdInterface = interfaceStore.createInterfaceForNamespace(interfaceRequest, namespace);
+            CalmInterface createdInterface = interfaceStore.createInterfaceForNamespace(interfaceRequest, namespace, "1.0.0");
             return Response.created(new URI("/api/calm/namespaces/" + namespace + "/interfaces/" + createdInterface.getId() + "/versions/1.0.0")).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating interface", namespace, e);
@@ -110,7 +110,7 @@ public class InterfaceResource {
     public Response getInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version
     ) {
         try {
             return Response.ok(interfaceStore.getInterfaceForVersion(namespace, interfaceId, version)).build();

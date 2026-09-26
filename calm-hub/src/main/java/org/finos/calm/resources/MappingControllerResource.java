@@ -22,12 +22,12 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.MappingControllerService;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
 import java.util.List;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
@@ -95,8 +95,12 @@ public class MappingControllerResource {
                     "canonical URL. For namespace resources: {baseUrl}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}. " +
                     "For control requirements: {baseUrl}/calm/domains/{domain}/controls/{controlName}/requirement/versions/{version}. " +
                     "For configurations: {baseUrl}/calm/domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}. " +
-                    "A version is always required. For a brand-new resource the first version must be 1.0.0. " +
-                    "For an existing resource the requested version is created (409 if it already exists)."
+                    "A version is always required. For a brand-new resource the first version must be 1.0.0 or " +
+                    "1.0.0-SNAPSHOT. " +
+                    "For an existing resource the requested version is created (409 if it already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @Authenticated
     public Response createResourceFromDocument(String requestBody) throws URISyntaxException {
@@ -241,14 +245,18 @@ public class MappingControllerResource {
             summary = "Create a specific version of a named resource",
             description = "The request body must be the raw CALM document, and its \"$id\" must equal the canonical " +
                     "versioned URL for the exact version in the path. For a brand-new resource the version must be " +
-                    "1.0.0; for an existing resource the requested version is created (409 if it already exists)."
+                    "1.0.0 or 1.0.0-SNAPSHOT; for an existing resource the requested version is created (409 if it " +
+                    "already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createResourceVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             String requestBody
     ) throws URISyntaxException {
         return handlePost(namespace, type, name, version, requestBody);
@@ -314,8 +322,9 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
+            // Semver::tryParse strips the -SNAPSHOT suffix, so a release and its snapshot tie.
             List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(Semver::tryParse))
+                    .sorted(SemanticVersionOrder.ASCENDING)
                     .toList();
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
@@ -353,7 +362,7 @@ public class MappingControllerResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {

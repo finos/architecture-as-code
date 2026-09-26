@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.core.Response;
 import org.finos.calm.domain.*;
+import org.finos.calm.domain.audit.AuditAction;
 import org.finos.calm.domain.controls.ControlConfigDetail;
 import org.finos.calm.domain.controls.ControlDetail;
 import org.finos.calm.domain.controls.CreateControlConfiguration;
@@ -16,7 +17,9 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.resources.CalmDocumentParser;
 import org.finos.calm.resources.CalmResourceErrorResponses;
+import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.store.*;
+import org.finos.calm.store.util.CanonicalVersion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -107,7 +110,7 @@ public class MappingControllerService {
                                             String name, int numericId, String version,
                                             String title, String description, String storedBody) throws URISyntaxException {
         try {
-            updateVersionedResourceInStore(resourceType, namespace, numericId, version, title, description, storedBody);
+            updateVersionedResourceInStore(resourceType, namespace, numericId, version, storedBody, title, description);
             URI location = new URI("/calm/namespaces/" + namespace + "/" + type
                     + "/" + name + "/versions/" + version);
             return Response.created(location).build();
@@ -421,16 +424,20 @@ public class MappingControllerService {
 
     /**
      * Creates a brand-new resource (no mapping exists yet).
-     * <p>The underlying stores always initialise the first version as {@code 1.0.0}.  The first
-     * version of a resource must therefore be {@code 1.0.0}; any other requested version is
-     * rejected with {@code 400 Bad Request}.</p>
+     * <p>The first version of a resource must be {@code 1.0.0} or {@code 1.0.0-SNAPSHOT} — this
+     * is the main flow that lets a resource be iterated before its first publish. The rule is
+     * about the release version, so {@code 2.0.0-SNAPSHOT} is still rejected with
+     * {@code 400 Bad Request}.</p>
      */
     private Response createNewResource(String namespace, ResourceType resourceType, String typePath,
                                        String name, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         String finalVersion = versionSpec.version() != null ? versionSpec.version() : "1.0.0";
-        if (!"1.0.0".equals(finalVersion)) {
+        // The request's release spelling must be canonicalised before comparison — releaseVersion
+        // alone leaves "100-SNAPSHOT" as "100", which would never equal "1.0.0".
+        if (!"1.0.0".equals(CanonicalVersion.of(ResourceVersion.releaseVersion(finalVersion)))) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("The first version of a resource must be 1.0.0, but " + finalVersion + " was requested")
+                    .entity("The first version of a resource must be 1.0.0 or 1.0.0-SNAPSHOT, but "
+                            + STRICT_SANITIZATION_POLICY.sanitize(finalVersion) + " was requested")
                     .build();
         }
         String title = documentParser.extractStringField(json, "title");
@@ -442,7 +449,7 @@ public class MappingControllerService {
         try {
             mappingStore.createMapping(namespace, name, resourceType, 0);
             try {
-                int numericId = createResourceInStore(resourceType, namespace, json, title, description);
+                int numericId = createResourceInStore(resourceType, namespace, json, title, description, finalVersion);
                 mappingStore.updateMappingNumericId(namespace, resourceType, name, numericId);
             } catch (Exception e) {
                 try {
@@ -483,22 +490,54 @@ public class MappingControllerService {
             if (versions.isEmpty()) {
                 return mappingNotFoundResponse(name);
             }
-            // Reject if the explicit version already exists.
-            if (versions.contains(versionSpec.version())) {
-                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
-                        versionSpec.version(), mapping.getResourceType(), name, namespace);
-            }
             String newVersion = versionSpec.version();
+            boolean snapshot = ResourceVersion.isSnapshot(newVersion);
+
+            // A snapshot that shadows a published release makes promotion ambiguous: publishing
+            // that release would have to both create and delete the same logical version.
+            // versions holds canonical spellings, so the raw request's release spelling must be
+            // canonicalised before comparison — 100-SNAPSHOT's release version is "100", which
+            // would never match a stored "1.0.0" otherwise.
+            if (snapshot && versions.contains(CanonicalVersion.of(ResourceVersion.releaseVersion(newVersion)))) {
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        ResourceVersion.releaseVersion(newVersion), mapping.getResourceType(), name, namespace);
+            }
+            // Releases stay immutable. A snapshot is mutable by design, so a repeat POST
+            // overwrites it — a client never has to know whether it already exists.
+            // Canonicalised before comparing, as above.
+            boolean overwriting = versions.contains(CanonicalVersion.of(newVersion));
+            if (overwriting && !snapshot) {
+                return CalmResourceErrorResponses.versionAlreadyExistsResponse(
+                        newVersion, mapping.getResourceType(), name, namespace);
+            }
+
             String title = documentParser.extractStringField(json, "title");
             if (title.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
                         .entity("'title' is required in the document body").build();
             }
             String description = documentParser.extractStringField(json, "description");
+
+            if (overwriting) {
+                // The resource layer stages a provisional CREATE before it knows whether this
+                // version already exists — only here, once `versions` has been fetched, is it
+                // known that this write destroys an existing snapshot rather than creating one.
+                AuditRequestFilter.restageAction(AuditAction.UPDATE);
+                updateVersionedResourceInStore(mapping.getResourceType(), namespace,
+                        mapping.getNumericId(), newVersion, documentParser.stripId(json), title, description);
+                return Response.ok().build();
+            }
             createVersionedResourceInStore(mapping.getResourceType(), namespace,
                     mapping.getNumericId(), newVersion, json, title, description);
 
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name + "/versions/" + newVersion);
+            if (!snapshot) {
+                deleteSnapshotForVersion(mapping, newVersion, versions);
+            }
+
+            // The store folds the requested spelling to canonical form, so a Location built from
+            // newVersion would not match the version GET .../versions lists.
+            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name
+                    + "/versions/" + CanonicalVersion.of(newVersion));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource",
@@ -515,24 +554,25 @@ public class MappingControllerService {
 
     /**
      * Creates a new resource in the type-specific store and returns the assigned numeric ID.
-     * The underlying stores always initialise the first stored version as {@code 1.0.0}.
+     * {@code version} is the resource's first version — {@code 1.0.0} or
+     * {@code 1.0.0-SNAPSHOT} — already validated by {@link #createNewResource}.
      */
     private int createResourceInStore(ResourceType type, String namespace, String json,
-                                       String resourceName, String description) throws Exception {
+                                       String resourceName, String description, String version) throws Exception {
         // The $id was already verified against the canonical URL; strip it before storage as it is
         // re-derived on read and MongoDB rejects a top-level $id field (write error code 55).
         json = documentParser.stripId(json);
         return switch (type) {
             case PATTERN -> {
                 CreatePatternRequest req = new CreatePatternRequest(resourceName, description, json);
-                Pattern created = patternStore.createPatternForNamespace(req, namespace);
+                Pattern created = patternStore.createPatternForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case ARCHITECTURE -> {
                 Architecture arch = new Architecture.ArchitectureBuilder()
                         .setNamespace(namespace)
                         .setArchitecture(json)
-                        .setVersion("1.0.0")
+                        .setVersion(version)
                         .setName(resourceName)
                         .setDescription(description)
                         .build();
@@ -541,17 +581,17 @@ public class MappingControllerService {
             }
             case FLOW -> {
                 CreateFlowRequest req = new CreateFlowRequest(resourceName, description, json);
-                Flow created = flowStore.createFlowForNamespace(req, namespace);
+                Flow created = flowStore.createFlowForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case STANDARD -> {
                 CreateStandardRequest req = new CreateStandardRequest(resourceName, description, json);
-                Standard created = standardStore.createStandardForNamespace(req, namespace);
+                Standard created = standardStore.createStandardForNamespace(req, namespace, version);
                 yield created.getId();
             }
             case INTERFACE -> {
                 CreateInterfaceRequest req = new CreateInterfaceRequest(resourceName, description, json);
-                CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace);
+                CalmInterface created = interfaceStore.createInterfaceForNamespace(req, namespace, version);
                 yield created.getId();
             }
         };
@@ -611,8 +651,7 @@ public class MappingControllerService {
 
     /**
      * Updates an existing version of a resource in the type-specific store.
-     * Supported for {@link ResourceType#PATTERN}, {@link ResourceType#ARCHITECTURE},
-     * and {@link ResourceType#FLOW} only.
+     * Supported for all five {@link ResourceType} values.
      */
     private void updateVersionedResourceInStore(ResourceType type, String namespace, int numericId,
                                                 String version, String json, String title, String description) throws Exception {
@@ -650,7 +689,69 @@ public class MappingControllerService {
                         .build();
                 flowStore.updateFlowForVersion(flow);
             }
+            case STANDARD -> {
+                CreateStandardRequest req = new CreateStandardRequest(title, description, json);
+                standardStore.updateStandardForVersion(req, namespace, numericId, version);
+            }
+            case INTERFACE -> {
+                CreateInterfaceRequest req = new CreateInterfaceRequest(title, description, json);
+                interfaceStore.updateInterfaceForVersion(req, namespace, numericId, version);
+            }
             default -> throw new UnsupportedOperationException("Update not supported for resource type: " + type);
+        }
+    }
+
+    /**
+     * Removes the snapshot belonging to a version that has just been published.
+     *
+     * <p>{@code versions} is the list already fetched at the top of {@code addNewVersion},
+     * <em>before</em> this release was written — checking it first avoids a pointless store
+     * round trip when the resource never had a snapshot, which is the common case.</p>
+     *
+     * <p>Deliberately after the release write, and deliberately not rolled back. The two are
+     * separate store operations with no transaction across them, so one of them has to go
+     * first. If this fails, the release is correct and an orphan snapshot shadows it — a
+     * state the creation rule otherwise forbids, recoverable by deleting the snapshot. If the
+     * order were reversed, a failed release write would have already destroyed the user's
+     * work in progress.</p>
+     */
+    private void deleteSnapshotForVersion(ResourceMapping mapping, String releaseVersion, List<String> versions) {
+        // Canonicalised before comparing, as in the shadow check above this method's call site.
+        String snapshotVersion = ResourceVersion.asSnapshot(CanonicalVersion.of(releaseVersion));
+        if (!versions.contains(snapshotVersion)) {
+            return;
+        }
+        // Deliberately does NOT stage a DELETE for this snapshot removal. AuditRequestFilter
+        // supports exactly one recorded row per request (a single ThreadLocal, read once at the
+        // end of the request) — staging here would overwrite, not add to, whatever was staged
+        // for the release write itself. The release write is the durable event an auditor asks
+        // about ("who published 1.0.0?"); the snapshot delete is cleanup of the same request. If
+        // a second row is ever wanted, the filter needs to support more than one context per
+        // request — do not re-add a stage() call here without that.
+        try {
+            deleteVersionForMapping(mapping, snapshotVersion);
+        } catch (Exception e) {
+            logger.error("Published version [{}] of [{}] in namespace [{}] but failed to delete its "
+                            + "snapshot [{}] — the snapshot now shadows a published version and should "
+                            + "be removed manually",
+                    STRICT_SANITIZATION_POLICY.sanitize(releaseVersion),
+                    STRICT_SANITIZATION_POLICY.sanitize(mapping.getCustomId()),
+                    STRICT_SANITIZATION_POLICY.sanitize(mapping.getNamespace()),
+                    STRICT_SANITIZATION_POLICY.sanitize(snapshotVersion), e);
+        }
+    }
+
+    private void deleteVersionForMapping(ResourceMapping mapping, String version) throws Exception {
+        String namespace = mapping.getNamespace();
+        int id = mapping.getNumericId();
+        switch (mapping.getResourceType()) {
+            case PATTERN -> patternStore.deletePatternVersion(namespace, id, version);
+            case ARCHITECTURE -> architectureStore.deleteArchitectureVersion(namespace, id, version);
+            case FLOW -> flowStore.deleteFlowVersion(namespace, id, version);
+            case STANDARD -> standardStore.deleteStandardVersion(namespace, id, version);
+            case INTERFACE -> interfaceStore.deleteInterfaceVersion(namespace, id, version);
+            default -> throw new UnsupportedOperationException(
+                    "Delete not supported for resource type: " + mapping.getResourceType());
         }
     }
 
