@@ -19,9 +19,9 @@ real state — the saved workspace and the engine's validation result — so any
 A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
 (e.g. `https://lab.calm.finos.org/?lesson=quick-start`) or pick it in the lab.
 
-| Lesson | Tutorial |
-|---|---|
-| `quick-start` | — |
+| Lesson | Tutorial | Status |
+|---|---|---|
+| `quick-start` | — | Released |
 
 ### Write a lesson
 
@@ -30,8 +30,9 @@ A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
    | Field | What it is |
    |---|---|
    | `id` | Lowercase, hyphenated. It is the `?lesson=` value and the storage key. Do not change it after release. |
-   | `title`, `summary` | Shown in the lesson picker. |
-   | `tutorial` | The docs page this lesson adapts, if any. |
+   | `title` | The lesson's name in the picker. |
+   | `summary` | One short sentence. It is the picker option's tooltip and the line under the picker. |
+   | `tutorial` | The docs page this lesson adapts, if any. It shows as a "Tutorial ↗" link after the summary. |
    | `editorFile` | The file the editor opens, the diagram shows and the checks read. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
    | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`. |
@@ -46,15 +47,19 @@ A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
 3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
    history: `state.doc` (the saved editor file), `state.validation.ok`, and `state.commands` (the
    commands whose files have not changed since they ran). Check what the step asked for, not the
-   names in the hint, so any valid answer passes.
+   names in the hint, so any valid answer passes. File paths given to `ranOk` and `ranFailed` are
+   absolute: use `state.editorFile` or a `/workspace/...` path.
 
 4. Register the lesson in `src/lessons/index.ts`, add it to the table above, and add
-   `src/lessons/<id>/lesson.spec.ts` with at least one wrong answer per step that its check rejects.
+   `src/lessons/<id>/lesson.spec.ts`. For each step, it must have:
+   - a passing answer that uses different names from the hint, which the check accepts;
+   - at least one wrong answer, which the check rejects.
 
-`src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine: no
-step is complete at the start, each hint completes its step, the end state validates, every `calm`
-command in the copy parses as the real CLI would parse it, and a chained lesson starts from its
-predecessor's end state.
+`src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine:
+files live under `/workspace`, no step is complete before its hint, each hint completes its step
+and prints no error, the end state validates, every `calm` command in the copy runs in the lab's
+shell, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
+state.
 
 ## Development
 
