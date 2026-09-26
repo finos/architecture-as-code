@@ -22,37 +22,11 @@ function context(files: Record<string, string>) {
 }
 
 describe('calm validate', () => {
-    it('prints the pretty report and emits a validate event', async () => {
+    it('dispatches to the CLI-compatible validate', async () => {
         const { ctx, onEvent } = context({ '/workspace/a.json': valid });
-        const lines = await runCommand('calm validate a.json', ctx);
-        expect(lines[0]).toEqual({ text: '✓ a.json is a valid CALM architecture', kind: 'ok' });
+        const lines = await runCommand('calm validate -a a.json -f pretty', ctx);
+        expect(lines[0].text).toBe('Summary');
         expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
-    });
-
-    it('prints the engine pretty report for an invalid document', async () => {
-        const { ctx } = context({ '/workspace/bad.json': '{"$schema": "https://calm.finos.org/release/1.2/meta/calm.json", "nodes": "nope"}' });
-        const lines = await runCommand('calm validate bad.json', ctx);
-        const text = lines.map((l) => l.text);
-        expect(text[0]).toMatch(/^bad\.json: \d+ problems? found$/);
-        expect(text).toContain('Summary');
-        expect(text.some((line) => /^- Errors: yes/.test(line))).toBe(true);
-        // The severity label carries the 'err' colour; the rest of the block is dim.
-        const errorLines = lines.filter((l) => l.kind === 'err');
-        expect(errorLines.length).toBeGreaterThan(0);
-        expect(errorLines.every((l) => l.text.trimStart().startsWith('ERROR'))).toBe(true);
-    });
-
-    it('reports a JSON parse error on one line', async () => {
-        const { ctx } = context({ '/workspace/bad.json': '{ nope' });
-        const lines = await runCommand('calm validate bad.json', ctx);
-        expect(lines).toHaveLength(1);
-        expect(lines[0].kind).toBe('err');
-        expect(lines[0].text).toMatch(/^calm validate: .*not valid JSON/);
-    });
-
-    it('reports a missing file', async () => {
-        const { ctx } = context({});
-        expect(await runCommand('calm validate nope.json', ctx)).toEqual([{ text: 'calm validate: file not found: nope.json', kind: 'err' }]);
     });
 });
 

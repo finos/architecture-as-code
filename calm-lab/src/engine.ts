@@ -114,6 +114,11 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
     };
 }
 
+/** The raw outcome, for commands that format it themselves as the CLI does. */
+export async function validateOutcome(architecture: object): Promise<ValidationOutcome> {
+    return validate(architecture, undefined, undefined, await schemaDirectory());
+}
+
 export function commandSupport(command: string): BrowserCommandSupport | undefined {
     return browserSupportFor(command);
 }

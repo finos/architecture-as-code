@@ -9,7 +9,9 @@
  */
 
 import { diffDocuments } from '@finos/calm-shared/browser';
-import { validateArchitecture, parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
+import { runValidate } from './cli/validate';
+import { CLI_DOCS } from './cli/unsupported';
+import { parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
@@ -30,8 +32,6 @@ export const COMMAND_NAMES: readonly string[] = ['calm', 'cat', 'cd', 'clear', '
 
 /** Second-token completions after `calm`. */
 export const CALM_SUBCOMMANDS = ['validate', 'diff', 'help', '--version'] as const;
-
-const CLI_DOCS = 'https://calm.finos.org/working-with-calm/cli';
 
 const HELP_LINES: Line[] = [
     { text: 'Available commands:', kind: 'out' },
@@ -63,33 +63,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
         return [{ text: `browser lab · @finos/calm-shared ${ENGINE_VERSION}`, kind: 'out' }];
     }
     if (sub === 'validate') {
-        const target = rest[0];
-        if (!target) {
-            return [{ text: 'usage: calm validate <file>', kind: 'err' }];
-        }
-        const path = ctx.vfs.resolve(ctx.getCwd(), target);
-        const content = ctx.vfs.read(path);
-        if (content === null) {
-            return [{ text: `calm validate: file not found: ${target}`, kind: 'err' }];
-        }
-        const result = await validateArchitecture(content);
-        ctx.onEvent?.({ type: 'validate', file: path, ok: result.ok });
-        if (result.ok) {
-            return [{ text: `✓ ${target} is a valid CALM architecture`, kind: 'ok' }];
-        }
-        if (result.parseError) {
-            return [{ text: `calm validate: ${result.parseError}`, kind: 'err' }];
-        }
-        // The engine's own `pretty` report, exactly as `calm validate` prints it
-        // on the command line — the lab must not invent a second format.
-        const count = result.errorCount;
-        return [
-            { text: `${target}: ${count} problem${count === 1 ? '' : 's'} found`, kind: 'dim' },
-            ...result.pretty
-                .replace(/\n$/, '')
-                .split('\n')
-                .map((text): Line => ({ text, kind: text.trimStart().startsWith('ERROR') ? 'err' : 'dim' })),
-        ];
+        return runValidate(rest, ctx);
     }
     if (sub === 'diff') {
         const [a, b] = rest;
