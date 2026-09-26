@@ -41,6 +41,8 @@ const differentNamesBase = {
 // Step 1: top-level architecture metadata.
 const withArchitectureMetadata = { ...seedDoc, metadata: { owner: 'payments-team@example.com', version: '1.0.0', description: 'Payment processing' } };
 const withArchitectureMetadataDifferentNames = { ...differentNamesBase, metadata: { owner: 'checkout-team@example.com', version: '2.0.0', description: 'Checkout' } };
+// Keys unrelated to the hint's: the step asks for metadata, not for these exact keys.
+const withArchitectureMetadataOtherKeys = { ...differentNamesBase, metadata: { 'cost-centre': 'CC-42', region: 'eu-west-1' } };
 // An empty metadata object: does not count.
 const emptyArchitectureMetadata = { ...seedDoc, metadata: {} };
 
@@ -55,6 +57,10 @@ const withServiceMetadataDifferentNames = {
         withMetadata(differentNamesBase.nodes[0], { owner: 'checkout-team@example.com', 'tech-stack': ['Go'] }),
         ...differentNamesBase.nodes.slice(1),
     ],
+};
+const withServiceMetadataOtherKeys = {
+    ...withArchitectureMetadataOtherKeys,
+    nodes: [withMetadata(differentNamesBase.nodes[0], { runtime: 'node', 'on-call': 'checkout-oncall' }), ...differentNamesBase.nodes.slice(1)],
 };
 // Metadata on the database instead of the service: must not tick step 2.
 const withDatabaseMetadataInstead = {
@@ -73,6 +79,13 @@ const withConnectMetadataDifferentNames = {
         withMetadata(connects('checkout-to-orders', 'checkout-service', 'orders-db'), { latency: '< 100ms', encryption: 'mTLS' }),
         differentNamesBase.relationships[1],
         differentNamesBase.relationships[2],
+    ],
+};
+const withConnectMetadataOtherKeys = {
+    ...withServiceMetadataOtherKeys,
+    relationships: [
+        withMetadata(differentNamesBase.relationships[0], { sla: '99.9%', 'data-classification': 'internal' }),
+        ...differentNamesBase.relationships.slice(1),
     ],
 };
 // Metadata on the interacts relationship instead of connects: must not tick step 3.
@@ -121,6 +134,8 @@ describe('beginner-06 lesson', () => {
         expect(architectureMetadata.check(state({ doc: withArchitectureMetadata, validation: { ok: true } }))).toBe(true);
         // Different names, same shape: still passes.
         expect(architectureMetadata.check(state({ doc: withArchitectureMetadataDifferentNames, validation: { ok: true } }))).toBe(true);
+        // Keys unrelated to the hint's: still passes.
+        expect(architectureMetadata.check(state({ doc: withArchitectureMetadataOtherKeys, validation: { ok: true } }))).toBe(true);
         // Right shape, invalid document: must not tick.
         expect(architectureMetadata.check(state({ doc: withArchitectureMetadata, validation: { ok: false } }))).toBe(false);
         // An empty metadata object does not count: must not tick.
@@ -132,6 +147,8 @@ describe('beginner-06 lesson', () => {
         expect(nodeMetadata.check(state({ doc: withServiceMetadata, validation: { ok: true } }))).toBe(true);
         // Different names, same shape: still passes.
         expect(nodeMetadata.check(state({ doc: withServiceMetadataDifferentNames, validation: { ok: true } }))).toBe(true);
+        // Keys unrelated to the hint's: still passes.
+        expect(nodeMetadata.check(state({ doc: withServiceMetadataOtherKeys, validation: { ok: true } }))).toBe(true);
         // Right shape, invalid document: must not tick.
         expect(nodeMetadata.check(state({ doc: withServiceMetadata, validation: { ok: false } }))).toBe(false);
         // Metadata on the database instead of the service: must not tick.
@@ -143,6 +160,8 @@ describe('beginner-06 lesson', () => {
         expect(relationshipMetadata.check(state({ doc: withConnectMetadata, validation: { ok: true } }))).toBe(true);
         // Different names, same shape: still passes.
         expect(relationshipMetadata.check(state({ doc: withConnectMetadataDifferentNames, validation: { ok: true } }))).toBe(true);
+        // Keys unrelated to the hint's: still passes.
+        expect(relationshipMetadata.check(state({ doc: withConnectMetadataOtherKeys, validation: { ok: true } }))).toBe(true);
         // Right shape, invalid document: must not tick.
         expect(relationshipMetadata.check(state({ doc: withConnectMetadata, validation: { ok: false } }))).toBe(false);
         // Metadata on a different relationship (interacts, not connects): must not tick.
