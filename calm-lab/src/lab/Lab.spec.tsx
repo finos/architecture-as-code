@@ -1,7 +1,9 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import Lab from './Lab';
-import {ARCHITECTURE_FILE} from './lesson';
+import {QUICK_START} from '../lessons/quick-start/lesson';
+
+const ARCHITECTURE_FILE = QUICK_START.editorFile;
 
 // ReactFlow needs a measured canvas; the diagram is not what these tests are about.
 vi.mock('./HubDiagram', () => ({default: () => null}));

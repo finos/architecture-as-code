@@ -10,15 +10,14 @@ import {loadUiPrefs, saveUiPrefs} from './storage';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent} from '../cli/outcome';
-import {
-    ARCHITECTURE_FILE,
-    COMPLETION,
-    HOME_DIR,
-    SEED_FILES,
-    STEPS,
-    type LessonState,
-    type LessonStep,
-} from './lesson';
+import {QUICK_START} from '../lessons/quick-start/lesson';
+import {HOME_DIR, type LessonState, type LessonStep} from '../lessons/types';
+
+// Interim until Lab takes a `lesson` prop; for now it hard-codes quick-start.
+const ARCHITECTURE_FILE = QUICK_START.editorFile;
+const SEED_FILES = QUICK_START.seedFiles;
+const STEPS = QUICK_START.steps;
+const COMPLETION = QUICK_START.completion;
 
 const PROGRESS_KEY = 'calm-lab-progress-v1';
 const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
@@ -120,6 +119,8 @@ interface StepItemProps {
 
 function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
+    const hintLabel = step.hint.kind === 'file' ? 'complete file' : 'commands';
+    const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.join('\n');
     return (
         <li className={styles.step}>
             <button
@@ -155,10 +156,10 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
                     {showHint && (
                         <div className={styles.hintBlock}>
                             <div className={styles.hintHead}>
-                                <span>{step.hintLabel}</span>
-                                <CopyButton text={step.hint} />
+                                <span>{hintLabel}</span>
+                                <CopyButton text={hintText} />
                             </div>
-                            <pre className={styles.hintPre}>{step.hint}</pre>
+                            <pre className={styles.hintPre}>{hintText}</pre>
                         </div>
                     )}
                 </div>
@@ -299,10 +300,21 @@ export default function Lab() {
             return; // a newer recompute has superseded this one
         }
         setValidation(result);
+        // Bridges the tracked flag to the outcome shape the moved checks read.
         const state: LessonState = {
             doc: (result.doc as Record<string, unknown> | undefined) || null,
             validation: result,
-            hasValidatedOk: flagsRef.current.hasValidatedOk,
+            commands: flagsRef.current.hasValidatedOk
+                ? [{
+                    command: 'validate',
+                    files: {architecture: ARCHITECTURE_FILE},
+                    ok: true,
+                    errorCount: 0,
+                    warningCount: 0,
+                    snapshot: {[ARCHITECTURE_FILE]: vfs.read(ARCHITECTURE_FILE) ?? ''},
+                }]
+                : [],
+            editorFile: ARCHITECTURE_FILE,
         };
         let changed = false;
         const next = new Set(completedRef.current);
