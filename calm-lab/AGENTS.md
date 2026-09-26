@@ -97,8 +97,9 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
 - Every `calm` command in the step copy, hints or completion message must be one the lab
   runs (`validate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
   one; do not weaken it to make a lesson pass.
-- A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`.
-  Never copy the previous lesson's JSON.
+- A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`,
+  imported from `src/lessons/chain.ts` (importing it from `index.ts` creates a circular import back
+  through the registry). Never copy the previous lesson's JSON.
 - Never rename a released lesson id: it is the URL and the storage key.
 
 ## The diagram renders untrusted input

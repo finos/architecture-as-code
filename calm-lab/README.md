@@ -23,6 +23,7 @@ the lab has no lesson picker.
 | Lesson | Tutorial | Status |
 |---|---|---|
 | `beginner-02` | [02-first-node](https://calm.finos.org/tutorials/beginner/02-first-node) | Released |
+| `beginner-03` | [03-relationships](https://calm.finos.org/tutorials/beginner/03-relationships) | Released |
 
 ### Write a lesson
 
@@ -35,7 +36,7 @@ the lab has no lesson picker.
    | `tutorial` | The tutorial page this lesson follows: `{ title, url }`, with the page's own title. The top of the lesson guide links to it in a new tab. |
    | `editorFile` | The file the editor opens, the diagram shows and the checks read. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
-   | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`. |
+   | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`, imported from `src/lessons/chain.ts` (not `index.ts`, to avoid a circular import). |
    | `steps` | Ordered steps, below. |
    | `completion` | Heading, message and links shown when every step is done. |
 

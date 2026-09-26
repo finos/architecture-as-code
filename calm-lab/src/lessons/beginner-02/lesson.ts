@@ -83,6 +83,8 @@ export const BEGINNER_02: Lesson = {
     completion: {
         heading: 'Lesson complete',
         message: 'You added your first node to a CALM architecture and validated it with the real CALM engine.',
-        links: [],
+        links: [
+            { to: '?lesson=beginner-03', label: 'Next lesson: Connect nodes with relationships' },
+        ],
     },
 };
