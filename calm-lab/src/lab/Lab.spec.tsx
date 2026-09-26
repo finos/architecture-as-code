@@ -203,6 +203,9 @@ describe('Lab', () => {
         await act(async () => { renderLab({lesson, lessons: [lesson]}); });
         await runCommand(VALIDATE_COMMAND);                     // fresh, but the file has no x
         await saveEditor('{"nodes": [{"unique-id": "x"}], "relationships": []}');   // the earlier run is now stale
+        // Wait for the save's own recompute (mount, the run above, then this save) before asserting.
+        await waitFor(() => expect(engine.validateArchitecture).toHaveBeenCalledTimes(3));
+        await act(async () => {});
         expect(screen.queryByRole('button', {name: /Add x and validate \(completed\)/})).toBeNull();
         await runCommand(VALIDATE_COMMAND);                     // fresh run on the saved file
         await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
@@ -222,6 +225,7 @@ describe('Lab', () => {
         localStorage.setItem('calm-lab-progress-v2:other', '["x"]');
         await act(async () => { renderLab(); });
         await runCommand(VALIDATE_COMMAND);
+        await waitFor(() => expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).not.toBeNull());
         await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
         expect(localStorage.getItem('calm-lab-progress-v2:other')).toBe('["x"]');
         expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).toBeNull();
