@@ -76,6 +76,10 @@ We accept contributions via Pull Request, to make a contribution:
 6. Push to the branch (`git push origin feature/fooBar`)
 7. Create a new Pull Request
 
+## Support and Security
+
+Support is community-based and best-effort: ask in a [Support Question](https://github.com/finos/architecture-as-code/issues/new?template=Support_question.md) issue or at Office Hours. [SUPPORT.md](SUPPORT.md) states which releases are supported and when a release stops receiving security updates. To report a vulnerability privately, follow [SECURITY.md](SECURITY.md), which also holds the dependency and code scanning policy and instructions for verifying release integrity. The project's threat model is in [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ## Governance
 
 The project's governance policies, Maintainer roster and Code of Conduct are maintained in
@@ -92,6 +96,8 @@ in the project.
 
 The maintainers of each subproject in this monorepo are listed in the [Projects](#projects) table
 above.
+
+A contributor must be nominated and approved by a vote of the existing Maintainers before they are granted write access to this repository, as set out in [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md#maintainer-qualifications).
 
 ## GitHub actions
 

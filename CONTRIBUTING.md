@@ -132,6 +132,30 @@ the TypeScript workspaces:
 import { CalmWidget } from './types';
 ```
 
+## 🛠️ Building and Testing
+
+### Building from source
+
+Use Node 26 (`nvm use` reads `.nvmrc`) and run everything from the repository root:
+
+```bash
+npm ci                      # install every workspace from the single root lockfile
+npm run build               # build all TypeScript workspaces in dependency order
+./mvnw clean install        # build the Java modules (CALM Hub, calm-models)
+```
+
+`npm run build:cli` builds the CLI and only the packages it depends on. Package-specific build notes are in each package's `AGENTS.md`. There are no private or undocumented release steps: the release workflows in `.github/workflows` run exactly these commands.
+
+### When and how tests run
+
+- **Locally**: run `npm test` from the repository root to test every TypeScript workspace, or `npm test --workspace <name>` for one package. Java modules are tested with `./mvnw verify` from the root (or `cd calm-hub && ../mvnw verify` for CALM Hub, which also enforces its coverage gate). Lint with `npm run lint`.
+- **On every pull request**: the `build-*` workflows in `.github/workflows` build, lint and test each affected package (they are path-filtered, so only the packages touched by the change run), and `CLI ↔ CalmHub smoke` exercises the CLI against a live Hub. CodeQL, Semgrep and Dependency Review also run on every pull request; see [SECURITY.md](./SECURITY.md) for the policy behind them.
+- **On `main` and at release**: the same workflows run on push, and the release workflows run the full build and test suite before anything is published.
+
+### Test policy
+
+Every change that adds or modifies functionality must add or update automated tests for that functionality in the affected package's test suite (Vitest for TypeScript, JUnit for Java). Bug fixes must include a regression test that fails without the fix. Reviewers ask for tests before approving; the review checklist is in [MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md). Aim for at least 80% coverage on new code.
+
 ## Responsible Use of AI Coding Assistants
 
 AI coding assistants are welcome, but their output must be treated as draft input. Before submitting a PR, contributors must understand and be able to explain all changes, validate behaviour with the project's required checks, and review the full diff for correctness, security, privacy, licensing, and dependency impact.

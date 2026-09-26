@@ -468,6 +468,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing CLI version: $VERSION"
 
+      - name: Package tarball and generate SBOM
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-assets sbom-work/cli
+          npm pack --workspace cli --pack-destination release-assets > /dev/null
+          TARBALL=$(ls release-assets/*.tgz)
+          # Install the packed package on its own so the SBOM describes exactly what npm consumers receive.
+          tar -xzf "$TARBALL" -C sbom-work/cli --strip-components=1
+          cd sbom-work/cli
+          npm pkg delete devDependencies scripts
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock
+          npm sbom --sbom-format cyclonedx --omit dev > "$GITHUB_WORKSPACE/release-assets/calm-cli-${VERSION}.cdx.json"
+          ls -la "$GITHUB_WORKSPACE/release-assets"
+
       - name: Create Git tag
         run: |
           git config user.name "github-actions[bot]"
@@ -494,7 +508,8 @@ jobs:
           gh release create "cli-v${{ steps.version.outputs.version }}" \
             --title "CLI v${{ steps.version.outputs.version }}" \
             --notes "$RELEASE_NOTES" \
-            --target main
+            --target main \
+            "$GITHUB_WORKSPACE"/release-assets/*
 
       - name: Publish to NPM
         env:

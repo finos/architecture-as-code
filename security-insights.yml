@@ -1,7 +1,7 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-07-03'
-  last-reviewed: '2026-07-03'
+  last-updated: '2026-09-26'
+  last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
     Architecture as Code (CALM) is a monorepo. The repositories listed under
@@ -22,7 +22,12 @@ project:
       primary: false
   documentation:
     quickstart-guide: https://calm.finos.org/tutorials/
+    detailed-guide: https://calm.finos.org/
+    design: https://calm.finos.org/core-concepts/
     code-of-conduct: https://www.finos.org/code-of-conduct
+    release-process: https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md#-why-we-use-semantic-release
+    support-policy: https://github.com/finos/architecture-as-code/blob/main/SUPPORT.md
+    signature-verification: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md#verifying-release-integrity-and-authenticity
   repositories:
     - name: calm
       url: https://github.com/finos/architecture-as-code/tree/main/calm
@@ -40,19 +45,23 @@ project:
       url: https://github.com/finos/architecture-as-code/tree/main/shared
       comment: |
         @finos/calm-shared, TypeScript utilities shared across the CLI, the
-        VSCode extension and other CALM tooling. Published to npm.
+        VSCode extension and other CALM tooling. Bundled into the CLI; not
+        published separately.
         Status: Incubating, actively maintained.
     - name: calm-models
       url: https://github.com/finos/architecture-as-code/tree/main/calm-models
       comment: |
         @finos/calm-models, TypeScript data models generated from the CALM
-        schema and consumed across the TypeScript packages. Published to npm.
+        schema and consumed across the TypeScript packages. The TypeScript
+        models are bundled into the CLI; the Java models are published to
+        Maven Central.
         Status: Incubating, actively maintained.
     - name: calm-widgets
       url: https://github.com/finos/architecture-as-code/tree/main/calm-widgets
       comment: |
         @finos/calm-widgets, React visualization components and Handlebars
-        template widgets used to render CALM architectures. Published to npm.
+        template widgets used to render CALM architectures. Bundled into the
+        CLI; not published separately.
         Status: Incubating, actively maintained.
     - name: calm-ai
       url: https://github.com/finos/architecture-as-code/tree/main/calm-ai
@@ -123,8 +132,10 @@ repository:
       primary: false
   documentation:
     contributing-guide: https://github.com/finos/architecture-as-code/blob/main/CONTRIBUTING.md
+    dependency-management-policy: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md#dependency-and-code-scanning-policy
     governance: https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md
-    security-policy: https://github.com/finos/architecture-as-code/security
+    review-policy: https://github.com/finos/architecture-as-code/blob/main/MAINTAINERS_GUIDELINES.md
+    security-policy: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md
   license:
     url: https://github.com/finos/architecture-as-code/blob/main/LICENSE
     expression: Apache-2.0
@@ -134,13 +145,79 @@ repository:
       - uri: https://github.com/finos/architecture-as-code/releases
         comment: GitHub Releases page for tagged releases across the monorepo's packages.
       - uri: https://www.npmjs.com/package/@finos/calm-cli
-        comment: npm packages published under the @finos scope (calm-cli, calm-shared, calm-models, calm-widgets, calm-server).
+        comment: npm packages published under the @finos scope (calm-cli, calm-server).
       - uri: https://hub.docker.com/r/finos/calm-hub
         comment: Docker Hub image for CALM Hub.
       - uri: https://marketplace.visualstudio.com/items?itemName=finos.calm-vscode-plugin
         comment: VS Code Marketplace listing for the CALM VSCode extension.
+    attestations:
+      - name: npm provenance (SLSA)
+        location: https://registry.npmjs.org/-/npm/v1/attestations/@finos%2Fcalm-cli
+        predicate-uri: https://slsa.dev/provenance/v1
+        comment: |
+          @finos/calm-cli and @finos/calm-server are published with
+          `npm publish --provenance` from the release workflows. Verify with `npm audit signatures`; see
+          SECURITY.md, "Verifying Release Integrity and Authenticity".
+      - name: Docker provenance and SBOM
+        location: https://hub.docker.com/r/finos/calm-hub
+        predicate-uri: https://slsa.dev/provenance/v1
+        comment: |
+          calm-hub images are built by docker/build-push-action with
+          provenance and SBOM attestations attached to the image index.
   security:
     assessments:
       self:
+        name: Threat model and attack surface analysis
+        date: '2026-09-26'
+        evidence: https://github.com/finos/architecture-as-code/blob/main/THREAT_MODEL.md
         comment: |
-          Self assessment has not yet been completed.
+          Maintainer-authored threat model and attack surface analysis covering
+          the CLI, CALM Server, CALM Hub, the VS Code extension and the build
+          and release pipeline. Reviewed at least yearly and whenever a
+          component gains a new interface, trust boundary or distribution channel.
+    tools:
+      - name: CodeQL
+        type: SAST
+        comment: GitHub code scanning default setup; runs on every pull request and weekly against main.
+        rulesets:
+          - default
+        integration:
+          adhoc: false
+          ci: true
+          release: false
+      - name: Semgrep
+        type: SAST
+        comment: Runs on every pull request via .github/workflows/semgrep-ci.yml; the semgrep/ci check is required on main.
+        rulesets:
+          - Semgrep AppSec Platform policy for finos/architecture-as-code
+        integration:
+          adhoc: false
+          ci: true
+          release: false
+      - name: Dependency Review
+        type: SCA
+        comment: actions/dependency-review-action on every pull request; blocks known-vulnerable and known-malicious dependencies.
+        rulesets:
+          - fail-on-severity moderate
+        integration:
+          adhoc: false
+          ci: true
+          release: false
+      - name: OWASP Dependency-Check
+        type: SCA
+        comment: cve-scanning-node.yml and cve-scanning-maven.yml; fails on CVSS >= 5; suppressions in .github/*-cve-ignore-list.xml.
+        rulesets:
+          - failOnCVSS 5
+        integration:
+          adhoc: false
+          ci: true
+          release: true
+      - name: Dependabot
+        type: SCA
+        comment: Security updates and alerts for npm, Maven, Cargo and GitHub Actions.
+        rulesets:
+          - GitHub Advisory Database
+        integration:
+          adhoc: false
+          ci: true
+          release: false

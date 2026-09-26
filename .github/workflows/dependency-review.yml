@@ -1,0 +1,31 @@
+name: Dependency Review
+
+# Blocks pull requests that introduce dependencies with known vulnerabilities
+# or that are flagged as malicious (OpenSSF Malicious Packages). Runs on every
+# pull request and is a required status check on main - see SECURITY.md,
+# "Dependency and code scanning policy".
+
+permissions:
+    contents: read
+
+on:
+    pull_request:
+
+jobs:
+    dependency-review:
+        name: dependency-review
+        runs-on: ubuntu-latest
+        steps:
+            - name: Harden Runner
+              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2
+              with:
+                  egress-policy: audit
+
+            - name: Checkout
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Dependency Review
+              uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
+              with:
+                  fail-on-severity: moderate
+                  comment-summary-in-pr: never
