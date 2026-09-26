@@ -294,7 +294,7 @@ export const BEGINNER_05: Lesson = {
             'You added inline interfaces to your service and database, and referenced them from a ' +
             'connects relationship for precise, validated integration points.',
         links: [
-            { to: '?lesson=beginner-06', label: 'Next lesson' },
+            { to: '?lesson=beginner-06', label: 'Next lesson: Document with metadata' },
         ],
     },
 };
