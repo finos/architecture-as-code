@@ -174,8 +174,8 @@ export const BEGINNER_03: Lesson = {
             title: 'Group the service and database into a system',
             body:
                 'Add a `system` node for the overall system. Add a `composed-of` relationship: `container` ' +
-                'is a single node id, and `nodes` is a list of the members — here, your service and database. ' +
-                'Save your change.',
+                'is a single node id, and `nodes` is a list of the members. List your service and database ' +
+                'in `nodes`. Save your change.',
             hint: { kind: 'file', content: STEP_3_TARGET_FILE },
             check: (state) => composedOf(state.doc, 'system', ['service', 'database']) && state.validation.ok,
         },
