@@ -481,11 +481,12 @@ export const BEGINNER_07: Lesson = {
     steps: [
         {
             id: 'front-door',
-            title: 'Add the customers and the API gateway',
+            title: 'Add a customer and the API gateway',
             body:
-                'The editor now opens a new file, `architectures/ecommerce-platform.json`. Add two ' +
-                '`actor` nodes (a customer and an admin) and an API gateway `service` node with an ' +
-                'HTTPS interface. Add an `interacts` relationship from each actor to the gateway. Save your change.',
+                'The editor now opens a new file, `architectures/ecommerce-platform.json`. Add an `actor` ' +
+                'node for a customer and a `service` node for the API gateway. Add an `interacts` relationship ' +
+                'from the actor to the gateway, then save your change. The reference answer also adds an admin ' +
+                'actor and an HTTPS interface on the gateway, but this step does not need them.',
             hint: { kind: 'file', content: STEP_1_TARGET_FILE },
             check: (state) => hasFrontDoor(state.doc) && state.validation.ok,
         },

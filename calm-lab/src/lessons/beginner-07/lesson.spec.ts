@@ -24,7 +24,7 @@ const composedOfRel = (id: string, container: string, nodes: string[]) => ({
 });
 const doc = (nodes: unknown[], relationships: unknown[]) => ({ $schema: SCHEMA, nodes, relationships });
 
-// Step 1: actors that interact with a gateway service.
+// Step 1: one actor that interacts with a gateway service. No admin and no interface: the step does not need them.
 const frontDoorNodes = [node('shopper', 'actor'), node('edge-gateway', 'service')];
 const frontDoorRels = [interacts('shopper-to-edge', 'shopper', ['edge-gateway'])];
 const frontDoor = doc(frontDoorNodes, frontDoorRels);
