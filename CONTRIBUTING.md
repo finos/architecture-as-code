@@ -150,7 +150,7 @@ npm run build               # build all TypeScript workspaces in dependency orde
 
 - **Locally**: run `npm test` from the repository root to test every TypeScript workspace, or `npm test --workspace <name>` for one package. Java modules are tested with `./mvnw verify` from the root (or `cd calm-hub && ../mvnw verify` for CALM Hub, which also enforces its coverage gate). Lint with `npm run lint`.
 - **On every pull request**: the `build-*` workflows in `.github/workflows` build, lint and test each affected package (they are path-filtered, so only the packages touched by the change run), and `CLI ↔ CalmHub smoke` exercises the CLI against a live Hub. CodeQL, Semgrep and Dependency Review also run on every pull request; see [SECURITY.md](./SECURITY.md) for the policy behind them.
-- **On `main` and at release**: the same workflows run on push, and the release workflows run the full build and test suite before anything is published.
+- **On `main` and at release**: the same workflows run on push. The release workflows build the package they publish and refuse to publish unless the build and test workflows for that package have passed on `main`.
 
 ### Test policy
 
