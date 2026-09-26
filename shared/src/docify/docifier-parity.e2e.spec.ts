@@ -1,6 +1,6 @@
 import { describe, it, afterEach, beforeEach } from 'vitest';
 import { Docifier } from './docifier.js';
-import { rmSync, existsSync, mkdirSync } from 'fs';
+import { rmSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { expectDirectoryMatch } from '../test/file-comparison';
 
@@ -124,6 +124,11 @@ describe('Docifier Parity E2E - Option A vs Option B', () => {
             const filePath = join(OPTION_A_OUTPUT, file);
             expect(existsSync(filePath), `Expected file to exist: ${file}`).toBe(true);
         }
+
+        const indexContents = readFileSync(join(OPTION_A_OUTPUT, 'docs/index.md'), 'utf8');
+        for (const page of expectedFiles.filter((file) => /^docs\/(nodes|relationships|flows)\//.test(file))) {
+            expect(indexContents).toContain(`](${page.slice('docs/'.length)})`);
+        }
     });
 
     it('front-matter contains required fields for VSCode plugin compatibility', async () => {
@@ -163,4 +168,3 @@ describe('Docifier Parity E2E - Option A vs Option B', () => {
         expect(flowFile).toContain('flow-id: flow-conference-signup');
     });
 });
-

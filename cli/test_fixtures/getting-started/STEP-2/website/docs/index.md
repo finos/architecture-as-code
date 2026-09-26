@@ -49,17 +49,17 @@ classDef highlight fill:#fdf7ec,stroke:#f0c060,stroke-width:1px,color:#000000;
 ```
 
 ## Nodes
-- [Conference Website](nodes/conference-website)
-- [Load Balancer](nodes/load-balancer)
-- [Attendees Service](nodes/attendees)
-- [Attendees Store](nodes/attendees-store)
-- [Kubernetes Cluster](nodes/k8s-cluster)
+- [Conference Website](nodes/conference-website.md)
+- [Load Balancer](nodes/load-balancer.md)
+- [Attendees Service](nodes/attendees.md)
+- [Attendees Store](nodes/attendees-store.md)
+- [Kubernetes Cluster](nodes/k8s-cluster.md)
 
 ## Relationships
-- [Conference Website Load Balancer](relationships/conference-website-load-balancer)
-- [Load Balancer Attendees](relationships/load-balancer-attendees)
-- [Attendees Attendees Store](relationships/attendees-attendees-store)
-- [Deployed In K8s Cluster](relationships/deployed-in-k8s-cluster)
+- [Conference Website Load Balancer](relationships/conference-website-load-balancer.md)
+- [Load Balancer Attendees](relationships/load-balancer-attendees.md)
+- [Attendees Attendees Store](relationships/attendees-attendees-store.md)
+- [Deployed In K8s Cluster](relationships/deployed-in-k8s-cluster.md)
 
 ## Flows
 _No flows defined._
