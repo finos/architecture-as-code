@@ -555,13 +555,14 @@
 /* Editor file switcher; shown only when a lesson has more than one editable file. */
 .filePickerWrap {
     display: inline-flex;
-    min-width: 0;
+    flex-shrink: 0;
     margin-right: 8px;
 }
 
 .filePicker {
     max-width: 180px;
     text-overflow: ellipsis;
+    white-space: nowrap;
     color-scheme: dark;
     background: transparent;
     border: 1px solid #222a5c;
