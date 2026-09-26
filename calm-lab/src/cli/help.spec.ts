@@ -5,7 +5,7 @@ describe('helpFor', () => {
     it('lists the commands the lab runs, labelled as the lab', () => {
         const text = helpFor().map((line) => line.text);
         expect(text[0]).toBe('calm in the browser lab — the commands it runs:');
-        expect(text).toContain('  validate  Validate a CALM document.');
+        expect(text).toContain('  validate   Validate a CALM document.');
         expect(text[text.length - 1]).toBe('Other commands and options need the CLI — https://calm.finos.org/working-with-calm/cli');
     });
 

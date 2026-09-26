@@ -53,7 +53,8 @@ shim here.
 | --- | --- |
 | `src/engine.ts` | `validateArchitecture` / `parseJson` on `@finos/calm-shared/browser` |
 | `src/schemas.ts` | The CALM meta-schemas, imported from `calm/` and keyed by `$id` |
-| `src/shell.ts` | The terminal's command interpreter; calls `diffDocuments` directly for `calm diff` |
+| `src/shell.ts` | The terminal's command interpreter; dispatches `calm` subcommands to `src/cli/` |
+| `src/cli/` | CLI-compatible `calm validate`/`calm diff`: argument parsing, output and error text |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
@@ -88,9 +89,17 @@ checked for cycles, and every value that reaches React or `.toLowerCase()` goes 
 
 ## Commands the lab does not run
 
-`src/shell.ts` asks `browserSupportFor()` (the `BROWSER_COMMAND_SUPPORT` manifest in `shared`) why
-a command is unavailable and prints that reason. `cli/src/browser-manifest.spec.ts` keeps the
-manifest in step with the commands the CLI registers, so do not hard-code these messages here.
+`src/shell.ts` dispatches `calm validate` and `calm diff` to `src/cli/`. Those files accept exactly
+the CLI's syntax: `src/cli/options.ts` parses arguments like commander, from the option table in
+`BROWSER_COMMAND_SUPPORT` (`shared/src/browser-capabilities.ts`). `cli/src/browser-manifest.spec.ts`
+fails when that table and the CLI disagree, so never hard-code flags, choices or descriptions here.
+
+Output is the CLI's own text, pinned in `src/cli/*.spec.ts` from the real CLI. When the CLI's
+output changes, re-capture it and update the specs. The only lab-specific text is
+`unsupportedInLab` (a command or option the browser cannot run) and the lab-labelled help.
+
+Known difference: `diffDocuments` logs "Skipped N node(s)…" warnings to the browser console, not
+the terminal.
 
 ## Node 26 storage rule
 

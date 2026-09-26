@@ -10,6 +10,7 @@ vi.mock('./HubDiagram', () => ({default: () => null}));
 // terminal path and Lab's own recompute.
 const engine = vi.hoisted(() => ({
     validateArchitecture: vi.fn(),
+    validateOutcome: vi.fn(),
     okResult: () => ({
         ok: true,
         issues: [],
@@ -17,17 +18,24 @@ const engine = vi.hoisted(() => ({
         pretty: 'Summary\n- Errors: no (0)\n\nNo issues found.\n',
         doc: {nodes: [], relationships: []},
     }),
+    okOutcome: () => ({
+        jsonSchemaValidationOutputs: [],
+        spectralSchemaValidationOutputs: [],
+        hasErrors: false,
+        hasWarnings: false,
+    }),
 }));
 
 vi.mock('../engine', () => ({
     validateArchitecture: engine.validateArchitecture,
+    validateOutcome: engine.validateOutcome,
     parseJson: vi.fn(),
     commandSupport: vi.fn(() => undefined),
     ENGINE_VERSION: '0.0.0-test',
     LabError: class LabError extends Error {},
 }));
 
-const VALIDATE_COMMAND = `calm validate ${ARCHITECTURE_FILE}`;
+const VALIDATE_COMMAND = `calm validate -a ${ARCHITECTURE_FILE}`;
 const STEP_ONE = /Look around/;
 
 function stepOneCompleted() {
@@ -45,6 +53,8 @@ async function runCommand(command: string) {
 beforeEach(() => {
     engine.validateArchitecture.mockReset();
     engine.validateArchitecture.mockImplementation(async () => engine.okResult());
+    engine.validateOutcome.mockReset();
+    engine.validateOutcome.mockImplementation(async () => engine.okOutcome());
 });
 
 describe('Lab', () => {
@@ -112,9 +122,9 @@ describe('Lab', () => {
         });
 
         const inFlight: {resolve: (() => void) | null} = {resolve: null};
-        engine.validateArchitecture.mockImplementationOnce(
+        engine.validateOutcome.mockImplementationOnce(
             () => new Promise((resolve) => {
-                inFlight.resolve = () => resolve(engine.okResult());
+                inFlight.resolve = () => resolve(engine.okOutcome());
             }),
         );
 

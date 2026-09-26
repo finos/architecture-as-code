@@ -685,7 +685,7 @@ export default function Lab() {
                                     {capped && (
                                         <div className={styles.problemsEmpty}>
                                             showing first {listedCount} of {totalCount} problems —
-                                            run `calm validate {EDITOR_FILE_LABEL}` for the full
+                                            run `calm validate -a {EDITOR_FILE_LABEL} -f pretty` for the full
                                             report
                                         </div>
                                     )}

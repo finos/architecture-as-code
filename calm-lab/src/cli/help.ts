@@ -16,11 +16,10 @@ export function helpFor(command?: (typeof LAB_COMMANDS)[number]): Line[] {
             const entry = BROWSER_COMMAND_SUPPORT.find((candidate) => candidate.command === name);
             return [name, entry?.status === 'supported' ? entry.description ?? '' : ''];
         });
-        // Width is set by the lab's own commands, not by `--version` — it just rides along.
-        const width = Math.max(...rows.map(([left]) => left.length));
+        const allRows: [string, string][] = [...rows, ['--version', 'output the version number']];
         return [
             { text: 'calm in the browser lab — the commands it runs:', kind: 'out' },
-            ...columns([...rows, ['--version', 'output the version number']], width),
+            ...columns(allRows),
             footer,
         ];
     }
