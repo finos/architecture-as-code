@@ -1,10 +1,10 @@
-import { useState, useCallback } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, EdgeLabelRenderer, useStore } from 'reactflow';
 import { getEdgeParams } from './utils/floatingEdges.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 
-export function FloatingEdge({
+function FloatingEdgeComponent({
     id,
     source,
     target,
@@ -116,7 +116,9 @@ export function FloatingEdge({
             )}
         </>
     );
-};
+}
+
+export const FloatingEdge = memo(FloatingEdgeComponent);
 
 /**
  * Calculate offset positions for bidirectional edges
