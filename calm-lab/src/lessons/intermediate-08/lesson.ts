@@ -426,10 +426,10 @@ export const INTERMEDIATE_08: Lesson = {
             title: 'Add an architecture-level security control',
             body:
                 'Add a `controls` section at the top level with a `security` domain. Give it a ' +
-                '`description` and a `requirements` array. Each requirement needs a `requirement-url` ' +
-                'naming the schema its config must satisfy, plus either inline `config` or an external ' +
-                '`config-url`. Use `https://calm.finos.org/release/1.2/meta/control-requirement.json` as ' +
-                'the requirement-url, with a `config` of `control-id`, `name` and `description`. Save your change.',
+                '`description` and a `requirements` array. Each requirement has a `requirement-url` that ' +
+                'names the schema its config must satisfy, plus an inline `config` or an external `config-url`. ' +
+                'Use `https://calm.finos.org/release/1.2/meta/control-requirement.json` as the requirement-url ' +
+                'and a `config` with a `control-id`, a `name` and a `description`, then save your change.',
             hint: { kind: 'file', content: STEP_1_TARGET_FILE },
             check: (state) => hasSecurityControl(state.doc) && state.validation.ok,
         },
