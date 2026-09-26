@@ -260,7 +260,7 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
         try {
             result = await validateArchitecture(text);
         } catch (error) {
-            if (seq !== validationSeq.current) {
+            if (seq !== validationSeq.current || epoch !== sessionEpoch.current) {
                 return;
             }
             // The engine itself failed (schema load, Spectral) — say so rather
