@@ -23,6 +23,7 @@ the lab has no lesson picker.
 | Lesson | Tutorial | Status |
 |---|---|---|
 | `quick-start` | — | Released |
+| `beginner-02` | [02-first-node](https://calm.finos.org/tutorials/beginner/02-first-node) | Released |
 
 ### Write a lesson
 
