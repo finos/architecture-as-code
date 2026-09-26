@@ -177,9 +177,12 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
     // Validation is async now, so results can arrive out of order — only the
     // newest recompute is allowed to publish its result.
     const validationSeq = useRef(0);
-    // Bumped by "Reset lesson" — anything captured under an older epoch is
-    // discarded rather than applied to the fresh lesson.
+    // Bumped by "Reset lesson" and on unmount (a lesson switch) — anything
+    // captured under an older epoch is discarded, never applied or saved.
     const sessionEpoch = useRef(0);
+    useEffect(() => () => {
+        sessionEpoch.current += 1;
+    }, []);
     const [editorText, setEditorText] = useState(() => vfs.read(editorFile) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
@@ -252,6 +255,7 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
     const recompute = async () => {
         const text = vfs.read(editorFile) ?? '';
         const seq = ++validationSeq.current;
+        const epoch = sessionEpoch.current;
         let result: LabValidation;
         try {
             result = await validateArchitecture(text);
@@ -272,8 +276,8 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
             });
             return;
         }
-        if (seq !== validationSeq.current) {
-            return; // a newer recompute has superseded this one
+        if (seq !== validationSeq.current || epoch !== sessionEpoch.current) {
+            return; // superseded by a newer recompute, a reset or a lesson switch
         }
         setValidation(result);
         const state: LessonState = {

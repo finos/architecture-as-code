@@ -59,7 +59,7 @@ shim here.
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
 | `src/lessons/` | Lesson model, check helpers, registry and one folder per lesson |
-| `src/lab/storage.ts` | Progress and UI prefs in localStorage, one key per lesson |
+| `src/lab/storage.ts` | Workspace and progress keys for each lesson, plus one shared UI-prefs key |
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
@@ -72,9 +72,10 @@ behind a `validationSeq` guard: a recompute that is no longer the newest returns
 `setValidation`. Keep that guard if you touch the validation path — saving and running
 `calm validate` can both be in flight at once, and without it the older result wins at random.
 
-`handleReset` bumps a second ref, `sessionEpoch`. A command captures it before awaiting and
-discards its lines, its event and its recompute if the learner reset the lesson meanwhile —
-otherwise an in-flight `calm validate` ticks a step off the fresh lesson.
+A second ref, `sessionEpoch`, is bumped by `handleReset` and when `Lab` unmounts. A command and a
+recompute capture it before awaiting; if it has changed, the command discards its lines, its event
+and its recompute, and the recompute publishes nothing and saves no progress. Otherwise an
+in-flight `calm validate` ticks a step off the fresh lesson.
 
 `runShell` does not await `recompute`: `ls` and `cat` must not sit behind a Spectral run with the
 input disabled.
@@ -82,8 +83,8 @@ input disabled.
 A step is complete when there are no **errors**. Warnings are listed in the Problems panel but
 never fail a step.
 
-Switching lessons remounts `Lab` (`key={lesson.id}`), so the epoch guard also drops work from the
-previous lesson.
+Switching lessons remounts `Lab` (`key={lesson.id}`). The unmount bumps the epoch, so work still in
+flight from the previous lesson writes no progress and no outcomes, to either lesson.
 
 ## Writing a lesson
 

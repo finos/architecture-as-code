@@ -181,9 +181,9 @@ describe('Lab', () => {
         fireEvent.keyDown(input, {key: 'Enter'});
         rerender(<Lab key="other" lesson={other} lessons={[QUICK_START, other]} onSelectLesson={vi.fn()} />);
         await act(async () => { inFlight.resolve!(); });
-        // The run belongs to the lesson it ran in: it may tick quick-start, never the new lesson.
+        // The learner left quick-start: the run must not tick either lesson.
         expect(localStorage.getItem('calm-lab-progress-v2:other')).toBeNull();
-        expect(JSON.parse(localStorage.getItem('calm-lab-progress-v2:quick-start') ?? '[]')).toContain('look-around');
+        expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).toBeNull();
     });
 
     it('needs a validate after the last save when a step asks for one', async () => {
