@@ -481,6 +481,8 @@ export const INTERMEDIATE_08: Lesson = {
         message:
             'You added architecture-level and node-level controls to capture security, performance ' +
             'and compliance requirements, each with a requirement-url and a configured implementation.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-09', label: 'Next lesson: Business flows' },
+        ],
     },
 };

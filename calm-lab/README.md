@@ -28,6 +28,7 @@ the lab has no lesson picker.
 | `beginner-06` | [06-metadata](https://calm.finos.org/tutorials/beginner/06-metadata) | Released |
 | `beginner-07` | [07-complete-architecture](https://calm.finos.org/tutorials/beginner/07-complete-architecture) | Released |
 | `intermediate-08` | [08-controls](https://calm.finos.org/tutorials/intermediate/08-controls) | Released |
+| `intermediate-09` | [09-business-flows](https://calm.finos.org/tutorials/intermediate/09-business-flows) | Released |
 
 ### Write a lesson
 
