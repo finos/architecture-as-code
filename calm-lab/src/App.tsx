@@ -1,6 +1,8 @@
 import ColorModeToggle from './ColorModeToggle';
 import ErrorBoundary from './ErrorBoundary';
 import Lab from './lab/Lab';
+import { LESSONS } from './lessons';
+import { QUICK_START } from './lessons/quick-start/lesson';
 import { useColorMode } from './theme';
 
 const DOCS_URL = 'https://calm.finos.org';
@@ -60,7 +62,7 @@ export default function App() {
                 </nav>
             </header>
             <ErrorBoundary fallback={<LabCrashed />}>
-                <Lab />
+                <Lab lesson={QUICK_START} lessons={LESSONS} onSelectLesson={() => undefined} />
             </ErrorBoundary>
         </div>
     );

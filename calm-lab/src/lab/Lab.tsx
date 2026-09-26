@@ -6,54 +6,21 @@ import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
-import {loadUiPrefs, saveUiPrefs} from './storage';
+import {clearProgress, loadProgress, loadUiPrefs, saveProgress, saveUiPrefs, workspaceKey} from './storage';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
-import type {CommandEvent} from '../cli/outcome';
-import {QUICK_START} from '../lessons/quick-start/lesson';
-import {HOME_DIR, type LessonState, type LessonStep} from '../lessons/types';
+import type {CommandEvent, CommandOutcome} from '../cli/outcome';
+import {freshOutcomes} from '../lessons/checks';
+import {HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
 
-// Interim until Lab takes a `lesson` prop; for now it hard-codes quick-start.
-const ARCHITECTURE_FILE = QUICK_START.editorFile;
-const SEED_FILES = QUICK_START.seedFiles;
-const STEPS = QUICK_START.steps;
-const COMPLETION = QUICK_START.completion;
-
-const PROGRESS_KEY = 'calm-lab-progress-v1';
-const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
 const AUTO_EXPAND = 'auto';
 
-function loadProgress(): Set<string> {
-    try {
-        const raw = window.localStorage?.getItem(PROGRESS_KEY);
-        if (raw) {
-            const ids: unknown = JSON.parse(raw);
-            if (Array.isArray(ids)) {
-                return new Set(ids.filter((id): id is string => STEPS.some((step) => step.id === id)));
-            }
-        }
-    } catch {
-        // ignore — start fresh
-    }
-    return new Set();
-}
-
-function saveProgress(completed: Set<string>): void {
-    try {
-        window.localStorage?.setItem(PROGRESS_KEY, JSON.stringify([...completed]));
-    } catch {
-        // ignore
-    }
-}
-
-function clearProgress() {
-    try {
-        window.localStorage?.removeItem(PROGRESS_KEY);
-    } catch {
-        // ignore
-    }
+export interface LabProps {
+    lesson: Lesson;
+    lessons: readonly Lesson[];
+    onSelectLesson(id: string): void;
 }
 
 /** Render `code` spans in lesson copy. */
@@ -168,12 +135,19 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     );
 }
 
-function ProgressDots({completed, currentId, vertical}: {completed: Set<string>; currentId?: string; vertical?: boolean}) {
+interface ProgressDotsProps {
+    steps: readonly LessonStep[];
+    completed: Set<string>;
+    currentId?: string;
+    vertical?: boolean;
+}
+
+function ProgressDots({steps, completed, currentId, vertical}: ProgressDotsProps) {
     return (
         <span
             className={clsx(styles.titleDots, vertical && styles.titleDotsVertical)}
             aria-hidden="true">
-            {STEPS.map((step) => (
+            {steps.map((step) => (
                 <i
                     key={step.id}
                     className={clsx(
@@ -190,21 +164,23 @@ function ProgressDots({completed, currentId, vertical}: {completed: Set<string>;
     );
 }
 
-export default function Lab() {
+export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
+    const {editorFile, seedFiles, steps, completion} = lesson;
+    const editorLabel = editorFile.slice(HOME_DIR.length + 1);
     const vfsRef = useRef<Vfs | null>(null);
     if (!vfsRef.current) {
-        vfsRef.current = createVfs(SEED_FILES, 'calm-lab-workspace-v2:quick-start');
+        vfsRef.current = createVfs(seedFiles, workspaceKey(lesson.id));
     }
     const vfs = vfsRef.current;
 
-    const flagsRef = useRef({hasValidatedOk: false});
+    const outcomesRef = useRef<CommandOutcome[]>([]);
     // Validation is async now, so results can arrive out of order — only the
     // newest recompute is allowed to publish its result.
     const validationSeq = useRef(0);
     // Bumped by "Reset lesson" — anything captured under an older epoch is
     // discarded rather than applied to the fresh lesson.
     const sessionEpoch = useRef(0);
-    const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
+    const [editorText, setEditorText] = useState(() => vfs.read(editorFile) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
     const [validation, setValidation] = useState<LabValidation | null>(null);
@@ -214,7 +190,7 @@ export default function Lab() {
     // reload right after completing a step must never lose the tick).
     const completedRef = useRef<Set<string> | null>(null);
     if (completedRef.current === null) {
-        completedRef.current = loadProgress();
+        completedRef.current = loadProgress(lesson.id, steps.map((step) => step.id));
     }
     const [completed, setCompleted] = useState<Set<string>>(() => completedRef.current!);
     const [terminalNonce, setTerminalNonce] = useState(0);
@@ -274,7 +250,7 @@ export default function Lab() {
     };
 
     const recompute = async () => {
-        const text = vfs.read(ARCHITECTURE_FILE) ?? '';
+        const text = vfs.read(editorFile) ?? '';
         const seq = ++validationSeq.current;
         let result: LabValidation;
         try {
@@ -300,25 +276,15 @@ export default function Lab() {
             return; // a newer recompute has superseded this one
         }
         setValidation(result);
-        // Bridges the tracked flag to the outcome shape the moved checks read.
         const state: LessonState = {
             doc: (result.doc as Record<string, unknown> | undefined) || null,
             validation: result,
-            commands: flagsRef.current.hasValidatedOk
-                ? [{
-                    command: 'validate',
-                    files: {architecture: ARCHITECTURE_FILE},
-                    ok: true,
-                    errorCount: 0,
-                    warningCount: 0,
-                    snapshot: {[ARCHITECTURE_FILE]: vfs.read(ARCHITECTURE_FILE) ?? ''},
-                }]
-                : [],
-            editorFile: ARCHITECTURE_FILE,
+            commands: freshOutcomes(outcomesRef.current, (path) => vfs.read(path)),
+            editorFile,
         };
         let changed = false;
         const next = new Set(completedRef.current);
-        for (const step of STEPS) {
+        for (const step of steps) {
             if (!next.has(step.id) && step.check(state)) {
                 next.add(step.id);
                 changed = true;
@@ -328,7 +294,7 @@ export default function Lab() {
             // Persist synchronously, before any render, so a reload
             // immediately after completing a step keeps the tick.
             completedRef.current = next;
-            saveProgress(next);
+            saveProgress(lesson.id, next);
             setCompleted(next);
             // Collapse the finished step and expand the next one.
             setExpandedId(AUTO_EXPAND);
@@ -341,18 +307,7 @@ export default function Lab() {
     }, []);
 
     const handleEvent = (event: CommandEvent) => {
-        const {outcome} = event;
-        if (outcome.command !== 'validate' || !outcome.ok) {
-            return;
-        }
-        // Compare resolved-to-resolved so any path spelling that reaches
-        // the lesson file ('./x', 'architecture//x', relative from a cd'd
-        // directory, ...) counts.
-        const eventFile = vfs.resolve('/', outcome.files.architecture || '');
-        const lessonFile = vfs.resolve('/', ARCHITECTURE_FILE);
-        if (eventFile === lessonFile) {
-            flagsRef.current.hasValidatedOk = true;
-        }
+        outcomesRef.current.push(event.outcome);
     };
 
     const runShell = async (input: string): Promise<Line[]> => {
@@ -390,8 +345,8 @@ export default function Lab() {
         // (terminal commands are read-only) — flag the diagram as stale
         // when a save actually changes it while the diagram is hidden;
         // an open diagram re-renders live, so no flag is needed then.
-        const changed = vfs.read(ARCHITECTURE_FILE) !== editorText;
-        vfs.write(ARCHITECTURE_FILE, editorText);
+        const changed = vfs.read(editorFile) !== editorText;
+        vfs.write(editorFile, editorText);
         if (changed && topTab !== 'diagram') {
             setDiagramStale(true);
         }
@@ -407,12 +362,12 @@ export default function Lab() {
 
     const handleReset = () => {
         sessionEpoch.current += 1;
-        vfs.seed(SEED_FILES);
-        clearProgress();
-        flagsRef.current = {hasValidatedOk: false};
+        vfs.seed(seedFiles);
+        clearProgress(lesson.id);
+        outcomesRef.current = [];
         completedRef.current = new Set();
         setCompleted(new Set());
-        setEditorText(vfs.read(ARCHITECTURE_FILE) ?? '');
+        setEditorText(vfs.read(editorFile) ?? '');
         setDirty(false);
         setDiagramStale(false);
         setCwd(HOME_DIR);
@@ -421,10 +376,10 @@ export default function Lab() {
         recompute();
     };
 
-    const currentStep = STEPS.find((step) => !completed.has(step.id));
+    const currentStep = steps.find((step) => !completed.has(step.id));
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
-    const allDone = completed.size === STEPS.length;
+    const allDone = completed.size === steps.length;
     // The uncapped total: the Problems tab lists at most 20, the badge must
     // still report every error the engine found.
     const errorCount = validation?.errorCount ?? 0;
@@ -436,7 +391,7 @@ export default function Lab() {
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
-    const savedArchitecture = vfs.read(ARCHITECTURE_FILE) ?? '';
+    const savedArchitecture = vfs.read(editorFile) ?? '';
     const cssVars =
         termHeight != null
             ? ({'--lab-term-height': `${termHeight}px`} as CSSProperties)
@@ -446,7 +401,7 @@ export default function Lab() {
         <main className={styles.workspace} style={cssVars}>
             <div className={styles.chassis}>
                 <div className={styles.titlebar}>
-                    <ProgressDots completed={completed} currentId={currentStep?.id} />
+                    <ProgressDots steps={steps} completed={completed} currentId={currentStep?.id} />
                     <span className={styles.titleLabel}>CALM LEARNING LAB</span>
                     <button
                         type="button"
@@ -461,9 +416,24 @@ export default function Lab() {
                         className={clsx(styles.guide, guideCollapsed && styles.guideHiddenDesktop)}
                         aria-label="Lesson guide">
                         <div className={styles.guideHeader}>
-                            <span className={styles.guideTitle}>GUIDE</span>
+                            <select
+                                className={styles.lessonPicker}
+                                aria-label="Lesson"
+                                value={lesson.id}
+                                onChange={(event) => onSelectLesson(event.target.value)}>
+                                {lessons.map((candidate) => {
+                                    const done = candidate.id === lesson.id
+                                        ? completed.size
+                                        : loadProgress(candidate.id, candidate.steps.map((step) => step.id)).size;
+                                    return (
+                                        <option key={candidate.id} value={candidate.id}>
+                                            {candidate.title} — {done}/{candidate.steps.length}
+                                        </option>
+                                    );
+                                })}
+                            </select>
                             <span className={styles.guideProgress}>
-                                {completed.size}/{STEPS.length}
+                                {completed.size}/{steps.length}
                             </span>
                             <button
                                 type="button"
@@ -476,7 +446,7 @@ export default function Lab() {
                         </div>
                         <div className={styles.guideScroll}>
                             <ol className={styles.stepsList}>
-                                {STEPS.map((step, index) => (
+                                {steps.map((step, index) => (
                                     <StepItem
                                         key={step.id}
                                         step={step}
@@ -494,10 +464,10 @@ export default function Lab() {
                             </ol>
                             {allDone && (
                                 <div className={styles.doneCard}>
-                                    <h3>🏁 {COMPLETION.heading}</h3>
-                                    <p>{COMPLETION.message}</p>
+                                    <h3>🏁 {completion.heading}</h3>
+                                    <p>{completion.message}</p>
                                     <div className={styles.doneLinks}>
-                                        {COMPLETION.links.map((link) => (
+                                        {completion.links.map((link) => (
                                             <a href={link.to} key={link.to}>
                                                 {link.label}
                                             </a>
@@ -522,6 +492,7 @@ export default function Lab() {
                             GUIDE »
                         </button>
                         <ProgressDots
+                            steps={steps}
                             completed={completed}
                             currentId={currentStep?.id}
                             vertical
@@ -537,7 +508,7 @@ export default function Lab() {
                                     aria-selected={topTab === 'editor'}
                                     className={clsx(styles.tab, topTab === 'editor' && styles.tabActive)}
                                     onClick={() => setTopTab('editor')}>
-                                    {EDITOR_FILE_LABEL}
+                                    {editorLabel}
                                     {dirty && (
                                         <span
                                             className={styles.dirtyDot}
@@ -581,7 +552,7 @@ export default function Lab() {
                             <div className={styles.tabPanel} hidden={topTab !== 'editor'}>
                                 <Editor
                                     chromeless
-                                    fileName={EDITOR_FILE_LABEL}
+                                    fileName={editorLabel}
                                     value={editorText}
                                     dirty={dirty}
                                     onChange={(text) => {
@@ -676,7 +647,7 @@ export default function Lab() {
                                     {capped && (
                                         <div className={styles.problemsEmpty}>
                                             showing first {listedCount} of {totalCount} problems —
-                                            run `calm validate -a {EDITOR_FILE_LABEL} -f pretty` for the full
+                                            run `calm validate -a {editorLabel} -f pretty` for the full
                                             report
                                         </div>
                                     )}
@@ -702,7 +673,7 @@ export default function Lab() {
                         </button>
                     )}
                     <span className={styles.statusFile}>
-                        {EDITOR_FILE_LABEL}
+                        {editorLabel}
                         {dirty ? ' ●' : ''} · {lineCount} lines
                     </span>
                 </div>

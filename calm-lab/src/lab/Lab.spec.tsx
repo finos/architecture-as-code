@@ -1,9 +1,10 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
-import Lab from './Lab';
+import Lab, {type LabProps} from './Lab';
 import {QUICK_START} from '../lessons/quick-start/lesson';
-
-const ARCHITECTURE_FILE = QUICK_START.editorFile;
+import {LESSONS} from '../lessons';
+import {nodes, validatedEditorFile} from '../lessons/checks';
+import {HOME_DIR, type Lesson} from '../lessons/types';
 
 // ReactFlow needs a measured canvas; the diagram is not what these tests are about.
 vi.mock('./HubDiagram', () => ({default: () => null}));
@@ -37,7 +38,7 @@ vi.mock('../engine', () => ({
     LabError: class LabError extends Error {},
 }));
 
-const VALIDATE_COMMAND = `calm validate -a ${ARCHITECTURE_FILE}`;
+const VALIDATE_COMMAND = `calm validate -a ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)}`;
 const STEP_ONE = /Look around/;
 
 function stepOneCompleted() {
@@ -52,6 +53,19 @@ async function runCommand(command: string) {
     });
 }
 
+async function saveEditor(text: string) {
+    fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: text}});
+    await act(async () => {
+        fireEvent.click(screen.getByRole('button', {name: 'Save (⌘S)'}));
+    });
+}
+
+function renderLab(props: Partial<LabProps> = {}) {
+    const onSelectLesson = vi.fn();
+    render(<Lab lesson={QUICK_START} lessons={LESSONS} onSelectLesson={onSelectLesson} {...props} />);
+    return {onSelectLesson};
+}
+
 beforeEach(() => {
     engine.validateArchitecture.mockReset();
     engine.validateArchitecture.mockImplementation(async () => engine.okResult());
@@ -62,7 +76,7 @@ beforeEach(() => {
 describe('Lab', () => {
     it('completes the first step once `calm validate` succeeds', async () => {
         await act(async () => {
-            render(<Lab />);
+            renderLab();
         });
         expect(screen.getByRole('button', {name: STEP_ONE})).toBeInTheDocument();
         expect(stepOneCompleted()).toBe(false);
@@ -91,7 +105,7 @@ describe('Lab', () => {
             pretty: '',
         }));
         await act(async () => {
-            render(<Lab />);
+            renderLab();
         });
 
         fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
@@ -116,7 +130,7 @@ describe('Lab', () => {
             doc: {nodes: [], relationships: []},
         }));
         await act(async () => {
-            render(<Lab />);
+            renderLab();
         });
 
         fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
@@ -128,7 +142,7 @@ describe('Lab', () => {
 
     it('does not complete a step from a validate the learner reset away', async () => {
         await act(async () => {
-            render(<Lab />);
+            renderLab();
         });
 
         const inFlight: {resolve: (() => void) | null} = {resolve: null};
@@ -153,5 +167,46 @@ describe('Lab', () => {
 
         await waitFor(() => expect(screen.getByLabelText('Terminal input')).not.toBeDisabled());
         expect(stepOneCompleted()).toBe(false);
+    });
+
+    it('needs a validate after the last save when a step asks for one', async () => {
+        // Parse the text the engine is given, so state.doc follows the saved file.
+        engine.validateArchitecture.mockImplementation(async (text: string) => ({...engine.okResult(), doc: JSON.parse(text)}));
+        const lesson: Lesson = {
+            ...QUICK_START,
+            id: 'fresh',
+            steps: [{
+                id: 'validated-x',
+                title: 'Add x and validate',
+                body: '',
+                hint: {kind: 'commands', commands: []},
+                check: (state) => nodes(state.doc).some((node) => node['unique-id'] === 'x') && validatedEditorFile(state),
+            }],
+        };
+        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
+        await runCommand(VALIDATE_COMMAND);                     // fresh, but the file has no x
+        await saveEditor('{"nodes": [{"unique-id": "x"}], "relationships": []}');   // the earlier run is now stale
+        expect(screen.queryByRole('button', {name: /Add x and validate \(completed\)/})).toBeNull();
+        await runCommand(VALIDATE_COMMAND);                     // fresh run on the saved file
+        await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
+    });
+
+    it('lists every lesson with its progress and asks to switch on change', async () => {
+        const other = {...QUICK_START, id: 'other', title: 'Other lesson'};
+        let onSelectLesson = vi.fn();
+        await act(async () => { ({onSelectLesson} = renderLab({lessons: [QUICK_START, other]})); });
+        const picker = screen.getByRole('combobox', {name: 'Lesson'});
+        expect(screen.getByRole('option', {name: /Quick start: model a trading system — 0\/3/})).toBeInTheDocument();
+        fireEvent.change(picker, {target: {value: 'other'}});
+        expect(onSelectLesson).toHaveBeenCalledWith('other');
+    });
+
+    it('resets only the current lesson', async () => {
+        localStorage.setItem('calm-lab-progress-v2:other', '["x"]');
+        await act(async () => { renderLab(); });
+        await runCommand(VALIDATE_COMMAND);
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
+        expect(localStorage.getItem('calm-lab-progress-v2:other')).toBe('["x"]');
+        expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).toBeNull();
     });
 });
