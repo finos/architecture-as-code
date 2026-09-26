@@ -134,9 +134,11 @@ export class CalmHubClient {
         type: NarrativeDocumentType,
         request: NarrativeDocumentRequest
     ): Promise<string | undefined> {
+        this.logger.debug(`Creating narrative document for namespace=${namespace} with type=${type}`);
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}`;
         try {
             const response = await this.ax.post(endpoint, request);
+            this.logger.debug(`Received create narrative document response: ${JSON.stringify(response.headers)}`);
             return response.headers.location as string | undefined;
         } catch (err) {
             throw this.wrapError(err, `POST ${endpoint}`);
@@ -151,28 +153,16 @@ export class CalmHubClient {
         request: NarrativeDocumentRequest
     ): Promise<string> {
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`;
+        this.logger.debug(`Creating narrative document version ${version} for namespace=${namespace}, document type=${type} and id=${id}`);
         return this.createNarrativeDocumentAt(endpoint, request, `POST ${endpoint}`);
     }
 
-    async getNarrativeDocumentIds(namespace: string, type: NarrativeDocumentType): Promise<number[]> {
-        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}`;
-        try {
-            const response = await this.ax.get(endpoint);
-            if (!response.data || typeof response.data !== 'object' || !Array.isArray(response.data.values) ||
-                !response.data.values.every((value: unknown) => Number.isSafeInteger(value) && (value as number) > 0)) {
-                throw new HubClientError(0, 'Response does not contain a positive integer values array', `GET ${endpoint}`);
-            }
-            return response.data.values;
-        } catch (err) {
-            if (err instanceof HubClientError) throw err;
-            throw this.wrapError(err, `GET ${endpoint}`);
-        }
-    }
-
     async getNarrativeDocumentVersions(namespace: string, type: NarrativeDocumentType, id: number): Promise<string[]> {
+        this.logger.debug(`Getting narrative document versions for namespace=${namespace}, document type=${type} and id=${id}`);
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions`;
         try {
             const response = await this.ax.get(endpoint);
+            this.logger.debug(`Received narrative document versions response: ${JSON.stringify(response.data)}`);
             if (!response.data || typeof response.data !== 'object' || !Array.isArray(response.data.values) ||
                 !response.data.values.every((value: unknown) => typeof value === 'string')) {
                 throw new HubClientError(0, 'Response does not contain a string values array', `GET ${endpoint}`);
@@ -189,9 +179,11 @@ export class CalmHubClient {
         id: number,
         version: string
     ): Promise<NarrativeDocumentVersion> {
+        this.logger.debug(`Getting narrative document version ${version} for namespace=${namespace}, document type=${type} and id=${id}`);
         const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`;
         try {
             const response = await this.ax.get(endpoint);
+            this.logger.debug(`Received narrative document version response: ${JSON.stringify(response.data)}`);
             if (!response.data || typeof response.data !== 'object' || typeof response.data.documentMarkdown !== 'string') {
                 throw new HubClientError(0, 'Response does not contain documentMarkdown', `GET ${endpoint}`);
             }
@@ -209,6 +201,7 @@ export class CalmHubClient {
     ): Promise<string> {
         try {
             const response = await this.ax.post(endpoint, request);
+            this.logger.debug(`Received create narrative document version response: ${JSON.stringify(response.headers)}`);
             const location = response.headers.location as string | undefined;
             if (!location) {
                 throw new HubClientError(0, 'Response does not include Location header', requestLabel);

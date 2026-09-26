@@ -10,7 +10,7 @@ import { existsSync } from 'fs';
 const makeClient = (
     overrides: Partial<Pick<CalmHubClient,
         'getMappedResourceVersions' | 'createMappedResourceVersion' | 'getMappedResourceByVersion' |
-        'createNarrativeDocument' | 'createNarrativeDocumentVersion' | 'getNarrativeDocumentIds' |
+        'createNarrativeDocument' | 'createNarrativeDocumentVersion' |
         'getNarrativeDocumentVersions' | 'getNarrativeDocumentVersion'>> = {}
 ): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async () => []),
@@ -18,7 +18,6 @@ const makeClient = (
     getMappedResourceByVersion: vi.fn(async () => ({})),
     createNarrativeDocument: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0'),
     createNarrativeDocumentVersion: vi.fn(async () => '/api/calm/namespaces/com.example/documents/sad/42/versions/1.1.0'),
-    getNarrativeDocumentIds: vi.fn(async () => []),
     getNarrativeDocumentVersions: vi.fn(async () => []),
     getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: '' })),
     ...overrides,
@@ -120,7 +119,6 @@ describe('pushWorkspaceToHub', () => {
             'payments-sad': { calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0' },
         });
         expect((await loadManifest(bundlePath))['payments-sad']).not.toHaveProperty('createRecovery');
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
         expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
     });
@@ -202,7 +200,6 @@ describe('pushWorkspaceToHub', () => {
         expect(firstClient.createNarrativeDocument).toHaveBeenCalledOnce();
 
         const retryClient = makeClient({
-            getNarrativeDocumentIds: vi.fn().mockResolvedValue([77]),
             getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
         });
         const retry = pushWorkspaceToHub(bundlePath, retryClient);
@@ -217,7 +214,6 @@ describe('pushWorkspaceToHub', () => {
         );
 
         expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
-        expect(retryClient.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(retryClient.getNarrativeDocumentVersion).not.toHaveBeenCalled();
         expect((await loadManifest(bundlePath)).payments).toEqual(pending);
     });
@@ -257,7 +253,6 @@ describe('pushWorkspaceToHub', () => {
 
         expect((await loadManifest(bundlePath)).payments).toMatchObject({ calmHubDocumentId: 42, calmHubId: location });
         expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('createRecovery');
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
     });
 
@@ -290,7 +285,6 @@ describe('pushWorkspaceToHub', () => {
         await writeFreshNarrative(markdown);
         const client = makeClient({
             createNarrativeDocument: vi.fn().mockResolvedValue(location),
-            getNarrativeDocumentIds: vi.fn().mockResolvedValue([77]),
             getNarrativeDocumentVersion: vi.fn().mockResolvedValue({ documentMarkdown: markdown }),
         });
 
@@ -302,13 +296,11 @@ describe('pushWorkspaceToHub', () => {
         };
         expect((await loadManifest(bundlePath)).payments).toEqual(pending);
         expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
 
         await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/--calm-hub-document-id <id>/);
 
         expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
         expect((await loadManifest(bundlePath)).payments).toEqual(pending);
     });
@@ -331,7 +323,6 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/createRecovery/);
 
         expect(client.createNarrativeDocument).not.toHaveBeenCalled();
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
     });
 
     it.each([500, 413])('retains pending state after ambiguous Hub status %i and does not POST on retry', async (status) => {
@@ -345,7 +336,6 @@ describe('pushWorkspaceToHub', () => {
 
         await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(`Hub error ${status}`);
 
-        expect(client.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(client.getNarrativeDocumentVersion).not.toHaveBeenCalled();
         expect(client.createNarrativeDocument).toHaveBeenCalledOnce();
         expect((await loadManifest(bundlePath)).payments).not.toHaveProperty('calmHubDocumentId');
@@ -355,7 +345,6 @@ describe('pushWorkspaceToHub', () => {
         await expect(pushWorkspaceToHub(bundlePath, retryClient)).rejects.toThrow(/Explicit reconciliation is required/);
 
         expect(retryClient.createNarrativeDocument).not.toHaveBeenCalled();
-        expect(retryClient.getNarrativeDocumentIds).not.toHaveBeenCalled();
         expect(retryClient.getNarrativeDocumentVersion).not.toHaveBeenCalled();
     });
 
