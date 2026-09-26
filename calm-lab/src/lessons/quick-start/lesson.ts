@@ -1,5 +1,5 @@
 import { HOME_DIR, type CalmDocLike, type Lesson } from '../types';
-import { validatedEditorFile } from '../checks';
+import { connectsNodes, nodeById, validatedEditorFile } from '../checks';
 
 const EDITOR_FILE = `${HOME_DIR}/architecture/trading-system.architecture.json`;
 
@@ -72,28 +72,12 @@ const STEP_3_TARGET_FILE = `{
 }
 `;
 
-export function hasOrdersApiNode(doc: CalmDocLike | null | undefined): boolean {
-    const nodes = Array.isArray(doc?.nodes) ? (doc.nodes as Record<string, unknown>[]) : [];
-    return nodes.some(
-        (node) => node?.['unique-id'] === 'orders-api' && node?.['node-type'] === 'service',
-    );
-}
+// The quick-start copy names these ids, so the checks match them; other lessons must check shape, not names.
+export const hasOrdersApiNode = (doc: CalmDocLike | null | undefined) =>
+    nodeById(doc, 'orders-api')?.['node-type'] === 'service';
 
-export function hasConnectsRelationship(doc: CalmDocLike | null | undefined): boolean {
-    const nodes = Array.isArray(doc?.nodes) ? (doc.nodes as Record<string, unknown>[]) : [];
-    const nodeIds = new Set(nodes.map((node) => node?.['unique-id']));
-    const relationships = Array.isArray(doc?.relationships) ? (doc.relationships as Record<string, unknown>[]) : [];
-    return relationships.some((relationship) => {
-        const relationshipType = relationship?.['relationship-type'] as Record<string, unknown> | undefined;
-        const connects = relationshipType?.connects as { source?: { node?: unknown }; destination?: { node?: unknown } } | undefined;
-        return (
-            connects?.source?.node === 'trading-ui' &&
-            connects?.destination?.node === 'orders-api' &&
-            nodeIds.has('trading-ui') &&
-            nodeIds.has('orders-api')
-        );
-    });
-}
+export const hasConnectsRelationship = (doc: CalmDocLike | null | undefined) =>
+    connectsNodes(doc, 'trading-ui', 'orders-api');
 
 export const QUICK_START: Lesson = {
     id: 'quick-start',

@@ -31,6 +31,16 @@ export function connectsBetween(doc: CalmDocLike | null | undefined, sourceType:
         typeOf(doc, (connects.destination as Item | undefined)?.node) === destinationType);
 }
 
+/** A `connects` from the node with id `sourceId` to the node with id `destinationId`; both nodes must exist. */
+export function connectsNodes(doc: CalmDocLike | null | undefined, sourceId: string, destinationId: string): boolean {
+    if (!nodeById(doc, sourceId) || !nodeById(doc, destinationId)) {
+        return false;
+    }
+    return relationshipsOf(doc, 'connects').some((connects) =>
+        (connects.source as Item | undefined)?.node === sourceId &&
+        (connects.destination as Item | undefined)?.node === destinationId);
+}
+
 export function interactsWith(doc: CalmDocLike | null | undefined, actorType: string, nodeType: string): boolean {
     return relationshipsOf(doc, 'interacts').some((interacts) =>
         typeOf(doc, interacts.actor) === actorType &&

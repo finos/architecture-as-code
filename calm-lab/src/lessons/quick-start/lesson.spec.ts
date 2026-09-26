@@ -65,6 +65,15 @@ describe('quick-start lesson', () => {
     it('step 3 needs a connects relationship AND a valid document', () => {
         expect(hasConnectsRelationship(withOrders)).toBe(false);
         expect(hasConnectsRelationship(withRelationship)).toBe(true);
+        const reversed = {
+            ...withOrders,
+            relationships: [{
+                'unique-id': 'ui-to-orders',
+                'relationship-type': { connects: { source: { node: 'orders-api' }, destination: { node: 'trading-ui' } } },
+            }],
+        };
+        expect(hasConnectsRelationship(reversed)).toBe(false);
+        expect(connect.check(state({ doc: withRelationship, validation: { ok: false } }))).toBe(false);
         expect(connect.check(state({ doc: withRelationship, validation: { ok: true } }))).toBe(true);
     });
 });

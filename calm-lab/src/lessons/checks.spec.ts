@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    composedOf, connectsBetween, freshOutcomes, interactsWith, nodeById, nodes, nodesOfType,
+    composedOf, connectsBetween, connectsNodes, freshOutcomes, interactsWith, nodeById, nodes, nodesOfType,
     ranFailed, ranOk, relationships, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -27,6 +27,7 @@ describe('document helpers', () => {
             expect(nodes(bad as never)).toBeInstanceOf(Array);
             expect(relationships(bad as never)).toBeInstanceOf(Array);
             expect(connectsBetween(bad as never, 'service', 'database')).toBe(false);
+            expect(connectsNodes(bad as never, 'svc', 'db')).toBe(false);
             expect(interactsWith(bad as never, 'actor', 'service')).toBe(false);
             expect(composedOf(bad as never, 'system', ['service'])).toBe(false);
         }
@@ -46,9 +47,16 @@ describe('document helpers', () => {
         expect(composedOf(doc, 'system', ['service', 'actor'])).toBe(false);
     });
 
+    it('match a connects by the ids of the nodes it joins, in direction', () => {
+        expect(connectsNodes(doc, 'svc', 'db')).toBe(true);
+        expect(connectsNodes(doc, 'db', 'svc')).toBe(false);
+        expect(connectsNodes(doc, 'web', 'svc')).toBe(false);
+    });
+
     it('ignore relationships that point at missing nodes', () => {
         const dangling = { ...doc, relationships: [{ 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'gone' } } } }] };
         expect(connectsBetween(dangling, 'service', 'database')).toBe(false);
+        expect(connectsNodes(dangling, 'svc', 'gone')).toBe(false);
     });
 });
 
