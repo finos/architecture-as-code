@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -235,6 +236,14 @@ class TestPluginAuthResourceShould {
         assertThat(locationStr, containsString("plugin-callback"));
         assertThat(locationStr, containsString("state="));
         assertThat(locationStr, containsString("nonce=test-nonce"));
+    }
+
+    @Test
+    void reject_a_nonce_outside_the_opaque_token_charset_before_discovery() {
+        Response response = resource.pluginLogin("63348", null, "not a valid nonce!");
+
+        assertThat(response.getStatus(), equalTo(400));
+        verifyNoInteractions(mockOidcClient);
     }
 
     @Test

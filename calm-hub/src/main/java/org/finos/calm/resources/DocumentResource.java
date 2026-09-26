@@ -34,7 +34,9 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.DocumentService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
 
 import java.net.URI;
 import java.util.Map;
@@ -287,7 +289,8 @@ public class DocumentResource {
             return false;
         }
         try {
-            Object parsed = new Yaml().load(frontmatter.group(1));
+            // Frontmatter is untrusted: SafeConstructor limits it to standard YAML types.
+            Object parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(frontmatter.group(1));
             return parsed instanceof Map<?, ?> mapping && !mapping.isEmpty();
         } catch (RuntimeException e) {
             LOGGER.warn("Document frontmatter could not be parsed", e);
