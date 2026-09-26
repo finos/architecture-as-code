@@ -138,6 +138,8 @@ jobs:
                   file: calm-hub/src/main/docker/Dockerfile.readonly-native
                   platforms: ${{ matrix.platform }}
                   outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/calm-hub,push-by-digest=true,name-canonical=true,push=true
+                  sbom: true
+                  provenance: mode=max
                   labels: ${{ steps.meta-labels.outputs.labels }}
                   cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
                   cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}

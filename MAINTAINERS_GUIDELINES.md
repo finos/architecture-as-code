@@ -14,7 +14,9 @@ Use these documents as the source of truth for the corresponding topics:
 | [finos/calm-governance/MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) | Project-wide maintainer roster and Lead Maintainer |
 | [README.md](./README.md#projects) | Maintainer mapping for subprojects in this monorepo |
 | [CONTRIBUTING.md](./CONTRIBUTING.md) | Contributor workflow, commit conventions, and release expectations |
-| [SECURITY.md](./SECURITY.md) | Private vulnerability reporting and disclosure process |
+| [SECURITY.md](./SECURITY.md) | Private vulnerability reporting, disclosure process, dependency and code scanning policy, secrets policy, release verification |
+| [SUPPORT.md](./SUPPORT.md) | Supported releases and when security updates stop |
+| [THREAT_MODEL.md](./THREAT_MODEL.md) | Threat model and attack surface analysis; update it when a change adds an interface, storage backend, auth mode or distribution channel |
 | [.github/CODEOWNERS](./.github/CODEOWNERS) | Default ownership and review routing |
 | [.github/pull_request_template.md](./.github/pull_request_template.md) | Required PR metadata and maintainer review checklist |
 | [.github/ISSUE_TEMPLATE/Maintainer_update.md](./.github/ISSUE_TEMPLATE/Maintainer_update.md) | Process checklist for adding or removing maintainers |
