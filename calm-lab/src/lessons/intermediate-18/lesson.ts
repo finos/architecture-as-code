@@ -78,7 +78,7 @@ const RELATIONSHIP_STD_FILE = `{
 export const INTERMEDIATE_18: Lesson = {
     id: 'intermediate-18',
     title: 'Organizational standards',
-    summary: 'Write Node and Relationship Standards that extend CALM\'s core schema with required properties.',
+    tutorial: { title: 'Organizational Standards', url: 'https://calm.finos.org/tutorials/intermediate/18-standards/' },
     chainsFrom: 'intermediate-17',
     editorFile: INTERMEDIATE_17.editorFile,
     editableFiles: [...INTERMEDIATE_17.editableFiles!, NODE_STD, RELATIONSHIP_STD],
