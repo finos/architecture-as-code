@@ -87,7 +87,8 @@ const STEP_3_TARGET_FILE = STEP_1_TARGET_FILE.replace(
 type Doc = CalmDocLike | null;
 
 const hasOrderFlow = (doc: Doc) => flowsWithTransitions(doc, 3).length >= 1;
-const hasTwoFlows = (doc: Doc) => flowsWithTransitions(doc, 2).length >= 2;
+// Distinct ids: a copy of the first flow is not a second flow.
+const hasTwoFlows = (doc: Doc) => new Set(flowsWithTransitions(doc, 2).map((flow) => flow['unique-id'])).size >= 2;
 
 export const INTERMEDIATE_09: Lesson = {
     id: 'intermediate-09',

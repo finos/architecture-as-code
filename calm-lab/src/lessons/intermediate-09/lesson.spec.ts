@@ -136,6 +136,8 @@ describe('intermediate-09 lesson', () => {
             transitions: [transition('gateway-to-inventory', 1), transition('does-not-exist', 2)],
         };
         expect(stockFlowStep.check(state({ doc: doc([orderFlow, stockFlowDangling]) }))).toBe(false);
+        // The first flow twice: must not tick.
+        expect(stockFlowStep.check(state({ doc: doc([orderFlow, { ...orderFlow }]) }))).toBe(false);
     });
 
     it('validate needs both flows AND a fresh validate of the editor file', () => {
