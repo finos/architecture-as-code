@@ -101,11 +101,27 @@ describe('calm generate', () => {
         expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false, errorCount: 1 }) });
     });
 
+    it('reports a $ref to a host outside the allowlist as the CLI does with its default config', async () => {
+        const REF = '{"properties": {"nodes": {"type": "array", "prefixItems": [{"$ref": "https://example.com/node.json"}]}}}';
+        const { ctx } = context({ '/workspace/p.json': REF });
+        const lines = await runGenerate(['-p', 'p.json', '-o', 'out.json'], ctx);
+        expect(lines.slice(2).map((line) => line.text)).toEqual([
+            'error [multi-strategy-document-loader]:    Loader DirectUrlDocumentLoader failed fatally loading document: https://example.com/node.json. Enable debug logging for the full loader report.',
+            "error [calm-generate]:    Error while generating architecture from pattern: Direct URL loading is restricted to approved hosts. Host 'example.com' is not allowlisted.",
+            '',
+            'To allow this host, run:',
+            '',
+            '  calm init-config --allowed-remote-hosts example.com',
+            '',
+            'Only add hosts you trust.',
+        ]);
+    });
+
     it('counts one error when generate() fails', async () => {
         const REF = '{"properties": {"nodes": {"type": "array", "prefixItems": [{"$ref": "https://example.com/node.json"}]}}}';
         const { vfs, ctx, onEvent } = context({ '/workspace/p.json': REF });
         const lines = await runGenerate(['-p', 'p.json', '-o', 'out.json'], ctx);
-        expect(lines.at(-1)).toMatchObject({ text: expect.stringContaining('Error while generating architecture from pattern: '), kind: 'err' });
+        expect(lines).toContainEqual({ text: expect.stringContaining('Error while generating architecture from pattern: '), kind: 'err' });
         expect(vfs.exists('/workspace/out.json')).toBe(false);
         expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false, errorCount: 1 }) });
     });

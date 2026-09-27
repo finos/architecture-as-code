@@ -139,14 +139,26 @@ export function refLoaders(mapping?: UrlMapping): RefLoaders {
     };
 }
 
+const loaderFailedLine = (loader: string, url: string) =>
+    logLine('error', 'multi-strategy-document-loader', `Loader ${loader} failed fatally loading document: ${url}. Enable debug logging for the full loader report.`);
+
+function firstFailures(failures: LoadFailure[]): LoadFailure[] {
+    const seen = new Set<string>();
+    return failures.filter(({ url }) => !seen.has(url) && seen.add(url));
+}
+
+/** What the CLI logs, before generate's own error, for a `$ref` that failed while generate followed it. */
+export function loaderFailureLines(failures: LoadFailure[]): Line[] {
+    return firstFailures(failures).map(({ loader, url }): Line => ({ text: loaderFailedLine(loader, url), kind: 'err' }));
+}
+
 /**
  * What the CLI logs for a `$ref` that failed while the pattern compiled: the loader, AJV's
  * `loadSchema`, and (when an architecture is checked against the pattern) the JSON Schema rule.
  */
 export function refFailureLines(failures: LoadFailure[], againstArchitecture: boolean): Line[] {
-    const seen = new Set<string>();
-    return failures.filter(({ url }) => !seen.has(url) && seen.add(url)).flatMap(({ loader, url, message }) => [
-        logLine('error', 'multi-strategy-document-loader', `Loader ${loader} failed fatally loading document: ${url}. Enable debug logging for the full loader report.`),
+    return firstFailures(failures).flatMap(({ loader, url, message }) => [
+        loaderFailedLine(loader, url),
         logLine('error', 'json-schema-validator', `Error fetching schema from schema directory: UNKNOWN: ${message}`),
         ...(againstArchitecture ? [logLine('error', 'calm-validate', `JSON Schema compilation failed: ${message}`)] : []),
     ]).flatMap((text) => text.split('\n').map((line): Line => ({ text: line, kind: 'err' })));

@@ -1,7 +1,7 @@
 import { extractOptions } from '@finos/calm-shared/browser';
 import { generateArchitecture, schemaDirectoryWith } from '../engine';
 import type { Line, ShellContext } from '../shell';
-import { readJsonFile, readUrlMapping, refLoaders } from './files';
+import { loaderFailureLines, readJsonFile, readUrlMapping, refLoaders } from './files';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
@@ -76,20 +76,20 @@ export async function runGenerate(args: string[], ctx: ShellContext): Promise<Li
         type: 'command',
         outcome: { command: 'generate', files, ok, errorCount: ok ? 0 : 1, warningCount: 0, snapshot: { [pattern.path]: pattern.content, ...mapping?.snapshot } },
     });
-    const failure = (message: string) => err(logLine('error', 'calm-generate', `Error while generating architecture from pattern: ${message}`));
+    const failure = (message: string) => logLine('error', 'calm-generate', `Error while generating architecture from pattern: ${message}`).split('\n').map(err);
 
     // `ok` is "the command wrote an architecture": a generate error and an unwritable output both fail.
     let architecture: object;
+    const refs = refLoaders(mapping);
     try {
-        const refs = mapping && refLoaders(mapping);
-        architecture = await generateArchitecture(pattern.doc, refs ? await schemaDirectoryWith(refs.first, refs.last) : undefined);
+        architecture = await generateArchitecture(pattern.doc, await schemaDirectoryWith(refs.first, refs.last));
     } catch (error) {
         emit(false);
-        return [...lines, failure(error instanceof Error ? error.message : String(error))];
+        return [...lines, ...loaderFailureLines(refs.failures), ...failure(error instanceof Error ? error.message : String(error))];
     }
     if (ctx.vfs.isDir(output)) {
         emit(false);
-        return [...lines, failure(`EISDIR: illegal operation on a directory, open '${outputReference}'`)];
+        return [...lines, ...failure(`EISDIR: illegal operation on a directory, open '${outputReference}'`)];
     }
     ctx.vfs.write(output, JSON.stringify(architecture, null, 2));
     emit(true);
