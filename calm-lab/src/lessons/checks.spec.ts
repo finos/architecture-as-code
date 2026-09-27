@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
-    hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
-    patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires, ranFailed, ranOk,
-    rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries, urlMappingTargets, withStandard,
-    validatedEditorFile,
+    controlsIn, everyHas, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription,
+    hasMetadata, hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes,
+    nodesOfType, patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires,
+    ranFailed, ranOk, rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries,
+    urlMappingTargets, withStandard, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -864,5 +864,34 @@ describe('withStandard', () => {
     it('keeps a tutorial value that the learner\'s Standard accepts', () => {
         expect(withStandard({ 'unique-id': 'a', costCenter: 'CC-1', environment: 'dev' }, 'node', tutorial, tutorial))
             .toEqual({ 'unique-id': 'a', costCenter: 'CC-1' });
+    });
+});
+
+describe('everyHas', () => {
+    const names = ['owner', 'costCenter'];
+
+    it('passes when every item has every name', () => {
+        expect(everyHas([{ owner: 'a', costCenter: 'CC-1' }, { owner: 'b', costCenter: 'CC-2', extra: 1 }], names)).toBe(true);
+    });
+
+    it('fails when one item misses a name', () => {
+        expect(everyHas([{ owner: 'a', costCenter: 'CC-1' }, { owner: 'b' }], names)).toBe(false);
+    });
+
+    it('fails for an empty names list, so a Standard that requires nothing completes no step', () => {
+        expect(everyHas([{ owner: 'a' }], [])).toBe(false);
+    });
+
+    it('fails for no items', () => {
+        expect(everyHas([], names)).toBe(false);
+    });
+
+    it('fails on wrong-shaped input and never throws', () => {
+        expect(everyHas(null, names)).toBe(false);
+        expect(everyHas(undefined, names)).toBe(false);
+        expect(everyHas({ owner: 'a', costCenter: 'CC-1' }, names)).toBe(false);
+        expect(everyHas([null, { owner: 'a', costCenter: 'CC-1' }], names)).toBe(false);
+        expect(everyHas(['owner', 42], names)).toBe(false);
+        expect(everyHas([['owner', 'costCenter']], names)).toBe(false);
     });
 });

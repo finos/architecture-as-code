@@ -1,5 +1,5 @@
 import { HOME_DIR, type Lesson, type LessonState } from '../types';
-import { fileJson, nodes, ranOk, relationships, standardRequires } from '../checks';
+import { everyHas, fileJson, nodes, ranOk, relationships, standardRequires } from '../checks';
 import { INTERMEDIATE_19 } from '../intermediate-19/lesson';
 import { NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
@@ -157,18 +157,11 @@ const RELATIONSHIPS_FILE = `{
 }
 `;
 
-const hasEvery = (names: string[]) => (item: Record<string, unknown>) =>
-    names.every((name) => Object.prototype.hasOwnProperty.call(item, name));
+const nodesCompliant = (state: LessonState) =>
+    everyHas(nodes(state.doc), standardRequires(fileJson(state, NODE_STD), 'node')) && state.validation.ok;
 
-const nodesCompliant = (state: LessonState) => {
-    const names = standardRequires(fileJson(state, NODE_STD), 'node');
-    return names.length > 0 && nodes(state.doc).length > 0 && nodes(state.doc).every(hasEvery(names)) && state.validation.ok;
-};
-
-const relationshipsCompliant = (state: LessonState) => {
-    const names = standardRequires(fileJson(state, RELATIONSHIP_STD), 'relationship');
-    return names.length > 0 && relationships(state.doc).length > 0 && relationships(state.doc).every(hasEvery(names)) && state.validation.ok;
-};
+const relationshipsCompliant = (state: LessonState) =>
+    everyHas(relationships(state.doc), standardRequires(fileJson(state, RELATIONSHIP_STD), 'relationship')) && state.validation.ok;
 
 const validatedStandards = (state: LessonState) =>
     nodesCompliant(state) && relationshipsCompliant(state)

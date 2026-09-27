@@ -331,6 +331,16 @@ export function withStandard(
     return { ...kept, ...standardExample(standard, coreDef, item) };
 }
 
+/**
+ * At least one item, at least one name, and every item has every name as an own property.
+ * An empty `names` list fails, so a Standard that requires nothing never completes a step.
+ */
+export function everyHas(list: unknown, names: string[]): boolean {
+    return Array.isArray(list) && list.length > 0 && names.length > 0
+        && list.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item)
+            && names.every((name) => Object.prototype.hasOwnProperty.call(item, name)));
+}
+
 /** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */
 export function patternRefs(json: unknown): string[] {
     const refs = new Set<string>();

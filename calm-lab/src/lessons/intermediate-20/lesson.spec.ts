@@ -101,6 +101,8 @@ describe('intermediate-20 lesson', () => {
         expect(relationshipStandards.check(state({ validation: { ok: false } }))).toBe(false);
         // A standard that requires nothing does not make the step pass.
         expect(relationshipStandards.check(state({ files: { ...MY_STANDARDS, [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, []) } }))).toBe(false);
+        // A half-edited editor file: must not tick, must not throw.
+        expect(relationshipStandards.check(state({ doc: null }))).toBe(false);
     });
 
     it('validate-standards needs a fresh passing run against the base pattern with the mapping', () => {

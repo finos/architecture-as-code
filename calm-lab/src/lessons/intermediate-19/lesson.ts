@@ -1,6 +1,7 @@
 import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
 import {
-    fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets, withStandard,
+    everyHas, fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets,
+    withStandard,
 } from '../checks';
 import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
@@ -159,16 +160,10 @@ const patternRefsStandards = (state: LessonState) => {
         && patternArrayRefs(pattern, 'relationships').includes(relationshipId);
 };
 
-const hasEvery = (names: string[]) => (item: Record<string, unknown>) =>
-    names.every((name) => Object.prototype.hasOwnProperty.call(item, name));
-
 const compliant = (state: LessonState) => {
     const nodeNames = standardRequires(fileJson(state, NODE_STD), 'node');
     const relationshipNames = standardRequires(fileJson(state, RELATIONSHIP_STD), 'relationship');
-    return nodeNames.length > 0 && relationshipNames.length > 0
-        && nodes(state.doc).length > 0 && nodes(state.doc).every(hasEvery(nodeNames))
-        && relationships(state.doc).length > 0 && relationships(state.doc).every(hasEvery(relationshipNames))
-        && state.validation.ok;
+    return everyHas(nodes(state.doc), nodeNames) && everyHas(relationships(state.doc), relationshipNames) && state.validation.ok;
 };
 
 export const INTERMEDIATE_19: Lesson = {
