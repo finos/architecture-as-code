@@ -107,7 +107,8 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     private isLocalPath(ref: string): boolean {
-        return isAbsolute(ref) || this.isRelativePath(ref);
+        // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
+        return isAbsolute(ref) || (this.isRelativePath(ref) && !/^[a-z][a-z0-9+.-]+:/i.test(ref));
     }
 
     private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object | undefined> {

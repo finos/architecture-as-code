@@ -103,6 +103,12 @@ describe('file-system-document-loader', () => {
         expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
     });
 
+    it.each(['HTTPS://example.com/missing_schema.json', 'urn:example:missing-schema'])(
+        'keeps a missing %s reference recoverable so other loaders can try it', async (reference) => {
+            const thrown = await fileSystemDocumentLoader.loadMissingDocument(reference, 'schema').catch((e) => e);
+            expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+        });
+
     it('keeps the no-$id schema fallback recoverable', async () => {
         vol.fromJSON({ '/no-id.json': JSON.stringify({ type: 'object' }) });
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('no-id.json', 'schema').catch((e) => e);
