@@ -33,8 +33,7 @@ export const BEGINNER_02: Lesson = {
     seedFiles: {
         [`${HOME_DIR}/README.md`]:
             'Welcome to the CALM learning lab — a real CALM workspace, entirely in your browser.\n' +
-            'This lesson starts from an empty `architectures/my-first-architecture.json`. Follow the steps ' +
-            'on the left; type `help` in the terminal to see what you can run.\n',
+            'Follow the steps on the left; type `help` in the terminal to see what you can run.\n',
         [EDITOR_FILE]: SEED_ARCHITECTURE,
     },
     steps: [
@@ -83,6 +82,8 @@ export const BEGINNER_02: Lesson = {
     completion: {
         heading: 'Lesson complete',
         message: 'You added your first node to a CALM architecture and validated it with the real CALM engine.',
-        links: [],
+        links: [
+            { to: '?lesson=beginner-03', label: 'Next lesson: Connect nodes with relationships' },
+        ],
     },
 };
