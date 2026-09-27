@@ -234,7 +234,7 @@ const STEP_3_TARGET_FILE = `{
 export const BEGINNER_05: Lesson = {
     id: 'beginner-05',
     title: 'Add interfaces',
-    summary: 'Add inline interfaces to your nodes, then reference them from a connects relationship.',
+    tutorial: { title: 'Add Interfaces to Your Nodes', url: 'https://calm.finos.org/tutorials/beginner/05-interfaces/' },
     chainsFrom: 'beginner-03',
     editorFile: EDITOR_FILE,
     seedFiles: endFiles(BEGINNER_03),
