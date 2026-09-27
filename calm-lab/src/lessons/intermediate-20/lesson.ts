@@ -1,5 +1,5 @@
 import { HOME_DIR, type Lesson, type LessonState } from '../types';
-import { everyHas, fileJson, nodes, ranOk, relationships, standardRequires } from '../checks';
+import { everyHas, fileJson, nodeById, nodes, prefixItemConsts, ranOk, relationships, standardRequires } from '../checks';
 import { INTERMEDIATE_19 } from '../intermediate-19/lesson';
 import { NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
@@ -157,11 +157,27 @@ const RELATIONSHIPS_FILE = `{
 }
 `;
 
+// The steps say to keep what the web application pattern fixes: each node's unique-id and node-type,
+// and each relationship's unique-id.
+const keepsWebAppShape = (state: LessonState) => {
+    const pattern = fileJson(state, WEB_APP);
+    const ids = prefixItemConsts(pattern, 'nodes', 'unique-id');
+    const types = prefixItemConsts(pattern, 'nodes', 'node-type');
+    const relationshipIds = new Set(relationships(state.doc).map((relationship) => relationship['unique-id']));
+    return ids.length > 0
+        && ids.every((id, index) => {
+            const node = typeof id === 'string' ? nodeById(state.doc, id) : undefined;
+            return node !== undefined && (types[index] === undefined || node['node-type'] === types[index]);
+        })
+        && prefixItemConsts(pattern, 'relationships', 'unique-id').every((id) => relationshipIds.has(id));
+};
+
 const nodesCompliant = (state: LessonState) =>
-    everyHas(nodes(state.doc), standardRequires(fileJson(state, NODE_STD), 'node')) && state.validation.ok;
+    everyHas(nodes(state.doc), standardRequires(fileJson(state, NODE_STD), 'node')) && keepsWebAppShape(state) && state.validation.ok;
 
 const relationshipsCompliant = (state: LessonState) =>
-    everyHas(relationships(state.doc), standardRequires(fileJson(state, RELATIONSHIP_STD), 'relationship')) && state.validation.ok;
+    everyHas(relationships(state.doc), standardRequires(fileJson(state, RELATIONSHIP_STD), 'relationship')) && keepsWebAppShape(state)
+    && state.validation.ok;
 
 const validatedStandards = (state: LessonState) =>
     nodesCompliant(state) && relationshipsCompliant(state)

@@ -47,12 +47,21 @@ const passed = (files: Record<string, string>, over: Partial<CommandOutcome> = {
 const STANDARDS_RUN = passed({ architecture: GENERATED, pattern: BASE, mapping: MAPPING });
 const WEB_APP_RUN = passed({ architecture: GENERATED, pattern: WEB_APP });
 
+// The learner's own web application pattern, which MY_DOC follows.
+const constItem = (properties: Record<string, unknown>) => ({ properties: Object.fromEntries(Object.entries(properties).map(([key, value]) => [key, { const: value }])) });
+const MY_WEB_APP = JSON.stringify({
+    properties: {
+        nodes: { prefixItems: [constItem({ 'unique-id': 'auth-service', 'node-type': 'service' }), constItem({ 'unique-id': 'user-store', 'node-type': 'service' })] },
+        relationships: { prefixItems: [constItem({ 'unique-id': 'auth-to-store' })] },
+    },
+});
+
 const state = (over: Partial<LessonState>): LessonState => ({
     doc: MY_DOC,
     validation: { ok: true },
     commands: [],
     editorFile: GENERATED,
-    files: { ...MY_STANDARDS },
+    files: { ...MY_STANDARDS, [WEB_APP]: MY_WEB_APP },
     ...over,
 });
 
@@ -82,9 +91,12 @@ describe('intermediate-20 lesson', () => {
         // A valid shape in an invalid document (for example a relationship to a missing node).
         expect(nodeStandards.check(state({ validation: { ok: false } }))).toBe(false);
         // A standard that requires nothing does not make the step pass.
-        expect(nodeStandards.check(state({ files: { ...MY_STANDARDS, [NODE_STD]: standard(NODE_REF, []) } }))).toBe(false);
+        expect(nodeStandards.check(state({ files: { ...MY_STANDARDS, [WEB_APP]: MY_WEB_APP, [NODE_STD]: standard(NODE_REF, []) } }))).toBe(false);
         // A half-edited editor file: must not tick, must not throw.
         expect(nodeStandards.check(state({ doc: null }))).toBe(false);
+        // A compliant architecture that dropped a node, or changed a node-type, the web application pattern fixes.
+        expect(nodeStandards.check(state({ doc: { ...MY_DOC, nodes: [node('auth-service'), node('other-store')] } }))).toBe(false);
+        expect(nodeStandards.check(state({ doc: { ...MY_DOC, nodes: [node('auth-service'), node('user-store', { 'node-type': 'database' })] } }))).toBe(false);
     });
 
     it('relationship-standards needs every relationship to carry the properties the relationship standard requires', () => {
@@ -100,9 +112,11 @@ describe('intermediate-20 lesson', () => {
         // A valid shape in an invalid document.
         expect(relationshipStandards.check(state({ validation: { ok: false } }))).toBe(false);
         // A standard that requires nothing does not make the step pass.
-        expect(relationshipStandards.check(state({ files: { ...MY_STANDARDS, [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, []) } }))).toBe(false);
+        expect(relationshipStandards.check(state({ files: { ...MY_STANDARDS, [WEB_APP]: MY_WEB_APP, [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, []) } }))).toBe(false);
         // A half-edited editor file: must not tick, must not throw.
         expect(relationshipStandards.check(state({ doc: null }))).toBe(false);
+        // A compliant relationship with a unique-id other than the one the web application pattern fixes.
+        expect(relationshipStandards.check(state({ doc: { ...MY_DOC, relationships: [connects('renamed', 'auth-service', 'user-store')] } }))).toBe(false);
     });
 
     it('validate-standards needs a fresh passing run against the base pattern with the mapping', () => {

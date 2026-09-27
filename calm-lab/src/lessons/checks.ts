@@ -206,7 +206,8 @@ export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
         .filter(isNonEmptyString);
 }
 
-function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
+/** The `const` of `property` in each item of a pattern's `properties.<array>.prefixItems` (`undefined` where it has none). */
+export function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
     return items(patternArray(json, array)?.['prefixItems']).map((item) => {
         const properties = item['properties'];
         const value = isNonEmptyObject(properties) ? properties[property] : undefined;
