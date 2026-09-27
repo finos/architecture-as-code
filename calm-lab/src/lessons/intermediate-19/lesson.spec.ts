@@ -130,6 +130,9 @@ describe('intermediate-19 lesson', () => {
         // Both refs, but only in $defs, not under the arrays.
         const elsewhere = JSON.stringify({ $defs: { nodes: { $ref: MY_NODE_ID }, relationships: { $ref: MY_RELATIONSHIP_ID } }, properties: {} });
         expect(basePattern.check(state({ files: { ...files, [BASE]: elsewhere } }))).toBe(false);
+        // Both refs under prefixItems: they check only the first element, not every one.
+        const prefixOnly = JSON.stringify({ properties: { nodes: { prefixItems: [{ $ref: MY_NODE_ID }] }, relationships: { prefixItems: [{ $ref: MY_RELATIONSHIP_ID }] } } });
+        expect(basePattern.check(state({ files: { ...files, [BASE]: prefixOnly } }))).toBe(false);
         // Each standard wired to the other array.
         expect(basePattern.check(state({ files: { ...files, [BASE]: pattern(MY_RELATIONSHIP_ID, MY_NODE_ID) } }))).toBe(false);
         // Both refs under nodes; relationships left unconstrained.

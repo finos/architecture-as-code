@@ -296,9 +296,12 @@ export function patternRefs(json: unknown): string[] {
     return [...refs];
 }
 
-/** Every string `$ref` under a pattern's `properties.nodes` or `properties.relationships` schema. */
+/**
+ * Every string `$ref` in the `items` schema of a pattern's `properties.nodes` or `properties.relationships`:
+ * the schema every element must match. A `$ref` under `prefixItems` or `contains` does not count.
+ */
 export const patternArrayRefs = (json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): string[] =>
-    patternRefs(patternArray(json, key));
+    patternRefs(patternArray(json, key)?.['items']);
 
 /** A non-empty string `description` on a document, node or relationship. */
 export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);

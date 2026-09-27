@@ -458,7 +458,7 @@ describe('patternRefs', () => {
         expect(patternRefs({ $ref: 3, items: { $ref: '' } })).toEqual([]);
     });
 
-    it('patternArrayRefs reads only the refs under properties.nodes or properties.relationships', () => {
+    it('patternArrayRefs reads only the refs in the items schema of properties.nodes or properties.relationships', () => {
         const pattern = {
             $defs: { other: { $ref: 'https://example.com/elsewhere.json' } },
             properties: { nodes: { items: { $ref: NODE_STD } }, relationships: { items: { allOf: [{ $ref: REL_STD }] } } },
@@ -468,6 +468,8 @@ describe('patternRefs', () => {
         expect(patternArrayRefs({ $defs: { nodes: { $ref: NODE_STD } }, properties: {} }, 'nodes')).toEqual([]);
         expect(patternArrayRefs({ properties: { nodes: 'x' } }, 'nodes')).toEqual([]);
         expect(patternArrayRefs(null, 'relationships')).toEqual([]);
+        // Only some elements must match a prefixItems or contains schema.
+        expect(patternArrayRefs({ properties: { nodes: { prefixItems: [{ $ref: NODE_STD }], contains: { $ref: NODE_STD } } } }, 'nodes')).toEqual([]);
     });
 });
 
