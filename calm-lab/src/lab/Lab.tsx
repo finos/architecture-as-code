@@ -19,8 +19,6 @@ const AUTO_EXPAND = 'auto';
 
 export interface LabProps {
     lesson: Lesson;
-    lessons: readonly Lesson[];
-    onSelectLesson(id: string): void;
 }
 
 /** Render `code` spans in lesson copy. */
@@ -165,7 +163,7 @@ function ProgressDots({steps, completed, currentId, vertical}: ProgressDotsProps
     );
 }
 
-export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
+export default function Lab({lesson}: LabProps) {
     const {editorFile, seedFiles, steps, completion} = lesson;
     const editorLabel = editorFile.slice(HOME_DIR.length + 1);
     const vfsRef = useRef<Vfs | null>(null);
@@ -421,22 +419,7 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
                         className={clsx(styles.guide, guideCollapsed && styles.guideHiddenDesktop)}
                         aria-label="Lesson guide">
                         <div className={styles.guideHeader}>
-                            <select
-                                className={styles.lessonPicker}
-                                aria-label="Lesson"
-                                value={lesson.id}
-                                onChange={(event) => onSelectLesson(event.target.value)}>
-                                {lessons.map((candidate) => {
-                                    const done = candidate.id === lesson.id
-                                        ? completed.size
-                                        : loadProgress(candidate.id, candidate.steps.map((step) => step.id)).size;
-                                    return (
-                                        <option key={candidate.id} value={candidate.id}>
-                                            {candidate.title} — {done}/{candidate.steps.length}
-                                        </option>
-                                    );
-                                })}
-                            </select>
+                            <span className={styles.guideTitle}>GUIDE</span>
                             <span className={styles.guideProgress}>
                                 {completed.size}/{steps.length}
                             </span>

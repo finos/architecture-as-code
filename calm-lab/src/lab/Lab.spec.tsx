@@ -2,7 +2,6 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import Lab, {type LabProps} from './Lab';
 import {QUICK_START} from '../lessons/quick-start/lesson';
-import {LESSONS} from '../lessons';
 import {nodes, validatedEditorFile} from '../lessons/checks';
 import {HOME_DIR, type Lesson} from '../lessons/types';
 
@@ -61,9 +60,7 @@ async function saveEditor(text: string) {
 }
 
 function renderLab(props: Partial<LabProps> = {}) {
-    const onSelectLesson = vi.fn();
-    render(<Lab lesson={QUICK_START} lessons={LESSONS} onSelectLesson={onSelectLesson} {...props} />);
-    return {onSelectLesson};
+    render(<Lab lesson={QUICK_START} {...props} />);
 }
 
 beforeEach(() => {
@@ -169,17 +166,17 @@ describe('Lab', () => {
         expect(stepOneCompleted()).toBe(false);
     });
 
-    it('drops an in-flight validate when the lesson is switched', async () => {
+    it('drops an in-flight validate when the lab unmounts', async () => {
         const inFlight: {resolve: (() => void) | null} = {resolve: null};
         engine.validateOutcome.mockImplementationOnce(() => new Promise((resolve) => {
             inFlight.resolve = () => resolve(engine.okOutcome());
         }));
         const other = {...QUICK_START, id: 'other'};
-        const {rerender} = render(<Lab key="quick-start" lesson={QUICK_START} lessons={[QUICK_START, other]} onSelectLesson={vi.fn()} />);
+        const {rerender} = render(<Lab key="quick-start" lesson={QUICK_START} />);
         const input = screen.getByLabelText('Terminal input');
         fireEvent.change(input, {target: {value: VALIDATE_COMMAND}});
         fireEvent.keyDown(input, {key: 'Enter'});
-        rerender(<Lab key="other" lesson={other} lessons={[QUICK_START, other]} onSelectLesson={vi.fn()} />);
+        rerender(<Lab key="other" lesson={other} />);
         await act(async () => { inFlight.resolve!(); });
         // The learner left quick-start: the run must not tick either lesson.
         expect(localStorage.getItem('calm-lab-progress-v2:other')).toBeNull();
@@ -200,7 +197,7 @@ describe('Lab', () => {
                 check: (state) => nodes(state.doc).some((node) => node['unique-id'] === 'x') && validatedEditorFile(state),
             }],
         };
-        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
+        await act(async () => { renderLab({lesson}); });
         await runCommand(VALIDATE_COMMAND);                     // fresh, but the file has no x
         await saveEditor('{"nodes": [{"unique-id": "x"}], "relationships": []}');   // the earlier run is now stale
         // Wait for the save's own recompute (mount, the run above, then this save) before asserting.
@@ -211,26 +208,21 @@ describe('Lab', () => {
         await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
     });
 
-    it('lists every lesson with its progress and asks to switch on change', async () => {
-        const other = {...QUICK_START, id: 'other', title: 'Other lesson'};
-        let onSelectLesson = vi.fn();
-        await act(async () => { ({onSelectLesson} = renderLab({lessons: [QUICK_START, other]})); });
-        const picker = screen.getByRole('combobox', {name: 'Lesson'});
-        expect(screen.getByRole('option', {name: /Quick start: model a trading system — 0\/3/})).toBeInTheDocument();
-        fireEvent.change(picker, {target: {value: 'other'}});
-        expect(onSelectLesson).toHaveBeenCalledWith('other');
+    it('has no lesson picker: a lesson opens from its link', async () => {
+        await act(async () => { renderLab(); });
+        expect(screen.queryByRole('combobox', {name: 'Lesson'})).toBeNull();
     });
 
-    it('links the tutorial a lesson follows under the picker, in a new tab', async () => {
+    it('links the tutorial a lesson follows at the top of the guide, in a new tab', async () => {
         const lesson = {...QUICK_START, tutorial: {title: 'Create Your First Node', url: 'https://calm.finos.org/tutorials/beginner/02-first-node'}};
-        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
+        await act(async () => { renderLab({lesson}); });
         const link = screen.getByRole('link', {name: /Create Your First Node/});
         expect(link).toHaveAttribute('href', 'https://calm.finos.org/tutorials/beginner/02-first-node');
         expect(link).toHaveAttribute('target', '_blank');
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('shows nothing under the picker for a lesson with no tutorial', async () => {
+    it('shows no tutorial link for a lesson with no tutorial', async () => {
         await act(async () => { renderLab(); });
         expect(screen.getByRole('navigation', {name: 'Lesson guide'}).querySelector('a')).toBeNull();
     });

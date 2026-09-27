@@ -83,8 +83,7 @@ input disabled.
 A step is complete when there are no **errors**. Warnings are listed in the Problems panel but
 never fail a step.
 
-Switching lessons remounts `Lab` (`key={lesson.id}`). The unmount bumps the epoch, so work still in
-flight from the previous lesson writes no progress and no outcomes, to either lesson.
+When `Lab` unmounts, the epoch goes up, so work still in flight writes no progress and no outcomes.
 
 ## Writing a lesson
 

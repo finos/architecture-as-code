@@ -2,23 +2,9 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
-const labMounts = vi.hoisted(() => ({count: 0}));
-
-vi.mock('./lab/Lab', async () => {
-    const {useEffect} = await import('react');
-    return {
-        default: function MockLab({lesson, onSelectLesson}: {lesson: {id: string}; onSelectLesson(id: string): void}) {
-            useEffect(() => {
-                labMounts.count += 1;
-            }, []);
-            return (
-                <div data-testid="lab" data-lesson={lesson.id}>
-                    <button onClick={() => onSelectLesson('other')}>switch</button>
-                </div>
-            );
-        },
-    };
-});
+vi.mock('./lab/Lab', () => ({
+    default: ({lesson}: {lesson: {id: string}}) => <div data-testid="lab" data-lesson={lesson.id} />,
+}));
 
 import App from './App';
 import { QUICK_START } from './lessons/quick-start/lesson';
@@ -70,7 +56,6 @@ describe('App header', () => {
 describe('lesson selection', () => {
     beforeEach(() => {
         window.history.replaceState(null, '', '/');
-        labMounts.count = 0;
     });
 
     it('opens the lesson named in the URL', () => {
@@ -86,18 +71,9 @@ describe('lesson selection', () => {
         expect(window.location.search).toBe('?lesson=quick-start');
     });
 
-    it('switches lesson, updates the URL and remembers it', async () => {
+    it('remembers the lesson it opens, so the lab root returns to it', () => {
+        window.history.replaceState(null, '', '/?lesson=other');
         render(<App lessons={lessons} />);
-        await userEvent.setup().click(screen.getByRole('button', { name: 'switch' }));
-        expect(screen.getByTestId('lab')).toHaveAttribute('data-lesson', 'other');
-        expect(window.location.search).toBe('?lesson=other');
         expect(JSON.parse(localStorage.getItem('calm-lab-ui-v1')!).lesson).toBe('other');
-    });
-
-    it('remounts the lab on a lesson switch, so no state crosses lessons', async () => {
-        render(<App lessons={lessons} />);
-        expect(labMounts.count).toBe(1);
-        await userEvent.setup().click(screen.getByRole('button', { name: 'switch' }));
-        expect(labMounts.count).toBe(2);
     });
 });

@@ -151,31 +151,12 @@
 }
 
 /* Native select; the chassis is always dark, so pin its colour scheme. */
-.lessonPicker {
-    flex: 1;
-    min-width: 0;
-    text-overflow: ellipsis;
-    color-scheme: dark;
-    background: transparent;
-    border: 1px solid #222a5c;
-    border-radius: 7px;
-    padding: 3px 6px;
+.guideTitle {
     font-family: var(--ifm-font-family-monospace);
     font-size: 11px;
     font-weight: 600;
+    letter-spacing: 0.14em;
     color: #8b96c9;
-    cursor: pointer;
-}
-
-.lessonPicker:hover,
-.lessonPicker:focus-visible {
-    color: #c7d0f0;
-    border-color: #4da3ff;
-}
-
-.lessonPicker option {
-    background: #0d1436;
-    color: #c7d0f0;
 }
 
 .guideProgress {

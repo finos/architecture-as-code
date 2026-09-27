@@ -39,8 +39,7 @@ export default function App({ lessons = LESSONS }: { lessons?: readonly Lesson[]
     const { mode, toggle } = useColorMode();
     // The white icon variant in dark mode, as the docs navbar's `srcDark` does.
     const logo = mode === 'dark' ? '/img/2025_CALM_Icon_WHT.svg' : '/img/2025_CALM_Icon.svg';
-    const [selection, setSelection] = useState(() => selectLesson(window.location.search, lastLessonId(), lessons));
-    const { lesson, unknownId } = selection;
+    const [{ lesson, unknownId }] = useState(() => selectLesson(window.location.search, lastLessonId(), lessons));
 
     useEffect(() => {
         // Preserves no other query parameters — the lab has none, so this is fine.
@@ -48,12 +47,6 @@ export default function App({ lessons = LESSONS }: { lessons?: readonly Lesson[]
         rememberLesson(lesson.id);
     }, [lesson.id]);
 
-    const selectById = (id: string) => {
-        const next = lessons.find((candidate) => candidate.id === id);
-        if (next) {
-            setSelection({ lesson: next });
-        }
-    };
     return (
         <div className="app">
             <header className="navbar" role="banner">
@@ -85,7 +78,7 @@ export default function App({ lessons = LESSONS }: { lessons?: readonly Lesson[]
                 </p>
             )}
             <ErrorBoundary fallback={<LabCrashed />}>
-                <Lab key={lesson.id} lesson={lesson} lessons={lessons} onSelectLesson={selectById} />
+                <Lab lesson={lesson} />
             </ErrorBoundary>
         </div>
     );
