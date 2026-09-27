@@ -1,4 +1,5 @@
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
+import { resolvePath } from '../lab/vfs';
 import { HOME_DIR, type CalmDocLike, type HintFiles, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
@@ -275,6 +276,26 @@ export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 
     return [...required];
 }
 
+/** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */
+export function patternRefs(json: unknown): string[] {
+    const refs = new Set<string>();
+    const walk = (value: unknown) => {
+        if (Array.isArray(value)) {
+            value.forEach(walk);
+        } else if (typeof value === 'object' && value !== null) {
+            for (const [key, child] of Object.entries(value)) {
+                if (key === '$ref' && isNonEmptyString(child)) {
+                    refs.add(child);
+                } else {
+                    walk(child);
+                }
+            }
+        }
+    };
+    walk(json);
+    return [...refs];
+}
+
 /** A non-empty string `description` on a document, node or relationship. */
 export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
 
@@ -309,6 +330,29 @@ export function fileJson(state: HintFiles, path: string): CalmDocLike | null {
     } catch {
         return null;
     }
+}
+
+export interface UrlMappingEntry { url: string; path: string; exists: boolean }
+
+/**
+ * The entries of a `-u` URL mapping file: each URL with its local path resolved against the
+ * mapping file's folder, as the CLI and the lab resolve it. A value that is not a non-empty string
+ * gives `path: ''` and `exists: false`. `[]` when the mapping is missing or not a JSON object.
+ */
+export function urlMappingEntries(state: LessonState, mappingPath: string): UrlMappingEntry[] {
+    const directory = mappingPath.slice(0, mappingPath.lastIndexOf('/')) || '/';
+    return Object.entries(fileJson(state, mappingPath) ?? {}).map(([url, value]) => {
+        if (!isNonEmptyString(value)) {
+            return { url, path: '', exists: false };
+        }
+        const path = resolvePath(directory, value);
+        return { url, path, exists: fileText(state, path) !== null };
+    });
+}
+
+/** The mapping's URLs whose local file exists: URL → absolute path. */
+export function urlMappingTargets(state: LessonState, mappingPath: string): Record<string, string> {
+    return Object.fromEntries(urlMappingEntries(state, mappingPath).filter((entry) => entry.exists).map((entry) => [entry.url, entry.path]));
 }
 
 const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
