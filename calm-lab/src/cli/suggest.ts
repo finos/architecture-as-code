@@ -26,12 +26,7 @@ function editDistance(a: string, b: string): number {
     // fill matrix
     for (let j = 1; j <= b.length; j++) {
         for (let i = 1; i <= a.length; i++) {
-            let cost = 1;
-            if (a[i - 1] === b[j - 1]) {
-                cost = 0;
-            } else {
-                cost = 1;
-            }
+            const cost = a[i - 1] === b[j - 1] ? 0 : 1;
             d[i][j] = Math.min(
                 d[i - 1][j] + 1, // deletion
                 d[i][j - 1] + 1, // insertion
