@@ -668,9 +668,12 @@ export default function Lab({lesson}: LabProps) {
                             </div>
                             <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>
                                 <div className={styles.problemsPanel}>
+                                    {fileOptions.length > 1 && (
+                                        <div className={styles.problemsHeader}>Problems in {editorLabel}</div>
+                                    )}
                                     {(!validation || validation.ok) && !warnings.length ? (
                                         <div className={styles.problemsEmpty}>
-                                            no problems — the saved file is schema-valid
+                                            no problems — {fileOptions.length > 1 ? editorLabel : 'the saved file'} is schema-valid
                                         </div>
                                     ) : !validation || validation.ok ? null : (
                                         <ul className={styles.problemsList}>

@@ -316,6 +316,15 @@ describe('Lab with more than one editable file', () => {
         expect(screen.getByText(/docs\/adr\.md · 4 lines/)).toBeInTheDocument();
     });
 
+    it('names the editor file in the Problems panel, apart from the open file', async () => {
+        await act(async () => { renderLab({lesson: multi, lessons: [multi]}); });
+        openFile(ADR);
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+        const label = QUICK_START.editorFile.slice(HOME_DIR.length + 1);
+        expect(screen.getByText(`Problems in ${label}`)).toBeInTheDocument();
+        expect(screen.getByText(`no problems — ${label} is schema-valid`)).toBeInTheDocument();
+    });
+
     it('draws the open file when it is an architecture, else the editor file', async () => {
         await act(async () => { renderLab({lesson: multi}); });
         const editorText = (screen.getByLabelText(/^Edit /) as HTMLTextAreaElement).value;
@@ -338,6 +347,9 @@ describe('Lab with more than one editable file', () => {
         await act(async () => { renderLab(); });
         expect(screen.queryByRole('combobox', {name: 'File'})).toBeNull();
         expect(screen.getByText('✓ schema-valid')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+        expect(screen.queryByText(/^Problems in /)).toBeNull();
+        expect(screen.getByText('no problems — the saved file is schema-valid')).toBeInTheDocument();
     });
 
     it('colours the open architecture file as JSON, but not a markdown ADR', async () => {

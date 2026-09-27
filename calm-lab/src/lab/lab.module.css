@@ -1100,6 +1100,11 @@
     color: #8b96c9;
 }
 
+.problemsHeader {
+    margin-bottom: 8px;
+    color: #c7d0f0;
+}
+
 .problemsList {
     list-style: none;
     margin: 0;
