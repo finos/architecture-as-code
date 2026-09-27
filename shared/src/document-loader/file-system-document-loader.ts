@@ -107,8 +107,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     private isLocalPath(ref: string): boolean {
-        // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
-        return isAbsolute(ref) || (this.isRelativePath(ref) && !/^[a-z][a-z0-9+.-]+:/i.test(ref));
+        return isAbsolute(ref) || this.isRelativePath(ref);
     }
 
     private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object | undefined> {
@@ -152,10 +151,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         if (isAbsolute(ref)) {
             return false;
         }
-        if (ref.startsWith('http://') || ref.startsWith('https://') ||
-            ref.startsWith('file://') || ref.startsWith('calm:')) {
-            return false;
-        }
-        return true;
+        // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
+        return !/^[a-z][a-z0-9+.-]+:/i.test(ref);
     }
 }

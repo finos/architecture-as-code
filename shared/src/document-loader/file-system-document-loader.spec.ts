@@ -109,6 +109,12 @@ describe('file-system-document-loader', () => {
             expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
         });
 
+    it.each(['urn:example:schema', 'HTTPS://example.com/schema.json', 'calm:/namespaces/x'])(
+        'does not resolve %s against the base path', (reference) => {
+            const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
+            expect(loader.resolvePath(reference)).toBeUndefined();
+        });
+
     it('keeps the no-$id schema fallback recoverable', async () => {
         vol.fromJSON({ '/no-id.json': JSON.stringify({ type: 'object' }) });
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('no-id.json', 'schema').catch((e) => e);
