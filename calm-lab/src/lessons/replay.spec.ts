@@ -70,6 +70,11 @@ describe('startReplay expected failures', () => {
             .rejects.toThrow('quick-start / broken: `calm validate -p p.json -a broken.json -f pretty` printed an error');
     });
 
+    it('rejects a plain hint command that fails validation silently (JSON output)', async () => {
+        await expect(startReplay(lesson).runHint(step(['calm validate -p p.json -a broken.json'])))
+            .rejects.toThrow("quick-start / broken: `calm validate -p p.json -a broken.json` failed; mark it `expect: 'failure'` if the step means it to");
+    });
+
     it('rejects an expected failure that passes', async () => {
         await expect(startReplay(lesson).runHint(step([fails('calm validate -p p.json -a ok.json')])))
             .rejects.toThrow('quick-start / broken: `calm validate -p p.json -a ok.json` was expected to fail, but it passed');

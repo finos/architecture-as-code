@@ -17,14 +17,18 @@ export interface Replay {
 }
 
 /**
- * Why a command did not do what its hint expects, or undefined. A plain command prints no error.
+ * Why a command did not do what its hint expects, or undefined. A plain command prints no error
+ * and does not fail.
  * An expected failure runs the engine and the engine rejects the input (the CLI's exit code 1):
  * a load error or an unknown option is not the failure the step means.
  */
 export function unexpectedResult(command: HintCommand, lines: Line[], outcomes: readonly CommandOutcome[]): string | undefined {
     const errors = lines.filter((line) => line.kind === 'err').map((line) => line.text);
     if (typeof command === 'string') {
-        return errors.length ? `printed an error:\n${errors.join('\n')}` : undefined;
+        if (errors.length) {
+            return `printed an error:\n${errors.join('\n')}`;
+        }
+        return outcomes.some((outcome) => !outcome.ok) ? "failed; mark it `expect: 'failure'` if the step means it to" : undefined;
     }
     if (!outcomes.length) {
         return `was expected to fail, but it did not run:\n${lines.map((line) => line.text).join('\n')}`;
