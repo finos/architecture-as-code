@@ -270,7 +270,7 @@ const STEP_3_TARGET_FILE = `{
 export const BEGINNER_06: Lesson = {
     id: 'beginner-06',
     title: 'Document with metadata',
-    summary: 'Add metadata to your architecture, a node and a relationship to document ownership and operational context.',
+    tutorial: { title: 'Document with Metadata', url: 'https://calm.finos.org/tutorials/beginner/06-metadata/' },
     chainsFrom: 'beginner-05',
     editorFile: EDITOR_FILE,
     seedFiles: endFiles(BEGINNER_05),
