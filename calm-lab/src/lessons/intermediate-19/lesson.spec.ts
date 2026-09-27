@@ -127,6 +127,14 @@ describe('intermediate-19 lesson', () => {
         // Both refs, but the mapping does not name the relationship standard.
         const partial = { ...MY_STANDARDS, ...mapping({ [MY_NODE_ID]: 'standards/company-node-standard.json' }) };
         expect(basePattern.check(state({ files: { ...partial, [BASE]: pattern(MY_NODE_ID, MY_RELATIONSHIP_ID) } }))).toBe(false);
+        // Both refs, but only in $defs, not under the arrays.
+        const elsewhere = JSON.stringify({ $defs: { nodes: { $ref: MY_NODE_ID }, relationships: { $ref: MY_RELATIONSHIP_ID } }, properties: {} });
+        expect(basePattern.check(state({ files: { ...files, [BASE]: elsewhere } }))).toBe(false);
+        // Each standard wired to the other array.
+        expect(basePattern.check(state({ files: { ...files, [BASE]: pattern(MY_RELATIONSHIP_ID, MY_NODE_ID) } }))).toBe(false);
+        // Both refs under nodes; relationships left unconstrained.
+        const nodesOnly = JSON.stringify({ properties: { nodes: { items: { allOf: [{ $ref: MY_NODE_ID }, { $ref: MY_RELATIONSHIP_ID }] } }, relationships: { type: 'array' } } });
+        expect(basePattern.check(state({ files: { ...files, [BASE]: nodesOnly } }))).toBe(false);
         // A half-edited file: must not tick, must not throw.
         expect(basePattern.check(state({ files: { ...files, [BASE]: pattern(MY_NODE_ID, MY_RELATIONSHIP_ID).slice(0, 60) } }))).toBe(false);
     });

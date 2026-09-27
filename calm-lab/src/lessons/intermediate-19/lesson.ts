@@ -1,5 +1,5 @@
 import { HOME_DIR, type Lesson, type LessonState } from '../types';
-import { fileJson, nodes, patternRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets } from '../checks';
+import { fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets } from '../checks';
 import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
 
@@ -120,11 +120,12 @@ const mappingComplete = (state: LessonState) => {
 };
 
 const patternRefsStandards = (state: LessonState) => {
-    const refs = patternRefs(fileJson(state, BASE));
-    return [NODE_STD, RELATIONSHIP_STD].every((path) => {
-        const id = mappedStandardId(state, path);
-        return id !== undefined && refs.includes(id);
-    });
+    const pattern = fileJson(state, BASE);
+    const nodeId = mappedStandardId(state, NODE_STD);
+    const relationshipId = mappedStandardId(state, RELATIONSHIP_STD);
+    return nodeId !== undefined && relationshipId !== undefined
+        && patternArrayRefs(pattern, 'nodes').includes(nodeId)
+        && patternArrayRefs(pattern, 'relationships').includes(relationshipId);
 };
 
 const hasEvery = (names: string[]) => (item: Record<string, unknown>) =>

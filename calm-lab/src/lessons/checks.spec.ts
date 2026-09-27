@@ -3,8 +3,9 @@ import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
     hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
-    patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires, ranFailed, ranOk, rejected,
-    relationships, relationshipsOfKind, standardRequires, urlMappingEntries, urlMappingTargets, validatedEditorFile,
+    patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires, ranFailed, ranOk,
+    rejected, relationships, relationshipsOfKind, standardRequires, urlMappingEntries, urlMappingTargets,
+    validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -455,6 +456,18 @@ describe('patternRefs', () => {
 
     it('skips empty and non-string $ref values', () => {
         expect(patternRefs({ $ref: 3, items: { $ref: '' } })).toEqual([]);
+    });
+
+    it('patternArrayRefs reads only the refs under properties.nodes or properties.relationships', () => {
+        const pattern = {
+            $defs: { other: { $ref: 'https://example.com/elsewhere.json' } },
+            properties: { nodes: { items: { $ref: NODE_STD } }, relationships: { items: { allOf: [{ $ref: REL_STD }] } } },
+        };
+        expect(patternArrayRefs(pattern, 'nodes')).toEqual([NODE_STD]);
+        expect(patternArrayRefs(pattern, 'relationships')).toEqual([REL_STD]);
+        expect(patternArrayRefs({ $defs: { nodes: { $ref: NODE_STD } }, properties: {} }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: 'x' } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs(null, 'relationships')).toEqual([]);
     });
 });
 
