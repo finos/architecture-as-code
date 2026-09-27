@@ -244,6 +244,22 @@ describe('Lab', () => {
         expect(screen.queryByRole('link', {name: /Tutorial/})).toBeNull();
     });
 
+    it('copies a commands hint with a final newline, so a paste runs every command', async () => {
+        const writeText = vi.fn(async () => undefined);
+        Object.defineProperty(navigator, 'clipboard', {value: {writeText}, configurable: true});
+        await act(async () => {
+            renderLab();
+        });
+        fireEvent.click(screen.getAllByRole('button', {name: 'Show hint'})[0]);
+        await act(async () => {
+            fireEvent.click(screen.getByRole('button', {name: 'Copy'}));
+        });
+
+        const copied = (writeText.mock.calls[0] as unknown as [string])[0];
+        expect(copied.endsWith('-f pretty\n')).toBe(true);
+        expect(copied.split('\n').filter(Boolean)).toHaveLength(3);
+    });
+
     it('resets only the current lesson', async () => {
         localStorage.setItem('calm-lab-progress-v2:other', '["x"]');
         await act(async () => { renderLab(); });

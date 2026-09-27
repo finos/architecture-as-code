@@ -124,7 +124,8 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
                         <div className={styles.hintBlock}>
                             <div className={styles.hintHead}>
                                 <span>{hintLabel}</span>
-                                <CopyButton text={hintText} />
+                                {/* The final newline makes a paste into the terminal run every command. */}
+                                <CopyButton text={step.hint.kind === 'commands' ? `${hintText}\n` : hintText} />
                             </div>
                             <pre className={styles.hintPre}>{hintText}</pre>
                         </div>
