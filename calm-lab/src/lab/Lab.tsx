@@ -6,7 +6,7 @@ import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
-import {validateArchitecture, ENGINE_VERSION, type LabValidation} from '../engine';
+import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import {
     ARCHITECTURE_FILE,
@@ -685,7 +685,7 @@ export default function Lab() {
                                     {capped && (
                                         <div className={styles.problemsEmpty}>
                                             showing first {listedCount} of {totalCount} problems —
-                                            run `calm validate {EDITOR_FILE_LABEL}` for the full
+                                            run `calm validate -a {EDITOR_FILE_LABEL} -f pretty` for the full
                                             report
                                         </div>
                                     )}
@@ -696,7 +696,7 @@ export default function Lab() {
                 </div>
 
                 <div className={styles.statusBar}>
-                    <span>CALM 1.2 · @finos/calm-shared {ENGINE_VERSION}</span>
+                    <span>CALM 1.2 · CALM CLI {CLI_VERSION}</span>
                     {!validation ? (
                         <span>checking…</span>
                     ) : validation.ok ? (

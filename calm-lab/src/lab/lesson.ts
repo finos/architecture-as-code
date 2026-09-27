@@ -137,13 +137,13 @@ export const STEPS: LessonStep[] = [
         body:
             'A CALM architecture is just a file. In the terminal, run `ls` to see the workspace, ' +
             '`cat architecture/trading-system.architecture.json` to read the model, then ' +
-            '`calm validate architecture/trading-system.architecture.json` to check it against ' +
+            '`calm validate -a architecture/trading-system.architecture.json -f pretty` to check it against ' +
             'the real CALM 1.2 schemas.',
         hintLabel: 'commands',
         hint:
             'ls\n' +
             'cat architecture/trading-system.architecture.json\n' +
-            'calm validate architecture/trading-system.architecture.json',
+            'calm validate -a architecture/trading-system.architecture.json -f pretty',
         check: (state) => state.hasValidatedOk,
     },
     {
@@ -164,7 +164,7 @@ export const STEPS: LessonStep[] = [
         body:
             'Nodes on their own are just boxes. Add a `connects` relationship to the ' +
             '`relationships` array — from `trading-ui` to `orders-api` — save, then re-run ' +
-            '`calm validate architecture/trading-system.architecture.json`.',
+            '`calm validate -a architecture/trading-system.architecture.json -f pretty`.',
         hintLabel: 'complete file',
         hint: STEP_3_TARGET_FILE,
         // State-based on purpose: saving runs the same engine as

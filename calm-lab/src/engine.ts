@@ -21,8 +21,8 @@ export interface LabIssue { severity: LabSeverity; path: string; message: string
 export interface LabValidation { ok: boolean; parseError?: string; issues: LabIssue[]; errors: LabIssue[]; issueCount: number; errorCount: number; pretty: string; doc?: object }
 export class LabError extends Error {}
 
-/** Injected by `define` in vite.config.ts — see src/vite-env.d.ts. */
-export const ENGINE_VERSION: string = __CALM_SHARED_VERSION__;
+/** Both injected by `define` in vite.config.ts — see src/vite-env.d.ts. */
+export const CLI_VERSION: string = __CALM_CLI_VERSION__;
 const MAX_ISSUES = 20;
 
 let directoryPromise: Promise<SchemaDirectory> | undefined;
@@ -112,6 +112,11 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
         pretty: formatOutput(outcome, 'pretty'),
         doc,
     };
+}
+
+/** The raw outcome, for commands that format it themselves as the CLI does. */
+export async function validateOutcome(architecture: object): Promise<ValidationOutcome> {
+    return validate(architecture, undefined, undefined, await schemaDirectory());
 }
 
 export function commandSupport(command: string): BrowserCommandSupport | undefined {
