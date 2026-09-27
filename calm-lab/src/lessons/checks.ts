@@ -170,6 +170,54 @@ export function flowsWithTransitions(doc: CalmDocLike | null | undefined, minTra
     });
 }
 
+const patternArray = (json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): Item | undefined => {
+    const properties = json?.['properties'];
+    const array = isNonEmptyObject(properties) ? properties[key] : undefined;
+    return isNonEmptyObject(array) ? array : undefined;
+};
+
+function exactCount(array: Item | undefined): number {
+    const prefixItems = array?.['prefixItems'];
+    if (!Array.isArray(prefixItems)) {
+        return 0;
+    }
+    return array!['minItems'] === prefixItems.length && array!['maxItems'] === prefixItems.length ? prefixItems.length : 0;
+}
+
+/**
+ * How many nodes and relationships a pattern requires: the `prefixItems` length of
+ * `properties.nodes` and `properties.relationships`, when `minItems` and `maxItems` both equal it.
+ * 0 when the count is absent or not exact.
+ */
+export function patternRequires(json: CalmDocLike | null | undefined): { nodes: number; relationships: number } {
+    return { nodes: exactCount(patternArray(json, 'nodes')), relationships: exactCount(patternArray(json, 'relationships')) };
+}
+
+/** The non-empty `const` `unique-id` of each item in a pattern's `properties.nodes.prefixItems`. */
+export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
+    return items(patternArray(json, 'nodes')?.['prefixItems'])
+        .map((item) => {
+            const properties = item['properties'];
+            const uniqueId = isNonEmptyObject(properties) ? properties['unique-id'] : undefined;
+            return isNonEmptyObject(uniqueId) ? uniqueId['const'] : undefined;
+        })
+        .filter(isNonEmptyString);
+}
+
+// The rule `architecture-has-no-placeholder-properties-string` warns on.
+const PLACEHOLDER = /^\[\[\s*[A-Z_]+\s*\]\]$/;
+
+/** A `[[ PLACEHOLDER ]]` string anywhere in `value`, as `calm generate` writes. */
+export function hasPlaceholder(value: unknown): boolean {
+    if (typeof value === 'string') {
+        return PLACEHOLDER.test(value);
+    }
+    if (typeof value === 'object' && value !== null) {
+        return Object.values(value).some(hasPlaceholder);
+    }
+    return false;
+}
+
 /** A saved workspace file's text (absolute path), or null when it does not exist. */
 export function fileText(state: LessonState, path: string): string | null {
     return Object.prototype.hasOwnProperty.call(state.files, path) ? state.files[path] : null;
