@@ -222,8 +222,9 @@ const ENHANCED_FILE = `{
 `;
 
 const patternComplete = (state: LessonState) => {
-    const required = patternRequires(fileJson(state, PATTERN));
-    return required.nodes >= 3 && required.relationships >= 2;
+    const pattern = fileJson(state, PATTERN);
+    const required = patternRequires(pattern);
+    return required.nodes >= 3 && required.relationships >= 2 && patternNodeIds(pattern).length >= 3;
 };
 
 const enhanced = (state: LessonState) => {
@@ -260,7 +261,8 @@ export const INTERMEDIATE_17: Lesson = {
             body:
                 'Open `patterns/web-app-pattern.json` from the File selector. Make it require exactly three nodes ' +
                 '(a `webclient`, a `service` and a `database`) and two `connects` relationships between them. ' +
-                'Use `prefixItems` with `const` values, set `minItems` and `maxItems` to the item count, and save your change.',
+                'Use `prefixItems` with `const` values, and give each node a `const` `unique-id`. ' +
+                'Set `minItems` and `maxItems` to the item count, and save your change.',
             hint: { kind: 'file', path: PATTERN, content: PATTERN_FILE },
             check: patternComplete,
         },
@@ -271,7 +273,7 @@ export const INTERMEDIATE_17: Lesson = {
                 `Run \`${GENERATE}\`. The command writes an architecture with each node and relationship that the ` +
                 'pattern requires. Open `architectures/generated-webapp.json` to see the result.',
             hint: { kind: 'commands', commands: [GENERATE] },
-            check: (state) => ranOk(state, 'generate', { pattern: PATTERN, output: state.editorFile }),
+            check: (state) => patternComplete(state) && ranOk(state, 'generate', { pattern: PATTERN, output: state.editorFile }),
         },
         {
             id: 'validate-pattern',
@@ -280,7 +282,7 @@ export const INTERMEDIATE_17: Lesson = {
                 `Run \`${VALIDATE}\`. The summary shows 0 errors. There is one warning for each \`[[ DESCRIPTION ]]\` ` +
                 'placeholder that the generate command wrote. Warnings are not errors.',
             hint: { kind: 'commands', commands: [VALIDATE] },
-            check: validatedAgainstPattern,
+            check: (state) => patternComplete(state) && validatedAgainstPattern(state),
         },
         {
             id: 'see-it-fail',
@@ -297,7 +299,7 @@ export const INTERMEDIATE_17: Lesson = {
             title: 'Enhance the generated architecture',
             body:
                 'In `architectures/generated-webapp.json`, replace each `[[ DESCRIPTION ]]` placeholder with a real ' +
-                'description, and add a `description` to each relationship. Add `interfaces` with a `host` and a `port` ' +
+                'description, and add a `description` to each relationship. Add `interfaces` with a `unique-id`, a `host` and a `port` ' +
                 'to the service and the database. Keep each `unique-id`, `node-type` and `name` that the pattern requires, and save your change.',
             hint: { kind: 'file', content: ENHANCED_FILE },
             check: enhanced,
@@ -306,7 +308,7 @@ export const INTERMEDIATE_17: Lesson = {
             id: 'validate-enhanced',
             title: 'Validate the enhanced architecture',
             body:
-                `Run \`${VALIDATE}\` again. The summary shows 0 errors and 0 warnings. ` +
+                `Run \`${VALIDATE}\` again. The summary shows 0 errors and no placeholder warnings. ` +
                 'The pattern checks only what it specifies, so extra descriptions and interfaces do not break it.',
             hint: { kind: 'commands', commands: [VALIDATE] },
             check: (state) => enhanced(state) && validatedAgainstPattern(state),

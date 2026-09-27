@@ -85,22 +85,32 @@ describe('intermediate-17 lesson', () => {
         expect(writePattern.check(state({ files: { [PATTERN]: pattern(['a', 'b', 'c'], { nodes: { minItems: 2, maxItems: 2, prefixItems: [{}, {}] } }) } }))).toBe(false);
         // Three prefixItems, but no maxItems: the count is not exact.
         expect(writePattern.check(state({ files: { [PATTERN]: pattern(['a', 'b', 'c'], { relationships: { minItems: 2, prefixItems: [{}, {}] } }) } }))).toBe(false);
+        // Three constant nodes, but no constant unique-id: generate writes nothing that enhance can check.
+        const unnamed = [0, 1, 2].map(() => item({ 'node-type': { const: 'service' }, name: { const: 'Service' } }));
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { nodes: { minItems: 3, maxItems: 3, prefixItems: unnamed } }) } }))).toBe(false);
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { nodes: { minItems: 3, maxItems: 3, prefixItems: [{}, {}, {}] } }) } }))).toBe(false);
         // A half-edited file: must not tick, must not throw.
         expect(writePattern.check(state({ files: { [PATTERN]: MY_PATTERN.slice(0, 40) } }))).toBe(false);
     });
 
-    it('generate needs a fresh, successful generate from the pattern into the editor file', () => {
+    it('generate needs a fresh, successful generate from a complete pattern into the editor file', () => {
+        const files = { [PATTERN]: MY_PATTERN };
         const generated = outcome({ command: 'generate', files: { pattern: PATTERN, output: GENERATED } });
-        expect(generate.check(state({ commands: [generated] }))).toBe(true);
-        expect(generate.check(state({ commands: [{ ...generated, ok: false, errorCount: 1 }] }))).toBe(false);
-        expect(generate.check(state({ commands: [outcome({ command: 'generate', files: { pattern: PATTERN, output: '/workspace/other.json' } })] }))).toBe(false);
+        expect(generate.check(state({ files, commands: [generated] }))).toBe(true);
+        expect(generate.check(state({ files, commands: [{ ...generated, ok: false, errorCount: 1 }] }))).toBe(false);
+        expect(generate.check(state({ files, commands: [outcome({ command: 'generate', files: { pattern: PATTERN, output: '/workspace/other.json' } })] }))).toBe(false);
+        // Generated from the stub pattern: must not tick.
+        expect(generate.check(state({ files: { [PATTERN]: INTERMEDIATE_17.seedFiles[PATTERN] }, commands: [generated] }))).toBe(false);
     });
 
-    it('validate-pattern needs a fresh, passing validate of the editor file against the pattern', () => {
-        expect(validatePattern.check(state({ commands: [outcome({})] }))).toBe(true);
-        expect(validatePattern.check(state({ commands: [outcome({ ok: false, errorCount: 1, errorsIn: { architecture: 1 } })] }))).toBe(false);
+    it('validate-pattern needs a fresh, passing validate of the editor file against a complete pattern', () => {
+        const files = { [PATTERN]: MY_PATTERN };
+        expect(validatePattern.check(state({ files, commands: [outcome({})] }))).toBe(true);
+        expect(validatePattern.check(state({ files, commands: [outcome({ ok: false, errorCount: 1, errorsIn: { architecture: 1 } })] }))).toBe(false);
         // Validated without the pattern: must not tick.
-        expect(validatePattern.check(state({ commands: [outcome({ files: { architecture: GENERATED } })] }))).toBe(false);
+        expect(validatePattern.check(state({ files, commands: [outcome({ files: { architecture: GENERATED } })] }))).toBe(false);
+        // Validated against an incomplete pattern: must not tick.
+        expect(validatePattern.check(state({ files: { [PATTERN]: INTERMEDIATE_17.seedFiles[PATTERN] }, commands: [outcome({})] }))).toBe(false);
     });
 
     it('see-it-fail needs the engine to reject the broken architecture, not a load or pattern failure', () => {
@@ -154,6 +164,12 @@ describe('intermediate-17 lesson', () => {
             await replay.runHint(step);
             expect(step.check(await replay.stateFor()), step.id).toBe(true);
         }
+    });
+
+    it('does not tick generate for a successful run on the stub pattern', async () => {
+        const replay = startReplay(INTERMEDIATE_17);
+        await replay.runHint(generate);
+        expect(generate.check(await replay.stateFor())).toBe(false);
     });
 
     it('does not tick generate when the pattern changes after the run', async () => {
