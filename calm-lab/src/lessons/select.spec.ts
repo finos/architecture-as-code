@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { selectLesson } from './select';
-import { QUICK_START } from './quick-start/lesson';
+import { QUICK_START } from '../test-support/quick-start-lesson';
 
 const other = { ...QUICK_START, id: 'other' };
 const lessons = [QUICK_START, other];

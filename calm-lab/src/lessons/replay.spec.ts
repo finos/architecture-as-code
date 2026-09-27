@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { QUICK_START } from './quick-start/lesson';
+import { QUICK_START } from '../test-support/quick-start-lesson';
 import { startReplay } from './replay';
 import type { LessonStep } from './types';
 

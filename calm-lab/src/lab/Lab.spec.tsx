@@ -1,7 +1,7 @@
 import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import Lab, {type LabProps} from './Lab';
-import {QUICK_START} from '../lessons/quick-start/lesson';
+import {QUICK_START} from '../test-support/quick-start-lesson';
 import {nodes, validatedEditorFile} from '../lessons/checks';
 import {HOME_DIR, type Lesson} from '../lessons/types';
 

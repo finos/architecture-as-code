@@ -1,5 +1,6 @@
-import { HOME_DIR, type CalmDocLike, type Lesson } from '../types';
-import { connectsNodes, nodeById, validatedEditorFile } from '../checks';
+// A small three-step lesson the lab's tests use as a fixture. It is not registered, so learners never see it.
+import { HOME_DIR, type CalmDocLike, type Lesson } from '../lessons/types';
+import { connectsNodes, nodeById, validatedEditorFile } from '../lessons/checks';
 
 const EDITOR_FILE = `${HOME_DIR}/architecture/trading-system.architecture.json`;
 
@@ -72,7 +73,7 @@ const STEP_3_TARGET_FILE = `{
 }
 `;
 
-// The quick-start copy names these ids, so the checks match them; other lessons must check shape, not names.
+// This fixture's copy names these ids, so its checks match them; real lessons check shape, not names.
 export const hasOrdersApiNode = (doc: CalmDocLike | null | undefined) =>
     nodeById(doc, 'orders-api')?.['node-type'] === 'service';
 

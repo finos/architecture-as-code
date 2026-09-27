@@ -1,10 +1,9 @@
-import { QUICK_START } from './quick-start/lesson';
 import { BEGINNER_02 } from './beginner-02/lesson';
 import type { Lesson } from './types';
 
 /** Picker order. Register new lessons here; the invariants spec covers every entry. */
-export const LESSONS: readonly Lesson[] = [QUICK_START, BEGINNER_02];
-export const DEFAULT_LESSON_ID = QUICK_START.id;
+export const LESSONS: readonly Lesson[] = [BEGINNER_02];
+export const DEFAULT_LESSON_ID = BEGINNER_02.id;
 
 export function findLesson(id: string | null | undefined): Lesson | undefined {
     return LESSONS.find((lesson) => lesson.id === id);
