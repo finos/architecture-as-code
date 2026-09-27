@@ -92,7 +92,7 @@ const hasTwoFlows = (doc: Doc) => flowsWithTransitions(doc, 2).length >= 2;
 export const INTERMEDIATE_09: Lesson = {
     id: 'intermediate-09',
     title: 'Business flows',
-    summary: 'Map a business process onto your architecture as an ordered sequence of relationships.',
+    tutorial: { title: 'Model Business Flows', url: 'https://calm.finos.org/tutorials/intermediate/09-business-flows/' },
     chainsFrom: 'intermediate-08',
     editorFile: EDITOR_FILE,
     seedFiles: endFiles(INTERMEDIATE_08),
