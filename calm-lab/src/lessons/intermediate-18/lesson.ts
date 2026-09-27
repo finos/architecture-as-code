@@ -3,8 +3,8 @@ import { fileJson, standardRequires } from '../checks';
 import { INTERMEDIATE_17 } from '../intermediate-17/lesson';
 import { endFiles } from '../chain';
 
-const NODE_STD = `${HOME_DIR}/standards/company-node-standard.json`;
-const RELATIONSHIP_STD = `${HOME_DIR}/standards/company-relationship-standard.json`;
+export const NODE_STD = `${HOME_DIR}/standards/company-node-standard.json`;
+export const RELATIONSHIP_STD = `${HOME_DIR}/standards/company-relationship-standard.json`;
 
 const NODE_STD_SEED = `{
     "$schema": "https://json-schema.org/draft/2020-12/schema",

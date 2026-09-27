@@ -424,59 +424,78 @@ describe('pattern helpers', () => {
         expect(hasPlaceholder({ nodes: [{ description: 'A service. See [[ notes ]] later.' }], port: -1 })).toBe(false);
         expect(hasPlaceholder(null)).toBe(false);
     });
+});
 
-    describe('standardRequires', () => {
-        const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
-        const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
+describe('standardRequires', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+    const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
 
-        it('reads the required property names when an allOf entry $refs the named core definition', () => {
-            const standard = {
-                allOf: [
-                    { $ref: NODE_REF },
-                    { type: 'object', properties: { costCenter: {}, owner: {} }, required: ['costCenter', 'owner'] },
-                ],
-            };
-            expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
-            const relationshipStandard = {
-                allOf: [{ $ref: RELATIONSHIP_REF }, { required: ['dataClassification', 'encrypted'] }],
-            };
-            expect(standardRequires(relationshipStandard, 'relationship')).toEqual(['dataClassification', 'encrypted']);
-        });
+    it('reads the required property names when an allOf entry $refs the named core definition', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                { type: 'object', properties: { costCenter: {}, owner: {} }, required: ['costCenter', 'owner'] },
+            ],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+        const relationshipStandard = {
+            allOf: [{ $ref: RELATIONSHIP_REF }, { required: ['dataClassification', 'encrypted'] }],
+        };
+        expect(standardRequires(relationshipStandard, 'relationship')).toEqual(['dataClassification', 'encrypted']);
+    });
 
-        it('unions and deduplicates required names split across allOf entries', () => {
-            const standard = {
-                allOf: [
-                    { $ref: NODE_REF },
-                    { required: ['costCenter'] },
-                    { required: ['owner', 'costCenter'] },
-                ],
-            };
-            expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
-        });
+    it('unions and deduplicates required names split across allOf entries', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                { required: ['costCenter'] },
+                { required: ['owner', 'costCenter'] },
+            ],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+    });
 
-        it('gives [] when there is no allOf', () => {
-            expect(standardRequires({ $id: 'https://example.com/s.json', title: 'Stub' }, 'node')).toEqual([]);
-            expect(standardRequires({ allOf: 'x' }, 'node')).toEqual([]);
-        });
+    it('reads a top-level required array, sibling to allOf, once the $ref is inside allOf', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }],
+            required: ['costCenter', 'owner'],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+    });
 
-        it('gives [] when no allOf entry $refs the named core definition', () => {
-            const wrongDef = {
-                allOf: [
-                    { $ref: RELATIONSHIP_REF },
-                    { required: ['costCenter'] },
-                ],
-            };
-            expect(standardRequires(wrongDef, 'node')).toEqual([]);
-            const wrongUrl = { allOf: [{ $ref: 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node' }, { required: ['costCenter'] }] };
-            expect(standardRequires(wrongUrl, 'node')).toEqual([]);
-        });
+    it('unions and deduplicates a top-level required array with allOf entries\' required arrays', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }, { required: ['owner'] }],
+            required: ['costCenter', 'owner'],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['owner', 'costCenter']);
+    });
 
-        it('never throws on a partial or wrong-shaped document', () => {
-            for (const bad of [null, undefined, {}, { allOf: null }, { allOf: [null, 3, 'x'] }, { allOf: [{ $ref: NODE_REF, required: 'x' }] }]) {
-                expect(standardRequires(bad as never, 'node')).toEqual([]);
-                expect(standardRequires(bad as never, 'relationship')).toEqual([]);
-            }
-        });
+    it('gives [] when there is no allOf', () => {
+        expect(standardRequires({ $id: 'https://example.com/s.json', title: 'Stub' }, 'node')).toEqual([]);
+        expect(standardRequires({ allOf: 'x' }, 'node')).toEqual([]);
+        // A top-level required with no allOf $ref at all is not a Standard.
+        expect(standardRequires({ required: ['costCenter'] }, 'node')).toEqual([]);
+    });
+
+    it('gives [] when no allOf entry $refs the named core definition', () => {
+        const wrongDef = {
+            allOf: [
+                { $ref: RELATIONSHIP_REF },
+                { required: ['costCenter'] },
+            ],
+            required: ['owner'],
+        };
+        expect(standardRequires(wrongDef, 'node')).toEqual([]);
+        const wrongUrl = { allOf: [{ $ref: 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node' }, { required: ['costCenter'] }] };
+        expect(standardRequires(wrongUrl, 'node')).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { allOf: null }, { allOf: [null, 3, 'x'] }, { allOf: [{ $ref: NODE_REF, required: 'x' }] }, { allOf: [{ $ref: NODE_REF }], required: 'x' }]) {
+            expect(standardRequires(bad as never, 'node')).toEqual([]);
+            expect(standardRequires(bad as never, 'relationship')).toEqual([]);
+        }
     });
 });
 

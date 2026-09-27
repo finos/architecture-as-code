@@ -1,21 +1,28 @@
 import { describe, it, expect } from 'vitest';
-import { INTERMEDIATE_18 } from './lesson';
+import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from './lesson';
 import { INTERMEDIATE_17 } from '../intermediate-17/lesson';
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { LessonState } from '../types';
 
-const [, , , NODE_STD, RELATIONSHIP_STD] = INTERMEDIATE_18.editableFiles!;
-
 const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
 const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
 
-/** A standard whose `allOf` $refs `ref` and requires `required` on top of it. */
+/** A standard whose `allOf` $refs `ref` and requires `required` in the second `allOf` entry. */
 const standard = (ref: string, required: string[]) => JSON.stringify({
     $schema: 'https://json-schema.org/draft/2020-12/schema',
     $id: 'https://example.com/standards/mine.json',
     title: 'Mine',
     allOf: [{ $ref: ref }, { type: 'object', required }],
+});
+
+/** A standard whose `required` sits at the top level, sibling to `allOf`, instead of inside it. */
+const topLevelStandard = (ref: string, required: string[]) => JSON.stringify({
+    $schema: 'https://json-schema.org/draft/2020-12/schema',
+    $id: 'https://example.com/standards/mine.json',
+    title: 'Mine',
+    allOf: [{ $ref: ref }],
+    required,
 });
 
 const state = (over: Partial<LessonState>): LessonState => ({
@@ -51,6 +58,8 @@ describe('intermediate-18 lesson', () => {
         expect(nodeStandard.check(state({ files: { [NODE_STD]: INTERMEDIATE_18.seedFiles[NODE_STD] } }))).toBe(false);
         // Different property name from the hint: still passes.
         expect(nodeStandard.check(state({ files: { [NODE_STD]: standard(NODE_REF, ['ownerTeamId']) } }))).toBe(true);
+        // Different shape: required at the top level, sibling to allOf, instead of inside it.
+        expect(nodeStandard.check(state({ files: { [NODE_STD]: topLevelStandard(NODE_REF, ['costCenter', 'owner']) } }))).toBe(true);
         // allOf present but $refs the wrong core definition.
         expect(nodeStandard.check(state({ files: { [NODE_STD]: standard(RELATIONSHIP_REF, ['costCenter']) } }))).toBe(false);
         // Correct $ref but nothing required.
@@ -63,6 +72,8 @@ describe('intermediate-18 lesson', () => {
         expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: INTERMEDIATE_18.seedFiles[RELATIONSHIP_STD] } }))).toBe(false);
         // Different property name from the hint: still passes.
         expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, ['sensitivity']) } }))).toBe(true);
+        // Different shape: required at the top level, sibling to allOf, instead of inside it.
+        expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: topLevelStandard(RELATIONSHIP_REF, ['dataClassification', 'encrypted']) } }))).toBe(true);
         // allOf present but $refs the wrong core definition.
         expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(NODE_REF, ['encrypted']) } }))).toBe(false);
         // Correct $ref but nothing required.
