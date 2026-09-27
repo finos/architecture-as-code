@@ -13,6 +13,8 @@
  *  3. Inject a mono section kicker (Learn / Reference / Tools, derived from
  *     the doc's path) above the title, and a meta chips row (read time ·
  *     difficulty · edit link) directly below it.
+ *  4. On tutorials with a Learning Lab lesson (LAB_LESSONS), add a "Try in
+ *     Learning Lab" chip and a card after Prerequisites that opens the lesson.
  *
  * Wiring notes:
  *  - Registered ONLY on the main docs plugin — the 'talks' plugin is left
@@ -62,6 +64,32 @@ const SECTION_KICKERS = [
 // public read-only instance.
 const HUB_URL = 'https://hub.calm.finos.org/';
 const HUB_PAGES = /^(calm-hub\/|working-with-calm\/calm-hub)/;
+
+// Tutorials that have a Learning Lab lesson, by doc path. calm-lab's
+// docs-links spec checks this map against the lab's registered lessons.
+export const LAB_URL = 'https://lab.calm.finos.org/';
+export const LAB_LESSONS = {
+    'tutorials/beginner/02-first-node.md': 'beginner-02',
+    'tutorials/beginner/03-relationships.md': 'beginner-03',
+    'tutorials/beginner/05-interfaces.md': 'beginner-05',
+    'tutorials/beginner/06-metadata.md': 'beginner-06',
+    'tutorials/beginner/07-complete-architecture.md': 'beginner-07',
+    'tutorials/intermediate/08-controls.md': 'intermediate-08',
+    'tutorials/intermediate/09-business-flows.md': 'intermediate-09',
+    'tutorials/intermediate/10-adr-linking.md': 'intermediate-10',
+    'tutorials/intermediate/17-patterns.md': 'intermediate-17',
+    'tutorials/intermediate/18-standards.md': 'intermediate-18',
+    'tutorials/intermediate/19-enforcing-standards.md': 'intermediate-19',
+    'tutorials/intermediate/20-multi-pattern-validation.md': 'intermediate-20',
+};
+
+const labLessonUrl = (lessonId) => `${LAB_URL}?lesson=${lessonId}`;
+
+const externalLink = (href) => [
+    attr('href', href),
+    attr('target', '_blank'),
+    attr('rel', 'noopener noreferrer'),
+];
 
 const text = (value) => ({type: 'text', value});
 
@@ -219,12 +247,44 @@ function buildChipsRow({readTime, difficulty, sectionChip, docPath}) {
             attr('rel', 'noopener noreferrer'),
         ]));
     }
+    const labLesson = LAB_LESSONS[docPath];
+    if (labLesson) {
+        chips.push(jsxText('a', 'calm-dm calm-dm-lab', [text('Try in Learning Lab ↗')], externalLink(labLessonUrl(labLesson))));
+    }
     chips.push(jsxText('a', 'calm-dm calm-dm-edit', [text('Edit on GitHub ↗')], [
         attr('href', `${EDIT_URL_BASE}/${docPath}`),
         attr('target', '_blank'),
         attr('rel', 'noopener noreferrer'),
     ]));
     return jsxFlow('div', 'calm-doc-meta', chips);
+}
+
+/**
+ * Adds a "Try in Learning Lab" card straight after the Prerequisites card (or
+ * before the first section when a page has none).
+ */
+function insertLabCallout(root, lessonId) {
+    const callout = jsxFlow('div', 'calm-callout calm-callout--lab', [
+        jsxFlow('h2', 'calm-callout__h', [
+            jsxText('span', 'calm-callout__ic', [text('▶')], [attr('aria-hidden', 'true')]),
+            text('Try in Learning Lab'),
+        ], [attr('id', 'try-in-learning-lab')]),
+        {type: 'paragraph', children: [text(
+            'You can work through this tutorial in your browser with the CALM Learning Lab. There is nothing to ' +
+            'install: the lab runs the real CALM engine and the same calm commands as the CLI. The lab has no AI ' +
+            'assistant, so you write the CALM yourself instead of prompting Copilot.'
+        )]},
+        {type: 'paragraph', children: [
+            jsxText('a', 'calm-callout__action', [text('Open this tutorial in the Learning Lab ↗')], externalLink(labLessonUrl(lessonId))),
+        ]},
+    ]);
+    const isPrerequisites = (node) => node.type === 'mdxJsxFlowElement'
+        && node.children?.[0]?.attributes?.some((a) => a.name === 'id' && a.value === 'prerequisites');
+    const prerequisites = root.children.findIndex(isPrerequisites);
+    const at = prerequisites !== -1
+        ? prerequisites + 1
+        : Math.max(0, root.children.findIndex((node) => node.type === 'heading' && node.depth === 2));
+    root.children.splice(at, 0, callout);
 }
 
 /** Path of the doc relative to its docs root, using forward slashes. */
@@ -250,6 +310,9 @@ export default function remarkSectionCallouts() {
                 ? null
                 : Math.max(1, Math.round(words / WORDS_PER_MINUTE)));
         wrapKnownSections(root);
+        if (LAB_LESSONS[docPath]) {
+            insertLabCallout(root, LAB_LESSONS[docPath]);
+        }
 
         const section = SECTION_KICKERS.find(([pattern]) => pattern.test(docPath))?.[1] ?? null;
         const h1Index = root.children.findIndex((node) => node.type === 'heading' && node.depth === 1);
