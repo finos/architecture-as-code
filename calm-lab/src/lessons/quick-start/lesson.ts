@@ -82,7 +82,6 @@ export const hasConnectsRelationship = (doc: CalmDocLike | null | undefined) =>
 export const QUICK_START: Lesson = {
     id: 'quick-start',
     title: 'Quick start: model a trading system',
-    summary: 'Read, change and validate a small CALM architecture.',
     editorFile: EDITOR_FILE,
     seedFiles: {
         [`${HOME_DIR}/README.md`]:

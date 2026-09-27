@@ -56,7 +56,6 @@ describe.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('lesson %s'
 
     it('only shows calm commands the lab runs, with arguments its shell accepts', async () => {
         const texts = [
-            lesson.summary,
             lesson.completion.message,
             ...lesson.steps.flatMap((step) => [
                 step.body,

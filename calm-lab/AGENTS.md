@@ -95,7 +95,7 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
 - A check reads state (`doc`, `validation`, `commands`), never event order. For "run X after the last
   change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
 - A file hint is the complete target file, never a fragment.
-- Every `calm` command in the summary, step copy, hints or completion message must be one the lab
+- Every `calm` command in the step copy, hints or completion message must be one the lab
   runs (`validate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
   one; do not weaken it to make a lesson pass.
 - A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`.

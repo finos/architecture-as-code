@@ -221,18 +221,18 @@ describe('Lab', () => {
         expect(onSelectLesson).toHaveBeenCalledWith('other');
     });
 
-    it('describes each lesson in the picker and under it', async () => {
-        const other = {...QUICK_START, id: 'other', title: 'Other lesson', summary: 'Another summary.'};
-        await act(async () => { renderLab({lessons: [QUICK_START, other]}); });
-        expect(screen.getByRole('option', {name: /Quick start/})).toHaveAttribute('title', QUICK_START.summary);
-        expect(screen.getByRole('option', {name: /Other lesson/})).toHaveAttribute('title', 'Another summary.');
-        expect(screen.getByText(QUICK_START.summary)).toBeInTheDocument();
-        expect(screen.queryByText('Another summary.')).toBeNull();
+    it('links the tutorial a lesson follows under the picker, in a new tab', async () => {
+        const lesson = {...QUICK_START, tutorial: {title: 'Create Your First Node', url: 'https://calm.finos.org/tutorials/beginner/02-first-node'}};
+        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
+        const link = screen.getByRole('link', {name: /Create Your First Node/});
+        expect(link).toHaveAttribute('href', 'https://calm.finos.org/tutorials/beginner/02-first-node');
+        expect(link).toHaveAttribute('target', '_blank');
+        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
 
-    it('shows no link under the lesson summary', async () => {
+    it('shows nothing under the picker for a lesson with no tutorial', async () => {
         await act(async () => { renderLab(); });
-        expect(screen.queryByRole('link', {name: /Tutorial/})).toBeNull();
+        expect(screen.getByRole('navigation', {name: 'Lesson guide'}).querySelector('a')).toBeNull();
     });
 
     it('copies a commands hint with a final newline, so a paste runs every command', async () => {

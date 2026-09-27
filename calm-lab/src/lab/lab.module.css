@@ -127,7 +127,7 @@
     flex-shrink: 0;
 }
 
-.lessonSummary {
+.lessonTutorial {
     margin: 0;
     padding: 0 12px 8px;
     border-bottom: 1px solid #1b2350;
@@ -137,6 +137,17 @@
     line-height: 1.45;
     color: #8b96c9;
     overflow-wrap: anywhere;
+}
+
+.lessonTutorial a {
+    color: #4da3ff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lessonTutorial a:hover {
+    color: #7cbcff;
+    text-decoration: underline;
 }
 
 /* Native select; the chassis is always dark, so pin its colour scheme. */

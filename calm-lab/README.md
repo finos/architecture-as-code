@@ -31,7 +31,7 @@ A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
    |---|---|
    | `id` | Lowercase, hyphenated. It is the `?lesson=` value and the storage key. Do not change it after release. |
    | `title` | The lesson's name in the picker. |
-   | `summary` | One short sentence. It is the picker option's tooltip and the line under the picker. |
+   | `tutorial` | The tutorial page this lesson follows: `{ title, url }`, with the page's own title. The line under the picker links to it in a new tab. |
    | `editorFile` | The file the editor opens, the diagram shows and the checks read. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
    | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`. |
