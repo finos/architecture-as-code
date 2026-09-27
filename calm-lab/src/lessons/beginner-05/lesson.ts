@@ -1,4 +1,4 @@
-import type { Lesson } from '../types';
+import type { CalmDocLike, Lesson } from '../types';
 import { connectsUsesInterfaces, nodeInterfaces, nodesOfType, validatedEditorFile } from '../checks';
 import { BEGINNER_03 } from '../beginner-03/lesson';
 import { endFiles } from '../chain';
@@ -231,6 +231,14 @@ const STEP_3_TARGET_FILE = `{
 }
 `;
 
+type Iface = Record<string, unknown>;
+const text = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
+// The fields each step names; the ids and values are the learner's own.
+const isHttpsInterface = (iface: Iface) => iface['protocol'] === 'HTTPS' && text(iface['host']) && iface['port'] === 443 && text(iface['path']);
+const isJdbcInterface = (iface: Iface) => iface['protocol'] === 'JDBC' && text(iface['host']) && typeof iface['port'] === 'number' && text(iface['database']);
+const hasInterface = (doc: CalmDocLike | null, nodeType: string, matches: (iface: Iface) => boolean) =>
+    nodesOfType(doc, nodeType).some((node) => nodeInterfaces(node).some(matches));
+
 export const BEGINNER_05: Lesson = {
     id: 'beginner-05',
     title: 'Add interfaces',
@@ -246,8 +254,7 @@ export const BEGINNER_05: Lesson = {
                 'Add an `interfaces` array to your service node. Give the interface a `unique-id`, ' +
                 '`protocol` of `"HTTPS"`, a `host`, `port: 443` and a `path`. Save your change.',
             hint: { kind: 'file', content: STEP_1_TARGET_FILE },
-            check: (state) =>
-                nodesOfType(state.doc, 'service').some((node) => nodeInterfaces(node).length >= 1) && state.validation.ok,
+            check: (state) => hasInterface(state.doc, 'service', isHttpsInterface) && state.validation.ok,
         },
         {
             id: 'database-interface',
@@ -256,8 +263,7 @@ export const BEGINNER_05: Lesson = {
                 'Add an `interfaces` array to your database node. Give the interface a `unique-id`, ' +
                 '`protocol` of `"JDBC"`, a `host`, a `port` and a `database` name. Save your change.',
             hint: { kind: 'file', content: STEP_2_TARGET_FILE },
-            check: (state) =>
-                nodesOfType(state.doc, 'database').some((node) => nodeInterfaces(node).length >= 1) && state.validation.ok,
+            check: (state) => hasInterface(state.doc, 'database', isJdbcInterface) && state.validation.ok,
         },
         {
             id: 'connect-interfaces',

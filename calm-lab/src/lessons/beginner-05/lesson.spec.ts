@@ -170,6 +170,11 @@ describe('beginner-05 lesson', () => {
         expect(serviceInterface.check(state({ doc: withServiceInterface, validation: { ok: false } }))).toBe(false);
         // An interface item with no unique-id does not count: must not tick.
         expect(serviceInterface.check(state({ doc: serviceInterfaceMissingId, validation: { ok: true } }))).toBe(false);
+        // A schema-valid interface without the fields the step names: must not tick.
+        for (const partial of [{ 'unique-id': 'api' }, { 'unique-id': 'api', protocol: 'HTTP', host: 'h', port: 443, path: '/' }, { 'unique-id': 'api', protocol: 'HTTPS', host: 'h', port: 8443, path: '/' }, { 'unique-id': 'api', protocol: 'HTTPS', host: 'h', port: 443 }]) {
+            const doc = { ...seedDoc, nodes: [withInterface(serviceNode, partial), databaseNode, ...otherNodes] };
+            expect(serviceInterface.check(state({ doc, validation: { ok: true } })), JSON.stringify(partial)).toBe(false);
+        }
     });
 
     it('database-interface needs an inline interface on a database node, in a valid document', () => {
@@ -179,6 +184,10 @@ describe('beginner-05 lesson', () => {
         expect(databaseInterface.check(state({ doc: withBothInterfacesDifferentNames, validation: { ok: true } }))).toBe(true);
         // Right shape, invalid document: must not tick.
         expect(databaseInterface.check(state({ doc: withBothInterfaces, validation: { ok: false } }))).toBe(false);
+        for (const partial of [{ 'unique-id': 'db' }, { 'unique-id': 'db', protocol: 'JDBC', host: 'h', port: 5432 }, { 'unique-id': 'db', protocol: 'HTTPS', host: 'h', port: 5432, database: 'd' }]) {
+            const doc = { ...withServiceInterface, nodes: withServiceInterface.nodes.map((n: Record<string, unknown>) => n['unique-id'] === databaseNode['unique-id'] ? withInterface(n, partial) : n) };
+            expect(databaseInterface.check(state({ doc, validation: { ok: true } })), JSON.stringify(partial)).toBe(false);
+        }
     });
 
     it('connect-interfaces needs the connects relationship to name both interfaces, in a valid document', () => {
