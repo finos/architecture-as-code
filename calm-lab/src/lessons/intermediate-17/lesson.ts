@@ -1,6 +1,6 @@
 import { HOME_DIR, type Lesson, type LessonState } from '../types';
 import {
-    fileJson, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternNodeIds, patternRequires, ranOk, rejected,
+    fileJson, hasDescription, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternNodeIds, patternRequires, ranOk, rejected, relationships,
 } from '../checks';
 import { INTERMEDIATE_10 } from '../intermediate-10/lesson';
 import { endFiles } from '../chain';
@@ -231,6 +231,8 @@ const enhanced = (state: LessonState) => {
     return ids.length >= 3
         && ids.every((id) => nodeById(state.doc, id) !== undefined)
         && nodes(state.doc).some((node) => nodeInterfaces(node).length > 0)
+        && relationships(state.doc).length > 0
+        && relationships(state.doc).every(hasDescription)
         && !hasPlaceholder(state.doc)
         && state.validation.ok;
 };
@@ -275,8 +277,8 @@ export const INTERMEDIATE_17: Lesson = {
             id: 'validate-pattern',
             title: 'Validate against the pattern',
             body:
-                `Run \`${VALIDATE}\`. The summary shows 0 errors and 3 warnings. The warnings are for the ` +
-                '`[[ DESCRIPTION ]]` placeholders that the generate command wrote. They are not errors.',
+                `Run \`${VALIDATE}\`. The summary shows 0 errors. There is one warning for each \`[[ DESCRIPTION ]]\` ` +
+                'placeholder that the generate command wrote. Warnings are not errors.',
             hint: { kind: 'commands', commands: [VALIDATE] },
             check: validatedAgainstPattern,
         },
@@ -284,9 +286,9 @@ export const INTERMEDIATE_17: Lesson = {
             id: 'see-it-fail',
             title: 'See a broken architecture fail',
             body:
-                'In `architectures/broken-webapp.json`, the API node has the `unique-id` `backend-api`, not `api-service`. ' +
+                '`architectures/broken-webapp.json` is a generated architecture with the `unique-id` of one node changed. ' +
                 `Run \`${VALIDATE_BROKEN}\`. This command is meant to fail. The errors show ` +
-                '`must be equal to constant (expected "api-service")` for the node, and similar errors for both relationships.',
+                '`must be equal to constant` for each `unique-id` and relationship that does not match the pattern.',
             hint: { kind: 'commands', commands: [{ run: VALIDATE_BROKEN, expect: 'failure' }] },
             check: (state) => rejected(state, { architecture: BROKEN, pattern: PATTERN }),
         },

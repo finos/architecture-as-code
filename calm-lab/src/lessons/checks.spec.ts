@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasMetadata, hasPlaceholder,
-    interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, patternNodeIds,
-    patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind, validatedEditorFile,
+    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
+    hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
+    patternNodeIds, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
+    validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -371,6 +372,14 @@ describe('pattern helpers', () => {
     it('patternNodeIds reads the const unique-id of each required node, and skips items without one', () => {
         expect(patternNodeIds(pattern)).toEqual(['n0', 'n1', 'n2']);
         expect(patternNodeIds({ properties: { nodes: { prefixItems: [item('a'), item(3), item(), {}, null, item('')] } } })).toEqual(['a']);
+    });
+
+    it('hasDescription needs a non-empty string description', () => {
+        expect(hasDescription({ description: 'Calls the API.' })).toBe(true);
+        expect(hasDescription({ description: '' })).toBe(false);
+        expect(hasDescription({ description: 3 })).toBe(false);
+        expect(hasDescription({})).toBe(false);
+        expect(hasDescription(null)).toBe(false);
     });
 
     it('hasPlaceholder finds a [[ NAME ]] string anywhere in a value', () => {

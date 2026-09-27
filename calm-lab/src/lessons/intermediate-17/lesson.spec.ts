@@ -117,19 +117,24 @@ describe('intermediate-17 lesson', () => {
     describe('enhance and validate-enhanced', () => {
         const files = { [PATTERN]: MY_PATTERN };
         // Different ids from the hint, read from the learner's own pattern.
-        const doc = { nodes: [node('ui'), node('auth-service', INTERFACE), node('user-store')], relationships: [] };
+        const described = (description?: string) => ['r1', 'r2'].map((id) => ({ 'unique-id': id, ...(description === undefined ? {} : { description }) }));
+        const doc = { nodes: [node('ui'), node('auth-service', INTERFACE), node('user-store')], relationships: described('My own words.') };
 
         it('enhance needs the pattern\'s node ids, an interface, no placeholders and a valid document', () => {
             expect(enhance.check(state({ doc, files }))).toBe(true);
             // Right shape, invalid document: must not tick.
             expect(enhance.check(state({ doc, files, validation: { ok: false } }))).toBe(false);
             // No interfaces yet, as generated.
-            expect(enhance.check(state({ doc: { nodes: MY_IDS.map((id) => node(id)) }, files }))).toBe(false);
-            expect(enhance.check(state({ doc: { nodes: [node('ui'), node('auth-service', { interfaces: [] }), node('user-store')] }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, nodes: MY_IDS.map((id) => node(id)) }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, nodes: [node('ui'), node('auth-service', { interfaces: [] }), node('user-store')] }, files }))).toBe(false);
             // A placeholder left in: must not tick.
-            expect(enhance.check(state({ doc: { nodes: [node('ui', { description: '[[ DESCRIPTION ]]' }), ...doc.nodes.slice(1)] }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, nodes: [node('ui', { description: '[[ DESCRIPTION ]]' }), ...doc.nodes.slice(1)] }, files }))).toBe(false);
             // A required node renamed: must not tick.
-            expect(enhance.check(state({ doc: { nodes: [node('frontend'), ...doc.nodes.slice(1)] }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, nodes: [node('frontend'), ...doc.nodes.slice(1)] }, files }))).toBe(false);
+            // A relationship with no description, an empty one, or no relationships: must not tick.
+            expect(enhance.check(state({ doc: { ...doc, relationships: [...described('Fine.').slice(0, 1), ...described()] }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, relationships: described('') }, files }))).toBe(false);
+            expect(enhance.check(state({ doc: { ...doc, relationships: [] }, files }))).toBe(false);
             // The pattern still a stub: no required ids, must not tick.
             expect(enhance.check(state({ doc, files: { [PATTERN]: INTERMEDIATE_17.seedFiles[PATTERN] } }))).toBe(false);
         });
@@ -138,7 +143,7 @@ describe('intermediate-17 lesson', () => {
             expect(validateEnhanced.check(state({ doc, files }))).toBe(false);
             expect(validateEnhanced.check(state({ doc, files, commands: [outcome({})] }))).toBe(true);
             expect(validateEnhanced.check(state({ doc, files, commands: [outcome({ files: { architecture: GENERATED } })] }))).toBe(false);
-            expect(validateEnhanced.check(state({ doc: { nodes: MY_IDS.map((id) => node(id)) }, files, commands: [outcome({})] }))).toBe(false);
+            expect(validateEnhanced.check(state({ doc: { ...doc, nodes: MY_IDS.map((id) => node(id)) }, files, commands: [outcome({})] }))).toBe(false);
         });
     });
 

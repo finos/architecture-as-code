@@ -204,6 +204,9 @@ export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
         .filter(isNonEmptyString);
 }
 
+/** A non-empty string `description` on a document, node or relationship. */
+export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
+
 // The rule `architecture-has-no-placeholder-properties-string` warns on.
 const PLACEHOLDER = /^\[\[\s*[A-Z_]+\s*\]\]$/;
 
