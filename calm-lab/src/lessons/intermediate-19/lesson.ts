@@ -241,6 +241,8 @@ export const INTERMEDIATE_19: Lesson = {
         message:
             'You mapped your Standard URLs to local files and wrote a base pattern that enforces your Standards. ' +
             'The pattern uses `items`, so it applies to every node and relationship without fixing the structure of the architecture.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-20', label: 'Next lesson: Multi-pattern validation' },
+        ],
     },
 };
