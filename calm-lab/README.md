@@ -37,8 +37,8 @@ the lab has no lesson picker.
    | Field | What it is |
    |---|---|
    | `id` | Lowercase, hyphenated. It is the `?lesson=` value and the storage key. Do not change it after release. |
-   | `title` | The lesson's name in the picker. |
-   | `summary` | One short sentence. It is the picker option's tooltip and the line under the picker. |
+   | `title` | The lesson's name, used in notices. |
+   | `tutorial` | The tutorial page this lesson follows: `{ title, url }`, with the page's own title. The top of the lesson guide links to it in a new tab. |
    | `editorFile` | The lesson's main architecture. The editor opens it first, and `state.doc` and the status badge describe it. |
    | `editableFiles` | The files the learner can open in the editor, for example an ADR next to the architecture. It must include `editorFile`, and each file must be in `seedFiles`. Default: `[editorFile]`. With more than one file, a "File" selector shows in the editor tab bar. The diagram shows the open file when it is an architecture (it has a `nodes` array), else `editorFile`. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
