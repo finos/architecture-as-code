@@ -97,9 +97,14 @@ describe('calm validate', () => {
         expect(onEvent).not.toHaveBeenCalled();
     });
 
-    it.each([['-a'], ['--architecture']])('says %s <url> is not supported in the lab yet', async (flag) => {
+    it.each([
+        ['-a', 'https://example.com/a.json'],
+        ['--architecture', 'https://example.com/a.json'],
+        ['-a', 'urn:example:architecture'],
+        ['-a', 'calm:/namespaces/x/architectures/1'],
+    ])('says %s %s is not supported in the lab yet', async (flag, reference) => {
         const { ctx } = context({});
-        expect(await runValidate([flag, 'https://example.com/a.json'], ctx)).toEqual([{
+        expect(await runValidate([flag, reference], ctx)).toEqual([{
             text: "The browser lab doesn't support `--architecture <url>` for `calm validate` yet. Use the CLI — https://calm.finos.org/working-with-calm/cli",
             kind: 'dim',
         }]);

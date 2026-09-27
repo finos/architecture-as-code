@@ -100,7 +100,10 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     }
     // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,
     // so a bare `calm hub` lists them rather than claiming `hub` is unknown.
-    if (sub === 'hub' && (!rest[0] || rest[0].startsWith('-'))) {
+    if (sub === 'hub' && rest[0]?.startsWith('-') && rest[0] !== '-h' && rest[0] !== '--help') {
+        return errLines(unknownOption(rest[0], []));
+    }
+    if (sub === 'hub' && (!rest[0] || rest[0] === '-h' || rest[0] === '--help')) {
         const entries = hubCommands();
         if (entries.length) {
             return [

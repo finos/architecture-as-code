@@ -11,8 +11,9 @@ export function unsupportedInLab(command: string, what: string): Line {
     return { text: `The browser lab doesn't support \`${what}\` for \`calm ${command}\` yet. Use the CLI — ${CLI_DOCS}`, kind: 'dim' };
 }
 
+/** A reference with a URI scheme (`https:`, `urn:`, `calm:`): the CLI's file loader leaves it to the URL loaders. */
 export function isUrl(reference: string): boolean {
-    return /^[a-z][a-z0-9+.-]*:\/\//i.test(reference);
+    return /^[a-z][a-z0-9+.-]+:/i.test(reference);
 }
 
 /** The Node error the CLI's file loader reports when `path` is not a readable file. */

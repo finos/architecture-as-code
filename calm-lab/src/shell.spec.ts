@@ -55,9 +55,9 @@ describe('other calm commands', () => {
         expect(line.text).toContain('CORS');
     });
 
-    it('lists the hub subcommands and their reasons for a bare `calm hub`', async () => {
+    it.each(['calm hub', 'calm hub --help', 'calm hub -h'])('lists the hub subcommands and their reasons for `%s`', async (input) => {
         const { ctx } = context({});
-        const lines = await runCommand('calm hub', ctx);
+        const lines = await runCommand(input, ctx);
         const text = lines.map((l) => l.text);
         expect(text[0]).toBe('`calm hub` needs a subcommand:');
         expect(text.some((line) => /^ {2}calm hub pull — .*CORS/.test(line))).toBe(true);
@@ -74,6 +74,9 @@ describe('other calm commands', () => {
         ['calm valdate --bogus', ["error: unknown command 'valdate'", '(Did you mean validate?)']],
         ['calm hub pul', ["error: unknown command 'pul'", '(Did you mean pull?)']],
         ['calm hub frob', ["error: unknown command 'frob'"]],
+        ['calm hub --bogus', ["error: unknown option '--bogus'"]],
+        ['calm hub --hlep', ["error: unknown option '--hlep'", '(Did you mean --help?)']],
+        ['calm hub -x', ["error: unknown option '-x'"]],
         ['calm --bogus', ["error: unknown option '--bogus'"]],
         ['calm --versio', ["error: unknown option '--versio'", '(Did you mean --version?)']],
     ])('%s is rejected like the CLI', async (input, expected) => {
