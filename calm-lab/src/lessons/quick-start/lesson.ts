@@ -138,13 +138,6 @@ export const QUICK_START: Lesson = {
         heading: 'Lesson complete',
         message:
             'You just modelled and validated a CALM architecture in your browser — no install required.',
-        links: [
-            {
-                to: 'https://calm.finos.org/tutorials/beginner/01-setup',
-                label: 'Continue with the full beginner tutorials →',
-            },
-            { to: 'https://calm.finos.org/learn', label: 'Back to the Learn hub' },
-            { to: '?lesson=beginner-02', label: 'Next lesson: Create your first node' },
-        ],
+        links: [{ to: '?lesson=beginner-02', label: 'Next lesson: Create your first node' }],
     },
 };
