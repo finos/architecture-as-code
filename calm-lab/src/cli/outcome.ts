@@ -7,8 +7,8 @@ export interface CommandOutcome {
     ok: boolean;
     errorCount: number;
     warningCount: number;
-    /** What each file contained when the command ran. */
-    snapshot: Record<string, string>;
+    /** What each file contained when the command ran; null for a file it looked for and did not find. */
+    snapshot: Record<string, string | null>;
 }
 
 export interface CommandEvent { type: 'command'; outcome: CommandOutcome }

@@ -8,7 +8,7 @@ import {
 } from '@finos/calm-shared/browser';
 import { schemaDirectoryWith, validateOutcome } from '../engine';
 import type { Line, ShellContext } from '../shell';
-import { readJsonFile, readUrlMapping, type ReadFile } from './files';
+import { readJsonFile, readUrlMapping, refFailureLines, refLoaders, type ReadFile } from './files';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
@@ -80,8 +80,11 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
         read[key] = file;
     }
 
-    const directory = mapping ? await schemaDirectoryWith(mapping.loader) : undefined;
+    // A pattern's `$ref`s need their own directory, to report the loads that fail; `-a` alone keeps the session one.
+    const refs = read.pattern || mapping ? refLoaders(mapping) : undefined;
+    const directory = refs ? await schemaDirectoryWith(refs.first, refs.last) : undefined;
     const outcome = await validateOutcome(read.architecture?.doc, read.pattern?.doc, directory);
+    lines.push(...refFailureLines(refs?.failures ?? [], Boolean(read.architecture && read.pattern)));
     const documents: Record<string, ValidationDocumentContext> = {};
     const positions: Record<string, ParsedDocumentContext> = {};
     for (const [id, file] of Object.entries(read)) {
@@ -95,7 +98,7 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
     const formatted = formatOutput(outcome, format, { documents });
 
     const files: Record<string, string> = {};
-    const snapshot: Record<string, string> = {};
+    const snapshot: Record<string, string | null> = {};
     for (const [id, file] of Object.entries(read)) {
         files[id] = file.path;
         snapshot[file.path] = file.content;

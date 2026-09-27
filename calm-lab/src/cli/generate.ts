@@ -1,7 +1,7 @@
 import { extractOptions } from '@finos/calm-shared/browser';
 import { generateArchitecture, schemaDirectoryWith } from '../engine';
 import type { Line, ShellContext } from '../shell';
-import { readJsonFile, readUrlMapping } from './files';
+import { readJsonFile, readUrlMapping, refLoaders } from './files';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
@@ -63,7 +63,8 @@ export async function runGenerate(args: string[], ctx: ShellContext): Promise<Li
     const lines: Line[] = [
         { text: logLine('info', 'calm-generate-options', 'Selected choices (reusable with --option-choices): {}'), kind: 'dim' },
         info('Generating a CALM architecture...'),
-        // The CLI prints these twice (the schemas load twice); once says it all.
+        // The CLI loads the schemas twice, so it prints these twice.
+        ...(mapping?.warnings ?? []),
         ...(mapping?.warnings ?? []),
     ];
     const output = ctx.vfs.resolve(ctx.getCwd(), outputReference);
@@ -77,14 +78,17 @@ export async function runGenerate(args: string[], ctx: ShellContext): Promise<Li
     });
     const failure = (message: string) => err(logLine('error', 'calm-generate', `Error while generating architecture from pattern: ${message}`));
 
+    // `ok` is "the command wrote an architecture": a generate error and an unwritable output both fail.
     let architecture: object;
     try {
-        architecture = await generateArchitecture(pattern.doc, mapping ? await schemaDirectoryWith(mapping.loader) : undefined);
+        const refs = mapping && refLoaders(mapping);
+        architecture = await generateArchitecture(pattern.doc, refs ? await schemaDirectoryWith(refs.first, refs.last) : undefined);
     } catch (error) {
         emit(false);
         return [...lines, failure(error instanceof Error ? error.message : String(error))];
     }
     if (ctx.vfs.isDir(output)) {
+        emit(false);
         return [...lines, failure(`EISDIR: illegal operation on a directory, open '${outputReference}'`)];
     }
     ctx.vfs.write(output, JSON.stringify(architecture, null, 2));

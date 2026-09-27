@@ -5,6 +5,7 @@ import {
     buildBrowserDocumentLoader,
     generate,
     MultiStrategyDocumentLoader,
+    InMemoryDocumentLoader,
     browserSupportFor,
     BROWSER_COMMAND_SUPPORT,
     type BrowserCommandSupport,
@@ -117,10 +118,10 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
     };
 }
 
-/** A SchemaDirectory for one command that asks `first` (e.g. a `-u` URL mapping) before the bundled meta-schemas. */
-export async function schemaDirectoryWith(first: DocumentLoader): Promise<SchemaDirectory> {
-    const bundled = buildBrowserDocumentLoader({ documents: SCHEMAS, allowRemote: false });
-    const directory = new SchemaDirectory(new MultiStrategyDocumentLoader([first, bundled]));
+/** A SchemaDirectory for one command: `first` (e.g. a `-u` mapping), the bundled meta-schemas, then `last`. */
+export async function schemaDirectoryWith(first: DocumentLoader | undefined, last: DocumentLoader): Promise<SchemaDirectory> {
+    const bundled = new InMemoryDocumentLoader(SCHEMAS);
+    const directory = new SchemaDirectory(new MultiStrategyDocumentLoader([...(first ? [first] : []), bundled, last]));
     await directory.loadSchemas();
     return directory;
 }

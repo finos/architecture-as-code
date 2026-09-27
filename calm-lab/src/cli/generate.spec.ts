@@ -98,7 +98,7 @@ describe('calm generate', () => {
             { text: "error [calm-generate]:    Error while generating architecture from pattern: EISDIR: illegal operation on a directory, open 'patterns'", kind: 'err' },
         ]);
         expect(vfs.exists('/workspace/patterns')).toBe(false);
-        expect(onEvent).not.toHaveBeenCalled();
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false }) });
     });
 
     it('does not prompt for pattern options, and says the CLI can', async () => {
@@ -152,13 +152,9 @@ describe('calm generate', () => {
         }]);
     });
 
-    it('warns about a missing mapped file after the Generating line, as the CLI does', async () => {
+    it('warns twice about a missing mapped file after the Generating line, as the CLI does', async () => {
         const { ctx } = context({ [P]: PATTERN, '/workspace/map.json': '{"https://example.com/x.json": "nope.json"}' });
-        expect(await runGenerate(['-p', P, '-o', 'out.json', '-u', 'map.json'], ctx)).toEqual([
-            SELECTED,
-            GENERATING,
-            { text: 'warn [mapped-document-loader]:     Mapped file does not exist: /workspace/nope.json (mapped from https://example.com/x.json)', kind: 'dim' },
-            success('out.json'),
-        ]);
+        const warning = { text: 'warn [mapped-document-loader]:     Mapped file does not exist: /workspace/nope.json (mapped from https://example.com/x.json)', kind: 'dim' };
+        expect(await runGenerate(['-p', P, '-o', 'out.json', '-u', 'map.json'], ctx)).toEqual([SELECTED, GENERATING, warning, warning, success('out.json')]);
     });
 });

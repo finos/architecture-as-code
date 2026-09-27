@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { runValidate } from './validate';
 import { createVfs } from '../lab/vfs';
+import { freshOutcomes } from '../lessons/checks';
 import PATTERN from './fixtures/web-app-pattern.json?raw';
 import GENERATED from './fixtures/generated-webapp.json?raw';
 import BROKEN from './fixtures/broken-webapp.json?raw';
@@ -284,10 +285,47 @@ describe('calm validate -u', () => {
         expect((await run(args('config/url-mapping.json'))).report).toContain(OWNER_ERROR);
     });
 
-    it('does not load the URL without a mapping', async () => {
+    const URL = 'https://example.com/standards/owned-node.json';
+    const loaderFailed = (loader: string) =>
+        `error [multi-strategy-document-loader]:    Loader ${loader} failed fatally loading document: ${URL}. Enable debug logging for the full loader report.`;
+    const NOT_ALLOWLISTED = [
+        "Direct URL loading is restricted to approved hosts. Host 'example.com' is not allowlisted.",
+        '',
+        'To allow this host, run:',
+        '',
+        '  calm init-config --allowed-remote-hosts example.com',
+        '',
+        'Only add hosts you trust.',
+    ];
+
+    it('does not load an unmapped URL, and says what the CLI says with its default config', async () => {
         const { report } = await run(['-p', 'patterns/owned-pattern.json', '-a', 'architectures/unowned.json', '-f', 'pretty']);
+        const lines = report.split('\n');
+        expect(lines.slice(0, 21)).toEqual([
+            loaderFailed('DirectUrlDocumentLoader'),
+            `error [json-schema-validator]:    Error fetching schema from schema directory: UNKNOWN: ${NOT_ALLOWLISTED[0]}`,
+            ...NOT_ALLOWLISTED.slice(1),
+            `error [calm-validate]:    JSON Schema compilation failed: ${NOT_ALLOWLISTED[0]}`,
+            ...NOT_ALLOWLISTED.slice(1),
+            'Summary',
+            '- Errors: yes (2)',
+            '- Warnings: yes (1)',
+            '- Info/Hints: 0',
+            '',
+            'ERROR issues:',
+        ]);
+        expect(lines).toContain(`  ERROR json-schema: ${NOT_ALLOWLISTED[0]}`);
         expect(report).not.toContain(OWNER_ERROR);
-        expect(report).toContain('https://example.com/standards/owned-node.json');
+    });
+
+    it('logs no rule line when it validates the pattern alone, as the CLI does', async () => {
+        const { report } = await run(['-p', 'patterns/owned-pattern.json', '-f', 'pretty']);
+        expect(report.split('\n').slice(0, 9)).toEqual([
+            loaderFailed('DirectUrlDocumentLoader'),
+            `error [json-schema-validator]:    Error fetching schema from schema directory: UNKNOWN: ${NOT_ALLOWLISTED[0]}`,
+            ...NOT_ALLOWLISTED.slice(1),
+            'Summary',
+        ]);
     });
 
     it('reports a missing mapping file as the CLI does', async () => {
@@ -303,8 +341,15 @@ describe('calm validate -u', () => {
 
     it('reports a missing mapped file as the CLI does', async () => {
         const { report } = await run(args('map.json'), { '/workspace/map.json': '{"https://example.com/standards/owned-node.json": "standards/nope.json"}' });
-        expect(report.split('\n')[0]).toBe('warn [mapped-document-loader]:     Mapped file does not exist: /workspace/standards/nope.json (mapped from https://example.com/standards/owned-node.json)');
-        expect(report).toContain('  ERROR json-schema: File not found: /workspace/standards/nope.json');
+        const message = 'File not found: /workspace/standards/nope.json';
+        expect(report.split('\n').slice(0, 5)).toEqual([
+            'warn [mapped-document-loader]:     Mapped file does not exist: /workspace/standards/nope.json (mapped from https://example.com/standards/owned-node.json)',
+            loaderFailed('MappedDocumentLoader'),
+            `error [json-schema-validator]:    Error fetching schema from schema directory: UNKNOWN: ${message}`,
+            `error [calm-validate]:    JSON Schema compilation failed: ${message}`,
+            'Summary',
+        ]);
+        expect(report).toContain(`  ERROR json-schema: ${message}`);
     });
 
     it('reports a mapped file that is not JSON as the CLI does', async () => {
@@ -313,7 +358,24 @@ describe('calm validate -u', () => {
             '/workspace/patterns/broken.json': '{ "nodes": [\n',
         });
         const message = 'Failed to load/parse /workspace/patterns/broken.json: Unexpected end of JSON input';
-        expect(report.split('\n')[0]).toBe(`warn [mapped-document-loader]:     Failed to pre-load https://example.com/standards/owned-node.json: ${message}`);
+        expect(report.split('\n').slice(0, 4)).toEqual([
+            `warn [mapped-document-loader]:     Failed to pre-load https://example.com/standards/owned-node.json: ${message}`,
+            loaderFailed('MappedDocumentLoader'),
+            `error [json-schema-validator]:    Error fetching schema from schema directory: UNKNOWN: ${message}`,
+            `error [calm-validate]:    JSON Schema compilation failed: ${message}`,
+        ]);
         expect(report).toContain(`  ERROR json-schema: ${message}`);
+    });
+
+    it('records a missing mapped file as absent, so creating it makes the outcome stale', async () => {
+        const { onEvent } = await run(args('map.json'), { '/workspace/map.json': '{"https://example.com/standards/owned-node.json": "standards/nope.json"}' });
+        const { snapshot } = onEvent.mock.calls[0][0].outcome;
+        expect(snapshot['/workspace/standards/nope.json']).toBeNull();
+        const vfs = createVfs({ ...files, '/workspace/map.json': '{}' }, null);
+        const read = (path: string) => vfs.read(path);
+        const outcome = onEvent.mock.calls[0][0].outcome;
+        expect(freshOutcomes([outcome], (path) => (path === '/workspace/map.json' ? '{"https://example.com/standards/owned-node.json": "standards/nope.json"}' : read(path)))).toHaveLength(1);
+        vfs.write('/workspace/standards/nope.json', OWNED_NODE);
+        expect(freshOutcomes([outcome], (path) => (path === '/workspace/map.json' ? '{"https://example.com/standards/owned-node.json": "standards/nope.json"}' : read(path)))).toHaveLength(0);
     });
 });

@@ -51,7 +51,7 @@ the lab has no lesson picker.
    - `{ kind: 'file', content, path? }` — the **complete** file after the step, so paste-and-save
      always works. `path` is the file to write; it must be in `editableFiles`. Default: `editorFile`;
    - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`. A command must not
-     print an error. To show a failure, write `{ run: 'calm validate …', expect: 'failure' }`: the
+     print an error or fail validation. To show a failure, write `{ run: 'calm validate …', expect: 'failure' }`: the
      command must run and the engine must reject its input (a missing file does not count). The
      learner sees only the command text.
 
