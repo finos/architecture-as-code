@@ -472,6 +472,10 @@ describe('workspace file helpers', () => {
             expect(filledAdr(filled.replace('Use a message queue.', 'todo: decide later'))).toBe(false);
         });
 
+        it('is false when a TODO placeholder is left after some prose', () => {
+            expect(filledAdr(filled.replace('Accepted', 'Accepted\nTODO: state whether this decision is proposed'))).toBe(false);
+        });
+
         it('never throws on missing or unrelated text', () => {
             expect(filledAdr(null)).toBe(false);
             expect(filledAdr('')).toBe(false);

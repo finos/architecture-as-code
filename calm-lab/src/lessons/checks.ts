@@ -229,12 +229,12 @@ const ADR_HEADINGS = ['Status', 'Context', 'Decision', 'Consequences'];
 
 /**
  * An ADR file: `## Status`, `## Context`, `## Decision` and `## Consequences` each have a
- * non-empty body that does not start with `TODO`.
+ * non-empty body with no `TODO` placeholder left in it.
  */
 export function filledAdr(text: string | null): boolean {
     return ADR_HEADINGS.every((heading) => {
         const body = markdownSection(text, heading);
-        return body.length > 0 && !/^TODO/i.test(body);
+        return body.length > 0 && !/\bTODO\b/i.test(body);
     });
 }
 
