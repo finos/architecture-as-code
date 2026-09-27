@@ -224,14 +224,15 @@ const ENHANCED_FILE = `{
 const patternComplete = (state: LessonState) => {
     const pattern = fileJson(state, PATTERN);
     const required = patternRequires(pattern);
-    return required.nodes >= 3 && required.relationships >= 2 && patternNodeIds(pattern).length >= 3;
+    return required.nodes === 3 && required.relationships === 2 && patternNodeIds(pattern).length === 3;
 };
 
 const enhanced = (state: LessonState) => {
     const ids = patternNodeIds(fileJson(state, PATTERN));
-    return ids.length >= 3
+    return ids.length === 3
         && ids.every((id) => nodeById(state.doc, id) !== undefined)
-        && nodes(state.doc).some((node) => nodeInterfaces(node).length > 0)
+        // The service and the database, by count: the pattern may give its nodes any node-type.
+        && nodes(state.doc).filter((node) => nodeInterfaces(node).length > 0).length >= 2
         && relationships(state.doc).length > 0
         && relationships(state.doc).every(hasDescription)
         && !hasPlaceholder(state.doc)
