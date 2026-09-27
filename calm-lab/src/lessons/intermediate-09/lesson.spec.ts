@@ -159,7 +159,7 @@ describe('intermediate-09 lesson', () => {
         }
     });
 
-    it('has no completion links yet', () => {
+    it('links to the next lesson', () => {
         expect(INTERMEDIATE_09.completion.links).toContainEqual({
             to: '?lesson=intermediate-10',
             label: 'Next lesson: Link architecture decision records',
