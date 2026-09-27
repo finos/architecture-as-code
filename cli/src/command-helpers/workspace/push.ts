@@ -80,7 +80,6 @@ export async function pushWorkspaceToHub(
     const conflicts: string[] = [];
     const mappingFailures: string[] = [];
     const narrativeFailures: string[] = [];
-    const unsupportedFailures: string[] = [];
 
     for (const [id, entry] of entries) {
         let document: ResolvedWorkspaceManifestEntry;
@@ -89,7 +88,7 @@ export async function pushWorkspaceToHub(
         } catch (e) {
             const message = e instanceof Error ? e.message : String(e);
             logger.error(`Cannot push '${id}': ${message}`);
-            unsupportedFailures.push(`${id}: ${message}`);
+            mappingFailures.push(`${id}: ${message}`);
             continue;
         }
         const filePath = resolveFilePath(bundlePath, entry.path);
@@ -122,7 +121,7 @@ export async function pushWorkspaceToHub(
         });
     }
 
-    if (conflicts.length > 0 || mappingFailures.length > 0 || narrativeFailures.length > 0 || unsupportedFailures.length > 0) {
+    if (conflicts.length > 0 || mappingFailures.length > 0 || narrativeFailures.length > 0) {
         const summaries: string[] = [];
         if (conflicts.length > 0) {
             summaries.push(
@@ -135,9 +134,6 @@ export async function pushWorkspaceToHub(
         }
         if (narrativeFailures.length > 0) {
             summaries.push(`${narrativeFailures.length} narrative document(s) failed (${narrativeFailures.join('; ')})`);
-        }
-        if (unsupportedFailures.length > 0) {
-            summaries.push(`${unsupportedFailures.length} unsupported workspace entry/entries (${unsupportedFailures.join('; ')})`);
         }
         throw new Error(
             `Push failed: ${summaries.join(' ')}`
