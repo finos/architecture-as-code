@@ -30,6 +30,11 @@ async function replayedToEnd(lesson: Lesson) {
 const CHECKED = [...LESSONS, PATTERN_LESSON];
 
 describe.each(CHECKED.map((lesson) => [lesson.id, lesson] as const))('lesson %s', (_, lesson) => {
+    it('names the tutorial page it follows', () => {
+        expect(lesson.tutorial?.title).toMatch(/\S/);
+        expect(lesson.tutorial?.url).toMatch(/^https:\/\/calm\.finos\.org\/tutorials\/(beginner|intermediate)\/[a-z0-9-]+\/$/);
+    });
+
     it('has a URL-safe id, unique in the registry', () => {
         expect(lesson.id).toMatch(/^[a-z0-9]+(-[a-z0-9]+)*$/);
         expect(CHECKED.filter((other) => other.id === lesson.id)).toHaveLength(1);
