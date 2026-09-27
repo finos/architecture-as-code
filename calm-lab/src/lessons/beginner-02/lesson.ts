@@ -28,7 +28,7 @@ const STEP_2_TARGET_FILE = `{
 export const BEGINNER_02: Lesson = {
     id: 'beginner-02',
     title: 'Create your first node',
-    summary: 'Add a node to an empty CALM architecture and validate it.',
+    tutorial: { title: 'Create Your First Node', url: 'https://calm.finos.org/tutorials/beginner/02-first-node/' },
     editorFile: EDITOR_FILE,
     seedFiles: {
         [`${HOME_DIR}/README.md`]:
