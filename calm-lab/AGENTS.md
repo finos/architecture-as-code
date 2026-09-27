@@ -139,7 +139,8 @@ output changes, re-capture it and update the specs. The only lab-specific text i
 unless the editor has unsaved edits (they win on Save, as in any editor), and marks a hidden diagram
 as updated. A pattern with options needs an interactive prompt in the CLI; the lab prints a note
 instead and writes nothing. A generate outcome has `ok: true` only when the command wrote an
-architecture: a `generate()` error and an output path that is a directory both send `ok: false`.
+architecture: a `generate()` error and an output path that is a directory both send `ok: false`
+and `errorCount: 1`.
 A load error for the pattern (or the `-u` file) sends no outcome.
 
 Shared code logs through the browser console, so the terminal shows only the log lines the lab

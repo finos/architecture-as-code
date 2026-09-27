@@ -98,7 +98,16 @@ describe('calm generate', () => {
             { text: "error [calm-generate]:    Error while generating architecture from pattern: EISDIR: illegal operation on a directory, open 'patterns'", kind: 'err' },
         ]);
         expect(vfs.exists('/workspace/patterns')).toBe(false);
-        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false }) });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false, errorCount: 1 }) });
+    });
+
+    it('counts one error when generate() fails', async () => {
+        const REF = '{"properties": {"nodes": {"type": "array", "prefixItems": [{"$ref": "https://example.com/node.json"}]}}}';
+        const { vfs, ctx, onEvent } = context({ '/workspace/p.json': REF });
+        const lines = await runGenerate(['-p', 'p.json', '-o', 'out.json'], ctx);
+        expect(lines.at(-1)).toMatchObject({ text: expect.stringContaining('Error while generating architecture from pattern: '), kind: 'err' });
+        expect(vfs.exists('/workspace/out.json')).toBe(false);
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: false, errorCount: 1 }) });
     });
 
     it('does not prompt for pattern options, and says the CLI can', async () => {

@@ -74,7 +74,7 @@ export async function runGenerate(args: string[], ctx: ShellContext): Promise<Li
     }
     const emit = (ok: boolean) => ctx.onEvent?.({
         type: 'command',
-        outcome: { command: 'generate', files, ok, errorCount: 0, warningCount: 0, snapshot: { [pattern.path]: pattern.content, ...mapping?.snapshot } },
+        outcome: { command: 'generate', files, ok, errorCount: ok ? 0 : 1, warningCount: 0, snapshot: { [pattern.path]: pattern.content, ...mapping?.snapshot } },
     });
     const failure = (message: string) => err(logLine('error', 'calm-generate', `Error while generating architecture from pattern: ${message}`));
 
