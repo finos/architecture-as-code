@@ -201,7 +201,8 @@ export const INTERMEDIATE_19: Lesson = {
                 `Run \`${VALIDATE_COMPLIANT}\`. The summary shows 0 errors. ` +
                 'The base pattern checks only the Standard properties, so it works for any architecture.',
             hint: { kind: 'commands', commands: [VALIDATE_COMPLIANT] },
-            check: (state) => compliant(state) && ranOk(state, 'validate', { architecture: state.editorFile, pattern: BASE, mapping: MAPPING }),
+            check: (state) => compliant(state) && patternRefsStandards(state)
+                && ranOk(state, 'validate', { architecture: state.editorFile, pattern: BASE, mapping: MAPPING }),
         },
     ],
     completion: {

@@ -170,15 +170,19 @@ describe('intermediate-19 lesson', () => {
     });
 
     it('validate-compliant needs a fresh passing run against the base pattern with the mapping', () => {
-        expect(validateCompliant.check(state({ doc: MY_DOC, commands: [passed()] }))).toBe(true);
+        const files = { ...MY_STANDARDS, ...MY_MAPPING, [BASE]: pattern(MY_NODE_ID, MY_RELATIONSHIP_ID) };
+        const check = (over: Partial<LessonState>) => validateCompliant.check(state({ files, ...over }));
+        expect(check({ doc: MY_DOC, commands: [passed()] })).toBe(true);
         // No run, or a run without the pattern or the mapping.
-        expect(validateCompliant.check(state({ doc: MY_DOC }))).toBe(false);
-        expect(validateCompliant.check(state({ doc: MY_DOC, commands: [passed({ files: { architecture: COMPLIANT } })] }))).toBe(false);
-        expect(validateCompliant.check(state({ doc: MY_DOC, commands: [passed({ files: { architecture: COMPLIANT, pattern: BASE } })] }))).toBe(false);
+        expect(check({ doc: MY_DOC })).toBe(false);
+        expect(check({ doc: MY_DOC, commands: [passed({ files: { architecture: COMPLIANT } })] })).toBe(false);
+        expect(check({ doc: MY_DOC, commands: [passed({ files: { architecture: COMPLIANT, pattern: BASE } })] })).toBe(false);
         // A passing run on the empty seed.
-        expect(validateCompliant.check(state({ doc: { nodes: [], relationships: [] }, commands: [passed()] }))).toBe(false);
+        expect(check({ doc: { nodes: [], relationships: [] }, commands: [passed()] })).toBe(false);
         // A failing run.
-        expect(validateCompliant.check(state({ doc: MY_DOC, commands: [passed({ ok: false, errorCount: 1, errorsIn: { architecture: 1 } })] }))).toBe(false);
+        expect(check({ doc: MY_DOC, commands: [passed({ ok: false, errorCount: 1, errorsIn: { architecture: 1 } })] })).toBe(false);
+        // A base pattern that no longer references the standards.
+        expect(check({ doc: MY_DOC, commands: [passed()], files: { ...files, [BASE]: pattern(NODE_REF, RELATIONSHIP_REF) } })).toBe(false);
     });
 
     it('completes every step by following the hints in order, and no step sooner', async () => {
