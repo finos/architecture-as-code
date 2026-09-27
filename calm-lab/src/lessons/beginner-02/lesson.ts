@@ -29,7 +29,6 @@ export const BEGINNER_02: Lesson = {
     id: 'beginner-02',
     title: 'Create your first node',
     summary: 'Add a node to an empty CALM architecture and validate it.',
-    tutorial: 'https://calm.finos.org/tutorials/beginner/02-first-node',
     editorFile: EDITOR_FILE,
     seedFiles: {
         [`${HOME_DIR}/README.md`]:
@@ -84,9 +83,6 @@ export const BEGINNER_02: Lesson = {
     completion: {
         heading: 'Lesson complete',
         message: 'You added your first node to a CALM architecture and validated it with the real CALM engine.',
-        links: [
-            { to: 'https://calm.finos.org/tutorials/beginner/02-first-node', label: 'Read the tutorial ↗' },
-            { to: 'https://calm.finos.org/tutorials/', label: 'Back to the tutorials index' },
-        ],
+        links: [],
     },
 };
