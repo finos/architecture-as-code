@@ -1,3 +1,4 @@
+import {StrictMode} from 'react';
 import {describe, it, expect, vi} from 'vitest';
 import {act, fireEvent, render, screen} from '@testing-library/react';
 import Terminal from './Terminal';
@@ -143,6 +144,21 @@ describe('Terminal', () => {
         await act(async () => {
             first.resolve([]);
         });
+        expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls', 'pwd']);
+    });
+
+    it('runs a pasted batch under StrictMode, as the app renders', async () => {
+        const onRun = vi.fn<(command: string) => Promise<Line[]>>(async () => []);
+        render(
+            <StrictMode>
+                <Terminal cwd="/workspace" onRun={onRun} />
+            </StrictMode>,
+        );
+        const input = screen.getByLabelText('Terminal input');
+        await act(async () => {
+            fireEvent.paste(input, {clipboardData: {getData: () => 'ls\npwd\n'}});
+        });
+
         expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls', 'pwd']);
     });
 

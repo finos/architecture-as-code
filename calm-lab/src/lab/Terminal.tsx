@@ -69,9 +69,13 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}: T
     }, [busy]);
 
     // Reset lesson remounts the terminal; a pasted batch must not keep running into the new session.
+    // Set on mount too: StrictMode unmounts and remounts once in development.
     const mounted = useRef(true);
-    useEffect(() => () => {
-        mounted.current = false;
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
     }, []);
 
     const execute = async (value: string) => {
