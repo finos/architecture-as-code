@@ -1,8 +1,8 @@
-export type OutcomeCommand = 'validate' | 'diff';
+export type OutcomeCommand = 'validate' | 'generate' | 'diff';
 
 export interface CommandOutcome {
     command: OutcomeCommand;
-    /** Resolved absolute paths, keyed by option attribute: { architecture } / { documentA, documentB }. */
+    /** Resolved absolute paths: { architecture, pattern, mapping } / { pattern, output, mapping } / { documentA, documentB }. */
     files: Record<string, string>;
     ok: boolean;
     errorCount: number;

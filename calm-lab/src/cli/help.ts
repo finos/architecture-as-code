@@ -3,13 +3,14 @@ import type { Line } from '../shell';
 import { optionSpecs } from './options';
 import { CLI_DOCS, VALIDATE_LAB_FORMATS } from './unsupported';
 
-const LAB_COMMANDS = ['validate', 'diff'] as const;
+export const LAB_COMMANDS = ['validate', 'generate', 'diff'] as const;
+export type LabCommand = (typeof LAB_COMMANDS)[number];
 
 function columns(rows: [string, string][], width = Math.max(...rows.map(([left]) => left.length))): Line[] {
     return rows.map(([left, right]) => ({ text: `  ${left.padEnd(width)}  ${right}`, kind: 'dim' }));
 }
 
-export function helpFor(command?: (typeof LAB_COMMANDS)[number]): Line[] {
+export function helpFor(command?: LabCommand): Line[] {
     const footer: Line = { text: `Other commands and options need the CLI — ${CLI_DOCS}`, kind: 'dim' };
     if (!command) {
         const rows = LAB_COMMANDS.map((name): [string, string] => {

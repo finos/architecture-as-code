@@ -1,0 +1,124 @@
+import { DocumentLoadError, type DocumentLoader, type SchemaDirectory } from '@finos/calm-shared/browser';
+import type { Line, ShellContext } from '../shell';
+import { logLine } from './log';
+import { readError } from './unsupported';
+
+export interface ReadFile { reference: string; path: string; content: string; doc: object }
+
+/** Reads a JSON file from the cwd; the error is the message the CLI's file loader reports. */
+export function readJsonFile(ctx: ShellContext, reference: string): ReadFile | { error: string } {
+    const path = ctx.vfs.resolve(ctx.getCwd(), reference);
+    const content = ctx.vfs.read(path);
+    if (content === null) {
+        return { error: readError(ctx.vfs, path) };
+    }
+    try {
+        return { reference, path, content, doc: JSON.parse(content) as object };
+    } catch (error) {
+        return { error: `${path} is not valid JSON: ${(error as Error).message}` };
+    }
+}
+
+interface MappedFile { url: string; path: string; content: string | null; isDir: boolean }
+
+export interface UrlMapping {
+    path: string;
+    /** The mapping file and every mapped file that exists, as read. */
+    snapshot: Record<string, string>;
+    /** The CLI's `mapped-document-loader` warnings, printed before anything loads. */
+    warnings: Line[];
+    loader: DocumentLoader;
+}
+
+function loadMapped(file: MappedFile): object {
+    if (file.content === null && !file.isDir) {
+        throw new DocumentLoadError({ name: 'UNKNOWN', message: `File not found: ${file.path}`, recoverable: false });
+    }
+    try {
+        if (file.content === null) {
+            throw new Error('EISDIR: illegal operation on a directory, read');
+        }
+        return JSON.parse(file.content) as object;
+    } catch (error) {
+        throw new DocumentLoadError({
+            name: 'UNKNOWN',
+            message: `Failed to load/parse ${file.path}: ${(error as Error).message}`,
+            recoverable: false,
+        });
+    }
+}
+
+/** The lab's MappedDocumentLoader (shared/src/document-loader/mapped-document-loader.ts) over the vfs. */
+class VfsMappedLoader implements DocumentLoader {
+    constructor(private readonly files: Map<string, MappedFile>) {}
+
+    async initialise(directory: SchemaDirectory): Promise<void> {
+        for (const [url, file] of this.files) {
+            let document: object;
+            try {
+                document = loadMapped(file);
+            } catch {
+                continue;
+            }
+            directory.storeDocument(url, 'schema', document);
+            const id = (document as { $id?: unknown }).$id;
+            if (typeof id === 'string' && id !== url) {
+                directory.storeDocument(id, 'schema', document);
+            }
+        }
+    }
+
+    async loadMissingDocument(documentId: string): Promise<object> {
+        const file = this.files.get(documentId);
+        if (!file) {
+            throw new DocumentLoadError({ name: 'OPERATION_NOT_IMPLEMENTED', message: `MappedDocumentLoader cannot resolve: ${documentId}` });
+        }
+        return loadMapped(file);
+    }
+
+    resolvePath(reference: string): string | undefined {
+        return this.files.get(reference)?.path;
+    }
+}
+
+/** The CLI's `-u` (cli/src/command-helpers/template.ts getUrlToLocalFileMap): paths resolve against the mapping file's directory. */
+export function readUrlMapping(ctx: ShellContext, reference: string): UrlMapping | { error: Line } {
+    const path = ctx.vfs.resolve(ctx.getCwd(), reference);
+    const content = ctx.vfs.read(path);
+    // The CLI prints the error object, stack and all; the first line is the useful part.
+    const failure = (error: Error) => ({
+        error: { text: `Error reading url to local file mapping file: ${reference} ${error.name}: ${error.message}`, kind: 'err' } as Line,
+    });
+    if (content === null) {
+        return failure(new Error(readError(ctx.vfs, path, reference)));
+    }
+    let entries: [string, unknown][];
+    try {
+        entries = Object.entries(JSON.parse(content) as object);
+    } catch (error) {
+        return failure(error as Error);
+    }
+
+    const directory = path.slice(0, path.lastIndexOf('/')) || '/';
+    const files = new Map<string, MappedFile>();
+    const snapshot: Record<string, string> = { [path]: content };
+    const warnings: Line[] = [];
+    for (const [url, value] of entries) {
+        const mappedPath = ctx.vfs.resolve(directory, String(value));
+        const file: MappedFile = { url, path: mappedPath, content: ctx.vfs.read(mappedPath), isDir: ctx.vfs.isDir(mappedPath) };
+        files.set(url, file);
+        if (file.content !== null) {
+            snapshot[mappedPath] = file.content;
+        }
+        if (file.content === null && !file.isDir) {
+            warnings.push({ text: logLine('warn', 'mapped-document-loader', `Mapped file does not exist: ${mappedPath} (mapped from ${url})`), kind: 'dim' });
+            continue;
+        }
+        try {
+            loadMapped(file);
+        } catch (error) {
+            warnings.push({ text: logLine('warn', 'mapped-document-loader', `Failed to pre-load ${url}: ${(error as Error).message}`), kind: 'dim' });
+        }
+    }
+    return { path, snapshot, warnings, loader: new VfsMappedLoader(files) };
+}

@@ -2,9 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { DEFAULT_LESSON_ID, LESSONS, endFiles, findLesson } from './index';
 import { startReplay } from './replay';
 import { HOME_DIR } from './types';
+import { LAB_COMMANDS } from '../cli/help';
 
 /** The `calm` subcommands the lab runs; `help` may name one of them. */
-const LAB_SUBCOMMANDS = ['validate', 'diff'];
+const LAB_SUBCOMMANDS: readonly string[] = LAB_COMMANDS;
 
 const calmCommands = (text: string) =>
     [...text.matchAll(/`(calm [^`]+)`/g)].map((match) => match[1]);

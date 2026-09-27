@@ -3,9 +3,12 @@ import {
     formatOutput,
     SchemaDirectory,
     buildBrowserDocumentLoader,
+    generate,
+    MultiStrategyDocumentLoader,
     browserSupportFor,
     BROWSER_COMMAND_SUPPORT,
     type BrowserCommandSupport,
+    type DocumentLoader,
     type ValidationOutcome,
     type ValidationOutput,
 } from '@finos/calm-shared/browser';
@@ -114,9 +117,21 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
     };
 }
 
+/** A SchemaDirectory for one command that asks `first` (e.g. a `-u` URL mapping) before the bundled meta-schemas. */
+export async function schemaDirectoryWith(first: DocumentLoader): Promise<SchemaDirectory> {
+    const bundled = buildBrowserDocumentLoader({ documents: SCHEMAS, allowRemote: false });
+    const directory = new SchemaDirectory(new MultiStrategyDocumentLoader([first, bundled]));
+    await directory.loadSchemas();
+    return directory;
+}
+
 /** The raw outcome, for commands that format it themselves as the CLI does. */
-export async function validateOutcome(architecture: object): Promise<ValidationOutcome> {
-    return validate(architecture, undefined, undefined, await schemaDirectory());
+export async function validateOutcome(architecture: object | undefined, pattern?: object, directory?: SchemaDirectory): Promise<ValidationOutcome> {
+    return validate(architecture, pattern, undefined, directory ?? await schemaDirectory());
+}
+
+export async function generateArchitecture(pattern: object, directory?: SchemaDirectory): Promise<object> {
+    return generate(pattern, directory ?? await schemaDirectory());
 }
 
 export function commandSupport(command: string): BrowserCommandSupport | undefined {

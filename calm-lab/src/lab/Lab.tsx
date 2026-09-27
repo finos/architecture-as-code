@@ -200,6 +200,8 @@ export default function Lab({lesson}: LabProps) {
         sessionEpoch.current += 1;
     }, []);
     const [openFile, setOpenFile] = useState(editorFile);
+    // What the UI shows now, for a terminal command that finishes after the learner acted.
+    const uiRef = useRef({dirty: false, openFile: editorFile, diagramFile: editorFile, topTab: 'editor'});
     const openLabel = relativeToHome(openFile);
     const [editorText, setEditorText] = useState(() => vfs.read(editorFile) ?? '');
     const [dirty, setDirty] = useState(false);
@@ -338,6 +340,7 @@ export default function Lab({lesson}: LabProps) {
         // the in-flight command's output, its event and its recompute all
         // belong to the session the learner threw away.
         const epoch = sessionEpoch.current;
+        const before = vfs.toJSON().files;
         const lines = await runCommand(input, {
             vfs,
             getCwd: () => vfs.getCwd(),
@@ -354,6 +357,7 @@ export default function Lab({lesson}: LabProps) {
         if (epoch !== sessionEpoch.current) {
             return [];
         }
+        showWrittenFiles(before);
         // Not awaited: `ls`, `cat` and `pwd` must not sit behind a Spectral run
         // with the terminal input disabled. validationSeq orders the results.
         void recompute();
@@ -364,13 +368,29 @@ export default function Lab({lesson}: LabProps) {
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
     // The diagram draws the open file when it is an architecture, else the editor file.
-    const diagramFile = openFile !== editorFile && isArchitecture(vfs.read(openFile)) ? openFile : editorFile;
+    const drawnFile = (path: string) => (path !== editorFile && isArchitecture(vfs.read(path)) ? path : editorFile);
+    const diagramFile = drawnFile(openFile);
+    useEffect(() => {
+        uiRef.current = {dirty, openFile, diagramFile, topTab};
+    });
+
+    /** A command can write workspace files (`calm generate -o`); show what changed. */
+    const showWrittenFiles = (before: Record<string, string>) => {
+        const ui = uiRef.current;
+        const wrote = (path: string) => vfs.read(path) !== (before[path] ?? null);
+        // Unsaved edits win, as in any editor: Save writes them over the command's output.
+        if (wrote(ui.openFile) && !ui.dirty) {
+            setEditorText(vfs.read(ui.openFile) ?? '');
+        }
+        if ((wrote(ui.diagramFile) || wrote(drawnFile(ui.openFile))) && ui.topTab !== 'diagram') {
+            setDiagramStale(true);
+        }
+    };
 
     const handleSave = () => {
-        // Saving is the only mutation path to workspace files (terminal
-        // commands are read-only) — flag the diagram as stale when a save
-        // changes the file it draws while it is hidden; an open diagram
-        // re-renders live, so no flag is needed then.
+        // Flag the diagram as stale when a save changes the file it draws
+        // while it is hidden; an open diagram re-renders live, so no flag
+        // is needed then.
         const changed = vfs.read(openFile) !== editorText;
         vfs.write(openFile, editorText);
         const nextDiagramFile = openFile !== editorFile && isArchitecture(editorText) ? openFile : editorFile;

@@ -1,10 +1,18 @@
-import { enrichWithDocumentPositions, formatOutput, parseDocumentWithPositions, type OutputFormat } from '@finos/calm-shared/browser';
-import { validateOutcome } from '../engine';
+import {
+    enrichWithDocumentPositions,
+    formatOutput,
+    parseDocumentWithPositions,
+    type OutputFormat,
+    type ParsedDocumentContext,
+    type ValidationDocumentContext,
+} from '@finos/calm-shared/browser';
+import { schemaDirectoryWith, validateOutcome } from '../engine';
 import type { Line, ShellContext } from '../shell';
+import { readJsonFile, readUrlMapping, type ReadFile } from './files';
 import { helpFor } from './help';
 import { logLine } from './log';
 import { parseArgs } from './options';
-import { isUrl, readError, unsupportedInLab, VALIDATE_LAB_FORMATS } from './unsupported';
+import { isUrl, unsupportedInLab, VALIDATE_LAB_FORMATS } from './unsupported';
 
 const PATTERN = '-p, --pattern <file>';
 const ARCHITECTURE = '-a, --architecture <file>';
@@ -46,46 +54,73 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
         return [unsupportedInLab('validate', `--format ${format}`)];
     }
 
-    const reference = values.architecture as string;
-    if (isUrl(reference)) {
-        return [unsupportedInLab('validate', '--architecture <url>')];
-    }
-    const path = ctx.vfs.resolve(ctx.getCwd(), reference);
-    const content = ctx.vfs.read(path);
-    if (content === null) {
-        return loadFailure(reference, readError(ctx.vfs, path));
-    }
-    let architecture: object;
-    try {
-        architecture = JSON.parse(content) as object;
-    } catch (error) {
-        return loadFailure(reference, `${path} is not valid JSON: ${(error as Error).message}`);
+    const references = { architecture: values.architecture as string | undefined, pattern: values.pattern as string | undefined };
+    const url = (['architecture', 'pattern'] as const).find((key) => references[key] && isUrl(references[key]));
+    if (url) {
+        return [unsupportedInLab('validate', `--${url} <url>`)];
     }
 
-    const outcome = await validateOutcome(architecture);
-    const context = parseDocumentWithPositions(content, 'architecture');
-    if (context) {
-        enrichWithDocumentPositions(outcome, { architecture: context });
+    const mapping = values.urlToLocalFileMapping ? readUrlMapping(ctx, values.urlToLocalFileMapping as string) : undefined;
+    if (mapping && 'error' in mapping) {
+        return [mapping.error];
     }
-    const formatted = formatOutput(outcome, format, {
-        documents: {
-            architecture: { id: 'architecture', label: path.split('/').pop(), filePath: path, lines: content.split(/\r?\n/) },
-        },
-    });
+    const lines: Line[] = [...(mapping?.warnings ?? [])];
+
+    // loadArchitectureAndPattern: the architecture first, then the pattern.
+    const read: Partial<Record<'architecture' | 'pattern', ReadFile>> = {};
+    for (const key of ['architecture', 'pattern'] as const) {
+        const reference = references[key];
+        if (!reference) {
+            continue;
+        }
+        const file = readJsonFile(ctx, reference);
+        if ('error' in file) {
+            return [...lines, ...loadFailure(reference, file.error)];
+        }
+        read[key] = file;
+    }
+
+    const directory = mapping ? await schemaDirectoryWith(mapping.loader) : undefined;
+    const outcome = await validateOutcome(read.architecture?.doc, read.pattern?.doc, directory);
+    const documents: Record<string, ValidationDocumentContext> = {};
+    const positions: Record<string, ParsedDocumentContext> = {};
+    for (const [id, file] of Object.entries(read)) {
+        const context = parseDocumentWithPositions(file.content, id);
+        if (context) {
+            positions[id] = context;
+        }
+        documents[id] = { id, label: file.path.split('/').pop(), filePath: file.path, lines: file.content.split(/\r?\n/) };
+    }
+    enrichWithDocumentPositions(outcome, positions);
+    const formatted = formatOutput(outcome, format, { documents });
+
+    const files: Record<string, string> = {};
+    const snapshot: Record<string, string> = {};
+    for (const [id, file] of Object.entries(read)) {
+        files[id] = file.path;
+        snapshot[file.path] = file.content;
+    }
+    if (mapping) {
+        files.mapping = mapping.path;
+        Object.assign(snapshot, mapping.snapshot);
+    }
     const outputs = [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs];
     ctx.onEvent?.({
         type: 'command',
         outcome: {
             command: 'validate',
-            files: { architecture: path },
+            files,
             ok: !outcome.hasErrors,
             errorCount: outputs.filter((output) => output.severity === 'error').length,
             warningCount: outputs.filter((output) => output.severity === 'warning').length,
-            snapshot: { [path]: content },
+            snapshot,
         },
     });
-    return formatted
-        .replace(/\n$/, '')
-        .split('\n')
-        .map((text): Line => ({ text, kind: format === 'pretty' && text.trimStart().startsWith('ERROR') ? 'err' : 'out' }));
+    return [
+        ...lines,
+        ...formatted
+            .replace(/\n$/, '')
+            .split('\n')
+            .map((text): Line => ({ text, kind: format === 'pretty' && text.trimStart().startsWith('ERROR') ? 'err' : 'out' })),
+    ];
 }

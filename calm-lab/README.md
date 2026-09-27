@@ -1,10 +1,10 @@
 # CALM Learning Lab
 
-An in-browser learning lab for CALM: a terminal, an editor and a live diagram, with `calm validate`
-and `calm diff` running the real CALM engine (`@finos/calm-shared/browser`) — the same validation
-the CLI performs, with nothing to install and nothing sent to a server. The terminal accepts the
-CLI's own syntax (`calm validate -a <file>`, `calm diff -a <file> -b <file>`), so every command
-works unchanged after installing the CLI.
+An in-browser learning lab for CALM: a terminal, an editor and a live diagram, with `calm validate`,
+`calm generate` and `calm diff` running the real CALM engine (`@finos/calm-shared/browser`) — the
+same validation the CLI performs, with nothing to install and nothing sent to a server. The terminal
+accepts the CLI's own syntax (`calm validate -p <pattern> -a <file>`, `calm generate -p <pattern> -o
+<file>`, `calm diff -a <file> -b <file>`), so every command works unchanged after installing the CLI.
 
 Hosted at **<https://lab.calm.finos.org>**. It has its own origin because many CALM users work
 behind proxies that block sites accepting free-text input; the documentation at
