@@ -416,7 +416,7 @@ const hasTwoNodeDomains = (doc: Doc) => new Set(nodeDomains(doc, ['service', 'da
 export const INTERMEDIATE_08: Lesson = {
     id: 'intermediate-08',
     title: 'Controls',
-    summary: 'Document security, performance and compliance requirements with architecture-level and node-level controls.',
+    tutorial: { title: 'Controls for Non-Functional Requirements', url: 'https://calm.finos.org/tutorials/intermediate/08-controls/' },
     chainsFrom: 'beginner-07',
     editorFile: EDITOR_FILE,
     seedFiles: endFiles(BEGINNER_07),
