@@ -48,6 +48,15 @@ export function connectsBetween(doc: CalmDocLike | null | undefined, sourceType:
         typeOf(doc, (connects.destination as Item | undefined)?.node) === destinationType);
 }
 
+/** The `connects` relationships from a node of `sourceType` to a node of `destinationType`. */
+export function connectsRelationshipsBetween(doc: CalmDocLike | null | undefined, sourceType: string, destinationType: string): Item[] {
+    return relationshipsOfKind(doc, 'connects').filter((relationship) => {
+        const connects = (relationship['relationship-type'] as Item)['connects'] as Item;
+        return typeOf(doc, (connects.source as Item | undefined)?.node) === sourceType &&
+            typeOf(doc, (connects.destination as Item | undefined)?.node) === destinationType;
+    });
+}
+
 /** A `connects` from the node with id `sourceId` to the node with id `destinationId`; both nodes must exist. */
 export function connectsNodes(doc: CalmDocLike | null | undefined, sourceId: string, destinationId: string): boolean {
     if (!nodeById(doc, sourceId) || !nodeById(doc, destinationId)) {

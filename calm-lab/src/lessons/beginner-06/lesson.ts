@@ -1,5 +1,5 @@
 import type { Lesson } from '../types';
-import { hasMetadata, nodesOfType, relationshipsOfKind, validatedEditorFile } from '../checks';
+import { connectsRelationshipsBetween, hasMetadata, nodesOfType, validatedEditorFile } from '../checks';
 import { BEGINNER_05 } from '../beginner-05/lesson';
 import { endFiles } from '../chain';
 
@@ -301,7 +301,7 @@ export const BEGINNER_06: Lesson = {
                 'Add a `metadata` object to the `connects` relationship between your service and your ' +
                 'database. Include a `latency` and an `encryption` field. Save your change.',
             hint: { kind: 'file', content: STEP_3_TARGET_FILE },
-            check: (state) => relationshipsOfKind(state.doc, 'connects').some((rel) => hasMetadata(rel)) && state.validation.ok,
+            check: (state) => connectsRelationshipsBetween(state.doc, 'service', 'database').some(hasMetadata) && state.validation.ok,
         },
         {
             id: 'validate',
@@ -316,7 +316,7 @@ export const BEGINNER_06: Lesson = {
             check: (state) =>
                 hasMetadata(state.doc) &&
                 nodesOfType(state.doc, 'service').some((node) => hasMetadata(node)) &&
-                relationshipsOfKind(state.doc, 'connects').some((rel) => hasMetadata(rel)) &&
+                connectsRelationshipsBetween(state.doc, 'service', 'database').some(hasMetadata) &&
                 validatedEditorFile(state),
         },
     ],

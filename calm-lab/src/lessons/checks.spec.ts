@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import {
-    completeNodes, composedOf, connectsBetween, connectsNodes, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
+    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
     nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -40,6 +40,8 @@ describe('document helpers', () => {
 
     it('match relationships by the types of the nodes they join', () => {
         expect(connectsBetween(doc, 'service', 'database')).toBe(true);
+        expect(connectsRelationshipsBetween(doc, 'service', 'database')).toHaveLength(1);
+        expect(connectsRelationshipsBetween(doc, 'database', 'service')).toEqual([]);
         expect(connectsBetween(doc, 'database', 'service')).toBe(false);
         expect(interactsWith(doc, 'actor', 'service')).toBe(true);
         expect(interactsWith(doc, 'actor', 'database')).toBe(false);

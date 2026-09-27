@@ -166,6 +166,9 @@ describe('beginner-06 lesson', () => {
         expect(relationshipMetadata.check(state({ doc: withConnectMetadata, validation: { ok: false } }))).toBe(false);
         // Metadata on a different relationship (interacts, not connects): must not tick.
         expect(relationshipMetadata.check(state({ doc: withInteractsMetadataInstead, validation: { ok: true } }))).toBe(false);
+        // Metadata on a second connects that is not service -> database: must not tick.
+        const otherConnects = withMetadata(connects('service-to-service', serviceNode['unique-id'], serviceNode['unique-id']), { latency: '1ms', encryption: 'none' });
+        expect(relationshipMetadata.check(state({ doc: { ...withServiceMetadata, relationships: [...withServiceMetadata.relationships, otherConnects] }, validation: { ok: true } }))).toBe(false);
     });
 
     it('validate needs all three metadata additions AND a fresh validate of the lesson file', () => {
