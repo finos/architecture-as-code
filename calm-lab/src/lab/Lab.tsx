@@ -451,14 +451,6 @@ export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
                         </div>
                         <p className={styles.lessonSummary}>
                             {lesson.summary}
-                            {lesson.tutorial && (
-                                <>
-                                    {' '}
-                                    <a href={lesson.tutorial} target="_blank" rel="noopener noreferrer">
-                                        Tutorial ↗
-                                    </a>
-                                </>
-                            )}
                         </p>
                         <div className={styles.guideScroll}>
                             <ol className={styles.stepsList}>

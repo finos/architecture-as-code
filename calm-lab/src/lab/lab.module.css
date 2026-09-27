@@ -139,17 +139,6 @@
     overflow-wrap: anywhere;
 }
 
-.lessonSummary a {
-    color: #4da3ff;
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.lessonSummary a:hover {
-    color: #7cbcff;
-    text-decoration: none;
-}
-
 /* Native select; the chassis is always dark, so pin its colour scheme. */
 .lessonPicker {
     flex: 1;

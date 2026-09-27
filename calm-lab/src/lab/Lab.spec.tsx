@@ -230,16 +230,7 @@ describe('Lab', () => {
         expect(screen.queryByText('Another summary.')).toBeNull();
     });
 
-    it('links the tutorial a lesson adapts, in a new tab', async () => {
-        const lesson = {...QUICK_START, tutorial: 'https://calm.finos.org/tutorials/beginner/01-setup'};
-        await act(async () => { renderLab({lesson, lessons: [lesson]}); });
-        const link = screen.getByRole('link', {name: /Tutorial/});
-        expect(link).toHaveAttribute('href', lesson.tutorial);
-        expect(link).toHaveAttribute('target', '_blank');
-        expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    });
-
-    it('shows no tutorial link when the lesson has none', async () => {
+    it('shows no link under the lesson summary', async () => {
         await act(async () => { renderLab(); });
         expect(screen.queryByRole('link', {name: /Tutorial/})).toBeNull();
     });

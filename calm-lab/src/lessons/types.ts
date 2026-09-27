@@ -31,7 +31,6 @@ export interface Lesson {
     id: string;
     title: string;
     summary: string;
-    tutorial?: string;
     /** The lesson whose end state this one's seed starts from. */
     chainsFrom?: string;
     editorFile: string;
