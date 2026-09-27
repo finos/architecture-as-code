@@ -103,7 +103,7 @@ const adrsLinked = (state: LessonState) => {
 export const INTERMEDIATE_10: Lesson = {
     id: 'intermediate-10',
     title: 'Link architecture decision records',
-    summary: 'Link architecture decision records (ADRs) to your architecture so decisions stay traceable.',
+    tutorial: { title: 'Link Architecture Decision Records', url: 'https://calm.finos.org/tutorials/intermediate/10-adr-linking/' },
     chainsFrom: 'intermediate-09',
     editorFile: EDITOR_FILE,
     editableFiles: [EDITOR_FILE, ADR_1, ADR_2],
