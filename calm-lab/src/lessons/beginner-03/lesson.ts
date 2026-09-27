@@ -144,7 +144,7 @@ const STEP_3_TARGET_FILE = `{
 export const BEGINNER_03: Lesson = {
     id: 'beginner-03',
     title: 'Connect nodes with relationships',
-    summary: 'Add a database, an actor and a system, and connect them with connects, interacts and composed-of.',
+    tutorial: { title: 'Connect Nodes with Relationships', url: 'https://calm.finos.org/tutorials/beginner/03-relationships/' },
     chainsFrom: 'beginner-02',
     editorFile: EDITOR_FILE,
     seedFiles: endFiles(BEGINNER_02),
