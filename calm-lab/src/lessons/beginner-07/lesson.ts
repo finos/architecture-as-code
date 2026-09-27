@@ -471,7 +471,7 @@ const hasData = (doc: Doc) => connectsBetween(doc, 'service', 'database') && com
 export const BEGINNER_07: Lesson = {
     id: 'beginner-07',
     title: 'Build a complete e-commerce architecture',
-    summary: 'Build an e-commerce order processing system in a new file, validate it and compare it with your first architecture.',
+    tutorial: { title: 'Build a Complete E-Commerce Microservice Architecture', url: 'https://calm.finos.org/tutorials/beginner/07-complete-architecture/' },
     chainsFrom: 'beginner-06',
     editorFile: EDITOR_FILE,
     seedFiles: {
