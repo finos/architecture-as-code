@@ -9,6 +9,7 @@ import type { LessonState } from '../types';
 const [GENERATED, PATTERN, BROKEN] = INTERMEDIATE_17.editableFiles!;
 
 const item = (properties: Record<string, unknown>) => ({ type: 'object', properties });
+const NODE_TYPES = ['webclient', 'service', 'database'];
 const connects = (id: string, source: string, destination: string) =>
     item({ 'unique-id': { const: id }, 'relationship-type': { const: { connects: { source: { node: source }, destination: { node: destination } } } } });
 
@@ -20,7 +21,7 @@ const pattern = (ids: string[], over: Record<string, unknown> = {}) => JSON.stri
     properties: {
         nodes: {
             type: 'array', minItems: ids.length, maxItems: ids.length,
-            prefixItems: ids.map((id) => item({ 'unique-id': { const: id }, 'node-type': { const: 'service' } })),
+            prefixItems: ids.map((id, index) => item({ 'unique-id': { const: id }, 'node-type': { const: NODE_TYPES[index] ?? 'service' } })),
         },
         relationships: {
             type: 'array', minItems: 2, maxItems: 2,
@@ -81,6 +82,13 @@ describe('intermediate-17 lesson', () => {
         expect(writePattern.check(state({ files: { [PATTERN]: INTERMEDIATE_17.seedFiles[PATTERN] } }))).toBe(false);
         // Different ids and names from the hint: still passes.
         expect(writePattern.check(state({ files: { [PATTERN]: MY_PATTERN } }))).toBe(true);
+        // Three services, not a webclient, a service and a database.
+        const services = MY_IDS.map((id) => item({ 'unique-id': { const: id }, 'node-type': { const: 'service' } }));
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { nodes: { minItems: 3, maxItems: 3, prefixItems: services } }) } }))).toBe(false);
+        // Relationships with no constant connects, or one to a node the pattern does not name.
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { relationships: { minItems: 2, maxItems: 2, prefixItems: [{}, {}] } }) } }))).toBe(false);
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { relationships: { minItems: 2, maxItems: 2, prefixItems: [connects('r1', MY_IDS[0], MY_IDS[1]), connects('r2', MY_IDS[1], 'elsewhere')] } }) } }))).toBe(false);
+        expect(writePattern.check(state({ files: { [PATTERN]: pattern(MY_IDS, { relationships: { minItems: 2, maxItems: 2, prefixItems: [connects('r1', MY_IDS[0], MY_IDS[1]), item({ 'relationship-type': { const: { connects: { source: { node: MY_IDS[1] }, destination: { node: MY_IDS[2] } } } } })] } }) } }))).toBe(false);
         // Four nodes: not the three the step asks for.
         expect(writePattern.check(state({ files: { [PATTERN]: pattern([...MY_IDS, 'cache']) } }))).toBe(false);
         // Only two nodes: must not tick.

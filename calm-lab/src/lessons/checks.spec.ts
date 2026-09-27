@@ -3,7 +3,7 @@ import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
     hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
-    patternNodeIds, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
+    patternConnects, patternNodeIds, patternNodeTypes, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
     validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -367,6 +367,26 @@ describe('pattern helpers', () => {
     ])('patternRequires and patternNodeIds do not throw on %s', (_, json) => {
         expect(patternRequires(json as never)).toEqual({ nodes: 0, relationships: 0 });
         expect(patternNodeIds(json as never)).toEqual([]);
+        expect(patternNodeTypes(json as never)).toEqual([]);
+        expect(patternConnects(json as never)).toEqual([]);
+    });
+
+    it('patternNodeTypes and patternConnects read the const node-type and connects of each item', () => {
+        const typed = (id: string, type?: string) => ({ properties: { 'unique-id': { const: id }, ...(type ? { 'node-type': { const: type } } : {}) } });
+        const link = (id: string | undefined, source: string, destination: string) => ({
+            properties: {
+                ...(id ? { 'unique-id': { const: id } } : {}),
+                'relationship-type': { const: { connects: { source: { node: source }, destination: { node: destination } } } },
+            },
+        });
+        const json = {
+            properties: {
+                nodes: { prefixItems: [typed('a', 'webclient'), typed('b')] },
+                relationships: { prefixItems: [link('r1', 'a', 'b'), link(undefined, 'a', 'b'), { properties: { 'unique-id': { const: 'r3' } } }] },
+            },
+        };
+        expect(patternNodeTypes(json)).toEqual(['webclient', undefined]);
+        expect(patternConnects(json)).toEqual([{ source: 'a', destination: 'b' }, undefined, undefined]);
     });
 
     it('patternNodeIds reads the const unique-id of each required node, and skips items without one', () => {

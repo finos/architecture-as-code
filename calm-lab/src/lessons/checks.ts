@@ -204,6 +204,36 @@ export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
         .filter(isNonEmptyString);
 }
 
+function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        const value = isNonEmptyObject(properties) ? properties[property] : undefined;
+        return isNonEmptyObject(value) ? value['const'] : undefined;
+    });
+}
+
+/** The `const` `node-type` of each item in a pattern's `properties.nodes.prefixItems` (`undefined` where it has none). */
+export function patternNodeTypes(json: CalmDocLike | null | undefined): unknown[] {
+    return prefixItemConsts(json, 'nodes', 'node-type');
+}
+
+/**
+ * The `connects` each item in a pattern's `properties.relationships.prefixItems` fixes with `const`
+ * values, when the item also has a `const` `unique-id`; `undefined` for any other item.
+ */
+export function patternConnects(json: CalmDocLike | null | undefined): ({ source: string; destination: string } | undefined)[] {
+    const ids = prefixItemConsts(json, 'relationships', 'unique-id');
+    return prefixItemConsts(json, 'relationships', 'relationship-type').map((type, index) => {
+        const connects = isNonEmptyObject(type) ? type['connects'] : undefined;
+        if (!isNonEmptyString(ids[index]) || !isNonEmptyObject(connects)) {
+            return undefined;
+        }
+        const source = (connects['source'] as Item | undefined)?.['node'];
+        const destination = (connects['destination'] as Item | undefined)?.['node'];
+        return isNonEmptyString(source) && isNonEmptyString(destination) ? { source, destination } : undefined;
+    });
+}
+
 /** A non-empty string `description` on a document, node or relationship. */
 export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
 

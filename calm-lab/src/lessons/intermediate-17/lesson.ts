@@ -1,6 +1,7 @@
 import { HOME_DIR, type Lesson, type LessonState } from '../types';
 import {
-    fileJson, hasDescription, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternNodeIds, patternRequires, ranOk, rejected, relationships,
+    fileJson, hasDescription, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternConnects, patternNodeIds, patternNodeTypes, patternRequires,
+    ranOk, rejected, relationships,
 } from '../checks';
 import { INTERMEDIATE_10 } from '../intermediate-10/lesson';
 import { endFiles } from '../chain';
@@ -221,10 +222,18 @@ const ENHANCED_FILE = `{
 }
 `;
 
+const NODE_TYPES = ['database', 'service', 'webclient'];
+
+// Three constant nodes (a webclient, a service and a database) and two constant connects between them.
 const patternComplete = (state: LessonState) => {
     const pattern = fileJson(state, PATTERN);
     const required = patternRequires(pattern);
-    return required.nodes === 3 && required.relationships === 2 && patternNodeIds(pattern).length === 3;
+    const ids = patternNodeIds(pattern);
+    const types = patternNodeTypes(pattern).map(String).sort();
+    const links = patternConnects(pattern);
+    return required.nodes === 3 && required.relationships === 2 && ids.length === 3
+        && types.join() === NODE_TYPES.join()
+        && links.length === 2 && links.every((link) => link !== undefined && ids.includes(link.source) && ids.includes(link.destination));
 };
 
 const enhanced = (state: LessonState) => {
