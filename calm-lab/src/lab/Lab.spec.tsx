@@ -230,14 +230,9 @@ describe('Lab', () => {
         expect(screen.getByText(/calm validate -a broken\.json/).textContent).toBe('ls\ncalm validate -a broken.json');
     });
 
-    it('lists every lesson with its progress and asks to switch on change', async () => {
-        const other = {...QUICK_START, id: 'other', title: 'Other lesson'};
-        let onSelectLesson = vi.fn();
-        await act(async () => { ({onSelectLesson} = renderLab({lessons: [QUICK_START, other]})); });
-        const picker = screen.getByRole('combobox', {name: 'Lesson'});
-        expect(screen.getByRole('option', {name: /Quick start: model a trading system — 0\/3/})).toBeInTheDocument();
-        fireEvent.change(picker, {target: {value: 'other'}});
-        expect(onSelectLesson).toHaveBeenCalledWith('other');
+    it('has no lesson picker: a lesson opens from its link', async () => {
+        await act(async () => { renderLab(); });
+        expect(screen.queryByRole('combobox', {name: 'Lesson'})).toBeNull();
     });
 
     it('links the tutorial a lesson follows at the top of the guide, in a new tab', async () => {
