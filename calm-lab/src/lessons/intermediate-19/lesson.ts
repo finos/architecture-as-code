@@ -143,7 +143,7 @@ const compliant = (state: LessonState) => {
 export const INTERMEDIATE_19: Lesson = {
     id: 'intermediate-19',
     title: 'Enforcing standards with patterns',
-    summary: 'Write a base pattern that applies your Standards to every node and relationship, and validate with a URL mapping.',
+    tutorial: { title: 'Enforcing Standards with Patterns', url: 'https://calm.finos.org/tutorials/intermediate/19-enforcing-standards/' },
     chainsFrom: 'intermediate-18',
     editorFile: COMPLIANT,
     editableFiles: [COMPLIANT, MAPPING, BASE, NODE_STD, RELATIONSHIP_STD],
