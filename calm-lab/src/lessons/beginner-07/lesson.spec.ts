@@ -31,8 +31,10 @@ const frontDoor = doc(frontDoorNodes, frontDoorRels);
 // The actor interacts with a database instead of a service: must not tick.
 const actorToDatabase = doc([node('shopper', 'actor'), node('orders-db', 'database')], [interacts('shopper-to-db', 'shopper', ['orders-db'])]);
 
-// Step 2: three more services, connected from the gateway.
-const serviceNodes = [...frontDoorNodes, node('checkout-service', 'service'), node('stock-service', 'service'), node('billing-service', 'service')];
+// Step 2: three more services, each with an interface, connected from the gateway.
+const withInterface = (n: Record<string, unknown>) => ({ ...n, interfaces: [{ 'unique-id': `${n['unique-id']}-api`, protocol: 'HTTPS', port: 443 }] });
+const addedServices = [node('checkout-service', 'service'), node('stock-service', 'service'), node('billing-service', 'service')].map(withInterface);
+const serviceNodes = [...frontDoorNodes, ...addedServices];
 const serviceRels = [
     ...frontDoorRels,
     connects('edge-to-checkout', 'edge-gateway', 'checkout-service'),
@@ -42,6 +44,10 @@ const serviceRels = [
 const services = doc(serviceNodes, serviceRels);
 // Four services, but none connected to another service: must not tick.
 const unconnectedServices = doc([...serviceNodes, node('orders-db', 'database')], [...frontDoorRels, connects('checkout-to-db', 'checkout-service', 'orders-db')]);
+// The added services have no interfaces: must not tick.
+const servicesWithoutInterfaces = doc([...frontDoorNodes, node('checkout-service', 'service'), node('stock-service', 'service'), node('billing-service', 'service')], serviceRels);
+// Only two of the three service-to-service connects: must not tick.
+const tooFewConnects = doc(serviceNodes, serviceRels.slice(0, -1));
 // Only the gateway and one other service: must not tick.
 const tooFewServices = doc(serviceNodes.slice(0, 3), [...frontDoorRels, connects('edge-to-checkout', 'edge-gateway', 'checkout-service')]);
 
@@ -110,7 +116,7 @@ describe('beginner-07 lesson', () => {
         expect(frontDoorStep.check(state({ doc: actorToDatabase }))).toBe(false);
     });
 
-    it('services needs four services with a service-to-service connects, in a valid document', () => {
+    it('services needs four services, three with interfaces, joined by three connects, in a valid document', () => {
         expect(servicesStep.check(state({ doc: frontDoor }))).toBe(false);
         // Different names from the hint: still passes.
         expect(servicesStep.check(state({ doc: services }))).toBe(true);
@@ -118,6 +124,8 @@ describe('beginner-07 lesson', () => {
         expect(servicesStep.check(state({ doc: services, validation: { ok: false } }))).toBe(false);
         expect(servicesStep.check(state({ doc: unconnectedServices }))).toBe(false);
         expect(servicesStep.check(state({ doc: tooFewServices }))).toBe(false);
+        expect(servicesStep.check(state({ doc: servicesWithoutInterfaces }))).toBe(false);
+        expect(servicesStep.check(state({ doc: tooFewConnects }))).toBe(false);
     });
 
     it('data needs a service-to-database connects and a system composed of them, in a valid document', () => {

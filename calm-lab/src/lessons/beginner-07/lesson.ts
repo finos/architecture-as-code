@@ -1,5 +1,5 @@
 import { HOME_DIR, type CalmDocLike, type Lesson } from '../types';
-import { composedOf, connectsBetween, interactsWith, nodesOfType, ranOk, validatedEditorFile } from '../checks';
+import { composedOf, connectsBetween, connectsRelationshipsBetween, interactsWith, nodeInterfaces, nodesOfType, ranOk, validatedEditorFile } from '../checks';
 import { BEGINNER_06 } from '../beginner-06/lesson';
 import { endFiles } from '../chain';
 
@@ -464,8 +464,14 @@ const STEP_3_TARGET_FILE = `{
 type Doc = CalmDocLike | null;
 
 const hasFrontDoor = (doc: Doc) => nodesOfType(doc, 'actor').length > 0 && interactsWith(doc, 'actor', 'service');
-// The gateway plus the order, inventory and payment services.
-const hasServices = (doc: Doc) => nodesOfType(doc, 'service').length >= 4 && connectsBetween(doc, 'service', 'service');
+// The gateway plus the order, inventory and payment services: the three added services each have
+// an interface, and three connects join the services (gateway to order and inventory, order to payment).
+const hasServices = (doc: Doc) => {
+    const services = nodesOfType(doc, 'service');
+    return services.length >= 4
+        && services.filter((service) => nodeInterfaces(service).length > 0).length >= 3
+        && connectsRelationshipsBetween(doc, 'service', 'service').length >= 3;
+};
 const hasData = (doc: Doc) => connectsBetween(doc, 'service', 'database') && composedOf(doc, 'system', ['service', 'database']);
 
 export const BEGINNER_07: Lesson = {
