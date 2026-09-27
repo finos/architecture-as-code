@@ -150,7 +150,10 @@ describe('beginner-03 lesson', () => {
         expect(validate.check(state({ doc: withActor, commands: [validateOutcome(BEGINNER_03.editorFile, true)] }))).toBe(false);
     });
 
-    it('has no completion links yet', () => {
-        expect(BEGINNER_03.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(BEGINNER_03.completion.links).toContainEqual({
+            to: '?lesson=beginner-05',
+            label: 'Next lesson: Add interfaces',
+        });
     });
 });
