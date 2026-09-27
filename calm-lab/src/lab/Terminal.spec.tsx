@@ -108,4 +108,65 @@ describe('Terminal', () => {
 
         expect(document.activeElement).toBe(input);
     });
+
+    it('runs each pasted line in order, like a shell', async () => {
+        const onRun = vi.fn<(command: string) => Promise<Line[]>>(async () => []);
+        const input = renderTerminal(onRun);
+        await act(async () => {
+            fireEvent.paste(input, {clipboardData: {getData: () => 'ls\ncat a.json\ncalm validate -a a.json\n'}});
+        });
+
+        expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls', 'cat a.json', 'calm validate -a a.json']);
+        expect(input).toHaveValue('');
+    });
+
+    it('leaves the text after the last newline in the prompt', async () => {
+        const onRun = vi.fn<(command: string) => Promise<Line[]>>(async () => []);
+        const input = renderTerminal(onRun);
+        await act(async () => {
+            fireEvent.paste(input, {clipboardData: {getData: () => 'ls\ncat a.json'}});
+        });
+
+        expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls']);
+        expect(input).toHaveValue('cat a.json');
+    });
+
+    it('waits for each pasted command before running the next', async () => {
+        const first = deferred();
+        const onRun = vi.fn((command: string) => (command === 'ls' ? first.promise : []));
+        const input = renderTerminal(onRun);
+        await act(async () => {
+            fireEvent.paste(input, {clipboardData: {getData: () => 'ls\npwd\n'}});
+        });
+        expect(onRun).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+            first.resolve([]);
+        });
+        expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls', 'pwd']);
+    });
+
+    it('stops a pasted batch when the terminal unmounts (Reset lesson)', async () => {
+        const first = deferred();
+        const onRun = vi.fn((command: string) => (command === 'ls' ? first.promise : []));
+        const {unmount} = render(<Terminal cwd="/workspace" onRun={onRun} />);
+        const input = screen.getByLabelText('Terminal input');
+        await act(async () => {
+            fireEvent.paste(input, {clipboardData: {getData: () => 'ls\npwd\n'}});
+        });
+        unmount();
+        await act(async () => {
+            first.resolve([]);
+        });
+
+        expect(onRun.mock.calls.map(([command]) => command)).toEqual(['ls']);
+    });
+
+    it('pastes a single line into the prompt without running it', () => {
+        const onRun = vi.fn();
+        const input = renderTerminal(onRun);
+        fireEvent.paste(input, {clipboardData: {getData: () => 'ls'}});
+
+        expect(onRun).not.toHaveBeenCalled();
+    });
 });
