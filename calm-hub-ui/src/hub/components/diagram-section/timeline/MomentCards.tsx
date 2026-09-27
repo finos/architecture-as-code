@@ -15,7 +15,7 @@ interface MomentCardsProps {
     compareTo?: string | null;
     /** Navigate the main diagram to a moment's version. */
     onNavigate: (version: string) => void;
-    onCompare: (from: string, to: string) => void;
+    onCompare?: (from: string, to: string) => void;
     onInteract: () => void;
 }
 
@@ -98,17 +98,18 @@ export function MomentCards({
         onNavigate(moment.version);
     };
     const handleContextMenu = (e: React.MouseEvent, moment: TimelineMoment) => {
+        if (!onCompare) return;
         e.preventDefault();
         onInteract();
         setMenu({ moment, x: e.clientX, y: e.clientY });
     };
     const handleCompareFrom = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(menu.moment.version, currentVersion);
         setMenu(null);
     };
     const handleCompareTo = () => {
-        if (!menu) return;
+        if (!menu || !onCompare) return;
         onCompare(currentVersion, menu.moment.version);
         setMenu(null);
     };

@@ -119,7 +119,7 @@ load_schemas_from_dir() {
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/schemas" \
             -H "$CONTENT_TYPE" \
-            -d "$payload")
+            --data-binary @- <<< "$payload")
 
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created schema version ${version}"
@@ -183,7 +183,7 @@ post_document() {
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$name' in namespace $namespace"
@@ -217,7 +217,7 @@ post_named_document() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/calm/namespaces/$namespace/$resource/$slug/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$slug' version $version in namespace $namespace"
@@ -263,7 +263,7 @@ post_architecture_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created architecture '$name' version $version in namespace $namespace"
@@ -297,7 +297,7 @@ post_pattern_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
@@ -1374,7 +1374,7 @@ create_flows() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/traderx/flows/add-update-account.json",
             "unique-id": "flow-add-update-account",
             "name": "Add or Update Account",
@@ -1383,17 +1383,17 @@ create_flows() {
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Submit Account Create/Update"
+                    "description": "Submit Account Create/Update"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "inserts or updates account"
+                    "description": "inserts or updates account"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 3,
-                    "summary": "Returns Account Create/Update Response Status",
+                    "description": "Returns Account Create/Update Response Status",
                     "direction": "destination-to-source"
                 }
             ],
@@ -1418,7 +1418,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2024-10/meta/flow.json",
+            "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
             "$id": "https://calm.finos.org/samples/traderx/flows/load-list-of-accounts.json",
             "unique-id": "flow-load-list-of-accounts",
             "name": "Load List of Accounts",
@@ -1427,23 +1427,23 @@ CALMDOC
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 1,
-                    "summary": "Load list of accounts"
+                    "description": "Load list of accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 2,
-                    "summary": "Query for all Accounts"
+                    "description": "Query for all Accounts"
                 },
                 {
                     "relationship-unique-id": "accounts-service-uses-traderx-db-for-accounts",
                     "sequence-number": 3,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 },
                 {
                     "relationship-unique-id": "web-gui-process-uses-accounts-service",
                     "sequence-number": 4,
-                    "summary": "Returns list of accounts",
+                    "description": "Returns list of accounts",
                     "direction": "destination-to-source"
                 }
             ]
@@ -1451,6 +1451,54 @@ CALMDOC
 CALMDOC
 )
     post_document "finos.traderx" "flows" "flowJson" "Load List of Accounts" "Flow for loading a list of accounts from the database to populate the GUI drop-down for user account selection." "$doc"
+
+    # FluxNova flows (namespace finos.fluxnova, drawn over the fluxnova-microservices architecture).
+    # Source of truth: examples/fluxnova/*.flow.json - keep these heredocs in sync.
+    print_status "Creating FluxNova flow: Payment Processing..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/payment-processing.json",
+  "unique-id": "flow-payment-processing",
+  "name": "Payment Processing",
+  "description": "End-to-end payment flow - API gateway receives a payment request, the engine fans out to fraud check and payment execution, then publishes a completion event.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits payment request via API gateway" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts the payment process in the engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud check worker scores the payment" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 3, "description": "Payment worker executes settlement" },
+    { "relationship-unique-id": "ms-payment-worker-to-broker", "sequence-number": 4, "description": "Payment worker publishes payment-completed event" },
+    { "relationship-unique-id": "ms-notification-worker-to-broker", "sequence-number": 5, "description": "Notification worker consumes the event and alerts the customer", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 6, "description": "Engine persists the completed process state" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Processing" "End-to-end payment flow with parallel fraud check and payment execution." "$doc"
+
+    print_status "Creating FluxNova flow: Payment Exception Handling..."
+    doc=$(cat <<'CALMDOC'
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/exception-handling.json",
+  "unique-id": "flow-exception-handling",
+  "name": "Payment Exception Handling",
+  "description": "A payment fails fraud scoring - the engine escalates to a human reviewer via the tasklist while simultaneously notifying the customer and logging the incident.",
+  "transitions": [
+    { "relationship-unique-id": "ms-api-gateway-to-rest-api", "sequence-number": 1, "description": "Client submits high-value payment request" },
+    { "relationship-unique-id": "ms-rest-api-to-engine", "sequence-number": 2, "description": "REST API starts payment process in engine" },
+    { "relationship-unique-id": "ms-fraud-check-worker-to-rest-api", "sequence-number": 3, "description": "Fraud worker returns HIGH risk score", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 4, "description": "Engine raises a human review task" },
+    { "relationship-unique-id": "ms-notification-worker-to-rest-api", "sequence-number": 4, "description": "Notification worker alerts the customer" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 4, "description": "Engine logs the fraud incident" },
+    { "relationship-unique-id": "ms-tasklist-to-rest-api", "sequence-number": 5, "description": "Reviewer approves the payment", "direction": "destination-to-source" },
+    { "relationship-unique-id": "ms-payment-worker-to-rest-api", "sequence-number": 6, "description": "Payment worker settles the approved payment" },
+    { "relationship-unique-id": "ms-engine-to-process-db", "sequence-number": 7, "description": "Engine persists the review decision" }
+  ]
+}
+CALMDOC
+)
+    post_document "finos.fluxnova" "flows" "flowJson" "Payment Exception Handling" "Fraud escalation flow with parallel human review, notification, and incident logging." "$doc"
 }
 
 # Function to create architectures
@@ -5158,7 +5206,7 @@ create_standards() {
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
-            -H "$CONTENT_TYPE" -d "$payload")
+            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created deployment standard in finos.calm"
         elif [[ "$http_code" == "409" ]]; then
@@ -5197,7 +5245,7 @@ create_interfaces() {
             '{name: $name, description: $description, interfaceJson: ($doc | tojson)}')
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             "$CALM_HUB_URL/api/calm/namespaces/finos.calm/interfaces" \
-            -H "$CONTENT_TYPE" -d "$payload")
+            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created interface '$name' in finos.calm"
         elif [[ "$http_code" == "409" ]]; then
@@ -5279,7 +5327,7 @@ create_domains_and_controls() {
             local location new_id
             location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
                 -H "$CONTENT_TYPE" \
-                -d "$payload" | grep -i '^location:' | tr -d '\r')
+                --data-binary @- <<< "$payload" | grep -i '^location:' | tr -d '\r')
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
 
             if [[ -n "$new_id" && "$new_id" =~ ^[0-9]+$ ]]; then
@@ -5956,7 +6004,7 @@ create_timeline_demo() {
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/workshop/timelines" \
-        -H "$CONTENT_TYPE" -d "$tl_payload")
+        -H "$CONTENT_TYPE" --data-binary @- <<< "$tl_payload")
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created explicit timeline for Trading Platform in workshop"
     elif [[ "$http_code" == "409" ]]; then
@@ -6129,7 +6177,7 @@ CALMDOC
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
         "$CALM_HUB_URL/api/calm/namespaces/workshop/architectures/$conf_arch_id/layout" \
         -H "Content-Type: application/json" \
-        -d "$layout_json")
+        --data-binary @- <<< "$layout_json")
 
     if [[ "$http_code" == "204" ]]; then
         print_status "Created default layout for Conference Signup Architecture (id=$conf_arch_id)"

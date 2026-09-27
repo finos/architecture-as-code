@@ -1,10 +1,25 @@
 import { JSONPath } from 'jsonpath-plus';
 import { difference } from 'lodash';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
+import { declarationPaths, declaredId } from './declaration-paths';
 
 interface ConnectsRelationship {
     node?: string;
     interfaces?: string[];
+}
+
+/**
+ * One declaration site at a time, because a node is nearly always a plain prefixItems
+ * entry and the later sites then never run.
+ */
+function findDeclaredNode(json: object, nodeId: string): object | undefined {
+    for (const path of declarationPaths('nodes')) {
+        const declarations: object[] = JSONPath({ path, json });
+        const node = declarations.find(declaration => declaredId(declaration) === nodeId);
+        if (node) {
+            return node;
+        }
+    }
 }
 
 /**
@@ -22,14 +37,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
         }];
     }
 
-    const nodeId = input.node;
-    const nodes: object[] = JSONPath({ path: '$.properties.nodes.prefixItems[*]', json: context.document.data as object });
-    const node = nodes.find((node) => {
-        const uniqueId: string[] = JSONPath({ path: '$.properties.unique-id.const', json: node });
-        uniqueId.push(...JSONPath({ path: '$.oneOf[*].properties.unique-id.const', json: node }));
-        uniqueId.push(...JSONPath({ path: '$.anyOf[*].properties.unique-id.const', json: node }));
-        return uniqueId && uniqueId[0] === nodeId;
-    });
+    const node = findDeclaredNode(context.document.data as object, input.node);
     if (!node) {
         // other rule will report undefined node
         return [];
@@ -39,11 +47,9 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
     const desiredInterfaces = input.interfaces;
 
     const nodeInterfaces = JSONPath({ path: '$.properties.interfaces.prefixItems[*].properties.unique-id.const', json: node });
-    nodeInterfaces.push(...JSONPath({ path: '$.oneOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
-    nodeInterfaces.push(...JSONPath({ path: '$.anyOf[*].properties.interfaces.prefixItems[*].properties.unique-id.const', json: node }));
     if (!nodeInterfaces || nodeInterfaces.length === 0) {
         return [
-            { message: `Node with unique-id ${nodeId} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
+            { message: `Node with unique-id ${input.node} has no interfaces defined, expected interfaces [${desiredInterfaces}]` }
         ];
     }
 
@@ -57,7 +63,7 @@ export function interfaceIdExistsOnNode(input: ConnectsRelationship | null | und
 
     for (const missing of missingInterfaces) {
         results.push({
-            message: `Referenced interface with ID '${missing}' was not defined on the node with ID '${nodeId}'.`,
+            message: `Referenced interface with ID '${missing}' was not defined on the node with ID '${input.node}'.`,
             path: [...context.path]
         });
     }

@@ -1,0 +1,56 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/flow.json",
+  "$id": "https://calm.finos.org/samples/fluxnova/flows/exception-handling.json",
+  "unique-id": "flow-exception-handling",
+  "name": "Payment Exception Handling",
+  "description": "A payment fails fraud scoring - the engine escalates to a human reviewer via the tasklist while simultaneously notifying the customer and logging the incident.",
+  "transitions": [
+    {
+      "relationship-unique-id": "ms-api-gateway-to-rest-api",
+      "sequence-number": 1,
+      "description": "Client submits high-value payment request"
+    },
+    {
+      "relationship-unique-id": "ms-rest-api-to-engine",
+      "sequence-number": 2,
+      "description": "REST API starts payment process in engine"
+    },
+    {
+      "relationship-unique-id": "ms-fraud-check-worker-to-rest-api",
+      "sequence-number": 3,
+      "description": "Fraud worker returns HIGH risk score",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "ms-tasklist-to-rest-api",
+      "sequence-number": 4,
+      "description": "Engine raises a human review task"
+    },
+    {
+      "relationship-unique-id": "ms-notification-worker-to-rest-api",
+      "sequence-number": 4,
+      "description": "Notification worker alerts the customer"
+    },
+    {
+      "relationship-unique-id": "ms-engine-to-process-db",
+      "sequence-number": 4,
+      "description": "Engine logs the fraud incident"
+    },
+    {
+      "relationship-unique-id": "ms-tasklist-to-rest-api",
+      "sequence-number": 5,
+      "description": "Reviewer approves the payment",
+      "direction": "destination-to-source"
+    },
+    {
+      "relationship-unique-id": "ms-payment-worker-to-rest-api",
+      "sequence-number": 6,
+      "description": "Payment worker settles the approved payment"
+    },
+    {
+      "relationship-unique-id": "ms-engine-to-process-db",
+      "sequence-number": 7,
+      "description": "Engine persists the review decision"
+    }
+  ]
+}

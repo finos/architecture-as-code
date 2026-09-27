@@ -9,8 +9,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -51,6 +51,9 @@ public class MongoLayoutIntegration {
 
     private static int architectureId;
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     private static String validLayout(int architectureId) {
         return """
                 {
@@ -77,8 +80,8 @@ public class MongoLayoutIntegration {
 
     @BeforeEach
     public void setup() throws Exception {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         if (mongoUri == null || mongoUri.isBlank()) {
             logger.error("MongoDB URI is not set. Check the EndToEndResource configuration.");
@@ -165,8 +168,8 @@ public class MongoLayoutIntegration {
     @Test
     @Order(4)
     void store_the_layout_as_one_flat_document_keyed_by_namespace_and_architecture_id() {
-        String mongoUri = ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class);
-        String mongoDatabase = ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class);
+        String mongoUri = mongoTestConnection.connectionString();
+        String mongoDatabase = mongoTestConnection.database();
 
         // Asserts the reshape itself against real MongoDB — the API alone would pass whether
         // this were stored flat or still nested in a namespace-wide array.

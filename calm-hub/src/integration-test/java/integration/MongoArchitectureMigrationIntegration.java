@@ -7,8 +7,8 @@ import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import jakarta.inject.Inject;
 import org.bson.Document;
-import org.eclipse.microprofile.config.ConfigProvider;
 import org.finos.calm.migration.steps.MongoArchitectureVersionSplitStep;
 import org.junit.jupiter.api.Test;
 
@@ -37,13 +37,15 @@ public class MongoArchitectureMigrationIntegration {
     private static final String V1 = "{\"nodes\": [], \"relationships\": []}";
     private static final String V2 = "{\"nodes\": [{\"unique-id\": \"n1\"}], \"relationships\": []}";
 
+    @Inject
+    MongoTestConnection mongoTestConnection;
+
     private MongoDatabase database(MongoClient client) {
-        return client.getDatabase(ConfigProvider.getConfig().getValue("quarkus.mongodb.database", String.class));
+        return client.getDatabase(mongoTestConnection.database());
     }
 
     private MongoClient client() {
-        return MongoClients.create(
-                ConfigProvider.getConfig().getValue("quarkus.mongodb.connection-string", String.class));
+        return MongoClients.create(mongoTestConnection.connectionString());
     }
 
     /**

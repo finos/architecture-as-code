@@ -78,6 +78,8 @@ public class NitriteVersionDocumentStore {
     private final String idField;
     private final String resourceLabel;
     private final VersionScheme versionScheme;
+    private final String discriminatorField;
+    private final String discriminatorValue;
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     /**
@@ -101,13 +103,36 @@ public class NitriteVersionDocumentStore {
     public NitriteVersionDocumentStore(NitriteCollection headerCollection,
                                        NitriteCollection versionCollection,
                                        String idField,
+                                     String resourceLabel,
+                                     VersionScheme versionScheme) {
+        this(headerCollection, versionCollection, idField, resourceLabel, versionScheme, null, null);
+    }
+
+    /** Creates a store whose records include a fixed discriminator. */
+    public NitriteVersionDocumentStore(NitriteCollection headerCollection,
+                                       NitriteCollection versionCollection,
+                                       String idField,
                                        String resourceLabel,
-                                       VersionScheme versionScheme) {
+                                       String discriminatorField,
+                                       String discriminatorValue) {
+        this(headerCollection, versionCollection, idField, resourceLabel, VersionScheme.SEMANTIC,
+                discriminatorField, discriminatorValue);
+    }
+
+    private NitriteVersionDocumentStore(NitriteCollection headerCollection,
+                                        NitriteCollection versionCollection,
+                                        String idField,
+                                        String resourceLabel,
+                                        VersionScheme versionScheme,
+                                        String discriminatorField,
+                                        String discriminatorValue) {
         this.headerCollection = headerCollection;
         this.versionCollection = versionCollection;
         this.idField = idField;
         this.resourceLabel = resourceLabel;
         this.versionScheme = versionScheme;
+        this.discriminatorField = discriminatorField;
+        this.discriminatorValue = discriminatorValue;
     }
 
     /**
@@ -127,13 +152,15 @@ public class NitriteVersionDocumentStore {
     public void createHeader(String namespace, int resourceId, String name, String description) {
         lock.writeLock().lock();
         try {
-            headerCollection.insert(Document.createDocument()
+            Document header = Document.createDocument()
                     .put(NAMESPACE_FIELD, namespace)
                     .put(idField, resourceId)
                     .put(NAME_FIELD, name)
                     .put(DESCRIPTION_FIELD, description)
                     .put(VERSION_COUNT_FIELD, 0)
-                    .put(METADATA_FIELD, Document.createDocument()));
+                    .put(METADATA_FIELD, Document.createDocument());
+            addDiscriminator(header);
+            headerCollection.insert(header);
         } finally {
             lock.writeLock().unlock();
         }
@@ -209,9 +236,18 @@ public class NitriteVersionDocumentStore {
      * needs the same compensation with a different version string — not a second copy of it.
      */
     public void createFirstVersion(String namespace, int resourceId, String version, String content) {
+        createFirstVersionContent(namespace, resourceId, version, content);
+    }
+
+    /** Writes the first version when the stored content is a Nitrite document. */
+    public void createFirstVersion(String namespace, int resourceId, String version, Document content) {
+        createFirstVersionContent(namespace, resourceId, version, content);
+    }
+
+    private void createFirstVersionContent(String namespace, int resourceId, String version, Object content) {
         boolean created;
         try {
-            created = createVersion(namespace, resourceId, version, content);
+            created = createVersionContent(namespace, resourceId, version, content);
         } catch (RuntimeException e) {
             deleteHeader(namespace, resourceId);
             throw e;
@@ -234,18 +270,29 @@ public class NitriteVersionDocumentStore {
      * @return {@code false} if that version is already present. Never overwrites.
      */
     public boolean createVersion(String namespace, int resourceId, String version, String content) {
+        return createVersionContent(namespace, resourceId, version, content);
+    }
+
+    /** Writes an immutable version whose content is a Nitrite document. */
+    public boolean createVersion(String namespace, int resourceId, String version, Document content) {
+        return createVersionContent(namespace, resourceId, version, content);
+    }
+
+    private boolean createVersionContent(String namespace, int resourceId, String version, Object content) {
         String canonicalVersion = versionScheme.canonicalise(version);
         lock.writeLock().lock();
         try {
             if (versionCollection.find(versionFilter(namespace, resourceId, canonicalVersion)).firstOrNull() != null) {
                 return false;
             }
-            versionCollection.insert(Document.createDocument()
+            Document versionDocument = Document.createDocument()
                     .put(NAMESPACE_FIELD, namespace)
                     .put(idField, resourceId)
                     .put(VERSION_FIELD, canonicalVersion)
                     .put(CONTENT_FIELD, content)
-                    .put(METADATA_FIELD, Document.createDocument()));
+                    .put(METADATA_FIELD, Document.createDocument());
+            addDiscriminator(versionDocument);
+            versionCollection.insert(versionDocument);
             incrementVersionCount(namespace, resourceId);
             return true;
         } finally {
@@ -269,12 +316,14 @@ public class NitriteVersionDocumentStore {
             Filter filter = versionFilter(namespace, resourceId, canonicalVersion);
             Document existing = versionCollection.find(filter).firstOrNull();
             if (existing == null) {
-                versionCollection.insert(Document.createDocument()
+                Document versionDocument = Document.createDocument()
                         .put(NAMESPACE_FIELD, namespace)
                         .put(idField, resourceId)
                         .put(VERSION_FIELD, canonicalVersion)
                         .put(CONTENT_FIELD, content)
-                        .put(METADATA_FIELD, Document.createDocument()));
+                        .put(METADATA_FIELD, Document.createDocument());
+                addDiscriminator(versionDocument);
+                versionCollection.insert(versionDocument);
                 incrementVersionCount(namespace, resourceId);
                 return;
             }
@@ -369,6 +418,22 @@ public class NitriteVersionDocumentStore {
         }
     }
 
+    /** Returns document-valued content for one version, or {@code null}. */
+    public Document getDocumentVersion(String namespace, int resourceId, String version) {
+        lock.readLock().lock();
+        try {
+            Document versionDocument = versionCollection
+                    .find(versionFilter(namespace, resourceId, versionScheme.canonicalise(version))).firstOrNull();
+            if (versionDocument == null) {
+                return null;
+            }
+            Object content = versionDocument.get(CONTENT_FIELD);
+            return content instanceof Document stored ? stored : null;
+        } finally {
+            lock.readLock().unlock();
+        }
+    }
+
     /**
      * @return every version of one resource, ordered by this store's version comparator.
      * Empty means "no versions written" — <em>not</em> "no such resource"; ask
@@ -417,7 +482,7 @@ public class NitriteVersionDocumentStore {
     public int countHeaders(String namespace) {
         lock.readLock().lock();
         try {
-            return (int) headerCollection.find(where(NAMESPACE_FIELD).eq(namespace)).size();
+            return (int) headerCollection.find(namespaceFilter(namespace)).size();
         } finally {
             lock.readLock().unlock();
         }
@@ -435,7 +500,7 @@ public class NitriteVersionDocumentStore {
         lock.readLock().lock();
         try {
             List<NamespaceResourceSummary> summaries = new ArrayList<>();
-            for (Document header : headerCollection.find(where(NAMESPACE_FIELD).eq(namespace))) {
+            for (Document header : headerCollection.find(namespaceFilter(namespace))) {
                 summaries.add(toSummary(header));
             }
             // Null-safe because the id is read straight off the stored header and a header
@@ -503,12 +568,31 @@ public class NitriteVersionDocumentStore {
     }
 
     private Filter headerFilter(String namespace, int resourceId) {
-        return Filter.and(where(NAMESPACE_FIELD).eq(namespace), where(idField).eq(resourceId));
+        return withDiscriminator(where(NAMESPACE_FIELD).eq(namespace), where(idField).eq(resourceId));
     }
 
     private Filter versionFilter(String namespace, int resourceId, String version) {
-        return Filter.and(where(NAMESPACE_FIELD).eq(namespace),
+        return withDiscriminator(where(NAMESPACE_FIELD).eq(namespace),
                 where(idField).eq(resourceId),
                 where(VERSION_FIELD).eq(version));
+    }
+
+    private Filter namespaceFilter(String namespace) {
+        return withDiscriminator(where(NAMESPACE_FIELD).eq(namespace));
+    }
+
+    private Filter withDiscriminator(Filter... filters) {
+        if (discriminatorField == null) {
+            return filters.length == 1 ? filters[0] : Filter.and(filters);
+        }
+        Filter[] filtersWithDiscriminator = java.util.Arrays.copyOf(filters, filters.length + 1);
+        filtersWithDiscriminator[filters.length] = where(discriminatorField).eq(discriminatorValue);
+        return Filter.and(filtersWithDiscriminator);
+    }
+
+    private void addDiscriminator(Document document) {
+        if (discriminatorField != null) {
+            document.put(discriminatorField, discriminatorValue);
+        }
     }
 }

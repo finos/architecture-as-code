@@ -1,51 +1,72 @@
 import { useState } from 'react';
-import { IoShieldCheckmarkOutline, IoCloseOutline } from 'react-icons/io5';
+import { Link } from 'react-router-dom';
+import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlData } from '../../../model/control.js';
+import { colors } from '../../../theme/colors.js';
 import { ControlDetailSection, type ViewMode } from './ControlDetailSection.js';
 import { ViewToggle } from './ViewToggle.js';
 
 interface ControlPanelProps {
     controlData: ControlData;
-    /** Closes the panel, returning to the domain's control card grid. */
-    onClose: () => void;
 }
 
 /**
- * Right-hand detail panel for a selected control — the control-domain counterpart
- * of the diagram's node/relationship Sidebar. Clicking a control card on the
- * domain page opens this panel (desktop right column / mobile full-screen
- * takeover) while the card grid stays on the page, so closing returns to the grid
- * rather than navigating away. Wraps {@link ControlDetailSection} (requirement /
- * configuration); the single readable/raw toggle lives in this title bar next to
- * the close button (like the node Sidebar's Details/JSON switch), not in the
- * section's per-panel breadcrumbs.
+ * Full-pane view for a selected control. Styled like the domain explore page it
+ * is reached from — same page surface, breadcrumb, shield tile and title — with
+ * the Requirement / Configuration content in bordered cards below. The single
+ * readable/raw toggle drives {@link ControlDetailSection}.
  */
-export function ControlPanel({ controlData, onClose }: ControlPanelProps) {
+export function ControlPanel({ controlData }: ControlPanelProps) {
     const [viewMode, setViewMode] = useState<ViewMode>('readable');
+    const controlLabel = controlData.controlTitle ?? controlData.controlName;
 
     return (
-        <div className="h-full w-full lg:w-[460px] shrink-0 lg:p-4 lg:pl-2">
-            <div className="h-full bg-base-100 lg:rounded-box lg:shadow-xl flex flex-col overflow-hidden border-l border-base-300 lg:border-l-0">
-                <div className="bg-base-200 px-4 py-3 border-b border-base-300 flex items-center justify-between gap-2">
-                    <h2 className="text-base font-semibold flex items-center gap-2 text-primary min-w-0">
-                        <IoShieldCheckmarkOutline className="shrink-0" />
-                        <span>Control</span>
-                    </h2>
-                    <div className="flex items-center gap-1">
-                        <ViewToggle mode={viewMode} onChange={setViewMode} />
-                        <button
-                            type="button"
-                            aria-label="Close control details"
-                            onClick={onClose}
-                            className="btn btn-ghost btn-xs btn-circle"
-                        >
-                            <IoCloseOutline size={20} />
-                        </button>
+        <div className="w-full h-full flex flex-col bg-base-100 overflow-hidden">
+            <div className="shrink-0 pt-8 px-6 sm:px-10 pb-5">
+                <nav className="text-[13px] mb-4" aria-label="Breadcrumb">
+                    <Link
+                        to="/"
+                        className="no-underline hover:underline"
+                        style={{ color: colors.redesign.mutedAlt }}
+                    >
+                        Explore
+                    </Link>
+                    <span style={{ color: colors.redesign.mutedAlt }}> / </span>
+                    <Link
+                        to={`/domain/${encodeURIComponent(controlData.domain)}`}
+                        className="no-underline hover:underline"
+                        style={{ color: colors.redesign.mutedAlt }}
+                    >
+                        {controlData.domain}
+                    </Link>
+                    <span style={{ color: colors.redesign.mutedAlt }}> / </span>
+                    <span className="font-semibold" style={{ color: colors.redesign.bodyStrong }}>
+                        {controlLabel}
+                    </span>
+                </nav>
+
+                <div className="flex items-center gap-3">
+                    <div
+                        className="flex items-center justify-center shrink-0 rounded-[11px]"
+                        style={{ width: 44, height: 44, backgroundColor: colors.redesign.tintBg }}
+                    >
+                        <IoShieldCheckmarkOutline
+                            size={22}
+                            style={{ color: colors.redesign.primaryText }}
+                        />
                     </div>
+                    <h1
+                        className="flex-1 min-w-0 truncate text-[27px] font-bold"
+                        style={{ color: colors.redesign.ink }}
+                    >
+                        {controlLabel}
+                    </h1>
+                    <ViewToggle mode={viewMode} onChange={setViewMode} />
                 </div>
-                <div className="flex-1 min-h-0 overflow-hidden">
-                    <ControlDetailSection controlData={controlData} viewMode={viewMode} />
-                </div>
+            </div>
+
+            <div className="flex-1 min-h-0 px-6 sm:px-10 pb-8">
+                <ControlDetailSection controlData={controlData} viewMode={viewMode} />
             </div>
         </div>
     );

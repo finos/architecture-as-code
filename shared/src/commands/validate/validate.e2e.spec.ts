@@ -164,6 +164,47 @@ describe('validate E2E', () => {
             const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
         });
+
+        it('keeps the items catalogue, so validation still constrains what an architecture adds', () => {
+            const node = (id: string) => ({ properties: { 'unique-id': { const: id } } });
+            const pattern = {
+                properties: {
+                    nodes: { prefixItems: [node('gateway')], items: { oneOf: [node('cache'), node('queue')] } },
+                    relationships: {
+                        prefixItems: [{
+                            properties: {
+                                'unique-id': { const: 'db-choice' },
+                                'relationship-type': {
+                                    properties: {
+                                        options: {
+                                            prefixItems: [{
+                                                oneOf: [{
+                                                    properties: {
+                                                        description: { const: 'Use postgres' },
+                                                        nodes: { const: ['postgres'] },
+                                                        relationships: { const: [] }
+                                                    }
+                                                }]
+                                            }]
+                                        }
+                                    }
+                                }
+                            }
+                        }]
+                    }
+                }
+            };
+            const architecture = {
+                nodes: [],
+                relationships: [{
+                    'unique-id': 'db-choice',
+                    'relationship-type': { options: [{ description: 'Use postgres', nodes: ['postgres'], relationships: [] }] }
+                }]
+            };
+
+            const resolved = applyArchitectureOptionsToPattern(architecture, pattern, false) as typeof pattern;
+            expect(resolved.properties.nodes.items).toBeDefined();
+        });
     });
 
     describe('schema specific validations', () => {

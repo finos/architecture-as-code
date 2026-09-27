@@ -1,4 +1,49 @@
 {
+  "flowBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "flowChangedArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." },
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 2, "description": "Confirm." }
+        ]
+      },
+      {
+        "unique-id": "read-flow",
+        "name": "Read flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "flowRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "flows": [],
+    "nodes": [],
+    "relationships": []
+  },
   "baseArchitecture": {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "metadata": {
@@ -896,5 +941,104 @@
         }]
       }
     }
+  },
+  "metadataArrayBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      },
+      {
+        "name": "removed",
+        "value": "old"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataArrayAdditionArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      },
+      {
+        "name": "removed",
+        "value": "old"
+      },
+      {
+        "name": "added",
+        "value": "new"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataArrayRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataObjectBaseArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "unchanged": {
+        "nested": true
+      },
+      "removed": "old"
+    },
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataObjectModificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "unchanged": {
+        "nested": true
+      },
+      "added": "new"
+    },
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataEmptyObjectArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {},
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataEmptyArrayArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [],
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataMatchingObjectArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "name": "shared",
+      "value": "unchanged"
+    },
+    "nodes": [],
+    "relationships": []
+  },
+  "metadataMatchingArrayArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": [
+      {
+        "name": "shared",
+        "value": "unchanged"
+      }
+    ],
+    "nodes": [],
+    "relationships": []
   }
 }

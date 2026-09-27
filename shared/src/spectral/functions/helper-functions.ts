@@ -1,6 +1,7 @@
+import { pointerToPath } from '@stoplight/json';
 import { IFunctionResult, RulesetFunctionContext } from '@stoplight/spectral-core';
 
-interface JSONPathMatch {
+export interface JSONPathMatch {
     value: unknown;
     pointer: string;
 }
@@ -12,7 +13,7 @@ export function detectDuplicates(matches: JSONPathMatch[], seenIds: Set<unknown>
         if (seenIds.has(id)) {
             messages.push({
                 message: `Duplicate unique-id detected. ID: ${id}, path: ${match['pointer']}`,
-                path: [match['pointer']]
+                path: pointerToPath(`#${match['pointer']}`)
             });
         }
         else {
