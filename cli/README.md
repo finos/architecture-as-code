@@ -906,7 +906,7 @@ Narrative Markdown documents use `--type knowledge` or `--type sad`. They requir
 
 If a create request has an uncertain outcome, the entry stays pending and another push requires explicit reconciliation. The document might exist in CalmHub, or the request might not have reached the server. Check CalmHub before choosing a recovery path:
 
-- If the document exists, confirm its numeric document ID and run `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace> --calm-hub-document-id <document-id> --ver <version>`. Use the pending entry's workspace ID, type, namespace, and version. The local Markdown must exactly match the Hub version. Add `--calm-hub-url <url>` if it is not configured.
+- If the document exists, confirm its numeric document ID and run `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace> --calm-hub-document-id <document-id> --ver <version>`. Use the pending entry's workspace ID, type, namespace, and version. The local Markdown must match the Hub version; differences in line-ending style (LF vs CRLF) are ignored. Add `--calm-hub-url <url>` if it is not configured.
 - If you confirm that no document was created, run `calm workspace rm <workspace-id>`, then `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace>`. Removal clears the pending entry and keeps the file. Re-adding starts at version `1.0.0`. Correct the Hub URL or connection problem before pushing again.
 
 ```
