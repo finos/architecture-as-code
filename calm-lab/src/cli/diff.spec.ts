@@ -94,11 +94,21 @@ describe('calm diff', () => {
         }) });
     });
 
-    it('emits a failed diff outcome when both files were read but one is not valid JSON', async () => {
+    it.each([
+        [['-a', 'a.json', '-b', 'broken.json'], { documentA: '/workspace/a.json', documentB: '/workspace/broken.json' }],
+        [['-a', 'broken.json', '-b', 'a.json'], { documentA: '/workspace/broken.json', documentB: '/workspace/a.json' }],
+    ])('emits a failed diff outcome for %j when both files were read but one is not valid JSON', async (args, outcomeFiles) => {
         const ctx = { ...context({ ...files, '/workspace/broken.json': '{ nope' }), onEvent: vi.fn() };
-        await runDiff(['-a', 'a.json', '-b', 'broken.json'], ctx);
+        await runDiff(args, ctx);
         expect(ctx.onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
-            command: 'diff', ok: false, files: { documentA: '/workspace/a.json', documentB: '/workspace/broken.json' },
+            command: 'diff', ok: false, files: outcomeFiles,
         }) });
+    });
+
+    it('reports file A\'s parse error before a missing file B, as the CLI does', async () => {
+        const ctx = { ...context({ ...files, '/workspace/broken.json': '{ nope' }), onEvent: vi.fn() };
+        const lines = await runDiff(['-a', 'broken.json', '-b', 'nope.json'], ctx);
+        expect(lines[1].text).toMatch(/diffing CALM documents: Expected property name/);
+        expect(ctx.onEvent).not.toHaveBeenCalled();
     });
 });

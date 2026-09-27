@@ -59,14 +59,21 @@ export async function runDiff(args: string[], ctx: ShellContext): Promise<Line[]
         },
     });
     try {
-        const [docA, docB] = [a, b].map((reference) => {
+        // Read both files before parsing either, so a bad file A or B both give a failed outcome.
+        // Errors still come in the CLI's order: A's read, A's parse, then B's.
+        const files = [a, b].map((reference) => {
             const path = ctx.vfs.resolve(ctx.getCwd(), reference);
-            const content = ctx.vfs.read(path);
+            return { path, content: ctx.vfs.read(path) };
+        });
+        for (const { path, content } of files) {
+            if (content !== null) {
+                read.push({ path, content });
+            }
+        }
+        const [docA, docB] = files.map(({ path, content }) => {
             if (content === null) {
                 throw new Error(readError(ctx.vfs, path));
             }
-            // Recorded before parsing so a JSON parse failure still leaves both paths/contents in scope for the outcome.
-            read.push({ path, content });
             return JSON.parse(content) as Record<string, unknown>;
         });
         const result = diffDocuments(docA, docB, { format: values.format as DiffOutputFormat, labels: [a, b] });
