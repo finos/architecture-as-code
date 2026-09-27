@@ -30,7 +30,7 @@ export interface LessonLink { to: string; label: string }
 export interface Lesson {
     id: string;
     title: string;
-    /** The tutorial page this lesson follows; the lab links its title under the picker. */
+    /** The tutorial page this lesson follows; the top of the lesson guide links to it. */
     tutorial?: { title: string; url: string };
     /** The lesson whose end state this one's seed starts from. */
     chainsFrom?: string;
