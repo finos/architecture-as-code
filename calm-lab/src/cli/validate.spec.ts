@@ -57,7 +57,7 @@ describe('calm validate', () => {
         expect(text(lines)).toContain('  ERROR json-schema: must be array');
         expect(lines.filter((line) => line.kind === 'err').every((line) => line.text.trimStart().startsWith('ERROR'))).toBe(true);
         expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
-            command: 'validate', files: { architecture: '/workspace/bad.json' }, ok: false,
+            command: 'validate', files: { architecture: '/workspace/bad.json' }, ok: false, errorsIn: { architecture: 1 }, loadFailures: 0,
         }) });
     });
 
@@ -161,6 +161,8 @@ describe('calm validate -p', () => {
             ok: true,
             errorCount: 0,
             warningCount: 0,
+            errorsIn: {},
+            loadFailures: 0,
             snapshot: { '/workspace/architectures/ok.json': OK, [P]: PATTERN },
         } });
     });
@@ -202,7 +204,17 @@ describe('calm validate -p', () => {
             '    31 |             "node": "api-service"',
             '       |                     ^^^^^^^^^^^^^',
         ]);
-        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ ok: false, errorCount: 3, warningCount: 4 }) });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            ok: false, errorCount: 3, warningCount: 4, errorsIn: { architecture: 3 }, loadFailures: 0,
+        }) });
+    });
+
+    it("counts a pattern's own errors apart from the architecture's", async () => {
+        const { ctx, onEvent } = context({ ...files, '/workspace/patterns/empty.json': '{"type": "object", "properties": {}}' });
+        await runValidate(['-p', 'patterns/empty.json', '-a', 'architectures/ok.json'], ctx);
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            ok: false, errorCount: 1, errorsIn: { pattern: 1 }, loadFailures: 0,
+        }) });
     });
 
     it('validates a pattern on its own', async () => {
@@ -350,6 +362,13 @@ describe('calm validate -u', () => {
             'Summary',
         ]);
         expect(report).toContain(`  ERROR json-schema: ${message}`);
+    });
+
+    it('records a missing mapped file as a load failure and a pattern error', async () => {
+        const { onEvent } = await run(args('map.json'), { '/workspace/map.json': '{"https://example.com/standards/owned-node.json": "standards/nope.json"}' });
+        const { outcome } = onEvent.mock.calls[0][0];
+        expect(outcome.loadFailures).toBe(1);
+        expect(outcome.errorsIn.pattern).toBeGreaterThan(0);
     });
 
     it('reports a mapped file that is not JSON as the CLI does', async () => {

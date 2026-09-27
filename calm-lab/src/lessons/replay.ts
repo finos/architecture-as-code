@@ -2,7 +2,7 @@ import { validateArchitecture } from '../engine';
 import { createVfs, type Vfs } from '../lab/vfs';
 import { runCommand, type Line } from '../shell';
 import type { CommandOutcome } from '../cli/outcome';
-import { freshOutcomes } from './checks';
+import { freshOutcomes, isRejection } from './checks';
 import { commandText, HOME_DIR, type HintCommand, type Lesson, type LessonState, type LessonStep } from './types';
 
 export interface Replay {
@@ -19,8 +19,8 @@ export interface Replay {
 /**
  * Why a command did not do what its hint expects, or undefined. A plain command prints no error
  * and does not fail.
- * An expected failure runs the engine and the engine rejects the input (the CLI's exit code 1):
- * a load error or an unknown option is not the failure the step means.
+ * An expected failure is a validate the engine ran and rejected for the architecture's own errors
+ * (see `isRejection`): a load error, an unknown option or a broken pattern is not the failure the step means.
  */
 export function unexpectedResult(command: HintCommand, lines: Line[], outcomes: readonly CommandOutcome[]): string | undefined {
     const errors = lines.filter((line) => line.kind === 'err').map((line) => line.text);
@@ -33,7 +33,12 @@ export function unexpectedResult(command: HintCommand, lines: Line[], outcomes: 
     if (!outcomes.length) {
         return `was expected to fail, but it did not run:\n${lines.map((line) => line.text).join('\n')}`;
     }
-    return outcomes.some((outcome) => !outcome.ok) ? undefined : 'was expected to fail, but it passed';
+    if (outcomes.some(isRejection)) {
+        return undefined;
+    }
+    return outcomes.some((outcome) => !outcome.ok)
+        ? 'was expected to fail on the architecture, but it failed on the pattern or a file the pattern loads'
+        : 'was expected to fail, but it passed';
 }
 
 /** Drives a lesson the way a learner following every hint would, on the real shell and engine. */

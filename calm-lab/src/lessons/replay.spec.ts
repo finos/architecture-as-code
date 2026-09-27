@@ -5,6 +5,8 @@ import type { HintCommand, LessonStep } from './types';
 import PATTERN from '../cli/fixtures/web-app-pattern.json?raw';
 import BROKEN from '../cli/fixtures/broken-webapp.json?raw';
 import OK from '../cli/fixtures/ok.json?raw';
+import OWNED_PATTERN from '../cli/fixtures/owned-pattern.json?raw';
+import UNOWNED from '../cli/fixtures/unowned.json?raw';
 
 const step = (commands: HintCommand[]): LessonStep => ({
     id: 'broken',
@@ -54,6 +56,10 @@ describe('startReplay expected failures', () => {
             '/workspace/p.json': PATTERN,
             '/workspace/broken.json': BROKEN,
             '/workspace/ok.json': OK,
+            '/workspace/empty-pattern.json': '{"type": "object", "properties": {}}',
+            '/workspace/owned-pattern.json': OWNED_PATTERN,
+            '/workspace/unowned.json': UNOWNED,
+            '/workspace/map.json': '{"https://example.com/standards/owned-node.json": "nope.json"}',
         },
     };
     const fails = (run: string): HintCommand => ({ run, expect: 'failure' });
@@ -83,6 +89,14 @@ describe('startReplay expected failures', () => {
     it('rejects an expected failure that fails for another reason', async () => {
         await expect(startReplay(lesson).runHint(step([fails('calm validate -p p.json -a nope.json')])))
             .rejects.toThrow(/`calm validate -p p\.json -a nope\.json` was expected to fail, but it did not run:\nerror \[multi-strategy-document-loader\]/);
+    });
+
+    it.each([
+        ['a mapped file is missing', 'calm validate -p owned-pattern.json -a unowned.json -u map.json'],
+        ['the pattern has its own error', 'calm validate -p empty-pattern.json -a ok.json'],
+    ])('rejects an expected failure when %s', async (_, command) => {
+        await expect(startReplay(lesson).runHint(step([fails(command)])))
+            .rejects.toThrow(`\`${command}\` was expected to fail on the architecture, but it failed on the pattern or a file the pattern loads`);
     });
 
     it('runs later commands after an expected failure', async () => {

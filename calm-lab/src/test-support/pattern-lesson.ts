@@ -1,4 +1,4 @@
-import { ranFailed, ranOk } from '../lessons/checks';
+import { ranOk, rejected } from '../lessons/checks';
 import { HOME_DIR, type Lesson } from '../lessons/types';
 import PATTERN from '../cli/fixtures/web-app-pattern.json?raw';
 import BROKEN from '../cli/fixtures/broken-webapp.json?raw';
@@ -35,7 +35,7 @@ export const PATTERN_LESSON: Lesson = {
             title: 'See it fail',
             body: `Run \`${VALIDATE_BROKEN}\`. It fails.`,
             hint: { kind: 'commands', commands: [{ run: VALIDATE_BROKEN, expect: 'failure' }] },
-            check: (state) => ranFailed(state, 'validate', { architecture: BROKEN_FILE }),
+            check: (state) => rejected(state, { architecture: BROKEN_FILE }),
         },
     ],
     completion: { heading: 'Done', message: 'Done.', links: [] },

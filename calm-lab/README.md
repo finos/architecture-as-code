@@ -52,14 +52,16 @@ the lab has no lesson picker.
      always works. `path` is the file to write; it must be in `editableFiles`. Default: `editorFile`;
    - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`. A command must not
      print an error or fail validation. To show a failure, write `{ run: 'calm validate …', expect: 'failure' }`: the
-     command must run and the engine must reject its input (a missing file does not count). The
-     learner sees only the command text.
+     command must run and every error must be in the architecture. A missing file, a `$ref` that
+     does not load or an error in the pattern does not count. The learner sees only the command text.
 
 3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
    history: `state.doc` (the saved editor file), `state.validation.ok`, and `state.commands` (the
    commands whose files have not changed since they ran). Check what the step asked for, not the
-   names in the hint, so any valid answer passes. File paths given to `ranOk` and `ranFailed` are
-   absolute: use `state.editorFile` or a `/workspace/...` path.
+   names in the hint, so any valid answer passes. For a "see it fail" step, check
+   `rejected(state, files)`: the same rule as `expect: 'failure'`. `ranFailed` accepts any failure,
+   so use it only for `generate` or `diff`. File paths given to `ranOk`, `ranFailed` and `rejected`
+   are absolute: use `state.editorFile` or a `/workspace/...` path.
 
    To read another saved file, use `fileText(state, path)` (the text, or `null`) or
    `fileJson(state, path)` (a JSON object, or `null`). `markdownSection(text, heading)` gives the

@@ -108,14 +108,22 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
         Object.assign(snapshot, mapping.snapshot);
     }
     const outputs = [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs];
+    const errors = outputs.filter((output) => output.severity === 'error');
+    const errorsIn: Record<string, number> = {};
+    for (const { source } of errors) {
+        const key = source === 'architecture' || source === 'pattern' ? source : 'other';
+        errorsIn[key] = (errorsIn[key] ?? 0) + 1;
+    }
     ctx.onEvent?.({
         type: 'command',
         outcome: {
             command: 'validate',
             files,
             ok: !outcome.hasErrors,
-            errorCount: outputs.filter((output) => output.severity === 'error').length,
+            errorCount: errors.length,
             warningCount: outputs.filter((output) => output.severity === 'warning').length,
+            errorsIn,
+            loadFailures: refs?.failures.length ?? 0,
             snapshot,
         },
     });

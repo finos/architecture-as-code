@@ -7,6 +7,10 @@ export interface CommandOutcome {
     ok: boolean;
     errorCount: number;
     warningCount: number;
+    /** validate only: the error count per `source` of the report (`architecture`, `pattern`, or `other`). */
+    errorsIn?: Record<string, number>;
+    /** validate only: how many pattern `$ref`s failed to load. */
+    loadFailures?: number;
     /** What each file contained when the command ran; null for a file it looked for and did not find. */
     snapshot: Record<string, string | null>;
 }

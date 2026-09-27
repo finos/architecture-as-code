@@ -95,12 +95,15 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
   inline JSON walking in a lesson. Helpers must never throw on a half-edited document.
 - A check reads state (`doc`, `validation`, `commands`, `files`), never event order. For "run X after
   the last change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A "see it fail" validate step checks `rejected(state, files)`, never `ranFailed`. `ranFailed`
+  accepts a missing mapped file or a broken pattern; `rejected` needs a validate whose errors are
+  all in the architecture (`errorsIn.architecture === errorCount`) and no `$ref` load failure.
 - A check reads a file other than the editor file only through `fileText`, `fileJson` or
   `markdownSection`. They see the saved text and never throw.
 - A file hint is the complete target file, never a fragment.
-- A hint command that must fail is `{ run, expect: 'failure' }`. It passes only when the engine ran
-  and rejected the input (an outcome with `ok: false`), so a typo in a path still fails the
-  invariants. A plain command must not fail either. The copy scan runs after every hint, so a
+- A hint command that must fail is `{ run, expect: 'failure' }`. It passes only on a validate that
+  `isRejection` accepts (the rule `rejected` uses), so a typo in a path or a broken pattern still
+  fails the invariants. A plain command must not fail either. The copy scan runs after every hint, so a
   command that a hint expects to fail may pass there, when a later step fixed the input. The scan
   matches those commands by their exact text: copy that writes the command differently (extra
   spaces, another option order) is checked as a plain command.
