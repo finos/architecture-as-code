@@ -211,6 +211,9 @@ describe('intermediate-17 lesson', () => {
     });
 
     it('has no completion links yet', () => {
-        expect(INTERMEDIATE_17.completion.links).toEqual([]);
+        expect(INTERMEDIATE_17.completion.links).toContainEqual({
+            to: '?lesson=intermediate-18',
+            label: 'Next lesson: Organizational standards',
+        });
     });
 });

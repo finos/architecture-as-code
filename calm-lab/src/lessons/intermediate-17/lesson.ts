@@ -316,6 +316,8 @@ export const INTERMEDIATE_17: Lesson = {
         message:
             'You wrote a pattern, generated an architecture from it, and validated architectures against it. ' +
             'One pattern creates the shape of a new architecture and checks that an existing architecture keeps that shape.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-18', label: 'Next lesson: Organizational standards' },
+        ],
     },
 };

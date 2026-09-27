@@ -31,6 +31,7 @@ the lab has no lesson picker.
 | `intermediate-09` | [09-business-flows](https://calm.finos.org/tutorials/intermediate/09-business-flows) | Released |
 | `intermediate-10` | [10-adr-linking](https://calm.finos.org/tutorials/intermediate/10-adr-linking) | Released |
 | `intermediate-17` | [17-patterns](https://calm.finos.org/tutorials/intermediate/17-patterns) | Released |
+| `intermediate-18` | [18-standards](https://calm.finos.org/tutorials/intermediate/18-standards) | Released |
 
 ### Write a lesson
 
