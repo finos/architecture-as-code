@@ -13,7 +13,7 @@ const A = `{
 const BAD = '{"$schema": "https://calm.finos.org/release/1.2/meta/calm.json", "nodes": "nope", "relationships": []}';
 
 function context(files: Record<string, string>, cwd = '/workspace') {
-    const vfs = createVfs(files);
+    const vfs = createVfs(files, null);
     const onEvent = vi.fn();
     return { ctx: { vfs, getCwd: () => cwd, setCwd: () => undefined, onEvent }, onEvent };
 }
@@ -30,7 +30,9 @@ describe('calm validate', () => {
             character_start: 23,
             source: 'architecture',
         });
-        expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'validate', files: { architecture: '/workspace/a.json' }, ok: true, warningCount: 1, snapshot: { '/workspace/a.json': A },
+        }) });
     });
 
     it('prints the pretty report the CLI prints', async () => {
@@ -46,13 +48,17 @@ describe('calm validate', () => {
         const lines = await runValidate(['-a', 'bad.json', '-f', 'pretty'], ctx);
         expect(text(lines)).toContain('  ERROR json-schema: must be array');
         expect(lines.filter((line) => line.kind === 'err').every((line) => line.text.trimStart().startsWith('ERROR'))).toBe(true);
-        expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/bad.json', ok: false });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'validate', files: { architecture: '/workspace/bad.json' }, ok: false,
+        }) });
     });
 
     it('resolves the path from the cwd and reports the resolved file', async () => {
         const { ctx, onEvent } = context({ '/workspace/a.json': A }, '/workspace/sub');
         await runValidate(['-a', '../a.json'], ctx);
-        expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'validate', files: { architecture: '/workspace/a.json' }, ok: true,
+        }) });
     });
 
     it('rejects the old positional form like the CLI', async () => {

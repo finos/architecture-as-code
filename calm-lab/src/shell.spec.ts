@@ -15,7 +15,7 @@ const withB = JSON.stringify({
 });
 
 function context(files: Record<string, string>) {
-    const vfs = createVfs(files);
+    const vfs = createVfs(files, null);
     let cwd = '/workspace';
     const onEvent = vi.fn();
     return { ctx: { vfs, getCwd: () => cwd, setCwd: (dir: string) => { cwd = dir; }, onEvent }, onEvent };
@@ -26,7 +26,9 @@ describe('calm validate', () => {
         const { ctx, onEvent } = context({ '/workspace/a.json': valid });
         const lines = await runCommand('calm validate -a a.json -f pretty', ctx);
         expect(lines[0].text).toBe('Summary');
-        expect(onEvent).toHaveBeenCalledWith({ type: 'validate', file: '/workspace/a.json', ok: true });
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({
+            command: 'validate', files: { architecture: '/workspace/a.json' }, ok: true,
+        }) });
     });
 });
 

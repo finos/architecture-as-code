@@ -72,7 +72,18 @@ export async function runValidate(args: string[], ctx: ShellContext): Promise<Li
             architecture: { id: 'architecture', label: path.split('/').pop(), filePath: path, lines: content.split(/\r?\n/) },
         },
     });
-    ctx.onEvent?.({ type: 'validate', file: path, ok: !outcome.hasErrors });
+    const outputs = [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs];
+    ctx.onEvent?.({
+        type: 'command',
+        outcome: {
+            command: 'validate',
+            files: { architecture: path },
+            ok: !outcome.hasErrors,
+            errorCount: outputs.filter((output) => output.severity === 'error').length,
+            warningCount: outputs.filter((output) => output.severity === 'warning').length,
+            snapshot: { [path]: content },
+        },
+    });
     return formatted
         .replace(/\n$/, '')
         .split('\n')

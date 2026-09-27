@@ -123,11 +123,34 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 9px 12px 8px;
-    border-bottom: 1px solid #1b2350;
+    padding: 9px 12px 6px;
     flex-shrink: 0;
 }
 
+.lessonTutorial {
+    margin: 0;
+    padding: 0 12px 8px;
+    border-bottom: 1px solid #1b2350;
+    flex-shrink: 0;
+    font-family: var(--ifm-font-family-base);
+    font-size: 12px;
+    line-height: 1.45;
+    color: #8b96c9;
+    overflow-wrap: anywhere;
+}
+
+.lessonTutorial a {
+    color: #4da3ff;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.lessonTutorial a:hover {
+    color: #7cbcff;
+    text-decoration: underline;
+}
+
+/* Native select; the chassis is always dark, so pin its colour scheme. */
 .guideTitle {
     font-family: var(--ifm-font-family-monospace);
     font-size: 11px;

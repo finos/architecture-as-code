@@ -1,4 +1,5 @@
 import { diffDocuments, type DiffOutputFormat } from '@finos/calm-shared/browser';
+import type { CommandEvent } from './outcome';
 import type { Line, ShellContext } from '../shell';
 import { helpFor } from './help';
 import { logLine } from './log';
@@ -45,19 +46,44 @@ export async function runDiff(args: string[], ctx: ShellContext): Promise<Line[]
         return [unsupportedInLab('diff', `${url[0]} <url>`)];
     }
     const lines: Line[] = [{ text: logLine('info', 'calm-diff', `Comparing ${a} -> ${b}`), kind: 'dim' }];
+    const read: { path: string; content: string }[] = [];
+    const outcomeOf = (ok: boolean): CommandEvent => ({
+        type: 'command',
+        outcome: {
+            command: 'diff',
+            files: { documentA: read[0].path, documentB: read[1].path },
+            ok,
+            errorCount: 0,
+            warningCount: 0,
+            snapshot: { [read[0].path]: read[0].content, [read[1].path]: read[1].content },
+        },
+    });
     try {
-        const [docA, docB] = [a, b].map((reference) => {
+        // Read both files before parsing either, so a bad file A or B both give a failed outcome.
+        // Errors still come in the CLI's order: A's read, A's parse, then B's.
+        const files = [a, b].map((reference) => {
             const path = ctx.vfs.resolve(ctx.getCwd(), reference);
-            const content = ctx.vfs.read(path);
+            return { path, content: ctx.vfs.read(path) };
+        });
+        for (const { path, content } of files) {
+            if (content !== null) {
+                read.push({ path, content });
+            }
+        }
+        const [docA, docB] = files.map(({ path, content }) => {
             if (content === null) {
                 throw new Error(readError(ctx.vfs, path));
             }
             return JSON.parse(content) as Record<string, unknown>;
         });
         const result = diffDocuments(docA, docB, { format: values.format as DiffOutputFormat, labels: [a, b] });
+        ctx.onEvent?.(outcomeOf(true));
         return [...lines, ...result.formatted.replace(/\n$/, '').split('\n').map((text): Line => ({ text, kind: 'out' }))];
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        if (read.length === 2) {
+            ctx.onEvent?.(outcomeOf(false));
+        }
         return [...lines, err(logLine('error', 'calm-diff', `An error occurred while diffing CALM documents: ${message}`))];
     }
 }

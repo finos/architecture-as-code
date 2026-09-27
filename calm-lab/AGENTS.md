@@ -58,6 +58,8 @@ shim here.
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
+| `src/lessons/` | Lesson model, check helpers, registry and one folder per lesson |
+| `src/lab/storage.ts` | Workspace and progress keys for each lesson, plus one shared UI-prefs key |
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
@@ -70,15 +72,34 @@ behind a `validationSeq` guard: a recompute that is no longer the newest returns
 `setValidation`. Keep that guard if you touch the validation path — saving and running
 `calm validate` can both be in flight at once, and without it the older result wins at random.
 
-`handleReset` bumps a second ref, `sessionEpoch`. A command captures it before awaiting and
-discards its lines, its event and its recompute if the learner reset the lesson meanwhile —
-otherwise an in-flight `calm validate` ticks a step off the fresh lesson.
+A second ref, `sessionEpoch`, is bumped by `handleReset` and when `Lab` unmounts. A command and a
+recompute capture it before awaiting; if it has changed, the command discards its lines, its event
+and its recompute, and the recompute publishes nothing and saves no progress. Otherwise an
+in-flight `calm validate` ticks a step off the fresh lesson.
 
 `runShell` does not await `recompute`: `ls` and `cat` must not sit behind a Spectral run with the
 input disabled.
 
 A step is complete when there are no **errors**. Warnings are listed in the Problems panel but
 never fail a step.
+
+When `Lab` unmounts, the epoch goes up, so work still in flight writes no progress and no outcomes.
+
+## Writing a lesson
+
+Follow "Write a lesson" in `README.md`. The rules an agent is most likely to break:
+
+- Use the helpers in `src/lessons/checks.ts`. Add a new helper there, with tests, rather than
+  inline JSON walking in a lesson. Helpers must never throw on a half-edited document.
+- A check reads state (`doc`, `validation`, `commands`), never event order. For "run X after the last
+  change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A file hint is the complete target file, never a fragment.
+- Every `calm` command in the step copy, hints or completion message must be one the lab
+  runs (`validate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
+  one; do not weaken it to make a lesson pass.
+- A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`.
+  Never copy the previous lesson's JSON.
+- Never rename a released lesson id: it is the URL and the storage key.
 
 ## The diagram renders untrusted input
 
