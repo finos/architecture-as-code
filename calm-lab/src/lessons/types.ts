@@ -15,9 +15,14 @@ export interface LessonState {
     files: Record<string, string>;
 }
 
+/** A hint command. `expect: 'failure'` marks one the step runs to see the engine reject its input. */
+export type HintCommand = string | { run: string; expect: 'failure' };
+
+export const commandText = (command: HintCommand): string => (typeof command === 'string' ? command : command.run);
+
 export type StepHint =
     | { kind: 'file'; content: string; path?: string }  // the complete file after this step; path defaults to editorFile
-    | { kind: 'commands'; commands: string[] };  // run from HOME_DIR, in order
+    | { kind: 'commands'; commands: HintCommand[] };  // run from HOME_DIR, in order
 
 export interface LessonStep {
     id: string;

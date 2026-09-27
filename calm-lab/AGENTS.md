@@ -98,6 +98,12 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
 - A check reads a file other than the editor file only through `fileText`, `fileJson` or
   `markdownSection`. They see the saved text and never throw.
 - A file hint is the complete target file, never a fragment.
+- A hint command that must fail is `{ run, expect: 'failure' }`. It passes only when the engine ran
+  and rejected the input (an outcome with `ok: false`), so a typo in a path still fails the
+  invariants. The copy scan runs after every hint, so a command that a hint expects to fail may
+  pass there, when a later step fixed the input.
+- `endFiles(lesson)` applies only file hints. A file that a command writes (`calm generate -o`) is
+  not in it, so a chained lesson seeds that file itself.
 - Every `calm` command in the summary, step copy, hints or completion message must be one the lab
   runs (`validate`, `generate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
   one; do not weaken it to make a lesson pass.

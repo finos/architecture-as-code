@@ -3,7 +3,7 @@ import { createVfs, type Vfs } from '../lab/vfs';
 import { runCommand, type Line } from '../shell';
 import type { CommandOutcome } from '../cli/outcome';
 import { freshOutcomes } from './checks';
-import { HOME_DIR, type Lesson, type LessonState, type LessonStep } from './types';
+import { commandText, HOME_DIR, type HintCommand, type Lesson, type LessonState, type LessonStep } from './types';
 
 export interface Replay {
     vfs: Vfs;
@@ -12,8 +12,24 @@ export interface Replay {
     stateFor(): Promise<LessonState>;
     /** Runs one command from HOME_DIR. */
     run(command: string): Promise<Line[]>;
-    /** Applies a step's hint (commands run in order from HOME_DIR); throws if a command prints an error. */
+    /** Applies a step's hint (commands run in order from HOME_DIR); throws if a command does not do what the hint expects. */
     runHint(step: LessonStep): Promise<void>;
+}
+
+/**
+ * Why a command did not do what its hint expects, or undefined. A plain command prints no error.
+ * An expected failure runs the engine and the engine rejects the input (the CLI's exit code 1):
+ * a load error or an unknown option is not the failure the step means.
+ */
+export function unexpectedResult(command: HintCommand, lines: Line[], outcomes: readonly CommandOutcome[]): string | undefined {
+    const errors = lines.filter((line) => line.kind === 'err').map((line) => line.text);
+    if (typeof command === 'string') {
+        return errors.length ? `printed an error:\n${errors.join('\n')}` : undefined;
+    }
+    if (!outcomes.length) {
+        return `was expected to fail, but it did not run:\n${lines.map((line) => line.text).join('\n')}`;
+    }
+    return outcomes.some((outcome) => !outcome.ok) ? undefined : 'was expected to fail, but it passed';
 }
 
 /** Drives a lesson the way a learner following every hint would, on the real shell and engine. */
@@ -53,9 +69,11 @@ export function startReplay(lesson: Lesson): Replay {
             }
             cwd = HOME_DIR;
             for (const command of step.hint.commands) {
-                const errors = (await runCommand(command, ctx)).filter((line) => line.kind === 'err');
-                if (errors.length) {
-                    throw new Error(`${lesson.id} / ${step.id}: \`${command}\` printed an error:\n${errors.map((line) => line.text).join('\n')}`);
+                const before = outcomes.length;
+                const lines = await runCommand(commandText(command), ctx);
+                const problem = unexpectedResult(command, lines, outcomes.slice(before));
+                if (problem) {
+                    throw new Error(`${lesson.id} / ${step.id}: \`${commandText(command)}\` ${problem}`);
                 }
             }
         },

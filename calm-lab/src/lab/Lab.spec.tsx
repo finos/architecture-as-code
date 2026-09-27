@@ -213,9 +213,31 @@ describe('Lab', () => {
         await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
     });
 
-    it('has no lesson picker: a lesson opens from its link', async () => {
-        await act(async () => { renderLab(); });
-        expect(screen.queryByRole('combobox', {name: 'Lesson'})).toBeNull();
+    it('shows only the command text of a hint that expects a failure', async () => {
+        const lesson: Lesson = {
+            ...QUICK_START,
+            id: 'fails',
+            steps: [{
+                id: 'fail',
+                title: 'See it fail',
+                body: '',
+                hint: {kind: 'commands', commands: ['ls', {run: 'calm validate -a broken.json', expect: 'failure'}]},
+                check: () => false,
+            }],
+        };
+        await act(async () => { renderLab({lesson}); });
+        fireEvent.click(screen.getByRole('button', {name: 'Show hint'}));
+        expect(screen.getByText(/calm validate -a broken\.json/).textContent).toBe('ls\ncalm validate -a broken.json');
+    });
+
+    it('lists every lesson with its progress and asks to switch on change', async () => {
+        const other = {...QUICK_START, id: 'other', title: 'Other lesson'};
+        let onSelectLesson = vi.fn();
+        await act(async () => { ({onSelectLesson} = renderLab({lessons: [QUICK_START, other]})); });
+        const picker = screen.getByRole('combobox', {name: 'Lesson'});
+        expect(screen.getByRole('option', {name: /Quick start: model a trading system — 0\/3/})).toBeInTheDocument();
+        fireEvent.change(picker, {target: {value: 'other'}});
+        expect(onSelectLesson).toHaveBeenCalledWith('other');
     });
 
     it('links the tutorial a lesson follows at the top of the guide, in a new tab', async () => {
@@ -363,7 +385,7 @@ describe('Lab with more than one editable file', () => {
         const generate = (output: string) => runCommand(`calm generate -p pattern.json -o ${output.slice(HOME_DIR.length + 1)}`);
 
         it('lists a file the command creates', async () => {
-            await act(async () => { renderLab({lesson: withPattern, lessons: [withPattern]}); });
+            await act(async () => { renderLab({lesson: withPattern}); });
             expect(screen.queryByRole('option', {name: 'architecture/generated.json'})).toBeNull();
             await generate(GENERATED);
             await waitFor(() => expect(screen.getByRole('option', {name: 'architecture/generated.json'})).toBeInTheDocument());
@@ -372,7 +394,7 @@ describe('Lab with more than one editable file', () => {
         });
 
         it('shows the new content of the open file', async () => {
-            await act(async () => { renderLab({lesson: withPattern, lessons: [withPattern]}); });
+            await act(async () => { renderLab({lesson: withPattern}); });
             openFile(SECOND);
             await generate(SECOND);
             await waitFor(() => expect(screen.getByLabelText('Edit architecture/second.json')).toHaveValue(GENERATED_TEXT));
@@ -380,7 +402,7 @@ describe('Lab with more than one editable file', () => {
         });
 
         it('keeps unsaved edits in the open file', async () => {
-            await act(async () => { renderLab({lesson: withPattern, lessons: [withPattern]}); });
+            await act(async () => { renderLab({lesson: withPattern}); });
             openFile(SECOND);
             fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: 'unsaved'}});
             await generate(SECOND);

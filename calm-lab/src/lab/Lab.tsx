@@ -11,7 +11,7 @@ import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent, CommandOutcome} from '../cli/outcome';
 import {freshOutcomes} from '../lessons/checks';
-import {HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
+import {commandText, HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
 
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
@@ -87,7 +87,7 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     const hintLabel = step.hint.kind === 'commands'
         ? 'commands'
         : `complete ${step.hint.path ? relativeToHome(step.hint.path) : 'file'}`;
-    const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.join('\n');
+    const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.map(commandText).join('\n');
     return (
         <li className={styles.step}>
             <button

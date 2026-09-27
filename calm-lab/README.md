@@ -41,7 +41,7 @@ the lab has no lesson picker.
    | `title` | The lesson's name, used in notices. |
    | `tutorial` | The tutorial page this lesson follows: `{ title, url }`, with the page's own title. The top of the lesson guide links to it in a new tab. |
    | `editorFile` | The lesson's main architecture. The editor opens it first, and `state.doc` and the status badge describe it. |
-   | `editableFiles` | The files the learner can open in the editor, for example an ADR next to the architecture. It must include `editorFile`, and each file must be in `seedFiles`. Default: `[editorFile]`. With more than one file, a "File" selector shows in the editor tab bar. The diagram shows the open file when it is an architecture (it has a `nodes` array), else `editorFile`. |
+   | `editableFiles` | The files the learner can open in the editor, for example an ADR next to the architecture. It must include `editorFile`. Each file must be in `seedFiles` or be written by a hint (for example the output of `calm generate -o`); the selector lists a file only when it exists. Default: `[editorFile]`. With more than one file, a "File" selector shows in the editor tab bar. The diagram shows the open file when it is an architecture (it has a `nodes` array), else `editorFile`. |
    | `seedFiles` | The workspace at the start: absolute path under `/workspace` → contents. |
    | `chainsFrom` | The lesson whose end state this one starts from. Build the seed with `endFiles(previous)`, imported from `src/lessons/chain.ts` (not `index.ts`, to avoid a circular import). |
    | `steps` | Ordered steps, below. |
@@ -50,7 +50,10 @@ the lab has no lesson picker.
 2. Write each step: `id`, `title`, `body` (inline code in backticks) and a `hint`:
    - `{ kind: 'file', content, path? }` — the **complete** file after the step, so paste-and-save
      always works. `path` is the file to write; it must be in `editableFiles`. Default: `editorFile`;
-   - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`.
+   - `{ kind: 'commands', commands }` — the commands to run, from `/workspace`. A command must not
+     print an error. To show a failure, write `{ run: 'calm validate …', expect: 'failure' }`: the
+     command must run and the engine must reject its input (a missing file does not count). The
+     learner sees only the command text.
 
 3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
    history: `state.doc` (the saved editor file), `state.validation.ok`, and `state.commands` (the
@@ -68,10 +71,10 @@ the lab has no lesson picker.
    - at least one wrong answer, which the check rejects.
 
 `src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine:
-files live under `/workspace`, editable files are seeded and include the editor file, file hints
-write only to editable files, no step is complete before its hint, each hint completes its step
-and prints no error, the end state validates, every `calm` command in the copy runs in the lab's
-shell, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
+files live under `/workspace`, editable files are seeded or written by a hint and include the
+editor file, file hints write only to editable files, no step is complete before its hint, each hint
+completes its step and each command does what the hint expects, the end state validates, every
+`calm` command in the copy runs in the lab's shell after all the hints, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
 state.
 
 ## Development
