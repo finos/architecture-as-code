@@ -22,7 +22,6 @@ export interface LabValidation { ok: boolean; parseError?: string; issues: LabIs
 export class LabError extends Error {}
 
 /** Both injected by `define` in vite.config.ts — see src/vite-env.d.ts. */
-export const ENGINE_VERSION: string = __CALM_SHARED_VERSION__;
 export const CLI_VERSION: string = __CALM_CLI_VERSION__;
 const MAX_ISSUES = 20;
 

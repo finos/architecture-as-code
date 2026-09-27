@@ -40,7 +40,7 @@ side of it. The lab's half is `vite.config.ts`:
 - `fs` and `path` resolve to `src/shims/empty.ts`, `buffer` to `src/shims/buffer.ts`. The shared
   browser entry's dependency chain asks for them at bundle time but never calls them at runtime.
 - `resolve.mainFields` puts `browser` first.
-- `__CALM_SHARED_VERSION__` is a `define` reading `shared/package.json` at config time, so `src/`
+- `__CALM_CLI_VERSION__` is a `define` reading `cli/package.json` at config time, so `src/`
   never imports a manifest from outside its own tree. Declared in `src/vite-env.d.ts`.
 
 **Never add Node-only code to `src/`** — no `fs`, `path`, `process`, `__dirname`. If something you

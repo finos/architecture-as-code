@@ -31,7 +31,7 @@ vi.mock('../engine', () => ({
     validateOutcome: engine.validateOutcome,
     parseJson: vi.fn(),
     commandSupport: vi.fn(() => undefined),
-    ENGINE_VERSION: '0.0.0-test',
+    CLI_VERSION: '9.9.9-test',
     LabError: class LabError extends Error {},
 }));
 
@@ -68,6 +68,14 @@ describe('Lab', () => {
         await runCommand(VALIDATE_COMMAND);
 
         await waitFor(() => expect(stepOneCompleted()).toBe(true));
+    });
+
+    it('shows the CLI version in the status bar, as `calm --version` prints it', async () => {
+        await act(async () => {
+            render(<Lab />);
+        });
+
+        expect(screen.getByText('CALM 1.2 · CALM CLI 9.9.9-test')).toBeInTheDocument();
     });
 
     it('lists a parse error without claiming the list was truncated', async () => {
