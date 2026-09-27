@@ -177,7 +177,7 @@ function isArchitecture(text: string | null): boolean {
     }
 }
 
-export default function Lab({lesson, lessons, onSelectLesson}: LabProps) {
+export default function Lab({lesson}: LabProps) {
     const {editorFile, seedFiles, steps, completion} = lesson;
     const editableFiles = lesson.editableFiles ?? [editorFile];
     const editorLabel = relativeToHome(editorFile);
