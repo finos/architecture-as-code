@@ -317,7 +317,7 @@ describe('Lab with more than one editable file', () => {
     });
 
     it('names the editor file in the Problems panel, apart from the open file', async () => {
-        await act(async () => { renderLab({lesson: multi, lessons: [multi]}); });
+        await act(async () => { renderLab({lesson: multi}); });
         openFile(ADR);
         fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
         const label = QUICK_START.editorFile.slice(HOME_DIR.length + 1);
@@ -353,7 +353,7 @@ describe('Lab with more than one editable file', () => {
     });
 
     it('colours the open architecture file as JSON, but not a markdown ADR', async () => {
-        await act(async () => { renderLab({lesson: multi, lessons: [multi]}); });
+        await act(async () => { renderLab({lesson: multi}); });
         expect(document.body.querySelector('[class*="tokKey"]')).not.toBeNull();
         openFile(ADR);
         expect(document.body.querySelector('[class*="tok"]')).toBeNull();
