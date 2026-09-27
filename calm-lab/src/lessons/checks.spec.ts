@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-    composedOf, connectsBetween, connectsNodes, freshOutcomes, interactsWith, nodeById, nodes, nodesOfType,
-    ranFailed, ranOk, relationships, validatedEditorFile,
+    completeNodes, composedOf, connectsBetween, connectsNodes, freshOutcomes, interactsWith, nodeById, nodes,
+    nodesOfType, ranFailed, ranOk, relationships, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -57,6 +57,36 @@ describe('document helpers', () => {
         const dangling = { ...doc, relationships: [{ 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'gone' } } } }] };
         expect(connectsBetween(dangling, 'service', 'database')).toBe(false);
         expect(connectsNodes(dangling, 'svc', 'gone')).toBe(false);
+    });
+});
+
+describe('completeNodes', () => {
+    it('matches a node with all four required properties', () => {
+        const complete = { nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'x' }] };
+        expect(completeNodes(complete).map((node) => node['unique-id'])).toEqual(['a']);
+    });
+
+    it('does not match a node missing or blank on a required property', () => {
+        const missingField = { nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: 'A' }] };
+        const blankField = { nodes: [{ 'unique-id': 'a', 'node-type': 'service', name: '', description: 'x' }] };
+        expect(completeNodes(missingField)).toEqual([]);
+        expect(completeNodes(blankField)).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { nodes: 'x' }, { nodes: [null, 3] }, { nodes: [{ 'unique-id': 1 }] }]) {
+            expect(completeNodes(bad as never)).toEqual([]);
+        }
+    });
+
+    it('only counts complete nodes among a mix', () => {
+        const mixed = {
+            nodes: [
+                { 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'x' },
+                { 'unique-id': 'b', 'node-type': 'service' },
+            ],
+        };
+        expect(completeNodes(mixed)).toHaveLength(1);
     });
 });
 

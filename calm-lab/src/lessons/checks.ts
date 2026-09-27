@@ -17,6 +17,17 @@ export function nodesOfType(doc: CalmDocLike | null | undefined, type: string): 
     return nodes(doc).filter((node) => node['node-type'] === type);
 }
 
+const isNonEmptyString = (value: unknown): value is string => typeof value === 'string' && value.length > 0;
+
+/** Nodes whose `unique-id`, `node-type`, `name` and `description` are all non-empty strings. */
+export function completeNodes(doc: CalmDocLike | null | undefined): Item[] {
+    return nodes(doc).filter((node) =>
+        isNonEmptyString(node['unique-id']) &&
+        isNonEmptyString(node['node-type']) &&
+        isNonEmptyString(node['name']) &&
+        isNonEmptyString(node['description']));
+}
+
 const typeOf = (doc: CalmDocLike | null | undefined, id: unknown) => nodeById(doc, id)?.['node-type'];
 
 function relationshipsOf(doc: CalmDocLike | null | undefined, kind: string): Item[] {

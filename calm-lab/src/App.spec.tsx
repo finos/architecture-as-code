@@ -7,7 +7,7 @@ vi.mock('./lab/Lab', () => ({
 }));
 
 import App from './App';
-import { QUICK_START } from './lessons/quick-start/lesson';
+import { QUICK_START } from './test-support/quick-start-lesson';
 
 const lessons = [QUICK_START, { ...QUICK_START, id: 'other', title: 'Other' }];
 

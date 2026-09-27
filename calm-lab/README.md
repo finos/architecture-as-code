@@ -17,12 +17,12 @@ real state — the saved workspace and the engine's validation result — so any
 ## Lessons
 
 A lesson is a folder under `src/lessons/`. Open one with `?lesson=<id>`
-(e.g. `https://lab.calm.finos.org/?lesson=quick-start`). The docs and each lesson's completion link to it;
+(e.g. `https://lab.calm.finos.org/?lesson=beginner-02`). The docs and each lesson's completion link to it;
 the lab has no lesson picker.
 
 | Lesson | Tutorial | Status |
 |---|---|---|
-| `quick-start` | — | Released |
+| `beginner-02` | [02-first-node](https://calm.finos.org/tutorials/beginner/02-first-node) | Released |
 
 ### Write a lesson
 
