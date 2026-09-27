@@ -88,7 +88,7 @@ describe('Lab', () => {
 
     it('shows the CLI version in the status bar, as `calm --version` prints it', async () => {
         await act(async () => {
-            render(<Lab />);
+            renderLab();
         });
 
         expect(screen.getByText('CALM 1.2 · CALM CLI 9.9.9-test')).toBeInTheDocument();
