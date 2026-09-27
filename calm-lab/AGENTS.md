@@ -158,6 +158,8 @@ Known differences:
   `calm.finos.org`, which the CLI allows by default, the lab prints its own note (only a schema the
   lab does not bundle gets there).
 - `calm validate -a` without `-p` does not load the pattern named in the architecture's `$schema`.
+- A pattern with no `$id` and a relative `$ref` fails with `Not a valid absolute URL` in the lab.
+  The CLI resolves the `$ref` against the pattern's directory.
 
 ## Node 26 storage rule
 
