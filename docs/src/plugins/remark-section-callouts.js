@@ -271,7 +271,7 @@ function insertLabCallout(root, lessonId) {
         ], [attr('id', 'try-in-learning-lab')]),
         {type: 'paragraph', children: [text(
             'You can work through this tutorial in your browser with the CALM Learning Lab. There is nothing to ' +
-            'install: the lab runs the real CALM engine and the same calm commands as the CLI. The lab has no AI ' +
+            'install: the lab runs the real CALM engine, and the calm commands this tutorial uses work as they do in the CLI. The lab has no AI ' +
             'assistant, so you write the CALM yourself instead of prompting Copilot.'
         )]},
         {type: 'paragraph', children: [
