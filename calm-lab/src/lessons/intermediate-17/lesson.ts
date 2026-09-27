@@ -244,7 +244,7 @@ const validatedAgainstPattern = (state: LessonState) =>
 export const INTERMEDIATE_17: Lesson = {
     id: 'intermediate-17',
     title: 'Introduction to patterns',
-    summary: 'Write a pattern, generate an architecture from it, and validate architectures against it.',
+    tutorial: { title: 'Introduction to CALM Patterns', url: 'https://calm.finos.org/tutorials/intermediate/17-patterns/' },
     chainsFrom: 'intermediate-10',
     editorFile: GENERATED,
     editableFiles: [GENERATED, PATTERN, BROKEN],
