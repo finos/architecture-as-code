@@ -534,7 +534,9 @@ export const BEGINNER_07: Lesson = {
                 kind: 'commands',
                 commands: ['calm diff -a architectures/my-first-architecture.json -b architectures/ecommerce-platform.json -f summary'],
             },
-            check: (state) => ranOk(state, 'diff', { documentA: FIRST_ARCHITECTURE, documentB: state.editorFile }),
+            check: (state) =>
+                hasFrontDoor(state.doc) && hasServices(state.doc) && hasData(state.doc) && state.validation.ok
+                && ranOk(state, 'diff', { documentA: FIRST_ARCHITECTURE, documentB: state.editorFile }),
         },
     ],
     completion: {

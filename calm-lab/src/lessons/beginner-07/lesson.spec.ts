@@ -141,8 +141,13 @@ describe('beginner-07 lesson', () => {
     });
 
     it('compare needs a successful diff from the first architecture to the e-commerce file', () => {
+        const diffed = diffOutcome(FIRST_ARCHITECTURE, BEGINNER_07.editorFile, true);
         expect(compare.check(state({ doc: data }))).toBe(false);
-        expect(compare.check(state({ doc: data, commands: [diffOutcome(FIRST_ARCHITECTURE, BEGINNER_07.editorFile, true)] }))).toBe(true);
+        expect(compare.check(state({ doc: data, commands: [diffed] }))).toBe(true);
+        // A diff of the architecture before it is built, or while it is invalid, does not count.
+        expect(compare.check(state({ doc: doc([], []), commands: [diffed] }))).toBe(false);
+        expect(compare.check(state({ doc: services, commands: [diffed] }))).toBe(false);
+        expect(compare.check(state({ doc: data, validation: { ok: false }, commands: [diffed] }))).toBe(false);
         // The documents swapped: must not tick.
         expect(compare.check(state({ doc: data, commands: [diffOutcome(BEGINNER_07.editorFile, FIRST_ARCHITECTURE, true)] }))).toBe(false);
         expect(compare.check(state({ doc: data, commands: [diffOutcome(FIRST_ARCHITECTURE, BEGINNER_07.editorFile, false)] }))).toBe(false);
