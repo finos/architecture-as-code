@@ -170,7 +170,7 @@ const validatedStandards = (state: LessonState) =>
 export const INTERMEDIATE_20: Lesson = {
     id: 'intermediate-20',
     title: 'Multi-pattern validation',
-    summary: 'Make the generated web application follow your Standards, and validate it against the structural and the standards patterns.',
+    tutorial: { title: 'Multi-Pattern Validation', url: 'https://calm.finos.org/tutorials/intermediate/20-multi-pattern-validation/' },
     chainsFrom: 'intermediate-19',
     editorFile: GENERATED,
     editableFiles: [GENERATED, NODE_STD, RELATIONSHIP_STD],
