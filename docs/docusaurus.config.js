@@ -39,7 +39,6 @@ const config = {
         hooks: {
             onBrokenMarkdownLinks: 'warn'
         },
-        mermaid: true,
     },
 
     headTags: [
