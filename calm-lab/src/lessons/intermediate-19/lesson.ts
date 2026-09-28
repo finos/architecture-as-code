@@ -1,6 +1,6 @@
 import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
 import {
-    fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardExample, standardRequires, urlMappingEntries, urlMappingTargets,
+    fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets, withStandard,
 } from '../checks';
 import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
@@ -122,14 +122,18 @@ const baseFile = (state: HintFiles) => {
     return json(base);
 };
 
+// Lesson 18's end files: the Standards the tutorial values in the hints are for.
+const TUTORIAL = { files: endFiles(INTERMEDIATE_18) };
+
 const compliantFile = (state: HintFiles) => {
     const doc = JSON.parse(COMPLIANT_FILE) as { nodes: CalmDocLike[]; relationships: CalmDocLike[] };
     const nodeStd = fileJson(state, NODE_STD);
     const relationshipStd = fileJson(state, RELATIONSHIP_STD);
     return json({
         ...doc,
-        nodes: doc.nodes.map((node) => ({ ...node, ...standardExample(nodeStd, 'node', node) })),
-        relationships: doc.relationships.map((relationship) => ({ ...relationship, ...standardExample(relationshipStd, 'relationship', relationship) })),
+        nodes: doc.nodes.map((node) => withStandard(node, 'node', nodeStd, fileJson(TUTORIAL, NODE_STD))),
+        relationships: doc.relationships.map((relationship) =>
+            withStandard(relationship, 'relationship', relationshipStd, fileJson(TUTORIAL, RELATIONSHIP_STD))),
     });
 };
 
@@ -175,7 +179,7 @@ export const INTERMEDIATE_19: Lesson = {
     editorFile: COMPLIANT,
     editableFiles: [COMPLIANT, MAPPING, BASE, NODE_STD, RELATIONSHIP_STD],
     seedFiles: {
-        ...endFiles(INTERMEDIATE_18),
+        ...TUTORIAL.files,
         [MAPPING]: MAPPING_SEED,
         [BASE]: BASE_SEED,
         [COMPLIANT]: COMPLIANT_SEED,

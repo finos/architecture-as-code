@@ -4,7 +4,7 @@ import {
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
     hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
     patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires, ranFailed, ranOk,
-    rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries, urlMappingTargets,
+    rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries, urlMappingTargets, withStandard,
     validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -470,6 +470,10 @@ describe('patternRefs', () => {
         expect(patternArrayRefs(null, 'relationships')).toEqual([]);
         // Only some elements must match a prefixItems or contains schema.
         expect(patternArrayRefs({ properties: { nodes: { prefixItems: [{ $ref: NODE_STD }], contains: { $ref: NODE_STD } } } }, 'nodes')).toEqual([]);
+        // The element may match something else, or must not match the Standard.
+        expect(patternArrayRefs({ properties: { nodes: { items: { anyOf: [{ $ref: NODE_STD }, {}] } } } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: { items: { not: { $ref: NODE_STD } } } } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: { items: { allOf: [{ anyOf: [{ $ref: NODE_STD }] }] } } } }, 'nodes')).toEqual([]);
     });
 });
 
@@ -829,5 +833,36 @@ describe('standardExample', () => {
     it('gives {} when the document is not a Standard for the named core definition', () => {
         expect(standardExample({ allOf: [{ $ref: NODE_REF }, { required: ['owner'] }] }, 'relationship')).toEqual({});
         expect(standardExample(null, 'node')).toEqual({});
+    });
+
+    it('skips a given value the property schema rejects', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }, {
+                properties: {
+                    tier: { enum: ['low', 'high'] },
+                    costCenter: { type: 'string', pattern: '^[0-9]+$' },
+                    region: { type: 'string', pattern: '^[a-z]{2}-[0-9]$', examples: ['eu-1'] },
+                },
+                required: ['tier', 'costCenter', 'region'],
+            }],
+        };
+        expect(standardExample(standard, 'node', { tier: 'internal', costCenter: 'CC-1234', region: 'Europe' }))
+            .toEqual({ tier: 'low', costCenter: '0', region: 'eu-1' });
+    });
+});
+
+describe('withStandard', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+    const tutorial = { allOf: [{ $ref: NODE_REF }, { properties: { costCenter: {}, environment: {} }, required: ['costCenter'] }] };
+
+    it('drops the tutorial Standard\'s properties and adds the ones the learner\'s Standard requires', () => {
+        const standard = { allOf: [{ $ref: NODE_REF }, { properties: { team: { type: 'string' } }, required: ['team'] }] };
+        expect(withStandard({ 'unique-id': 'a', costCenter: 'CC-1', environment: 'dev' }, 'node', standard, tutorial))
+            .toEqual({ 'unique-id': 'a', team: 'example' });
+    });
+
+    it('keeps a tutorial value that the learner\'s Standard accepts', () => {
+        expect(withStandard({ 'unique-id': 'a', costCenter: 'CC-1', environment: 'dev' }, 'node', tutorial, tutorial))
+            .toEqual({ 'unique-id': 'a', costCenter: 'CC-1' });
     });
 });
