@@ -104,3 +104,12 @@ export function compareSemVer(a: string, b: string): number {
 export function sortSemVer(versions: string[]): string[] {
     return [...versions].sort(compareSemVer);
 }
+
+/** The highest release, or the highest snapshot if nothing has been released yet. */
+export function latestReleaseVersion(versions: string[]): string {
+    const sorted = sortSemVer(versions);
+    for (let i = sorted.length - 1; i >= 0; i--) {
+        if (!isSnapshotVersion(sorted[i])) return sorted[i];
+    }
+    return sorted[sorted.length - 1];
+}

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { computeSemVerBump, compareSemVer, sortSemVer, isSnapshotVersion, toSnapshotVersion, toReleaseVersion } from './semver';
+import { computeSemVerBump, compareSemVer, sortSemVer, isSnapshotVersion, toSnapshotVersion, toReleaseVersion, latestReleaseVersion } from './semver';
 
 describe('computeSemVerBump', () => {
     describe('MAJOR', () => {
@@ -189,5 +189,19 @@ describe('sortSemVer', () => {
         expect(sortSemVer(['1.0.0', '1.1.0-SNAPSHOT', '0.9.0'])).toEqual([
             '0.9.0', '1.0.0', '1.1.0-SNAPSHOT'
         ]);
+    });
+});
+
+describe('latestReleaseVersion', () => {
+    it('returns the highest release when there are no snapshots', () => {
+        expect(latestReleaseVersion(['1.0.0', '2.0.0', '1.5.0'])).toBe('2.0.0');
+    });
+
+    it('returns the highest release even when a snapshot ranks higher', () => {
+        expect(latestReleaseVersion(['1.0.0', '1.1.0-SNAPSHOT'])).toBe('1.0.0');
+    });
+
+    it('falls back to the highest snapshot when nothing is released yet', () => {
+        expect(latestReleaseVersion(['1.1.0-SNAPSHOT', '1.0.0-SNAPSHOT'])).toBe('1.1.0-SNAPSHOT');
     });
 });
