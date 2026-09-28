@@ -276,6 +276,26 @@ export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 
     return [...required];
 }
 
+/**
+ * A value for each property a Standard requires: the one in `values` when it has one, else the first
+ * `enum` value, or `true`, `0` or a string by the property's `type`. It ignores `pattern` and other string rules.
+ */
+export function standardExample(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship', values: CalmDocLike = {}): CalmDocLike {
+    const schemas = [...items(json?.['allOf']), json].map((entry) => entry?.['properties']).filter(isNonEmptyObject);
+    return Object.fromEntries(standardRequires(json, coreDef).map((name) => {
+        if (Object.prototype.hasOwnProperty.call(values, name)) {
+            return [name, values[name]];
+        }
+        const schema = schemas.map((properties) => properties[name]).find(isNonEmptyObject) ?? {};
+        const options = schema['enum'];
+        if (Array.isArray(options) && options.length > 0) {
+            return [name, options[0]];
+        }
+        const type = schema['type'];
+        return [name, type === 'boolean' ? true : type === 'integer' || type === 'number' ? 0 : 'example'];
+    }));
+}
+
 /** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */
 export function patternRefs(json: unknown): string[] {
     const refs = new Set<string>();

@@ -4,7 +4,7 @@ import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
-import type { LessonState } from '../types';
+import { hintContent, type LessonState } from '../types';
 
 const [COMPLIANT, MAPPING, BASE] = INTERMEDIATE_19.editableFiles!;
 const ECOMMERCE = '/workspace/architectures/ecommerce-platform.json';
@@ -93,9 +93,10 @@ describe('intermediate-19 lesson', () => {
         expect(urlMapping.check(state({ files: { ...MY_STANDARDS, [MAPPING]: INTERMEDIATE_19.seedFiles[MAPPING] } }))).toBe(false);
         // Only one standard mapped.
         expect(urlMapping.check(state({ files: { ...MY_STANDARDS, ...mapping({ [MY_NODE_ID]: 'standards/company-node-standard.json' }) } }))).toBe(false);
-        // The hint's $ids, but the learner's standards have other $ids.
-        const hint = INTERMEDIATE_19.steps[0].hint as { content: string };
-        expect(urlMapping.check(state({ files: { ...MY_STANDARDS, [MAPPING]: hint.content } }))).toBe(false);
+        // The tutorial's $ids, but the learner's standards have other $ids.
+        const hint = urlMapping.hint;
+        const tutorialMapping = hint.kind === 'file' ? hintContent(hint, { files: INTERMEDIATE_19.seedFiles }) : '';
+        expect(urlMapping.check(state({ files: { ...MY_STANDARDS, [MAPPING]: tutorialMapping } }))).toBe(false);
         // The two standards swapped.
         expect(urlMapping.check(state({
             files: { ...MY_STANDARDS, ...mapping({ [MY_NODE_ID]: 'standards/company-relationship-standard.json', [MY_RELATIONSHIP_ID]: 'standards/company-node-standard.json' }) },
@@ -192,6 +193,17 @@ describe('intermediate-19 lesson', () => {
         const replay = startReplay(INTERMEDIATE_19);
         for (const step of INTERMEDIATE_19.steps) {
             expect(step.check(await replay.stateFor()), `${step.id} before its hint`).toBe(false);
+            await replay.runHint(step);
+            expect(step.check(await replay.stateFor()), step.id).toBe(true);
+        }
+    });
+
+    it('builds the file hints from the learner\'s own standards', async () => {
+        const replay = startReplay(INTERMEDIATE_19);
+        for (const [path, content] of Object.entries(MY_STANDARDS)) {
+            replay.vfs.write(path, content);
+        }
+        for (const step of INTERMEDIATE_19.steps) {
             await replay.runHint(step);
             expect(step.check(await replay.stateFor()), step.id).toBe(true);
         }

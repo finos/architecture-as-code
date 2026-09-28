@@ -4,7 +4,7 @@ import {
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
     hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
     patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires, ranFailed, ranOk,
-    rejected, relationships, relationshipsOfKind, standardRequires, urlMappingEntries, urlMappingTargets,
+    rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries, urlMappingTargets,
     validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -805,5 +805,29 @@ describe('workspace file helpers', () => {
                 expect(linkedAdrs(state({ doc: bad as never }))).toEqual([]);
             }
         });
+    });
+});
+
+describe('standardExample', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+
+    it('gives a value for each required property: the given one, else by enum or type', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                {
+                    properties: { tier: { enum: ['gold', 'silver'] }, audited: { type: 'boolean' }, replicas: { type: 'integer' } },
+                    required: ['owner', 'tier', 'audited', 'replicas', 'team'],
+                },
+            ],
+            properties: { team: { type: 'string' } },
+        };
+        expect(standardExample(standard, 'node', { owner: 'payments', extra: 1 }))
+            .toEqual({ owner: 'payments', tier: 'gold', audited: true, replicas: 0, team: 'example' });
+    });
+
+    it('gives {} when the document is not a Standard for the named core definition', () => {
+        expect(standardExample({ allOf: [{ $ref: NODE_REF }, { required: ['owner'] }] }, 'relationship')).toEqual({});
+        expect(standardExample(null, 'node')).toEqual({});
     });
 });

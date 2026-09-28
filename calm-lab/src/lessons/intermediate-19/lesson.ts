@@ -1,5 +1,7 @@
-import { HOME_DIR, type Lesson, type LessonState } from '../types';
-import { fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardRequires, urlMappingEntries, urlMappingTargets } from '../checks';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
+import {
+    fileJson, nodes, patternArrayRefs, ranOk, rejected, relationships, standardExample, standardRequires, urlMappingEntries, urlMappingTargets,
+} from '../checks';
 import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
 
@@ -28,13 +30,6 @@ const COMPLIANT_SEED = `{
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
     "nodes": [],
     "relationships": []
-}
-`;
-
-const MAPPING_FILE = `{
-    "https://example.com/standards/company-node-standard.json": "standards/company-node-standard.json",
-    "https://example.com/standards/company-relationship-standard.json": "standards/company-relationship-standard.json",
-    "https://example.com/patterns/company-base-pattern.json": "patterns/company-base-pattern.json"
 }
 `;
 
@@ -101,9 +96,41 @@ const COMPLIANT_FILE = `{
 }
 `;
 
-const standardId = (state: LessonState, path: string): string | undefined => {
+const standardId = (state: HintFiles, path: string): string | undefined => {
     const id = fileJson(state, path)?.['$id'];
     return typeof id === 'string' && id.length > 0 ? id : undefined;
+};
+
+const relativeToHome = (path: string) => path.slice(HOME_DIR.length + 1);
+const json = (value: unknown) => `${JSON.stringify(value, null, 4)}\n`;
+
+// The hints follow the learner's Standards: the `$id`s and required properties the checks read.
+const TUTORIAL_NODE_ID = 'https://example.com/standards/company-node-standard.json';
+const TUTORIAL_RELATIONSHIP_ID = 'https://example.com/standards/company-relationship-standard.json';
+const TUTORIAL_BASE_ID = 'https://example.com/patterns/company-base-pattern.json';
+
+const mappingFile = (state: HintFiles) => json({
+    [standardId(state, NODE_STD) ?? TUTORIAL_NODE_ID]: relativeToHome(NODE_STD),
+    [standardId(state, RELATIONSHIP_STD) ?? TUTORIAL_RELATIONSHIP_ID]: relativeToHome(RELATIONSHIP_STD),
+    [standardId(state, BASE) ?? TUTORIAL_BASE_ID]: relativeToHome(BASE),
+});
+
+const baseFile = (state: HintFiles) => {
+    const base = JSON.parse(BASE_FILE) as { properties: Record<'nodes' | 'relationships', { items: { $ref: string } }> };
+    base.properties.nodes.items.$ref = standardId(state, NODE_STD) ?? TUTORIAL_NODE_ID;
+    base.properties.relationships.items.$ref = standardId(state, RELATIONSHIP_STD) ?? TUTORIAL_RELATIONSHIP_ID;
+    return json(base);
+};
+
+const compliantFile = (state: HintFiles) => {
+    const doc = JSON.parse(COMPLIANT_FILE) as { nodes: CalmDocLike[]; relationships: CalmDocLike[] };
+    const nodeStd = fileJson(state, NODE_STD);
+    const relationshipStd = fileJson(state, RELATIONSHIP_STD);
+    return json({
+        ...doc,
+        nodes: doc.nodes.map((node) => ({ ...node, ...standardExample(nodeStd, 'node', node) })),
+        relationships: doc.relationships.map((relationship) => ({ ...relationship, ...standardExample(relationshipStd, 'relationship', relationship) })),
+    });
 };
 
 /** The standard's `$id`, when the mapping sends it to the standard's own file. */
@@ -161,7 +188,7 @@ export const INTERMEDIATE_19: Lesson = {
                 'Your Standards have `$id` URLs that do not resolve yet. Open `url-mapping.json` from the File selector. ' +
                 'Map the `$id` of each Standard to its local file, with a path relative to the folder of `url-mapping.json`. ' +
                 'Each path must name a file that exists. Save your change.',
-            hint: { kind: 'file', path: MAPPING, content: MAPPING_FILE },
+            hint: { kind: 'file', path: MAPPING, content: mappingFile },
             check: mappingComplete,
         },
         {
@@ -171,7 +198,7 @@ export const INTERMEDIATE_19: Lesson = {
                 'Open `patterns/company-base-pattern.json`. Under `properties`, add `nodes` and `relationships` arrays. ' +
                 'Give each one an `items` schema that `$ref`s the `$id` of the matching Standard. ' +
                 'Use `items`, not `prefixItems`, so that the Standards apply to every node and relationship. Save your change.',
-            hint: { kind: 'file', path: BASE, content: BASE_FILE },
+            hint: { kind: 'file', path: BASE, content: baseFile },
             check: patternRefsStandards,
         },
         {
@@ -191,7 +218,7 @@ export const INTERMEDIATE_19: Lesson = {
                 'In `architectures/compliant-test.json`, add at least one node and one relationship between your nodes. ' +
                 'Give each node every property that your Node Standard requires, and give each relationship every property ' +
                 'that your Relationship Standard requires. Save your change.',
-            hint: { kind: 'file', content: COMPLIANT_FILE },
+            hint: { kind: 'file', content: compliantFile },
             check: compliant,
         },
         {
