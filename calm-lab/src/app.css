@@ -99,6 +99,17 @@ body { font-family: var(--ifm-font-family-base); background: var(--page-bg); }
     .navbar__link { padding: 0.25rem 0.5rem; }
 }
 
+/* Notice bar for an unknown ?lesson= id, styled like the navbar it sits under. */
+.app-notice {
+    flex: 0 0 auto;
+    margin: 0;
+    padding: 0.5rem 1rem;
+    background: var(--navbar-bg);
+    color: var(--navbar-muted);
+    font-size: 0.875rem;
+    box-shadow: var(--navbar-shadow);
+}
+
 /* Fallback for the boundary around the whole lab (src/ErrorBoundary.tsx). */
 .app-crash { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; padding: 32px; text-align: center; background: #0b1030; color: #c7d0f0; }
 .app-crash h1 { margin: 0; font-size: 20px; }

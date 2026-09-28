@@ -1,7 +1,6 @@
 package org.finos.calm.store.util;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 /**
  * Folds every accepted spelling of a version onto one canonical
@@ -9,9 +8,9 @@ import java.util.List;
  * document.
  *
  * <h2>Why this is needed now and wasn't before</h2>
- * {@code VERSION_REGEX} (see {@code ResourceValidationConstants}) makes both
- * separators optional: {@code ^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$}.
- * Six different request paths therefore denote version 1.0.0 — {@code 1.0.0},
+ * {@code VERSION_REGEX} makes both separators optional:
+ * {@code ^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$}. Six
+ * different request paths therefore denote version 1.0.0 — {@code 1.0.0},
  * {@code 1-0-0}, {@code 1.0-0}, {@code 1-0.0}, {@code 1.00} and {@code 100}
  * — and the API accepts all of them.
  *
@@ -34,29 +33,17 @@ import java.util.List;
  * the callers instead would mean seven resource types each having to
  * remember to do it.
  *
- * <h2>Why this isn't a regex</h2>
- * A single {@code Pattern} equivalent to {@code VERSION_REGEX} is exactly
- * what CodeQL's {@code java/polynomial-redos} query flags on uncontrolled
- * input: the three digit groups, each optionally un-separated from its
- * neighbours, give the backtracking engine multiple ways to partition a long
- * digit run between them. {@link #of} instead walks the string once, trying
- * each group's length longest-first and preferring a separator when one is
- * present — the same resolution order {@code Pattern}'s backtracking search
- * would settle on for this exact grammar, just written out directly instead
- * of left to the regex engine. That makes it a plain bounded search over at
- * most three groups, not a construct the redos query's regex-AST analysis
- * applies to at all, and it stays linear in the input length rather than
- * polynomial.
+ * <h2>Why this does not run the regex</h2>
+ * {@code VERSION_REGEX} remains the definition of what the API accepts, and
+ * this class must agree with it exactly. It does not <em>execute</em> it,
+ * though: with both separators optional, the two {@code [0-9]*} groups compete
+ * for the same digit run, so a match backtracks polynomially on input such as
+ * {@code 0111…1x} (CodeQL {@code java/polynomial-redos}). The parser below
+ * reproduces the regex's leftmost-greedy split in linear time instead.
+ * {@code TestCanonicalVersionShould} compares the two exhaustively over every
+ * short string, so the copies cannot drift apart unnoticed.
  */
 public final class CanonicalVersion {
-
-    private static final int GROUP_COUNT = 3;
-
-    // No real version is anywhere near this long. The search below is bounded and linear
-    // per level rather than regex-driven, but it's still a plain O(n^2) walk across the
-    // grammar's three groups - failing fast on a pathologically long input keeps that a
-    // non-issue regardless, rather than relying solely on the algorithm's own shape.
-    private static final int MAX_VERSION_LENGTH = 50;
 
     private CanonicalVersion() {
     }
@@ -64,90 +51,108 @@ public final class CanonicalVersion {
     /**
      * @param version any accepted spelling, or {@code null}
      * @return the {@code major.minor.patch} form. Input that doesn't match
-     * the version grammar (including {@code null} or a string longer than
-     * {@link #MAX_VERSION_LENGTH}) is returned unchanged: validation belongs
-     * to the resource layer, and a store that quietly rewrote unrecognised
-     * input would turn a rejectable request into a document stored under a
-     * version nobody asked for.
+     * {@code VERSION_REGEX} (including {@code null}) is returned unchanged:
+     * validation belongs to the resource layer, and a store that quietly
+     * rewrote unrecognised input would turn a rejectable request into a
+     * document stored under a version nobody asked for.
      */
     public static String of(String version) {
-        if (version == null || version.length() > MAX_VERSION_LENGTH) {
+        if (version == null) {
+            return null;
+        }
+        String[] segments = split(version);
+        if (segments == null) {
             return version;
         }
-        List<String> groups = split(version, 0, GROUP_COUNT);
-        if (groups == null) {
-            return version;
-        }
-        return String.join(".", groups);
+        return segments[0] + "." + segments[1] + "." + segments[2];
     }
 
     /**
-     * Finds the first (leftmost-longest) way to read exactly {@code groupsRemaining}
-     * groups from {@code s} starting at {@code pos}, consuming the string exactly to
-     * its end. Mirrors {@code Pattern}'s own backtracking order for
-     * {@code (0|[1-9][0-9]*)([-.]?(0|[1-9][0-9]*))*}: try the longest possible group
-     * first, and for a given group length prefer a separator to be present over
-     * absent, backtracking to shorter groups (and then to no separator) only when a
-     * later group can't otherwise be found.
+     * The three segments {@code VERSION_REGEX} would capture, or {@code null}
+     * where it would not match. Separators fix segment boundaries wherever
+     * they are present; where they are absent the regex's greedy quantifiers
+     * give the earlier segment as many digits as still leaves a valid segment
+     * for each later one, which is the order the loops below try.
      */
-    private static List<String> split(String s, int pos, int groupsRemaining) {
-        if (groupsRemaining == 0) {
-            return pos == s.length() ? new ArrayList<>() : null;
-        }
-        if (pos >= s.length()) {
+    private static String[] split(String version) {
+        String[] runs = digitRuns(version);
+        if (runs == null) {
             return null;
         }
-        char first = s.charAt(pos);
-        if (first < '0' || first > '9') {
-            return null;
-        }
+        return switch (runs.length) {
+            case 3 -> isSegment(runs[0]) && isSegment(runs[1]) && isSegment(runs[2]) ? runs : null;
+            case 2 -> splitTwoRuns(runs[0], runs[1]);
+            default -> splitOneRun(runs[0]);
+        };
+    }
 
-        int maxEnd;
-        if (first == '0') {
-            // "0" is the only valid group starting with '0' - a leading zero followed
-            // by more digits matches neither alternative in the grammar.
-            maxEnd = pos + 1;
-        } else {
-            int end = pos + 1;
-            while (end < s.length() && Character.isDigit(s.charAt(end))) {
-                end++;
-            }
-            maxEnd = end;
-        }
-
-        if (groupsRemaining == 1) {
-            // The last group must consume everything remaining - it's a single candidate
-            // (the whole digit run), not a range to search.
-            return maxEnd == s.length() ? List.of(s.substring(pos)) : null;
-        }
-
-        for (int end = maxEnd; end > pos; end--) {
-            String group = s.substring(pos, end);
-            if (end < s.length() && isSeparator(s.charAt(end))) {
-                List<String> rest = split(s, end + 1, groupsRemaining - 1);
-                if (rest != null) {
-                    return prepend(group, rest);
+    /** Digit runs between separators, or {@code null} for any character or shape the regex rejects. */
+    private static String[] digitRuns(String version) {
+        String[] runs = new String[3];
+        int count = 0;
+        int start = 0;
+        for (int i = 0; i <= version.length(); i++) {
+            boolean atEnd = i == version.length();
+            char c = atEnd ? '.' : version.charAt(i);
+            if (c == '.' || c == '-') {
+                if (i == start || count == 3) {
+                    return null;
                 }
+                runs[count++] = version.substring(start, i);
+                start = i + 1;
+            } else if (c < '0' || c > '9') {
+                return null;
             }
-            List<String> rest = split(s, end, groupsRemaining - 1);
-            if (rest != null) {
-                return prepend(group, rest);
+        }
+        return count == 3 ? runs : Arrays.copyOf(runs, count);
+    }
+
+    private static String[] splitTwoRuns(String first, String last) {
+        for (int end = first.length(); end >= 1; end--) {
+            if (!isSegment(first, 0, end)) {
+                continue;
             }
-            if (first == '0') {
-                break; // only one possible length ("0") was ever available here
+            if (end == first.length()) {
+                String[] tail = splitGreedy(last);
+                if (tail != null) {
+                    return new String[] {first, tail[0], tail[1]};
+                }
+            } else if (isSegment(first, end, first.length()) && isSegment(last)) {
+                return new String[] {first.substring(0, end), first.substring(end), last};
             }
         }
         return null;
     }
 
-    private static List<String> prepend(String group, List<String> rest) {
-        List<String> result = new ArrayList<>(rest.size() + 1);
-        result.add(group);
-        result.addAll(rest);
-        return result;
+    private static String[] splitOneRun(String run) {
+        for (int end = run.length() - 2; end >= 1; end--) {
+            if (!isSegment(run, 0, end)) {
+                continue;
+            }
+            String[] tail = splitGreedy(run.substring(end));
+            if (tail != null) {
+                return new String[] {run.substring(0, end), tail[0], tail[1]};
+            }
+        }
+        return null;
     }
 
-    private static boolean isSeparator(char c) {
-        return c == '-' || c == '.';
+    /** The longest valid leading segment that leaves a valid trailing segment, as the regex's greedy groups find it. */
+    private static String[] splitGreedy(String run) {
+        for (int end = run.length() - 1; end >= 1; end--) {
+            if (isSegment(run, 0, end) && isSegment(run, end, run.length())) {
+                return new String[] {run.substring(0, end), run.substring(end)};
+            }
+        }
+        return null;
+    }
+
+    private static boolean isSegment(String run) {
+        return isSegment(run, 0, run.length());
+    }
+
+    /** {@code 0|[1-9][0-9]*} over an all-digit range: non-empty, and no leading zero unless it is the single digit 0. */
+    private static boolean isSegment(String run, int from, int to) {
+        return to > from && (run.charAt(from) != '0' || to - from == 1);
     }
 }
