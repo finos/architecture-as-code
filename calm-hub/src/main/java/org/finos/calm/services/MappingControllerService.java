@@ -461,7 +461,10 @@ public class MappingControllerService {
                 }
                 throw e;
             }
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name + "/versions/" + finalVersion);
+            // The store folds the requested spelling to canonical form, so a Location built from
+            // finalVersion would not match the version GET .../versions lists.
+            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name
+                    + "/versions/" + CanonicalVersion.of(finalVersion));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating resource",

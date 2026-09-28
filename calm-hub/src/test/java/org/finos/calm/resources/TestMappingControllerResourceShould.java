@@ -1872,7 +1872,8 @@ public class TestMappingControllerResourceShould {
         .when()
                 .post("/calm/namespaces/finos/architectures/brand-new-2/versions/100-SNAPSHOT")
         .then()
-                .statusCode(201);
+                .statusCode(201)
+                .header("Location", containsString("/versions/1.0.0-SNAPSHOT"));
     }
 
     @Test
