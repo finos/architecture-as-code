@@ -167,6 +167,22 @@ describe('intermediate-20 lesson', () => {
         }
     });
 
+    it('uses a tutorial value in a hint only when the learner\'s Standard accepts it', async () => {
+        const replay = startReplay(INTERMEDIATE_20);
+        const restrict = (path: string, name: string, schema: Record<string, unknown>) => {
+            const json = JSON.parse(replay.vfs.read(path)!);
+            json.allOf[1].properties[name] = schema;
+            replay.vfs.write(path, JSON.stringify(json));
+        };
+        restrict(NODE_STD, 'costCenter', { type: 'string', pattern: '^[0-9]+$' });
+        restrict(NODE_STD, 'environment', { type: 'string', enum: ['dev', 'prod'] });
+        restrict(RELATIONSHIP_STD, 'dataClassification', { type: 'string', enum: ['low', 'high'] });
+        for (const step of INTERMEDIATE_20.steps) {
+            await replay.runHint(step);
+            expect(step.check(await replay.stateFor()), step.id).toBe(true);
+        }
+    });
+
     it('makes both validate steps stale when the architecture or a standard changes after the runs', async () => {
         const replay = startReplay(INTERMEDIATE_20);
         for (const step of INTERMEDIATE_20.steps) {

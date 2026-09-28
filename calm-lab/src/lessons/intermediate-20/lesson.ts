@@ -1,6 +1,6 @@
 import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
 import {
-    everyHas, fileJson, nodeById, nodes, prefixItemConsts, ranOk, relationships, standardExample, standardRequires,
+    everyHas, fileJson, nodeById, nodes, prefixItemConsts, ranOk, relationships, standardRequires, withStandard,
 } from '../checks';
 import { INTERMEDIATE_19 } from '../intermediate-19/lesson';
 import { NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
@@ -161,6 +161,9 @@ const RELATIONSHIPS_FILE = `{
 
 // The steps say to keep what the web application pattern fixes: each node's unique-id and node-type,
 // and each relationship's unique-id.
+// The end files of lesson 19: the Standards the tutorial values in the hints are for.
+const TUTORIAL = { files: endFiles(INTERMEDIATE_19) };
+
 // The file hints fill in the properties that the learner's Standards require, for the items each step is about.
 const withStandards = (file: string, relationshipsToo: boolean) => (state: HintFiles) => {
     const doc = JSON.parse(file) as { nodes: CalmDocLike[]; relationships: CalmDocLike[] };
@@ -168,9 +171,9 @@ const withStandards = (file: string, relationshipsToo: boolean) => (state: HintF
     const relationshipStd = fileJson(state, RELATIONSHIP_STD);
     return `${JSON.stringify({
         ...doc,
-        nodes: doc.nodes.map((node) => ({ ...node, ...standardExample(nodeStd, 'node', node) })),
+        nodes: doc.nodes.map((node) => withStandard(node, 'node', nodeStd, fileJson(TUTORIAL, NODE_STD))),
         relationships: relationshipsToo
-            ? doc.relationships.map((relationship) => ({ ...relationship, ...standardExample(relationshipStd, 'relationship', relationship) }))
+            ? doc.relationships.map((relationship) => withStandard(relationship, 'relationship', relationshipStd, fileJson(TUTORIAL, RELATIONSHIP_STD)))
             : doc.relationships,
     }, null, 4)}\n`;
 };
@@ -206,7 +209,7 @@ export const INTERMEDIATE_20: Lesson = {
     chainsFrom: 'intermediate-19',
     editorFile: GENERATED,
     editableFiles: [GENERATED, NODE_STD, RELATIONSHIP_STD],
-    seedFiles: endFiles(INTERMEDIATE_19),
+    seedFiles: TUTORIAL.files,
     steps: [
         {
             id: 'node-standards',
