@@ -56,9 +56,9 @@
             "description": "The identity provider service that issues access tokens to the directUrlAuth plugin."
         },
         {
-            "unique-id": "end-user-orgnization-idp",
+            "unique-id": "end-user-organization-idp",
             "node-type": "system",
-            "name": "End User Orgnization IDP",
+            "name": "End User Organization IdP",
             "description": "The end user organization identity provider system containing the Identity Provider service."
         }
     ],
@@ -77,11 +77,11 @@
             }
         },
         {
-            "unique-id": "end-user-orgnization-idp-composed-of",
+            "unique-id": "end-user-organization-idp-composed-of",
             "description": "Composed of the Identity Provider service",
             "relationship-type": {
                 "composed-of": {
-                    "container": "end-user-orgnization-idp",
+                    "container": "end-user-organization-idp",
                     "nodes": [
                         "end-user-identity-provider"
                     ]

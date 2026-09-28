@@ -793,7 +793,7 @@ Depending on the authentication/authorization requirements for the non-CALM Hub 
   - **`directUrlAuthAuthenticatedHosts`**: List of hostnames that require authentication headers.
 
 :::note
-Union of `allowedRemoteHosts` and `directUrlAuthAuthenticatedHosts` are hosts the `DirectDocumentLoader` are allowed to access.
+The `DirectUrlDocumentLoader` may access any host in the union of `allowedRemoteHosts` and `directUrlAuthAuthenticatedHosts`.
 :::
 
 ::::note

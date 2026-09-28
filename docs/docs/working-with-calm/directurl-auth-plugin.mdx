@@ -34,10 +34,7 @@ export default class DirectUrlAuthPlugin {
   }
 
   async getAuthHeaders(url, requestBody) {
-    if (!url.startsWith(AUTHORIZED_URL)) {
-        return {};
-    }
-
+ 
     // code to generate Bearer token
 
     return {
@@ -80,7 +77,7 @@ The module is loaded by the CALM CLI when direct URL authentication is configure
 
 The runtime flow is:
 
-![Illustrative Example Sequence Diagram](../../static/img/calm-cli/direct-url-authenticated-document-retrieval-1.png)
+![Illustrative Example Sequence Diagram](/img/calm-cli/direct-url-authenticated-document-retrieval-1.png)
 
 
 The local configuration file contains the token endpoint, client identifier, Vault endpoint, Vault token, secret path, and optional secret field name. The client secret is retrieved from Vault at runtime instead of being stored in the local configuration file. The module caches both the configuration read and the Vault request so concurrent document requests do not repeat the same work.
@@ -98,7 +95,7 @@ direct-url-auth-plugin/
 ├── package.json
 ├── tsconfig.json
 └── src/
-|   └── directurl-auth-plugin.ts
+|   └── direct-url-auth-plugin.ts
 └── dist/  (location for the built directUrlAuth plugin Javascript module)
 
 ```
@@ -107,7 +104,7 @@ direct-url-auth-plugin/
 ####  Direct URL Authentication Plugin
 
 :::note
-If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+If the end user organization writes the plugin in TypeScript,it must be compiled to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
 :::
 
 

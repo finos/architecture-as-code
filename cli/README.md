@@ -617,14 +617,13 @@ Usage: calm init-config [options]
 Create or update the CALM CLI configuration file (~/.calm.json).
 
 Options:
-  --allowed-remote-hosts <hosts>                     Comma-separated list of trusted remote hosts to allow for direct URL loading
-  --calm-hub-url <url>                               URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
-  --auth-plugin-path <path>                          Path to the CALM Hub authentication plugin
-  --direct-url-auth-module <path>                    Path to the direct URL authentication module
-  --direct-url-auth-config-path <path>               Optional config path for the direct URL authentication module
-  --direct-url-auth-authenticated-hosts <hosts>       Comma-separated hostnames requiring direct URL authentication
-  -h, --help                                         display help for command
-```
+  --allowed-remote-hosts <hosts>                 Comma-separated list of trusted remote hosts to allow for direct URL loading
+  --calm-hub-url <url>                           URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
+  --auth-plugin-path <path>                      Path to the CALM Hub authentication plugin
+  --direct-url-auth-module <path>                Optional path to the direct URL authentication plugin module
+  --direct-url-auth-config-path <path>           Optional config path for the direct URL authentication plugin module
+  --direct-url-auth-authenticated-hosts <hosts>  If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module
+  -h, --help                                     display help for command```
 
 ```shell
 calm init-config \
