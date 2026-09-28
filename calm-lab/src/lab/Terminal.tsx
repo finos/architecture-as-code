@@ -1,4 +1,4 @@
-import {useEffect, useRef, useState, type KeyboardEvent} from 'react';
+import {useEffect, useRef, useState, type ClipboardEvent, type KeyboardEvent} from 'react';
 import styles from './lab.module.css';
 import type {Line, CompletionResult} from '../shell';
 
@@ -68,8 +68,17 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}: T
         wasBusy.current = busy;
     }, [busy]);
 
-    const submit = async () => {
-        const value = input;
+    // Reset lesson remounts the terminal; a pasted batch must not keep running into the new session.
+    // Set on mount too: StrictMode unmounts and remounts once in development.
+    const mounted = useRef(true);
+    useEffect(() => {
+        mounted.current = true;
+        return () => {
+            mounted.current = false;
+        };
+    }, []);
+
+    const execute = async (value: string) => {
         const promptCwd = cwd;
         // Echo the command and a placeholder straight away — validation is async now, so the
         // result can be a tick or two behind the keystroke.
@@ -82,7 +91,6 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}: T
             setHistory((prev) => [...prev, value]);
         }
         historyPos.current = -1;
-        setInput('');
         setBusy(true);
         let result: Line[] = [];
         try {
@@ -98,6 +106,39 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}: T
         } else {
             setLines((prev) => [...prev.filter((line) => !line.pending), ...result]);
         }
+    };
+
+    const submit = () => {
+        const value = input;
+        setInput('');
+        void execute(value);
+    };
+
+    // A multi-line paste runs each complete line in order, as a shell does; the text after the
+    // last newline stays in the prompt. A single line pastes normally.
+    const handlePaste = (event: ClipboardEvent<HTMLInputElement>) => {
+        const text = event.clipboardData.getData('text');
+        if (!/\r?\n/.test(text)) {
+            return;
+        }
+        event.preventDefault();
+        if (busy) {
+            return;
+        }
+        const el = event.currentTarget;
+        const start = el.selectionStart ?? input.length;
+        const end = el.selectionEnd ?? start;
+        const lines = (input.slice(0, start) + text + input.slice(end)).split(/\r?\n/);
+        const rest = lines.pop() ?? '';
+        setInput(rest);
+        void (async () => {
+            for (const line of lines) {
+                if (!mounted.current) {
+                    return;
+                }
+                await execute(line);
+            }
+        })();
     };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
@@ -196,6 +237,7 @@ export default function Terminal({cwd, onRun, onComplete, chromeless = false}: T
                         value={input}
                         onChange={(event) => setInput(event.target.value)}
                         onKeyDown={handleKeyDown}
+                        onPaste={handlePaste}
                         disabled={busy}
                         spellCheck={false}
                         autoComplete="off"

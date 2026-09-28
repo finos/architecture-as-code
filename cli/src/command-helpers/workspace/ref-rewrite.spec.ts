@@ -8,6 +8,7 @@ import {
 } from './ref-rewrite';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
+import type { WorkspaceManifest } from './bundle';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const loadJson = async (p: string): Promise<any> => JSON.parse(await readFile(p, 'utf8'));
@@ -150,6 +151,32 @@ describe('ref-rewrite orchestrators', () => {
 
         const b = await loadJson(path.join(bundlePath, 'files', 'b.json'));
         expect(b.$schema.const).toBe(idAt('a', '1.1.0'));
+    });
+
+    it('excludes narrative entries from JSON reference rules and rewrites', async () => {
+        await write('a.json', { $id: idAt('a', '1.1.0'), title: 'A' });
+        const narrativePath = path.join(bundlePath, 'files', 'decision.md');
+        const narrativeContent = JSON.stringify({
+            $id: idAt('decision', '1.0.0'),
+            $ref: idAt('a', '1.0.0'),
+        });
+        await writeFile(narrativePath, narrativeContent, 'utf8');
+        const manifest: WorkspaceManifest = {
+            'a': { path: 'files/a.json', type: 'architecture' },
+            'decision': {
+                path: 'files/decision.md',
+                type: 'sad',
+                namespace: 'com.example',
+                version: '1.0.0',
+            },
+        };
+
+        const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+        const results = await syncReferences(bundlePath, manifest, rules);
+
+        expect(rules.map(rule => rule.bareId)).toEqual(['a']);
+        expect(results.map(result => result.docId)).toEqual(['a']);
+        expect(await readFile(narrativePath, 'utf8')).toBe(narrativeContent);
     });
 
     it('skips missing files and unparseable JSON when building rules and syncing', async () => {

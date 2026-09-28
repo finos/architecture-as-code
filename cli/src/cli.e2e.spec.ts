@@ -341,6 +341,18 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command reports timeline issues at their line in the timeline file', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-positions.json');
+
+        await expect(cli.run(['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
+        const parsedOutput = JSON.parse(fs.readFileSync(targetOutputFile, 'utf-8'));
+
+        expect(parsedOutput.jsonSchemaValidationOutputs[0]).toMatchObject({ path: '/moments/api-gateway-v2/valid-from', line_start: 19 });
+        expect(parsedOutput.spectralSchemaValidationOutputs[0]).toMatchObject({ path: '/current-moment', line_start: 3 });
+    });
+
     test('validate command rejects a timeline with no schema', async () => {
         const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/timeline/timeline-no-schema.json');
         const targetOutputFile = path.join(tempDir, 'validate-timeline-output3.json');
