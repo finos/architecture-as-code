@@ -94,6 +94,51 @@ describe('CollapsedRail', () => {
         expect(screen.getByText('calm')).toBeInTheDocument();
     });
 
+    it('opens the fly-out when the trigger is activated by keyboard or click', () => {
+        renderRail();
+        const finosInitial = screen.getByRole('button', { name: 'finos' });
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+
+        fireEvent.click(finosInitial);
+
+        expect(screen.getByText('calm')).toBeInTheDocument();
+    });
+
+    it('reopens after Escape, because Escape refocuses the trigger it just dismissed', () => {
+        renderRail();
+        const finosInitial = screen.getByRole('button', { name: 'finos' });
+        fireEvent.focus(finosInitial);
+        fireEvent.keyDown(screen.getByRole('link', { name: /calm/ }), { key: 'Escape' });
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+
+        fireEvent.click(finosInitial);
+
+        expect(screen.getByText('calm')).toBeInTheDocument();
+    });
+
+    it('carries the gap to the panel as padding on a descendant, not a margin on the panel', () => {
+        renderRail();
+        fireEvent.focus(screen.getByRole('button', { name: 'finos' }));
+
+        // A margin would sit outside the hover container, so crossing it fires mouseleave and
+        // unmounts the panel before the pointer arrives. jsdom has no geometry to catch that,
+        // so the structure is asserted instead.
+        const positioned = screen.getByText('calm').closest('.absolute') as HTMLElement;
+        expect(positioned.className).toContain('pl-1');
+        expect(positioned.className).not.toContain('ml-1');
+        expect(positioned.contains(screen.getByText('calm'))).toBe(true);
+    });
+
+    it('does not mark a group-only fly-out row as the active page', () => {
+        // barclays is group-only: only barclays.payments is a namespace.
+        renderRail('/namespace/barclays');
+        fireEvent.focus(screen.getByRole('button', { name: 'barclays' }));
+
+        const row = screen.getByText('barclays').closest('div') as HTMLElement;
+        expect(row.style.backgroundColor).toBe('');
+        expect(row.style.boxShadow).toBe('');
+    });
+
     it('caps the fly-out height so a deep subtree can scroll', () => {
         renderRail();
         fireEvent.focus(screen.getByRole('button', { name: 'finos' }));

@@ -167,6 +167,31 @@ describe('NamespaceRailItem', () => {
         expect(container.querySelectorAll('span[style*="border-left"]')).toHaveLength(6);
     });
 
+    it('does not give a grouping-only ancestor the active treatment', () => {
+        // platform is group-only: only platform.payments is a namespace.
+        const [platform] = buildNamespaceTree([nc('platform.payments', 4)]);
+        const { container } = render(
+            <MemoryRouter>
+                <NamespaceRailItem
+                    node={platform}
+                    depth={0}
+                    hasChildren
+                    collapsed={false}
+                    descendantTotal={4}
+                    active
+                    filtering={false}
+                    needle=""
+                    onToggleCollapsed={vi.fn()}
+                />
+            </MemoryRouter>
+        );
+
+        const row = container.firstElementChild as HTMLElement;
+        expect(row.style.backgroundColor).toBe('');
+        expect(row.style.boxShadow).toBe('');
+        expect(row.className).not.toContain('font-semibold');
+    });
+
     it('marks the active row with the accent treatment and aria-current', () => {
         renderItem({ active: true });
         const link = screen.getByRole('link', { name: 'finos.calm' });

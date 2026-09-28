@@ -57,14 +57,18 @@ export function NamespaceRailItem({
     const label = filtering ? node.path : node.segment;
     const labelContent = filtering ? highlight(label, needle) : label;
 
-    const rowStyle = active
+    // A grouping-only ancestor is not a destination, so it never reads as the current page even
+    // when its path matches the route. Only a real namespace takes the accent.
+    const showAsActive = active && namespaceRow;
+
+    const rowStyle = showAsActive
         ? { backgroundColor: colors.redesign.tintBg, boxShadow: redesignTokens.shadow.railAccent, transition: redesignTokens.transition }
         : { transition: redesignTokens.transition };
 
-    const labelStyle = active ? { color: colors.redesign.activeText } : { color: colors.redesign.bodyAlt };
+    const labelStyle = showAsActive ? { color: colors.redesign.activeText } : { color: colors.redesign.bodyAlt };
 
     return (
-        <div className={`flex items-center gap-1 pr-1.5 py-1 rounded-[7px] text-[13px] ${active ? 'font-semibold' : ''}`} style={rowStyle}>
+        <div className={`flex items-center gap-1 pr-1.5 py-1 rounded-[7px] text-[13px] ${showAsActive ? 'font-semibold' : ''}`} style={rowStyle}>
             <div className="flex items-center shrink-0" aria-hidden="true">
                 {Array.from({ length: depth }).map((_, i) => (
                     <span key={i} style={{ display: 'inline-block', width: INDENT_STEP, height: 20, borderLeft: `1px solid ${colors.redesign.border}` }} />

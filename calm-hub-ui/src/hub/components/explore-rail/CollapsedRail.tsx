@@ -32,8 +32,8 @@ function FlyoutRow({ node, depth, active }: { node: NamespaceTreeNode; depth: nu
             className="flex items-center gap-1 px-2 py-1 rounded-[7px] text-[13px]"
             style={{
                 paddingLeft: 8 + indentFor(depth),
-                backgroundColor: active ? colors.redesign.tintBg : undefined,
-                boxShadow: active ? redesignTokens.shadow.railAccent : undefined,
+                backgroundColor: active && namespaceRow ? colors.redesign.tintBg : undefined,
+                boxShadow: active && namespaceRow ? redesignTokens.shadow.railAccent : undefined,
             }}
         >
             {namespaceRow ? (
@@ -96,6 +96,10 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 aria-label={root.path}
                 aria-haspopup="true"
                 aria-expanded={isOpen}
+                onClick={() => {
+                    dismissedRef.current = false;
+                    onOpen();
+                }}
                 className="flex items-center justify-center font-semibold text-[13px] rounded-[7px] border-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]"
                 style={{
                     width: 32,
@@ -110,20 +114,26 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
             </button>
 
             {isOpen && (
-                <div
-                    className="absolute top-0 left-full ml-1 flex flex-col gap-0.5 p-1.5 rounded-[12px] z-50"
-                    style={{
-                        width: 220,
-                        maxHeight: '60vh',
-                        overflowY: 'auto',
-                        backgroundColor: colors.redesign.surface,
-                        border: `1px solid ${colors.redesign.border}`,
-                        boxShadow: redesignTokens.shadow.floating,
-                    }}
-                >
-                    {rows.map((row) => (
-                        <FlyoutRow key={row.node.path} node={row.node} depth={row.depth} active={row.node.path === activeNamespace} />
-                    ))}
+                // The gap between trigger and panel is padding on this wrapper rather than a
+                // margin on the panel. A margin sits outside the container, so crossing it puts
+                // the pointer over a non-descendant and fires mouseleave before the panel is
+                // reached. As padding it stays part of the hit area.
+                <div className="absolute top-0 left-full pl-1 z-50">
+                    <div
+                        className="flex flex-col gap-0.5 p-1.5 rounded-[12px]"
+                        style={{
+                            width: 220,
+                            maxHeight: '60vh',
+                            overflowY: 'auto',
+                            backgroundColor: colors.redesign.surface,
+                            border: `1px solid ${colors.redesign.border}`,
+                            boxShadow: redesignTokens.shadow.floating,
+                        }}
+                    >
+                        {rows.map((row) => (
+                            <FlyoutRow key={row.node.path} node={row.node} depth={row.depth} active={row.node.path === activeNamespace} />
+                        ))}
+                    </div>
                 </div>
             )}
         </div>
