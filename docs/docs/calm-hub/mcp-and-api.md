@@ -57,6 +57,85 @@ GET  /calm/namespaces/{namespace}/architectures
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
+### Finding the architectures that implement a pattern
+
+```
+GET /calm/namespaces/{namespace}/patterns/{name}/versions/{version}/implementations
+```
+
+Use this before you change a pattern. It shows which architectures depend on the version you are about to change.
+
+```jsonc
+{
+  "pattern": { "namespace": "finos", "name": "api-gateway", "version": "1.0.0" },
+  "implementations": [
+    { "namespace": "finos", "architectureId": 7, "version": "1.2.0", "customId": "trade-capture" }
+  ]
+}
+```
+
+#### How the link is recorded
+
+An architecture names its pattern in its own `$schema` field. `calm generate` copies the pattern's `$id` into that field:
+
+```jsonc
+// the pattern, fetched from CalmHub
+{ "$id": "https://your-hub/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0", ... }
+
+// the architecture generated from it
+{ "$schema": "https://your-hub/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0", ... }
+```
+
+The endpoint therefore finds an architecture only when someone generated it from a pattern **fetched from this hub**.
+
+Three cases produce no match:
+
+| How the architecture was made | What `$schema` holds |
+|:---|:---|
+| Generated from a pattern file on disk | That file's own `$id`, such as `https://calm.finos.org/getting-started/conference-signup.pattern.json` |
+| Written by hand | Whatever the author supplied, often the CALM meta-schema |
+| Posted to `/api/calm/...` | Whatever the caller supplied |
+
+CalmHub does not check `$schema` on either API. It accepts all three.
+
+#### What an empty list means
+
+An empty list has two readings, and the endpoint does not separate them. Either nothing implements the pattern, or the architectures that do were never recorded in a way the hub can resolve. Check how your architectures are produced before you read an empty result as "safe to change".
+
+The endpoint deliberately reports no count of unresolvable architectures. Such a count would cover every namespace you can read, because an architecture in one namespace can implement a pattern in another. It would therefore be the same number for every pattern you ask about. That makes it a fact about the hub, not about the pattern.
+
+#### Behaviours to know
+
+The hub compares only the path of the `$schema`, never the host. References therefore keep working after the hub moves to a new address.
+
+The match is pinned to one pattern version. Architectures on version 2.0.0 do not appear when you ask about 1.0.0.
+
+Any spelling of the version works. CalmHub accepts `1.0.0`, `1-0-0` and `100` as the same version, and a stored `$schema` can carry any of them. The endpoint matches them all and echoes the canonical `1.0.0` form back to you.
+
+A pattern version that does not exist returns `404`, not an empty list. So an empty `implementations` array always means the version exists and nothing records it.
+
+#### Limiting the results
+
+The endpoint returns every match by default. Add `limit` and `offset` to page through them:
+
+```
+GET /calm/namespaces/finos/patterns/api-gateway/versions/1.0.0/implementations?limit=20&offset=40
+```
+
+There is no cap when you omit `limit`. A truncated list would read as a small blast radius, so the endpoint never shortens one you did not ask to shorten.
+
+#### Cost
+
+The hub answers this on demand and caches nothing. Each call reads the architecture versions you are allowed to see, and compares the `$schema` of each one. No index covers that comparison, because MongoDB does not index a field whose name starts with `$`.
+
+Your permissions decide how much the hub reads. An index selects the namespaces you can read, and the comparison runs over those documents only. If you can read every namespace, through public read or `GLOBAL admin`, then every architecture is in scope and the hub reads all of them.
+
+The cost therefore grows with the size of your hub. It measured 1.4ms over 3000 architecture versions, so it is not a concern at that size.
+
+#### The fields in a result
+
+`architectureId` addresses the architecture on the numeric-id API. `customId` is the name it is addressed by on the name-based API. `customId` is absent for an architecture created through the numeric-id API, because that architecture never had a name. Use `architectureId` for those.
+
 ### Access Control
 
 Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.
