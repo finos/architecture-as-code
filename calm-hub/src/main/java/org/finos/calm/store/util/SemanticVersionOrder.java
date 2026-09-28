@@ -68,20 +68,8 @@ public final class SemanticVersionOrder {
     }
 
     /**
-     * Resolves "latest" the way every READ consumer expects: the highest release, falling back
-     * to the highest snapshot only when no release exists yet.
-     *
-     * <p>{@link #ASCENDING} ranks a snapshot immediately below the release it belongs to, but the
-     * highest-ranked version overall is still whichever of the two has the higher version number —
-     * so once a snapshot's version number exceeds the newest release (e.g. {@code 1.1.0-SNAPSHOT}
-     * past a published {@code 1.0.0}), taking that would serve unpublished work as "latest".
-     * Maven distinguishes {@code LATEST} (includes snapshots) from {@code RELEASE} (published
-     * only); this always resolves to the {@code RELEASE} sense.</p>
-     *
-     * <p>A single linear pass tracking the running max release and the running max overall (the
-     * fallback), rather than sorting: version lists are small, but this is the read path behind
-     * every "get latest" endpoint, so it never allocates or does more than one comparison per
-     * entry.</p>
+     * The highest release, or the highest snapshot if nothing has been released yet.
+     * A snapshot never shadows an existing release as "latest".
      *
      * @return the resolved version, or {@code null} if {@code versions} is null or empty.
      */
@@ -100,7 +88,6 @@ public final class SemanticVersionOrder {
                 bestRelease = version;
             }
         }
-        // Every version is a snapshot — nothing has been published yet.
         return bestRelease != null ? bestRelease : bestOverall;
     }
 }

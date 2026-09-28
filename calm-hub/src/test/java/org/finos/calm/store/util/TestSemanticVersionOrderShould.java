@@ -155,8 +155,6 @@ class TestSemanticVersionOrderShould {
 
     @Test
     void resolve_latest_release_to_the_highest_release_even_when_a_snapshot_ranks_higher() {
-        // The whole reason this method exists: an in-progress 1.1.0-SNAPSHOT must not shadow
-        // the published 1.0.0 release for a READ consumer resolving "latest".
         assertThat(SemanticVersionOrder.latestRelease(List.of("1.0.0", "1.1.0-SNAPSHOT")), is("1.0.0"));
     }
 

@@ -37,14 +37,12 @@ import java.util.List;
  * Architecture versions are projected into moments ordered as follows:
  * <ol>
  *   <li>Versions that parse as valid semver are sorted ascending by semver first, with a
- *       snapshot placed immediately before the release it belongs to.</li>
+ *       snapshot immediately before its release.</li>
  *   <li>Versions that are not valid semver keep their original storage order and are
  *       appended after the semver-ordered versions.</li>
  * </ol>
- * {@code current-moment} is the last <em>non-snapshot</em> moment in the resulting order (the
- * highest release, or — if all versions are non-semver — the last in storage order), falling
- * back to the last moment overall only when every version is a snapshot (nothing published
- * yet). Otherwise an in-progress snapshot past the newest release would become "current".
+ * {@code current-moment} is the last non-snapshot moment in that order, falling back to the
+ * last moment overall only if every version is a snapshot.
  */
 @ApplicationScoped
 public class ArchitectureTimelineService {
@@ -182,10 +180,8 @@ public class ArchitectureTimelineService {
      * therefore classify versions explicitly using {@link Semver#parse(String)} (which throws on
      * non-semver input) before sorting.</p>
      *
-     * <p>Sorting uses {@link SemanticVersionOrder#ASCENDING} rather than plain {@code Semver}
-     * comparison so that a snapshot and the release it belongs to — which {@code Semver} treats
-     * as equal, since it strips the suffix — get a defined relative order (snapshot first)
-     * instead of an arbitrary one left to sort stability.</p>
+     * <p>Sorts with {@link SemanticVersionOrder#ASCENDING} rather than plain {@code Semver}
+     * comparison, so a snapshot always orders before its release.</p>
      */
     private List<String> orderVersions(List<String> versions) {
         List<String> semverVersions = new ArrayList<>();
@@ -206,12 +202,7 @@ public class ArchitectureTimelineService {
         return ordered;
     }
 
-    /**
-     * The last non-snapshot version in {@code orderedVersions} (typically the highest release,
-     * or the last non-semver entry in storage order if the history is entirely non-semver),
-     * falling back to the very last version only when every entry is a snapshot — i.e. nothing
-     * has been published yet. See the class javadoc's ordering rule.
-     */
+    /** The last non-snapshot version in {@code orderedVersions}, or the last version if all are snapshots. */
     private String currentMoment(List<String> orderedVersions) {
         for (int i = orderedVersions.size() - 1; i >= 0; i--) {
             String version = orderedVersions.get(i);
