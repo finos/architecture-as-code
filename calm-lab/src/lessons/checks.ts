@@ -31,15 +31,30 @@ export function completeNodes(doc: CalmDocLike | null | undefined): Item[] {
 const typeOf = (doc: CalmDocLike | null | undefined, id: unknown) => nodeById(doc, id)?.['node-type'];
 
 function relationshipsOf(doc: CalmDocLike | null | undefined, kind: string): Item[] {
-    return relationships(doc)
-        .map((relationship) => (relationship['relationship-type'] as Item | null | undefined)?.[kind])
-        .filter((detail): detail is Item => typeof detail === 'object' && detail !== null);
+    return relationshipsOfKind(doc, kind).map((relationship) => (relationship['relationship-type'] as Item)[kind] as Item);
+}
+
+/** Relationships whose `relationship-type` has the given kind (e.g. `connects`, `interacts`). */
+export function relationshipsOfKind(doc: CalmDocLike | null | undefined, kind: string): Item[] {
+    return relationships(doc).filter((relationship) => {
+        const detail = (relationship['relationship-type'] as Item | null | undefined)?.[kind];
+        return typeof detail === 'object' && detail !== null;
+    });
 }
 
 export function connectsBetween(doc: CalmDocLike | null | undefined, sourceType: string, destinationType: string): boolean {
     return relationshipsOf(doc, 'connects').some((connects) =>
         typeOf(doc, (connects.source as Item | undefined)?.node) === sourceType &&
         typeOf(doc, (connects.destination as Item | undefined)?.node) === destinationType);
+}
+
+/** The `connects` relationships from a node of `sourceType` to a node of `destinationType`. */
+export function connectsRelationshipsBetween(doc: CalmDocLike | null | undefined, sourceType: string, destinationType: string): Item[] {
+    return relationshipsOfKind(doc, 'connects').filter((relationship) => {
+        const connects = (relationship['relationship-type'] as Item)['connects'] as Item;
+        return typeOf(doc, (connects.source as Item | undefined)?.node) === sourceType &&
+            typeOf(doc, (connects.destination as Item | undefined)?.node) === destinationType;
+    });
 }
 
 /** A `connects` from the node with id `sourceId` to the node with id `destinationId`; both nodes must exist. */
@@ -96,6 +111,15 @@ export function connectsUsesInterfaces(doc: CalmDocLike | null | undefined, sour
         }
         return referencesAnInterfaceOf(sourceNode, source?.interfaces) && referencesAnInterfaceOf(destinationNode, destination?.interfaces);
     });
+}
+
+const isNonEmptyObject = (value: unknown): value is Item =>
+    typeof value === 'object' && value !== null && !Array.isArray(value) && Object.keys(value).length > 0;
+
+/** `metadata` on a document, node or relationship: a non-empty object, or a non-empty array of non-empty objects. */
+export function hasMetadata(item: Item | null | undefined): boolean {
+    const value = item?.['metadata'];
+    return Array.isArray(value) ? value.length > 0 && value.every(isNonEmptyObject) : isNonEmptyObject(value);
 }
 
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
