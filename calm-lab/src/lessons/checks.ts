@@ -244,6 +244,37 @@ export function patternConnects(json: CalmDocLike | null | undefined): ({ source
     });
 }
 
+const CORE_DEF_REF: Record<'node' | 'relationship', string> = {
+    node: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node',
+    relationship: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship',
+};
+
+/**
+ * The `required` property names a Standard adds on top of a CALM core definition: the union of
+ * every `allOf` entry's `required` array, plus the document's own top-level `required` array
+ * (both are valid JSON Schema and have the same effect), when at least one `allOf` entry `$ref`s
+ * the core definition named by `coreDef` (`'node'` or `'relationship'`). `[]` when no entry has
+ * that `$ref`, or the document is not shaped like a Standard.
+ */
+export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship'): string[] {
+    const allOf = items(json?.['allOf']);
+    if (!allOf.some((entry) => entry['$ref'] === CORE_DEF_REF[coreDef])) {
+        return [];
+    }
+    const required = new Set<string>();
+    for (const entry of [...allOf, json]) {
+        const list = entry?.['required'];
+        if (Array.isArray(list)) {
+            for (const name of list) {
+                if (isNonEmptyString(name)) {
+                    required.add(name);
+                }
+            }
+        }
+    }
+    return [...required];
+}
+
 /** A non-empty string `description` on a document, node or relationship. */
 export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
 

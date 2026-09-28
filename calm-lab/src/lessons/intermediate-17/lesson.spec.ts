@@ -210,7 +210,10 @@ describe('intermediate-17 lesson', () => {
         expect(generate.check(await replay.stateFor())).toBe(false);
     });
 
-    it('has no completion links yet', () => {
-        expect(INTERMEDIATE_17.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(INTERMEDIATE_17.completion.links).toContainEqual({
+            to: '?lesson=intermediate-18',
+            label: 'Next lesson: Organizational standards',
+        });
     });
 });
