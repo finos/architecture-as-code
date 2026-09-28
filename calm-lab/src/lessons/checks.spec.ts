@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-    completeNodes, composedOf, connectsBetween, connectsNodes, freshOutcomes, interactsWith, nodeById, nodes,
-    nodesOfType, ranFailed, ranOk, relationships, validatedEditorFile,
+    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
+    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -40,6 +40,8 @@ describe('document helpers', () => {
 
     it('match relationships by the types of the nodes they join', () => {
         expect(connectsBetween(doc, 'service', 'database')).toBe(true);
+        expect(connectsRelationshipsBetween(doc, 'service', 'database')).toHaveLength(1);
+        expect(connectsRelationshipsBetween(doc, 'database', 'service')).toEqual([]);
         expect(connectsBetween(doc, 'database', 'service')).toBe(false);
         expect(interactsWith(doc, 'actor', 'service')).toBe(true);
         expect(interactsWith(doc, 'actor', 'database')).toBe(false);
@@ -87,6 +89,127 @@ describe('completeNodes', () => {
             ],
         };
         expect(completeNodes(mixed)).toHaveLength(1);
+    });
+});
+
+describe('nodeInterfaces', () => {
+    it('matches interface items with a non-empty string unique-id', () => {
+        const node = { interfaces: [{ 'unique-id': 'api', protocol: 'HTTPS' }, { protocol: 'HTTPS' }, { 'unique-id': '' }] };
+        expect(nodeInterfaces(node).map((iface) => iface['unique-id'])).toEqual(['api']);
+    });
+
+    it('does not match when there are no usable interfaces', () => {
+        expect(nodeInterfaces({ interfaces: [] })).toEqual([]);
+        expect(nodeInterfaces({ interfaces: [{ protocol: 'HTTPS' }] })).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped node', () => {
+        for (const bad of [null, undefined, {}, { interfaces: 'x' }, { interfaces: [null, 3] }]) {
+            expect(nodeInterfaces(bad as never)).toEqual([]);
+        }
+    });
+});
+
+describe('connectsUsesInterfaces', () => {
+    const withInterfaces = {
+        nodes: [
+            { 'unique-id': 'svc', 'node-type': 'service', interfaces: [{ 'unique-id': 'svc-api' }] },
+            { 'unique-id': 'db', 'node-type': 'database', interfaces: [{ 'unique-id': 'db-jdbc' }] },
+        ],
+        relationships: [
+            {
+                'unique-id': 'r1',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'svc', interfaces: ['svc-api'] },
+                        destination: { node: 'db', interfaces: ['db-jdbc'] },
+                    },
+                },
+            },
+        ],
+    };
+
+    it('matches a connects whose ends each reference one of that node\'s interfaces', () => {
+        expect(connectsUsesInterfaces(withInterfaces, 'service', 'database')).toBe(true);
+    });
+
+    it('does not match when the connects names no interfaces', () => {
+        const noInterfaces = {
+            ...withInterfaces,
+            relationships: [{
+                'unique-id': 'r1',
+                'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'db' } } },
+            }],
+        };
+        expect(connectsUsesInterfaces(noInterfaces, 'service', 'database')).toBe(false);
+        expect(connectsUsesInterfaces(withInterfaces, 'database', 'service')).toBe(false);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { nodes: 'x' }, { relationships: [{ 'relationship-type': null }] }]) {
+            expect(connectsUsesInterfaces(bad as never, 'service', 'database')).toBe(false);
+        }
+    });
+
+    it('does not match a dangling interface id: named on the relationship but absent from the node', () => {
+        const dangling = {
+            ...withInterfaces,
+            relationships: [{
+                'unique-id': 'r1',
+                'relationship-type': {
+                    connects: {
+                        source: { node: 'svc', interfaces: ['does-not-exist'] },
+                        destination: { node: 'db', interfaces: ['db-jdbc'] },
+                    },
+                },
+            }],
+        };
+        expect(connectsUsesInterfaces(dangling, 'service', 'database')).toBe(false);
+    });
+});
+
+describe('hasMetadata', () => {
+    it('matches a non-empty metadata object', () => {
+        expect(hasMetadata({ metadata: { owner: 'team' } })).toBe(true);
+    });
+
+    it('matches a non-empty array of non-empty metadata objects', () => {
+        expect(hasMetadata({ metadata: [{ key: 'owner', value: 'team' }] })).toBe(true);
+    });
+
+    it('does not match an empty object, an empty array, or an array containing an empty object', () => {
+        expect(hasMetadata({ metadata: {} })).toBe(false);
+        expect(hasMetadata({ metadata: [] })).toBe(false);
+        expect(hasMetadata({ metadata: [{ key: 'owner', value: 'team' }, {}] })).toBe(false);
+    });
+
+    it('never throws on a partial or wrong-shaped item', () => {
+        for (const bad of [null, undefined, {}, { metadata: null }, { metadata: 'x' }, { metadata: 3 }, { metadata: [null, 3] }]) {
+            expect(hasMetadata(bad as never)).toBe(false);
+        }
+    });
+});
+
+describe('relationshipsOfKind', () => {
+    const doc2 = {
+        relationships: [
+            { 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'db' } } }, metadata: { latency: '< 50ms' } },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } },
+        ],
+    };
+
+    it('matches relationships whose relationship-type has that kind', () => {
+        expect(relationshipsOfKind(doc2, 'connects').map((rel) => rel['unique-id'])).toEqual(['r1']);
+    });
+
+    it('does not match when no relationship has that kind', () => {
+        expect(relationshipsOfKind(doc2, 'deployed-in')).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { relationships: 'x' }, { relationships: [{ 'relationship-type': null }] }, { relationships: [{ 'relationship-type': { connects: 'x' } }] }]) {
+            expect(relationshipsOfKind(bad as never, 'connects')).toEqual([]);
+        }
     });
 });
 
