@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith,
-    linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships,
+    linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, rejected,
+    relationships,
     relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -356,6 +357,31 @@ describe('command outcomes', () => {
         expect(ranOk(s, 'diff')).toBe(false);
         expect(ranFailed(s, 'diff', { documentB: '/workspace/b.json' })).toBe(true);
         expect(validatedEditorFile(s)).toBe(true);
+    });
+});
+
+describe('rejected', () => {
+    const files = { architecture: '/workspace/a.json', pattern: '/workspace/p.json' };
+    const failed = (over: Partial<CommandOutcome>) => outcome({ files, ok: false, errorCount: 2, loadFailures: 0, ...over });
+
+    it('accepts a validate whose every error is in the architecture', () => {
+        expect(rejected(state([failed({ errorsIn: { architecture: 2 } })]), files)).toBe(true);
+        expect(rejected(state([failed({ errorsIn: { architecture: 2 } })]), { architecture: '/workspace/b.json' })).toBe(false);
+    });
+
+    it.each([
+        ['a pattern error', { errorsIn: { architecture: 1, pattern: 1 } }],
+        ['only pattern errors', { errorsIn: { pattern: 2 } }],
+        ['an error from another source', { errorsIn: { architecture: 1, other: 1 } }],
+        ['a $ref that failed to load', { errorsIn: { architecture: 2 }, loadFailures: 1 }],
+        ['no per-source counts', {}],
+    ])('does not accept a failure with %s', (_, over: Partial<CommandOutcome>) => {
+        expect(rejected(state([failed(over)]), files)).toBe(false);
+    });
+
+    it('does not accept a passing validate or another command', () => {
+        expect(rejected(state([outcome({ files, errorsIn: {}, loadFailures: 0 })]), files)).toBe(false);
+        expect(rejected(state([failed({ command: 'diff', errorsIn: { architecture: 2 } })]), files)).toBe(false);
     });
 });
 

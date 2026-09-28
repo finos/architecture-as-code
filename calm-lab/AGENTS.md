@@ -51,10 +51,10 @@ shim here.
 
 | Path | What it is |
 | --- | --- |
-| `src/engine.ts` | `validateArchitecture` / `parseJson` on `@finos/calm-shared/browser` |
+| `src/engine.ts` | `validateArchitecture`, `validateOutcome`, `generateArchitecture` on `@finos/calm-shared/browser` |
 | `src/schemas.ts` | The CALM meta-schemas, imported from `calm/` and keyed by `$id` |
 | `src/shell.ts` | The terminal's command interpreter; dispatches `calm` subcommands to `src/cli/` |
-| `src/cli/` | CLI-compatible `calm validate`/`calm diff`: argument parsing, output and error text |
+| `src/cli/` | CLI-compatible `calm validate`/`calm generate`/`calm diff`: argument parsing, output and error text |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
 | `src/App.tsx` | Page frame — replaces the Docusaurus `Layout` |
 | `src/ErrorBoundary.tsx` | Class boundary wrapping the lab and, keyed on the document, the diagram |
@@ -63,7 +63,9 @@ shim here.
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
-repo, so the lab and the spec can never drift.
+repo, so the lab and the spec can never drift. A command with `-u` gets its own `SchemaDirectory`
+(`schemaDirectoryWith`): the mapped workspace files first (`src/cli/files.ts`), then the bundled
+schemas. Mapped paths resolve against the mapping file's directory, as in the CLI.
 
 ## The async rule
 
@@ -93,11 +95,22 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
   inline JSON walking in a lesson. Helpers must never throw on a half-edited document.
 - A check reads state (`doc`, `validation`, `commands`, `files`), never event order. For "run X after
   the last change", use `ranOk`/`ranFailed` — stale outcomes are already filtered out.
+- A "see it fail" validate step checks `rejected(state, files)`, never `ranFailed`. `ranFailed`
+  accepts a missing mapped file or a broken pattern; `rejected` needs a validate whose errors are
+  all in the architecture (`errorsIn.architecture === errorCount`) and no `$ref` load failure.
 - A check reads a file other than the editor file only through `fileText`, `fileJson` or
   `markdownSection`. They see the saved text and never throw.
 - A file hint is the complete target file, never a fragment.
-- Every `calm` command in the step copy, hints or completion message must be one the lab
-  runs (`validate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
+- A hint command that must fail is `{ run, expect: 'failure' }`. It passes only on a validate that
+  `isRejection` accepts (the rule `rejected` uses), so a typo in a path or a broken pattern still
+  fails the invariants. A plain command must not fail either. The copy scan runs after every hint, so a
+  command that a hint expects to fail may pass there, when a later step fixed the input. The scan
+  matches those commands by their exact text: copy that writes the command differently (extra
+  spaces, another option order) is checked as a plain command.
+- `endFiles(lesson)` applies only file hints. A file that a command writes (`calm generate -o`) is
+  not in it, so a chained lesson seeds that file itself.
+- Every `calm` command in the summary, step copy, hints or completion message must be one the lab
+  runs (`validate`, `generate`, `diff`, `help`), with arguments its shell accepts. The invariants spec runs each
   one; do not weaken it to make a lesson pass.
 - A lesson that continues another sets `chainsFrom` and builds its seed from `endFiles(previous)`,
   imported from `src/lessons/chain.ts` (importing it from `index.ts` creates a circular import back
@@ -113,7 +126,7 @@ checked for cycles, and every value that reaches React or `.toLowerCase()` goes 
 
 ## Commands the lab does not run
 
-`src/shell.ts` dispatches `calm validate` and `calm diff` to `src/cli/`. Those files accept exactly
+`src/shell.ts` dispatches `calm validate`, `calm generate` and `calm diff` to `src/cli/`. Those files accept exactly
 the CLI's syntax: `src/cli/options.ts` parses arguments like commander, from the option table in
 `BROWSER_COMMAND_SUPPORT` (`shared/src/browser-capabilities.ts`). `cli/src/browser-manifest.spec.ts`
 fails when that table and the CLI disagree, so never hard-code flags, choices or descriptions here.
@@ -122,8 +135,31 @@ Output is the CLI's own text, pinned in `src/cli/*.spec.ts` from the real CLI. W
 output changes, re-capture it and update the specs. The only lab-specific text is
 `unsupportedInLab` (a command or option the browser cannot run) and the lab-labelled help.
 
-Known difference: `diffDocuments` logs "Skipped N node(s)…" warnings to the browser console, not
-the terminal.
+`calm generate -o` writes a workspace file. `Lab.tsx` then shows the new text of the open file,
+unless the editor has unsaved edits (they win on Save, as in any editor), and marks a hidden diagram
+as updated. A pattern with options needs an interactive prompt in the CLI; the lab prints a note
+instead and writes nothing. A generate outcome has `ok: true` only when the command wrote an
+architecture: a `generate()` error and an output path that is a directory both send `ok: false`
+and `errorCount: 1`.
+A load error for the pattern (or the `-u` file) sends no outcome.
+
+Shared code logs through the browser console, so the terminal shows only the log lines the lab
+writes itself. For a pattern `$ref` that fails to load, `src/cli/files.ts` records the failure in
+its loaders and prints the CLI's three lines (`multi-strategy-document-loader`,
+`json-schema-validator`, and `calm-validate` when an architecture is checked) before the report.
+
+Known differences:
+
+- `diffDocuments` logs "Skipped N node(s)…" warnings to the browser console, not the terminal.
+- With `-p`, the CLI's file loader looks for a relative path in the pattern's directory first. The
+  lab resolves every path from the working directory.
+- The lab never downloads. A `$ref` to an http(s) URL that no `-u` mapping covers fails with the
+  CLI's message for a host outside its default allowlist, and the CLI's log lines. For
+  `calm.finos.org`, which the CLI allows by default, the lab prints its own note (only a schema the
+  lab does not bundle gets there).
+- `calm validate -a` without `-p` does not load the pattern named in the architecture's `$schema`.
+- A pattern with no `$id` and a relative `$ref` fails with `Not a valid absolute URL` in the lab.
+  The CLI resolves the `$ref` against the pattern's directory.
 
 ## Node 26 storage rule
 

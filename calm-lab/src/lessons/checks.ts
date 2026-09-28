@@ -263,7 +263,22 @@ function matching(state: LessonState, command: OutcomeCommand, files: Record<str
 export const ranOk = (state: LessonState, command: OutcomeCommand, files?: Record<string, string>) =>
     matching(state, command, files).some((outcome) => outcome.ok);
 
+/** Any failed run, whatever the cause. For a "see it fail" validate step, use `rejected`. */
 export const ranFailed = (state: LessonState, command: OutcomeCommand, files?: Record<string, string>) =>
     matching(state, command, files).some((outcome) => !outcome.ok);
+
+/**
+ * A validate that failed because of the architecture alone: every error is in the architecture,
+ * and no pattern error or `$ref` load failure (a missing mapped file, a broken pattern) caused it.
+ */
+export function isRejection(outcome: CommandOutcome): boolean {
+    const architectureErrors = outcome.errorsIn?.architecture ?? 0;
+    return outcome.command === 'validate' && !outcome.ok && architectureErrors > 0
+        && architectureErrors === outcome.errorCount && outcome.loadFailures === 0;
+}
+
+/** A fresh validate of `files` that the engine rejected for the architecture's own errors. */
+export const rejected = (state: LessonState, files?: Record<string, string>) =>
+    matching(state, 'validate', files).some(isRejection);
 
 export const validatedEditorFile = (state: LessonState) => ranOk(state, 'validate', { architecture: state.editorFile });

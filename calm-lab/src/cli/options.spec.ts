@@ -89,3 +89,17 @@ describe('requestsVersion', () => {
         expect(requestsVersion(args)).toBe(expected);
     });
 });
+
+describe('parseArgs required options', () => {
+    it.each([[['-h']], [['--bogus', '-h']], [['a.json', '--help']]])('asks for help on %j before checking required options', (args) => {
+        expect(parseArgs('generate', args)).toEqual({ kind: 'help' });
+    });
+
+    it.each([[[]], [['--bogus']], [['a.json']], [['-o', 'x.json']]])('reports a missing required option on %j before unknown options and excess arguments', (args) => {
+        expect(parseArgs('generate', args)).toEqual({ kind: 'error', message: "error: required option '-p, --pattern <file>' not specified" });
+    });
+
+    it('counts a default as given', () => {
+        expect(parseArgs('generate', ['-p', 'p.json'])).toMatchObject({ kind: 'ok', values: { pattern: 'p.json', output: 'architecture.json' } });
+    });
+});

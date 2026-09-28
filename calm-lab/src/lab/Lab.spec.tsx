@@ -15,6 +15,7 @@ vi.mock('./HubDiagram', () => ({default: ({jsonText}: {jsonText: string}) => <pr
 const engine = vi.hoisted(() => ({
     validateArchitecture: vi.fn(),
     validateOutcome: vi.fn(),
+    generateArchitecture: vi.fn(async () => ({nodes: [{'unique-id': 'generated'}]})),
     okResult: () => ({
         ok: true,
         issues: [],
@@ -33,6 +34,8 @@ const engine = vi.hoisted(() => ({
 vi.mock('../engine', () => ({
     validateArchitecture: engine.validateArchitecture,
     validateOutcome: engine.validateOutcome,
+    generateArchitecture: engine.generateArchitecture,
+    schemaDirectoryWith: vi.fn(async () => undefined),
     parseJson: vi.fn(),
     commandSupport: vi.fn(() => undefined),
     CLI_VERSION: '9.9.9-test',
@@ -210,6 +213,23 @@ describe('Lab', () => {
         await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
     });
 
+    it('shows only the command text of a hint that expects a failure', async () => {
+        const lesson: Lesson = {
+            ...QUICK_START,
+            id: 'fails',
+            steps: [{
+                id: 'fail',
+                title: 'See it fail',
+                body: '',
+                hint: {kind: 'commands', commands: ['ls', {run: 'calm validate -a broken.json', expect: 'failure'}]},
+                check: () => false,
+            }],
+        };
+        await act(async () => { renderLab({lesson}); });
+        fireEvent.click(screen.getByRole('button', {name: 'Show hint'}));
+        expect(screen.getByText(/calm validate -a broken\.json/).textContent).toBe('ls\ncalm validate -a broken.json');
+    });
+
     it('has no lesson picker: a lesson opens from its link', async () => {
         await act(async () => { renderLab(); });
         expect(screen.queryByRole('combobox', {name: 'Lesson'})).toBeNull();
@@ -347,6 +367,42 @@ describe('Lab with more than one editable file', () => {
         await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
         expect(fileSelect()).toHaveValue(QUICK_START.editorFile);
         expect(screen.getByLabelText(`Edit ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)}`)).toBeInTheDocument();
+    });
+
+    describe('when a command writes a file', () => {
+        const GENERATED = `${HOME_DIR}/architecture/generated.json`;
+        const GENERATED_TEXT = JSON.stringify({nodes: [{'unique-id': 'generated'}]}, null, 2);
+        const withPattern: Lesson = {
+            ...multi,
+            editableFiles: [...multi.editableFiles!, GENERATED],
+            seedFiles: {...multi.seedFiles, [`${HOME_DIR}/pattern.json`]: '{}'},
+        };
+        const generate = (output: string) => runCommand(`calm generate -p pattern.json -o ${output.slice(HOME_DIR.length + 1)}`);
+
+        it('lists a file the command creates', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            expect(screen.queryByRole('option', {name: 'architecture/generated.json'})).toBeNull();
+            await generate(GENERATED);
+            await waitFor(() => expect(screen.getByRole('option', {name: 'architecture/generated.json'})).toBeInTheDocument());
+            openFile(GENERATED);
+            expect(screen.getByLabelText('Edit architecture/generated.json')).toHaveValue(GENERATED_TEXT);
+        });
+
+        it('shows the new content of the open file', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            openFile(SECOND);
+            await generate(SECOND);
+            await waitFor(() => expect(screen.getByLabelText('Edit architecture/second.json')).toHaveValue(GENERATED_TEXT));
+            expect(screen.getByRole('tab', {name: /Diagram/}).textContent).toMatch(/updated/i);
+        });
+
+        it('keeps unsaved edits in the open file', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            openFile(SECOND);
+            fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: 'unsaved'}});
+            await generate(SECOND);
+            expect(screen.getByLabelText('Edit architecture/second.json')).toHaveValue('unsaved');
+        });
     });
 
     it('shows no file switcher when the lesson has one editable file', async () => {

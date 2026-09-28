@@ -16,7 +16,7 @@ export function isUrl(reference: string): boolean {
     return /^[a-z][a-z0-9+.-]+:/i.test(reference);
 }
 
-/** The Node error the CLI's file loader reports when `path` is not a readable file. */
-export function readError(vfs: Vfs, path: string): string {
-    return vfs.isDir(path) ? 'EISDIR: illegal operation on a directory, read' : `ENOENT: no such file or directory, open '${path}'`;
+/** The Node error for reading `path` when it is not a readable file; `shown` is the path Node names. */
+export function readError(vfs: Vfs, path: string, shown = path): string {
+    return vfs.isDir(path) ? 'EISDIR: illegal operation on a directory, read' : `ENOENT: no such file or directory, open '${shown}'`;
 }

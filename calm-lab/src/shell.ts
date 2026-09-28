@@ -9,8 +9,9 @@
  */
 
 import { runDiff } from './cli/diff';
+import { runGenerate } from './cli/generate';
 import { runValidate } from './cli/validate';
-import { helpFor } from './cli/help';
+import { helpFor, LAB_COMMANDS, type LabCommand } from './cli/help';
 import { requestsVersion, unknownOption } from './cli/options';
 import { suggestSimilar } from './cli/suggest';
 import { CLI_DOCS } from './cli/unsupported';
@@ -36,7 +37,7 @@ export type CompletionResult = CompletionCandidates | CompletionValue;
 export const COMMAND_NAMES: readonly string[] = ['calm', 'cat', 'cd', 'clear', 'echo', 'help', 'ls', 'pwd'];
 
 /** Second-token completions after `calm`. */
-export const CALM_SUBCOMMANDS = ['validate', 'diff', 'help', '--version'] as const;
+export const CALM_SUBCOMMANDS = ['validate', 'generate', 'diff', 'help', '--version'] as const;
 
 const HELP_LINES: Line[] = [
     { text: 'Available commands:', kind: 'out' },
@@ -47,6 +48,7 @@ const HELP_LINES: Line[] = [
     { text: '  echo <text>          print text', kind: 'dim' },
     { text: '  clear                clear the terminal', kind: 'dim' },
     { text: '  calm validate -a <file>        validate a CALM architecture', kind: 'dim' },
+    { text: '  calm generate -p <pattern>     generate an architecture from a pattern', kind: 'dim' },
     { text: '  calm diff -a <file> -b <file>  compare two CALM documents', kind: 'dim' },
     { text: '  calm help                      what the lab runs', kind: 'dim' },
 ];
@@ -85,7 +87,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
         return helpFor();
     }
     if (sub === 'help') {
-        return rest[0] === 'validate' || rest[0] === 'diff' ? helpFor(rest[0]) : helpFor();
+        return (LAB_COMMANDS as readonly string[]).includes(rest[0]) ? helpFor(rest[0] as LabCommand) : helpFor();
     }
     if (sub.startsWith('-') || !CLI_COMMANDS.includes(sub)) {
         if (programHelpRequested(args)) {
@@ -95,6 +97,9 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     }
     if (sub === 'validate') {
         return runValidate(rest, ctx);
+    }
+    if (sub === 'generate') {
+        return runGenerate(rest, ctx);
     }
     if (sub === 'diff') {
         return runDiff(rest, ctx);
