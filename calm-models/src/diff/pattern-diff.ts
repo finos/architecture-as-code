@@ -141,7 +141,7 @@ function declarationsFor(pattern: SchemaObject, key: string): SchemaObject[] {
 }
 
 /**
- * Collapses each (already alternative-expanded) prefix item and sorts it into:
+ * Collapses each (already alternative-expanded) declaration and sorts it into:
  * `pinned` (has a `const` `unique-id` → diff by id), `content` (no pinned id but
  * still constrains fields → diff by content), or `undiffable` (declares a
  * node/relationship but pins nothing comparable). Unconstrained decision/options
