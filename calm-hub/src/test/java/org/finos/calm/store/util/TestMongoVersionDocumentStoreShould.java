@@ -738,4 +738,43 @@ class TestMongoVersionDocumentStoreShould {
 
         verify(headerCollection, never()).updateOne(any(Bson.class), any(Bson.class));
     }
+
+    @Test
+    void filter_the_version_count_decrement_so_it_can_never_go_negative() {
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Bson> filterCaptor = ArgumentCaptor.forClass(Bson.class);
+        verify(headerCollection).updateOne(filterCaptor.capture(), any(Bson.class));
+        String filterJson = asJson(filterCaptor.getValue());
+        assertThat(filterJson, containsString("versionCount"));
+        assertThat(filterJson, containsString("$gt"));
+    }
+
+    @Test
+    void silently_leave_the_version_count_at_zero_when_it_is_already_there() {
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(1L);
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT"), is(true));
+
+        verify(headerCollection).countDocuments(any(Bson.class));
+    }
+
+    @Test
+    void check_for_a_missing_header_when_the_decrement_filter_matches_nothing() {
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(0, 0L, null));
+        when(headerCollection.countDocuments(any(Bson.class))).thenReturn(0L);
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT"), is(true));
+
+        verify(headerCollection).countDocuments(any(Bson.class));
+    }
 }

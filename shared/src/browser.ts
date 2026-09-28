@@ -80,4 +80,4 @@ export {
     SNAPSHOT_SUFFIX
 } from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
-export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport } from './browser-capabilities.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';

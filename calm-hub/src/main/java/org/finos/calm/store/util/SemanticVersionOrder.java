@@ -4,6 +4,7 @@ import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
 
 import java.util.Comparator;
+import java.util.List;
 
 /**
  * Orders version strings numerically by major, then minor, then patch.
@@ -64,5 +65,29 @@ public final class SemanticVersionOrder {
      */
     private static String orEmpty(String version) {
         return version == null ? "" : version;
+    }
+
+    /**
+     * The highest release, or the highest snapshot if nothing has been released yet.
+     * A snapshot never shadows an existing release as "latest".
+     *
+     * @return the resolved version, or {@code null} if {@code versions} is null or empty.
+     */
+    public static String latestRelease(List<String> versions) {
+        if (versions == null || versions.isEmpty()) {
+            return null;
+        }
+        String bestRelease = null;
+        String bestOverall = null;
+        for (String version : versions) {
+            if (bestOverall == null || ASCENDING.compare(version, bestOverall) > 0) {
+                bestOverall = version;
+            }
+            if (!ResourceVersion.isSnapshot(version)
+                    && (bestRelease == null || ASCENDING.compare(version, bestRelease) > 0)) {
+                bestRelease = version;
+            }
+        }
+        return bestRelease != null ? bestRelease : bestOverall;
     }
 }

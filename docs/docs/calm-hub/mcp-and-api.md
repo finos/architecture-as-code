@@ -69,6 +69,8 @@ A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be
 
 A snapshot cannot be created if its release version is already published — CALM Hub returns `409 Conflict`.
 
+Snapshots are written through the name-based `/calm/...` API only. The numeric `/api/calm/...` write endpoints reject a `-SNAPSHOT` version; their `GET` endpoints can read one.
+
 ### Access Control
 
 Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.

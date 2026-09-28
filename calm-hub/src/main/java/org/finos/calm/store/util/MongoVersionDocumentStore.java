@@ -581,12 +581,16 @@ public class MongoVersionDocumentStore {
      * Undoes {@link #incrementVersionCount}, called only after a version document has
      * actually been deleted. Best-effort, matching {@link #incrementVersionCount}: a
      * derived counter must not fail a delete that already succeeded.
+     *
+     * <p>Filtered to {@code versionCount > 0} so the {@code $inc(-1)} can never go negative.</p>
      */
     private void decrementVersionCount(String namespace, int resourceId) {
         try {
-            UpdateResult result = headerCollection.updateOne(
-                    headerFilter(namespace, resourceId), Updates.inc(VERSION_COUNT_FIELD, -1));
-            if (result.getMatchedCount() == 0) {
+            Bson filter = Filters.and(headerFilter(namespace, resourceId), Filters.gt(VERSION_COUNT_FIELD, 0));
+            UpdateResult result = headerCollection.updateOne(filter, Updates.inc(VERSION_COUNT_FIELD, -1));
+            // No match could mean "already at zero" (fine) or "no header" (warn) - check which.
+            if (result.getMatchedCount() == 0
+                    && headerCollection.countDocuments(headerFilter(namespace, resourceId)) == 0) {
                 LOG.warn("Deleted a version with no matching header to count it [namespace={}, {}={}] — "
                         + "versionCount for this resource is now overstated", namespace, idField, resourceId);
             }

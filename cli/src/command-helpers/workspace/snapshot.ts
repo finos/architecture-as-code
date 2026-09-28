@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { loadManifest, resolveFilePath, extractAllReferences, WorkspaceManifest } from './bundle';
 import { buildRefRulesFromDiskIds, syncReferences, findRuleForRef, RefRule } from './ref-rewrite';
 import { applyVersionToDocument } from './bump';
+import { resolveWorkspaceDocumentType } from './document-kind';
 import {
     CalmHubClient,
     ResourceChangeType,
@@ -42,7 +43,11 @@ type SnapshotContext = {
 /** Loads the manifest, ref rules, and each doc's on-disk version exactly once. */
 async function buildSnapshotContext(bundlePath: string): Promise<SnapshotContext> {
     const manifest = await loadManifest(bundlePath);
-    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+    // Callers such as push report unsupported entries themselves; one must not block the whole scan.
+    const supported = Object.fromEntries(
+        Object.entries(manifest).filter(([, entry]) => resolveWorkspaceDocumentType(entry.type) !== undefined)
+    );
+    const rules = await buildRefRulesFromDiskIds(supported, bundlePath);
     const versionById = new Map<string, string>();
     for (const [id, entry] of Object.entries(manifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);

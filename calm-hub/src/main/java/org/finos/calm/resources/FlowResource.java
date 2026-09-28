@@ -24,6 +24,7 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.ResourceMappingStore;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +124,7 @@ public class FlowResource {
 
         try {
             List<String> versions =  store.getFlowVersions(flow);
-            String lastVersion = versions.getLast();
+            String lastVersion = SemanticVersionOrder.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);

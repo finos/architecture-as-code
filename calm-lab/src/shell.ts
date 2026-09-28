@@ -8,8 +8,16 @@
  * scrollback.
  */
 
-import { diffDocuments } from '@finos/calm-shared/browser';
-import { validateArchitecture, parseJson, commandSupport, hubCommands, ENGINE_VERSION } from './engine';
+import { runDiff } from './cli/diff';
+import { runGenerate } from './cli/generate';
+import { runValidate } from './cli/validate';
+import { helpFor, LAB_COMMANDS, type LabCommand } from './cli/help';
+import { requestsVersion, unknownOption } from './cli/options';
+import { suggestSimilar } from './cli/suggest';
+import { CLI_DOCS } from './cli/unsupported';
+import type { CommandEvent } from './cli/outcome';
+import { BROWSER_COMMAND_SUPPORT } from '@finos/calm-shared/browser';
+import { commandSupport, hubCommands, CLI_VERSION } from './engine';
 import type { Vfs } from './lab/vfs';
 
 export interface Line { text: string; kind: 'out' | 'ok' | 'err' | 'dim' | 'clear' }
@@ -18,7 +26,7 @@ export interface ShellContext {
     vfs: Vfs;
     getCwd(): string;
     setCwd(dir: string): void;
-    onEvent?(event: { type: 'validate'; file: string; ok: boolean }): void;
+    onEvent?(event: CommandEvent): void;
 }
 
 export interface CompletionCandidates { candidates: string[] }
@@ -29,9 +37,7 @@ export type CompletionResult = CompletionCandidates | CompletionValue;
 export const COMMAND_NAMES: readonly string[] = ['calm', 'cat', 'cd', 'clear', 'echo', 'help', 'ls', 'pwd'];
 
 /** Second-token completions after `calm`. */
-export const CALM_SUBCOMMANDS = ['validate', 'diff', 'help', '--version'] as const;
-
-const CLI_DOCS = 'https://calm.finos.org/working-with-calm/cli';
+export const CALM_SUBCOMMANDS = ['validate', 'generate', 'diff', 'help', '--version'] as const;
 
 const HELP_LINES: Line[] = [
     { text: 'Available commands:', kind: 'out' },
@@ -41,81 +47,69 @@ const HELP_LINES: Line[] = [
     { text: '  pwd                  print working directory', kind: 'dim' },
     { text: '  echo <text>          print text', kind: 'dim' },
     { text: '  clear                clear the terminal', kind: 'dim' },
-    { text: '  calm validate <file> validate a CALM architecture', kind: 'dim' },
-    { text: '  calm diff <a> <b>    compare two architectures', kind: 'dim' },
-    { text: '  calm --version       show the lab engine version', kind: 'dim' },
+    { text: '  calm validate -a <file>        validate a CALM architecture', kind: 'dim' },
+    { text: '  calm generate -p <pattern>     generate an architecture from a pattern', kind: 'dim' },
+    { text: '  calm diff -a <file> -b <file>  compare two CALM documents', kind: 'dim' },
+    { text: '  calm help                      what the lab runs', kind: 'dim' },
 ];
 
-const CALM_HELP_LINES: Line[] = [
-    { text: 'calm — CALM in your browser', kind: 'out' },
-    { text: '  calm validate <file>       validate against the CALM schemas and rules', kind: 'dim' },
-    { text: '  calm diff <file-a> <file-b> compare two architectures', kind: 'dim' },
-    { text: '  calm --version             show the engine version', kind: 'dim' },
-    { text: '  calm help                  show this help', kind: 'dim' },
-];
+/** The `calm` program's commands (commander's candidates for "Did you mean"), from the manifest. */
+const CLI_COMMANDS: readonly string[] = [...new Set(BROWSER_COMMAND_SUPPORT.map((entry) => entry.command.split(' ')[0])), 'help'];
+
+const errLines = (message: string): Line[] => message.split('\n').map((text) => ({ text, kind: 'err' }));
+
+function unknownCommand(name: string, candidates: readonly string[]): Line[] {
+    return errLines(`error: unknown command '${name}'${suggestSimilar(name, [...candidates])}`);
+}
+
+/** Commander shows the program help when -h/--help is among the args it could not place. */
+function programHelpRequested(args: string[]): boolean {
+    let unplaced = false;
+    for (const [index, arg] of args.entries()) {
+        if (arg === '--') {
+            return unplaced && args.slice(index + 1).some((rest) => rest === '-h' || rest === '--help');
+        }
+        unplaced ||= arg.length > 1 && arg.startsWith('-');
+        if (unplaced && (arg === '-h' || arg === '--help')) {
+            return true;
+        }
+    }
+    return false;
+}
 
 async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
-    const [sub, ...rest] = args;
-    if (!sub || sub === 'help' || sub === '--help') {
-        return CALM_HELP_LINES;
+    // Commander parses the program's options first, so `-V` wins wherever it appears before `--`.
+    if (requestsVersion(args)) {
+        return [{ text: CLI_VERSION, kind: 'out' }];
     }
-    if (sub === '--version' || sub === '-v') {
-        return [{ text: `browser lab · @finos/calm-shared ${ENGINE_VERSION}`, kind: 'out' }];
+    const [sub, ...rest] = args;
+    if (!sub || sub === '--help' || sub === '-h') {
+        return helpFor();
+    }
+    if (sub === 'help') {
+        return (LAB_COMMANDS as readonly string[]).includes(rest[0]) ? helpFor(rest[0] as LabCommand) : helpFor();
+    }
+    if (sub.startsWith('-') || !CLI_COMMANDS.includes(sub)) {
+        if (programHelpRequested(args)) {
+            return helpFor();
+        }
+        return sub.startsWith('-') ? errLines(unknownOption(sub, [])) : unknownCommand(sub, CLI_COMMANDS);
     }
     if (sub === 'validate') {
-        const target = rest[0];
-        if (!target) {
-            return [{ text: 'usage: calm validate <file>', kind: 'err' }];
-        }
-        const path = ctx.vfs.resolve(ctx.getCwd(), target);
-        const content = ctx.vfs.read(path);
-        if (content === null) {
-            return [{ text: `calm validate: file not found: ${target}`, kind: 'err' }];
-        }
-        const result = await validateArchitecture(content);
-        ctx.onEvent?.({ type: 'validate', file: path, ok: result.ok });
-        if (result.ok) {
-            return [{ text: `✓ ${target} is a valid CALM architecture`, kind: 'ok' }];
-        }
-        if (result.parseError) {
-            return [{ text: `calm validate: ${result.parseError}`, kind: 'err' }];
-        }
-        // The engine's own `pretty` report, exactly as `calm validate` prints it
-        // on the command line — the lab must not invent a second format.
-        const count = result.errorCount;
-        return [
-            { text: `${target}: ${count} problem${count === 1 ? '' : 's'} found`, kind: 'dim' },
-            ...result.pretty
-                .replace(/\n$/, '')
-                .split('\n')
-                .map((text): Line => ({ text, kind: text.trimStart().startsWith('ERROR') ? 'err' : 'dim' })),
-        ];
+        return runValidate(rest, ctx);
+    }
+    if (sub === 'generate') {
+        return runGenerate(rest, ctx);
     }
     if (sub === 'diff') {
-        const [a, b] = rest;
-        if (!a || !b) {
-            return [{ text: 'usage: calm diff <file-a> <file-b>', kind: 'err' }];
-        }
-        const contents = [a, b].map((name) => ctx.vfs.read(ctx.vfs.resolve(ctx.getCwd(), name)));
-        const missing = [a, b].find((_, index) => contents[index] === null);
-        if (missing) {
-            return [{ text: `calm diff: file not found: ${missing}`, kind: 'err' }];
-        }
-        try {
-            const docA = parseJson(contents[0]!, a) as Record<string, unknown>;
-            const docB = parseJson(contents[1]!, b) as Record<string, unknown>;
-            const diff = diffDocuments(docA, docB, { format: 'summary', labels: [a, b] });
-            if (!diff.hasChanges) {
-                return [{ text: `no changes between ${a} and ${b}`, kind: 'ok' }];
-            }
-            return diff.formatted.split('\n').map((text): Line => ({ text, kind: 'out' }));
-        } catch (error) {
-            return [{ text: `calm diff: ${error instanceof Error ? error.message : String(error)}`, kind: 'err' }];
-        }
+        return runDiff(rest, ctx);
     }
     // `hub` is a subgroup: the manifest keys its reasons on `hub pull`, `hub push` and friends,
     // so a bare `calm hub` lists them rather than claiming `hub` is unknown.
-    if (sub === 'hub' && !rest[0]) {
+    if (sub === 'hub' && rest[0]?.startsWith('-') && rest[0] !== '-h' && rest[0] !== '--help') {
+        return errLines(unknownOption(rest[0], []));
+    }
+    if (sub === 'hub' && (!rest[0] || rest[0] === '-h' || rest[0] === '--help')) {
         const entries = hubCommands();
         if (entries.length) {
             return [
@@ -128,7 +122,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
             ];
         }
     }
-    const command = sub === 'hub' && rest[0] ? `hub ${rest[0]}` : sub;
+    const command = sub === 'hub' ? `hub ${rest[0]}` : sub;
     const support = commandSupport(command);
     if (support?.status === 'unsupported') {
         return [{ text: `\`calm ${command}\` isn't available in the browser lab: ${support.reason}. Use the CLI — ${CLI_DOCS}`, kind: 'dim' }];
@@ -136,7 +130,7 @@ async function runCalm(args: string[], ctx: ShellContext): Promise<Line[]> {
     if (support?.status === 'supported') {
         return [{ text: `\`calm ${command}\` isn't wired into the lab yet — the engine supports it; see ${CLI_DOCS}`, kind: 'dim' }];
     }
-    return [{ text: `calm: unknown command '${sub}' — try \`calm help\``, kind: 'err' }];
+    return unknownCommand(rest[0], [...hubCommands().map((entry) => entry.command.split(' ')[1]), 'help']);
 }
 
 function longestCommonPrefix(values: string[]): string {
