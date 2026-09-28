@@ -469,7 +469,10 @@ describe('workspace file helpers', () => {
 
         it('is false when a section body still starts with TODO', () => {
             expect(filledAdr(filled.replace('Accepted', 'TODO: fill this in'))).toBe(false);
-            expect(filledAdr(filled.replace('Use a message queue.', 'todo: decide later'))).toBe(false);
+        });
+
+        it('is true when the prose mentions todo outside a placeholder', () => {
+            expect(filledAdr(filled.replace('Orders arrive in bursts.', 'The legacy todo queue and a Todo-list API drop orders.'))).toBe(true);
         });
 
         it('is false when a TODO placeholder is left after some prose', () => {
