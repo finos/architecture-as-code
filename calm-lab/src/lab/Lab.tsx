@@ -84,7 +84,9 @@ interface StepItemProps {
 
 function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
-    const hintLabel = step.hint.kind === 'file' ? 'complete file' : 'commands';
+    const hintLabel = step.hint.kind === 'commands'
+        ? 'commands'
+        : `complete ${step.hint.path ? relativeToHome(step.hint.path) : 'file'}`;
     const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.join('\n');
     return (
         <li className={styles.step}>

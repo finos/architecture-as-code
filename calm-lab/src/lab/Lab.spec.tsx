@@ -286,6 +286,12 @@ describe('Lab with more than one editable file', () => {
         expect(screen.getByRole('tab', {name: /docs\/adr\.md/})).toBeInTheDocument();
     });
 
+    it('names the target file in the label of a file hint with a path', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        fireEvent.click(screen.getByRole('button', {name: 'Show hint'}));
+        expect(screen.getByText('complete docs/adr.md')).toBeInTheDocument();
+    });
+
     it('locks the file switcher while the open file has unsaved changes', async () => {
         await act(async () => { renderLab({lesson: multi}); });
         expect(fileSelect()).not.toBeDisabled();
