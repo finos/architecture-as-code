@@ -15,6 +15,7 @@ import {
     DocumentMetadata,
     HubClientError,
     extractDocumentMetadata,
+    isSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -31,6 +32,7 @@ import {
     type ResolvedWorkspaceManifestEntry,
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
+import { findSnapshotDependencies } from './snapshot';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -259,6 +261,15 @@ async function pushMappingEntry(
         return;
     }
 
+    if (!isSnapshotVersion(version)) {
+        const snapshotDeps = await findSnapshotDependencies(bundlePath, id);
+        if (snapshotDeps.length > 0) {
+            logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first.`);
+            conflicts.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
+            return;
+        }
+    }
+
     let existingVersions: string[];
     try {
         existingVersions = await client.getMappedResourceVersions(namespace, mappingId, resourceType);
@@ -269,7 +280,9 @@ async function pushMappingEntry(
         return;
     }
 
-    if (existingVersions.includes(version)) {
+    // Snapshot versions are mutable: CalmHub overwrites them in place (200 OK) rather than
+    // conflicting, so the "already exists" skip/conflict logic below never applies to them.
+    if (existingVersions.includes(version) && !isSnapshotVersion(version)) {
         if (!failIfModified) {
             logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
             return;
