@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, fileJson, fileText, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith, markdownSection,
-    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind,
-    validatedEditorFile,
+    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith,
+    linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships,
+    relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -447,6 +447,77 @@ describe('workspace file helpers', () => {
             expect(markdownSection('', 'Status')).toBe('');
             expect(markdownSection('## Status', 'Status')).toBe('');
             expect(markdownSection('## (a+\nx', '(a+')).toBe('x');
+        });
+    });
+
+    describe('filledAdr', () => {
+        const filled = [
+            '## Status', 'Accepted', '',
+            '## Context', 'Orders arrive in bursts.', '',
+            '## Decision', 'Use a message queue.', '',
+            '## Consequences', '### Positive', 'Faster order confirmation.', '',
+        ].join('\n');
+
+        it('is true when every ADR section has a non-empty, non-TODO body', () => {
+            expect(filledAdr(filled)).toBe(true);
+        });
+
+        it('is false when a section is missing or empty', () => {
+            expect(filledAdr('## Status\nAccepted\n## Context\nBursts.\n## Decision\nUse a queue.')).toBe(false);
+            expect(filledAdr(filled.replace('Accepted', ''))).toBe(false);
+        });
+
+        it('is false when a section body still starts with TODO', () => {
+            expect(filledAdr(filled.replace('Accepted', 'TODO: fill this in'))).toBe(false);
+        });
+
+        it('is true when the prose mentions todo outside a placeholder', () => {
+            expect(filledAdr(filled.replace('Orders arrive in bursts.', 'The legacy todo queue and a Todo-list API drop orders.'))).toBe(true);
+        });
+
+        it('is false when a TODO placeholder is left after some prose', () => {
+            expect(filledAdr(filled.replace('Accepted', 'Accepted\nTODO: state whether this decision is proposed'))).toBe(false);
+        });
+
+        it('never throws on missing or unrelated text', () => {
+            expect(filledAdr(null)).toBe(false);
+            expect(filledAdr('')).toBe(false);
+            expect(filledAdr('not an adr at all')).toBe(false);
+        });
+    });
+
+    describe('linkedAdrs', () => {
+        const state = (over: Partial<LessonState> = {}): LessonState =>
+            ({ doc: null, validation: { ok: true }, commands: [], editorFile: '/workspace/a.json', files: {}, ...over });
+
+        it('resolves relative adrs entries against the workspace and keeps only ones that exist', () => {
+            const s = state({
+                doc: { adrs: ['docs/adr/0001-x.md', 'docs/adr/missing.md'] },
+                files: { '/workspace/docs/adr/0001-x.md': '# ADR' },
+            });
+            expect(linkedAdrs(s)).toEqual(['/workspace/docs/adr/0001-x.md']);
+        });
+
+        it('drops non-string entries and external URLs, which can never be a workspace file', () => {
+            const s = state({
+                doc: { adrs: ['https://wiki.example.com/adr-1', 42, null, 'docs/adr/0001-x.md'] },
+                files: { '/workspace/docs/adr/0001-x.md': '# ADR' },
+            });
+            expect(linkedAdrs(s)).toEqual(['/workspace/docs/adr/0001-x.md']);
+        });
+
+        it('deduplicates repeated entries', () => {
+            const s = state({
+                doc: { adrs: ['docs/adr/0001-x.md', 'docs/adr/0001-x.md'] },
+                files: { '/workspace/docs/adr/0001-x.md': '# ADR' },
+            });
+            expect(linkedAdrs(s)).toEqual(['/workspace/docs/adr/0001-x.md']);
+        });
+
+        it('never throws on a partial or wrong-shaped document', () => {
+            for (const bad of [null, undefined, {}, { adrs: 'not-an-array' }, { adrs: [{}] }]) {
+                expect(linkedAdrs(state({ doc: bad as never }))).toEqual([]);
+            }
         });
     });
 });

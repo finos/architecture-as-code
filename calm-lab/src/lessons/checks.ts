@@ -1,5 +1,5 @@
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
-import type { CalmDocLike, LessonState } from './types';
+import { HOME_DIR, type CalmDocLike, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
 
@@ -223,6 +223,32 @@ export function markdownSection(text: string | null, heading: string): string {
         }
     }
     return body.join('\n').trim();
+}
+
+const ADR_HEADINGS = ['Status', 'Context', 'Decision', 'Consequences'];
+
+/**
+ * An ADR file: `## Status`, `## Context`, `## Decision` and `## Consequences` each have a
+ * non-empty body with no line left that starts with the seeded `TODO:` placeholder.
+ */
+export function filledAdr(text: string | null): boolean {
+    return ADR_HEADINGS.every((heading) => {
+        const body = markdownSection(text, heading);
+        return body.length > 0 && !/^TODO:/m.test(body);
+    });
+}
+
+/**
+ * `doc.adrs` entries that are strings and resolve, relative to the workspace, to a saved file
+ * that exists. Entries naming an external URL (or anything else that is not a workspace file)
+ * are dropped, not rejected: a learner may also link an ADR tool or wiki page. Deduplicated.
+ */
+export function linkedAdrs(state: LessonState): string[] {
+    const entries = Array.isArray(state.doc?.['adrs']) ? (state.doc!['adrs'] as unknown[]) : [];
+    const resolved = entries
+        .filter((entry): entry is string => typeof entry === 'string' && entry.length > 0)
+        .map((entry) => (entry.startsWith('/') ? entry : `${HOME_DIR}/${entry.replace(/^\.\//, '')}`));
+    return [...new Set(resolved)].filter((path) => fileText(state, path) !== null);
 }
 
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
