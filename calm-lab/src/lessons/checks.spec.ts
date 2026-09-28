@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
-    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
-    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
+    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
+    controlsIn, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith, nodeById, nodeInterfaces, nodes,
+    nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -190,6 +191,57 @@ describe('hasMetadata', () => {
     });
 });
 
+describe('controlsIn', () => {
+    const configured = {
+        controls: {
+            security: {
+                description: 'Data encryption requirements',
+                requirements: [
+                    { 'requirement-url': 'https://policy.example.com/encryption', config: { algorithm: 'AES-256' } },
+                    { 'requirement-url': 'https://policy.example.com/tls', 'config-url': 'https://configs.example.com/tls.yaml' },
+                ],
+            },
+        },
+    };
+
+    it('matches a domain whose requirements each have a requirement-url and a config or config-url', () => {
+        expect(controlsIn(configured).map(([domain]) => domain)).toEqual(['security']);
+    });
+
+    it('does not match a domain with an empty requirements array', () => {
+        const empty = { controls: { security: { description: 'x', requirements: [] } } };
+        expect(controlsIn(empty)).toEqual([]);
+    });
+
+    it('does not match a requirement missing requirement-url, or missing both config and config-url', () => {
+        const missingUrl = { controls: { security: { description: 'x', requirements: [{ config: { a: 1 } }] } } };
+        const missingConfig = { controls: { security: { description: 'x', requirements: [{ 'requirement-url': 'https://x' }] } } };
+        expect(controlsIn(missingUrl)).toEqual([]);
+        expect(controlsIn(missingConfig)).toEqual([]);
+    });
+
+    it('only counts domains that pass among a mix', () => {
+        const mixed = {
+            controls: {
+                security: configured.controls.security,
+                compliance: { description: 'x', requirements: [] },
+            },
+        };
+        expect(controlsIn(mixed).map(([domain]) => domain)).toEqual(['security']);
+    });
+
+    it('never throws on a partial or wrong-shaped item', () => {
+        const bad = [
+            null, undefined, {}, { controls: 'x' }, { controls: [] }, { controls: {} },
+            { controls: { security: 'x' } }, { controls: { security: { requirements: 'x' } } },
+            { controls: { security: { requirements: [null, 3] } } },
+        ];
+        for (const item of bad) {
+            expect(controlsIn(item as never)).toEqual([]);
+        }
+    });
+});
+
 describe('relationshipsOfKind', () => {
     const doc2 = {
         relationships: [
@@ -209,6 +261,69 @@ describe('relationshipsOfKind', () => {
     it('never throws on a partial or wrong-shaped document', () => {
         for (const bad of [null, undefined, {}, { relationships: 'x' }, { relationships: [{ 'relationship-type': null }] }, { relationships: [{ 'relationship-type': { connects: 'x' } }] }]) {
             expect(relationshipsOfKind(bad as never, 'connects')).toEqual([]);
+        }
+    });
+});
+
+describe('flowsWithTransitions', () => {
+    const flowDoc = {
+        relationships: [
+            { 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'db' } } } },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } },
+        ],
+        flows: [
+            {
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [
+                    { 'relationship-unique-id': 'r2', 'sequence-number': 1, description: 'a' },
+                    { 'relationship-unique-id': 'r1', 'sequence-number': 2, description: 'b' },
+                ],
+            },
+        ],
+    };
+
+    it('matches a flow whose transitions all resolve, at or above the minimum count', () => {
+        expect(flowsWithTransitions(flowDoc, 2).map((flow) => flow['unique-id'])).toEqual(['order-flow']);
+        expect(flowsWithTransitions(flowDoc, 3)).toEqual([]);
+    });
+
+    it('does not match a transition naming a relationship id that does not exist', () => {
+        const dangling = {
+            ...flowDoc,
+            flows: [{
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [
+                    { 'relationship-unique-id': 'r2', 'sequence-number': 1, description: 'a' },
+                    { 'relationship-unique-id': 'does-not-exist', 'sequence-number': 2, description: 'b' },
+                ],
+            }],
+        };
+        expect(flowsWithTransitions(dangling, 2)).toEqual([]);
+    });
+
+    it('does not match a flow missing a unique-id or name, or a transition without a numeric sequence-number', () => {
+        const noName = { ...flowDoc, flows: [{ 'unique-id': 'order-flow', transitions: flowDoc.flows[0].transitions }] };
+        const badSequence = {
+            ...flowDoc,
+            flows: [{
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [{ 'relationship-unique-id': 'r1', 'sequence-number': '2', description: 'b' }],
+            }],
+        };
+        expect(flowsWithTransitions(noName, 1)).toEqual([]);
+        expect(flowsWithTransitions(badSequence, 1)).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        const bad = [
+            null, undefined, {}, { flows: 'x' }, { flows: [null, 3] }, { flows: [{ transitions: 'x' }] },
+            { flows: [{ 'unique-id': 'f', name: 'F', transitions: [null, 3] }] },
+        ];
+        for (const item of bad) {
+            expect(flowsWithTransitions(item as never, 1)).toEqual([]);
         }
     });
 });

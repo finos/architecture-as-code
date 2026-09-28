@@ -122,6 +122,54 @@ export function hasMetadata(item: Item | null | undefined): boolean {
     return Array.isArray(value) ? value.length > 0 && value.every(isNonEmptyObject) : isNonEmptyObject(value);
 }
 
+function isConfiguredRequirement(value: unknown): boolean {
+    if (!isNonEmptyObject(value)) {
+        return false;
+    }
+    return isNonEmptyString(value['requirement-url']) && (isNonEmptyObject(value['config']) || isNonEmptyString(value['config-url']));
+}
+
+/**
+ * The `[domain, control]` entries of `item.controls` whose `requirements` is a non-empty array,
+ * with each requirement having a string `requirement-url` and either a `config` object or a
+ * `config-url` string.
+ */
+export function controlsIn(item: Item | null | undefined): Array<[string, Item]> {
+    const controls = item?.['controls'];
+    if (!isNonEmptyObject(controls)) {
+        return [];
+    }
+    return (Object.entries(controls) as Array<[string, Item]>).filter(([, control]) => {
+        if (!isNonEmptyObject(control)) {
+            return false;
+        }
+        const requirements = control['requirements'];
+        return Array.isArray(requirements) && requirements.length > 0 && requirements.every(isConfiguredRequirement);
+    });
+}
+
+/**
+ * `flows` entries with a string `unique-id` and `name`, whose `transitions` has at least
+ * `minTransitions` items, each with a `relationship-unique-id` that matches an existing
+ * relationship and a numeric `sequence-number`.
+ */
+export function flowsWithTransitions(doc: CalmDocLike | null | undefined, minTransitions: number): Item[] {
+    const relationshipIds = new Set(relationships(doc).map((relationship) => relationship['unique-id']));
+    return items(doc?.['flows']).filter((flow) => {
+        if (!isNonEmptyString(flow['unique-id']) || !isNonEmptyString(flow['name'])) {
+            return false;
+        }
+        const transitions = items(flow['transitions']);
+        if (transitions.length < minTransitions) {
+            return false;
+        }
+        return transitions.every((transition) =>
+            isNonEmptyString(transition['relationship-unique-id']) &&
+            relationshipIds.has(transition['relationship-unique-id']) &&
+            typeof transition['sequence-number'] === 'number');
+    });
+}
+
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
     return outcomes.filter((outcome) => Object.entries(outcome.snapshot).every(([path, content]) => read(path) === content));
 }

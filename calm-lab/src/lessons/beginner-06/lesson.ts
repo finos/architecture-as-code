@@ -325,6 +325,8 @@ export const BEGINNER_06: Lesson = {
         message:
             'You added metadata to your architecture, your service node and your connects ' +
             'relationship, documenting ownership, technical context and operational detail.',
-        links: [],
+        links: [
+            { to: '?lesson=beginner-07', label: 'Next lesson: Build a complete e-commerce architecture' },
+        ],
     },
 };

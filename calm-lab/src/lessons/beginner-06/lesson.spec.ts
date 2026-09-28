@@ -182,7 +182,10 @@ describe('beginner-06 lesson', () => {
         expect(validate.check(state({ doc: withServiceMetadata, commands: [validateOutcome(BEGINNER_06.editorFile, true)] }))).toBe(false);
     });
 
-    it('has no completion links yet', () => {
-        expect(BEGINNER_06.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(BEGINNER_06.completion.links).toContainEqual({
+            to: '?lesson=beginner-07',
+            label: 'Next lesson: Build a complete e-commerce architecture',
+        });
     });
 });
