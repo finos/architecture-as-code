@@ -669,9 +669,10 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits when --major and --minor are combined', async () => {
-            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            // The flag conflict is checked before loadManifest is ever called.
             await expect(program.parseAsync(['node', 'test', 'workspace', 'snapshot', 'doc-a', '--major', '--minor'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loadManifest).not.toHaveBeenCalled();
             expect(mocks.markAsSnapshot).not.toHaveBeenCalled();
         });
 
@@ -691,9 +692,25 @@ describe('setupWorkspaceCommands', () => {
 
     describe('workspace release', () => {
         it('releases a snapshotted document', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
             await program.parseAsync(['node', 'test', 'workspace', 'release', 'doc-a']);
-            expect(mocks.releaseSnapshot).toHaveBeenCalledWith('/fake/bundle', 'doc-a');
+            expect(mocks.releaseSnapshot).toHaveBeenCalledWith('/fake/bundle', 'doc-a', expect.objectContaining({ isMockClient: true }));
             expect(exitSpy).not.toHaveBeenCalled();
+        });
+
+        it('prompts for an id when not provided', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
+            mocks.select.mockResolvedValueOnce('doc-a');
+            await program.parseAsync(['node', 'test', 'workspace', 'release']);
+            expect(mocks.select).toHaveBeenCalled();
+            expect(mocks.releaseSnapshot).toHaveBeenCalledWith('/fake/bundle', 'doc-a', expect.anything());
+        });
+
+        it('does nothing when the bundle has no tracked documents', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({});
+            await program.parseAsync(['node', 'test', 'workspace', 'release']);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.releaseSnapshot).not.toHaveBeenCalled();
         });
 
         it('exits when no workspace bundle is found', async () => {
@@ -703,6 +720,7 @@ describe('setupWorkspaceCommands', () => {
         });
 
         it('exits on releaseSnapshot error (e.g. blocked by a snapshot dependency)', async () => {
+            mocks.loadManifest.mockResolvedValueOnce({ 'doc-a': { path: 'files/doc-a.json', type: 'architecture' } });
             mocks.releaseSnapshot.mockRejectedValueOnce(new Error('depends on snapshot version(s) of doc-c'));
             await expect(program.parseAsync(['node', 'test', 'workspace', 'release', 'doc-a'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);

@@ -3,6 +3,7 @@ import { existsSync } from 'fs';
 import { loadManifest, saveManifest, resolveFilePath } from './bundle';
 import { CalmHubClient, DocumentMetadata, extractDocumentMetadata, isSnapshotVersion, initLogger, Logger } from '@finos/calm-shared';
 import { canonicalEqual } from './bump';
+import { findSnapshotDependencies } from './snapshot';
 
 const logger: Logger = initLogger(false, 'workspace');
 
@@ -68,6 +69,15 @@ export async function pushWorkspaceToHub(
         if (!namespace) {
             logger.warn(`Skipping '${id}': document $id has no namespace.`);
             continue;
+        }
+
+        if (!isSnapshotVersion(version)) {
+            const snapshotDeps = await findSnapshotDependencies(bundlePath, id);
+            if (snapshotDeps.length > 0) {
+                logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first.`);
+                conflicts.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
+                continue;
+            }
         }
 
         let existingVersions: string[];

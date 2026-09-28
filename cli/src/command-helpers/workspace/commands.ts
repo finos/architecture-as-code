@@ -422,17 +422,16 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                if ([options.major, options.minor, options.patch].filter(Boolean).length > 1) {
-                    logger.error('Cannot use --major, --minor and --patch together.');
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
+                let defaultIncrement: ResourceChangeType;
+                try {
+                    defaultIncrement = resolveIncrement(options, workspaceConfig.bump.defaultIncrement);
+                } catch (err) {
+                    logger.error(err instanceof Error ? err.message : String(err));
                     process.exit(1);
                 }
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
-
-                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
-                const defaultIncrement: ResourceChangeType =
-                    options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig.bump.defaultIncrement;
-
                 const client = new CalmHubClient(calmHubOptions);
 
                 // Detect changed resources up-front so interactive prompts can be shown before
@@ -538,6 +537,15 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
+                let increment: ResourceChangeType;
+                try {
+                    increment = resolveIncrement(options, workspaceConfig.bump.defaultIncrement);
+                } catch (err) {
+                    logger.error(err instanceof Error ? err.message : String(err));
+                    process.exit(1);
+                }
+
                 const manifest = await loadManifest(bundlePath);
                 const docIds = Object.keys(manifest);
                 if (docIds.length === 0) {
@@ -546,16 +554,7 @@ export function setupWorkspaceCommands(program: Command) {
                 }
                 id = await enforceOptionPresenceByPrompt(id, 'Select a document to snapshot:', docIds);
 
-                if ([options.major, options.minor, options.patch].filter(Boolean).length > 1) {
-                    logger.error('Cannot use --major, --minor and --patch together.');
-                    process.exit(1);
-                }
-
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
-                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
-                const increment: ResourceChangeType =
-                    options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig.bump.defaultIncrement;
-
                 const client = new CalmHubClient(calmHubOptions);
                 const result = await markAsSnapshot(bundlePath, id, client, { increment });
                 logger.info(`'${result.id}': ${result.fromVersion} -> ${result.toVersion}`);
@@ -568,8 +567,9 @@ export function setupWorkspaceCommands(program: Command) {
     workspaceCmd
         .command('release')
         .description('Strip the -SNAPSHOT suffix from a tracked document, turning it back into an immutable release version.')
-        .argument('<id>', 'The ID of the document to release')
-        .action(async (id: string) => {
+        .argument('[id]', 'The ID of the document to release (prompted for if omitted)')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .action(async (id: string | undefined, options: { calmHubUrl?: string }) => {
             try {
                 const bundlePath = findWorkspaceManifestPath(process.cwd());
                 if (!bundlePath) {
@@ -577,13 +577,32 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const result = await releaseSnapshot(bundlePath, id);
+                const manifest = await loadManifest(bundlePath);
+                const docIds = Object.keys(manifest);
+                if (docIds.length === 0) {
+                    logger.info('No documents currently tracked in workspace bundle.');
+                    return;
+                }
+                id = await enforceOptionPresenceByPrompt(id, 'Select a document to release:', docIds);
+
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
+                const result = await releaseSnapshot(bundlePath, id, client);
                 logger.info(`'${result.id}': ${result.fromVersion} -> ${result.toVersion}`);
             } catch (err) {
                 logger.error('Failed to release document: ' + (err instanceof Error ? err.message : String(err)));
                 process.exit(1);
             }
         });
+}
+
+type IncrementFlags = { major?: boolean; minor?: boolean; patch?: boolean };
+
+function resolveIncrement(options: IncrementFlags, defaultIncrement: ResourceChangeType): ResourceChangeType {
+    if ([options.major, options.minor, options.patch].filter(Boolean).length > 1) {
+        throw new Error('Cannot use --major, --minor and --patch together.');
+    }
+    return options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : defaultIncrement;
 }
 
 async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: readonly string[]): Promise<string> {

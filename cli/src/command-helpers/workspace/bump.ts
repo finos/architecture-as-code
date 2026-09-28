@@ -9,7 +9,7 @@ import {
     extractDocumentMetadata,
     constructDocumentId,
     computeSemVerBump,
-    sortSemVer,
+    latestReleaseVersion,
     canonicalEqual,
     isSnapshotVersion,
     initLogger,
@@ -150,7 +150,7 @@ export async function detectChangedResources(
             filePath,
             metadata,
             currentVersion: metadata.version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1],
+            latestHubVersion: latestReleaseVersion(versions),
         });
     }
 
@@ -232,6 +232,12 @@ export async function bumpWorkspace(
             } catch {
                 // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            if (isSnapshotVersion(metadata.version)) {
+                // Already mutable; bumping would strip the suffix and promote it to a release.
                 bumpedIds.add(candidate.docId);
                 continue;
             }

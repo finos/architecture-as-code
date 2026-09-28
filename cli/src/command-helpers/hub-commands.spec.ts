@@ -197,6 +197,26 @@ describe('hub-commands', () => {
             );
         });
 
+        it('bumps off the highest release, not a snapshot ranked higher, when versions include one', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                changeType: 'MINOR',
+                file: 'arch.json'
+            });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.1.0' }),
+                expect.any(String)
+            );
+        });
+
         it('writes the updated document id back to disk after pushing', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
