@@ -4,7 +4,8 @@ import { INTERMEDIATE_10 } from '../intermediate-10/lesson';
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
-import type { LessonState } from '../types';
+import { hintContent, type LessonState } from '../types';
+import { hasPlaceholder } from '../checks';
 
 const [GENERATED, PATTERN, BROKEN] = INTERMEDIATE_17.editableFiles!;
 
@@ -176,6 +177,23 @@ describe('intermediate-17 lesson', () => {
             await replay.runHint(step);
             expect(step.check(await replay.stateFor()), step.id).toBe(true);
         }
+    });
+
+    it('builds the enhance hint from the learner\'s own pattern', async () => {
+        const replay = startReplay(INTERMEDIATE_17);
+        replay.vfs.write(PATTERN, MY_PATTERN);
+        await replay.runHint(generate);
+        await replay.runHint(enhance);
+        expect(enhance.check(await replay.stateFor())).toBe(true);
+        await replay.runHint(validateEnhanced);
+        expect(validateEnhanced.check(await replay.stateFor())).toBe(true);
+    });
+
+    it('builds the enhance hint from the tutorial\'s pattern while the learner\'s is a stub', () => {
+        const hint = enhance.hint;
+        const doc = hint.kind === 'file' ? JSON.parse(hintContent(hint, { files: INTERMEDIATE_17.seedFiles })) : undefined;
+        expect(doc.nodes.map((node: { 'unique-id': string }) => node['unique-id'])).toEqual(['web-frontend', 'api-service', 'app-database']);
+        expect(hasPlaceholder(doc)).toBe(false);
     });
 
     it('does not tick generate for a successful run on the stub pattern', async () => {

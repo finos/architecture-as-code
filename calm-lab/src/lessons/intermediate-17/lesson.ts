@@ -1,6 +1,7 @@
-import { HOME_DIR, type Lesson, type LessonState } from '../types';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
 import {
-    fileJson, hasDescription, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternConnects, patternNodeIds, patternNodeTypes, patternRequires,
+    fileJson, hasDescription, hasPlaceholder, nodeById, nodeInterfaces, nodes, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes,
+    patternRequires,
     ranOk, rejected, relationships,
 } from '../checks';
 import { INTERMEDIATE_10 } from '../intermediate-10/lesson';
@@ -161,66 +162,52 @@ const BROKEN_SEED = `{
 }
 `;
 
-const ENHANCED_FILE = `{
-    "$schema": "https://example.com/patterns/web-app-pattern.json",
-    "nodes": [
-        {
-            "unique-id": "web-frontend",
-            "node-type": "webclient",
-            "name": "Web Frontend",
-            "description": "Browser application that customers use to reach the service."
-        },
-        {
-            "unique-id": "api-service",
-            "node-type": "service",
-            "name": "API Service",
-            "description": "REST API that holds the business logic of the web application.",
-            "interfaces": [
-                {
-                    "unique-id": "api-service-https",
-                    "host": "api.example.com",
-                    "port": 443
-                }
-            ]
-        },
-        {
-            "unique-id": "app-database",
-            "node-type": "database",
-            "name": "Application Database",
-            "description": "PostgreSQL database that stores the application data.",
-            "interfaces": [
-                {
-                    "unique-id": "app-database-postgres",
-                    "host": "db.example.com",
-                    "port": 5432
-                }
-            ]
-        }
-    ],
-    "relationships": [
-        {
-            "unique-id": "frontend-to-api",
-            "description": "The web frontend calls the API over HTTPS.",
-            "relationship-type": {
-                "connects": {
-                    "source": { "node": "web-frontend" },
-                    "destination": { "node": "api-service" }
-                }
-            }
-        },
-        {
-            "unique-id": "api-to-database",
-            "description": "The API reads and writes application data.",
-            "relationship-type": {
-                "connects": {
-                    "source": { "node": "api-service" },
-                    "destination": { "node": "app-database" }
-                }
-            }
-        }
-    ]
-}
-`;
+// The tutorial's enhancements, by node-type and by the node-types a relationship connects.
+const NODE_ENHANCEMENTS: Record<string, { description: string; interface?: { name: string; host: string; port: number } }> = {
+    webclient: { description: 'Browser application that customers use to reach the service.' },
+    service: {
+        description: 'REST API that holds the business logic of the web application.',
+        interface: { name: 'https', host: 'api.example.com', port: 443 },
+    },
+    database: {
+        description: 'PostgreSQL database that stores the application data.',
+        interface: { name: 'postgres', host: 'db.example.com', port: 5432 },
+    },
+};
+const RELATIONSHIP_DESCRIPTIONS: Record<string, string> = {
+    'webclient>service': 'The web frontend calls the API over HTTPS.',
+    'service>database': 'The API reads and writes application data.',
+};
+
+// The architecture `calm generate` writes for the learner's pattern, with the placeholders filled in:
+// their own ids keep the next validate passing. The tutorial's pattern until theirs has its three nodes.
+const enhancedFile = (state: HintFiles): string => {
+    const learner = fileJson(state, PATTERN);
+    const pattern = patternNodeIds(learner).length === 3 ? learner : JSON.parse(PATTERN_FILE) as CalmDocLike;
+    const patternNodes = patternItemConsts(pattern, 'nodes');
+    const typeOf = (id: unknown) => String(patternNodes.find((node) => node['unique-id'] === id)?.['node-type']);
+    const nodeList = patternNodes.map((node) => {
+        const id = String(node['unique-id']);
+        const enhancement = NODE_ENHANCEMENTS[String(node['node-type'])];
+        const iface = enhancement?.interface;
+        return {
+            ...node,
+            name: node['name'] ?? id,
+            description: node['description'] ?? enhancement?.description ?? `The ${id} node.`,
+            ...(iface && { interfaces: [{ 'unique-id': `${id}-${iface.name}`, host: iface.host, port: iface.port }] }),
+        };
+    });
+    const relationshipList = patternItemConsts(pattern, 'relationships').map((relationship) => {
+        const connects = (relationship['relationship-type'] as { connects?: { source?: { node?: unknown }; destination?: { node?: unknown } } } | undefined)?.connects;
+        const link = `${typeOf(connects?.source?.node)}>${typeOf(connects?.destination?.node)}`;
+        return {
+            'unique-id': relationship['unique-id'],
+            description: relationship['description'] ?? RELATIONSHIP_DESCRIPTIONS[link] ?? 'Connects two nodes of the pattern.',
+            ...relationship,
+        };
+    });
+    return `${JSON.stringify({ $schema: pattern?.['$id'], nodes: nodeList, relationships: relationshipList }, null, 4)}\n`;
+};
 
 const NODE_TYPES = ['database', 'service', 'webclient'];
 
@@ -311,7 +298,7 @@ export const INTERMEDIATE_17: Lesson = {
                 'In `architectures/generated-webapp.json`, replace each `[[ DESCRIPTION ]]` placeholder with a real ' +
                 'description, and add a `description` to each relationship. Add `interfaces` with a `unique-id`, a `host` and a `port` ' +
                 'to the service and the database. Keep each `unique-id`, `node-type` and `name` that the pattern requires, and save your change.',
-            hint: { kind: 'file', content: ENHANCED_FILE },
+            hint: { kind: 'file', content: enhancedFile },
             check: enhanced,
         },
         {

@@ -1,5 +1,5 @@
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
-import { HOME_DIR, type CalmDocLike, type LessonState } from './types';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
 
@@ -212,6 +212,16 @@ function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' |
     });
 }
 
+/** Each item in a pattern's `properties.<array>.prefixItems` as the values its properties fix with `const`. */
+export function patternItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships'): CalmDocLike[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        return Object.fromEntries(Object.entries(isNonEmptyObject(properties) ? properties : {})
+            .filter(([, value]) => isNonEmptyObject(value) && 'const' in value)
+            .map(([key, value]) => [key, (value as Item)['const']]));
+    });
+}
+
 /** The `const` `node-type` of each item in a pattern's `properties.nodes.prefixItems` (`undefined` where it has none). */
 export function patternNodeTypes(json: CalmDocLike | null | undefined): unknown[] {
     return prefixItemConsts(json, 'nodes', 'node-type');
@@ -252,12 +262,12 @@ export function hasPlaceholder(value: unknown): boolean {
 }
 
 /** A saved workspace file's text (absolute path), or null when it does not exist. */
-export function fileText(state: LessonState, path: string): string | null {
+export function fileText(state: HintFiles, path: string): string | null {
     return Object.prototype.hasOwnProperty.call(state.files, path) ? state.files[path] : null;
 }
 
 /** A saved workspace file parsed as a JSON object; null when it is missing, not JSON, or not an object. */
-export function fileJson(state: LessonState, path: string): CalmDocLike | null {
+export function fileJson(state: HintFiles, path: string): CalmDocLike | null {
     const text = fileText(state, path);
     if (text === null) {
         return null;

@@ -3,7 +3,7 @@ import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
     controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
     hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
-    patternConnects, patternNodeIds, patternNodeTypes, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
+    patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
     validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
@@ -369,6 +369,21 @@ describe('pattern helpers', () => {
         expect(patternNodeIds(json as never)).toEqual([]);
         expect(patternNodeTypes(json as never)).toEqual([]);
         expect(patternConnects(json as never)).toEqual([]);
+        expect(patternItemConsts(json as never, 'nodes')).toEqual([]);
+    });
+
+    it('patternItemConsts reads the const properties of each item and skips the rest', () => {
+        const json = {
+            properties: {
+                nodes: { prefixItems: [
+                    { properties: { 'unique-id': { const: 'a' }, name: { const: 'A' }, description: { type: 'string' } } },
+                    { type: 'object' },
+                ] },
+                relationships: { prefixItems: [{ properties: { 'relationship-type': { const: { connects: {} } } } }] },
+            },
+        };
+        expect(patternItemConsts(json, 'nodes')).toEqual([{ 'unique-id': 'a', name: 'A' }, {}]);
+        expect(patternItemConsts(json, 'relationships')).toEqual([{ 'relationship-type': { connects: {} } }]);
     });
 
     it('patternNodeTypes and patternConnects read the const node-type and connects of each item', () => {
