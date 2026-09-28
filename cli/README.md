@@ -623,7 +623,8 @@ Options:
   --direct-url-auth-module <path>                Optional path to the direct URL authentication plugin module
   --direct-url-auth-config-path <path>           Optional config path for the direct URL authentication plugin module
   --direct-url-auth-authenticated-hosts <hosts>  If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module
-  -h, --help                                     display help for command```
+  -h, --help                                     display help for command
+```
 
 ```shell
 calm init-config \
