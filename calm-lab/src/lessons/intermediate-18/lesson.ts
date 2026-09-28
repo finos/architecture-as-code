@@ -115,6 +115,8 @@ export const INTERMEDIATE_18: Lesson = {
             'You wrote a Node Standard and a Relationship Standard using `allOf` to extend CALM\'s core schema with your ' +
             'organization\'s required properties. A Standard defines requirements but does not enforce them; a Pattern that ' +
             'references it does.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-19', label: 'Next lesson: Enforcing standards with patterns' },
+        ],
     },
 };

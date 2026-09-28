@@ -1,4 +1,6 @@
+import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
+import { resolvePath } from '../lab/vfs';
 import { HOME_DIR, type CalmDocLike, type HintFiles, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
@@ -275,6 +277,94 @@ export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 
     return [...required];
 }
 
+const standardProperties = (json: CalmDocLike | null | undefined): Item =>
+    Object.assign({}, ...[...items(json?.['allOf']), json].map((entry) => entry?.['properties']).filter(isNonEmptyObject));
+
+const ajv = new Ajv2020({ strict: false });
+const validators = new Map<string, ValidateFunction | null>();
+
+/** Whether `value` is valid against a property schema; true when the schema cannot compile on its own (a `$ref`, say). */
+function fits(value: unknown, schema: Item): boolean {
+    const key = JSON.stringify(schema);
+    if (!validators.has(key)) {
+        try {
+            validators.set(key, ajv.compile(schema));
+        } catch {
+            validators.set(key, null);
+        }
+    }
+    return validators.get(key)?.(value) ?? true;
+}
+
+const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/**
+ * A value for each property a Standard requires: the first of the value in `values`, the schema's
+ * `const`, `default`, `examples` and `enum`, and a plain value of its `type`, that is valid against the property schema.
+ * A `pattern` that none of these match gets a value that does not match it.
+ */
+export function standardExample(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship', values: CalmDocLike = {}): CalmDocLike {
+    const properties = standardProperties(json);
+    return Object.fromEntries(standardRequires(json, coreDef).map((name) => {
+        const schema = isNonEmptyObject(properties[name]) ? properties[name] : {};
+        const candidates = [
+            ...(Object.prototype.hasOwnProperty.call(values, name) ? [values[name]] : []),
+            ...('const' in schema ? [schema['const']] : []),
+            ...('default' in schema ? [schema['default']] : []),
+            ...listed(schema['examples']),
+            ...listed(schema['enum']),
+            ...({ boolean: [true, false], integer: [0, 1], number: [0, 1] }[String(schema['type'])] ?? ['example', '0']),
+        ];
+        return [name, candidates.find((candidate) => fits(candidate, schema)) ?? candidates[0]];
+    }));
+}
+
+/**
+ * `item` with the properties that `tutorialStandard` declares replaced by values for `standard`,
+ * so a hint follows the learner's Standard and drops the tutorial's properties it does not require.
+ */
+export function withStandard(
+    item: CalmDocLike, coreDef: 'node' | 'relationship', standard: CalmDocLike | null, tutorialStandard: CalmDocLike | null,
+): CalmDocLike {
+    const replaced = Object.keys(standardProperties(tutorialStandard));
+    const kept = Object.fromEntries(Object.entries(item).filter(([name]) => !replaced.includes(name)));
+    return { ...kept, ...standardExample(standard, coreDef, item) };
+}
+
+/** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */
+export function patternRefs(json: unknown): string[] {
+    const refs = new Set<string>();
+    const walk = (value: unknown) => {
+        if (Array.isArray(value)) {
+            value.forEach(walk);
+        } else if (typeof value === 'object' && value !== null) {
+            for (const [key, child] of Object.entries(value)) {
+                if (key === '$ref' && isNonEmptyString(child)) {
+                    refs.add(child);
+                } else {
+                    walk(child);
+                }
+            }
+        }
+    };
+    walk(json);
+    return [...refs];
+}
+
+/**
+ * The `$ref`s that every element of a pattern's `properties.nodes` or `properties.relationships` must match:
+ * `items.$ref` and each `$ref` directly in `items.allOf`. A `$ref` under `anyOf`, `not`, `prefixItems` or `contains` does not count.
+ */
+export function patternArrayRefs(json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): string[] {
+    const itemsSchema = patternArray(json, key)?.['items'];
+    if (!isNonEmptyObject(itemsSchema)) {
+        return [];
+    }
+    return [itemsSchema, ...items(itemsSchema['allOf'])]
+        .map((schema) => schema['$ref'])
+        .filter(isNonEmptyString);
+}
+
 /** A non-empty string `description` on a document, node or relationship. */
 export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
 
@@ -309,6 +399,29 @@ export function fileJson(state: HintFiles, path: string): CalmDocLike | null {
     } catch {
         return null;
     }
+}
+
+export interface UrlMappingEntry { url: string; path: string; exists: boolean }
+
+/**
+ * The entries of a `-u` URL mapping file: each URL with its local path resolved against the
+ * mapping file's folder, as the CLI and the lab resolve it. A value that is not a non-empty string
+ * gives `path: ''` and `exists: false`. `[]` when the mapping is missing or not a JSON object.
+ */
+export function urlMappingEntries(state: LessonState, mappingPath: string): UrlMappingEntry[] {
+    const directory = mappingPath.slice(0, mappingPath.lastIndexOf('/')) || '/';
+    return Object.entries(fileJson(state, mappingPath) ?? {}).map(([url, value]) => {
+        if (!isNonEmptyString(value)) {
+            return { url, path: '', exists: false };
+        }
+        const path = resolvePath(directory, value);
+        return { url, path, exists: fileText(state, path) !== null };
+    });
+}
+
+/** The mapping's URLs whose local file exists: URL → absolute path. */
+export function urlMappingTargets(state: LessonState, mappingPath: string): Record<string, string> {
+    return Object.fromEntries(urlMappingEntries(state, mappingPath).filter((entry) => entry.exists).map((entry) => [entry.url, entry.path]));
 }
 
 const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
