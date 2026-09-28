@@ -157,7 +157,9 @@ describe('intermediate-08 lesson', () => {
         }
     });
 
-    it('has no completion links yet', () => {
-        expect(INTERMEDIATE_08.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(INTERMEDIATE_08.completion.links).toEqual([
+            { to: '?lesson=intermediate-09', label: 'Next lesson: Business flows' },
+        ]);
     });
 });

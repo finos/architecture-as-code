@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, freshOutcomes, hasMetadata, interactsWith, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed,
-    ranOk, relationships, relationshipsOfKind, validatedEditorFile,
+    controlsIn, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith, nodeById, nodeInterfaces, nodes,
+    nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -261,6 +261,69 @@ describe('relationshipsOfKind', () => {
     it('never throws on a partial or wrong-shaped document', () => {
         for (const bad of [null, undefined, {}, { relationships: 'x' }, { relationships: [{ 'relationship-type': null }] }, { relationships: [{ 'relationship-type': { connects: 'x' } }] }]) {
             expect(relationshipsOfKind(bad as never, 'connects')).toEqual([]);
+        }
+    });
+});
+
+describe('flowsWithTransitions', () => {
+    const flowDoc = {
+        relationships: [
+            { 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'db' } } } },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } },
+        ],
+        flows: [
+            {
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [
+                    { 'relationship-unique-id': 'r2', 'sequence-number': 1, description: 'a' },
+                    { 'relationship-unique-id': 'r1', 'sequence-number': 2, description: 'b' },
+                ],
+            },
+        ],
+    };
+
+    it('matches a flow whose transitions all resolve, at or above the minimum count', () => {
+        expect(flowsWithTransitions(flowDoc, 2).map((flow) => flow['unique-id'])).toEqual(['order-flow']);
+        expect(flowsWithTransitions(flowDoc, 3)).toEqual([]);
+    });
+
+    it('does not match a transition naming a relationship id that does not exist', () => {
+        const dangling = {
+            ...flowDoc,
+            flows: [{
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [
+                    { 'relationship-unique-id': 'r2', 'sequence-number': 1, description: 'a' },
+                    { 'relationship-unique-id': 'does-not-exist', 'sequence-number': 2, description: 'b' },
+                ],
+            }],
+        };
+        expect(flowsWithTransitions(dangling, 2)).toEqual([]);
+    });
+
+    it('does not match a flow missing a unique-id or name, or a transition without a numeric sequence-number', () => {
+        const noName = { ...flowDoc, flows: [{ 'unique-id': 'order-flow', transitions: flowDoc.flows[0].transitions }] };
+        const badSequence = {
+            ...flowDoc,
+            flows: [{
+                'unique-id': 'order-flow',
+                name: 'Order flow',
+                transitions: [{ 'relationship-unique-id': 'r1', 'sequence-number': '2', description: 'b' }],
+            }],
+        };
+        expect(flowsWithTransitions(noName, 1)).toEqual([]);
+        expect(flowsWithTransitions(badSequence, 1)).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        const bad = [
+            null, undefined, {}, { flows: 'x' }, { flows: [null, 3] }, { flows: [{ transitions: 'x' }] },
+            { flows: [{ 'unique-id': 'f', name: 'F', transitions: [null, 3] }] },
+        ];
+        for (const item of bad) {
+            expect(flowsWithTransitions(item as never, 1)).toEqual([]);
         }
     });
 });
