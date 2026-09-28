@@ -1,5 +1,7 @@
-import { HOME_DIR, type Lesson, type LessonState } from '../types';
-import { everyHas, fileJson, nodeById, nodes, prefixItemConsts, ranOk, relationships, standardRequires } from '../checks';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type Lesson, type LessonState } from '../types';
+import {
+    everyHas, fileJson, nodeById, nodes, prefixItemConsts, ranOk, relationships, standardExample, standardRequires,
+} from '../checks';
 import { INTERMEDIATE_19 } from '../intermediate-19/lesson';
 import { NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
@@ -159,6 +161,20 @@ const RELATIONSHIPS_FILE = `{
 
 // The steps say to keep what the web application pattern fixes: each node's unique-id and node-type,
 // and each relationship's unique-id.
+// The file hints fill in the properties that the learner's Standards require, for the items each step is about.
+const withStandards = (file: string, relationshipsToo: boolean) => (state: HintFiles) => {
+    const doc = JSON.parse(file) as { nodes: CalmDocLike[]; relationships: CalmDocLike[] };
+    const nodeStd = fileJson(state, NODE_STD);
+    const relationshipStd = fileJson(state, RELATIONSHIP_STD);
+    return `${JSON.stringify({
+        ...doc,
+        nodes: doc.nodes.map((node) => ({ ...node, ...standardExample(nodeStd, 'node', node) })),
+        relationships: relationshipsToo
+            ? doc.relationships.map((relationship) => ({ ...relationship, ...standardExample(relationshipStd, 'relationship', relationship) }))
+            : doc.relationships,
+    }, null, 4)}\n`;
+};
+
 const keepsWebAppShape = (state: LessonState) => {
     const pattern = fileJson(state, WEB_APP);
     const ids = prefixItemConsts(pattern, 'nodes', 'unique-id');
@@ -199,7 +215,7 @@ export const INTERMEDIATE_20: Lesson = {
                 'The editor shows `architectures/generated-webapp.json` from the patterns lesson. ' +
                 'Give each node every property that your Node Standard requires, for example `costCenter` and `owner`. ' +
                 'Keep each `unique-id`, `node-type` and `name` that the web application pattern requires. Save your change.',
-            hint: { kind: 'file', content: NODES_FILE },
+            hint: { kind: 'file', content: withStandards(NODES_FILE, false) },
             check: nodesCompliant,
         },
         {
@@ -208,7 +224,7 @@ export const INTERMEDIATE_20: Lesson = {
             body:
                 'Give each relationship every property that your Relationship Standard requires, ' +
                 'for example `dataClassification` and `encrypted`. Keep each `unique-id` and `relationship-type`. Save your change.',
-            hint: { kind: 'file', content: RELATIONSHIPS_FILE },
+            hint: { kind: 'file', content: withStandards(RELATIONSHIPS_FILE, true) },
             check: relationshipsCompliant,
         },
         {

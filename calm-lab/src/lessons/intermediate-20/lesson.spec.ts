@@ -151,6 +151,22 @@ describe('intermediate-20 lesson', () => {
         }
     });
 
+    it('builds the file hints from the learner\'s own standards', async () => {
+        const replay = startReplay(INTERMEDIATE_20);
+        // Same $ids, so the mapping and the base pattern still find them; other required properties.
+        const requiring = (path: string, name: string, type: string) => {
+            const json = JSON.parse(replay.vfs.read(path)!);
+            json.allOf[1] = { type: 'object', properties: { [name]: { type } }, required: [name] };
+            replay.vfs.write(path, JSON.stringify(json));
+        };
+        requiring(NODE_STD, 'team', 'string');
+        requiring(RELATIONSHIP_STD, 'mutualTls', 'boolean');
+        for (const step of INTERMEDIATE_20.steps) {
+            await replay.runHint(step);
+            expect(step.check(await replay.stateFor()), step.id).toBe(true);
+        }
+    });
+
     it('makes both validate steps stale when the architecture or a standard changes after the runs', async () => {
         const replay = startReplay(INTERMEDIATE_20);
         for (const step of INTERMEDIATE_20.steps) {
