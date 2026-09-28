@@ -206,7 +206,8 @@ export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
         .filter(isNonEmptyString);
 }
 
-function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
+/** The `const` of `property` in each item of a pattern's `properties.<array>.prefixItems` (`undefined` where it has none). */
+export function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
     return items(patternArray(json, array)?.['prefixItems']).map((item) => {
         const properties = item['properties'];
         const value = isNonEmptyObject(properties) ? properties[property] : undefined;
@@ -329,6 +330,16 @@ export function withStandard(
     const replaced = Object.keys(standardProperties(tutorialStandard));
     const kept = Object.fromEntries(Object.entries(item).filter(([name]) => !replaced.includes(name)));
     return { ...kept, ...standardExample(standard, coreDef, item) };
+}
+
+/**
+ * At least one item, at least one name, and every item has every name as an own property.
+ * An empty `names` list fails, so a Standard that requires nothing never completes a step.
+ */
+export function everyHas(list: unknown, names: string[]): boolean {
+    return Array.isArray(list) && list.length > 0 && names.length > 0
+        && list.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item)
+            && names.every((name) => Object.prototype.hasOwnProperty.call(item, name)));
 }
 
 /** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */

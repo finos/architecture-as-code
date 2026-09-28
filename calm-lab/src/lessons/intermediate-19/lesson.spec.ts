@@ -236,7 +236,10 @@ describe('intermediate-19 lesson', () => {
         expect(validateCompliant.check(await replay.stateFor())).toBe(false);
     });
 
-    it('has no completion links yet', () => {
-        expect(INTERMEDIATE_19.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(INTERMEDIATE_19.completion.links).toContainEqual({
+            to: '?lesson=intermediate-20',
+            label: 'Next lesson: Multi-pattern validation',
+        });
     });
 });
