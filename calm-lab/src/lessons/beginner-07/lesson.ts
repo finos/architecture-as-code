@@ -551,6 +551,8 @@ export const BEGINNER_07: Lesson = {
             'You built a complete e-commerce architecture with actors, services, databases and a ' +
             'system, validated it and compared it with your first architecture. You have completed ' +
             'the beginner track.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-08', label: 'Next lesson: Controls' },
+        ],
     },
 };

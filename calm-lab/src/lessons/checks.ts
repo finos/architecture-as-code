@@ -122,6 +122,32 @@ export function hasMetadata(item: Item | null | undefined): boolean {
     return Array.isArray(value) ? value.length > 0 && value.every(isNonEmptyObject) : isNonEmptyObject(value);
 }
 
+function isConfiguredRequirement(value: unknown): boolean {
+    if (!isNonEmptyObject(value)) {
+        return false;
+    }
+    return isNonEmptyString(value['requirement-url']) && (isNonEmptyObject(value['config']) || isNonEmptyString(value['config-url']));
+}
+
+/**
+ * The `[domain, control]` entries of `item.controls` whose `requirements` is a non-empty array,
+ * with each requirement having a string `requirement-url` and either a `config` object or a
+ * `config-url` string.
+ */
+export function controlsIn(item: Item | null | undefined): Array<[string, Item]> {
+    const controls = item?.['controls'];
+    if (!isNonEmptyObject(controls)) {
+        return [];
+    }
+    return (Object.entries(controls) as Array<[string, Item]>).filter(([, control]) => {
+        if (!isNonEmptyObject(control)) {
+            return false;
+        }
+        const requirements = control['requirements'];
+        return Array.isArray(requirements) && requirements.length > 0 && requirements.every(isConfiguredRequirement);
+    });
+}
+
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
     return outcomes.filter((outcome) => Object.entries(outcome.snapshot).every(([path, content]) => read(path) === content));
 }
