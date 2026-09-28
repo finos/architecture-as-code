@@ -197,6 +197,8 @@ export const BEGINNER_03: Lesson = {
         message:
             'You connected nodes with connects, interacts and composed-of relationships, and validated the ' +
             'result with the real CALM engine. Tutorial 04 covers the VS Code extension, which has no lab lesson.',
-        links: [],
+        links: [
+            { to: '?lesson=beginner-05', label: 'Next lesson: Add interfaces' },
+        ],
     },
 };

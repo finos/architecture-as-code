@@ -68,6 +68,36 @@ export function composedOf(doc: CalmDocLike | null | undefined, containerType: s
     });
 }
 
+/** A node's `interfaces` array items that have a non-empty string `unique-id`. */
+export function nodeInterfaces(node: Item | null | undefined): Item[] {
+    return items(node?.['interfaces']).filter((iface) => isNonEmptyString(iface['unique-id']));
+}
+
+function referencesAnInterfaceOf(node: Item | undefined, ids: unknown): boolean {
+    if (!Array.isArray(ids) || ids.length === 0) {
+        return false;
+    }
+    const available = new Set(nodeInterfaces(node).map((iface) => iface['unique-id']));
+    return ids.some((id) => typeof id === 'string' && available.has(id));
+}
+
+/**
+ * A `connects` from a node of `sourceType` to one of `destinationType` whose `source.interfaces`
+ * and `destination.interfaces` each name at least one id that exists on that node's `interfaces`.
+ */
+export function connectsUsesInterfaces(doc: CalmDocLike | null | undefined, sourceType: string, destinationType: string): boolean {
+    return relationshipsOf(doc, 'connects').some((connects) => {
+        const source = connects.source as Item | undefined;
+        const destination = connects.destination as Item | undefined;
+        const sourceNode = nodeById(doc, source?.node);
+        const destinationNode = nodeById(doc, destination?.node);
+        if (sourceNode?.['node-type'] !== sourceType || destinationNode?.['node-type'] !== destinationType) {
+            return false;
+        }
+        return referencesAnInterfaceOf(sourceNode, source?.interfaces) && referencesAnInterfaceOf(destinationNode, destination?.interfaces);
+    });
+}
+
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
     return outcomes.filter((outcome) => Object.entries(outcome.snapshot).every(([path, content]) => read(path) === content));
 }
