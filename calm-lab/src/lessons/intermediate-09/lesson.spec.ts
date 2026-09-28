@@ -4,7 +4,7 @@ import { INTERMEDIATE_08 } from '../intermediate-08/lesson';
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
-import type { LessonState } from '../types';
+import { hintContent, type LessonState } from '../types';
 
 const relationship = (id: string, kind: string, detail: Record<string, unknown>) => ({
     'unique-id': id, 'relationship-type': { [kind]: detail },
@@ -100,7 +100,7 @@ describe('intermediate-09 lesson', () => {
         for (const step of INTERMEDIATE_09.steps) {
             const hint = step.hint;
             if (hint.kind === 'file') {
-                expect(() => JSON.parse(hint.content), step.id).not.toThrow();
+                expect(() => JSON.parse(hintContent(hint, { files: INTERMEDIATE_09.seedFiles })), step.id).not.toThrow();
             }
         }
     });

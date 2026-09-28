@@ -6,6 +6,7 @@ import { BEGINNER_07 } from './beginner-07/lesson';
 import { INTERMEDIATE_08 } from './intermediate-08/lesson';
 import { INTERMEDIATE_09 } from './intermediate-09/lesson';
 import { INTERMEDIATE_10 } from './intermediate-10/lesson';
+import { INTERMEDIATE_17 } from './intermediate-17/lesson';
 import type { Lesson } from './types';
 
 export { endFiles } from './chain';
@@ -13,6 +14,7 @@ export { endFiles } from './chain';
 /** Picker order. Register new lessons here; the invariants spec covers every entry. */
 export const LESSONS: readonly Lesson[] = [
     BEGINNER_02, BEGINNER_03, BEGINNER_05, BEGINNER_06, BEGINNER_07, INTERMEDIATE_08, INTERMEDIATE_09, INTERMEDIATE_10,
+    INTERMEDIATE_17,
 ];
 export const DEFAULT_LESSON_ID = BEGINNER_02.id;
 

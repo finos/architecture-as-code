@@ -11,7 +11,7 @@ import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent, CommandOutcome} from '../cli/outcome';
 import {freshOutcomes} from '../lessons/checks';
-import {commandText, HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
+import {commandText, hintContent, HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
 
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
@@ -79,15 +79,17 @@ interface StepItemProps {
     done: boolean;
     current: boolean;
     open: boolean;
+    /** The saved workspace files, for a hint built from the learner's work. */
+    files: Record<string, string>;
     onToggle(): void;
 }
 
-function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
+function StepItem({step, index, done, current, open, files, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
     const hintLabel = step.hint.kind === 'commands'
         ? 'commands'
         : `complete ${step.hint.path ? relativeToHome(step.hint.path) : 'file'}`;
-    const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.map(commandText).join('\n');
+    const hintText = step.hint.kind === 'file' ? hintContent(step.hint, {files}) : step.hint.commands.map(commandText).join('\n');
     return (
         <li className={styles.step}>
             <button
@@ -436,6 +438,7 @@ export default function Lab({lesson}: LabProps) {
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
     const allDone = completed.size === steps.length;
+    const savedFiles = vfs.toJSON().files;
     // The uncapped total: the Problems tab lists at most 20, the badge must
     // still report every error the engine found.
     const errorCount = validation?.errorCount ?? 0;
@@ -504,6 +507,7 @@ export default function Lab({lesson}: LabProps) {
                                         done={completed.has(step.id)}
                                         current={currentStep?.id === step.id}
                                         open={effectiveExpanded === step.id}
+                                        files={savedFiles}
                                         onToggle={() =>
                                             setExpandedId(
                                                 effectiveExpanded === step.id ? null : step.id,

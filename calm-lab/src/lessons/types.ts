@@ -20,9 +20,16 @@ export type HintCommand = string | { run: string; expect: 'failure' };
 
 export const commandText = (command: HintCommand): string => (typeof command === 'string' ? command : command.run);
 
+/** The saved workspace files a hint can build its content from. */
+export type HintFiles = Pick<LessonState, 'files'>;
+
 export type StepHint =
-    | { kind: 'file'; content: string; path?: string }  // the complete file after this step; path defaults to editorFile
+    // The complete file after this step; path defaults to editorFile.
+    | { kind: 'file'; content: string | ((state: HintFiles) => string); path?: string }
     | { kind: 'commands'; commands: HintCommand[] };  // run from HOME_DIR, in order
+
+export const hintContent = (hint: Extract<StepHint, { kind: 'file' }>, state: HintFiles): string =>
+    typeof hint.content === 'string' ? hint.content : hint.content(state);
 
 export interface LessonStep {
     id: string;

@@ -1,5 +1,5 @@
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
-import { HOME_DIR, type CalmDocLike, type LessonState } from './types';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
 
@@ -170,13 +170,104 @@ export function flowsWithTransitions(doc: CalmDocLike | null | undefined, minTra
     });
 }
 
+const patternArray = (json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): Item | undefined => {
+    const properties = json?.['properties'];
+    const array = isNonEmptyObject(properties) ? properties[key] : undefined;
+    return isNonEmptyObject(array) ? array : undefined;
+};
+
+function exactCount(array: Item | undefined): number {
+    const prefixItems = array?.['prefixItems'];
+    if (!Array.isArray(prefixItems)) {
+        return 0;
+    }
+    return array!['minItems'] === prefixItems.length && array!['maxItems'] === prefixItems.length ? prefixItems.length : 0;
+}
+
+/**
+ * How many nodes and relationships a pattern requires: the `prefixItems` length of
+ * `properties.nodes` and `properties.relationships`, when `minItems` and `maxItems` both equal it.
+ * 0 when the count is absent or not exact.
+ */
+export function patternRequires(json: CalmDocLike | null | undefined): { nodes: number; relationships: number } {
+    return { nodes: exactCount(patternArray(json, 'nodes')), relationships: exactCount(patternArray(json, 'relationships')) };
+}
+
+/** The non-empty `const` `unique-id` of each item in a pattern's `properties.nodes.prefixItems`. */
+export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
+    return items(patternArray(json, 'nodes')?.['prefixItems'])
+        .map((item) => {
+            const properties = item['properties'];
+            const uniqueId = isNonEmptyObject(properties) ? properties['unique-id'] : undefined;
+            return isNonEmptyObject(uniqueId) ? uniqueId['const'] : undefined;
+        })
+        .filter(isNonEmptyString);
+}
+
+function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        const value = isNonEmptyObject(properties) ? properties[property] : undefined;
+        return isNonEmptyObject(value) ? value['const'] : undefined;
+    });
+}
+
+/** Each item in a pattern's `properties.<array>.prefixItems` as the values its properties fix with `const`. */
+export function patternItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships'): CalmDocLike[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        return Object.fromEntries(Object.entries(isNonEmptyObject(properties) ? properties : {})
+            .filter(([, value]) => isNonEmptyObject(value) && 'const' in value)
+            .map(([key, value]) => [key, (value as Item)['const']]));
+    });
+}
+
+/** The `const` `node-type` of each item in a pattern's `properties.nodes.prefixItems` (`undefined` where it has none). */
+export function patternNodeTypes(json: CalmDocLike | null | undefined): unknown[] {
+    return prefixItemConsts(json, 'nodes', 'node-type');
+}
+
+/**
+ * The `connects` each item in a pattern's `properties.relationships.prefixItems` fixes with `const`
+ * values, when the item also has a `const` `unique-id`; `undefined` for any other item.
+ */
+export function patternConnects(json: CalmDocLike | null | undefined): ({ source: string; destination: string } | undefined)[] {
+    const ids = prefixItemConsts(json, 'relationships', 'unique-id');
+    return prefixItemConsts(json, 'relationships', 'relationship-type').map((type, index) => {
+        const connects = isNonEmptyObject(type) ? type['connects'] : undefined;
+        if (!isNonEmptyString(ids[index]) || !isNonEmptyObject(connects)) {
+            return undefined;
+        }
+        const source = (connects['source'] as Item | undefined)?.['node'];
+        const destination = (connects['destination'] as Item | undefined)?.['node'];
+        return isNonEmptyString(source) && isNonEmptyString(destination) ? { source, destination } : undefined;
+    });
+}
+
+/** A non-empty string `description` on a document, node or relationship. */
+export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
+
+// The rule `architecture-has-no-placeholder-properties-string` warns on.
+const PLACEHOLDER = /^\[\[\s*[A-Z_]+\s*\]\]$/;
+
+/** A `[[ PLACEHOLDER ]]` string anywhere in `value`, as `calm generate` writes. */
+export function hasPlaceholder(value: unknown): boolean {
+    if (typeof value === 'string') {
+        return PLACEHOLDER.test(value);
+    }
+    if (typeof value === 'object' && value !== null) {
+        return Object.values(value).some(hasPlaceholder);
+    }
+    return false;
+}
+
 /** A saved workspace file's text (absolute path), or null when it does not exist. */
-export function fileText(state: LessonState, path: string): string | null {
+export function fileText(state: HintFiles, path: string): string | null {
     return Object.prototype.hasOwnProperty.call(state.files, path) ? state.files[path] : null;
 }
 
 /** A saved workspace file parsed as a JSON object; null when it is missing, not JSON, or not an object. */
-export function fileJson(state: LessonState, path: string): CalmDocLike | null {
+export function fileJson(state: HintFiles, path: string): CalmDocLike | null {
     const text = fileText(state, path);
     if (text === null) {
         return null;

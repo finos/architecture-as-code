@@ -140,7 +140,10 @@ describe('intermediate-10 lesson', () => {
         }
     });
 
-    it('has no completion links yet', () => {
-        expect(INTERMEDIATE_10.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(INTERMEDIATE_10.completion.links).toContainEqual({
+            to: '?lesson=intermediate-17',
+            label: 'Next lesson: Introduction to patterns',
+        });
     });
 });

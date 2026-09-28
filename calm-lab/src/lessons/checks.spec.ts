@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith,
-    linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, rejected,
-    relationships,
-    relationshipsOfKind, validatedEditorFile,
+    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription, hasMetadata,
+    hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType,
+    patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRequires, ranFailed, ranOk, rejected, relationships, relationshipsOfKind,
+    validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -340,6 +340,90 @@ const outcome = (over: Partial<CommandOutcome>): CommandOutcome => ({
     ...over,
 });
 const state = (commands: CommandOutcome[]): LessonState => ({ doc: null, validation: { ok: true }, commands, editorFile: '/workspace/a.json', files: {} });
+
+describe('pattern helpers', () => {
+    const item = (id?: unknown) => ({ properties: { 'unique-id': { const: id } } });
+    const tuple = (count: number, over: Record<string, unknown> = {}) =>
+        ({ type: 'array', minItems: count, maxItems: count, prefixItems: Array.from({ length: count }, (_, i) => item(`n${i}`)), ...over });
+    const pattern = { properties: { nodes: tuple(3), relationships: tuple(2) } };
+
+    it('patternRequires counts prefixItems when minItems and maxItems equal that count', () => {
+        expect(patternRequires(pattern)).toEqual({ nodes: 3, relationships: 2 });
+        expect(patternRequires({ properties: { nodes: tuple(4) } })).toEqual({ nodes: 4, relationships: 0 });
+    });
+
+    it('patternRequires gives 0 when the count is not exact', () => {
+        expect(patternRequires({ properties: { nodes: tuple(3, { maxItems: undefined }), relationships: tuple(2, { minItems: 1 }) } }))
+            .toEqual({ nodes: 0, relationships: 0 });
+        expect(patternRequires({ properties: { nodes: tuple(3, { minItems: 4, maxItems: 4 }) } })).toEqual({ nodes: 0, relationships: 0 });
+    });
+
+    it.each([
+        ['null', null],
+        ['an empty object', {}],
+        ['a properties array', { properties: [] }],
+        ['a prefixItems string', { properties: { nodes: { minItems: 1, maxItems: 1, prefixItems: 'x' } } }],
+        ['a nodes string', { properties: { nodes: 'x', relationships: null } }],
+    ])('patternRequires and patternNodeIds do not throw on %s', (_, json) => {
+        expect(patternRequires(json as never)).toEqual({ nodes: 0, relationships: 0 });
+        expect(patternNodeIds(json as never)).toEqual([]);
+        expect(patternNodeTypes(json as never)).toEqual([]);
+        expect(patternConnects(json as never)).toEqual([]);
+        expect(patternItemConsts(json as never, 'nodes')).toEqual([]);
+    });
+
+    it('patternItemConsts reads the const properties of each item and skips the rest', () => {
+        const json = {
+            properties: {
+                nodes: { prefixItems: [
+                    { properties: { 'unique-id': { const: 'a' }, name: { const: 'A' }, description: { type: 'string' } } },
+                    { type: 'object' },
+                ] },
+                relationships: { prefixItems: [{ properties: { 'relationship-type': { const: { connects: {} } } } }] },
+            },
+        };
+        expect(patternItemConsts(json, 'nodes')).toEqual([{ 'unique-id': 'a', name: 'A' }, {}]);
+        expect(patternItemConsts(json, 'relationships')).toEqual([{ 'relationship-type': { connects: {} } }]);
+    });
+
+    it('patternNodeTypes and patternConnects read the const node-type and connects of each item', () => {
+        const typed = (id: string, type?: string) => ({ properties: { 'unique-id': { const: id }, ...(type ? { 'node-type': { const: type } } : {}) } });
+        const link = (id: string | undefined, source: string, destination: string) => ({
+            properties: {
+                ...(id ? { 'unique-id': { const: id } } : {}),
+                'relationship-type': { const: { connects: { source: { node: source }, destination: { node: destination } } } },
+            },
+        });
+        const json = {
+            properties: {
+                nodes: { prefixItems: [typed('a', 'webclient'), typed('b')] },
+                relationships: { prefixItems: [link('r1', 'a', 'b'), link(undefined, 'a', 'b'), { properties: { 'unique-id': { const: 'r3' } } }] },
+            },
+        };
+        expect(patternNodeTypes(json)).toEqual(['webclient', undefined]);
+        expect(patternConnects(json)).toEqual([{ source: 'a', destination: 'b' }, undefined, undefined]);
+    });
+
+    it('patternNodeIds reads the const unique-id of each required node, and skips items without one', () => {
+        expect(patternNodeIds(pattern)).toEqual(['n0', 'n1', 'n2']);
+        expect(patternNodeIds({ properties: { nodes: { prefixItems: [item('a'), item(3), item(), {}, null, item('')] } } })).toEqual(['a']);
+    });
+
+    it('hasDescription needs a non-empty string description', () => {
+        expect(hasDescription({ description: 'Calls the API.' })).toBe(true);
+        expect(hasDescription({ description: '' })).toBe(false);
+        expect(hasDescription({ description: 3 })).toBe(false);
+        expect(hasDescription({})).toBe(false);
+        expect(hasDescription(null)).toBe(false);
+    });
+
+    it('hasPlaceholder finds a [[ NAME ]] string anywhere in a value', () => {
+        expect(hasPlaceholder({ nodes: [{ description: '[[ DESCRIPTION ]]' }] })).toBe(true);
+        expect(hasPlaceholder(['x', { a: { b: '[[HOST]]' } }])).toBe(true);
+        expect(hasPlaceholder({ nodes: [{ description: 'A service. See [[ notes ]] later.' }], port: -1 })).toBe(false);
+        expect(hasPlaceholder(null)).toBe(false);
+    });
+});
 
 describe('command outcomes', () => {
     it('drop an outcome once a file it read has changed', () => {
