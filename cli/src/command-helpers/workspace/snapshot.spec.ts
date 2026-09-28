@@ -57,6 +57,15 @@ describe('snapshot', () => {
             expect(updated['$id']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
         });
 
+        it('bumps from the hub\'s latest published version, not the on-disk version, to avoid colliding with a version someone else already published', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+
+            const result = await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0', '1.1.0'] }), { increment: 'MINOR' });
+
+            expect(result.toVersion).toBe('1.2.0-SNAPSHOT');
+        });
+
         it('respects the requested increment when bumping', async () => {
             await write('a.json', { $id: idAt('a', '1.2.3'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
@@ -93,9 +102,25 @@ describe('snapshot', () => {
                 .rejects.toThrow(/not mappable to CalmHub/);
         });
 
-        it('repoints other tracked documents that reference this one at the new $id', async () => {
+        it('does not repoint an already-published (release) document that references this one', async () => {
+            // B is a release: relinking it here would change its content without a version
+            // bump, silently diverging it from what's already published.
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
             await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.0.0') }] });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+
+            await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0'] }), { increment: 'MINOR' });
+
+            const updatedB = await read('b.json');
+            expect(updatedB.interfaces[0]['$ref']).toBe(idAt('a', '1.0.0'));
+        });
+
+        it('repoints another snapshot document that references this one', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.0.0-SNAPSHOT'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.0.0') }] });
             await saveManifest(bundlePath, {
                 'a': { path: 'files/a.json', type: 'architecture' },
                 'b': { path: 'files/b.json', type: 'architecture' },
@@ -113,7 +138,7 @@ describe('snapshot', () => {
             await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
 
-            const result = await releaseSnapshot(bundlePath, 'a');
+            const result = await releaseSnapshot(bundlePath, 'a', makeClient({}));
 
             expect(result).toMatchObject({ id: 'a', fromVersion: '1.1.0-SNAPSHOT', toVersion: '1.1.0' });
             const updated = await read('a.json');
@@ -124,7 +149,7 @@ describe('snapshot', () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
 
-            await expect(releaseSnapshot(bundlePath, 'a')).rejects.toThrow(/not currently a snapshot/);
+            await expect(releaseSnapshot(bundlePath, 'a', makeClient({}))).rejects.toThrow(/not currently a snapshot/);
         });
 
         it('is blocked by a snapshot dependency', async () => {
@@ -135,7 +160,7 @@ describe('snapshot', () => {
                 'b': { path: 'files/b.json', type: 'architecture' },
             });
 
-            await expect(releaseSnapshot(bundlePath, 'b')).rejects.toThrow(/depends on snapshot version\(s\) of a/);
+            await expect(releaseSnapshot(bundlePath, 'b', makeClient({}))).rejects.toThrow(/depends on snapshot version\(s\) of a/);
         });
 
         it('succeeds once the dependency is released first', async () => {
@@ -146,10 +171,18 @@ describe('snapshot', () => {
                 'b': { path: 'files/b.json', type: 'architecture' },
             });
 
-            await releaseSnapshot(bundlePath, 'a');
-            const result = await releaseSnapshot(bundlePath, 'b');
+            await releaseSnapshot(bundlePath, 'a', makeClient({}));
+            const result = await releaseSnapshot(bundlePath, 'b', makeClient({}));
 
             expect(result.toVersion).toBe('1.1.0');
+        });
+
+        it('refuses to release when the release version is already published (e.g. by someone else)', async () => {
+            await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+
+            await expect(releaseSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0', '1.1.0'] })))
+                .rejects.toThrow(/version 1\.1\.0 already exists/);
         });
     });
 
@@ -215,6 +248,34 @@ describe('snapshot', () => {
         it('returns an empty list for an untracked id', async () => {
             await saveManifest(bundlePath, {});
             expect(await findSnapshotDependencies(bundlePath, 'missing')).toEqual([]);
+        });
+
+        it('does not flag a ref pinned to an old release even though the target is now a snapshot', async () => {
+            // b deliberately pins a's stable 1.0.0 — a moving on to 1.1.0-SNAPSHOT doesn't change
+            // what b actually depends on.
+            await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.0.0') }] });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+
+            expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual([]);
+        });
+
+        it('resolves a full-URL ref against a target whose $id is a bare path', async () => {
+            await write('a.json', { $id: '/calm/namespaces/com.example/architectures/a/versions/1.0.0-SNAPSHOT', title: 'A' });
+            await write('b.json', {
+                $id: idAt('b', '1.0.0'),
+                title: 'B',
+                'interfaces': [{ '$ref': `${BASE}/calm/namespaces/com.example/architectures/a/versions/1.0.0-SNAPSHOT` }],
+            });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+
+            expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual(['a']);
         });
     });
 

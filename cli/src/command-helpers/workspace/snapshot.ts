@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, resolveFilePath, extractAllReferences } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, stripVersionSuffix, RefRule } from './ref-rewrite';
+import { loadManifest, resolveFilePath, extractAllReferences, WorkspaceManifest } from './bundle';
+import { buildRefRulesFromDiskIds, syncReferences, findRuleForRef, RefRule } from './ref-rewrite';
 import { applyVersionToDocument } from './bump';
 import {
     CalmHubClient,
@@ -9,6 +9,7 @@ import {
     DocumentMetadata,
     extractDocumentMetadata,
     computeSemVerBump,
+    latestReleaseVersion,
     isSnapshotVersion,
     toSnapshotVersion,
     toReleaseVersion,
@@ -24,35 +25,40 @@ export interface SnapshotResult {
     toVersion: string;
 }
 
-/**
- * Resolves a reference string to the tracked document id it points at, using the same matching
- * rules as `ref-rewrite.ts`'s `resolveNewRef` (bare id, or a CalmHub path/URL at any version whose
- * base matches the rule's current base path) — but returning the target id instead of a rewrite.
- */
-function refTargetId(ref: string, rules: RefRule[]): string | null {
+/** The version segment embedded in a ref, or null for a bare-id ref with no version. */
+function extractRefVersion(ref: string): string | null {
     const fragmentIdx = ref.indexOf('#');
     const baseRef = fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
-
-    for (const rule of rules) {
-        if (baseRef === rule.bareId || baseRef === rule.targetPath) return rule.bareId;
-        if (rule.basePath) {
-            const stripped = stripVersionSuffix(baseRef);
-            if ((stripped !== null && stripped === rule.basePath) || baseRef === rule.basePath) {
-                return rule.bareId;
-            }
-        }
-    }
-    return null;
+    const m = baseRef.match(/\/versions\/([^/#]+)$/);
+    return m ? m[1] : null;
 }
 
-/**
- * Returns the ids of tracked documents that `id` references (directly) and that are still at a
- * `-SNAPSHOT` version. Used to block releasing (or checking) a document that would otherwise bake
- * in a reference to mutable content.
- */
-export async function findSnapshotDependencies(bundlePath: string, id: string): Promise<string[]> {
+type SnapshotContext = {
+    manifest: WorkspaceManifest;
+    rules: RefRule[];
+    versionById: Map<string, string>;
+};
+
+/** Loads the manifest, ref rules, and each doc's on-disk version exactly once. */
+async function buildSnapshotContext(bundlePath: string): Promise<SnapshotContext> {
     const manifest = await loadManifest(bundlePath);
-    const entry = manifest[id];
+    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+    const versionById = new Map<string, string>();
+    for (const [id, entry] of Object.entries(manifest)) {
+        const filePath = resolveFilePath(bundlePath, entry.path);
+        if (!existsSync(filePath)) continue;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            versionById.set(id, extractDocumentMetadata(raw).version);
+        } catch {
+            continue;
+        }
+    }
+    return { manifest, rules, versionById };
+}
+
+async function snapshotDependenciesFor(bundlePath: string, id: string, ctx: SnapshotContext): Promise<string[]> {
+    const entry = ctx.manifest[id];
     if (!entry) return [];
     const filePath = resolveFilePath(bundlePath, entry.path);
     if (!existsSync(filePath)) return [];
@@ -64,31 +70,30 @@ export async function findSnapshotDependencies(bundlePath: string, id: string): 
         return [];
     }
 
-    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-    const refs = extractAllReferences(json);
-
     const snapshotDeps = new Set<string>();
-    for (const ref of refs) {
-        const targetId = refTargetId(ref, rules);
-        if (!targetId || targetId === id) continue;
+    for (const ref of extractAllReferences(json)) {
+        const rule = findRuleForRef(ref, ctx.rules);
+        if (!rule || rule.bareId === id) continue;
 
-        const targetEntry = manifest[targetId];
-        if (!targetEntry) continue;
-        const targetPath = resolveFilePath(bundlePath, targetEntry.path);
-        if (!existsSync(targetPath)) continue;
-
-        try {
-            const targetRaw = await readFile(targetPath, 'utf8');
-            const metadata = extractDocumentMetadata(targetRaw);
-            if (isSnapshotVersion(metadata.version)) {
-                snapshotDeps.add(targetId);
-            }
-        } catch {
-            // Not a CalmHub-mappable document (flow, adr, timeline, etc.) — can't be a snapshot.
-            continue;
+        // A ref pinned to a specific version is a snapshot dependency only if that version is
+        // itself a snapshot; a bare-id ref has no pinned version, so it depends on whatever the
+        // target's current on-disk version is.
+        const version = extractRefVersion(ref) ?? ctx.versionById.get(rule.bareId);
+        if (version && isSnapshotVersion(version)) {
+            snapshotDeps.add(rule.bareId);
         }
     }
     return [...snapshotDeps];
+}
+
+/**
+ * Returns the ids of tracked documents that `id` references (directly) and that are still at a
+ * `-SNAPSHOT` version. Used to block releasing (or checking) a document that would otherwise bake
+ * in a reference to mutable content.
+ */
+export async function findSnapshotDependencies(bundlePath: string, id: string): Promise<string[]> {
+    const ctx = await buildSnapshotContext(bundlePath);
+    return snapshotDependenciesFor(bundlePath, id, ctx);
 }
 
 export interface SnapshotDependencyViolation {
@@ -102,29 +107,14 @@ export interface SnapshotDependencyViolation {
  * applied workspace-wide as the `workspace check` CI gate.
  */
 export async function findSnapshotDependencyViolations(bundlePath: string): Promise<SnapshotDependencyViolation[]> {
-    const manifest = await loadManifest(bundlePath);
+    const ctx = await buildSnapshotContext(bundlePath);
     const violations: SnapshotDependencyViolation[] = [];
 
-    for (const [id, entry] of Object.entries(manifest)) {
-        const filePath = resolveFilePath(bundlePath, entry.path);
-        if (!existsSync(filePath)) continue;
+    for (const id of Object.keys(ctx.manifest)) {
+        const version = ctx.versionById.get(id);
+        if (!version || isSnapshotVersion(version)) continue;
 
-        let raw: string;
-        try {
-            raw = await readFile(filePath, 'utf8');
-        } catch {
-            continue;
-        }
-
-        let metadata: DocumentMetadata;
-        try {
-            metadata = extractDocumentMetadata(raw);
-        } catch {
-            continue;
-        }
-        if (isSnapshotVersion(metadata.version)) continue;
-
-        const dependsOn = await findSnapshotDependencies(bundlePath, id);
+        const dependsOn = await snapshotDependenciesFor(bundlePath, id, ctx);
         if (dependsOn.length > 0) {
             violations.push({ id, dependsOn });
         }
@@ -161,13 +151,34 @@ async function loadTrackedDocument(bundlePath: string, id: string): Promise<{ fi
     return { filePath, raw, metadata };
 }
 
+/** Tracked documents that are themselves at a `-SNAPSHOT` version — safe to auto-relink. */
+async function snapshotOnlyManifest(bundlePath: string, manifest: WorkspaceManifest): Promise<WorkspaceManifest> {
+    const filtered: WorkspaceManifest = {};
+    for (const [id, entry] of Object.entries(manifest)) {
+        const filePath = resolveFilePath(bundlePath, entry.path);
+        if (!existsSync(filePath)) continue;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            if (isSnapshotVersion(extractDocumentMetadata(raw).version)) {
+                filtered[id] = entry;
+            }
+        } catch {
+            continue;
+        }
+    }
+    return filtered;
+}
+
 async function writeNewVersion(bundlePath: string, filePath: string, raw: string, metadata: DocumentMetadata, toVersion: string): Promise<void> {
     const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
     await writeFile(filePath, updated, 'utf8');
 
+    // Only relink documents that are themselves snapshots: they're mutable, so updating their
+    // refs doesn't touch already-published content. A release must be bumped deliberately.
     const manifest = await loadManifest(bundlePath);
     const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-    const refUpdates = await syncReferences(bundlePath, manifest, rules);
+    const snapshotDocs = await snapshotOnlyManifest(bundlePath, manifest);
+    const refUpdates = await syncReferences(bundlePath, snapshotDocs, rules);
     const refChanges = refUpdates.reduce((sum, r) => sum + r.changeCount, 0);
     if (refChanges > 0) {
         logger.info(`Updated ${refChanges} reference(s) across the workspace to match.`);
@@ -177,10 +188,9 @@ async function writeNewVersion(bundlePath: string, filePath: string, raw: string
 /**
  * Marks a tracked document as a mutable `-SNAPSHOT` version.
  *
- * If the on-disk version is already published on CalmHub, it is bumped first (by `increment`)
- * before the suffix is appended — the same idempotency guard `detectChangedResources` uses. If
- * the on-disk version isn't published yet (brand new, or already bumped but unpushed), it is
- * snapshotted in place.
+ * If the on-disk version is already published on CalmHub, it is bumped first (by `increment`,
+ * from the highest published release) before the suffix is appended. If the on-disk version
+ * isn't published yet (brand new, or already bumped but unpushed), it is snapshotted in place.
  */
 export async function markAsSnapshot(
     bundlePath: string,
@@ -198,7 +208,7 @@ export async function markAsSnapshot(
     if (metadata.namespace) {
         const existingVersions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
         if (existingVersions.includes(metadata.version)) {
-            baseVersion = computeSemVerBump(metadata.version, options.increment);
+            baseVersion = computeSemVerBump(latestReleaseVersion(existingVersions), options.increment);
         }
     }
 
@@ -212,9 +222,9 @@ export async function markAsSnapshot(
 /**
  * Releases a snapshotted document: strips the `-SNAPSHOT` suffix, turning it back into an
  * immutable release version. Refuses if the document still references a tracked document that is
- * itself still a snapshot — releasing it would bake in a reference to mutable content.
+ * itself still a snapshot, or if the release version is already published (e.g. by someone else).
  */
-export async function releaseSnapshot(bundlePath: string, id: string): Promise<SnapshotResult> {
+export async function releaseSnapshot(bundlePath: string, id: string, client: CalmHubClient): Promise<SnapshotResult> {
     const { filePath, raw, metadata } = await loadTrackedDocument(bundlePath, id);
 
     if (!isSnapshotVersion(metadata.version)) {
@@ -230,6 +240,14 @@ export async function releaseSnapshot(bundlePath: string, id: string): Promise<S
     }
 
     const toVersion = toReleaseVersion(metadata.version);
+
+    if (metadata.namespace) {
+        const existingVersions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
+        if (existingVersions.includes(toVersion)) {
+            throw new Error(`Cannot release '${id}': version ${toVersion} already exists in CalmHub. Bump it instead.`);
+        }
+    }
+
     await writeNewVersion(bundlePath, filePath, raw, metadata, toVersion);
 
     logger.info(`Released '${id}' ${metadata.version} -> ${toVersion}`);
