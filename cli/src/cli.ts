@@ -463,7 +463,7 @@ Example:
             }
 
             if (options.directUrlAuthModule) {
-                existingConfig.directUrlAuthModule = options.directUrlAuthModule;
+                existingConfig.directUrlAuthModule = path.resolve(cliConfig.resolveHomeDir(options.directUrlAuthModule));
             }
 
             if (options.directUrlAuthConfigPath) {
