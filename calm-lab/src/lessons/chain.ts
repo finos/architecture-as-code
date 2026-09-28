@@ -9,7 +9,7 @@ export function endFiles(lesson: Lesson): Record<string, string> {
     const files = { ...lesson.seedFiles };
     for (const step of lesson.steps) {
         if (step.hint.kind === 'file') {
-            files[lesson.editorFile] = step.hint.content;
+            files[step.hint.path ?? lesson.editorFile] = step.hint.content;
         }
     }
     return files;

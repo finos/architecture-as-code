@@ -170,6 +170,61 @@ export function flowsWithTransitions(doc: CalmDocLike | null | undefined, minTra
     });
 }
 
+/** A saved workspace file's text (absolute path), or null when it does not exist. */
+export function fileText(state: LessonState, path: string): string | null {
+    return Object.prototype.hasOwnProperty.call(state.files, path) ? state.files[path] : null;
+}
+
+/** A saved workspace file parsed as a JSON object; null when it is missing, not JSON, or not an object. */
+export function fileJson(state: LessonState, path: string): CalmDocLike | null {
+    const text = fileText(state, path);
+    if (text === null) {
+        return null;
+    }
+    try {
+        const value: unknown = JSON.parse(text);
+        return typeof value === 'object' && value !== null && !Array.isArray(value) ? value as CalmDocLike : null;
+    } catch {
+        return null;
+    }
+}
+
+const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
+const MARKDOWN_FENCE = /^\s{0,3}(```|~~~)/;
+
+/**
+ * The trimmed body under the `## heading` line (case-insensitive), up to the next `#` or `##`
+ * heading or the end. Deeper headings (`###`) and fenced code stay in the body. '' when there is no
+ * such heading.
+ */
+export function markdownSection(text: string | null, heading: string): string {
+    if (!text) {
+        return '';
+    }
+    const wanted = heading.trim().toLowerCase();
+    const body: string[] = [];
+    let inside = false;
+    let fence: string | null = null;
+    for (const line of text.split(/\r?\n/)) {
+        const marker = MARKDOWN_FENCE.exec(line)?.[1];
+        if (marker && (fence === null || marker === fence)) {
+            fence = fence === null ? marker : null;
+        }
+        const match = marker || fence !== null ? null : MARKDOWN_HEADING.exec(line);
+        if (match && match[1].length <= 2) {
+            if (inside) {
+                break;
+            }
+            inside = match[1].length === 2 && match[2].toLowerCase() === wanted;
+            continue;
+        }
+        if (inside) {
+            body.push(line);
+        }
+    }
+    return body.join('\n').trim();
+}
+
 export function freshOutcomes(outcomes: CommandOutcome[], read: (path: string) => string | null): CommandOutcome[] {
     return outcomes.filter((outcome) => Object.entries(outcome.snapshot).every(([path, content]) => read(path) === content));
 }

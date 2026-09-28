@@ -27,3 +27,18 @@ describe('startReplay', () => {
             .resolves.toBeUndefined();
     });
 });
+
+describe('startReplay file hints', () => {
+    const fileStep = (content: string, path?: string): LessonStep => ({
+        id: 'write', title: 'Write', body: '', hint: { kind: 'file', content, path }, check: () => false,
+    });
+
+    it('writes a file hint to its path, or to the editor file, and exposes every file in state', async () => {
+        const replay = startReplay(QUICK_START);
+        await replay.runHint(fileStep('# ADR', '/workspace/docs/adr.md'));
+        await replay.runHint(fileStep('{}'));
+        const state = await replay.stateFor();
+        expect(state.files['/workspace/docs/adr.md']).toBe('# ADR');
+        expect(state.files[QUICK_START.editorFile]).toBe('{}');
+    });
+});

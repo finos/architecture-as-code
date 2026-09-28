@@ -87,6 +87,7 @@ const state = (over: Partial<LessonState>): LessonState => ({
     validation: { ok: true },
     commands: [],
     editorFile: BEGINNER_07.editorFile,
+    files: {},
     ...over,
 });
 

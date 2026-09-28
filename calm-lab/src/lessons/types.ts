@@ -11,10 +11,12 @@ export interface LessonState {
     /** Outcomes whose files have not changed since the command ran, oldest first. */
     commands: CommandOutcome[];
     editorFile: string;
+    /** Every saved workspace file: absolute path → contents. Read it with `fileText` or `fileJson`. */
+    files: Record<string, string>;
 }
 
 export type StepHint =
-    | { kind: 'file'; content: string }          // the complete editor file after this step
+    | { kind: 'file'; content: string; path?: string }  // the complete file after this step; path defaults to editorFile
     | { kind: 'commands'; commands: string[] };  // run from HOME_DIR, in order
 
 export interface LessonStep {
@@ -35,6 +37,8 @@ export interface Lesson {
     /** The lesson whose end state this one's seed starts from. */
     chainsFrom?: string;
     editorFile: string;
+    /** The files the learner can open in the editor. Default: `[editorFile]`. */
+    editableFiles?: string[];
     seedFiles: Record<string, string>;
     steps: LessonStep[];
     completion: { heading: string; message: string; links: LessonLink[] };

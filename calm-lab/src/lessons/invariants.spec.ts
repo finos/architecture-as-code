@@ -38,6 +38,24 @@ describe.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('lesson %s'
         }
     });
 
+    it('seeds every editable file under the workspace, including the editor file', () => {
+        const editable = lesson.editableFiles ?? [lesson.editorFile];
+        expect(editable).toContain(lesson.editorFile);
+        for (const path of editable) {
+            expect(path.startsWith(`${HOME_DIR}/`), path).toBe(true);
+            expect(lesson.seedFiles[path], path).toBeTypeOf('string');
+        }
+    });
+
+    it('writes file hints only to files the learner can open', () => {
+        const editable = lesson.editableFiles ?? [lesson.editorFile];
+        for (const step of lesson.steps) {
+            if (step.hint.kind === 'file') {
+                expect(editable, step.id).toContain(step.hint.path ?? lesson.editorFile);
+            }
+        }
+    });
+
     it('starts with no step complete', async () => {
         const state = await startReplay(lesson).stateFor();
         for (const step of lesson.steps) {
