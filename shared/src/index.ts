@@ -115,4 +115,4 @@ export { InMemoryDocumentLoader } from './document-loader/in-memory-document-loa
 export { buildBrowserDocumentLoader, type BrowserDocumentLoaderOptions } from './document-loader/browser-document-loader.js';
 export { generate, type GenerateOptions } from './commands/generate/generate-core.js';
 export { diffDocuments, diffTimeline, tryDetectDocumentType, type DiffDocumentsOptions } from './commands/diff/diff-core.js';
-export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport } from './browser-capabilities.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';
