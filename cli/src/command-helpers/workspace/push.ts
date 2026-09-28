@@ -32,6 +32,7 @@ import {
     type ResolvedWorkspaceManifestEntry,
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
+import { findSnapshotDependencies } from './snapshot';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -258,6 +259,15 @@ async function pushMappingEntry(
     if (!namespace) {
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return;
+    }
+
+    if (!isSnapshotVersion(version)) {
+        const snapshotDeps = await findSnapshotDependencies(bundlePath, id);
+        if (snapshotDeps.length > 0) {
+            logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first.`);
+            conflicts.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
+            return;
+        }
     }
 
     let existingVersions: string[];

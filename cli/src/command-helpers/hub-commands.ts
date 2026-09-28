@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -235,9 +235,7 @@ export async function pushDocument(
         description
     };
     if (mappingExists) {
-        // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
-        const sortedVersions = sortSemVer(mappedResourceVersions);
-        const latestVersion = sortedVersions[sortedVersions.length - 1];
+        const latestVersion = latestReleaseVersion(mappedResourceVersions);
 
         if (options.failIfModified) {
             // Strict mode: don't auto-bump. Compare the local document to the latest published

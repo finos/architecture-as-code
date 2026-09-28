@@ -16,6 +16,7 @@ import {
     constructDocumentId,
     documentNameField,
     computeSemVerBump,
+    latestReleaseVersion,
     sortSemVer,
     canonicalEqual,
     isSnapshotVersion,
@@ -250,7 +251,7 @@ function prepareChangedMappingEntry(
             filePath,
             metadata,
             currentVersion: metadata.version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1],
+            latestHubVersion: latestReleaseVersion(versions),
             kind: 'mapping',
         };
     };
@@ -357,6 +358,12 @@ export async function bumpWorkspace(
             } catch {
                 // Non-CalmHub $id (adr, timeline, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            if (isSnapshotVersion(metadata.version)) {
+                // Already mutable; bumping would strip the suffix and promote it to a release.
                 bumpedIds.add(candidate.docId);
                 continue;
             }
