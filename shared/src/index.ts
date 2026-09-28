@@ -115,6 +115,7 @@ export {
     compareSemVer,
     sortSemVer,
     isSnapshotVersion,
+    latestReleaseVersion,
     toSnapshotVersion,
     toReleaseVersion,
     SNAPSHOT_SUFFIX
