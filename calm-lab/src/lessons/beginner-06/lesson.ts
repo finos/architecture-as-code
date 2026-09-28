@@ -1,160 +1,18 @@
-import type { CalmDocLike, Lesson } from '../types';
-import { connectsUsesInterfaces, nodeInterfaces, nodesOfType, validatedEditorFile } from '../checks';
-import { BEGINNER_03 } from '../beginner-03/lesson';
+import type { Lesson } from '../types';
+import { connectsRelationshipsBetween, hasMetadata, nodesOfType, validatedEditorFile } from '../checks';
+import { BEGINNER_05 } from '../beginner-05/lesson';
 import { endFiles } from '../chain';
 
-const EDITOR_FILE = BEGINNER_03.editorFile;
+const EDITOR_FILE = BEGINNER_05.editorFile;
 
 // Paste-safe hints: each is the complete target file, building on the previous step.
 const STEP_1_TARGET_FILE = `{
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
-    "nodes": [
-        {
-            "unique-id": "payment-service",
-            "node-type": "service",
-            "name": "Payment Service",
-            "description": "Processes card payments",
-            "interfaces": [
-                {
-                    "unique-id": "payment-service-api",
-                    "protocol": "HTTPS",
-                    "host": "api.example.com",
-                    "port": 443,
-                    "path": "/api/v1"
-                }
-            ]
-        },
-        {
-            "unique-id": "payment-database",
-            "node-type": "database",
-            "name": "Payment Database",
-            "description": "Stores payment records"
-        },
-        {
-            "unique-id": "customer",
-            "node-type": "actor",
-            "name": "Customer",
-            "description": "End user making a payment"
-        },
-        {
-            "unique-id": "payment-system",
-            "node-type": "system",
-            "name": "Payment System",
-            "description": "The overall payment processing system"
-        }
-    ],
-    "relationships": [
-        {
-            "unique-id": "service-to-database",
-            "relationship-type": {
-                "connects": {
-                    "source": { "node": "payment-service" },
-                    "destination": { "node": "payment-database" }
-                }
-            }
-        },
-        {
-            "unique-id": "customer-to-service",
-            "relationship-type": {
-                "interacts": {
-                    "actor": "customer",
-                    "nodes": ["payment-service"]
-                }
-            }
-        },
-        {
-            "unique-id": "system-composition",
-            "relationship-type": {
-                "composed-of": {
-                    "container": "payment-system",
-                    "nodes": ["payment-service", "payment-database"]
-                }
-            }
-        }
-    ]
-}
-`;
-
-const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
-    "nodes": [
-        {
-            "unique-id": "payment-service",
-            "node-type": "service",
-            "name": "Payment Service",
-            "description": "Processes card payments",
-            "interfaces": [
-                {
-                    "unique-id": "payment-service-api",
-                    "protocol": "HTTPS",
-                    "host": "api.example.com",
-                    "port": 443,
-                    "path": "/api/v1"
-                }
-            ]
-        },
-        {
-            "unique-id": "payment-database",
-            "node-type": "database",
-            "name": "Payment Database",
-            "description": "Stores payment records",
-            "interfaces": [
-                {
-                    "unique-id": "payment-database-jdbc",
-                    "protocol": "JDBC",
-                    "host": "db.example.com",
-                    "port": 5432,
-                    "database": "payments"
-                }
-            ]
-        },
-        {
-            "unique-id": "customer",
-            "node-type": "actor",
-            "name": "Customer",
-            "description": "End user making a payment"
-        },
-        {
-            "unique-id": "payment-system",
-            "node-type": "system",
-            "name": "Payment System",
-            "description": "The overall payment processing system"
-        }
-    ],
-    "relationships": [
-        {
-            "unique-id": "service-to-database",
-            "relationship-type": {
-                "connects": {
-                    "source": { "node": "payment-service" },
-                    "destination": { "node": "payment-database" }
-                }
-            }
-        },
-        {
-            "unique-id": "customer-to-service",
-            "relationship-type": {
-                "interacts": {
-                    "actor": "customer",
-                    "nodes": ["payment-service"]
-                }
-            }
-        },
-        {
-            "unique-id": "system-composition",
-            "relationship-type": {
-                "composed-of": {
-                    "container": "payment-system",
-                    "nodes": ["payment-service", "payment-database"]
-                }
-            }
-        }
-    ]
-}
-`;
-
-const STEP_3_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+        "owner": "payments-team@example.com",
+        "version": "1.0.0",
+        "description": "Payment processing architecture"
+    },
     "nodes": [
         {
             "unique-id": "payment-service",
@@ -231,49 +89,219 @@ const STEP_3_TARGET_FILE = `{
 }
 `;
 
-type Iface = Record<string, unknown>;
-const text = (value: unknown) => typeof value === 'string' && value.trim().length > 0;
-// The fields each step names; the ids and values are the learner's own.
-const isHttpsInterface = (iface: Iface) => iface['protocol'] === 'HTTPS' && text(iface['host']) && iface['port'] === 443 && text(iface['path']);
-const isJdbcInterface = (iface: Iface) => iface['protocol'] === 'JDBC' && text(iface['host']) && typeof iface['port'] === 'number' && text(iface['database']);
-const hasInterface = (doc: CalmDocLike | null, nodeType: string, matches: (iface: Iface) => boolean) =>
-    nodesOfType(doc, nodeType).some((node) => nodeInterfaces(node).some(matches));
+const STEP_2_TARGET_FILE = `{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+        "owner": "payments-team@example.com",
+        "version": "1.0.0",
+        "description": "Payment processing architecture"
+    },
+    "nodes": [
+        {
+            "unique-id": "payment-service",
+            "node-type": "service",
+            "name": "Payment Service",
+            "description": "Processes card payments",
+            "interfaces": [
+                {
+                    "unique-id": "payment-service-api",
+                    "protocol": "HTTPS",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "path": "/api/v1"
+                }
+            ],
+            "metadata": {
+                "owner": "payments-team@example.com",
+                "tech-stack": ["Java", "Spring Boot"]
+            }
+        },
+        {
+            "unique-id": "payment-database",
+            "node-type": "database",
+            "name": "Payment Database",
+            "description": "Stores payment records",
+            "interfaces": [
+                {
+                    "unique-id": "payment-database-jdbc",
+                    "protocol": "JDBC",
+                    "host": "db.example.com",
+                    "port": 5432,
+                    "database": "payments"
+                }
+            ]
+        },
+        {
+            "unique-id": "customer",
+            "node-type": "actor",
+            "name": "Customer",
+            "description": "End user making a payment"
+        },
+        {
+            "unique-id": "payment-system",
+            "node-type": "system",
+            "name": "Payment System",
+            "description": "The overall payment processing system"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "service-to-database",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "payment-service", "interfaces": ["payment-service-api"] },
+                    "destination": { "node": "payment-database", "interfaces": ["payment-database-jdbc"] }
+                }
+            }
+        },
+        {
+            "unique-id": "customer-to-service",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "customer",
+                    "nodes": ["payment-service"]
+                }
+            }
+        },
+        {
+            "unique-id": "system-composition",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "payment-system",
+                    "nodes": ["payment-service", "payment-database"]
+                }
+            }
+        }
+    ]
+}
+`;
 
-export const BEGINNER_05: Lesson = {
-    id: 'beginner-05',
-    title: 'Add interfaces',
-    tutorial: { title: 'Add Interfaces to Your Nodes', url: 'https://calm.finos.org/tutorials/beginner/05-interfaces/' },
-    chainsFrom: 'beginner-03',
+const STEP_3_TARGET_FILE = `{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+        "owner": "payments-team@example.com",
+        "version": "1.0.0",
+        "description": "Payment processing architecture"
+    },
+    "nodes": [
+        {
+            "unique-id": "payment-service",
+            "node-type": "service",
+            "name": "Payment Service",
+            "description": "Processes card payments",
+            "interfaces": [
+                {
+                    "unique-id": "payment-service-api",
+                    "protocol": "HTTPS",
+                    "host": "api.example.com",
+                    "port": 443,
+                    "path": "/api/v1"
+                }
+            ],
+            "metadata": {
+                "owner": "payments-team@example.com",
+                "tech-stack": ["Java", "Spring Boot"]
+            }
+        },
+        {
+            "unique-id": "payment-database",
+            "node-type": "database",
+            "name": "Payment Database",
+            "description": "Stores payment records",
+            "interfaces": [
+                {
+                    "unique-id": "payment-database-jdbc",
+                    "protocol": "JDBC",
+                    "host": "db.example.com",
+                    "port": 5432,
+                    "database": "payments"
+                }
+            ]
+        },
+        {
+            "unique-id": "customer",
+            "node-type": "actor",
+            "name": "Customer",
+            "description": "End user making a payment"
+        },
+        {
+            "unique-id": "payment-system",
+            "node-type": "system",
+            "name": "Payment System",
+            "description": "The overall payment processing system"
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "service-to-database",
+            "relationship-type": {
+                "connects": {
+                    "source": { "node": "payment-service", "interfaces": ["payment-service-api"] },
+                    "destination": { "node": "payment-database", "interfaces": ["payment-database-jdbc"] }
+                }
+            },
+            "metadata": {
+                "latency": "< 50ms",
+                "encryption": "TLS"
+            }
+        },
+        {
+            "unique-id": "customer-to-service",
+            "relationship-type": {
+                "interacts": {
+                    "actor": "customer",
+                    "nodes": ["payment-service"]
+                }
+            }
+        },
+        {
+            "unique-id": "system-composition",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "payment-system",
+                    "nodes": ["payment-service", "payment-database"]
+                }
+            }
+        }
+    ]
+}
+`;
+
+export const BEGINNER_06: Lesson = {
+    id: 'beginner-06',
+    title: 'Document with metadata',
+    tutorial: { title: 'Document with Metadata', url: 'https://calm.finos.org/tutorials/beginner/06-metadata/' },
+    chainsFrom: 'beginner-05',
     editorFile: EDITOR_FILE,
-    seedFiles: endFiles(BEGINNER_03),
+    seedFiles: endFiles(BEGINNER_05),
     steps: [
         {
-            id: 'service-interface',
-            title: 'Add an inline interface to the service',
+            id: 'architecture-metadata',
+            title: 'Add metadata to the architecture',
             body:
-                'Add an `interfaces` array to your service node. Give the interface a `unique-id`, ' +
-                '`protocol` of `"HTTPS"`, a `host`, `port: 443` and a `path`. Save your change.',
+                'Add a top-level `metadata` object next to `nodes` and `relationships`. Include an ' +
+                '`owner`, a `version` and a `description`. Metadata can also be an array of ' +
+                '`{ "key": ..., "value": ... }` objects, but the object form is simpler. Save your change.',
             hint: { kind: 'file', content: STEP_1_TARGET_FILE },
-            check: (state) => hasInterface(state.doc, 'service', isHttpsInterface) && state.validation.ok,
+            check: (state) => hasMetadata(state.doc) && state.validation.ok,
         },
         {
-            id: 'database-interface',
-            title: 'Add an inline interface to the database',
+            id: 'node-metadata',
+            title: 'Add metadata to the service node',
             body:
-                'Add an `interfaces` array to your database node. Give the interface a `unique-id`, ' +
-                '`protocol` of `"JDBC"`, a `host`, a `port` and a `database` name. Save your change.',
+                'Add a `metadata` object to your service node. Include an `owner` and a `tech-stack`. ' +
+                'Save your change.',
             hint: { kind: 'file', content: STEP_2_TARGET_FILE },
-            check: (state) => hasInterface(state.doc, 'database', isJdbcInterface) && state.validation.ok,
+            check: (state) => nodesOfType(state.doc, 'service').some((node) => hasMetadata(node)) && state.validation.ok,
         },
         {
-            id: 'connect-interfaces',
-            title: 'Name the interfaces on the connects relationship',
+            id: 'relationship-metadata',
+            title: 'Add metadata to the connects relationship',
             body:
-                'Update the `connects` relationship between your service and your database. Give ' +
-                '`source` and `destination` an `interfaces` array naming the interface `unique-id` on ' +
-                'that node. Save your change.',
+                'Add a `metadata` object to the `connects` relationship between your service and your ' +
+                'database. Include a `latency` and an `encryption` field. Save your change.',
             hint: { kind: 'file', content: STEP_3_TARGET_FILE },
-            check: (state) => connectsUsesInterfaces(state.doc, 'service', 'database') && state.validation.ok,
+            check: (state) => connectsRelationshipsBetween(state.doc, 'service', 'database').some(hasMetadata) && state.validation.ok,
         },
         {
             id: 'validate',
@@ -285,16 +313,18 @@ export const BEGINNER_05: Lesson = {
                 kind: 'commands',
                 commands: ['calm validate -a architectures/my-first-architecture.json -f pretty'],
             },
-            check: (state) => connectsUsesInterfaces(state.doc, 'service', 'database') && validatedEditorFile(state),
+            check: (state) =>
+                hasMetadata(state.doc) &&
+                nodesOfType(state.doc, 'service').some((node) => hasMetadata(node)) &&
+                connectsRelationshipsBetween(state.doc, 'service', 'database').some(hasMetadata) &&
+                validatedEditorFile(state),
         },
     ],
     completion: {
         heading: 'Lesson complete',
         message:
-            'You added inline interfaces to your service and database, and referenced them from a ' +
-            'connects relationship for precise, validated integration points.',
-        links: [
-            { to: '?lesson=beginner-06', label: 'Next lesson: Document with metadata' },
-        ],
+            'You added metadata to your architecture, your service node and your connects ' +
+            'relationship, documenting ownership, technical context and operational detail.',
+        links: [],
     },
 };

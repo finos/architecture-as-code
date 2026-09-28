@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-    completeNodes, composedOf, connectsBetween, connectsNodes, connectsUsesInterfaces, freshOutcomes, interactsWith,
-    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, validatedEditorFile,
+    completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces, freshOutcomes, hasMetadata, interactsWith,
+    nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, relationships, relationshipsOfKind, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -40,6 +40,8 @@ describe('document helpers', () => {
 
     it('match relationships by the types of the nodes they join', () => {
         expect(connectsBetween(doc, 'service', 'database')).toBe(true);
+        expect(connectsRelationshipsBetween(doc, 'service', 'database')).toHaveLength(1);
+        expect(connectsRelationshipsBetween(doc, 'database', 'service')).toEqual([]);
         expect(connectsBetween(doc, 'database', 'service')).toBe(false);
         expect(interactsWith(doc, 'actor', 'service')).toBe(true);
         expect(interactsWith(doc, 'actor', 'database')).toBe(false);
@@ -163,6 +165,51 @@ describe('connectsUsesInterfaces', () => {
             }],
         };
         expect(connectsUsesInterfaces(dangling, 'service', 'database')).toBe(false);
+    });
+});
+
+describe('hasMetadata', () => {
+    it('matches a non-empty metadata object', () => {
+        expect(hasMetadata({ metadata: { owner: 'team' } })).toBe(true);
+    });
+
+    it('matches a non-empty array of non-empty metadata objects', () => {
+        expect(hasMetadata({ metadata: [{ key: 'owner', value: 'team' }] })).toBe(true);
+    });
+
+    it('does not match an empty object, an empty array, or an array containing an empty object', () => {
+        expect(hasMetadata({ metadata: {} })).toBe(false);
+        expect(hasMetadata({ metadata: [] })).toBe(false);
+        expect(hasMetadata({ metadata: [{ key: 'owner', value: 'team' }, {}] })).toBe(false);
+    });
+
+    it('never throws on a partial or wrong-shaped item', () => {
+        for (const bad of [null, undefined, {}, { metadata: null }, { metadata: 'x' }, { metadata: 3 }, { metadata: [null, 3] }]) {
+            expect(hasMetadata(bad as never)).toBe(false);
+        }
+    });
+});
+
+describe('relationshipsOfKind', () => {
+    const doc2 = {
+        relationships: [
+            { 'unique-id': 'r1', 'relationship-type': { connects: { source: { node: 'svc' }, destination: { node: 'db' } } }, metadata: { latency: '< 50ms' } },
+            { 'unique-id': 'r2', 'relationship-type': { interacts: { actor: 'user', nodes: ['svc'] } } },
+        ],
+    };
+
+    it('matches relationships whose relationship-type has that kind', () => {
+        expect(relationshipsOfKind(doc2, 'connects').map((rel) => rel['unique-id'])).toEqual(['r1']);
+    });
+
+    it('does not match when no relationship has that kind', () => {
+        expect(relationshipsOfKind(doc2, 'deployed-in')).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { relationships: 'x' }, { relationships: [{ 'relationship-type': null }] }, { relationships: [{ 'relationship-type': { connects: 'x' } }] }]) {
+            expect(relationshipsOfKind(bad as never, 'connects')).toEqual([]);
+        }
     });
 });
 
