@@ -189,11 +189,13 @@ export function fileJson(state: LessonState, path: string): CalmDocLike | null {
     }
 }
 
-const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)\s*#*\s*$/;
+const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;
+const MARKDOWN_FENCE = /^\s{0,3}(```|~~~)/;
 
 /**
  * The trimmed body under the `## heading` line (case-insensitive), up to the next `#` or `##`
- * heading or the end. Deeper headings (`###`) stay in the body. '' when there is no such heading.
+ * heading or the end. Deeper headings (`###`) and fenced code stay in the body. '' when there is no
+ * such heading.
  */
 export function markdownSection(text: string | null, heading: string): string {
     if (!text) {
@@ -202,8 +204,13 @@ export function markdownSection(text: string | null, heading: string): string {
     const wanted = heading.trim().toLowerCase();
     const body: string[] = [];
     let inside = false;
+    let fence: string | null = null;
     for (const line of text.split(/\r?\n/)) {
-        const match = MARKDOWN_HEADING.exec(line);
+        const marker = MARKDOWN_FENCE.exec(line)?.[1];
+        if (marker && (fence === null || marker === fence)) {
+            fence = fence === null ? marker : null;
+        }
+        const match = marker || fence !== null ? null : MARKDOWN_HEADING.exec(line);
         if (match && match[1].length <= 2) {
             if (inside) {
                 break;

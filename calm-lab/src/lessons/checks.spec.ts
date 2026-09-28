@@ -431,6 +431,17 @@ describe('workspace file helpers', () => {
             expect(markdownSection('## Statuses\nAccepted', 'Status')).toBe('');
         });
 
+        it('keeps fenced code in the body, even lines that start with #', () => {
+            const text = '## Decision\nRun:\n```sh\n# a shell comment\n```\nThen deploy.\n## Next\nx';
+            expect(markdownSection(text, 'Decision')).toBe('Run:\n```sh\n# a shell comment\n```\nThen deploy.');
+            expect(markdownSection('~~~\n## Status\n~~~\n## Status\nAccepted', 'Status')).toBe('Accepted');
+        });
+
+        it('strips only a closing # sequence that follows a space', () => {
+            expect(markdownSection('## C#\nyes', 'C#')).toBe('yes');
+            expect(markdownSection('## Status ##\nAccepted', 'Status')).toBe('Accepted');
+        });
+
         it('never throws', () => {
             expect(markdownSection(null, 'Status')).toBe('');
             expect(markdownSection('', 'Status')).toBe('');
