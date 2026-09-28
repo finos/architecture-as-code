@@ -3,7 +3,6 @@ package org.finos.calm.store.util;
 import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
@@ -73,11 +72,16 @@ public final class SemanticVersionOrder {
      * to the highest snapshot only when no release exists yet.
      *
      * <p>{@link #ASCENDING} ranks a snapshot immediately below the release it belongs to, but the
-     * last element of a sorted list is still whichever of the two has the higher version number —
+     * highest-ranked version overall is still whichever of the two has the higher version number —
      * so once a snapshot's version number exceeds the newest release (e.g. {@code 1.1.0-SNAPSHOT}
-     * past a published {@code 1.0.0}), taking the last element would serve unpublished work as
-     * "latest". Maven distinguishes {@code LATEST} (includes snapshots) from {@code RELEASE}
-     * (published only); this always resolves to the {@code RELEASE} sense.</p>
+     * past a published {@code 1.0.0}), taking that would serve unpublished work as "latest".
+     * Maven distinguishes {@code LATEST} (includes snapshots) from {@code RELEASE} (published
+     * only); this always resolves to the {@code RELEASE} sense.</p>
+     *
+     * <p>A single linear pass tracking the running max release and the running max overall (the
+     * fallback), rather than sorting: version lists are small, but this is the read path behind
+     * every "get latest" endpoint, so it never allocates or does more than one comparison per
+     * entry.</p>
      *
      * @return the resolved version, or {@code null} if {@code versions} is null or empty.
      */
@@ -85,15 +89,18 @@ public final class SemanticVersionOrder {
         if (versions == null || versions.isEmpty()) {
             return null;
         }
-        List<String> sorted = new ArrayList<>(versions);
-        sorted.sort(ASCENDING);
-        for (int i = sorted.size() - 1; i >= 0; i--) {
-            String version = sorted.get(i);
-            if (!ResourceVersion.isSnapshot(version)) {
-                return version;
+        String bestRelease = null;
+        String bestOverall = null;
+        for (String version : versions) {
+            if (bestOverall == null || ASCENDING.compare(version, bestOverall) > 0) {
+                bestOverall = version;
+            }
+            if (!ResourceVersion.isSnapshot(version)
+                    && (bestRelease == null || ASCENDING.compare(version, bestRelease) > 0)) {
+                bestRelease = version;
             }
         }
         // Every version is a snapshot — nothing has been published yet.
-        return sorted.get(sorted.size() - 1);
+        return bestRelease != null ? bestRelease : bestOverall;
     }
 }
