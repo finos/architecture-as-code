@@ -18,15 +18,19 @@ import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.ResourceMappingStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -118,12 +122,12 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
-    void leave_the_name_empty_for_an_architecture_that_never_had_one() {
+    void omit_the_name_for_an_architecture_that_never_had_one() {
         stubImplementations(List.of(new PatternImplementation("finos", 7, "1.2.0", null)));
 
         given().when().get(PATH).then()
                 .statusCode(200)
-                .body("implementations[0].customId", nullValue());
+                .body("implementations[0]", not(hasKey("customId")));
     }
 
     @Test
@@ -214,6 +218,20 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
+    void ask_for_each_architecture_name_once_when_several_versions_match() throws Exception {
+        stubImplementations(List.of(
+                new PatternImplementation("finos", 7, "1.0.0", null),
+                new PatternImplementation("finos", 7, "1.1.0", null),
+                new PatternImplementation("finos", 8, "1.0.0", null)));
+
+        given().when().get(PATH).then().statusCode(200);
+
+        ArgumentCaptor<List<Integer>> ids = ArgumentCaptor.forClass(List.class);
+        verify(mockMappingStore).listMappingsByNumericIds(eq("finos"), eq(ResourceType.ARCHITECTURE), ids.capture());
+        assertEquals(List.of(7, 8), ids.getValue());
+    }
+
+    @Test
     void return_404_when_the_pattern_does_not_exist() throws Exception {
         when(mockMappingStore.getMapping(anyString(), any(), anyString()))
                 .thenThrow(new MappingNotFoundException());
@@ -233,7 +251,7 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
-    void pass_the_readable_namespaces_through_so_the_store_can_scope_both_the_matches_and_the_count() {
+    void pass_the_readable_namespaces_through_so_the_store_can_scope_the_matches() {
         Optional<Set<String>> readable = Optional.of(Set.of("finos", "traderx"));
         when(mockUserAccessValidator.getReadableNamespaces(any())).thenReturn(readable);
         stubImplementations(List.of());

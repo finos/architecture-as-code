@@ -73,6 +73,8 @@ class TestMongoPatternImplementationStoreShould {
         when(architectureVersions.find(any(Bson.class))).thenReturn(findIterable);
         when(findIterable.sort(any())).thenReturn(findIterable);
         when(findIterable.projection(any())).thenReturn(findIterable);
+        when(findIterable.skip(anyInt())).thenReturn(findIterable);
+        when(findIterable.limit(anyInt())).thenReturn(findIterable);
         when(findIterable.iterator()).thenReturn(cursor);
 
         if (documents.isEmpty()) {
@@ -119,8 +121,6 @@ class TestMongoPatternImplementationStoreShould {
     @Test
     void push_a_requested_paging_window_down_to_the_query() {
         FindIterable<Document> matches = stubFind(List.of());
-        when(matches.skip(anyInt())).thenReturn(matches);
-        when(matches.limit(anyInt())).thenReturn(matches);
 
         store.findImplementations("finos", "api-gateway", "1.0.0", Optional.empty(), new PageRequest(2, 5));
 
@@ -167,10 +167,24 @@ class TestMongoPatternImplementationStoreShould {
     }
 
     @Test
+    void exclude_unaddressable_rows_in_the_query_so_a_page_is_never_short() {
+        stubFind(List.of());
+
+        store.findImplementations("finos", "api-gateway", "1.0.0", Optional.empty(), new PageRequest(2, 0));
+
+        ArgumentCaptor<Bson> filter = ArgumentCaptor.forClass(Bson.class);
+        org.mockito.Mockito.verify(architectureVersions).find(filter.capture());
+        String rendered = render(filter.getValue());
+
+        // Dropping them after skip/limit returns a short page, which a caller reads as the last one.
+        assertTrue(rendered.contains("architectureId"), "architectureId must be constrained: " + rendered);
+        assertTrue(rendered.contains("$ne") || rendered.contains("$exists"),
+                "unaddressable rows must be excluded by the query: " + rendered);
+    }
+
+    @Test
     void sort_the_query_so_a_paging_window_is_stable() {
         FindIterable<Document> matches = stubFind(List.of());
-        when(matches.skip(anyInt())).thenReturn(matches);
-        when(matches.limit(anyInt())).thenReturn(matches);
 
         store.findImplementations("finos", "api-gateway", "1.0.0", Optional.empty(), new PageRequest(2, 5));
 

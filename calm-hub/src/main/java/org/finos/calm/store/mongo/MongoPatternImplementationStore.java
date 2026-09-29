@@ -60,12 +60,16 @@ public class MongoPatternImplementationStore implements PatternImplementationSto
         Bson scope = readableScope(readableNamespaces);
         Bson namesThisPattern = Filters.regex(SCHEMA_FIELD,
                 PatternReferenceMatcher.referenceTo(namespace, patternName, version));
+        // Excluded by the query rather than by the loop below, so that a paging window is taken
+        // over the rows that will be returned. Dropping them afterwards returns a short page, which
+        // a caller reads as the last one.
+        Bson addressable = Filters.and(Filters.ne(ARCHITECTURE_ID_FIELD, null), Filters.ne(NAMESPACE_FIELD, null));
 
         // Sorted so a paging window is stable. An unsorted Mongo query has no defined order, so
         // consecutive pages could repeat a row or drop one, and a dropped implementation reads as
         // a pattern nothing depends on. The key matches the collection's unique index.
         FindIterable<Document> matches = architectureVersions
-                .find(Filters.and(scope, namesThisPattern))
+                .find(Filters.and(scope, namesThisPattern, addressable))
                 .sort(Sorts.ascending(NAMESPACE_FIELD, ARCHITECTURE_ID_FIELD, VERSION_FIELD))
                 .projection(Projections.include(NAMESPACE_FIELD, ARCHITECTURE_ID_FIELD, VERSION_FIELD));
         if (page.isPaged()) {
@@ -77,10 +81,8 @@ public class MongoPatternImplementationStore implements PatternImplementationSto
             Integer architectureId = document.getInteger(ARCHITECTURE_ID_FIELD);
             String documentNamespace = document.getString(NAMESPACE_FIELD);
             if (architectureId == null || documentNamespace == null) {
-                // An architecture missing either cannot be addressed, so reporting it would hand
-                // the caller a link that goes nowhere. A null namespace also breaks the grouping
-                // that resolves display names. Same call MongoSearchStore makes on a malformed
-                // header, and for the same reason.
+                // The query already excludes a missing or null field. This catches the case it
+                // cannot express: a field of the wrong type, which getInteger also reads as null.
                 continue;
             }
             implementations.add(new PatternImplementation(

@@ -74,67 +74,18 @@ Use this before you change a pattern. It shows which architectures depend on the
 }
 ```
 
-#### How the link is recorded
+An architecture names its pattern in its own `$schema`, which `calm generate` sets to the pattern's `$id`. So the endpoint finds an architecture only when someone generated it from a pattern **fetched from this hub**. Generated from a pattern file on disk, written by hand, or posted to `/api/calm/...`, the `$schema` names something else and the architecture does not appear. CalmHub does not check the field on write.
 
-An architecture names its pattern in its own `$schema` field. `calm generate` copies the pattern's `$id` into that field:
+An empty list therefore has two readings, and the endpoint does not separate them: either nothing implements the pattern, or the architectures that do were never recorded in a way the hub can resolve.
 
-```jsonc
-// the pattern, fetched from CalmHub
-{ "$id": "https://your-hub/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0", ... }
+| | |
+|---|---|
+| Version | Any spelling works — `1.0.0`, `1-0-0` and `100` mean the same version. The response echoes the canonical form. A version that does not exist returns `404`, not an empty list. |
+| Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
+| Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. |
+| `customId` | The name on the name-based API. Omitted for an architecture created through the numeric-id API, which never had one; use `architectureId` for those. |
 
-// the architecture generated from it
-{ "$schema": "https://your-hub/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0", ... }
-```
-
-The endpoint therefore finds an architecture only when someone generated it from a pattern **fetched from this hub**.
-
-Three cases produce no match:
-
-| How the architecture was made | What `$schema` holds |
-|:---|:---|
-| Generated from a pattern file on disk | That file's own `$id`, such as `https://calm.finos.org/getting-started/conference-signup.pattern.json` |
-| Written by hand | Whatever the author supplied, often the CALM meta-schema |
-| Posted to `/api/calm/...` | Whatever the caller supplied |
-
-CalmHub does not check `$schema` on either API. It accepts all three.
-
-#### What an empty list means
-
-An empty list has two readings, and the endpoint does not separate them. Either nothing implements the pattern, or the architectures that do were never recorded in a way the hub can resolve. Check how your architectures are produced before you read an empty result as "safe to change".
-
-The endpoint deliberately reports no count of unresolvable architectures. Such a count would cover every namespace you can read, because an architecture in one namespace can implement a pattern in another. It would therefore be the same number for every pattern you ask about. That makes it a fact about the hub, not about the pattern.
-
-#### Behaviours to know
-
-The hub compares only the path of the `$schema`, never the host. References therefore keep working after the hub moves to a new address.
-
-The match is pinned to one pattern version. Architectures on version 2.0.0 do not appear when you ask about 1.0.0.
-
-Any spelling of the version works. CalmHub accepts `1.0.0`, `1-0-0` and `100` as the same version, and a stored `$schema` can carry any of them. The endpoint matches them all and echoes the canonical `1.0.0` form back to you.
-
-A pattern version that does not exist returns `404`, not an empty list. So an empty `implementations` array always means the version exists and nothing records it.
-
-#### Limiting the results
-
-The endpoint returns every match by default. Add `limit` and `offset` to page through them:
-
-```
-GET /calm/namespaces/finos/patterns/api-gateway/versions/1.0.0/implementations?limit=20&offset=40
-```
-
-There is no cap when you omit `limit`. A truncated list would read as a small blast radius, so the endpoint never shortens one you did not ask to shorten.
-
-#### Cost
-
-The hub answers this on demand and caches nothing. Each call reads the architecture versions you are allowed to see, and compares the `$schema` of each one. No index covers that comparison, because MongoDB does not index a field whose name starts with `$`.
-
-Your permissions decide how much the hub reads. An index selects the namespaces you can read, and the comparison runs over those documents only. If you can read every namespace, through public read or `GLOBAL admin`, then every architecture is in scope and the hub reads all of them.
-
-The cost therefore grows with the size of your hub. It measured 1.4ms over 3000 architecture versions, so it is not a concern at that size.
-
-#### The fields in a result
-
-`architectureId` addresses the architecture on the numeric-id API. `customId` is the name it is addressed by on the name-based API. `customId` is absent for an architecture created through the numeric-id API, because that architecture never had a name. Use `architectureId` for those.
+The hub answers on demand and caches nothing, reading the architectures you are allowed to see. See [ADR 0008](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0008-pattern-implementations-read-the-architecture-schema.md) for why the link is resolved at request time rather than stored.
 
 ### Access Control
 

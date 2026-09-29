@@ -1,7 +1,6 @@
 package org.finos.calm.store;
 
 import org.finos.calm.domain.implementations.PatternImplementations;
-import org.finos.calm.store.PageRequest;
 
 import java.util.Optional;
 import java.util.Set;

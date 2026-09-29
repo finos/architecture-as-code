@@ -32,9 +32,7 @@ import java.util.stream.Collectors;
  *
  * <p>The linkage is the architecture's own {@code $schema}, which {@code calm generate} sets to the
  * pattern's {@code $id}. Nothing validates that field on write, so an architecture is findable only
- * when it was generated from a pattern fetched from this hub. The count of architectures naming no
- * resolvable pattern travels with the result so that an empty answer can be told apart from a
- * corpus that was never linkable.</p>
+ * when it was generated from a pattern fetched from this hub.</p>
  */
 @ApplicationScoped
 public class PatternImplementationService {
@@ -120,7 +118,10 @@ public class PatternImplementationService {
     }
 
     private Map<Integer, String> customIdsFor(String namespace, List<PatternImplementation> implementations) {
-        List<Integer> ids = implementations.stream().map(PatternImplementation::getArchitectureId).toList();
+        List<Integer> ids = implementations.stream()
+                .map(PatternImplementation::getArchitectureId)
+                .distinct()
+                .toList();
         try {
             Map<Integer, String> names = new HashMap<>();
             for (ResourceMapping mapping :
