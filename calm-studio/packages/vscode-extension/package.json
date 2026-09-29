@@ -1,5 +1,6 @@
 {
   "name": "calmstudio",
+  "private": true,
   "publisher": "opsflow",
   "displayName": "CalmStudio",
   "description": "CALM architecture diagram preview and MCP integration",

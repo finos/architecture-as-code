@@ -66,4 +66,6 @@ docker buildx imagetools inspect finos/calm-hub:<tag> --format '{{ json .SBOM }}
 
 The provenance names the GitHub Actions workflow and commit that produced the image. The native images (`*-native` tags) contain a compiled binary, so their SBOM lists only the base image and not the Java dependencies compiled into the binary. For the dependency list, use the SBOM of the JVM image built from the same commit.
 
+**Experimental components.** CALM Studio (its npm packages and desktop builds), CALMGuard, CALM Lab and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
+
 Thank you for helping keep FINOS projects and their users secure.

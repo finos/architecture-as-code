@@ -95,7 +95,8 @@ project:
       comment: |
         SvelteKit visual CALM editor; itself a nested npm-workspace monorepo
         (calm-core, calmscript, extensions, github-action, mcp, diagram web
-        component, vscode-extension, studio app). Status: Experimental.
+        component, vscode-extension, studio app). Status: Experimental. Its npm and
+        desktop releases are outside the release controls in SECURITY.md until promoted.
     - name: calm-guard
       url: https://github.com/finos/architecture-as-code/tree/main/calm-guard
       comment: |
