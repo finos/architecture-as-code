@@ -397,7 +397,6 @@ export default function Hub() {
         <DomainPage
             domain={activeDomain}
             controlCount={domainControlCount}
-            onControlLoad={handleControlLoad}
         />
     ) : (
         // Only reached on `/search` (the bare-`/` intro early-returns above).

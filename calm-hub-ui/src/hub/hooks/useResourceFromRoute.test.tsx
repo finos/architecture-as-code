@@ -123,6 +123,23 @@ describe('useResourceFromRoute', () => {
         });
     });
 
+    it('reports a load error when no control matches the routed id', async () => {
+        fetchControlsForDomain.mockResolvedValue([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        renderAt('/security/controls/999/detail');
+        await waitFor(() => {
+            expect(callbacks.onLoadError).toHaveBeenCalled();
+        });
+        expect(callbacks.onControlLoad).not.toHaveBeenCalled();
+    });
+
+    it('reports a load error when the controls fetch fails', async () => {
+        fetchControlsForDomain.mockRejectedValue(new Error('boom'));
+        renderAt('/security/controls/5/detail');
+        await waitFor(() => {
+            expect(callbacks.onLoadError).toHaveBeenCalled();
+        });
+    });
+
     it('loads a control by name slug (search deep-link) and passes the title', async () => {
         fetchControlsForDomain.mockResolvedValue([
             { id: 5, name: 'encryption-at-rest', description: 'desc', title: 'Encryption at rest' },
