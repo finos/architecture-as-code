@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { memo, useState, type ReactNode } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import {
     Shield,
@@ -72,7 +72,7 @@ function PanelButton({
   );
 }
 
-export function CustomNode({ data }: NodeProps) {
+function CustomNodeComponent({ data }: NodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { onNavigateToDetailedArch } = useDiagramActions();
 
@@ -400,4 +400,6 @@ export function CustomNode({ data }: NodeProps) {
       )}
     </div>
   );
-};
+}
+
+export const CustomNode = memo(CustomNodeComponent);
