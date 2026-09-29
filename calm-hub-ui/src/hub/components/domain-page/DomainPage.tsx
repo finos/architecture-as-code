@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlService } from '../../../service/control-service.js';
 import { ControlDetail } from '../../../model/control.js';
@@ -21,7 +21,6 @@ interface DomainPageProps {
  * controls. Selecting one navigates to its deep link so the view can be shared.
  */
 export function DomainPage({ domain, controlCount }: DomainPageProps) {
-    const navigate = useNavigate();
     const controlService = useMemo(() => new ControlService(), []);
     const [controls, setControls] = useState<ControlDetail[]>([]);
     const [loading, setLoading] = useState(true);
@@ -92,9 +91,7 @@ export function DomainPage({ domain, controlCount }: DomainPageProps) {
                                 name={control.title ?? control.name}
                                 description={control.description}
                                 controlId={control.id}
-                                onActivate={() =>
-                                    navigate(`/${encodeURIComponent(domain)}/controls/${control.id}/detail`)
-                                }
+                                href={`/${encodeURIComponent(domain)}/controls/${control.id}/detail`}
                             />
                         ))}
                     </div>

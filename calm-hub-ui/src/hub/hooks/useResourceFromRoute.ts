@@ -118,7 +118,9 @@ export function useResourceFromRoute({
                     if (cancelled) return;
                     // Controls are deep-linked both by numeric id (mobile drill-down) and by
                     // name slug (global/Explorer search -> /controls/<name>/detail), so match either.
-                    const match = controls.find((c) => String(c.id) === params.id || c.name === params.id);
+                    const match =
+                        controls.find((c) => String(c.id) === params.id) ??
+                        controls.find((c) => c.name === params.id);
                     if (!match) {
                         reportError(new Error(`Control ${params.id} not found in domain ${namespace}`));
                         return;
