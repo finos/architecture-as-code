@@ -141,12 +141,10 @@ export default function Hub() {
     }, []);
 
     // Every navigation clears any loaded resource so the incoming route decides what
-    // renders — including navigating *to* a detail route, where a stale in-place control
-    // would otherwise flash before the new fetch resolves (detailContent evaluates
-    // controlData first). Keyed on react-router's location.key, which changes on every
-    // navigation but NOT on an in-place control/interface load (that sets state without
-    // navigating), so those loads are preserved. Runs in a layout effect so the clear
-    // happens before paint, avoiding a one-frame flash of the stale panel.
+    // renders. Every resource load now comes from the route, so a stale control or
+    // interface would otherwise flash before the new fetch resolves (detailContent
+    // evaluates controlData first). Runs in a layout effect so the clear happens
+    // before paint, avoiding a one-frame flash of the stale panel.
     useLayoutEffect(() => {
         setData(undefined);
         setAdrData(undefined);
@@ -365,13 +363,12 @@ export default function Hub() {
         <DocumentDetailSection data={data} />
     );
 
-    // Route decides the content pane. A loaded resource (including an in-place
-    // interface selected from the namespace page) takes precedence over the
-    // route-driven page so its detail view shows. A selected control fills the
-    // whole pane like an architecture or document detail view — the ControlPanel
-    // carries its own breadcrumb (Explore / <domain> / <control>) back to the
-    // domain's control list. The key resets the panel's view mode when the
-    // selected control changes.
+    // Route decides the content pane. A resource loaded from a detail route takes
+    // precedence over the route-driven page so its detail view shows. A loaded control
+    // fills the whole pane like an architecture or document detail view — the
+    // ControlPanel carries its own breadcrumb (Explore / <domain> / <control>) back to
+    // the domain's control list. The key resets the panel's view mode when the
+    // control changes.
     const content = controlData ? (
         <ControlPanel key={controlData.controlId} controlData={controlData} />
     ) : isBrokenRefRoute ? (
