@@ -132,7 +132,6 @@ describe('Docifier Parity E2E - Option A vs Option B', () => {
     });
 
     it('front-matter contains required fields for VSCode plugin compatibility', async () => {
-        const { readFileSync } = await import('fs');
 
         // Generate using Option A (direct)
         const docifier = new Docifier(
