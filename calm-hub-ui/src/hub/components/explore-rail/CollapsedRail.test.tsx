@@ -139,6 +139,43 @@ describe('CollapsedRail', () => {
         expect(row.style.boxShadow).toBe('');
     });
 
+    it('closes the fly-out when a namespace is chosen, so it does not hang over the new page', () => {
+        renderRail();
+        const finosInitial = screen.getByRole('button', { name: 'finos' });
+        fireEvent.focus(finosInitial);
+
+        const link = screen.getByRole('link', { name: /calm/ });
+        link.focus(); // a browser focuses the link on click, which used to hold the panel open
+        fireEvent.click(link);
+
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+    });
+
+    it('stays open when a part that cannot take focus is clicked under the pointer', () => {
+        renderRail();
+        const barclaysInitial = screen.getByRole('button', { name: 'barclays' });
+        fireEvent.mouseEnter(barclaysInitial.closest('.relative') as HTMLElement);
+        barclaysInitial.focus();
+        fireEvent.focus(barclaysInitial);
+        expect(screen.getByText('payments')).toBeInTheDocument();
+
+        // A grouping-only row is a <span>, so clicking it blurs to nothing.
+        fireEvent.blur(barclaysInitial, { relatedTarget: null });
+
+        expect(screen.getByText('payments')).toBeInTheDocument();
+    });
+
+    it('still closes when focus leaves and the pointer is already away', () => {
+        renderRail();
+        const finosInitial = screen.getByRole('button', { name: 'finos' });
+        fireEvent.focus(finosInitial);
+        expect(screen.getByText('calm')).toBeInTheDocument();
+
+        fireEvent.blur(finosInitial, { relatedTarget: document.body });
+
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+    });
+
     it('caps the fly-out height so a deep subtree can scroll', () => {
         renderRail();
         fireEvent.focus(screen.getByRole('button', { name: 'finos' }));

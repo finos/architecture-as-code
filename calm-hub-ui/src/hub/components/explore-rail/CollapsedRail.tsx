@@ -16,7 +16,7 @@ function isWithin(container: HTMLElement, target: EventTarget | null): boolean {
     return target instanceof Node && container.contains(target);
 }
 
-function FlyoutRow({ node, depth, active }: { node: NamespaceTreeNode; depth: number; active: boolean }) {
+function FlyoutRow({ node, depth, active, onSelect }: { node: NamespaceTreeNode; depth: number; active: boolean; onSelect: () => void }) {
     const namespaceRow = isNamespace(node);
     const style = active ? { color: colors.redesign.activeText } : { color: colors.redesign.bodyAlt };
 
@@ -37,7 +37,12 @@ function FlyoutRow({ node, depth, active }: { node: NamespaceTreeNode; depth: nu
             }}
         >
             {namespaceRow ? (
-                <Link to={`/namespace/${encodeURIComponent(node.path)}`} className="flex items-center gap-1 min-w-0 flex-1 no-underline" style={style}>
+                <Link
+                    to={`/namespace/${encodeURIComponent(node.path)}`}
+                    onClick={onSelect}
+                    className="flex items-center gap-1 min-w-0 flex-1 no-underline"
+                    style={style}
+                >
                     {content}
                 </Link>
             ) : (
@@ -64,28 +69,50 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     // Escape returns focus to the trigger, which would re-fire onFocus and reopen what it just closed.
     const dismissedRef = useRef(false);
 
+    // The pointer and the keyboard each hold the fly-out open, so both are tracked and it closes
+    // only once neither is on it. Reading one alone gets a case wrong in each direction: clicking a
+    // row that cannot take focus blurs to null and would close the panel under the pointer, and
+    // a link keeps focus after navigating so the pointer leaving would not close it.
+    const pointerInside = useRef(false);
+    const focusInside = useRef(false);
+
+    const closeIfLeft = () => {
+        if (!pointerInside.current && !focusInside.current) onClose();
+    };
+
+    /** Shuts the fly-out outright, for Escape and for choosing a namespace. */
+    const dismiss = () => {
+        pointerInside.current = false;
+        focusInside.current = false;
+        onClose();
+    };
+
     return (
         <div
             className="relative"
             onMouseEnter={() => {
+                pointerInside.current = true;
                 dismissedRef.current = false;
                 onOpen();
             }}
-            onMouseLeave={(e) => {
-                if (!isWithin(e.currentTarget, document.activeElement)) onClose();
+            onMouseLeave={() => {
+                pointerInside.current = false;
+                closeIfLeft();
             }}
             onFocus={() => {
+                focusInside.current = true;
                 if (!dismissedRef.current) onOpen();
             }}
             onBlur={(e) => {
                 if (isWithin(e.currentTarget, e.relatedTarget)) return;
+                focusInside.current = false;
                 dismissedRef.current = false;
-                onClose();
+                closeIfLeft();
             }}
             onKeyDown={(e) => {
                 if (e.key !== 'Escape') return;
                 dismissedRef.current = true;
-                onClose();
+                dismiss();
                 // Escape unmounts the row that had focus, which would otherwise drop it to <body>.
                 triggerRef.current?.focus();
             }}
@@ -98,6 +125,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 aria-expanded={isOpen}
                 onClick={() => {
                     dismissedRef.current = false;
+                    focusInside.current = true;
                     onOpen();
                 }}
                 className="flex items-center justify-center font-semibold text-[13px] rounded-[7px] border-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]"
@@ -131,7 +159,13 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                         }}
                     >
                         {rows.map((row) => (
-                            <FlyoutRow key={row.node.path} node={row.node} depth={row.depth} active={row.node.path === activeNamespace} />
+                            <FlyoutRow
+                                key={row.node.path}
+                                node={row.node}
+                                depth={row.depth}
+                                active={row.node.path === activeNamespace}
+                                onSelect={dismiss}
+                            />
                         ))}
                     </div>
                 </div>
