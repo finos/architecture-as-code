@@ -1,5 +1,5 @@
 /**
- * Which `calm` CLI commands the browser entry point can honour, and (for `validate` and `diff`)
+ * Which `calm` CLI commands the browser entry point can honour, and (for `validate`, `generate` and `diff`)
  * which of each command's options it can honour too. Browser consumers (e.g. the in-browser
  * learning lab) use this to report honestly which commands/options are available and why the
  * others are not. `cli/src/browser-manifest.spec.ts` asserts the commands and options match what
@@ -14,6 +14,8 @@ export interface BrowserOptionSupport {
     /** False when the browser entry cannot honour the option; consumers say so rather than ignore it. */
     supported: boolean;
     hidden?: boolean;
+    /** Registered with commander's `requiredOption`. */
+    mandatory?: boolean;
     choices?: readonly string[];
     /** Only recorded for supported options — unsupported defaults can be machine paths. */
     defaultValue?: string;
@@ -31,19 +33,32 @@ export const BROWSER_COMMAND_SUPPORT: readonly BrowserCommandSupport[] = [
         status: 'supported',
         description: 'Validate a CALM document.',
         options: [
-            { flags: '-p, --pattern <file>', description: 'Path to the pattern file to use. May be a file path or a URL.', supported: false },
+            { flags: '-p, --pattern <file>', description: 'Path to the pattern file to use. May be a file path or a URL.', supported: true },
             { flags: '-a, --architecture <file>', description: 'Path to the architecture file to use. May be a file path or a URL.', supported: true },
             { flags: '--timeline <file>', description: 'Path to the timeline file to validate. May be a file path or a URL.', supported: false },
             { flags: '-s, --schema-directory <path>', description: 'Path to the directory containing the meta schemas to use.', supported: false },
             { flags: '-c, --calm-hub-url <url>', description: 'URL to CALMHub instance', supported: false },
-            { flags: '-u, --url-to-local-file-mapping <path>', description: 'Path to mapping file which maps URLs to local paths', supported: false },
+            { flags: '-u, --url-to-local-file-mapping <path>', description: 'Path to mapping file which maps URLs to local paths', supported: true },
             { flags: '--strict', description: 'When run in strict mode, the CLI will fail if any warnings are reported.', supported: false },
             { flags: '-f, --format <format>', description: 'The format of the output', supported: true, choices: ['json', 'junit', 'pretty'], defaultValue: 'json' },
             { flags: '-o, --output <file>', description: 'Path location at which to output the generated file.', supported: false },
             { flags: '-v, --verbose', description: 'Enable verbose logging.', supported: false },
         ],
     },
-    { command: 'generate', status: 'supported' },
+    {
+        command: 'generate',
+        status: 'supported',
+        description: 'Generate an architecture from a CALM pattern file.',
+        options: [
+            { flags: '-p, --pattern <file>', description: 'Path to the pattern file to use. May be a file path or a CalmHub URL.', supported: true, mandatory: true },
+            { flags: '-o, --output <file>', description: 'Path location at which to output the generated file.', supported: true, mandatory: true, defaultValue: 'architecture.json' },
+            { flags: '-s, --schema-directory <path>', description: 'Path to the directory containing the meta schemas to use.', supported: false },
+            { flags: '-c, --calm-hub-url <url>', description: 'URL to CALMHub instance', supported: false },
+            { flags: '-u, --url-to-local-file-mapping <path>', description: 'Path to mapping file which maps URLs to local paths', supported: true },
+            { flags: '--option-choices <choices>', description: 'Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions, or a path to a JSON file. Skips interactive prompts.', supported: false },
+            { flags: '-v, --verbose', description: 'Enable verbose logging.', supported: false },
+        ],
+    },
     {
         command: 'diff',
         status: 'supported',

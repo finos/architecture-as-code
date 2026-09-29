@@ -87,6 +87,7 @@ const state = (over: Partial<LessonState>): LessonState => ({
     validation: { ok: true },
     commands: [],
     editorFile: BEGINNER_07.editorFile,
+    files: {},
     ...over,
 });
 
@@ -176,5 +177,9 @@ describe('beginner-07 lesson', () => {
 
     it('says the beginner track is complete', () => {
         expect(BEGINNER_07.completion.message).toContain('beginner track');
+        expect(BEGINNER_07.completion.links).toContainEqual({
+            to: '?lesson=intermediate-08',
+            label: 'Next lesson: Controls',
+        });
     });
 });

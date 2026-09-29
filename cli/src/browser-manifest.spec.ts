@@ -40,12 +40,14 @@ describe('browser capability manifest matches the CLI', () => {
                 flags: option.flags,
                 description: option.description,
                 hidden: option.hidden || undefined,
+                mandatory: option.mandatory || undefined,
                 choices: option.argChoices,
             })).sort((a, b) => a.flags.localeCompare(b.flags));
             const manifestOptions = entry.options.map((option) => ({
                 flags: option.flags,
                 description: option.description,
                 hidden: option.hidden,
+                mandatory: option.mandatory,
                 choices: option.choices,
             })).sort((a, b) => a.flags.localeCompare(b.flags));
             expect(manifestOptions, entry.command).toEqual(cliOptions);
@@ -56,8 +58,8 @@ describe('browser capability manifest matches the CLI', () => {
         }
     });
 
-    it('describes the options of validate and diff', () => {
+    it('describes the options of validate, generate and diff', () => {
         const described = BROWSER_COMMAND_SUPPORT.filter((entry) => entry.status === 'supported' && entry.options);
-        expect(described.map((entry) => entry.command).sort()).toEqual(['diff', 'validate']);
+        expect(described.map((entry) => entry.command).sort()).toEqual(['diff', 'generate', 'validate']);
     });
 });

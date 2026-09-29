@@ -15,6 +15,139 @@ describe('CalmHubClient', () => {
         client = new CalmHubClient({ calmHubUrl: 'http://localhost:8080' }, ax);
     });
 
+    describe('narrative documents', () => {
+        const request = { name: 'Payments SAD', description: 'Decisions', documentMarkdown: '---\ntitle: Payments SAD\n---\n# Payments' };
+
+        it('does not expose the obsolete document ID lookup', () => {
+            expect(client).not.toHaveProperty('getNarrativeDocumentIds');
+        });
+
+        describe.each([
+            {
+                name: 'create document', method: 'post',
+                invoke: (client: CalmHubClient) => client.createNarrativeDocument('finos', 'sad', request),
+                requestLog: 'Creating narrative document for namespace=finos with type=sad',
+                responseLog: 'create narrative document', body: null,
+                result: '/created', malformedResult: undefined,
+            },
+            {
+                name: 'create version', method: 'post',
+                invoke: (client: CalmHubClient) => client.createNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0', request),
+                requestLog: 'Creating narrative document version 1.0.0 for namespace=finos, document type=sad and id=42',
+                responseLog: 'create narrative document version', body: null,
+                result: '/created', malformedResult: 'error',
+            },
+            {
+                name: 'list versions', method: 'get',
+                invoke: (client: CalmHubClient) => client.getNarrativeDocumentVersions('finos', 'sad', 42),
+                requestLog: 'Getting narrative document versions for namespace=finos, document type=sad and id=42',
+                responseLog: 'narrative document versions', body: { values: ['1.0.0'] },
+                result: ['1.0.0'], malformedResult: 'error',
+            },
+            {
+                name: 'read version', method: 'get',
+                invoke: (client: CalmHubClient) => client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0'),
+                requestLog: 'Getting narrative document version 1.0.0 for namespace=finos, document type=sad and id=42',
+                responseLog: 'narrative document version', body: { documentMarkdown: '# Payments' },
+                result: { documentMarkdown: '# Payments' }, malformedResult: 'error',
+            },
+        ])('$name logging', ({ method, invoke, requestLog, responseLog, body, result, malformedResult }) => {
+            it('logs the request before transport and the response before returning', async () => {
+                const debug = vi.spyOn(client['logger'], 'debug');
+                const headers = { location: '/created' };
+                mock.onAny().reply(() => {
+                    expect(debug.mock.calls).toEqual([[requestLog]]);
+                    return [200, body, headers];
+                });
+
+                await expect(invoke(client)).resolves.toEqual(result);
+                expect(debug.mock.calls).toEqual([
+                    [requestLog],
+                    [`Received ${responseLog} response: ${JSON.stringify(method === 'post' ? headers : body)}`],
+                ]);
+            });
+
+            it('logs a received response before validating it', async () => {
+                const debug = vi.spyOn(client['logger'], 'debug');
+                mock.onAny().reply(200, {}, {});
+
+                if (malformedResult === 'error') {
+                    await expect(invoke(client)).rejects.toBeInstanceOf(HubClientError);
+                } else {
+                    await expect(invoke(client)).resolves.toBeUndefined();
+                }
+                expect(debug.mock.calls).toEqual([
+                    [requestLog], [`Received ${responseLog} response: {}`],
+                ]);
+            });
+
+            it('logs only the request when transport rejects', async () => {
+                const debug = vi.spyOn(client['logger'], 'debug');
+                mock.onAny().reply(500, { error: 'unavailable' });
+
+                await expect(invoke(client)).rejects.toMatchObject({ status: 500 });
+                expect(debug.mock.calls).toEqual([[requestLog]]);
+            });
+        });
+
+        it('creates a narrative document using the first-class endpoint', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).resolves.toContain('/42/versions/1.0.0');
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
+        it('returns undefined after a confirmed create response without Location', async () => {
+            mock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {});
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).resolves.toBeUndefined();
+        });
+
+        it('still rejects a genuine narrative create failure', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad';
+            mock.onPost(endpoint).reply(500, { error: 'unavailable' });
+
+            await expect(client.createNarrativeDocument('finos', 'sad', request)).rejects.toMatchObject({
+                status: 500,
+                request: `POST ${endpoint}`,
+            });
+        });
+
+        it('creates a typed later version at the version endpoint', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/knowledge/42/versions/1.1.0';
+            mock.onPost(endpoint).reply(201, null, { location: endpoint });
+
+            await expect(client.createNarrativeDocumentVersion('finos', 'knowledge', 42, '1.1.0', request)).resolves.toBe(endpoint);
+            expect(mock.history.post[0].data).toBe(JSON.stringify(request));
+        });
+
+        it('reads typed Markdown and rejects malformed success bodies', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0';
+            mock.onGet(endpoint).replyOnce(200, { documentMarkdown: '# Payments' });
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).resolves.toEqual({ documentMarkdown: '# Payments' });
+            mock.onGet(endpoint).replyOnce(200, {});
+            await expect(client.getNarrativeDocumentVersion('finos', 'sad', 42, '1.0.0')).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it('requires a string version array', async () => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(200, { values: ['1.0.0'] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).resolves.toEqual(['1.0.0']);
+            mock.onGet(endpoint).replyOnce(200, { values: [42] });
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toBeInstanceOf(HubClientError);
+        });
+
+        it.each([404, 500])('wraps a %i response from a narrative endpoint', async (status) => {
+            const endpoint = '/api/calm/namespaces/finos/documents/sad/42/versions';
+            mock.onGet(endpoint).replyOnce(status, { error: 'unavailable' });
+
+            await expect(client.getNarrativeDocumentVersions('finos', 'sad', 42)).rejects.toMatchObject({
+                status,
+                request: `GET ${endpoint}`,
+            });
+        });
+    });
+
     // ── createNamespace ──────────────────────────────────────────────────────
 
     describe('createNamespace', () => {
@@ -131,6 +264,28 @@ describe('CalmHubClient', () => {
             authMock.onGet('/api/calm/namespaces').reply(200, { values: [] });
 
             await authClient.listNamespaces();
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers on narrative document requests', async () => {
+            authMock.onPost('/api/calm/namespaces/finos/documents/sad').reply(201, null, {
+                location: '/api/calm/namespaces/finos/documents/sad/42/versions/1.0.0',
+            });
+
+            await authClient.createNarrativeDocument('finos', 'sad', {
+                name: 'Payments SAD', documentMarkdown: '# Payments',
+            });
+
+            expect(getAuthHeaders).toHaveBeenCalledOnce();
+            expect(authMock.history.post[0].headers?.Authorization).toBe('Bearer test-token');
+        });
+
+        it('injects auth headers when listing narrative document versions', async () => {
+            authMock.onGet('/api/calm/namespaces/finos/documents/sad/42/versions').reply(200, { values: [] });
+
+            await authClient.getNarrativeDocumentVersions('finos', 'sad', 42);
 
             expect(getAuthHeaders).toHaveBeenCalledOnce();
             expect(authMock.history.get[0].headers?.Authorization).toBe('Bearer test-token');

@@ -1,4 +1,4 @@
-import type { Lesson } from './types';
+import { hintContent, type Lesson } from './types';
 
 /**
  * A lesson's seed files plus every step's file hint applied in order — its state at the end.
@@ -9,7 +9,7 @@ export function endFiles(lesson: Lesson): Record<string, string> {
     const files = { ...lesson.seedFiles };
     for (const step of lesson.steps) {
         if (step.hint.kind === 'file') {
-            files[lesson.editorFile] = step.hint.content;
+            files[step.hint.path ?? lesson.editorFile] = hintContent(step.hint, { files });
         }
     }
     return files;
