@@ -32,6 +32,21 @@ describe('calm validate', () => {
     });
 });
 
+describe('calm generate', () => {
+    it('dispatches to the CLI-compatible generate, which writes its output file', async () => {
+        const pattern = JSON.stringify({
+            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+            type: 'object',
+            properties: { nodes: { type: 'array', prefixItems: [{ properties: { 'unique-id': { const: 'a' } } }] } },
+        });
+        const { ctx, onEvent } = context({ '/workspace/p.json': pattern });
+        const lines = await runCommand('calm generate -p p.json -o out.json', ctx);
+        expect(lines.map((l) => l.text)).toContain('info [calm-generate]:     Successfully generated architecture to [out.json]');
+        expect(JSON.parse(ctx.vfs.read('/workspace/out.json')!).nodes).toEqual([{ 'unique-id': 'a' }]);
+        expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: expect.objectContaining({ command: 'generate', ok: true }) });
+    });
+});
+
 describe('calm diff', () => {
     it('dispatches to the CLI-compatible diff', async () => {
         const { ctx } = context({ '/workspace/a.json': valid, '/workspace/b.json': withB });
@@ -129,6 +144,8 @@ describe('other calm commands', () => {
         ['calm help validate', 'validate'],
         ['calm diff -h', 'diff'],
         ['calm help diff', 'diff'],
+        ['calm generate -h', 'generate'],
+        ['calm help generate', 'generate'],
     ])('%s prints the lab help for the command', async (input, command) => {
         const { ctx } = context({});
         expect((await runCommand(input, ctx))[0].text).toBe(`calm ${command} in the browser lab — the options it supports:`);
@@ -138,6 +155,7 @@ describe('other calm commands', () => {
         const { ctx } = context({});
         expect(CALM_SUBCOMMANDS).toContain('diff');
         expect(completeCommand('calm d', 6, ctx)).toEqual({ value: 'calm diff ', caret: 10 });
+        expect(completeCommand('calm g', 6, ctx)).toEqual({ value: 'calm generate ', caret: 14 });
     });
 });
 

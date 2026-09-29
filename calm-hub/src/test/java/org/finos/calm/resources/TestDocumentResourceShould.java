@@ -207,6 +207,23 @@ class TestDocumentResourceShould {
     }
 
     @Test
+    void reject_frontmatter_that_names_java_types() throws Exception {
+        // Frontmatter is untrusted, so a global tag must fail to parse rather than
+        // instantiate the class it names.
+        CreateDocumentRequest invalid =
+                new CreateDocumentRequest(
+                        "A",
+                        "description",
+                        "---\ntitle: !!java.net.URL [\"http://example.invalid/\"]\n---\nbody");
+        given().contentType("application/json")
+                .body(mapper.writeValueAsString(invalid))
+                .post("/api/calm/namespaces/finos/documents/knowledge")
+                .then()
+                .statusCode(400);
+        verifyNoInteractions(mockDocumentStore);
+    }
+
+    @Test
     void reject_empty_mapping_frontmatter_on_create_and_create_version() throws Exception {
         CreateDocumentRequest invalid =
                 new CreateDocumentRequest("A", "description", "---\n{}\n---\nbody");

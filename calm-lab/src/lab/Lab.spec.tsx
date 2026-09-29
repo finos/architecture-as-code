@@ -2,17 +2,20 @@ import {describe, it, expect, vi, beforeEach} from 'vitest';
 import {act, fireEvent, render, screen, waitFor} from '@testing-library/react';
 import Lab, {type LabProps} from './Lab';
 import {QUICK_START} from '../test-support/quick-start-lesson';
-import {nodes, validatedEditorFile} from '../lessons/checks';
+import {fileText, markdownSection, nodes, validatedEditorFile} from '../lessons/checks';
 import {HOME_DIR, type Lesson} from '../lessons/types';
+import {workspaceKey} from './storage';
 
 // ReactFlow needs a measured canvas; the diagram is not what these tests are about.
-vi.mock('./HubDiagram', () => ({default: () => null}));
+// It echoes its input so a test can see which file it was given.
+vi.mock('./HubDiagram', () => ({default: ({jsonText}: {jsonText: string}) => <pre data-testid="diagram">{jsonText}</pre>}));
 
 // shell.ts resolves `./engine` to the same module, so this one mock covers the
 // terminal path and Lab's own recompute.
 const engine = vi.hoisted(() => ({
     validateArchitecture: vi.fn(),
     validateOutcome: vi.fn(),
+    generateArchitecture: vi.fn(async () => ({nodes: [{'unique-id': 'generated'}]})),
     okResult: () => ({
         ok: true,
         issues: [],
@@ -31,6 +34,8 @@ const engine = vi.hoisted(() => ({
 vi.mock('../engine', () => ({
     validateArchitecture: engine.validateArchitecture,
     validateOutcome: engine.validateOutcome,
+    generateArchitecture: engine.generateArchitecture,
+    schemaDirectoryWith: vi.fn(async () => undefined),
     parseJson: vi.fn(),
     commandSupport: vi.fn(() => undefined),
     CLI_VERSION: '9.9.9-test',
@@ -208,6 +213,23 @@ describe('Lab', () => {
         await waitFor(() => expect(screen.getByRole('button', {name: /Add x and validate \(completed\)/})).toBeInTheDocument());
     });
 
+    it('shows only the command text of a hint that expects a failure', async () => {
+        const lesson: Lesson = {
+            ...QUICK_START,
+            id: 'fails',
+            steps: [{
+                id: 'fail',
+                title: 'See it fail',
+                body: '',
+                hint: {kind: 'commands', commands: ['ls', {run: 'calm validate -a broken.json', expect: 'failure'}]},
+                check: () => false,
+            }],
+        };
+        await act(async () => { renderLab({lesson}); });
+        fireEvent.click(screen.getByRole('button', {name: 'Show hint'}));
+        expect(screen.getByText(/calm validate -a broken\.json/).textContent).toBe('ls\ncalm validate -a broken.json');
+    });
+
     it('has no lesson picker: a lesson opens from its link', async () => {
         await act(async () => { renderLab(); });
         expect(screen.queryByRole('combobox', {name: 'Lesson'})).toBeNull();
@@ -251,5 +273,151 @@ describe('Lab', () => {
         await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
         expect(localStorage.getItem('calm-lab-progress-v2:other')).toBe('["x"]');
         expect(localStorage.getItem('calm-lab-progress-v2:quick-start')).toBeNull();
+    });
+});
+
+describe('Lab with more than one editable file', () => {
+    const ADR = `${HOME_DIR}/docs/adr.md`;
+    const SECOND = `${HOME_DIR}/architecture/second.json`;
+    const SECOND_TEXT = '{"nodes": [{"unique-id": "second"}], "relationships": []}';
+    const multi: Lesson = {
+        ...QUICK_START,
+        id: 'multi',
+        editableFiles: [QUICK_START.editorFile, ADR, SECOND, `${HOME_DIR}/not-seeded.md`],
+        seedFiles: {...QUICK_START.seedFiles, [ADR]: '# ADR\n\n## Decision\n', [SECOND]: SECOND_TEXT},
+        steps: [{
+            id: 'decided',
+            title: 'Write the decision',
+            body: '',
+            hint: {kind: 'file', path: ADR, content: '# ADR\n\n## Decision\nUse a queue.\n'},
+            check: (state) => markdownSection(fileText(state, ADR), 'Decision') !== '',
+        }],
+    };
+    const fileSelect = () => screen.getByRole('combobox', {name: 'File'});
+    const openFile = (path: string) => fireEvent.change(fileSelect(), {target: {value: path}});
+
+    it('lists the editable files that exist, and opens the chosen one', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        expect(screen.getAllByRole('option', {name: /^(architecture|docs)\//}).map((option) => option.textContent)).toEqual([
+            QUICK_START.editorFile.slice(HOME_DIR.length + 1), 'docs/adr.md', 'architecture/second.json',
+        ]);
+        openFile(ADR);
+        expect(screen.getByLabelText('Edit docs/adr.md')).toHaveValue('# ADR\n\n## Decision\n');
+        expect(screen.getByRole('tab', {name: /docs\/adr\.md/})).toBeInTheDocument();
+    });
+
+    it('names the target file in the label of a file hint with a path', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        fireEvent.click(screen.getByRole('button', {name: 'Show hint'}));
+        expect(screen.getByText('complete docs/adr.md')).toBeInTheDocument();
+    });
+
+    it('locks the file switcher while the open file has unsaved changes', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        expect(fileSelect()).not.toBeDisabled();
+        fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: 'edited'}});
+        expect(fileSelect()).toBeDisabled();
+        expect(fileSelect().closest('[title]')).toHaveAttribute('title', expect.stringMatching(/save/i));
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Save (⌘S)'})); });
+        expect(fileSelect()).not.toBeDisabled();
+    });
+
+    it('saves only the open file, still validates the editor file, and gives checks every saved file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        const editorText = (screen.getByLabelText(/^Edit /) as HTMLTextAreaElement).value;
+        openFile(ADR);
+        engine.validateArchitecture.mockClear();
+        await saveEditor('# ADR\n\n## Decision\nUse a queue.\n');
+        await waitFor(() => expect(screen.getByRole('button', {name: /Write the decision \(completed\)/})).toBeInTheDocument());
+        expect(engine.validateArchitecture).toHaveBeenLastCalledWith(editorText);
+        const saved = JSON.parse(localStorage.getItem(workspaceKey('multi')) ?? '{}');
+        expect(saved.files[ADR]).toBe('# ADR\n\n## Decision\nUse a queue.\n');
+        expect(saved.files[QUICK_START.editorFile]).toBe(editorText);
+    });
+
+    it('names the file the status badge checks, apart from the open file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        openFile(ADR);
+        expect(screen.getByText(new RegExp(`✓ ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)} schema-valid`))).toBeInTheDocument();
+        expect(screen.getByText(/docs\/adr\.md · 4 lines/)).toBeInTheDocument();
+    });
+
+    it('names the editor file in the Problems panel, apart from the open file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        openFile(ADR);
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+        const label = QUICK_START.editorFile.slice(HOME_DIR.length + 1);
+        expect(screen.getByText(`Problems in ${label}`)).toBeInTheDocument();
+        expect(screen.getByText(`no problems — ${label} is schema-valid`)).toBeInTheDocument();
+    });
+
+    it('draws the open file when it is an architecture, else the editor file', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        const editorText = (screen.getByLabelText(/^Edit /) as HTMLTextAreaElement).value;
+        openFile(ADR);
+        fireEvent.click(screen.getByRole('tab', {name: /Diagram/}));
+        expect(screen.getByTestId('diagram').textContent).toBe(editorText);
+        openFile(SECOND);
+        expect(screen.getByTestId('diagram').textContent).toBe(SECOND_TEXT);
+    });
+
+    it('returns to the editor file on reset', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        openFile(ADR);
+        await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
+        expect(fileSelect()).toHaveValue(QUICK_START.editorFile);
+        expect(screen.getByLabelText(`Edit ${QUICK_START.editorFile.slice(HOME_DIR.length + 1)}`)).toBeInTheDocument();
+    });
+
+    describe('when a command writes a file', () => {
+        const GENERATED = `${HOME_DIR}/architecture/generated.json`;
+        const GENERATED_TEXT = JSON.stringify({nodes: [{'unique-id': 'generated'}]}, null, 2);
+        const withPattern: Lesson = {
+            ...multi,
+            editableFiles: [...multi.editableFiles!, GENERATED],
+            seedFiles: {...multi.seedFiles, [`${HOME_DIR}/pattern.json`]: '{}'},
+        };
+        const generate = (output: string) => runCommand(`calm generate -p pattern.json -o ${output.slice(HOME_DIR.length + 1)}`);
+
+        it('lists a file the command creates', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            expect(screen.queryByRole('option', {name: 'architecture/generated.json'})).toBeNull();
+            await generate(GENERATED);
+            await waitFor(() => expect(screen.getByRole('option', {name: 'architecture/generated.json'})).toBeInTheDocument());
+            openFile(GENERATED);
+            expect(screen.getByLabelText('Edit architecture/generated.json')).toHaveValue(GENERATED_TEXT);
+        });
+
+        it('shows the new content of the open file', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            openFile(SECOND);
+            await generate(SECOND);
+            await waitFor(() => expect(screen.getByLabelText('Edit architecture/second.json')).toHaveValue(GENERATED_TEXT));
+            expect(screen.getByRole('tab', {name: /Diagram/}).textContent).toMatch(/updated/i);
+        });
+
+        it('keeps unsaved edits in the open file', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            openFile(SECOND);
+            fireEvent.change(screen.getByLabelText(/^Edit /), {target: {value: 'unsaved'}});
+            await generate(SECOND);
+            expect(screen.getByLabelText('Edit architecture/second.json')).toHaveValue('unsaved');
+        });
+    });
+
+    it('shows no file switcher when the lesson has one editable file', async () => {
+        await act(async () => { renderLab(); });
+        expect(screen.queryByRole('combobox', {name: 'File'})).toBeNull();
+        expect(screen.getByText('✓ schema-valid')).toBeInTheDocument();
+        fireEvent.click(screen.getByRole('tab', {name: /Problems/}));
+        expect(screen.queryByText(/^Problems in /)).toBeNull();
+        expect(screen.getByText('no problems — the saved file is schema-valid')).toBeInTheDocument();
+    });
+
+    it('colours the open architecture file as JSON, but not a markdown ADR', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        expect(document.body.querySelector('[class*="tokKey"]')).not.toBeNull();
+        openFile(ADR);
+        expect(document.body.querySelector('[class*="tok"]')).toBeNull();
     });
 });

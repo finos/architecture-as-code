@@ -3,9 +3,13 @@ import {
     formatOutput,
     SchemaDirectory,
     buildBrowserDocumentLoader,
+    generate,
+    MultiStrategyDocumentLoader,
+    InMemoryDocumentLoader,
     browserSupportFor,
     BROWSER_COMMAND_SUPPORT,
     type BrowserCommandSupport,
+    type DocumentLoader,
     type ValidationOutcome,
     type ValidationOutput,
 } from '@finos/calm-shared/browser';
@@ -114,9 +118,21 @@ export async function validateArchitecture(jsonText: string): Promise<LabValidat
     };
 }
 
+/** A SchemaDirectory for one command: `first` (e.g. a `-u` mapping), the bundled meta-schemas, then `last`. */
+export async function schemaDirectoryWith(first: DocumentLoader | undefined, last: DocumentLoader): Promise<SchemaDirectory> {
+    const bundled = new InMemoryDocumentLoader(SCHEMAS);
+    const directory = new SchemaDirectory(new MultiStrategyDocumentLoader([...(first ? [first] : []), bundled, last]));
+    await directory.loadSchemas();
+    return directory;
+}
+
 /** The raw outcome, for commands that format it themselves as the CLI does. */
-export async function validateOutcome(architecture: object): Promise<ValidationOutcome> {
-    return validate(architecture, undefined, undefined, await schemaDirectory());
+export async function validateOutcome(architecture: object | undefined, pattern?: object, directory?: SchemaDirectory): Promise<ValidationOutcome> {
+    return validate(architecture, pattern, undefined, directory ?? await schemaDirectory());
+}
+
+export async function generateArchitecture(pattern: object, directory?: SchemaDirectory): Promise<object> {
+    return generate(pattern, directory ?? await schemaDirectory());
 }
 
 export function commandSupport(command: string): BrowserCommandSupport | undefined {

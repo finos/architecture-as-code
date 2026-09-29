@@ -490,5 +490,219 @@
         "prefixItems": []
       }
     }
+  },
+  "cataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "cache" }, "name": { "const": "Cache" }, "node-type": { "const": "service" } }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "catalogueGrownPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Grown Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "cache" }, "name": { "const": "Cache" }, "node-type": { "const": "service" } }
+            },
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "queue" }, "name": { "const": "Queue" }, "node-type": { "const": "service" } }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "catalogueRenamedMemberPattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Catalogue Renamed Member Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "cache" }, "name": { "const": "Redis" }, "node-type": { "const": "service" } }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "noCataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "No Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "relationshipCataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "Relationship Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ]
+      },
+      "relationships": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+            "properties": { "unique-id": { "const": "gateway-to-service" }, "description": { "const": "Gateway calls the service" } }
+          }
+        ],
+        "items": {
+          "oneOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/relationship",
+              "properties": { "unique-id": { "const": "gateway-to-cache" }, "description": { "const": "Gateway reads the cache" } }
+            }
+          ]
+        }
+      }
+    }
+  },
+  "anyOfCataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "AnyOf Catalogue Pattern",
+    "properties": {
+      "nodes": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+            "properties": {
+              "unique-id": { "const": "api-gateway" },
+              "name": { "const": "API Gateway" },
+              "node-type": { "const": "service" }
+            }
+          }
+        ],
+        "items": {
+          "anyOf": [
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "cache" }, "name": { "const": "Cache" }, "node-type": { "const": "service" } }
+            },
+            {
+              "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+              "properties": { "unique-id": { "const": "queue" }, "name": { "const": "Queue" }, "node-type": { "const": "service" } }
+            }
+          ]
+        }
+      },
+      "relationships": { "type": "array", "prefixItems": [] }
+    }
+  },
+  "allOfCataloguePattern": {
+    "$schema": "https://calm.finos.org/release/1.0-rc2/meta/calm.json",
+    "type": "object",
+    "title": "AllOf Catalogue Pattern",
+    "allOf": [
+      {
+        "properties": {
+          "nodes": {
+            "type": "array",
+            "prefixItems": [
+              {
+                "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+                "properties": {
+                  "unique-id": { "const": "api-gateway" },
+                  "name": { "const": "API Gateway" },
+                  "node-type": { "const": "service" }
+                }
+              }
+            ],
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "https://calm.finos.org/release/1.0-rc2/meta/core.json#/defs/node",
+                  "properties": { "unique-id": { "const": "cache" }, "name": { "const": "Cache" }, "node-type": { "const": "service" } }
+                }
+              ]
+            }
+          }
+        }
+      }
+    ]
   }
 }

@@ -11,7 +11,7 @@ import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent, CommandOutcome} from '../cli/outcome';
 import {freshOutcomes} from '../lessons/checks';
-import {HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
+import {commandText, hintContent, HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
 
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
@@ -79,13 +79,17 @@ interface StepItemProps {
     done: boolean;
     current: boolean;
     open: boolean;
+    /** The saved workspace files, for a hint built from the learner's work. */
+    files: Record<string, string>;
     onToggle(): void;
 }
 
-function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
+function StepItem({step, index, done, current, open, files, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
-    const hintLabel = step.hint.kind === 'file' ? 'complete file' : 'commands';
-    const hintText = step.hint.kind === 'file' ? step.hint.content : step.hint.commands.join('\n');
+    const hintLabel = step.hint.kind === 'commands'
+        ? 'commands'
+        : `complete ${step.hint.path ? relativeToHome(step.hint.path) : 'file'}`;
+    const hintText = step.hint.kind === 'file' ? hintContent(step.hint, {files}) : step.hint.commands.map(commandText).join('\n');
     return (
         <li className={styles.step}>
             <button
@@ -163,9 +167,24 @@ function ProgressDots({steps, completed, currentId, vertical}: ProgressDotsProps
     );
 }
 
+const relativeToHome = (path: string) => path.slice(HOME_DIR.length + 1);
+
+/** True when the text parses as a JSON object with a `nodes` array. */
+function isArchitecture(text: string | null): boolean {
+    if (text === null) {
+        return false;
+    }
+    try {
+        return Array.isArray((JSON.parse(text) as {nodes?: unknown} | null)?.nodes);
+    } catch {
+        return false;
+    }
+}
+
 export default function Lab({lesson}: LabProps) {
     const {editorFile, seedFiles, steps, completion} = lesson;
-    const editorLabel = editorFile.slice(HOME_DIR.length + 1);
+    const editableFiles = lesson.editableFiles ?? [editorFile];
+    const editorLabel = relativeToHome(editorFile);
     const vfsRef = useRef<Vfs | null>(null);
     if (!vfsRef.current) {
         vfsRef.current = createVfs(seedFiles, workspaceKey(lesson.id));
@@ -182,6 +201,10 @@ export default function Lab({lesson}: LabProps) {
     useEffect(() => () => {
         sessionEpoch.current += 1;
     }, []);
+    const [openFile, setOpenFile] = useState(editorFile);
+    // What the UI shows now, for a terminal command that finishes after the learner acted.
+    const uiRef = useRef({dirty: false, openFile: editorFile, diagramFile: editorFile, topTab: 'editor'});
+    const openLabel = relativeToHome(openFile);
     const [editorText, setEditorText] = useState(() => vfs.read(editorFile) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
@@ -284,6 +307,7 @@ export default function Lab({lesson}: LabProps) {
             validation: result,
             commands: freshOutcomes(outcomesRef.current, (path) => vfs.read(path)),
             editorFile,
+            files: vfs.toJSON().files,
         };
         let changed = false;
         const next = new Set(completedRef.current);
@@ -318,6 +342,7 @@ export default function Lab({lesson}: LabProps) {
         // the in-flight command's output, its event and its recompute all
         // belong to the session the learner threw away.
         const epoch = sessionEpoch.current;
+        const before = vfs.toJSON().files;
         const lines = await runCommand(input, {
             vfs,
             getCwd: () => vfs.getCwd(),
@@ -334,6 +359,7 @@ export default function Lab({lesson}: LabProps) {
         if (epoch !== sessionEpoch.current) {
             return [];
         }
+        showWrittenFiles(before);
         // Not awaited: `ls`, `cat` and `pwd` must not sit behind a Spectral run
         // with the terminal input disabled. validationSeq orders the results.
         void recompute();
@@ -343,18 +369,46 @@ export default function Lab({lesson}: LabProps) {
     const completeShell = (input: string, cursor: number | undefined) =>
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
+    // The diagram draws the open file when it is an architecture, else the editor file.
+    const drawnFile = (path: string) => (path !== editorFile && isArchitecture(vfs.read(path)) ? path : editorFile);
+    const diagramFile = drawnFile(openFile);
+    useEffect(() => {
+        uiRef.current = {dirty, openFile, diagramFile, topTab};
+    });
+
+    /** A command can write workspace files (`calm generate -o`); show what changed. */
+    const showWrittenFiles = (before: Record<string, string>) => {
+        const ui = uiRef.current;
+        const wrote = (path: string) => vfs.read(path) !== (before[path] ?? null);
+        // Unsaved edits win, as in any editor: Save writes them over the command's output.
+        if (wrote(ui.openFile) && !ui.dirty) {
+            setEditorText(vfs.read(ui.openFile) ?? '');
+        }
+        if ((wrote(ui.diagramFile) || wrote(drawnFile(ui.openFile))) && ui.topTab !== 'diagram') {
+            setDiagramStale(true);
+        }
+    };
+
     const handleSave = () => {
-        // Saving is the only mutation path to the architecture file
-        // (terminal commands are read-only) — flag the diagram as stale
-        // when a save actually changes it while the diagram is hidden;
-        // an open diagram re-renders live, so no flag is needed then.
-        const changed = vfs.read(editorFile) !== editorText;
-        vfs.write(editorFile, editorText);
-        if (changed && topTab !== 'diagram') {
+        // Flag the diagram as stale when a save changes the file it draws
+        // while it is hidden; an open diagram re-renders live, so no flag
+        // is needed then.
+        const changed = vfs.read(openFile) !== editorText;
+        vfs.write(openFile, editorText);
+        const nextDiagramFile = openFile !== editorFile && isArchitecture(editorText) ? openFile : editorFile;
+        if (changed && (diagramFile === openFile || nextDiagramFile === openFile) && topTab !== 'diagram') {
             setDiagramStale(true);
         }
         setDirty(false);
         recompute();
+    };
+
+    const switchFile = (path: string) => {
+        if (dirty) {
+            return;
+        }
+        setOpenFile(path);
+        setEditorText(vfs.read(path) ?? '');
     };
 
     const toggleGuide = () => {
@@ -370,6 +424,7 @@ export default function Lab({lesson}: LabProps) {
         outcomesRef.current = [];
         completedRef.current = new Set();
         setCompleted(new Set());
+        setOpenFile(editorFile);
         setEditorText(vfs.read(editorFile) ?? '');
         setDirty(false);
         setDiagramStale(false);
@@ -383,6 +438,7 @@ export default function Lab({lesson}: LabProps) {
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
     const allDone = completed.size === steps.length;
+    const savedFiles = vfs.toJSON().files;
     // The uncapped total: the Problems tab lists at most 20, the badge must
     // still report every error the engine found.
     const errorCount = validation?.errorCount ?? 0;
@@ -394,7 +450,9 @@ export default function Lab({lesson}: LabProps) {
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
-    const savedArchitecture = vfs.read(editorFile) ?? '';
+    const savedArchitecture = vfs.read(diagramFile) ?? '';
+    // A saved workspace from an older lesson version may lack a file.
+    const fileOptions = editableFiles.filter((path) => vfs.exists(path));
     const cssVars =
         termHeight != null
             ? ({'--lab-term-height': `${termHeight}px`} as CSSProperties)
@@ -449,6 +507,7 @@ export default function Lab({lesson}: LabProps) {
                                         done={completed.has(step.id)}
                                         current={currentStep?.id === step.id}
                                         open={effectiveExpanded === step.id}
+                                        files={savedFiles}
                                         onToggle={() =>
                                             setExpandedId(
                                                 effectiveExpanded === step.id ? null : step.id,
@@ -503,7 +562,7 @@ export default function Lab({lesson}: LabProps) {
                                     aria-selected={topTab === 'editor'}
                                     className={clsx(styles.tab, topTab === 'editor' && styles.tabActive)}
                                     onClick={() => setTopTab('editor')}>
-                                    {editorLabel}
+                                    {openLabel}
                                     {dirty && (
                                         <span
                                             className={styles.dirtyDot}
@@ -535,6 +594,25 @@ export default function Lab({lesson}: LabProps) {
                                     )}
                                 </button>
                                 <div className={styles.tabBarActions}>
+                                    {fileOptions.length > 1 && (
+                                        // A disabled control shows no tooltip, so the wrapper carries it.
+                                        <span
+                                            className={styles.filePickerWrap}
+                                            title={dirty ? 'Save your changes before you open another file' : 'Open a file'}>
+                                            <select
+                                                className={styles.filePicker}
+                                                aria-label="File"
+                                                value={openFile}
+                                                disabled={dirty}
+                                                onChange={(event) => switchFile(event.target.value)}>
+                                                {fileOptions.map((path) => (
+                                                    <option key={path} value={path}>
+                                                        {relativeToHome(path)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </span>
+                                    )}
                                     <button
                                         type="button"
                                         className={styles.saveBtn}
@@ -547,7 +625,7 @@ export default function Lab({lesson}: LabProps) {
                             <div className={styles.tabPanel} hidden={topTab !== 'editor'}>
                                 <Editor
                                     chromeless
-                                    fileName={editorLabel}
+                                    fileName={openLabel}
                                     value={editorText}
                                     dirty={dirty}
                                     onChange={(text) => {
@@ -616,9 +694,12 @@ export default function Lab({lesson}: LabProps) {
                             </div>
                             <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>
                                 <div className={styles.problemsPanel}>
+                                    {fileOptions.length > 1 && (
+                                        <div className={styles.problemsHeader}>Problems in {editorLabel}</div>
+                                    )}
                                     {(!validation || validation.ok) && !warnings.length ? (
                                         <div className={styles.problemsEmpty}>
-                                            no problems — the saved file is schema-valid
+                                            no problems — {fileOptions.length > 1 ? editorLabel : 'the saved file'} is schema-valid
                                         </div>
                                     ) : !validation || validation.ok ? null : (
                                         <ul className={styles.problemsList}>
@@ -657,18 +738,20 @@ export default function Lab({lesson}: LabProps) {
                     {!validation ? (
                         <span>checking…</span>
                     ) : validation.ok ? (
-                        <span className={styles.statusOk}>✓ schema-valid</span>
+                        <span className={styles.statusOk}>
+                            ✓ {fileOptions.length > 1 ? `${editorLabel} ` : ''}schema-valid
+                        </span>
                     ) : (
                         <button
                             type="button"
                             className={clsx(styles.statusErr, styles.statusErrBtn)}
                             title="Open the Problems tab"
                             onClick={() => setBottomTab('problems')}>
-                            ✗ {errorCount} problem{errorCount === 1 ? '' : 's'}
+                            ✗ {fileOptions.length > 1 ? `${editorLabel}: ` : ''}{errorCount} problem{errorCount === 1 ? '' : 's'}
                         </button>
                     )}
                     <span className={styles.statusFile}>
-                        {editorLabel}
+                        {openLabel}
                         {dirty ? ' ●' : ''} · {lineCount} lines
                     </span>
                 </div>
