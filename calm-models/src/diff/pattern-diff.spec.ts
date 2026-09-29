@@ -188,6 +188,27 @@ describe('items catalogues', () => {
         expect(result.nodesRemoved.map((n) => n['unique-id'])).toEqual(['cache']);
     });
 
+    it('reads a catalogue declared on relationships, not only on nodes', () => {
+        const { relationships } = normalisePatternToInstance(testPatterns.relationshipCataloguePattern);
+        expect(relationships.map((r) => r['unique-id'])).toEqual(['gateway-to-service', 'gateway-to-cache']);
+    });
+
+    it('reads a catalogue declared with anyOf as well as oneOf', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.anyOfCataloguePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache', 'queue']);
+    });
+
+    it('reads a catalogue declared inside an allOf branch', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.allOfCataloguePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache']);
+    });
+
+    it('diffs a relationships catalogue member like any other relationship', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.relationshipCataloguePattern);
+        expect(result.edgesAdded.map((r) => r['unique-id']))
+            .toEqual(['gateway-to-service', 'gateway-to-cache']);
+    });
+
     it('ignores an items schema that declares a node directly', () => {
         const plain = {
             properties: {

@@ -1,9 +1,6 @@
 package org.finos.calm.store.util;
 
-import org.finos.calm.resources.ResourceValidationConstants;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Arrays;
 
 /**
  * Folds every accepted spelling of a version onto one canonical
@@ -36,16 +33,17 @@ import java.util.regex.Pattern;
  * the callers instead would mean seven resource types each having to
  * remember to do it.
  *
- * <h2>Coupling note</h2>
- * This deliberately reuses {@code ResourceValidationConstants.VERSION_REGEX}
- * rather than restating the pattern, even though it points from the store
- * layer at the resource layer. The set of spellings this must fold is
- * exactly the set the API accepts, so a second copy of the pattern would be
- * a correctness bug waiting for the two to drift apart.
+ * <h2>Why this does not run the regex</h2>
+ * {@code VERSION_REGEX} remains the definition of what the API accepts, and
+ * this class must agree with it exactly. It does not <em>execute</em> it,
+ * though: with both separators optional, the two {@code [0-9]*} groups compete
+ * for the same digit run, so a match backtracks polynomially on input such as
+ * {@code 0111…1x} (CodeQL {@code java/polynomial-redos}). The parser below
+ * reproduces the regex's leftmost-greedy split in linear time instead.
+ * {@code TestCanonicalVersionShould} compares the two exhaustively over every
+ * short string, so the copies cannot drift apart unnoticed.
  */
 public final class CanonicalVersion {
-
-    private static final Pattern VERSION = Pattern.compile(ResourceValidationConstants.VERSION_REGEX);
 
     private CanonicalVersion() {
     }
@@ -62,10 +60,99 @@ public final class CanonicalVersion {
         if (version == null) {
             return null;
         }
-        Matcher matcher = VERSION.matcher(version);
-        if (!matcher.matches()) {
+        String[] segments = split(version);
+        if (segments == null) {
             return version;
         }
-        return matcher.group(1) + "." + matcher.group(2) + "." + matcher.group(3);
+        return segments[0] + "." + segments[1] + "." + segments[2];
+    }
+
+    /**
+     * The three segments {@code VERSION_REGEX} would capture, or {@code null}
+     * where it would not match. Separators fix segment boundaries wherever
+     * they are present; where they are absent the regex's greedy quantifiers
+     * give the earlier segment as many digits as still leaves a valid segment
+     * for each later one, which is the order the loops below try.
+     */
+    private static String[] split(String version) {
+        String[] runs = digitRuns(version);
+        if (runs == null) {
+            return null;
+        }
+        return switch (runs.length) {
+            case 3 -> isSegment(runs[0]) && isSegment(runs[1]) && isSegment(runs[2]) ? runs : null;
+            case 2 -> splitTwoRuns(runs[0], runs[1]);
+            default -> splitOneRun(runs[0]);
+        };
+    }
+
+    /** Digit runs between separators, or {@code null} for any character or shape the regex rejects. */
+    private static String[] digitRuns(String version) {
+        String[] runs = new String[3];
+        int count = 0;
+        int start = 0;
+        for (int i = 0; i <= version.length(); i++) {
+            boolean atEnd = i == version.length();
+            char c = atEnd ? '.' : version.charAt(i);
+            if (c == '.' || c == '-') {
+                if (i == start || count == 3) {
+                    return null;
+                }
+                runs[count++] = version.substring(start, i);
+                start = i + 1;
+            } else if (c < '0' || c > '9') {
+                return null;
+            }
+        }
+        return count == 3 ? runs : Arrays.copyOf(runs, count);
+    }
+
+    private static String[] splitTwoRuns(String first, String last) {
+        for (int end = first.length(); end >= 1; end--) {
+            if (!isSegment(first, 0, end)) {
+                continue;
+            }
+            if (end == first.length()) {
+                String[] tail = splitGreedy(last);
+                if (tail != null) {
+                    return new String[] {first, tail[0], tail[1]};
+                }
+            } else if (isSegment(first, end, first.length()) && isSegment(last)) {
+                return new String[] {first.substring(0, end), first.substring(end), last};
+            }
+        }
+        return null;
+    }
+
+    private static String[] splitOneRun(String run) {
+        for (int end = run.length() - 2; end >= 1; end--) {
+            if (!isSegment(run, 0, end)) {
+                continue;
+            }
+            String[] tail = splitGreedy(run.substring(end));
+            if (tail != null) {
+                return new String[] {run.substring(0, end), tail[0], tail[1]};
+            }
+        }
+        return null;
+    }
+
+    /** The longest valid leading segment that leaves a valid trailing segment, as the regex's greedy groups find it. */
+    private static String[] splitGreedy(String run) {
+        for (int end = run.length() - 1; end >= 1; end--) {
+            if (isSegment(run, 0, end) && isSegment(run, end, run.length())) {
+                return new String[] {run.substring(0, end), run.substring(end)};
+            }
+        }
+        return null;
+    }
+
+    private static boolean isSegment(String run) {
+        return isSegment(run, 0, run.length());
+    }
+
+    /** {@code 0|[1-9][0-9]*} over an all-digit range: non-empty, and no leading zero unless it is the single digit 0. */
+    private static boolean isSegment(String run, int from, int to) {
+        return to > from && (run.charAt(from) != '0' || to - from == 1);
     }
 }

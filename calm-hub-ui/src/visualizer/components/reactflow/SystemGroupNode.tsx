@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
 
-export function SystemGroupNode({ data }: NodeProps) {
+function SystemGroupNodeComponent({ data }: NodeProps) {
   return (
     <div
       style={{
@@ -37,4 +38,6 @@ export function SystemGroupNode({ data }: NodeProps) {
       </div>
     </div>
   );
-};
+}
+
+export const SystemGroupNode = memo(SystemGroupNodeComponent);
