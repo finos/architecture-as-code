@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.regex.Pattern;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -93,6 +94,36 @@ class TestPatternReferenceMatcherShould {
         String stored = "https://h/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0";
         assertFalse(PatternReferenceMatcher.references(stored, NAMESPACE, NAME, "1.0.1"));
         assertFalse(PatternReferenceMatcher.references(stored, NAMESPACE, NAME, "10.0.0"));
+    }
+
+    @Test
+    void never_match_a_neighbouring_version_that_a_merged_spelling_would_reach() {
+        // 1100 is a legal spelling of 11.0.0, not of 1.10.0: the leading group takes two digits.
+        // An expression allowing both separators to be dropped would match it for either.
+        String elevenZeroZero = "https://h/calm/namespaces/finos/patterns/api-gateway/versions/1100";
+
+        assertFalse(Pattern.compile(PatternReferenceMatcher.referenceTo(NAMESPACE, NAME, "1.10.0"))
+                .matcher(elevenZeroZero).find());
+        assertFalse(PatternReferenceMatcher.references(elevenZeroZero, NAMESPACE, NAME, "1.10.0"));
+
+        assertTrue(Pattern.compile(PatternReferenceMatcher.referenceTo(NAMESPACE, NAME, "11.0.0"))
+                .matcher(elevenZeroZero).find());
+        assertTrue(PatternReferenceMatcher.references(elevenZeroZero, NAMESPACE, NAME, "11.0.0"));
+    }
+
+    @Test
+    void give_the_same_answer_on_both_backends_for_every_spelling_of_a_two_digit_version() {
+        // The database expression and the in-memory check must not disagree: one backend listing an
+        // implementation the other rejects is worse than either answer alone.
+        for (String query : new String[]{"1.10.0", "1.0.10", "10.0.1", "11.0.0"}) {
+            for (String stored : new String[]{"1100", "1010", "1001", "1.10.0", "1-10-0", "1.0.10", "10.0.1", "11.0.0"}) {
+                String schema = "https://h/calm/namespaces/finos/patterns/api-gateway/versions/" + stored;
+                boolean database = Pattern.compile(PatternReferenceMatcher.referenceTo(NAMESPACE, NAME, query))
+                        .matcher(schema).find();
+                boolean inMemory = PatternReferenceMatcher.references(schema, NAMESPACE, NAME, query);
+                assertEquals(inMemory, database, "backends disagree for query " + query + " against stored " + stored);
+            }
+        }
     }
 
     @Test

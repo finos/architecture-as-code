@@ -24,6 +24,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.nullValue;
@@ -194,6 +195,22 @@ class TestPatternImplementationsEndpointShould {
     @Test
     void reject_a_negative_offset() {
         given().queryParam("offset", -1).when().get(PATH).then().statusCode(400);
+    }
+
+    @Test
+    void keep_the_order_the_store_returned_when_results_span_namespaces() throws Exception {
+        // The store sorts so paging is stable; grouping by namespace to resolve names must not
+        // reshuffle a page into hash order afterwards.
+        stubImplementations(List.of(
+                new PatternImplementation("alpha", 1, "1.0.0", null),
+                new PatternImplementation("beta", 2, "1.0.0", null),
+                new PatternImplementation("alpha", 3, "1.0.0", null),
+                new PatternImplementation("gamma", 4, "1.0.0", null)));
+        when(mockMappingStore.listMappingsByNumericIds(anyString(), any(), any())).thenReturn(List.of());
+
+        given().when().get(PATH).then()
+                .statusCode(200)
+                .body("implementations.architectureId", contains(1, 2, 3, 4));
     }
 
     @Test

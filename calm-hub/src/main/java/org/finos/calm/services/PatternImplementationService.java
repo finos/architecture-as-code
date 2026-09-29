@@ -20,7 +20,6 @@ import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITI
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -108,14 +107,16 @@ public class PatternImplementationService {
         Map<String, List<PatternImplementation>> byNamespace = found.getImplementations().stream()
                 .collect(Collectors.groupingBy(PatternImplementation::getNamespace));
 
-        List<PatternImplementation> enriched = new ArrayList<>(found.getImplementations().size());
-        for (Map.Entry<String, List<PatternImplementation>> entry : byNamespace.entrySet()) {
-            Map<Integer, String> names = customIdsFor(entry.getKey(), entry.getValue());
-            for (PatternImplementation implementation : entry.getValue()) {
-                enriched.add(implementation.withCustomId(names.get(implementation.getArchitectureId())));
-            }
-        }
-        return new PatternImplementations(found.getPattern(), enriched);
+        Map<String, Map<Integer, String>> namesByNamespace = new HashMap<>();
+        byNamespace.forEach((namespace, rows) -> namesByNamespace.put(namespace, customIdsFor(namespace, rows)));
+
+        // Rebuilt over the original list rather than over the grouping, so the store's order
+        // survives. Iterating the groups would emit namespaces in hash order, which would reshuffle
+        // a page and undo the sort the paged query relies on.
+        return new PatternImplementations(found.getPattern(), found.getImplementations().stream()
+                .map(implementation -> implementation.withCustomId(
+                        namesByNamespace.get(implementation.getNamespace()).get(implementation.getArchitectureId())))
+                .toList());
     }
 
     private Map<Integer, String> customIdsFor(String namespace, List<PatternImplementation> implementations) {

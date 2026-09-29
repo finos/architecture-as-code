@@ -25,6 +25,7 @@ import java.util.Set;
 
 import static com.mongodb.MongoClientSettings.getDefaultCodecRegistry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -70,6 +71,7 @@ class TestMongoPatternImplementationStoreShould {
         FindIterable<Document> findIterable = mock(DocumentFindIterable.class);
         MongoCursor<Document> cursor = mock(DocumentMongoCursor.class);
         when(architectureVersions.find(any(Bson.class))).thenReturn(findIterable);
+        when(findIterable.sort(any())).thenReturn(findIterable);
         when(findIterable.projection(any())).thenReturn(findIterable);
         when(findIterable.iterator()).thenReturn(cursor);
 
@@ -146,8 +148,9 @@ class TestMongoPatternImplementationStoreShould {
         org.mockito.Mockito.verify(architectureVersions).find(filter.capture());
         String rendered = render(filter.getValue());
 
-        assertTrue(rendered.contains("/calm/namespaces/finos/patterns/api-gateway/versions/1"),
+        assertTrue(rendered.contains("/calm/namespaces/finos/patterns/api-gateway/versions/"),
                 "expected a path-only expression, got: " + rendered);
+        assertFalse(rendered.contains("http"), "the host must not appear in the filter: " + rendered);
         assertTrue(rendered.contains(SCHEMA_FIELD), "expected the filter to read $schema, got: " + rendered);
     }
 
@@ -161,6 +164,38 @@ class TestMongoPatternImplementationStoreShould {
         org.mockito.Mockito.verify(architectureVersions).find(filter.capture());
         assertTrue(render(filter.getValue()).contains("namespace"),
                 "query was not scoped to readable namespaces: " + render(filter.getValue()));
+    }
+
+    @Test
+    void sort_the_query_so_a_paging_window_is_stable() {
+        FindIterable<Document> matches = stubFind(List.of());
+        when(matches.skip(anyInt())).thenReturn(matches);
+        when(matches.limit(anyInt())).thenReturn(matches);
+
+        store.findImplementations("finos", "api-gateway", "1.0.0", Optional.empty(), new PageRequest(2, 5));
+
+        // Without a sort MongoDB has no defined order, so consecutive pages could repeat a row or
+        // drop one, and a dropped implementation reads as a pattern nothing depends on.
+        org.mockito.Mockito.verify(matches).sort(any());
+        org.mockito.Mockito.verify(matches).skip(5);
+        org.mockito.Mockito.verify(matches).limit(2);
+    }
+
+    @Test
+    void ask_only_for_spellings_that_mean_the_same_version() {
+        stubFind(List.of());
+
+        store.findImplementations("finos", "api-gateway", "1.10.0", Optional.empty(), PageRequest.UNPAGED);
+
+        ArgumentCaptor<Bson> filter = ArgumentCaptor.forClass(Bson.class);
+        org.mockito.Mockito.verify(architectureVersions).find(filter.capture());
+        String rendered = render(filter.getValue());
+
+        // 1100 reads as 11.0.0, so an expression that allowed both separators to be dropped would
+        // list an architecture of that pattern version as an implementation of 1.10.0, while the
+        // in-memory path rejects it. Asserted on spellings that need no escaping.
+        assertTrue(rendered.contains("1-10-0"), "expected the dashed spelling, got: " + rendered);
+        assertFalse(rendered.contains("1100"), "1100 means 11.0.0 and must not be matched: " + rendered);
     }
 
     /**

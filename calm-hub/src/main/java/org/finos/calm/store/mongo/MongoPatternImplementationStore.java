@@ -5,6 +5,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
 import com.mongodb.client.model.Projections;
+import com.mongodb.client.model.Sorts;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
@@ -60,8 +61,12 @@ public class MongoPatternImplementationStore implements PatternImplementationSto
         Bson namesThisPattern = Filters.regex(SCHEMA_FIELD,
                 PatternReferenceMatcher.referenceTo(namespace, patternName, version));
 
+        // Sorted so a paging window is stable. An unsorted Mongo query has no defined order, so
+        // consecutive pages could repeat a row or drop one, and a dropped implementation reads as
+        // a pattern nothing depends on. The key matches the collection's unique index.
         FindIterable<Document> matches = architectureVersions
                 .find(Filters.and(scope, namesThisPattern))
+                .sort(Sorts.ascending(NAMESPACE_FIELD, ARCHITECTURE_ID_FIELD, VERSION_FIELD))
                 .projection(Projections.include(NAMESPACE_FIELD, ARCHITECTURE_ID_FIELD, VERSION_FIELD));
         if (page.isPaged()) {
             matches = matches.skip(page.normalizedOffset()).limit(page.limit());

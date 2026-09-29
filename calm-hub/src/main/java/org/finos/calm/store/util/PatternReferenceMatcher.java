@@ -1,5 +1,7 @@
 package org.finos.calm.store.util;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -54,10 +56,22 @@ public final class PatternReferenceMatcher {
         return CanonicalVersion.of(storedVersion).equals(CanonicalVersion.of(version));
     }
 
+    /** Every separator {@code VERSION_REGEX} accepts between two segments. */
+    private static final String[] SEPARATORS = {".", "-", ""};
+
     /**
-     * Matches the digits of {@code version} with an optional separator between them, which is the
-     * shape {@code VERSION_REGEX} itself accepts. An unrecognised version is escaped and matched
-     * literally, so a malformed one cannot widen the expression.
+     * An alternation of the spellings that mean this version, and only those.
+     *
+     * <p>Each candidate is canonicalised and kept only when it folds back to the version asked for.
+     * That filter is the whole point. An optional-separator expression such as
+     * {@code 1[-.]?10[-.]?0} looks equivalent and is not: with both separators omitted it also
+     * matches {@code 1100}, which {@link CanonicalVersion} reads as {@code 11.0.0}, because the
+     * greedy leading group takes two digits. Mongo would then report an architecture of one pattern
+     * version as an implementation of another, while the in-memory path compares canonical forms
+     * and rejects it. Generating from the same canonicaliser keeps the two backends in step.</p>
+     *
+     * <p>An unrecognised version is escaped and matched literally, so a malformed one cannot widen
+     * the expression.</p>
      */
     private static String versionSpellings(String version) {
         String canonical = CanonicalVersion.of(version);
@@ -65,7 +79,16 @@ public final class PatternReferenceMatcher {
         if (parts == null || parts.length != 3) {
             return quote(version);
         }
-        return parts[0] + "[-.]?" + parts[1] + "[-.]?" + parts[2];
+        List<String> spellings = new ArrayList<>();
+        for (String first : SEPARATORS) {
+            for (String second : SEPARATORS) {
+                String candidate = parts[0] + first + parts[1] + second + parts[2];
+                if (canonical.equals(CanonicalVersion.of(candidate)) && !spellings.contains(candidate)) {
+                    spellings.add(quote(candidate));
+                }
+            }
+        }
+        return "(?:" + String.join("|", spellings) + ")";
     }
 
     /**
