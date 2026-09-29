@@ -73,7 +73,7 @@ function findSpec(token: string, specs: OptionSpec[]): { spec: OptionSpec; attac
     return undefined;
 }
 
-/** Mirrors commander's parseOptions, then its help, unknown-option and excess-argument checks in that order. */
+/** Mirrors commander's parseOptions, then its help, required-option, unknown-option and excess-argument checks in that order. */
 export function parseArgs(command: string, args: string[]): ParsedArgs {
     const specs = optionSpecs(command);
     const values: Record<string, string | true> = {};
@@ -134,6 +134,10 @@ export function parseArgs(command: string, args: string[]): ParsedArgs {
 
     if (unknown.some((token) => HELP.has(token))) {
         return { kind: 'help' };
+    }
+    const missing = specs.find((spec) => spec.mandatory && values[spec.attribute] === undefined);
+    if (missing) {
+        return { kind: 'error', message: `error: required option '${missing.flags}' not specified` };
     }
     if (unknown.length) {
         return { kind: 'error', message: unknownOption(unknown[0], specs) };

@@ -4,7 +4,7 @@ import { BEGINNER_07 } from '../beginner-07/lesson';
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
-import type { LessonState } from '../types';
+import { hintContent, type LessonState } from '../types';
 
 const SCHEMA = 'https://calm.finos.org/release/1.2/meta/calm.json';
 
@@ -76,6 +76,7 @@ const state = (over: Partial<LessonState>): LessonState => ({
     validation: { ok: true },
     commands: [],
     editorFile: INTERMEDIATE_08.editorFile,
+    files: {},
     ...over,
 });
 
@@ -97,7 +98,7 @@ describe('intermediate-08 lesson', () => {
         for (const step of INTERMEDIATE_08.steps) {
             const hint = step.hint;
             if (hint.kind === 'file') {
-                expect(() => JSON.parse(hint.content), step.id).not.toThrow();
+                expect(() => JSON.parse(hintContent(hint, { files: INTERMEDIATE_08.seedFiles })), step.id).not.toThrow();
             }
         }
     });
