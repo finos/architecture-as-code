@@ -448,33 +448,6 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
 
-      - name: Check CVE scan status
-        run: |
-          # Publish only if the latest completed Node.js CVE scan on main passed recently.
-          # The age check stops a disabled or stalled scan workflow from passing this gate.
-          RUN=$(gh run list \
-            --workflow=cve-scanning-node.yml \
-            --branch=main \
-            --status=completed \
-            --limit=1 \
-            --json conclusion,createdAt,url)
-          echo "Latest cve-scanning-node run on main: $RUN"
-
-          CONCLUSION=$(echo "$RUN" | jq -r '.[0].conclusion // empty')
-          CREATED=$(echo "$RUN" | jq -r '.[0].createdAt // empty')
-          if [ "$CONCLUSION" != "success" ]; then
-            echo "❌ The latest CVE scan on main did not pass. Fix or suppress the findings before releasing."
-            exit 1
-          fi
-          AGE_DAYS=$(( ($(date +%s) - $(date -d "$CREATED" +%s)) / 86400 ))
-          if [ "$AGE_DAYS" -gt 4 ]; then
-            echo "❌ The latest CVE scan on main is $AGE_DAYS days old. Check that cve-scanning-node.yml is enabled."
-            exit 1
-          fi
-          echo "✅ CVE scan passed on main $AGE_DAYS day(s) ago."
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:

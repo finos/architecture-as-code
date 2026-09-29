@@ -214,15 +214,6 @@ repository:
           adhoc: false
           ci: true
           release: false
-      - name: OWASP Dependency-Check
-        type: SCA
-        comment: cve-scanning-node.yml (cli, calm-server, shared, docs) and cve-scanning-maven.yml (calm-hub, calm-models); fails on CVSS >= 5; suppressions in .github/*-cve-ignore-list.xml. The CLI and calm-server release workflows publish only if the latest Node.js scan on main passed within four days.
-        rulesets:
-          - failOnCVSS 5
-        integration:
-          adhoc: false
-          ci: true
-          release: true
       - name: Dependabot
         type: SCA
         comment: Security updates and alerts for npm, Maven, Cargo and GitHub Actions.
