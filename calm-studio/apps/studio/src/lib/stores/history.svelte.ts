@@ -8,10 +8,9 @@
  * Stores deep-cloned snapshots of nodes/edges arrays.
  * Snapshots MUST be pushed BEFORE mutations (RESEARCH Pitfall 6).
  *
- * Pattern: snapshot array + pointer
- * - pushSnapshot: slice future history, push clone, increment pointer
- * - undo: decrement pointer, return snapshot (or null at start)
- * - redo: increment pointer, return snapshot (or null at end)
+ * Pattern: push the canvas state BEFORE a mutation.
+ * - undo restores that snapshot and keeps the live canvas for redo
+ * - redo re-applies the canvas passed into undo
  */
 
 import type { Node, Edge } from '@xyflow/svelte';
@@ -65,37 +64,44 @@ export function pushSnapshot(nodes: Node[], edges: Edge[]): void {
 }
 
 /**
- * Move back one step in history.
- * Returns the previous snapshot, or null if already at the start.
+ * Restore the latest snapshot pushed before a mutation.
+ * Pass the live canvas so redo can return to it.
+ * Returns null when there is nothing to undo.
  */
-export function undo(): Snapshot | null {
-	if (pointer <= 0) {
-		return null;
+export function undo(current?: { nodes: Node[]; edges: Edge[] }): Snapshot | null {
+	if (pointer < 0) return null;
+	if (current) {
+		const saved = cloneSnapshot(current);
+		if (pointer + 1 < stack.length) {
+			stack = stack.map((entry, index) => (index === pointer + 1 ? saved : entry));
+		} else {
+			stack = [...stack, saved];
+		}
 	}
-	pointer = pointer - 1;
-	return stack[pointer];
+	const snapshot = stack[pointer];
+	pointer -= 1;
+	return snapshot ?? null;
 }
 
 /**
- * Move forward one step in history.
- * Returns the next snapshot, or null if already at the end.
+ * Re-apply the canvas state saved by the last undo.
+ * Returns null when there is nothing to redo.
  */
 export function redo(): Snapshot | null {
-	if (pointer >= stack.length - 1) {
-		return null;
-	}
-	pointer = pointer + 1;
-	return stack[pointer];
+	const redoIndex = pointer + 2;
+	if (redoIndex >= stack.length) return null;
+	pointer = redoIndex - 1;
+	return stack[redoIndex] ?? null;
 }
 
-/** True when there is a previous snapshot to undo to. */
+/** True when a snapshot pushed before a mutation can be restored. */
 export function canUndo(): boolean {
-	return pointer > 0;
+	return pointer >= 0;
 }
 
-/** True when there is a future snapshot to redo to. */
+/** True when an undone canvas state can be re-applied. */
 export function canRedo(): boolean {
-	return pointer < stack.length - 1;
+	return pointer + 2 < stack.length;
 }
 
 /**

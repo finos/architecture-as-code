@@ -6,6 +6,7 @@ import type { ExplorerFileEntry } from '$lib/explorer/types';
 import {
 	isNestedUnder,
 	planFolderMoveRewrites,
+	type FolderMoveRewriteFile,
 	type FolderMoveRewritePlan,
 } from '$lib/explorer/rewriteDetailedArchitecture';
 import {
@@ -13,7 +14,9 @@ import {
 	directoryExists,
 	getExistingDirectory,
 	getOrCreateDirectory,
+	projectRelativeFileExists,
 	removeProjectRelativeDirectory,
+	removeProjectRelativeFile,
 	splitRelativePath,
 	writeProjectRelativeFile,
 } from '$lib/project/projectFs';
@@ -32,6 +35,19 @@ async function readAndParseJson(file: ExplorerFileEntry): Promise<{ oldPath: str
 	} catch {
 		throw new FolderMoveAbortedError(`Invalid JSON: ${file.relativePath}`);
 	}
+}
+
+/** Skip files that are not valid JSON. A bad file must not block the move. */
+async function readParseableFiles(files: ExplorerFileEntry[]): Promise<FolderMoveRewriteFile[]> {
+	const parsed: FolderMoveRewriteFile[] = [];
+	for (const file of files) {
+		try {
+			parsed.push(await readAndParseJson(file));
+		} catch (e) {
+			if (!(e instanceof FolderMoveAbortedError)) throw e;
+		}
+	}
+	return parsed;
 }
 
 export async function moveProjectFolder(options: {
@@ -58,7 +74,7 @@ export async function moveProjectFolder(options: {
 		await removeProjectRelativeDirectory(root, destPrefix);
 	}
 
-	const parsed = await Promise.all(files.map(readAndParseJson));
+	const parsed = await readParseableFiles(files);
 	const rewritten = planFolderMoveRewrites(parsed, sourcePrefix, destPrefix);
 	const mapping: Record<string, string> = {};
 	for (const plan of rewritten) {
@@ -76,6 +92,49 @@ export async function moveProjectFolder(options: {
 	}
 
 	await removeProjectRelativeDirectory(root, sourcePrefix);
+	return { mapping, rewritten };
+}
+
+/** Move one file. Abort when the destination name exists. Do not prompt to overwrite (R77). */
+export async function moveProjectFile(options: {
+	root: FileSystemDirectoryHandle;
+	sourcePath: string;
+	destPath: string;
+	files: ExplorerFileEntry[];
+}): Promise<{ mapping: Record<string, string>; rewritten: FolderMoveRewritePlan[] }> {
+	const { root, sourcePath, destPath, files } = options;
+	if (!sourcePath || !destPath) {
+		throw new FolderMoveAbortedError('Source and destination are required');
+	}
+	if (sourcePath === destPath) {
+		throw new FolderMoveAbortedError('Destination is the same as the source');
+	}
+	if (await projectRelativeFileExists(root, destPath)) {
+		throw new FolderMoveAbortedError(`Destination already exists: ${destPath}`);
+	}
+
+	const parsed = await readParseableFiles(files);
+	const source = files.find((file) => file.relativePath === sourcePath);
+	if (!source) {
+		throw new FolderMoveAbortedError(`Cannot read ${sourcePath}`);
+	}
+	const sourceParsed = parsed.some((file) => file.oldPath === sourcePath);
+	const rewritten = planFolderMoveRewrites(parsed, sourcePath, destPath);
+	const mapping: Record<string, string> = {};
+	for (const plan of rewritten) {
+		if (plan.newPath !== plan.oldPath) mapping[plan.oldPath] = plan.newPath;
+	}
+
+	for (const plan of rewritten) {
+		if (plan.newPath === plan.oldPath && !plan.changed) continue;
+		await writeProjectRelativeFile(root, plan.newPath, plan.text);
+	}
+	if (!sourceParsed) {
+		const text = await (await source.handle.getFile()).text();
+		await writeProjectRelativeFile(root, destPath, text);
+		mapping[sourcePath] = destPath;
+	}
+	await removeProjectRelativeFile(root, sourcePath);
 	return { mapping, rewritten };
 }
 

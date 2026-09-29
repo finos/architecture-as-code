@@ -35,6 +35,9 @@ export interface CalmNodeRefDragPayload {
 	name: string;
 	nodeType: string;
 	description: string;
+	/** When set (Hub URL), used as detailed-architecture instead of a file-relative path. */
+	detailedArchitecture?: string;
 }
 
 export const CALM_NODE_REF_MIME = 'application/calm-node-ref';
+export const CALM_FILE_MOVE_MIME = 'application/calm-file-move';

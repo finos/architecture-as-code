@@ -98,6 +98,15 @@ export async function copyDirectoryContents(
 	}
 }
 
+export async function removeProjectRelativeFile(
+	root: FileSystemDirectoryHandle,
+	relativePath: string
+): Promise<void> {
+	const { dir, name } = splitRelativePath(relativePath);
+	const parent = dir ? await getExistingDirectory(root, dir) : root;
+	await parent.removeEntry(name);
+}
+
 export async function removeProjectRelativeDirectory(
 	root: FileSystemDirectoryHandle,
 	relativeDir: string

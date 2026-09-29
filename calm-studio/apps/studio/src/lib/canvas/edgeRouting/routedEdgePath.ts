@@ -9,6 +9,7 @@
 import type { Node, Position } from '@xyflow/svelte';
 import {
 	collectNodeObstacles,
+	relationshipObstacleExclusions,
 	routeEdgeOrthogonal,
 	type HandlePosition,
 } from './obstacleRouter';
@@ -40,10 +41,7 @@ export function getRoutedEdgePath(
 		targetId?: string;
 	}
 ): [string, number, number] {
-	const exclude = new Set<string>();
-	if (args.sourceId) exclude.add(args.sourceId);
-	if (args.targetId) exclude.add(args.targetId);
-
+	const exclude = relationshipObstacleExclusions(nodes, args.sourceId, args.targetId);
 	const obstacles = collectNodeObstacles(nodes, exclude, 0);
 	const result = routeEdgeOrthogonal({
 		source: {

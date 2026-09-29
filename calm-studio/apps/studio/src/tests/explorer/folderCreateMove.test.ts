@@ -91,6 +91,48 @@ describe('rewriteDetailedArchitecture', () => {
 		).toContain('http://localhost:8080');
 	});
 
+	it('rewrites relative links when a single file moves', () => {
+		const plans = planFolderMoveRewrites(
+			[
+				{
+					oldPath: 'org/outside.json',
+					json: {
+						nodes: [
+							{
+								'unique-id': 'ref',
+								details: { 'detailed-architecture': 'a/x.json' },
+							},
+						],
+					},
+				},
+				{
+					oldPath: 'org/a/x.json',
+					json: {
+						nodes: [
+							{
+								'unique-id': 'self',
+								details: { 'detailed-architecture': '../outside.json' },
+							},
+						],
+					},
+				},
+			],
+			'org/a/x.json',
+			'org/c/x.json'
+		);
+		const outside = plans.find((p) => p.oldPath === 'org/outside.json');
+		const moved = plans.find((p) => p.oldPath === 'org/a/x.json');
+		expect(moved?.newPath).toBe('org/c/x.json');
+		expect(
+			(outside?.json as { nodes: Array<{ details: { 'detailed-architecture': string } }> }).nodes[0]
+				.details['detailed-architecture']
+		).toBe('c/x.json');
+		expect(
+			(moved?.json as { nodes: Array<{ details: { 'detailed-architecture': string } }> }).nodes[0]
+				.details['detailed-architecture']
+		).toBe('../outside.json');
+	});
+
 	it('retargets an open document path and inbound relative links', () => {
 		const result = retargetOpenDocumentAfterMove(
 			'org/c.json',

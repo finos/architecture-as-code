@@ -59,13 +59,14 @@
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { buildLayoutSizeHints } from '$lib/layout/layoutSizeHints';
 	import {
+		jsonApplyHasLayout,
 		layoutMapToPositionMap,
 		mergePositionMaps,
+		prepareJsonLayout,
 		readLayoutMap,
 	} from '$lib/layout/layoutPersist';
 	import type { ArchitectureWithMetadata } from '$lib/stores/documentEnvelope';
 	import { patternSchemaToArchitecture, architectureToPatternSchema } from '$lib/templates/patternSchemaGraph';
-	import HubBrowseDialog from '$lib/hub/HubBrowseDialog.svelte';
 	import { hubUrlFromProject, isHubArchitectureUrl } from '$lib/hub/hubUrl';
 	import { fetchHubArchitecture, resolveHubPatternDocument } from '$lib/hub/hubClient';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
@@ -170,8 +171,6 @@
 	import ExtractToDiagramDialog from '$lib/project/ExtractToDiagramDialog.svelte';
 	import { isReferenceNode } from '$lib/metadata/referenceNode';
 	import { asCalmFlowNodeData } from '$lib/canvas/flowTypes';
-	import { estimateRectangleNodeSize } from '$lib/canvas/rectangleNodeSize';
-
 	let nodes = $state.raw<Node[]>([]);
 	let edges = $state.raw<Edge[]>([]);
 
@@ -470,7 +469,6 @@
 		card: CalmPatternCard;
 		options: CalmOption[];
 	} | null>(null);
-	let showHubBrowse = $state(false);
 	let documentReadonly = $state(false);
 	let activeKind = $state<'architecture' | 'pattern' | 'hub'>('architecture');
 	let patternEdit = $state<{ base: object; fromHub: boolean } | null>(null);
@@ -566,9 +564,11 @@
 			(tab) => tab.relativePath && moved.has(tab.relativePath) && isTabDirty(tab)
 		).length;
 		if (dirtyCount === 0) return true;
-		return window.confirm(
-			`${dirtyCount} open diagram(s) in this folder have unsaved changes. Move anyway? Unsaved edits stay in the editor.`
-		);
+		const what =
+			movedPaths.length === 1
+				? 'This open diagram has unsaved changes.'
+				: `${dirtyCount} open diagram(s) in this folder have unsaved changes.`;
+		return window.confirm(`${what} Move anyway? Unsaved edits stay in the editor.`);
 	}
 
 	function rewriteCanvasDetails(
@@ -1269,37 +1269,6 @@
 		});
 	}
 
-	function insertHubArchitectureReference(ref: { id: string; name: string; url: string }) {
-		if (documentReadonly) return;
-		const id = `hub-ref-${ref.id}`;
-		if (nodes.some((n) => n.id === id || n.data?.calmId === id)) {
-			importError = 'That Hub architecture is already on the canvas';
-			showHubBrowse = false;
-			return;
-		}
-		const size = estimateRectangleNodeSize(ref.name, { hasReference: true });
-		const newNode: Node = {
-			id,
-			type: 'system',
-			position: { x: 120, y: 80 },
-			class: 'reference-node',
-			width: size.width,
-			height: size.height,
-			data: {
-				label: ref.name,
-				calmId: id,
-				calmType: 'system',
-				description: 'Hub architecture reference',
-				isReference: true,
-				calmDetails: { 'detailed-architecture': ref.url },
-			},
-		};
-		nodes = [...nodes, newNode];
-		applyFromCanvas(nodes, edges);
-		markDirty();
-		showHubBrowse = false;
-	}
-
 	async function handleOpenPattern(pattern: object, name: string, source: 'local' | 'hub', url?: string) {
 		showTemplatePicker = false;
 		try {
@@ -1468,22 +1437,19 @@
 				const parsed = JSON.parse(newValue) as CalmArchitecture;
 				codeParseError = null;
 
-				// Build position map from current nodes to preserve positions
-				const positionMap = new Map<string, { x: number; y: number }>();
-				for (const n of nodes) {
-					if (n.data?.calmId) {
-						positionMap.set(n.data.calmId as string, { ...n.position });
-					}
-				}
+				const prepared = prepareJsonLayout(getModel(), parsed);
+				const positionMap = jsonApplyHasLayout(prepared)
+					? layoutMapToPositionMap(readLayoutMap(prepared.metadata))
+					: undefined;
 
 				// Push undo snapshot BEFORE applying
 				pushSnapshot(nodes, edges);
 
 				// Apply to canonical model (mutex prevents re-entry)
-				const applied = applyFromJson(parsed);
+				const applied = applyFromJson(prepared);
 				if (applied) {
-					// Project back to Svelte Flow format, preserving positions and selection
-					const projected = calmToFlow(parsed, positionMap);
+					// Positions come from JSON `_layout`, not the previous canvas (R80).
+					const projected = calmToFlow(prepared, positionMap);
 					const selectionMap = new Map<string, boolean>();
 					for (const n of nodes) {
 						if (n.selected && n.data?.calmId) selectionMap.set(n.data.calmId as string, true);
@@ -1981,7 +1947,7 @@
 			exportSvg: handleExportSvg,
 			exportPng: handleExportPng,
 			undo: () => {
-				const snapshot = undo();
+				const snapshot = undo({ nodes, edges });
 				if (snapshot) {
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
@@ -2332,7 +2298,7 @@
 			onexportscalertoml={handleExportScalerToml}
 			onloaddemo={handleLoadDemo}
 			ontemplates={() => (showTemplatePicker = true)}
-			onhubbrowse={() => (showHubBrowse = true)}
+			onhubbrowse={() => leftSidebar?.openHub()}
 			filename={getFileName()}
 			isDirty={isDocumentModified}
 			c4Level={getC4Level()}
@@ -2429,7 +2395,8 @@
 								onplacenode={handlePalettePlace}
 								currentFileRelativePath={getFileRelativePath()}
 								onopenexplorerfile={handleOpenExplorerFile}
-								onhubbrowse={() => (showHubBrowse = true)}
+								onhubbrowse={() => leftSidebar?.openHub()}
+								onopenhubversion={(url, name) => void openHubArchitectureTab(url, name)}
 								onbeforefoldermove={confirmDirtyFolderMove}
 								onfoldermove={handleFolderMove}
 							/>
@@ -2636,18 +2603,6 @@
 				onhubpatternselect={(pattern, name, url) => void handleHubPatternSelect(pattern, name, url)}
 				onopenpattern={(pattern, name, source, url) => void handleOpenPattern(pattern, name, source, url)}
 				oncancel={() => (showTemplatePicker = false)}
-			/>
-		{/if}
-
-		{#if showHubBrowse}
-			<HubBrowseDialog
-				oninsert={insertHubArchitectureReference}
-				insertDisabled={documentReadonly}
-				onopen={(architecture, url, name) => {
-					showHubBrowse = false;
-					void openHubArchitectureTab(url, name);
-				}}
-				oncancel={() => (showHubBrowse = false)}
 			/>
 		{/if}
 

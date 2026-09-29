@@ -66,6 +66,11 @@ function normalizeRelative(fromFile: string, href: string): string | null {
 	return result.join('/');
 }
 
+/** Project-relative path of a relative href, or null when it leaves the project or is not relative. */
+export function resolveRelativeProjectPath(fromFile: string, href: string): string | null {
+	return normalizeRelative(fromFile, href);
+}
+
 export function rewriteDetailedArchitectureHref(
 	href: string,
 	fromFileOld: string,

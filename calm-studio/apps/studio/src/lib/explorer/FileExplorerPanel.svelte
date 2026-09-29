@@ -25,7 +25,7 @@
 		ExplorerFileEntry,
 		ExplorerTreeEntry,
 	} from '$lib/explorer/types';
-	import { CALM_NODE_REF_MIME } from '$lib/explorer/types';
+	import { CALM_FILE_MOVE_MIME, CALM_NODE_REF_MIME } from '$lib/explorer/types';
 	import {
 		createProjectFile,
 		getProjectLoadError,
@@ -41,6 +41,7 @@
 		createProjectFolder,
 		FolderMoveAbortedError,
 		joinMoveDestination,
+		moveProjectFile,
 		moveProjectFolder,
 	} from '$lib/explorer/folderMove';
 	import {
@@ -57,6 +58,11 @@
 	} from '$lib/explorer/treeMenu';
 	import ExplorerContextMenu from '$lib/explorer/ExplorerContextMenu.svelte';
 	import { listJsonFilesInTree, findDirectoryInTree } from '$lib/explorer/folderScan';
+	import {
+		PROJECT_ROOT_FIELD,
+		fileMoveDestination,
+		folderPathFromMoveField,
+	} from '$lib/explorer/moveDialogTarget';
 	import { splitRelativePath } from '$lib/project/projectFs';
 
 	interface Props {
@@ -82,6 +88,7 @@
 	let expandedFiles = $state<Record<string, boolean>>({});
 	let loading = $state(false);
 	let errorMessage = $state<string | null>(null);
+	let promptError = $state('');
 	let revealedPath = $state<string | null>(null);
 	let revealToast = $state<string | null>(null);
 	let showCreateProject = $state(false);
@@ -91,6 +98,7 @@
 		| { kind: 'create'; parent: string; value: string }
 		| { kind: 'create-file'; parent: string; value: string }
 		| { kind: 'move'; source: string; name: string; destParent: string }
+		| { kind: 'move-file'; source: string; name: string; destParent: string }
 		| null
 	>(null);
 	let treeMenu = $state<{ x: number; y: number; target: TreeMenuTarget } | null>(null);
@@ -357,6 +365,23 @@
 		};
 	}
 
+	function openMoveFilePrompt(sourcePath: string) {
+		if (!rootHandle) return;
+		closeTreeMenu();
+		const file = findFileInTree(tree, sourcePath);
+		if (!file) {
+			errorMessage = 'Select a file to move';
+			return;
+		}
+		promptError = '';
+		folderPrompt = {
+			kind: 'move-file',
+			source: file.relativePath,
+			name: file.name,
+			destParent: file.relativePath,
+		};
+	}
+
 	function openMovePrompt(sourcePath = selectedPath) {
 		if (!rootHandle || !sourcePath) return;
 		closeTreeMenu();
@@ -365,6 +390,7 @@
 			errorMessage = 'Select a folder to move';
 			return;
 		}
+		promptError = '';
 		const { dir: parent } = splitRelativePath(dir.relativePath);
 		folderPrompt = {
 			kind: 'move',
@@ -374,10 +400,80 @@
 		};
 	}
 
+	async function runFileMove(sourcePath: string, destPath: string): Promise<boolean> {
+		if (!rootHandle) return false;
+		if (onbeforefoldermove && !onbeforefoldermove([sourcePath])) return false;
+		const result = await moveProjectFile({
+			root: rootHandle,
+			sourcePath,
+			destPath,
+			files: listJsonFilesInTree(tree),
+		});
+		tree = await scanDirectoryTree(rootHandle);
+		setExplorerTree(tree);
+		const destParent = destPath.includes('/') ? destPath.slice(0, destPath.lastIndexOf('/')) : '';
+		const nextExpanded = { ...expandedDirs };
+		if (destParent) {
+			for (const dir of ancestorDirPaths(destPath)) nextExpanded[dir] = true;
+		}
+		expandedDirs = nextExpanded;
+		selectPath(destPath);
+		onfoldermove?.(result.mapping, sourcePath, destPath);
+		onprojectchange?.();
+		return true;
+	}
+
+	function handleFileMoveDragStart(event: DragEvent, relativePath: string) {
+		event.stopPropagation();
+		event.dataTransfer?.setData(CALM_FILE_MOVE_MIME, relativePath);
+		if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+	}
+
+	function handleDirDragOver(event: DragEvent) {
+		const types = event.dataTransfer?.types;
+		if (!types || ![...types].includes(CALM_FILE_MOVE_MIME)) return;
+		event.preventDefault();
+		if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+	}
+
+	async function handleDirDrop(event: DragEvent, dirPath: string) {
+		const source = event.dataTransfer?.getData(CALM_FILE_MOVE_MIME);
+		if (!source) return;
+		event.preventDefault();
+		event.stopPropagation();
+		const name = source.split('/').pop() ?? source;
+		const dest = dirPath ? `${dirPath}/${name}` : name;
+		try {
+			await runFileMove(source, dest);
+		} catch (e) {
+			errorMessage = (e as Error).message;
+		}
+	}
+
 	async function confirmFolderPrompt(value: string, extra?: string) {
 		if (!rootHandle || !folderPrompt) return;
 		const prompt = folderPrompt;
 		try {
+			if (prompt.kind === 'move-file') {
+				const dest = fileMoveDestination(value, extra ?? '');
+				const fileName = dest.split('/').pop() ?? dest;
+				const nameErr = validateFileName(fileName);
+				if (!dest || nameErr) {
+					promptError = nameErr ?? 'Destination is required';
+					return;
+				}
+				if (dest === prompt.source) {
+					promptError = 'Destination is the same as the source';
+					return;
+				}
+				promptError = '';
+				const moved = await runFileMove(prompt.source, dest);
+				if (moved) {
+					promptError = '';
+					folderPrompt = null;
+				}
+				return;
+			}
 			if (prompt.kind === 'create') {
 				const err = validateFolderName(value);
 				if (err) {
@@ -436,7 +532,7 @@
 			}
 
 			const sourcePrefix = prompt.source;
-			const destParent = extra ?? '';
+			const destParent = folderPathFromMoveField(extra ?? '');
 			const destNameErr = validateFolderName(value);
 			if (destNameErr) {
 				errorMessage = destNameErr;
@@ -484,7 +580,9 @@
 			onfoldermove?.(mapping, sourcePrefix, dest);
 			onprojectchange?.();
 		} catch (e) {
-			errorMessage = (e as Error).message;
+			const message = (e as Error).message;
+			promptError = message;
+			errorMessage = message;
 		}
 	}
 </script>
@@ -603,14 +701,35 @@
 	/>
 {/if}
 
+{#if folderPrompt?.kind === 'move-file'}
+	<PromptDialog
+		title="Move file"
+		label="Destination path"
+		value={folderPrompt.destParent}
+		error={promptError}
+		hint={`Edit the path, or set only a destination folder. Moving ${folderPrompt.source}.`}
+		extraLabel="Destination folder (project-relative)"
+		extraValue=""
+		folderTree={tree}
+		confirmLabel="Move"
+		onconfirm={(value, extra) => void confirmFolderPrompt(value, extra)}
+		oncancel={() => {
+			promptError = '';
+			folderPrompt = null;
+		}}
+	/>
+{/if}
+
 {#if folderPrompt?.kind === 'move'}
 	<PromptDialog
 		title="Move folder"
 		label="Folder name"
 		value={folderPrompt.name}
+		error={promptError}
 		hint={`Moving ${folderPrompt.source}`}
 		extraLabel="Destination parent (project-relative)"
-		extraValue={folderPrompt.destParent}
+		extraValue={folderPrompt.destParent || PROJECT_ROOT_FIELD}
+		folderTree={tree}
 		confirmLabel="Move"
 		onconfirm={(value, extra) => void confirmFolderPrompt(value, extra)}
 		oncancel={() => (folderPrompt = null)}
@@ -634,8 +753,9 @@
 		}}
 		onmove={() => {
 			const menu = treeMenu;
-			if (!menu || menu.target.kind !== 'directory') return;
-			openMovePrompt(menu.target.path);
+			if (!menu) return;
+			if (menu.target.kind === 'file') openMoveFilePrompt(menu.target.path);
+			else if (menu.target.kind === 'directory') openMovePrompt(menu.target.path);
 		}}
 	/>
 {/if}
@@ -653,6 +773,8 @@
 					selectPath(entry.relativePath);
 					toggleDir(entry.relativePath);
 				}}
+				ondragover={handleDirDragOver}
+				ondrop={(e) => void handleDirDrop(e, entry.relativePath)}
 				oncontextmenu={(e) => openTreeMenu(e, { kind: 'directory', path: entry.relativePath })}
 			>
 				<span class="chevron">{expandedDirs[entry.relativePath] ? '▼' : '▶'}</span>
@@ -690,8 +812,10 @@
 					<button
 						type="button"
 						class="file-open-btn"
+						draggable="true"
+						ondragstart={(e) => handleFileMoveDragStart(e, entry.relativePath)}
 						ondblclick={() => handleFileDblClick(entry)}
-						title="Double-click to open"
+						title="Double-click to open. Drag onto a folder to move."
 					>
 						<span class="icon">📄</span>
 						<span class="label">{entry.name}</span>

@@ -11,6 +11,7 @@ import type { Node, Edge } from '@xyflow/svelte';
 import type { CalmArchitecture, CalmNode, CalmRelationship } from '@calmstudio/calm-core';
 import { calmToFlow } from '$lib/stores/projection';
 import { relativePathBetween } from '$lib/explorer/relativePath';
+import { isHttpHref } from '$lib/explorer/rewriteDetailedArchitecture';
 import type { NeighborHit } from './findNeighbors';
 
 export interface AddNeighborsInput {
@@ -105,10 +106,13 @@ export function addNeighborsToCanvas(input: AddNeighborsInput): AddNeighborsResu
 		if (!needNode && !needRel) continue;
 
 		if (needNode) {
-			const homePath = hit.neighborHomePath || hit.sourceRelativePath;
-			const detailedPath = currentRelativePath
-				? relativePathBetween(currentRelativePath, homePath)
-				: homePath;
+			const target = hit.definingDocumentId || hit.neighborHomePath || hit.sourceRelativePath;
+			const detailedPath =
+				isHttpHref(target)
+					? target
+					: currentRelativePath
+						? relativePathBetween(currentRelativePath, target)
+						: target;
 			nodesToProject.push(toReferenceCalmNode(deepClone(hit.neighborNode), detailedPath));
 			positionMap.set(hit.neighborUniqueId, {
 				x: origin.x + 220 + (offsetIndex % 3) * 40,

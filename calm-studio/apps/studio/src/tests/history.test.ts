@@ -28,17 +28,15 @@ describe('history - undo/redo', () => {
 
 	test('pushSnapshot adds snapshot to history stack — canUndo becomes true', () => {
 		pushSnapshot([makeNode('n1')], noEdges);
-		pushSnapshot([makeNode('n1'), makeNode('n2')], noEdges);
 		expect(canUndo()).toBe(true);
 		expect(canRedo()).toBe(false);
 	});
 
-	test('undo returns previous snapshot', () => {
-		const nodes1 = [makeNode('n1')];
-		const nodes2 = [makeNode('n1'), makeNode('n2')];
-		pushSnapshot(nodes1, noEdges);
-		pushSnapshot(nodes2, noEdges);
-		const snapshot = undo();
+	test('undo returns the snapshot pushed before the edit', () => {
+		const before = [makeNode('n1')];
+		const after = [makeNode('n1'), makeNode('n2')];
+		pushSnapshot(before, noEdges);
+		const snapshot = undo({ nodes: after, edges: noEdges });
 		expect(snapshot).not.toBeNull();
 		expect(snapshot!.nodes).toHaveLength(1);
 	});
@@ -49,19 +47,19 @@ describe('history - undo/redo', () => {
 		expect(snapshot).toBeNull();
 	});
 
-	test('undo with only one snapshot returns null (at start)', () => {
+	test('undo with one snapshot returns that snapshot', () => {
 		pushSnapshot([makeNode('n1')], noEdges);
-		// pointer is at 0 — no previous to go to
 		const snapshot = undo();
-		expect(snapshot).toBeNull();
+		expect(snapshot).not.toBeNull();
+		expect(snapshot!.nodes).toHaveLength(1);
+		expect(undo()).toBeNull();
 	});
 
-	test('redo returns next snapshot after undo', () => {
-		const nodes1 = [makeNode('n1')];
-		const nodes2 = [makeNode('n1'), makeNode('n2')];
-		pushSnapshot(nodes1, noEdges);
-		pushSnapshot(nodes2, noEdges);
-		undo();
+	test('redo returns the canvas state passed to undo', () => {
+		const before = [makeNode('n1')];
+		const after = [makeNode('n1'), makeNode('n2')];
+		pushSnapshot(before, noEdges);
+		undo({ nodes: after, edges: noEdges });
 		const redoSnapshot = redo();
 		expect(redoSnapshot).not.toBeNull();
 		expect(redoSnapshot!.nodes).toHaveLength(2);
@@ -74,16 +72,14 @@ describe('history - undo/redo', () => {
 	});
 
 	test('pushSnapshot after undo drops future history', () => {
-		const nodes1 = [makeNode('n1')];
-		const nodes2 = [makeNode('n1'), makeNode('n2')];
-		const nodes3 = [makeNode('n3')];
-		pushSnapshot(nodes1, noEdges);
-		pushSnapshot(nodes2, noEdges);
-		undo(); // go back to nodes1
-		pushSnapshot(nodes3, noEdges); // branch off — drops nodes2
+		const before = [makeNode('n1')];
+		const after = [makeNode('n1'), makeNode('n2')];
+		const branch = [makeNode('n3')];
+		pushSnapshot(before, noEdges);
+		undo({ nodes: after, edges: noEdges });
+		pushSnapshot(branch, noEdges);
 		expect(canRedo()).toBe(false);
-		const snapshot = redo();
-		expect(snapshot).toBeNull();
+		expect(redo()).toBeNull();
 	});
 });
 
@@ -102,29 +98,20 @@ describe('history - canUndo/canRedo', () => {
 		expect(canRedo()).toBe(false);
 	});
 
-	test('canUndo is false with one snapshot (at start)', () => {
+	test('canUndo is true after one snapshot', () => {
 		pushSnapshot([makeNode('n1')], noEdges);
-		expect(canUndo()).toBe(false);
-	});
-
-	test('canUndo is true with two or more snapshots', () => {
-		pushSnapshot([makeNode('n1')], noEdges);
-		pushSnapshot([makeNode('n2')], noEdges);
 		expect(canUndo()).toBe(true);
 	});
 
-	test('canRedo becomes true after undo', () => {
+	test('canRedo becomes true after undo of a live canvas', () => {
 		pushSnapshot([makeNode('n1')], noEdges);
-		pushSnapshot([makeNode('n2')], noEdges);
-		undo();
+		undo({ nodes: [makeNode('n2')], edges: noEdges });
 		expect(canRedo()).toBe(true);
 	});
 
 	test('snapshots are deep-cloned — mutations to original do not affect stored snapshot', () => {
 		const nodes = [makeNode('n1')];
 		pushSnapshot(nodes, noEdges);
-		pushSnapshot([makeNode('n2')], noEdges);
-		// Mutate original node after pushing
 		nodes[0].data.label = 'mutated';
 		const snapshot = undo();
 		expect(snapshot!.nodes[0].data.label).toBe('n1');

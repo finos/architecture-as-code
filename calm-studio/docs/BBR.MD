@@ -127,6 +127,13 @@ V11
 - prochánzeni hubu a přidávani elementu z hub udělaj obdobně jako panel files. Tj umísti ho vedle pallete a files jako založku hub. Obsah hubu vzkresli jako strom. Pri iniciaci načti jen uroven namespace. Další uzly načitej postupně pri rozkliknutí. Obdobně jako v dialogu.Pridavani elementu do aktualniho diagramu bude pretaženim tak jako u files.
 - přesouvani souboru ve stromě files. Umožnit přesouvat i jednotlivé soubory v ramci stromu adresářů. Při přesunu je potřeba upravit reference v ostatníh souborech.
 - vizualizace relations tak aby použivala přimou nejkratší cestu. Neobchazet kontejner,ve kterem je alespon jeden node z relace.  
+- používat relativni cesty v detailed-architecture od aktualniho souboru. Pri presunu souboru v obou přtipadech, samostnýu soubor i presun adresáře, tyto cesty aktualizovat tak aby bila zachována reference na ciílový soubor. 
+- editace json nesmi zničit layout 
+- undo/redo na úpravy nad canvasem
+V12
+- Pri vkladání již referencovaneho elementu použit originalni hodnotu detailed-architecture. ne odkaz na soubor zh nejž se vkladá. Tj  vždz vkladat odkaz na soubor v němž je nod skutečne definován ne jen referencován. tj tam kde neni definovan element detailed-architecture.
+- u target v move dialogu nabízet výber cile ze stromu projektu
+Vxx
 - použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```
 ## fix

@@ -13,7 +13,7 @@ export type TreeMenuAction = 'new-folder' | 'new-file' | 'move';
 
 /** R71 — items for the Files-tree row under the pointer. */
 export function treeMenuActions(target: TreeMenuTarget): TreeMenuAction[] {
-	if (target.kind === 'directory') return ['new-folder', 'new-file', 'move'];
+	if (target.kind === 'directory' || target.kind === 'file') return ['new-folder', 'new-file', 'move'];
 	return ['new-folder', 'new-file'];
 }
 
@@ -24,5 +24,5 @@ export function treeMenuDirectory(target: TreeMenuTarget): string {
 }
 
 export function treeMenuShowsMove(target: TreeMenuTarget): boolean {
-	return target.kind === 'directory';
+	return target.kind === 'directory' || target.kind === 'file';
 }

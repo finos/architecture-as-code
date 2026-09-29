@@ -102,3 +102,73 @@ export function mergePositionMaps(base: PositionMap, overlay: PositionMap): Posi
 	for (const [id, pos] of overlay) merged.set(id, pos);
 	return merged;
 }
+
+export interface LayoutJsonDoc {
+	nodes?: Array<{ 'unique-id'?: string; metadata?: unknown }>;
+	metadata?: unknown;
+}
+
+function nodeIds(doc: LayoutJsonDoc): string[] {
+	return (doc.nodes ?? [])
+		.map((n) => n['unique-id'])
+		.filter((id): id is string => typeof id === 'string' && id.length > 0);
+}
+
+/**
+ * When exactly one id is renamed and the applied layout does not already
+ * contain both keys, move the layout entry to the new id (R80).
+ */
+export function rekeyLayoutMap(
+	previousIds: string[],
+	nextIds: string[],
+	userLayout: LayoutMap,
+	previousLayout: LayoutMap
+): LayoutMap {
+	const removed = previousIds.filter((id) => !nextIds.includes(id));
+	const added = nextIds.filter((id) => !previousIds.includes(id));
+	const next: LayoutMap = { ...userLayout };
+	if (removed.length !== 1 || added.length !== 1) return next;
+	const oldId = removed[0];
+	const newId = added[0];
+	if (oldId in next && newId in next) return next;
+	if (newId in next) return next;
+	const entry = next[oldId] ?? previousLayout[oldId];
+	if (!entry) return next;
+	next[newId] = entry;
+	delete next[oldId];
+	return next;
+}
+
+/**
+ * JSON text is the source of truth for `metadata._layout` (R80).
+ * A missing `_layout` key clears stored layout. Node metadata, including
+ * `building-block-style`, is left on the applied document.
+ */
+export function prepareJsonLayout<T extends LayoutJsonDoc>(
+	previous: LayoutJsonDoc,
+	applied: T
+): T {
+	const meta = applied.metadata;
+	const hasLayout =
+		!!meta && typeof meta === 'object' && !Array.isArray(meta) && '_layout' in meta;
+	if (!hasLayout) return applied;
+	const metaRec = meta as Record<string, unknown>;
+	const layout = rekeyLayoutMap(
+		nodeIds(previous),
+		nodeIds(applied),
+		readLayoutMap(metaRec),
+		readLayoutMap(previous.metadata)
+	);
+	return {
+		...applied,
+		metadata: {
+			...metaRec,
+			_layout: layout,
+		},
+	} as T;
+}
+
+export function jsonApplyHasLayout(doc: LayoutJsonDoc): boolean {
+	const meta = doc.metadata;
+	return !!meta && typeof meta === 'object' && !Array.isArray(meta) && '_layout' in meta;
+}

@@ -5,22 +5,22 @@
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Owner / DRI**        | TBD                                                                                                                                                                                                                                                                                    |
 | **Status**             | Draft                                                                                                                                                                                                                                                                                  |
-| **Version**            | 0.29                                                                                                                                                                                                                                                                                   |
-| **Last updated**       | 2026-09-20                                                                                                                                                                                                                                                                             |
+| **Version**            | 0.31                                                                                                                                                                                                                                                                                   |
+| **Last updated**       | 2026-09-29                                                                                                                                                                                                                                                                             |
 | **Target release**     | TBD                                                                                                                                                                                                                                                                                    |
 | **Reviewers**          | eng lead, design                                                                                                                                                                                                                                                                       |
 | **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                                                                                                                                                                                                             |
 | **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [Pack schema](../../extensions/calm-extension-pack.schema.json) · [VS Code pack PRD](../../calm-plugins/vscode/docs/prd.md) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
 
 
-> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types.
+> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders.
 
 ## Contents
 
 - [1. Problem and context](#1-problem-and-context)
 - [2. Goals, non-goals, and success metrics](#2-goals-non-goals-and-success-metrics)
 - [3. Target users and use cases](#3-target-users-and-use-cases)
-- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10)
+- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12)
 - [5. Requirements](#5-requirements)
 - [6. UX and design](#6-ux-and-design)
 - [7. Technical aspects](#7-technical-aspects)
@@ -30,7 +30,7 @@
 
 ## 1. Problem and context
 
-CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. **In V9**, palette packs live only as TypeScript (`packages/extensions/src/packs/*.ts`). The VS Code plugin duplicates that tree and already diverges (no ArchiMate, no Standard URI). A team cannot add a node type without a code change, and there is no file contract that Hub or CLI can load. **In V8**, container children pack along one axis (ELK `rectpacking` with extreme `aspectRatio`), so nested diagrams look like a strip instead of a table; the XYFlow resize handle can be larger than the painted container; node positions and colors do not round-trip through Hub or the VS Code plugin; visible edges are not bezier; pattern **validation** is missing (V7 only generates); Project settings show `naming` as read-only. **In V8.1**, patterns come only from the local `patterns.dir`; there is no Hub URL in `.calmrj` / `~/.calm.json` and no way to browse Hub architectures as references. **In V8.2**, a CLI pattern is an opaque generate card — Studio cannot show or edit it as a graph the way Hub `PatternGraph` does; relationship `metadata` has no generic editor; **Ctrl+duplicate sometimes freezes the editor**. **In V10**, the Files tree cannot create or move folders, nor create a **named** CALM file in the folder under the pointer (today: File → New Untitled then Save As); Save As ignores the selected tree folder and naming patterns; project settings is a single long form with no user-home overlay; nested `metadata` is inline and enums are not always dropdowns; multi-select is Meta-click rather than Shift + marquee, with no alignment toolbar, and left-drag cannot switch between pan and select; there is **no canvas mini-map** of the current viewport; containers have no “arrange to table” command; bundled packs cannot be turned off; Hub `detailed-architecture` URLs still mix with R16 outside-project infoboxes; Hub tabs do not lock the JSON editor, and Hub catalog items can still be dropped onto a read-only diagram; canonical `$id` / `$schema` / `$ref` URLs (Standards, Patterns) have no project `url-mapping.json` equivalent to `calm validate -u`, so Studio cannot find the local artifact from the URL. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
+CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. **In V9**, palette packs live only as TypeScript (`packages/extensions/src/packs/*.ts`). The VS Code plugin duplicates that tree and already diverges (no ArchiMate, no Standard URI). A team cannot add a node type without a code change, and there is no file contract that Hub or CLI can load. **In V8**, container children pack along one axis (ELK `rectpacking` with extreme `aspectRatio`), so nested diagrams look like a strip instead of a table; the XYFlow resize handle can be larger than the painted container; node positions and colors do not round-trip through Hub or the VS Code plugin; visible edges are not bezier; pattern **validation** is missing (V7 only generates); Project settings show `naming` as read-only. **In V8.1**, patterns come only from the local `patterns.dir`; there is no Hub URL in `.calmrj` / `~/.calm.json` and no way to browse Hub architectures as references. **In V8.2**, a CLI pattern is an opaque generate card — Studio cannot show or edit it as a graph the way Hub `PatternGraph` does; relationship `metadata` has no generic editor; **Ctrl+duplicate sometimes freezes the editor**. **In V10**, the Files tree cannot create or move folders, nor create a **named** CALM file in the folder under the pointer (today: File → New Untitled then Save As); Save As ignores the selected tree folder and naming patterns; project settings is a single long form with no user-home overlay; nested `metadata` is inline and enums are not always dropdowns; multi-select is Meta-click rather than Shift + marquee, with no alignment toolbar, and left-drag cannot switch between pan and select; there is **no canvas mini-map** of the current viewport; containers have no “arrange to table” command; bundled packs cannot be turned off; Hub `detailed-architecture` URLs still mix with R16 outside-project infoboxes; Hub tabs do not lock the JSON editor, and Hub catalog items can still be dropped onto a read-only diagram; canonical `$id` / `$schema` / `$ref` URLs (Standards, Patterns) have no project `url-mapping.json` equivalent to `calm validate -u`, so Studio cannot find the local artifact from the URL. **In V11**, choosing nodes still depends on a Select/Pan toggle that fights pan; Hub browse is a modal of namespaces, architectures, and versions, not a tree you drag from; the Files tree moves folders but not a single file; edges detour around a container even when one end of the relationship sits inside it; applying JSON can drop `metadata._layout` and node colors; and Ctrl+Z undoes JSON text only, not a move or a property edit on the canvas. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
 
 **Why now:** Users work with real CALM projects (multiple JSON files, cross-file references, enterprise naming like CEngineering), but must switch manually outside the studio and maintain project conventions by hand. Palette packs cannot be reused across Studio and VS Code without duplicating TypeScript. Layouts authored in Studio are lost in Hub and the VS Code plugin, so the three tools cannot share a diagram. Hub documents must not be edited in Studio (JSON still writable today). Editor and export bugs undermine trust in the tool as the source of truth for CALM 1.2 documents.
 
@@ -101,6 +101,14 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Hub URL in editor            | Partial — R54 glasses for inserted Hub refs; other Hub `detailed-architecture` URLs still R16 infobox     |
 | Hub document JSON lock       | Partial — Hub tab canvas read-only (#57); JSON panel still editable; Hub insert onto that tab allowed     |
 | URL → local artifact file    | Missing — no `.calmrj` mapping path; `$id` not resolved like CLI `-u url-mapping.json`                    |
+| Canvas pointer (V11)         | Select/Pan toggle + Space (R73). Undo shortcut is Meta+Z only                                            |
+| Hub browse UI                | Modal columns: namespace → architecture → version. Insert is the whole architecture                       |
+| Move one file in Files tree  | Folder move only (R60). File-row **Move** is hidden (R71)                                                |
+| Edge vs container            | Every node box is an obstacle, including a container that holds an endpoint (R23)                        |
+| JSON apply vs layout         | Code apply keeps canvas x/y via a position map; `_layout` / colors can be dropped on round-trip          |
+| Diagram undo                 | Snapshots exist, but Ctrl+Z is not bound (Meta+Z only), so Windows undo hits the JSON editor             |
+| Insert a referenced node     | `detailed-architecture` points at the file you dragged from, even when that file only references the node |
+| Move dialog target           | Typed path only. No folder picker from the project tree                                                  |
 
 
 ## 2. Goals, non-goals, and success metrics
@@ -121,6 +129,8 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V8.1:** Load patterns from a configured CALM Hub (`.calmrj` `hub.url` or CLI `~/.calm.json` `calmHubUrl`); show Hub **namespaces as tabs** in the pattern picker; browse Hub architectures and insert them as `detailed-architecture` references.
 - **V8.2:** Visualize and graphically edit CLI patterns (Hub PatternGraph parity); generic `metadata` editing for **nodes and relationships**; fix the Ctrl+duplicate editor freeze.
 - **V10:** Create folders, **create named files**, and move folders from a **right-click menu on the Files-tree row under the pointer** (New file asks for the name immediately); Save As uses the selected tree folder and a naming-pattern filename; load **user-home config** then overlay the project file; split Project settings into **tabs**; enum dropdowns + nested JSON in a dialog; **Shift + marquee** multi-select with a **Select / Pan** left-button toggle, a **canvas mini-map** (click to pan the viewport), alignment / same-size / table tools; **arrange container to table**; disable bundled extension packs; open Hub `detailed-architecture` URLs as **read-only** editors (JSON locked; no Hub insert onto those tabs); resolve canonical artifact `$id` URLs through a project **`url-mapping.json`** (path in `.calmrj`).
+- **V11:** Remove the Select/Pan toggle and Space-pan. Empty-canvas drag **pans**; drag on a node **moves** it (the group, if it is already selected). **Shift+click** and **Shift+marquee** **toggle** membership. **Hub** is a left-panel tab: lazy tree namespace → architecture → version → nodes; drag a node like Files; the Hub dialog goes away. **Move one file** the same way as a folder (abort if the destination name exists); rewrite relative `detailed-architecture` on file and folder move only. Do not route a relationship around a container that contains one of its ends. JSON apply keeps `_layout` and `building-block-style` unless the user edited them. **Ctrl+Z / Ctrl+Y** undo diagram edits outside the JSON editor.
+- **V12:** When inserting a node from another document, `detailed-architecture` points at the file that **defines** it. Follow relative links until the node has no `detailed-architecture`. An `http(s)` link is copied and not followed. If the chain cannot be resolved, link the file you inserted from. The Move dialog for a **file or a folder** shows the project **folder tree** (including the root) and still has a text field. Move confirms.
 
 **Non-goals**
 
@@ -166,7 +176,18 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Alignment of edges** — V10 group tools apply to **nodes** (and selected containers), not to relationship paths.
 - **Disabling project-overlay packs** — V10 `extensions.disabled` targets **bundled** pack ids. Extra packs from `extensions.dir` stay loadable unless the user removes them from disk.
 - **Unlocking Hub documents for in-place edit** — still out; Hub PUT/POST remains out of scope (#54). V10 **tightens** read-only: JSON panel locked; Hub catalog insert onto that tab forbidden.
-- **Persisting canvas mouse mode in `.calmrj`** — Select/Pan is session UI only (R73). No third “zoom” mouse tool; no V/H letter shortcuts (toolbar + Space).
+- **Select / Pan toggle and Space-to-pan** — removed in V11 (R76). Empty-canvas drag pans; Shift selects. No mouse-mode key in `.calmrj`. No third “zoom” tool; no V/H shortcuts.
+- **Hub browse dialog** — removed in V11. Browse and insert go through the Hub tab (R78).
+- **Converting existing absolute `detailed-architecture` paths on open or save** — V11 rewrites relative file links **on move only** (file and folder). `http(s)` stays unchanged (#61, #71).
+- **Rewriting `url-mapping.json` when a file or folder moves** — out of scope (R77).
+- **Undo of Files-tree moves** — diagram undo does not restore a moved file or folder (R81).
+- **Straight edges that ignore every obstacle** — V11 only stops the detour around a container that holds an endpoint. Other nodes stay obstacles. Bezier stays (R79, R50).
+- **Overwrite prompt when a moved file’s name already exists** — the move aborts (R77). Folder overwrite confirm (R60) is unchanged.
+- **Searching the whole project for another definition of the same `unique-id`** — V12 follows the `detailed-architecture` chain from the inserted node only (R82).
+- **Turning an `http(s)` `detailed-architecture` into a local path on insert** — copy the URL and stop. Do not consult `url-mapping.json` for this (R82).
+- **Clicking a folder in the Move dialog to move immediately** — the tree fills the destination. **Move** still confirms (R83). Drag onto a folder in the Files tree is unchanged (R77).
+- **Picking a file as the Move destination** — folders and the project root only (R83).
+- **Namespace URL mapping** (BBR lines 136–137) — not this iteration.
 - **Mini-map hide/show, zoom-from-minimap, or editing nodes from the mini-map** — V10 mini-map is always visible; click (or drag the viewport mask) only **pans**. Zoom stays wheel / existing controls (R74).
 - **In-app editor for `url-mapping.json` entries** — V10 only **picks the mapping file** in project config (R75). Teams edit the JSON in the repo (same file as `calm validate -u`).
 - **Mapping Hub instance URLs** (`/calm/namespaces/…/architectures/…`) — those stay Hub (R69). Mapping is for canonical `$id` / `$schema` / `$ref` artifacts (Standards, Patterns, schemas).
@@ -230,10 +251,18 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | User config overlay                            | Project `.calmrj` only   | User file then project overlay (project wins)                   | v10  |
 | Enum / nested metadata                         | Inline / mixed widgets   | Schema enum = dropdown; nested JSON in dialog                   | v10  |
 | Multi-select + align                           | Meta-click / Shift box   | Shift+click + marquee; align / distribute / same size           | v10  |
-| Left mouse: pan vs select                      | Marquee always; pan MMB/RMB | Toolbar **Select / Pan**; Space = temporary pan                 | v10  |
+| Left mouse: pan vs select                      | Marquee always; pan MMB/RMB | Empty drag pans; node drag moves; Shift toggles (no toggle, no Space) | v11  |
 | Canvas overview / jump                         | None                     | Mini-map of nodes + current viewport; click pans to that point  | v10  |
 | Hub document JSON lock                         | Canvas RO, JSON editable | Hub-sourced tab: canvas + JSON locked; no Hub insert            | v10  |
 | Resolve artifact URL to a local file           | Network / missing / href | `.calmrj` `urlMapping.path` → `url-mapping.json` (`calm -u`)    | v10  |
+| Canvas pointer                                 | Select/Pan toggle        | Pan on empty drag; move on node drag; Shift toggles selection   | v11  |
+| Insert a Hub node                              | Modal Insert of architecture | Hub tab tree; drag node; dialog removed                      | v11  |
+| Move one file, keep relative links             | Folder move only         | File Move + drag; abort on name clash; relative DA rewritten   | v11  |
+| Edge through a container that holds an end     | Router walks around it   | That container is not an obstacle; bezier stays                | v11  |
+| JSON edit keeps layout and colors              | Round-trip can drop them | Same `_layout` / colors unless the user edited those keys      | v11  |
+| Undo a canvas edit                             | Ctrl+Z undoes JSON text  | Ctrl+Z / Ctrl+Y undo diagram edits outside the JSON editor     | v11  |
+| Insert a node that is only a reference         | Link points at the file you dragged from | Link points at the file that defines the node (chain); `http(s)` copied | v12 |
+| Choose a Move destination                      | Type a path              | Pick a project folder in the dialog, or type it                | v12  |
 
 
 ## 3. Target users and use cases
@@ -291,14 +320,21 @@ CALM Studio today lets users model architecture in a single file with a palette 
 47. **UC-47 — User then project config:** User has a user-defaults file. Opening a project loads that file first, then overlays `*.calmrj`. Project values win on conflict.
 48. **UC-48 — Settings tabs:** User opens Project settings → one tab per config block (`naming`, `patterns`, `hub`, `extensions`, `validation`, `urlMapping`, …).
 49. **UC-49 — Metadata enums and nested dialog:** User selects a node/relationship → enum fields are dropdowns from the schema. Nested objects show as a preview; **Edit** opens a dialog of nested fields (same enum/dropdown rules). Panel does not inline-edit the nested tree.
-50. **UC-50 — Shift / marquee multi-select:** User holds **Shift** and clicks nodes to add/remove them from the selection, or drags a rectangle on empty canvas → nodes inside the live rectangle are selected. Group tools: move, align row/column/axis, even spacing, same width/height/both, arrange as table.
+50. **UC-50 — Shift / marquee multi-select:** User holds **Shift** and clicks a node, or drags a rectangle on empty canvas. Each hit node **toggles** (add if absent, remove if present). Without Shift, click selects only that node; click on empty canvas clears the selection. Group tools: move, align row/column/axis, even spacing, same width/height/both, arrange as table.
 51. **UC-51 — Arrange container to table:** User selects a container → **Arrange to table** (default packing like R46, or explicit rows × columns) → children reflow; container resizes so they fit.
 52. **UC-52 — Disable bundled packs:** User lists pack ids in config → those bundled packs do not appear in the palette (core may be disabled). Project extra packs still load.
 53. **UC-53 — Open Hub detailed-architecture:** User double-clicks glasses on a Hub URL (inserted or typed) → Hub architecture opens in a **read-only** editor tab (canvas + JSON locked). Hub catalog insert onto that tab is blocked.
 54. **UC-54 — New file:** User **right-clicks** a Files-tree row → **New file** → a dialog **immediately asks for the file name** → empty CALM architecture is written into that directory and opened in a tab. Cancel / empty name writes nothing.
-55. **UC-55 — Mouse pan / select:** User toggles **Select** vs **Pan** on the canvas (or holds **Space**) → left-drag either marquees or pans. Release Space restores the previous mode.
+55. **UC-55 — Pan and move (supersedes Select/Pan):** No mode toggle and no Space-pan. Drag on empty canvas pans. Drag on a node moves it (the whole selection, if that node is already selected). Shift drag on empty canvas is the marquee (UC-50).
 56. **UC-56 — Canvas mini-map:** User sees a mini-map of the diagram with the **current viewport** marked. Clicking a point on the mini-map **pans** the canvas so that world position is in view (viewport moves to the click). Zoom is unchanged.
 57. **UC-57 — URL → local artifact:** User sets `.calmrj` `urlMapping.path` to a `url-mapping.json` (same shape as CALM CLI `-u` / CEngineering-App). Studio resolves canonical `$id` / `$schema` / `$ref` URLs to project files; validate and schema load use that map and do **not** fetch the URL.
+58. **UC-58 — Hub tree:** User opens the **Hub** tab, expands namespace → architecture → version → nodes, and drags a node onto the current local diagram. The stub’s `detailed-architecture` is that version’s Hub URL. Double-click on the version opens it read-only. There is no Hub dialog.
+59. **UC-59 — Move one file:** User drags a file to another folder, or chooses **Move** on the file row. Relative `detailed-architecture` links still resolve. If the destination name exists, nothing moves.
+60. **UC-60 — Edge and container:** A relationship with one end inside a container is drawn across that container’s border on the short route, not around it. Other nodes are still avoided.
+61. **UC-61 — JSON keeps layout:** User edits a name in JSON. Positions, sizes, and colors stay. Deleting `_layout` clears layout. Renaming `unique-id` keeps that node’s box.
+62. **UC-62 — Undo a canvas edit:** User moves a node, then Ctrl+Z. The node returns. The same keys inside the JSON editor undo text only.
+63. **UC-63 — Insert the defining file:** File A defines node X (no `detailed-architecture`). File B references X and points at A. User drags X from B onto the open diagram. The new stub points at A, with a path relative to the open file. If A’s link is `http(s)`, that URL is copied. If A cannot be opened, the stub points at B.
+64. **UC-64 — Pick a Move folder:** User chooses **Move** on a file or a folder. The dialog lists project folders, including the root. User selects a folder or types a path, then **Move**. The file or folder moves under the same rules as R77 / R60.
 
 **Not for:** Users outside officially supported browsers (**Chrome**, **Safari**). Firefox, Edge, and older versions without File System Access API — file panel unavailable, rest of studio may work with limitations.
 
@@ -1179,19 +1215,13 @@ Extends R17 / R57:
 
 **Multi-select and group tools (R65–R66)**
 
-- **Shift+click** adds or removes a node from the selection (does not replace it). **Ctrl+drag** remains duplicate (R21) — do not steal Ctrl for multi-select.
-- **Marquee** (only in **Select** mouse mode, R73): pointer-down on empty canvas + drag draws a live rectangle; nodes whose bounds intersect the rectangle are selected on pointer-up. Visualize the rectangle and candidate nodes during the drag.
+- **Shift+click** toggles a node in the selection (add if absent, remove if present). It does not replace the rest. **Ctrl+drag** remains duplicate (R21) — do not steal Ctrl for multi-select.
+- **Marquee** (Shift held, R76): pointer-down on empty canvas + drag draws a live rectangle; on pointer-up each intersecting node toggles. Visualize the rectangle and candidate nodes during the drag. Without Shift, that drag pans (R76).
 - With 2+ selected nodes (not a Hub read-only tab): **move as a group**; align to a **row** (top / bottom / horizontal axis) or **column** (left / right / vertical axis); **even spacing** in the row or column; **same width**, **same height**, **same width and height**; **arrange as table** (layout container / grid). Edges are not alignment targets.
 
-**Left mouse: Select vs Pan (R73)**
+**Left mouse (R76 — supersedes R73)**
 
-Left-button drag on the canvas is either **select** or **pan**, not both at once.
-
-- A canvas control toggles **Select** (pointer) and **Pan** (hand). The pressed mode is visible (`aria-pressed`).
-- **Select** (default on editable tabs): left-drag on empty canvas = marquee (R65); left-drag on a node moves it; middle- and right-drag still pan.
-- **Pan:** left-drag pans the viewport, including when the pointer starts on a node (nodes do not move). A **click** with no drag on a node still selects it (properties). Cursor is grab / grabbing.
-- Hold **Space** = temporary Pan until release, then restore the previous mode. Ignored while focus is in an input, dialog, or the JSON editor.
-- Hub / read-only tabs stay **Pan** (no marquee). Wheel zoom is unchanged. Mode is session-only — not written to `.calmrj`. Do not use Ctrl or Shift as the mode key (#62).
+There is no Select/Pan toggle and no Space-pan. See §4.36. Empty-canvas drag pans. Drag on a node moves it. Shift toggles selection (click or marquee). Hub / read-only tabs do not marquee and do not move nodes.
 
 **Canvas mini-map (R74)**
 
@@ -1282,6 +1312,101 @@ Do **not** invent a second mapping format. Do **not** edit mapping entries in th
 ```
 
 **Out of scope for V10:** git mv; rewriting Hub `http(s)` URLs; Hub PUT/POST; silent home-directory read in the SPA; aligning edges; disabling extra project packs by id; folder rename/delete/copy; OS Explorer; generating a template into New file (empty architecture only); persisting Select/Pan in `.calmrj`; a third zoom mouse tool; mini-map hide/show or zoom-from-minimap; in-app mapping-table editor.
+
+### 4.36 Pointer, Hub tree, file move, edges, and layout (P1 — BBR V11)
+
+BBR V11 (lines 125–132). Replaces the Select/Pan toggle (R73 / #65).
+
+**Pointer (R76)**
+
+- No **Select / Pan** control. No **Space** temporary pan.
+- **No Shift:** click a node selects only that node. Click on empty canvas clears the selection. Drag on empty canvas pans the viewport. Drag on a node moves it. If that node is already in a multi-selection, the group moves. If it is not selected, the drag selects only that node and then moves it.
+- **Shift:** click toggles that node (add if absent, remove if present) and leaves the rest of the selection. Drag on empty canvas draws a live rectangle. On pointer-up, each node that intersects the rectangle toggles the same way. Nodes outside the rectangle stay. The rectangle and the candidates are visible during the drag.
+- Middle-button and right-button drag still pan. Wheel zoom is unchanged. **Ctrl+drag** still duplicates (R21).
+- Hub / read-only tabs: pan and click-to-inspect only. No marquee and no node move (R70).
+- Group tools (R66) are unchanged once two or more nodes are selected.
+
+**Hub tab (R78)** — replaces `HubBrowseDialog`.
+
+Left panel tabs: **Palette | Files | Hub**.
+
+- On open, load **namespaces** only. Hub URL comes from project config, same as today. No `hub.url` → a message to set it, and no request.
+- Expand a namespace → architectures. Expand an architecture → versions. Expand a version → fetch that architecture and list its **nodes** (`name`, icon by `node-type`). One level per expand. A failed row shows an error; the rest of the tree stays.
+- **Drag a node** onto the active **local** diagram. Same stub as Files (R4), except `details.detailed-architecture` is the Hub **version URL**. Copy `name`, `node-type`, `description`. `unique-id` is the source node id.
+- **Double-click a version** opens that architecture in a read-only Hub tab (R69–R70), or activates the tab if it is already open.
+- Drop onto a Hub read-only tab is blocked (R70).
+- The header **Hub** control opens this tab. The modal dialog is removed.
+
+**Move one file (R77)**
+
+Same gestures as folder move (R60, R71): **Move** on the file’s context menu, and drag the file onto another folder in the project.
+
+- If a file with that name already exists at the destination, **abort**. No overwrite prompt. No partial write.
+- An open tab for that file follows the new path. A dirty file warns first; Cancel leaves the disk unchanged (same as R60).
+- Rewrite **relative** `details.detailed-architecture` in other project files and inside the moved file so each link still points at the same target file. Same rules as folder move (#61): `http(s)`, absolute paths, and drive-letter paths stay as written.
+- Do not rewrite `url-mapping.json`.
+- Do not convert non-relative paths on open or on save. New Files-tree references stay file-relative (R4).
+
+**Edges (R79)** — extends R23 and R50.
+
+A container is **not** an obstacle for a relationship when **at least one** endpoint lies inside that container.
+
+- Both ends inside: the path stays inside. It does not leave the container to go around it.
+- One end inside and one outside: the path may cross the container border. It does not walk around the perimeter.
+- Other nodes, and containers that contain **neither** end, stay obstacles.
+- Visible `connects` / `interacts` stay **bezier** between the route points (R50). Containment edges stay hidden (R35).
+
+**JSON must not destroy layout (R80)**
+
+The code panel shows `metadata._layout` and node `building-block-style` whenever they exist. Apply treats the JSON text as the source of truth for those keys.
+
+- If the applied text still has the same `_layout` entry, position and size stay. If it still has the same `building-block-style`, colors stay.
+- If the user deletes `_layout`, stored layout is cleared. Do not copy the previous canvas positions back in.
+- If the user changes a node’s `unique-id` and does not edit that node’s layout entry, re-key `_layout` from the old id to the new id. If the user’s `_layout` already contains both keys, the user’s object wins.
+- Do not run auto-layout on JSON apply.
+
+**Undo on the canvas (R81)**
+
+Diagram edits made **outside** the JSON editor are undoable: move, create, delete, connect, properties, align, containment, palette drop, Files or Hub drop, duplicate.
+
+- **Ctrl+Z** undoes. **Ctrl+Y** and **Ctrl+Shift+Z** redo. macOS **Cmd** does the same.
+- When focus is in the JSON editor, those keys undo **text** only (that path already works). They do not also step the diagram stack.
+- When focus is elsewhere, they step the **diagram** stack of the active tab only (R15).
+- On a Hub read-only tab, diagram undo does nothing.
+- A file or folder move is not on this stack.
+- Today the canvas binding is **Meta+Z** only, so on Windows Ctrl+Z never reaches the diagram. V11 binds **Ctrl** and **Meta**.
+
+**Out of scope for V11:** Select/Pan toggle; Space-pan; Hub modal; migrating absolute paths on save; rewriting `url-mapping.json`; undo of tree moves; straight lines that ignore every obstacle; an overwrite prompt when a moved file’s name exists.
+
+### 4.37 Defining file and Move tree (P1 — BBR V12)
+
+**Problem.** A node is often inserted from a file that only references it. The new stub then points at that intermediate file, so glasses opens a diagram that does not define the node. The Move dialog also asks for a typed path. In a large tree the user has to remember the folder.
+
+**Defining reference (R82)** — extends R4, R28, and R78.
+
+The rule applies when a node is inserted from another document: Files-tree drag, Hub-tree drag, and Find neighbors. It does not apply to a palette drop or to Ctrl+drag inside the same file. Stubs already on the canvas are not rewritten.
+
+Walk `details.detailed-architecture` for that `unique-id`:
+
+1. Start at the node in the document you inserted from.
+2. No `detailed-architecture` → that document is the definition. Stop.
+3. Value is `http(s)` → copy that URL onto the new stub. Do not fetch it. Do not look it up in `url-mapping.json`. Stop.
+4. Value is a relative path → open that file, resolved against the file that holds the stub. Find the same `unique-id`. Repeat from step 2.
+5. Write a **new** relative path from the **current** file to the defining file. Do not copy the stub’s path string as-is.
+6. Missing file, path outside the project, `unique-id` absent in the next file, or a repeated file (cycle) → link the document you inserted from. That is today’s behavior.
+
+A Hub node with no `detailed-architecture` is defined by that Hub version. The stub uses that version URL (R78). A Hub node whose link is relative is followed the same way. If the next document cannot be loaded, fall back to the Hub version URL.
+
+**Move dialog tree (R83)** — extends R60 and R77.
+
+The Move dialog for a **file** and the Move dialog for a **folder** both show the project folder tree, including the project root. Folders only. A file is not a destination.
+
+- Selecting a folder fills the destination-folder field. The name / path text stays and can still be typed.
+- **Move** still confirms. Selecting a folder does not move by itself.
+- Dragging a file or folder onto another folder in the Files tree is unchanged (R77, R60).
+- Abort, dirty-tab warning, and relative-link rewrite stay as they are (R77, R60).
+
+**Out of scope for V12:** a project-wide search for a second definition of the same `unique-id`; turning an `http(s)` link into a local path on insert; click-to-move; picking a file as the destination; namespace URL rewriting (BBR lines 136–137).
 
 ## 5. Requirements
 
@@ -1429,20 +1554,42 @@ Do **not** invent a second mapping format. Do **not** edit mapping entries in th
 | R62 | As an architect I want user-home defaults loaded first and then overlaid by the project file.                           | P1       | - [ ] Same schema as `*.calmrj` - [ ] Load order: user defaults → project overlay; **project wins** - [ ] Objects deep-merge; arrays replace if the project key is present (#60) - [ ] Browser: explicit picker + persisted FSA handle; **no silent `~` read** (#52, #59) - [ ] Desktop later: `~/.calmrj` without picker - [ ] Missing user file → project only, no error | Open   |
 | R63 | As an architect I want Project settings split into tabs, one per config block.                                          | P1       | - [ ] One tab per top-level `.calmrj` object (`naming`, `patterns`, `hub`, `extensions`, `validation`, `templates`, `neighbors`, `urlMapping`, …) - [ ] Existing editors for those blocks remain (R52, R40, R53, R75) - [ ] Save still writes one project file - [ ] User-defaults editor uses the same tab layout when shown                                                                                                                              | Open   |
 | R64 | As an architect I want schema enums as dropdowns and nested JSON edited in a dialog, with a preview in the panel.       | P1       | - [ ] Pack / CALM schema `enum` → dropdown of allowed values (R17/R57) - [ ] Nested object/array: panel **preview only** (not inline tree edit) - [ ] **Edit** opens a dialog of nested fields; same enum/dropdown rules - [ ] OK writes nested value; Cancel no-op - [ ] Do not edit `_layout` here (R48) - [ ] Reference nodes remain read-only (R18)                                                                                    | Open   |
-| R65 | As an architect I want to multi-select nodes with Shift+click and a drag rectangle.                                     | P1       | - [ ] **Shift+click** adds/removes the node; does not replace the selection - [ ] In **Select** mode (R73): pointer-down on empty canvas + drag: live rectangle; intersecting nodes selected on pointer-up - [ ] Rectangle and candidate nodes visualized during drag - [ ] **Ctrl+drag** still duplicates (R21) — do not use Ctrl as the multi-select modifier - [ ] Disabled on Hub read-only tabs (R70)                                                                                                                                 | Open   |
+| R65 | As an architect I want to multi-select nodes with Shift+click and a drag rectangle.                                     | P1       | - [ ] **Shift+click** toggles the node (add if absent, remove if present); does not replace the rest of the selection - [ ] **Shift+drag** on empty canvas: live rectangle; on pointer-up each intersecting node **toggles** the same way; nodes outside stay - [ ] Rectangle and candidate nodes visualized during drag - [ ] Without Shift, click selects only that node; click on empty canvas clears the selection (R76) - [ ] **Ctrl+drag** still duplicates (R21) — do not use Ctrl as the multi-select modifier - [ ] Marquee disabled on Hub read-only tabs (R70) | Open   |
 | R66 | As an architect I want alignment, even spacing, and same-size tools on a multi-selection.                               | P1       | - [ ] Enabled when **2+** nodes selected on an editable tab - [ ] Move selection as a group - [ ] Align **row**: top / bottom / horizontal axis - [ ] Align **column**: left / right / vertical axis - [ ] Even spacing in the row or column - [ ] Same width; same height; same width **and** height - [ ] Arrange selection as **table** (grid) - [ ] Updates `_layout` on save (R48) - [ ] Edges are not alignment targets                                                                                                                                                | Open   |
 | R67 | As an architect I want to arrange a container’s children into a table and resize the container to fit.                  | P1       | - [ ] **Arrange to table** on selected container - [ ] Default packing = R46 near-square grid - [ ] Optional explicit rows × columns - [ ] Container bbox grows/shrinks so children fit; painted size matches (R47) - [ ] Children stay in the same containment relationship (`nodes[]`)                                                                                                                                                                                                                      | Open   |
 | R68 | As an architect I want to turn off bundled extension packs in configuration.                                            | P1       | - [ ] `extensions.disabled` array of bundled pack `id`s in user and/or project config - [ ] Disabled packs do not appear in the palette - [ ] Core pack **may** be disabled - [ ] Extra packs from `extensions.dir` are **not** targeted by this list - [ ] Empty palette → message; do not auto-re-enable core - [ ] Project overlay still wins (R62)                                                                                                                                                         | Open   |
 | R69 | As an architect I want Hub `detailed-architecture` URLs to open in the editor, not as an outside-project infobox.       | P1       | - [ ] Glasses / Open on a Hub URL (host matches `hub.url`) → Hub tab keyed by URL (or switch existing) - [ ] Applies to browse-inserted **and** typed Hub URLs - [ ] Local relative paths keep R16 - [ ] Load failure → toast; no crash; tab not left half-initialized - [ ] No Hub PUT/POST (#54)                                                                                                                                            | Open   |
 | R70 | As an architect I want Hub-sourced editors fully locked, including JSON, with no Hub insert onto those diagrams.        | P1       | - [ ] Hub-sourced tab (architecture or pattern from Hub, not a local file): canvas, properties, **and JSON** read-only - [ ] Palette drop and Hub catalog **Insert** disabled on that tab - [ ] Local files remain editable; R18 JSON exception still applies to **local** files that contain reference stubs - [ ] Banner explains read-only + source Hub URL                                                                                 | Open   |
-| R71 | As an architect I want folder actions on a right-click menu of the Files-tree node I am on.                             | P1       | - [ ] **Right-click** a folder or file row (or empty tree / root) opens a context menu at the pointer - [ ] The clicked row becomes the selection (the node the user is on) before the menu shows - [ ] Folder row: **New folder**, **New file**, **Move** (R59–R60, R72) - [ ] File row: **New folder**, **New file** (parent dir); **Move** hidden or disabled - [ ] Empty / root: **New folder**, **New file** at project root; **Move** hidden - [ ] Escape / click outside / left-click elsewhere closes the menu - [ ] Does not steal canvas or tab right-click menus - [ ] Header New folder / Move / New file are not required (#63) | Open   |
+| R71 | As an architect I want folder actions on a right-click menu of the Files-tree node I am on.                             | P1       | - [ ] **Right-click** a folder or file row (or empty tree / root) opens a context menu at the pointer - [ ] The clicked row becomes the selection (the node the user is on) before the menu shows - [ ] Folder row: **New folder**, **New file**, **Move** (R59–R60, R72) - [ ] File row: **New folder**, **New file** (parent dir); **Move** moves that file (R77) - [ ] Empty / root: **New folder**, **New file** at project root; **Move** hidden - [ ] Escape / click outside / left-click elsewhere closes the menu - [ ] Does not steal canvas or tab right-click menus - [ ] Header New folder / Move / New file are not required (#63) | Open   |
 | R72 | As an architect I want to create a new CALM file from the Files-tree menu by naming it in a dialog.                     | P1       | - [ ] **New file** on the same target directory as R59 - [ ] Dialog **asks for the file name immediately** (name field empty and focused; no Untitled tab first; no extra folder picker) - [ ] Cancel / empty name → no write - [ ] Invalid name (path separators) → inline error - [ ] Missing `.json` suffix is added - [ ] Existing path → overwrite confirm / cancel - [ ] Writes an empty CALM architecture (same envelope as File → New) - [ ] Tree refreshes; file **opens in a tab** (or activates if already open) - [ ] File → New Untitled remains unchanged | Open   |
-| R73 | As an architect I want to switch the left mouse button between panning the canvas and selecting nodes.                  | P1       | - [ ] Canvas control toggles **Select** / **Pan** (pointer vs hand); pressed state visible (`aria-pressed`) - [ ] Editable tabs default to **Select** - [ ] Hub / read-only tabs locked to **Pan** (no marquee) - [ ] Select: left-drag empty canvas = marquee (R65); left-drag node = move; middle/right-drag still pans - [ ] Pan: left-drag pans the viewport even if started on a node (nodes do not move); click without drag still selects - [ ] Hold **Space** = temporary Pan; release restores previous mode - [ ] Space ignored when focus is in an input, dialog, or JSON editor - [ ] Cursor grab/grabbing in Pan - [ ] Wheel zoom unchanged - [ ] Does not steal Ctrl (R21) or Shift (R65) - [ ] Session-only; not written to `.calmrj` | Open   |
-| R74 | As an architect I want a mini-map of the canvas so I can jump the current viewport by clicking it.                      | P1       | - [ ] Mini-map visible on the canvas (bottom-right) on editable and Hub/read-only tabs - [ ] Shows diagram nodes and a **mask for the current viewport**; mask tracks pan/zoom - [ ] **Click** a point → main viewport **pans** so that world position is centered; **zoom unchanged** - [ ] Dragging the mask / click-drag on the mini-map also pans; does not select or move nodes - [ ] Empty diagram: mini-map still shown; click still pans - [ ] Does not cover Select/Pan or the alignment toolbar - [ ] Does not steal Shift, Ctrl+duplicate, or canvas context menus - [ ] Not written to `.calmrj`; no hide control; no zoom-from-minimap | Open   |
+| R73 | As an architect I want to switch the left mouse button between panning the canvas and selecting nodes.                  | P1       | Superseded by **R76** (V11). Do not ship the Select/Pan toggle or Space-pan. | Superseded |
+| R74 | As an architect I want a mini-map of the canvas so I can jump the current viewport by clicking it.                      | P1       | - [ ] Mini-map visible on the canvas (bottom-right) on editable and Hub/read-only tabs - [ ] Shows diagram nodes and a **mask for the current viewport**; mask tracks pan/zoom - [ ] **Click** a point → main viewport **pans** so that world position is centered; **zoom unchanged** - [ ] Dragging the mask / click-drag on the mini-map also pans; does not select or move nodes - [ ] Empty diagram: mini-map still shown; click still pans - [ ] Does not cover the alignment toolbar (no Select/Pan control — R76) - [ ] Does not steal Shift, Ctrl+duplicate, or canvas context menus - [ ] Not written to `.calmrj`; no hide control; no zoom-from-minimap | Open   |
 | R75 | As an architect I want canonical artifact URLs resolved to local files via a project `url-mapping.json`.                | P1       | - [ ] `.calmrj` `urlMapping.path` (project-relative) points at a mapping file; optional; missing → empty map - [ ] File picker in Project settings (R40 rules: inside project, relative path) - [ ] JSON shape = CALM CLI `-u` / CEngineering-App: `{ "<canonical-url>": "<path relative to mapping file>" }` - [ ] Values resolve against the mapping file directory (shared `readUrlMappingFile` semantics) - [ ] Exact URL key match; used for `$id` / `$schema` / `$ref` / Pattern / Standard lookup and R51 validate (`-u`) - [ ] Hub instance URLs (`hub.url`) skip the map (R69) - [ ] Unmapped URL → warning; **no browser network fetch** - [ ] Invalid / missing mapping file → warning; empty map; load/validate continue - [ ] No in-app table editor for entries; no second mapping format | Open   |
 
 
-### Iteration 13 — P2
+### Iteration 13 — P1 (BBR V11 — pointer, Hub tree, file move, edges, layout)
+
+
+| ID  | User story                                                                                                              | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R76 | As an architect I want to pan by dragging empty canvas and select by holding Shift, without a Select/Pan toggle.       | P1       | - [ ] No Select/Pan control and no Space-pan - [ ] Drag on empty canvas pans - [ ] Drag on a node moves it; a node already in a multi-selection moves the group; a node that is not selected becomes the only selection and then moves - [ ] Click without Shift selects only that node; click on empty canvas clears the selection - [ ] Shift+click and Shift+marquee toggle membership (R65) - [ ] Middle/right drag still pan; wheel zoom unchanged; Ctrl+drag still duplicates (R21) - [ ] Hub / read-only: pan and click-to-inspect only; no marquee; no node move - [ ] Not written to `.calmrj` | Open   |
+| R77 | As an architect I want to move one file in the Files tree and keep relative links to that file.                        | P1       | - [ ] **Move** on a file row, and drag onto another project folder (R71) - [ ] Destination name exists → abort; no overwrite; no partial write - [ ] Open tab follows the new path; dirty file warns; Cancel leaves disk unchanged - [ ] Rewrite relative `detailed-architecture` in other files and in the moved file so the target file stays the same (#61) - [ ] `http(s)`, absolute, and drive-letter paths unchanged - [ ] Do not rewrite `url-mapping.json` - [ ] Do not convert non-relative paths on open or save - [ ] Folder move (R60) unchanged, including its overwrite confirm | Open   |
+| R78 | As an architect I want to browse CALM Hub as a tree next to Files and drag a node onto the diagram.                    | P1       | - [ ] Left panel tab **Hub** beside Palette and Files - [ ] Open loads **namespaces** only - [ ] Expand: namespace → architectures → versions → nodes (`name` + `node-type` icon) - [ ] One request per expand; a failed row does not clear the tree - [ ] No `hub.url` → message, no request - [ ] Drag a node onto the active **local** diagram: stub like R4. No `detailed-architecture` on that node → that version’s Hub URL. Otherwise R82 chooses the target - [ ] Double-click a version opens a read-only Hub tab, or activates it (R69–R70) - [ ] Drop onto a Hub read-only tab is blocked - [ ] `HubBrowseDialog` is removed; header Hub opens this tab | Open   |
+| R79 | As an architect I want a relationship to take the short path across a container that holds one of its ends.            | P1       | - [ ] A container that contains at least one endpoint is not an obstacle for that relationship - [ ] Both ends inside → path stays inside that container - [ ] One end inside → path may cross the border; it does not walk around the perimeter - [ ] Other nodes and containers that contain neither end stay obstacles (R23) - [ ] Visible `connects` / `interacts` stay bezier between route points (R50) - [ ] Containment edges stay hidden (R35) | Open   |
+| R80 | As an architect I want a JSON edit to keep layout and colors unless I change those keys.                               | P1       | - [ ] Code panel includes `metadata._layout` and `building-block-style` when they exist - [ ] Apply of text that does not change those keys keeps position, size, and colors - [ ] User deletes `_layout` → stored layout is cleared; old canvas positions are not written back - [ ] User changes `unique-id` and does not edit that layout entry → key moves to the new id - [ ] User’s `_layout` wins when it already has both the old and the new key - [ ] JSON apply does not run auto-layout | Open   |
+| R81 | As an architect I want to undo and redo diagram edits that I did not make in the JSON editor.                          | P1       | - [ ] Ctrl+Z undoes and Ctrl+Y / Ctrl+Shift+Z redo when focus is not in the JSON editor; Cmd does the same on macOS - [ ] Covers move, create, delete, connect, properties, align, containment, palette drop, Files/Hub drop, duplicate - [ ] Focus in the JSON editor: those keys undo text only and do not step the diagram stack - [ ] Diagram stack is per active tab (R15) - [ ] Hub read-only: diagram undo does nothing - [ ] File and folder moves are not undone - [ ] Ctrl is bound, not only Meta | Open   |
+
+
+### Iteration 14 — P1 (BBR V12 — defining file, Move tree)
+
+
+| ID  | User story                                                                                         | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | -------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R82 | As an architect I want an inserted reference to point at the file that defines the node.           | P1       | - [ ] Applies to Files-tree drag, Hub-tree drag, and Find neighbors - [ ] Follow relative `detailed-architecture` until the node has none - [ ] The written path is relative from the current file to that defining file - [ ] `http(s)` is copied and not followed; `url-mapping.json` is not consulted - [ ] Missing file, path outside the project, missing `unique-id`, or a cycle → link the document you inserted from - [ ] Hub node with no `detailed-architecture` still uses that version URL (R78) - [ ] Palette drop and same-file Ctrl+drag are unchanged - [ ] Stubs already on the canvas are not rewritten | Open   |
+| R83 | As an architect I want to pick the Move destination from the project folder tree.                  | P1       | - [ ] File Move and folder Move dialogs show the project folder tree, including the root - [ ] Only folders are selectable - [ ] A selected folder fills the destination-folder field; the text field stays editable - [ ] **Move** still confirms; the tree click does not move - [ ] Drag onto a folder in the Files tree is unchanged (R77, R60) - [ ] Name clash, dirty cancel, and relative-link rewrite stay as R77 / R60 | Open   |
+
+
+### Iteration 15 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
@@ -1726,23 +1873,53 @@ Do **not** invent a second mapping format. Do **not** edit mapping entries in th
 └───────────────────────────────────────────────────────┘
 ```
 
-### Multi-select, mouse mode, and mini-map (V10, R65–R67, R73–R74)
+### Pointer, multi-select, and mini-map (V11, R65–R67, R74, R76)
 
 ```
 ┌─ Canvas ──────────────────────────────────────────────┐
-│  [Select] [Pan]                      ┌ mini-map ───┐  │
+│  (no Select/Pan toggle)              ┌ mini-map ───┐  │
 │                                      │  ▢ nodes     │  │
-│   Select: left-drag empty → marquee  │  ┌viewport┐  │  │
-│   Pan:    left-drag anywhere → pan   │  └────────┘  │  │
-│                                      └ click → pan ─┘  │
+│   drag empty → pan                   │  ┌viewport┐  │  │
+│   drag node  → move                  │  └────────┘  │  │
+│   Shift+drag empty → toggle marquee  └ click → pan ─┘  │
 └───────────────────────────────────────────────────────┘
 ```
 
-- Shift+click toggles membership. Marquee on empty canvas (Select mode) shows a live rectangle and highlighted candidates.
+- No Select/Pan control and no Space-pan (R76).
+- Shift+click and Shift+marquee **toggle** membership. The marquee shows a live rectangle and highlighted candidates.
 - Group toolbar when 2+ selected: align row/column/axis, even spacing, same size, arrange as table.
 - Container **Arrange to table**: default R46 grid or rows × columns; container resizes to fit.
-- Hub / read-only tabs stay Pan. Mode is session-only.
+- Hub / read-only tabs: pan and click-to-inspect only.
 - Mini-map (bottom-right): current viewport mask; **click** pans the main view to that point; zoom unchanged (R74).
+
+### Hub tab (V11, R78)
+
+```
+┌─ Hub ─────────────────────────────────────────────────┐
+│ ▸ onebank          (namespaces on open)              │
+│   ▸ coa                                              │
+│       ▸ 1.0.0          double-click → read-only tab  │
+│           coa   drag → reference on the local diagram│
+└───────────────────────────────────────────────────────┘
+```
+
+### Move dialog (V12, R83)
+
+```
+┌─ Move file ───────────────────────────────────────────┐
+│ Destination path   [ coa.comp.architecture.json     ] │
+│ Destination folder [ org/components-int/c           ] │
+│ ┌ folders ──────────────────────────────────────────┐ │
+│ │ ▸ (project root)                                  │ │
+│ │   ▾ org                                           │ │
+│ │       components-int                              │ │
+│ └───────────────────────────────────────────────────┘ │
+│                              [Cancel]  [Move]         │
+└───────────────────────────────────────────────────────┘
+```
+
+- The same tree is on the folder Move dialog. Folders and the project root only.
+- A click fills the folder field. **Move** confirms.
 
 ### Hub read-only tab (V10, R69–R70)
 
@@ -1943,7 +2120,14 @@ TBD — Figma link after review.
 | **Settings tabs (V10)**        | `ProjectSettingsDialog.svelte`                                                                             | One tab per `.calmrj` block (R63)                                                               |
 | **Metadata dialog (V10)**      | `MetadataForm.svelte`                                                                                      | Enum dropdown; nested preview + dialog (R64)                                                    |
 | **Multi-select / align (V10)** | `CalmCanvas.svelte`, selection toolbar                                                                     | Shift+click + marquee; align / distribute / same size (R65–R66)                                 |
-| **Mouse Select / Pan (V10)**   | `CalmCanvas.svelte` panOnDrag / selectionOnDrag                                                            | Toolbar toggle + Space temporary pan; Hub locked to Pan (R73)                                   |
+| **Pointer (V11)**              | `CalmCanvas.svelte` panOnDrag / selectionOnDrag                                                            | Empty drag pans; node drag moves; Shift toggles; no Select/Pan, no Space (R76)                  |
+| **Hub tab (V11)**              | left panel, `hubClient.ts`; remove `HubBrowseDialog`                                                       | Lazy tree to nodes; drag stub with Hub version URL (R78)                                        |
+| **Move one file (V11)**        | Files tree, `rewriteDetailedArchitecture.ts`                                                               | File Move + drag; abort on name clash; relative DA rewrite (R77)                                |
+| **Container obstacle (V11)**   | `obstacleRouter.ts`, `routedEdgePath.ts`                                                                   | Skip container that holds an endpoint; bezier stays (R79)                                       |
+| **JSON layout round-trip (V11)** | `+page.svelte` code apply, `layoutPersist.ts`                                                            | Keep `_layout` and colors unless the JSON text changed them (R80)                               |
+| **Diagram undo (V11)**         | `history.svelte.ts`, canvas shortcut                                                                       | Ctrl+Z / Ctrl+Y outside the JSON editor; per tab (R81)                                          |
+| **Defining reference (V12)**   | Files drop, Hub drop, Find neighbors                                                                       | Follow `detailed-architecture` to the defining file; rewrite the relative path (R82)            |
+| **Move dialog tree (V12)**     | file and folder Move dialogs                                                                               | Folder tree plus text field; folders and root; Move confirms (R83)                              |
 | **Canvas mini-map (V10)**      | `CalmCanvas.svelte` MiniMap                                                                                | Overview + viewport mask; click pans (zoom unchanged) (R74)                                     |
 | **Container table (V10)**      | layout / container command                                                                                 | Arrange to table; resize container (R67)                                                        |
 | **Disable bundled packs (V10)**| pack loader, `.calmrj` `extensions.disabled`                                                               | Hide listed bundled ids from palette (R68)                                                      |
@@ -2289,8 +2473,16 @@ Extend / add:
 - `apps/studio/src/tests/project/userConfigOverlay.test.ts` — new (user then project; project wins; arrays replace) (V10)
 - `apps/studio/src/tests/project/settingsTabs.test.ts` — new (one tab per top-level block) (V10)
 - `apps/studio/src/tests/properties/metadataEnumDialog.test.ts` — new (enum dropdown; nested preview + dialog commit/cancel) (V10)
-- `apps/studio/src/tests/canvas/shiftMarqueeSelect.test.ts` — new (Shift+click additive; marquee intersection) (V10)
-- `apps/studio/src/tests/canvas/mousePanSelectMode.test.ts` — new (Select vs Pan left-drag; Space temporary pan; Hub locked to Pan) (V10)
+- `apps/studio/src/tests/canvas/shiftMarqueeSelect.test.ts` — Shift+click and Shift+marquee **toggle** (add and remove); not replace-all (V11, was V10)
+- `apps/studio/src/tests/canvas/mousePanSelectMode.test.ts` — superseded by pointer tests below; do not assert a Select/Pan toggle (V11)
+- `apps/studio/src/tests/canvas/pointerPanMove.test.ts` — new (empty drag pans; node drag moves; Shift toggles click and marquee; no Space) (V11)
+- `apps/studio/src/tests/hub/hubTreePanel.test.ts` — new (namespaces on open; lazy expand to nodes; drag stub URL; dialog absent) (V11)
+- `apps/studio/src/tests/explorer/fileMove.test.ts` — new (single-file move; abort on name clash; relative DA inbound/outbound; Hub URL unchanged) (V11)
+- `apps/studio/src/tests/canvas/containerObstacle.test.ts` — new (container with an endpoint is not an obstacle; other nodes still are) (V11)
+- `apps/studio/src/tests/editor/jsonLayoutRoundTrip.test.ts` — new (unchanged `_layout` and colors survive apply; delete clears; unique-id re-key) (V11)
+- `apps/studio/src/tests/canvas/diagramUndo.test.ts` — new (Ctrl+Z restores a move; JSON focus does not step the diagram stack) (V11)
+- `apps/studio/src/tests/canvas/definingFileRef.test.ts` — new (follow the chain; relative path from the current file; `http(s)` copied; missing file falls back to the source document) (V12)
+- `apps/studio/src/tests/explorer/moveDialogTree.test.ts` — new (file and folder dialogs list folders and the root; selection fills the folder field; Move still confirms) (V12)
 - `apps/studio/src/tests/canvas/canvasMinimap.test.ts` — new (minimap present; click pans viewport; zoom unchanged) (V10)
 - `apps/studio/src/tests/canvas/selectionAlign.test.ts` — new (align row/column/axis; even spacing; same size) (V10)
 - `apps/studio/src/tests/layout/arrangeContainerTable.test.ts` — new (default grid + rows/cols; container resize) (V10)
@@ -2307,7 +2499,7 @@ Extend / add:
 ### Definition of Done — iteration 12 (P1, BBR V10)
 
 - [ ] All acceptance criteria R59–R75 met
-- [ ] Unit tests: folder create default; new file name-first write + open tab; folder move + tab retarget + rewrite relative `detailed-architecture`; Save As defaults; user then project overlay; settings tabs; enum dropdown + nested dialog; Shift+click + marquee; Select/Pan left-button + Space; mini-map click pans; align/same-size; container table; disabled bundled packs; Hub URL open; Hub JSON lock + insert blocked; `urlMapping.path` resolves `$id` to a file (values relative to mapping file)
+- [ ] Unit tests: folder create default; new file name-first write + open tab; folder move + tab retarget + rewrite relative `detailed-architecture`; Save As defaults; user then project overlay; settings tabs; enum dropdown + nested dialog; Shift+click + marquee (toggle — R76); mini-map click pans; align/same-size; container table; disabled bundled packs; Hub URL open; Hub JSON lock + insert blocked; `urlMapping.path` resolves `$id` to a file (values relative to mapping file). Do not assert a Select/Pan toggle.
 - [ ] Manual smoke: right-click a tree folder → New folder using naming default; folder appears under that row
 - [ ] Manual smoke: right-click a folder → New file → type a name → empty architecture on disk and open tab; Cancel writes nothing; File → New Untitled still works
 - [ ] Manual smoke: right-click a folder → Move with nested files → tree + open tab path update; other files’ relative `detailed-architecture` point to the new path; Hub URLs unchanged
@@ -2316,12 +2508,31 @@ Extend / add:
 - [ ] Manual smoke: Project settings shows one tab per block
 - [ ] Manual smoke: enum field is a dropdown; nested object Edit dialog OK/Cancel
 - [ ] Manual smoke: Shift+click two nodes; marquee selects a cluster; align top + same width
-- [ ] Manual smoke: canvas **Pan** → left-drag pans; **Select** → left-drag marquees; hold Space pans then restores Select
 - [ ] Manual smoke: mini-map shows the current viewport; click a corner → canvas pans there; zoom unchanged
 - [ ] Manual smoke: container Arrange to table (default and 2×3) → container grows to fit
 - [ ] Manual smoke: `extensions.disabled` includes `core` → core gone from palette
 - [ ] Manual smoke: glasses on Hub URL → read-only tab; JSON not editable; Hub Insert disabled
 - [ ] Manual smoke: `.calmrj` `urlMapping.path` → Standard `$id` in `$schema` loads the mapped local file; Validate uses the map (`-u`); unmapped URL warns without fetch
+- [ ] Select/Pan smoke is **not** part of V10 anymore — pointer behavior is V11 (R76)
+
+### Definition of Done — iteration 13 (P1, BBR V11)
+
+- [ ] Acceptance criteria R76–R81 met. R73 stays superseded (no Select/Pan control in the UI).
+- [ ] Unit tests: empty-drag pan and node-drag move; Shift click and marquee toggle; Hub lazy tree and drag URL; single-file move aborts on clash and rewrites relative links; container-with-endpoint is not an obstacle; JSON apply keeps layout unless edited; Ctrl+Z undoes a canvas move.
+- [ ] Manual smoke: drag empty canvas pans; drag a node moves it; Shift+click adds then removes; Shift+marquee toggles a cluster; no Select/Pan button and no Space-pan.
+- [ ] Manual smoke: Hub tab lists namespaces only until expand; drag a node onto a local diagram; double-click version is read-only; Hub dialog is gone.
+- [ ] Manual smoke: move one file; a relative `detailed-architecture` in another file still opens the same target; name clash does nothing; a Hub URL in the moved file is unchanged.
+- [ ] Manual smoke: a relationship with one end inside a container crosses that border; a relationship between two outside nodes still avoids a third node.
+- [ ] Manual smoke: edit a name in JSON → positions and colors stay; delete `_layout` → layout clears; Ctrl+Z after a move restores the node; Ctrl+Z inside JSON undoes text only.
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 14 (P1, BBR V12)
+
+- [ ] Acceptance criteria R82–R83 met
+- [ ] Unit tests: chain ends at the file with no `detailed-architecture`; the new path is relative to the current file; `http(s)` is copied; a missing file links the document you inserted from; Move dialogs list folders and the root
+- [ ] Manual smoke: drag a node from a file that only references it → glasses opens the file that defines it
+- [ ] Manual smoke: drag a node whose link is a Hub URL → the stub keeps that URL
+- [ ] Manual smoke: Move a file and a folder by picking a folder in the dialog, including the project root; typing a path still works; drag onto a folder in the tree still works
 - [ ] `npm run test --workspace=@calmstudio/studio` passes
 
 ### Definition of Done — iteration 11 (P1/P0, BBR V8.2)
@@ -2514,7 +2725,21 @@ Extend / add:
 | 62  | Multi-select modifier vs Ctrl+duplicate                                                          | —        | PM     | **Resolved** — Shift+click additive + marquee; Ctrl+drag stays R21 duplicate (#62)                                |
 | 63  | Folder actions: header buttons vs tree context menu                                              | —        | PM     | **Resolved** — **Right-click** the Files-tree row under the pointer; menu holds New folder / New file / Move (R71–R72). Header is not the primary entry. Rename/delete/copy out of scope. |
 | 64  | New file: Untitled then Save As vs name-first dialog                                             | —        | PM     | **Resolved** — dialog **asks for the file name immediately**; write empty CALM architecture into the tree node’s directory and open the tab. File → New Untitled unchanged (#64). |
-| 65  | Left mouse: always marquee vs switchable pan                                                     | —        | PM     | **Resolved** — canvas **Select / Pan** toggle; default Select; Space = temporary Pan; Hub/read-only locked to Pan; session-only (#65). |
+| 65  | Left mouse: always marquee vs switchable pan                                                     | —        | PM     | **Superseded by #68** — V10 chose a Select/Pan toggle. V11 removes it. |
+| 68  | How to select after the Select/Pan toggle is removed                                            | —        | PM     | **Resolved** — empty drag pans; drag on a node moves it (group if already selected); Shift+click and Shift+marquee toggle; click without Shift replaces; click empty clears; no Space-pan (R76). |
+| 69  | Hub tree depth and the browse dialog                                                             | —        | PM     | **Resolved** — tab beside Files; namespace → architecture → version → nodes; drag a node; double-click version opens read-only; dialog removed (R78). |
+| 70  | Relationship path vs containers                                                                  | —        | PM     | **Resolved** — container that holds an endpoint is not an obstacle; other nodes still are; bezier stays (R79). |
+| 71  | When file paths in `detailed-architecture` become relative                                       | —        | PM     | **Resolved** — new links stay file-relative (R4). Rewrite relative links on file and folder move only. Do not convert absolute paths on open or save. `http(s)` unchanged (R77). |
+| 72  | What a JSON edit may do to layout                                                                | —        | PM     | **Resolved** — keep `_layout` and `building-block-style` unless the applied text changed them; delete clears; `unique-id` change re-keys; no auto-layout on apply (R80). |
+| 73  | What undo/redo V11 adds                                                                          | —        | PM     | **Resolved** — diagram edits outside the JSON editor (Ctrl+Z / Ctrl+Y). JSON text undo stays separate. File-tree moves are not undone (R81). |
+| 74  | File move when the destination name exists                                                       | —        | PM     | **Resolved** — abort. No overwrite prompt. `url-mapping.json` is not rewritten. Gestures match folder move (R77). |
+| 75  | Where an inserted reference points when the source node is itself a reference                    | —        | PM     | **Resolved** — follow the chain to the document where the node has no `detailed-architecture`. Write a new relative path from the current file (R82). |
+| 76  | What to write when that chain cannot be resolved                                                 | —        | PM     | **Resolved** — link the document you inserted from (R82). |
+| 77  | `http(s)` `detailed-architecture` on insert                                                      | —        | PM     | **Resolved** — copy the URL and stop. Do not map it to a local file (R82). |
+| 78  | Which insert paths use the defining-file rule                                                    | —        | PM     | **Resolved** — Files drag, Hub drag, and Find neighbors. Not palette drop or same-file Ctrl+drag (R82). |
+| 79  | Which Move dialogs show the folder tree                                                          | —        | PM     | **Resolved** — file Move and folder Move (R83). |
+| 80  | Tree versus typed path                                                                           | —        | PM     | **Resolved** — both. The tree fills the folder field. **Move** still confirms. Drag onto a folder in the Files tree stays (R83). |
+| 81  | What the tree may select                                                                         | —        | PM     | **Resolved** — folders and the project root. A file is not a destination (R83). |
 | 66  | Canvas overview: none vs mini-map click-to-pan                                                   | —        | PM     | **Resolved** — always-visible mini-map (bottom-right); click pans viewport to that point (centered); zoom unchanged; no hide/zoom-from-minimap (#66). |
 | 67  | How Studio finds a local file for a canonical `$id` URL                                          | —        | PM     | **Resolved** — `.calmrj` `urlMapping.path` → `url-mapping.json` (CALM CLI `-u` / CEngineering-App shape); values relative to the mapping file; Hub instance URLs skip the map; no network fetch (#67). |
 
@@ -2574,8 +2799,8 @@ Extend / add:
 | Config overlay           | User file first, project `*.calmrj` wins; objects deep-merge; arrays replace (R62, #60)                |
 | Settings tab             | One Project settings tab per top-level config block (R63)                                              |
 | Nested metadata dialog   | Preview in panel; edit nested JSON in a modal (R64)                                                    |
-| Marquee select           | Drag rectangle on empty canvas in **Select** mode; intersecting nodes selected (R65, R73)              |
-| Select / Pan mode        | Left-button role: marquee vs pan viewport; Space temporary Pan (R73)                                   |
+| Marquee select           | Shift+drag rectangle on empty canvas; intersecting nodes **toggle** (R65, R76)                        |
+| Select / Pan mode        | Removed in V11. Empty drag pans; Shift toggles selection (R76). R73 superseded.                        |
 | Canvas mini-map          | Overview of nodes + current viewport mask; click pans (R74)                                            |
 | Group align              | Row/column/axis align, even spacing, same size, table on a multi-selection (R66)                       |
 | Arrange to table         | Pack container children into a grid and resize the container (R67)                                     |
@@ -2623,11 +2848,17 @@ Extend / add:
 35. **V10 folders + new file + Save As** (R59–R61, R71–R72)
 36. **V10 user overlay + settings tabs** (R62–R63)
 37. **V10 metadata dialog** (R64)
-38. **V10 multi-select + mouse mode + mini-map + align + container table** (R65–R67, R73–R74)
+38. **V10 multi-select + mini-map + align + container table** (R65–R67, R74). Pointer toggle R73 is superseded by step 43.
 39. **V10 disable bundled packs** (R68)
 40. **V10 Hub open + JSON lock** (R69–R70)
 41. **V10 URL mapping** (R75) — `.calmrj` path + resolve `$id` for validate / schema load
-42. **P2 desktop / watch** (R13, R14)
+42. **V11 pointer** (R76, updates R65) — remove Select/Pan and Space-pan
+43. **V11 Hub tab** (R78) — replace the Hub dialog
+44. **V11 move one file** (R77)
+45. **V11 container obstacle + JSON layout + diagram undo** (R79–R81)
+46. **V12 defining file** (R82) — Files, Hub, and Find neighbors
+47. **V12 Move dialog tree** (R83) — file and folder dialogs
+48. **P2 desktop / watch** (R13, R14)
 
 ### Constraints for AI coding agent
 
@@ -2665,14 +2896,20 @@ Extend / add:
 - **R62 / #59 / #60:** user defaults then project overlay; project wins; SPA needs a granted handle — do not silent-read `~`.
 - **R63:** settings tabs map to existing `.calmrj` blocks — do not invent a second config schema.
 - **R64:** enum → dropdown; nested JSON → dialog (panel preview only); do not put `_layout` in that form.
-- **R65 / #62:** Shift+click + marquee in **Select** mode; do **not** steal Ctrl from R21 duplicate.
-- **R73 / #65:** left-button **Select / Pan** toggle + Space temporary pan; Hub locked to Pan; session-only; do **not** persist in `.calmrj`; do **not** use Ctrl/Shift as the mode key.
+- **R65 / R76 / #68:** Shift+click and Shift+marquee **toggle**; empty drag pans; node drag moves. Do **not** steal Ctrl from R21. Do **not** ship a Select/Pan toggle or Space-pan (R73 superseded).
+- **R77 / #71:** single-file move uses the same relative-link rewrite as R60. Abort when the destination name exists. Do **not** rewrite `url-mapping.json`. Do **not** convert absolute paths on save.
+- **R78:** Hub is a left-panel tab with lazy expand to nodes. Remove `HubBrowseDialog`. A node with no `detailed-architecture` uses that version URL. A node that is itself a reference follows R82. No Hub PUT/POST.
+- **R82:** on insert from another document, follow relative `detailed-architecture` to the file that defines the node and write a new relative path from the current file. Copy `http(s)` and stop. Do **not** search the project for another definition. Do **not** use `url-mapping.json` on insert. Unresolved chain → the document you inserted from.
+- **R83:** file and folder Move dialogs show a folder tree, including the project root, plus the text field. **Move** still confirms. Do **not** treat a file as a destination. Drag-onto-folder stays.
+- **R79:** a container that holds an endpoint is not an obstacle for that relationship. Do **not** drop bezier (R50) and do **not** stop avoiding other nodes.
+- **R80:** JSON apply keeps `_layout` and `building-block-style` unless the applied text changed them. Do **not** run auto-layout on apply. Re-key `_layout` when only `unique-id` changes.
+- **R81:** bind Ctrl+Z / Ctrl+Y (and Cmd) for diagram edits when focus is outside the JSON editor. Do **not** undo file or folder moves. Do **not** step the diagram stack from a JSON-editor key.
 - **R74 / #66:** canvas mini-map with current-viewport mask; **click pans** (center on click); do **not** change zoom; do **not** select/move nodes from the mini-map; do **not** add hide/show or persist in `.calmrj`.
 - **R75 / #67:** resolve canonical `$id` via `.calmrj` `urlMapping.path` + CLI-shaped `url-mapping.json`; values relative to the mapping file; do **not** fetch unmapped URLs; do **not** map Hub instance URLs; do **not** invent a second format or an in-app mapping table.
 - **R66 / R67:** group tools on nodes; container arrange-to-table resizes the container (R47).
 - **R68:** `extensions.disabled` is bundled pack ids only — do not use it to hide `extensions.dir` packs.
 - **R69 / R70:** Hub URLs open in the editor; Hub-sourced tabs lock JSON; no Hub insert onto those tabs; no Hub PUT/POST (#54).
-- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–12.
+- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–14.
 
 ### Change log
 
@@ -2708,6 +2945,8 @@ Extend / add:
 | 2026-09-20 | 0.27    | stakeholder      | **R73 / #65:** canvas **Select / Pan** left-button toggle; Space = temporary pan; Hub/read-only locked to Pan |
 | 2026-09-20 | 0.28    | stakeholder      | **R74 / #66:** canvas **mini-map** of the current viewport; click pans the main view to that point; zoom unchanged |
 | 2026-09-20 | 0.29    | stakeholder      | **R75 / #67:** resolve artifact location from canonical URL via project `url-mapping.json` (CLI `-u` / CEngineering-App shape); path in `.calmrj` `urlMapping.path` |
+| 2026-09-29 | 0.30    | stakeholder      | **BBR V11 (lines 125–132):** R76–R81. Remove Select/Pan (R73 superseded). Hub tab replaces the dialog. Move one file. Container with an endpoint is not an obstacle. JSON keeps layout. Ctrl+Z undoes canvas edits. R13–R14 → Iteration 14 |
+| 2026-09-29 | 0.31    | stakeholder      | **BBR V12 (lines 134–135):** R82–R83. Insert follows `detailed-architecture` to the defining file. Move dialogs offer a project folder tree. R13–R14 → Iteration 15 |
 
 
 ### Session decisions (2026-06-28)
@@ -2894,8 +3133,8 @@ Extend / add:
 | Browser home file            | No silent `~` read; picker + IDB handle. Desktop later: `~/.calmrj` (#52, #59)                                                  |
 | Settings layout              | One tab per top-level config block (R63)                                                                                        |
 | Metadata nested edit         | Panel preview only; Edit → dialog; schema `enum` → dropdown (R64)                                                               |
-| Multi-select                 | Shift+click additive + marquee in Select mode; Ctrl+drag stays duplicate (R21, #62)                     |
-| Mouse Select / Pan           | Toolbar toggle; default Select; Space temporary Pan; Hub locked to Pan; session-only (#65)              |
+| Multi-select                 | Shift+click and Shift+marquee **toggle**; Ctrl+drag stays duplicate (R21, R65, R76)                     |
+| Mouse Select / Pan           | **Superseded (#68).** No toolbar toggle. Empty drag pans; node drag moves; no Space-pan (R76)           |
 | Canvas mini-map              | Always visible (bottom-right); viewport mask; click pans to that point; zoom unchanged (#66)            |
 | Group tools                  | Move; align row/column/axis; even spacing; same W/H/both; arrange as table (R66)                                                |
 | Container table              | Arrange to table = R46 default or explicit rows×cols; resize container to fit (R67)                                             |
@@ -2905,6 +3144,36 @@ Extend / add:
 | Hub write-back               | Still out of scope (#54)                                                                                                        |
 | URL mapping                  | `.calmrj` `urlMapping.path` → CLI-shaped `url-mapping.json`; values relative to mapping file; Hub instance URLs skipped (#67)   |
 | BBR V10                      | **In scope** (R59–R75)                                                                                                          |
-| Iteration priority           | V10 = Iteration 12; Tauri/watch R13–R14 = Iteration 13                                                                          |
+| Iteration priority           | V10 = Iteration 12; V11 = Iteration 13; Tauri/watch R13–R14 = Iteration 14                                                      |
+| BBR V11                      | **In scope** (R76–R81). R73 superseded.                                                                                         |
+
+
+### Session decisions (2026-09-29, BBR V11)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Pointer                      | No Select/Pan, no Space. Empty drag pans. Node drag moves (group if already selected). Shift+click and Shift+marquee toggle (#68, R76). |
+| Hub browse                   | Left-panel tab. Lazy tree to nodes. Drag node = stub with version URL. Double-click version = read-only. Dialog removed (#69, R78). |
+| Move one file                | Same gestures as a folder. Abort if the name exists. Relative `detailed-architecture` rewritten both ways. `url-mapping.json` untouched (#71, #74, R77). |
+| Edge vs container            | Container that holds an endpoint is not an obstacle. Other nodes still are. Bezier stays (#70, R79).                            |
+| JSON and layout              | Keep `_layout` and colors unless the applied text changed them. Delete clears. `unique-id` re-keys. No auto-layout on apply (#72, R80). |
+| Undo                         | Diagram edits outside the JSON editor. Ctrl and Cmd. JSON text undo stays separate. Tree moves are not undone (#73, R81).       |
+| BBR V11                      | **In scope** (R76–R81)                                                                                                          |
+| Iteration priority           | V11 = Iteration 13; Tauri/watch R13–R14 = Iteration 14                                                                          |
+
+
+### Session decisions (2026-09-29, BBR V12)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Defining file                | Follow relative `detailed-architecture` until the node has none. Write a new relative path from the current file (#75, R82).    |
+| Unresolved chain             | Missing file, outside project, missing `unique-id`, or a cycle → the document you inserted from (#76, R82).                     |
+| `http(s)` on insert          | Copy the URL. Do not follow it and do not use `url-mapping.json` (#77, R82).                                                    |
+| Insert surfaces              | Files drag, Hub drag, Find neighbors. Not palette or same-file duplicate (#78, R82).                                            |
+| Move dialog tree             | File and folder dialogs. Tree plus text. Folders and the project root. **Move** confirms (#79–#81, R83).                        |
+| BBR V12                      | **In scope** (R82–R83). Namespace URL mapping (BBR lines 136–137) is not.                                                       |
+| Iteration priority           | V12 = Iteration 14; Tauri/watch R13–R14 = Iteration 15                                                                          |
 
 

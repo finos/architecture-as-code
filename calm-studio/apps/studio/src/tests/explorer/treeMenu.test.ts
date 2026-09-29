@@ -12,10 +12,10 @@ describe('treeMenu', () => {
 		expect(treeMenuDirectory(target)).toBe('org/components-int');
 	});
 
-	it('hides Move on a file row and uses the parent directory', () => {
+	it('shows Move on a file row and uses the parent directory for new items', () => {
 		const target = { kind: 'file' as const, path: 'org/c/coa.appcomp.json' };
-		expect(treeMenuActions(target)).toEqual(['new-folder', 'new-file']);
-		expect(treeMenuShowsMove(target)).toBe(false);
+		expect(treeMenuActions(target)).toEqual(['new-folder', 'new-file', 'move']);
+		expect(treeMenuShowsMove(target)).toBe(true);
 		expect(treeMenuDirectory(target)).toBe('org/c');
 	});
 

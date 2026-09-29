@@ -4,14 +4,20 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
+	import type { ExplorerTreeEntry } from '$lib/explorer/types';
+	import MoveFolderTreeView from '$lib/explorer/MoveFolderTreeView.svelte';
+
 	interface Props {
 		title: string;
 		label: string;
 		value: string;
 		hint?: string;
+		error?: string;
 		placeholder?: string;
 		extraLabel?: string;
 		extraValue?: string;
+		/** When set, shows a folder treeview for the extra (destination) field. */
+		folderTree?: ExplorerTreeEntry[] | null;
 		confirmLabel?: string;
 		onconfirm: (value: string, extra?: string) => void;
 		oncancel: () => void;
@@ -22,9 +28,11 @@
 		label,
 		value,
 		hint = '',
+		error = '',
 		placeholder = '',
 		extraLabel = '',
 		extraValue = '',
+		folderTree = null,
 		confirmLabel = 'OK',
 		onconfirm,
 		oncancel,
@@ -46,10 +54,13 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
 <div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && oncancel()}>
-	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="prompt-title">
+	<div class="dialog" class:wide={folderTree != null} role="dialog" aria-modal="true" aria-labelledby="prompt-title">
 		<h2 id="prompt-title" class="title">{title}</h2>
 		{#if hint}
 			<p class="hint">{hint}</p>
+		{/if}
+		{#if error}
+			<p class="error" role="alert">{error}</p>
 		{/if}
 		<label class="field-label" for="prompt-value">{label}</label>
 		<input
@@ -63,6 +74,14 @@
 		{#if extraLabel}
 			<label class="field-label" for="prompt-extra">{extraLabel}</label>
 			<input id="prompt-extra" class="input" bind:value={extraDraft} />
+		{/if}
+		{#if folderTree != null}
+			<p class="field-label" id="prompt-folders-label">Project folders</p>
+			<MoveFolderTreeView
+				entries={folderTree}
+				selectedFieldValue={extraDraft}
+				onselect={(value) => (extraDraft = value)}
+			/>
 		{/if}
 		<div class="actions">
 			<button type="button" class="btn" onclick={oncancel}>Cancel</button>
@@ -88,6 +107,9 @@
 		background: var(--color-surface, #fff);
 		border: 1px solid var(--color-border, #e2e8f0);
 	}
+	.dialog.wide {
+		width: min(480px, calc(100vw - 32px));
+	}
 	.title {
 		margin: 0 0 8px;
 		font-size: 15px;
@@ -96,6 +118,11 @@
 		margin: 0 0 10px;
 		font-size: 12px;
 		color: #64748b;
+	}
+	.error {
+		margin: 0 0 10px;
+		font-size: 12px;
+		color: #b91c1c;
 	}
 	.field-label {
 		display: block;
