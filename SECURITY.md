@@ -25,11 +25,11 @@ The project's threat model and attack surface analysis is maintained in [THREAT_
 
 This section is the project's policy for findings from software composition analysis (SCA) and static application security testing (SAST).
 
-Every pull request must pass the `dependency-review` SCA check, which evaluates all changes for known vulnerabilities of moderate severity or higher and for malicious dependencies, and merging is blocked until the violation is addressed. In addition, OWASP Dependency-Check scans the npm and Maven dependency trees whenever a manifest changes and twice each working day, the CVE scanning workflows fail on any finding with a CVSS score of 5 or higher, and Dependabot and Renovate raise update pull requests for vulnerable and outdated dependencies.
+Every pull request must pass the `dependency-review` SCA check, which evaluates all changes for known vulnerabilities of moderate severity or higher and for malicious dependencies, and merging is blocked until the violation is addressed. In addition, OWASP Dependency-Check scans `cli`, `calm-server`, `shared` and `docs` (npm) and `calm-hub` and `calm-models` (Maven) whenever a manifest changes on `main` and twice each working day, and fails on any finding with a CVSS score of 5 or higher. Dependabot and Renovate raise update pull requests for vulnerable and outdated dependencies.
 
 Critical and high severity vulnerabilities in a runtime dependency must be fixed within 7 days of being reported. Medium severity vulnerabilities must be fixed within 30 days. Low severity vulnerabilities must be fixed in the next scheduled release. A dependency whose license is incompatible with Apache-2.0, or is otherwise disallowed by the license scanning workflows, must be removed or replaced before the change is merged, so that only dependencies with an approved permissive license ship in a release.
 
-All SCA findings above these thresholds must be addressed before any release of the affected component, and the release is blocked until each finding is fixed or declared non-exploitable as described below.
+All SCA findings above these thresholds must be addressed before any release of the affected component, and the release is blocked until each finding is fixed or declared non-exploitable as described below. The CLI and CALM Server release workflows enforce this: they do not publish unless the latest Node.js Dependency-Check scan on `main` passed within the last four days. Docker images, `calm-models`, CALM Studio packages and the VS Code extension have no automated gate yet, so a maintainer checks the latest scan results before releasing them.
 
 A finding may be suppressed only when a maintainer declares it non-exploitable for this project, with a written justification, in the relevant ignore list: `.github/node-cve-ignore-list.xml` for npm and `.github/maven-cve-ignore-list.xml` for Maven. Suppressions are reviewed whenever the ignore list changes and are removed when the dependency is upgraded.
 
@@ -37,7 +37,7 @@ CodeQL (GitHub code scanning default setup with the default query suite, coverin
 
 ## Secrets and Credentials
 
-Credentials used by the project (the npm publishing token, Docker Hub credentials, the Semgrep token, and any cloud credentials used to publish documentation) are stored only as GitHub Actions secrets, scoped to the environment or workflow that needs them. Secrets are never committed to the repository; GitHub secret scanning and push protection are enabled to enforce this. Each secret is issued with the minimum scope the workflow requires, for example an npm token that can only publish and cannot read account data. Access to secrets is limited to repository administrators. A secret is rotated when a maintainer with access leaves the project, when the workflow that uses it is retired, and immediately on any suspicion of exposure; rotation is announced on the calm-maintainers mailing list.
+Credentials used by the project are stored only as GitHub Actions secrets: npm publishing tokens, Docker Hub credentials, Maven Central deploy credentials and the GPG signing key, the VS Code Marketplace token, Apple and Tauri code-signing credentials for the CALM Studio desktop app, AWS credentials used to publish the documentation sites, the release bot's GitHub token, the Semgrep token and the NVD API key. Most are repository secrets, which GitHub does not expose to workflows triggered from forks; the NVD API key is also scoped to the `code-scan` environment. Secrets are never committed to the repository; GitHub secret scanning and push protection are enabled to enforce this. Each secret is issued with the minimum scope the workflow requires, for example an npm token that can only publish and cannot read account data. Access to secrets is limited to repository administrators. A secret is rotated when a maintainer with access leaves the project, when the workflow that uses it is retired, and immediately on any suspicion of exposure; rotation is announced on the calm-maintainers mailing list.
 
 Maintainers are expected to protect their own GitHub accounts with two-factor authentication.
 
@@ -45,7 +45,7 @@ Maintainers are expected to protect their own GitHub accounts with two-factor au
 
 Releases are produced only by the automated release workflows in this repository. No maintainer publishes a package or image from a personal machine.
 
-**npm packages** (`@finos/calm-cli` and `@finos/calm-server`; the other `@finos` workspaces are bundled into the CLI and are not published separately) are published with `npm publish --provenance`. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
+**npm packages** `@finos/calm-cli` and `@finos/calm-server` are published with `npm publish --provenance`. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published to npm. The CALM Studio release workflow can also publish `@calmstudio/calm-core`, `@calmstudio/mcp`, `@calmstudio/diagram` and `@finos/calm-docusaurus-plugin`; these do not carry provenance attestations yet. Each version carries a [SLSA provenance attestation](https://slsa.dev/provenance/v1) signed through Sigstore that names this repository, the release workflow and the commit that built it. To verify a package you have installed:
 
 ```bash
 npm audit signatures
@@ -53,7 +53,9 @@ npm audit signatures
 
 The command reports `verified attestations` for each `@finos` package whose registry signature and provenance attestation are valid. To confirm who published a version, open the package's version page on npmjs.com and check that the *Provenance* panel names `finos/architecture-as-code` and the workflow `.github/workflows/automated-release.yml` (or `automated-release-calm-server.yml` for `@finos/calm-server`). To compare a downloaded tarball with the registry, check its integrity hash against `npm view @finos/calm-cli@<version> dist.integrity`.
 
-**GitHub releases** for the CLI and CALM Server attach the published tarball and a CycloneDX software bill of materials (`*.cdx.json`) describing its runtime dependencies. Verify the tarball you downloaded matches the registry with the integrity hash above.
+**GitHub releases** for the CLI and CALM Server attach the published tarball and a CycloneDX software bill of materials (`*.cdx.json`) describing its runtime dependencies. The release workflow publishes that same tarball to npm, so its integrity hash matches the registry value above.
+
+**Maven artifacts**: `org.finos.calm:calm-models` is published to Maven Central by `release-calm-models-maven-publish.yml` and signed with the project's GPG key. Verify the `.asc` signature that Maven Central serves next to each artifact.
 
 **Docker images** (`finos/calm-hub` and its variants) are built and pushed by the `docker-publish-*` workflows with provenance and SBOM attestations attached to the image index. To inspect them:
 
@@ -62,6 +64,6 @@ docker buildx imagetools inspect finos/calm-hub:<tag> --format '{{ json .Provena
 docker buildx imagetools inspect finos/calm-hub:<tag> --format '{{ json .SBOM }}'
 ```
 
-The provenance names the GitHub Actions workflow and commit that produced the image.
+The provenance names the GitHub Actions workflow and commit that produced the image. The native images (`*-native` tags) contain a compiled binary, so their SBOM lists only the base image and not the Java dependencies compiled into the binary. For the dependency list, use the SBOM of the JVM image built from the same commit.
 
 Thank you for helping keep FINOS projects and their users secure.

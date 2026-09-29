@@ -145,25 +145,36 @@ repository:
       - uri: https://github.com/finos/architecture-as-code/releases
         comment: GitHub Releases page for tagged releases across the monorepo's packages.
       - uri: https://www.npmjs.com/package/@finos/calm-cli
-        comment: npm packages published under the @finos scope (calm-cli, calm-server).
+        comment: npm package for the CALM CLI.
+      - uri: https://www.npmjs.com/package/@finos/calm-server
+        comment: npm package for CALM Server.
+      - uri: https://central.sonatype.com/artifact/org.finos.calm/calm-models
+        comment: Maven Central artifact for the CALM Java models, GPG-signed.
       - uri: https://hub.docker.com/r/finos/calm-hub
         comment: Docker Hub image for CALM Hub.
       - uri: https://marketplace.visualstudio.com/items?itemName=finos.calm-vscode-plugin
         comment: VS Code Marketplace listing for the CALM VSCode extension.
     attestations:
-      - name: npm provenance (SLSA)
-        location: https://registry.npmjs.org/-/npm/v1/attestations/@finos%2Fcalm-cli
+      - name: npm provenance (SLSA) for @finos/calm-cli
+        location: https://www.npmjs.com/package/@finos/calm-cli
         predicate-uri: https://slsa.dev/provenance/v1
         comment: |
-          @finos/calm-cli and @finos/calm-server are published with
-          `npm publish --provenance` from the release workflows. Verify with `npm audit signatures`; see
-          SECURITY.md, "Verifying Release Integrity and Authenticity".
+          Published with `npm publish --provenance` from automated-release.yml. The package page shows
+          the provenance for each version and links to its Sigstore transparency log entry. Verify with
+          `npm audit signatures`; see SECURITY.md, "Verifying Release Integrity and Authenticity".
+      - name: npm provenance (SLSA) for @finos/calm-server
+        location: https://www.npmjs.com/package/@finos/calm-server
+        predicate-uri: https://slsa.dev/provenance/v1
+        comment: |
+          Published with `npm publish --provenance` from automated-release-calm-server.yml. The package
+          page shows the provenance for each version and links to its Sigstore transparency log entry.
       - name: Docker provenance and SBOM
         location: https://hub.docker.com/r/finos/calm-hub
         predicate-uri: https://slsa.dev/provenance/v1
         comment: |
           calm-hub images are built by docker/build-push-action with
-          provenance and SBOM attestations attached to the image index.
+          provenance and SBOM attestations attached to the image index. The SBOM of a
+          native image lists only its base image.
   security:
     assessments:
       self:
@@ -205,7 +216,7 @@ repository:
           release: false
       - name: OWASP Dependency-Check
         type: SCA
-        comment: cve-scanning-node.yml and cve-scanning-maven.yml; fails on CVSS >= 5; suppressions in .github/*-cve-ignore-list.xml.
+        comment: cve-scanning-node.yml (cli, calm-server, shared, docs) and cve-scanning-maven.yml (calm-hub, calm-models); fails on CVSS >= 5; suppressions in .github/*-cve-ignore-list.xml. The CLI and calm-server release workflows publish only if the latest Node.js scan on main passed within four days.
         rulesets:
           - failOnCVSS 5
         integration:
