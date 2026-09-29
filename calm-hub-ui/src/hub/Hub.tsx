@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
-import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
+import { IoCompassOutline } from 'react-icons/io5';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
+import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
@@ -421,7 +422,7 @@ export default function Hub() {
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
                 {/* Desktop: inline, collapsible browse rail. */}
                 {!isMobile && (
-                    <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12 p-4 pr-2'} transition-all duration-300`}>
+                    <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
@@ -433,17 +434,7 @@ export default function Hub() {
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
-                            <div className="h-full bg-base-100 rounded-box overflow-hidden shadow-xl flex flex-col">
-                                <div className="flex items-center justify-center pt-3">
-                                    <button
-                                        aria-label="Expand sidebar"
-                                        className="btn btn-ghost btn-xs btn-circle"
-                                        onClick={() => setIsSidebarOpen(true)}
-                                    >
-                                        <IoChevronForwardOutline />
-                                    </button>
-                                </div>
-                            </div>
+                            <CollapsedRail namespaceCounts={namespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
                         )}
                     </div>
                 )}

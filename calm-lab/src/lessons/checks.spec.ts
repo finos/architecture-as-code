@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
     completeNodes, composedOf, connectsBetween, connectsNodes, connectsRelationshipsBetween, connectsUsesInterfaces,
-    controlsIn, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasMetadata, interactsWith,
-    linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes, nodesOfType, ranFailed, ranOk, rejected,
-    relationships,
-    relationshipsOfKind, validatedEditorFile,
+    controlsIn, everyHas, fileJson, fileText, filledAdr, flowsWithTransitions, freshOutcomes, hasDescription,
+    hasMetadata, hasPlaceholder, interactsWith, linkedAdrs, markdownSection, nodeById, nodeInterfaces, nodes,
+    nodesOfType, patternArrayRefs, patternConnects, patternItemConsts, patternNodeIds, patternNodeTypes, patternRefs, patternRequires,
+    ranFailed, ranOk, rejected, relationships, relationshipsOfKind, standardExample, standardRequires, urlMappingEntries,
+    urlMappingTargets, withStandard, validatedEditorFile,
 } from './checks';
 import type { CommandOutcome } from '../cli/outcome';
 import type { LessonState } from './types';
@@ -341,6 +342,269 @@ const outcome = (over: Partial<CommandOutcome>): CommandOutcome => ({
 });
 const state = (commands: CommandOutcome[]): LessonState => ({ doc: null, validation: { ok: true }, commands, editorFile: '/workspace/a.json', files: {} });
 
+describe('pattern helpers', () => {
+    const item = (id?: unknown) => ({ properties: { 'unique-id': { const: id } } });
+    const tuple = (count: number, over: Record<string, unknown> = {}) =>
+        ({ type: 'array', minItems: count, maxItems: count, prefixItems: Array.from({ length: count }, (_, i) => item(`n${i}`)), ...over });
+    const pattern = { properties: { nodes: tuple(3), relationships: tuple(2) } };
+
+    it('patternRequires counts prefixItems when minItems and maxItems equal that count', () => {
+        expect(patternRequires(pattern)).toEqual({ nodes: 3, relationships: 2 });
+        expect(patternRequires({ properties: { nodes: tuple(4) } })).toEqual({ nodes: 4, relationships: 0 });
+    });
+
+    it('patternRequires gives 0 when the count is not exact', () => {
+        expect(patternRequires({ properties: { nodes: tuple(3, { maxItems: undefined }), relationships: tuple(2, { minItems: 1 }) } }))
+            .toEqual({ nodes: 0, relationships: 0 });
+        expect(patternRequires({ properties: { nodes: tuple(3, { minItems: 4, maxItems: 4 }) } })).toEqual({ nodes: 0, relationships: 0 });
+    });
+
+    it.each([
+        ['null', null],
+        ['an empty object', {}],
+        ['a properties array', { properties: [] }],
+        ['a prefixItems string', { properties: { nodes: { minItems: 1, maxItems: 1, prefixItems: 'x' } } }],
+        ['a nodes string', { properties: { nodes: 'x', relationships: null } }],
+    ])('patternRequires and patternNodeIds do not throw on %s', (_, json) => {
+        expect(patternRequires(json as never)).toEqual({ nodes: 0, relationships: 0 });
+        expect(patternNodeIds(json as never)).toEqual([]);
+        expect(patternNodeTypes(json as never)).toEqual([]);
+        expect(patternConnects(json as never)).toEqual([]);
+        expect(patternItemConsts(json as never, 'nodes')).toEqual([]);
+    });
+
+    it('patternItemConsts reads the const properties of each item and skips the rest', () => {
+        const json = {
+            properties: {
+                nodes: { prefixItems: [
+                    { properties: { 'unique-id': { const: 'a' }, name: { const: 'A' }, description: { type: 'string' } } },
+                    { type: 'object' },
+                ] },
+                relationships: { prefixItems: [{ properties: { 'relationship-type': { const: { connects: {} } } } }] },
+            },
+        };
+        expect(patternItemConsts(json, 'nodes')).toEqual([{ 'unique-id': 'a', name: 'A' }, {}]);
+        expect(patternItemConsts(json, 'relationships')).toEqual([{ 'relationship-type': { connects: {} } }]);
+    });
+
+    it('patternNodeTypes and patternConnects read the const node-type and connects of each item', () => {
+        const typed = (id: string, type?: string) => ({ properties: { 'unique-id': { const: id }, ...(type ? { 'node-type': { const: type } } : {}) } });
+        const link = (id: string | undefined, source: string, destination: string) => ({
+            properties: {
+                ...(id ? { 'unique-id': { const: id } } : {}),
+                'relationship-type': { const: { connects: { source: { node: source }, destination: { node: destination } } } },
+            },
+        });
+        const json = {
+            properties: {
+                nodes: { prefixItems: [typed('a', 'webclient'), typed('b')] },
+                relationships: { prefixItems: [link('r1', 'a', 'b'), link(undefined, 'a', 'b'), { properties: { 'unique-id': { const: 'r3' } } }] },
+            },
+        };
+        expect(patternNodeTypes(json)).toEqual(['webclient', undefined]);
+        expect(patternConnects(json)).toEqual([{ source: 'a', destination: 'b' }, undefined, undefined]);
+    });
+
+    it('patternNodeIds reads the const unique-id of each required node, and skips items without one', () => {
+        expect(patternNodeIds(pattern)).toEqual(['n0', 'n1', 'n2']);
+        expect(patternNodeIds({ properties: { nodes: { prefixItems: [item('a'), item(3), item(), {}, null, item('')] } } })).toEqual(['a']);
+    });
+
+    it('hasDescription needs a non-empty string description', () => {
+        expect(hasDescription({ description: 'Calls the API.' })).toBe(true);
+        expect(hasDescription({ description: '' })).toBe(false);
+        expect(hasDescription({ description: 3 })).toBe(false);
+        expect(hasDescription({})).toBe(false);
+        expect(hasDescription(null)).toBe(false);
+    });
+
+    it('hasPlaceholder finds a [[ NAME ]] string anywhere in a value', () => {
+        expect(hasPlaceholder({ nodes: [{ description: '[[ DESCRIPTION ]]' }] })).toBe(true);
+        expect(hasPlaceholder(['x', { a: { b: '[[HOST]]' } }])).toBe(true);
+        expect(hasPlaceholder({ nodes: [{ description: 'A service. See [[ notes ]] later.' }], port: -1 })).toBe(false);
+        expect(hasPlaceholder(null)).toBe(false);
+    });
+});
+
+describe('patternRefs', () => {
+    const NODE_STD = 'https://example.com/standards/node.json';
+    const REL_STD = 'https://example.com/standards/relationship.json';
+
+    it('collects every string $ref at any depth, once each', () => {
+        const pattern = {
+            properties: {
+                nodes: { type: 'array', items: { $ref: NODE_STD } },
+                relationships: { type: 'array', items: { allOf: [{ $ref: REL_STD }, { $ref: NODE_STD }] } },
+            },
+        };
+        expect(patternRefs(pattern)).toEqual([NODE_STD, REL_STD]);
+    });
+
+    it('finds refs under prefixItems too, and none in a pattern without refs', () => {
+        expect(patternRefs({ properties: { nodes: { prefixItems: [{ $ref: NODE_STD }] } } })).toEqual([NODE_STD]);
+        expect(patternRefs({ properties: {} })).toEqual([]);
+    });
+
+    it.each([
+        ['null', null],
+        ['a string', 'x'],
+        ['a non-string $ref', { $ref: 3, items: { $ref: '' } }],
+        ['a $ref object', { $ref: { $ref: NODE_STD } }],
+    ])('does not throw on %s', (_, json) => {
+        expect(() => patternRefs(json)).not.toThrow();
+    });
+
+    it('skips empty and non-string $ref values', () => {
+        expect(patternRefs({ $ref: 3, items: { $ref: '' } })).toEqual([]);
+    });
+
+    it('patternArrayRefs reads only the refs in the items schema of properties.nodes or properties.relationships', () => {
+        const pattern = {
+            $defs: { other: { $ref: 'https://example.com/elsewhere.json' } },
+            properties: { nodes: { items: { $ref: NODE_STD } }, relationships: { items: { allOf: [{ $ref: REL_STD }] } } },
+        };
+        expect(patternArrayRefs(pattern, 'nodes')).toEqual([NODE_STD]);
+        expect(patternArrayRefs(pattern, 'relationships')).toEqual([REL_STD]);
+        expect(patternArrayRefs({ $defs: { nodes: { $ref: NODE_STD } }, properties: {} }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: 'x' } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs(null, 'relationships')).toEqual([]);
+        // Only some elements must match a prefixItems or contains schema.
+        expect(patternArrayRefs({ properties: { nodes: { prefixItems: [{ $ref: NODE_STD }], contains: { $ref: NODE_STD } } } }, 'nodes')).toEqual([]);
+        // The element may match something else, or must not match the Standard.
+        expect(patternArrayRefs({ properties: { nodes: { items: { anyOf: [{ $ref: NODE_STD }, {}] } } } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: { items: { not: { $ref: NODE_STD } } } } }, 'nodes')).toEqual([]);
+        expect(patternArrayRefs({ properties: { nodes: { items: { allOf: [{ anyOf: [{ $ref: NODE_STD }] }] } } } }, 'nodes')).toEqual([]);
+    });
+});
+
+describe('url mapping helpers', () => {
+    const NODE_URL = 'https://example.com/standards/node.json';
+    const withFiles = (files: Record<string, string>): LessonState =>
+        ({ doc: null, validation: { ok: true }, commands: [], editorFile: '/workspace/a.json', files });
+    const mapping = (entries: Record<string, unknown>, path = '/workspace/url-mapping.json') => ({ [path]: JSON.stringify(entries) });
+
+    it('resolves each path against the mapping file\'s folder, and keeps the ones that exist', () => {
+        const state = withFiles({
+            ...mapping({ [NODE_URL]: 'standards/node.json', 'https://example.com/missing.json': 'standards/missing.json' }),
+            '/workspace/standards/node.json': '{}',
+        });
+        expect(urlMappingTargets(state, '/workspace/url-mapping.json')).toEqual({ [NODE_URL]: '/workspace/standards/node.json' });
+        expect(urlMappingEntries(state, '/workspace/url-mapping.json')).toEqual([
+            { url: NODE_URL, path: '/workspace/standards/node.json', exists: true },
+            { url: 'https://example.com/missing.json', path: '/workspace/standards/missing.json', exists: false },
+        ]);
+    });
+
+    it('resolves ../ and ./ paths from a mapping in a subfolder, and absolute paths as they are', () => {
+        const state = withFiles({
+            ...mapping({ [NODE_URL]: '../standards/node.json', a: './local.json', b: '/workspace/standards/node.json' }, '/workspace/config/url-mapping.json'),
+            '/workspace/standards/node.json': '{}',
+            '/workspace/config/local.json': '{}',
+        });
+        expect(urlMappingTargets(state, '/workspace/config/url-mapping.json')).toEqual({
+            [NODE_URL]: '/workspace/standards/node.json',
+            a: '/workspace/config/local.json',
+            b: '/workspace/standards/node.json',
+        });
+    });
+
+    it('does not resolve against the working directory', () => {
+        const state = withFiles({
+            ...mapping({ [NODE_URL]: 'standards/node.json' }, '/workspace/config/url-mapping.json'),
+            '/workspace/standards/node.json': '{}',
+        });
+        expect(urlMappingTargets(state, '/workspace/config/url-mapping.json')).toEqual({});
+    });
+
+    it('marks a value that is not a non-empty string as missing', () => {
+        const state = withFiles({ ...mapping({ a: 3, b: '', c: null }), '/workspace/3': '{}' });
+        expect(urlMappingEntries(state, '/workspace/url-mapping.json').every((entry) => !entry.exists)).toBe(true);
+        expect(urlMappingTargets(state, '/workspace/url-mapping.json')).toEqual({});
+    });
+
+    it.each([
+        ['a missing file', {}],
+        ['a half-edited file', { '/workspace/url-mapping.json': '{"https://example.com/a": "sta' }],
+        ['an array', { '/workspace/url-mapping.json': '["standards/node.json"]' }],
+    ])('gives nothing for %s', (_, files) => {
+        expect(urlMappingEntries(withFiles(files), '/workspace/url-mapping.json')).toEqual([]);
+        expect(urlMappingTargets(withFiles(files), '/workspace/url-mapping.json')).toEqual({});
+    });
+});
+
+describe('standardRequires', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+    const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
+
+    it('reads the required property names when an allOf entry $refs the named core definition', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                { type: 'object', properties: { costCenter: {}, owner: {} }, required: ['costCenter', 'owner'] },
+            ],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+        const relationshipStandard = {
+            allOf: [{ $ref: RELATIONSHIP_REF }, { required: ['dataClassification', 'encrypted'] }],
+        };
+        expect(standardRequires(relationshipStandard, 'relationship')).toEqual(['dataClassification', 'encrypted']);
+    });
+
+    it('unions and deduplicates required names split across allOf entries', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                { required: ['costCenter'] },
+                { required: ['owner', 'costCenter'] },
+            ],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+    });
+
+    it('reads a top-level required array, sibling to allOf, once the $ref is inside allOf', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }],
+            required: ['costCenter', 'owner'],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['costCenter', 'owner']);
+    });
+
+    it('unions and deduplicates a top-level required array with allOf entries\' required arrays', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }, { required: ['owner'] }],
+            required: ['costCenter', 'owner'],
+        };
+        expect(standardRequires(standard, 'node')).toEqual(['owner', 'costCenter']);
+    });
+
+    it('gives [] when there is no allOf', () => {
+        expect(standardRequires({ $id: 'https://example.com/s.json', title: 'Stub' }, 'node')).toEqual([]);
+        expect(standardRequires({ allOf: 'x' }, 'node')).toEqual([]);
+        // A top-level required with no allOf $ref at all is not a Standard.
+        expect(standardRequires({ required: ['costCenter'] }, 'node')).toEqual([]);
+    });
+
+    it('gives [] when no allOf entry $refs the named core definition', () => {
+        const wrongDef = {
+            allOf: [
+                { $ref: RELATIONSHIP_REF },
+                { required: ['costCenter'] },
+            ],
+            required: ['owner'],
+        };
+        expect(standardRequires(wrongDef, 'node')).toEqual([]);
+        const wrongUrl = { allOf: [{ $ref: 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node' }, { required: ['costCenter'] }] };
+        expect(standardRequires(wrongUrl, 'node')).toEqual([]);
+    });
+
+    it('never throws on a partial or wrong-shaped document', () => {
+        for (const bad of [null, undefined, {}, { allOf: null }, { allOf: [null, 3, 'x'] }, { allOf: [{ $ref: NODE_REF, required: 'x' }] }, { allOf: [{ $ref: NODE_REF }], required: 'x' }]) {
+            expect(standardRequires(bad as never, 'node')).toEqual([]);
+            expect(standardRequires(bad as never, 'relationship')).toEqual([]);
+        }
+    });
+});
+
 describe('command outcomes', () => {
     it('drop an outcome once a file it read has changed', () => {
         const files: Record<string, string> = { '/workspace/a.json': 'v2' };
@@ -545,5 +809,89 @@ describe('workspace file helpers', () => {
                 expect(linkedAdrs(state({ doc: bad as never }))).toEqual([]);
             }
         });
+    });
+});
+
+describe('standardExample', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+
+    it('gives a value for each required property: the given one, else by enum or type', () => {
+        const standard = {
+            allOf: [
+                { $ref: NODE_REF },
+                {
+                    properties: { tier: { enum: ['gold', 'silver'] }, audited: { type: 'boolean' }, replicas: { type: 'integer' } },
+                    required: ['owner', 'tier', 'audited', 'replicas', 'team'],
+                },
+            ],
+            properties: { team: { type: 'string' } },
+        };
+        expect(standardExample(standard, 'node', { owner: 'payments', extra: 1 }))
+            .toEqual({ owner: 'payments', tier: 'gold', audited: true, replicas: 0, team: 'example' });
+    });
+
+    it('gives {} when the document is not a Standard for the named core definition', () => {
+        expect(standardExample({ allOf: [{ $ref: NODE_REF }, { required: ['owner'] }] }, 'relationship')).toEqual({});
+        expect(standardExample(null, 'node')).toEqual({});
+    });
+
+    it('skips a given value the property schema rejects', () => {
+        const standard = {
+            allOf: [{ $ref: NODE_REF }, {
+                properties: {
+                    tier: { enum: ['low', 'high'] },
+                    costCenter: { type: 'string', pattern: '^[0-9]+$' },
+                    region: { type: 'string', pattern: '^[a-z]{2}-[0-9]$', examples: ['eu-1'] },
+                },
+                required: ['tier', 'costCenter', 'region'],
+            }],
+        };
+        expect(standardExample(standard, 'node', { tier: 'internal', costCenter: 'CC-1234', region: 'Europe' }))
+            .toEqual({ tier: 'low', costCenter: '0', region: 'eu-1' });
+    });
+});
+
+describe('withStandard', () => {
+    const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
+    const tutorial = { allOf: [{ $ref: NODE_REF }, { properties: { costCenter: {}, environment: {} }, required: ['costCenter'] }] };
+
+    it('drops the tutorial Standard\'s properties and adds the ones the learner\'s Standard requires', () => {
+        const standard = { allOf: [{ $ref: NODE_REF }, { properties: { team: { type: 'string' } }, required: ['team'] }] };
+        expect(withStandard({ 'unique-id': 'a', costCenter: 'CC-1', environment: 'dev' }, 'node', standard, tutorial))
+            .toEqual({ 'unique-id': 'a', team: 'example' });
+    });
+
+    it('keeps a tutorial value that the learner\'s Standard accepts', () => {
+        expect(withStandard({ 'unique-id': 'a', costCenter: 'CC-1', environment: 'dev' }, 'node', tutorial, tutorial))
+            .toEqual({ 'unique-id': 'a', costCenter: 'CC-1' });
+    });
+});
+
+describe('everyHas', () => {
+    const names = ['owner', 'costCenter'];
+
+    it('passes when every item has every name', () => {
+        expect(everyHas([{ owner: 'a', costCenter: 'CC-1' }, { owner: 'b', costCenter: 'CC-2', extra: 1 }], names)).toBe(true);
+    });
+
+    it('fails when one item misses a name', () => {
+        expect(everyHas([{ owner: 'a', costCenter: 'CC-1' }, { owner: 'b' }], names)).toBe(false);
+    });
+
+    it('fails for an empty names list, so a Standard that requires nothing completes no step', () => {
+        expect(everyHas([{ owner: 'a' }], [])).toBe(false);
+    });
+
+    it('fails for no items', () => {
+        expect(everyHas([], names)).toBe(false);
+    });
+
+    it('fails on wrong-shaped input and never throws', () => {
+        expect(everyHas(null, names)).toBe(false);
+        expect(everyHas(undefined, names)).toBe(false);
+        expect(everyHas({ owner: 'a', costCenter: 'CC-1' }, names)).toBe(false);
+        expect(everyHas([null, { owner: 'a', costCenter: 'CC-1' }], names)).toBe(false);
+        expect(everyHas(['owner', 42], names)).toBe(false);
+        expect(everyHas([['owner', 'costCenter']], names)).toBe(false);
     });
 });

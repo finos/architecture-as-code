@@ -1,5 +1,7 @@
+import Ajv2020, { type ValidateFunction } from 'ajv/dist/2020.js';
 import type { CommandOutcome, OutcomeCommand } from '../cli/outcome';
-import { HOME_DIR, type CalmDocLike, type LessonState } from './types';
+import { resolvePath } from '../lab/vfs';
+import { HOME_DIR, type CalmDocLike, type HintFiles, type LessonState } from './types';
 
 type Item = Record<string, unknown>;
 
@@ -170,13 +172,234 @@ export function flowsWithTransitions(doc: CalmDocLike | null | undefined, minTra
     });
 }
 
+const patternArray = (json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): Item | undefined => {
+    const properties = json?.['properties'];
+    const array = isNonEmptyObject(properties) ? properties[key] : undefined;
+    return isNonEmptyObject(array) ? array : undefined;
+};
+
+function exactCount(array: Item | undefined): number {
+    const prefixItems = array?.['prefixItems'];
+    if (!Array.isArray(prefixItems)) {
+        return 0;
+    }
+    return array!['minItems'] === prefixItems.length && array!['maxItems'] === prefixItems.length ? prefixItems.length : 0;
+}
+
+/**
+ * How many nodes and relationships a pattern requires: the `prefixItems` length of
+ * `properties.nodes` and `properties.relationships`, when `minItems` and `maxItems` both equal it.
+ * 0 when the count is absent or not exact.
+ */
+export function patternRequires(json: CalmDocLike | null | undefined): { nodes: number; relationships: number } {
+    return { nodes: exactCount(patternArray(json, 'nodes')), relationships: exactCount(patternArray(json, 'relationships')) };
+}
+
+/** The non-empty `const` `unique-id` of each item in a pattern's `properties.nodes.prefixItems`. */
+export function patternNodeIds(json: CalmDocLike | null | undefined): string[] {
+    return items(patternArray(json, 'nodes')?.['prefixItems'])
+        .map((item) => {
+            const properties = item['properties'];
+            const uniqueId = isNonEmptyObject(properties) ? properties['unique-id'] : undefined;
+            return isNonEmptyObject(uniqueId) ? uniqueId['const'] : undefined;
+        })
+        .filter(isNonEmptyString);
+}
+
+/** The `const` of `property` in each item of a pattern's `properties.<array>.prefixItems` (`undefined` where it has none). */
+export function prefixItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships', property: string): unknown[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        const value = isNonEmptyObject(properties) ? properties[property] : undefined;
+        return isNonEmptyObject(value) ? value['const'] : undefined;
+    });
+}
+
+/** Each item in a pattern's `properties.<array>.prefixItems` as the values its properties fix with `const`. */
+export function patternItemConsts(json: CalmDocLike | null | undefined, array: 'nodes' | 'relationships'): CalmDocLike[] {
+    return items(patternArray(json, array)?.['prefixItems']).map((item) => {
+        const properties = item['properties'];
+        return Object.fromEntries(Object.entries(isNonEmptyObject(properties) ? properties : {})
+            .filter(([, value]) => isNonEmptyObject(value) && 'const' in value)
+            .map(([key, value]) => [key, (value as Item)['const']]));
+    });
+}
+
+/** The `const` `node-type` of each item in a pattern's `properties.nodes.prefixItems` (`undefined` where it has none). */
+export function patternNodeTypes(json: CalmDocLike | null | undefined): unknown[] {
+    return prefixItemConsts(json, 'nodes', 'node-type');
+}
+
+/**
+ * The `connects` each item in a pattern's `properties.relationships.prefixItems` fixes with `const`
+ * values, when the item also has a `const` `unique-id`; `undefined` for any other item.
+ */
+export function patternConnects(json: CalmDocLike | null | undefined): ({ source: string; destination: string } | undefined)[] {
+    const ids = prefixItemConsts(json, 'relationships', 'unique-id');
+    return prefixItemConsts(json, 'relationships', 'relationship-type').map((type, index) => {
+        const connects = isNonEmptyObject(type) ? type['connects'] : undefined;
+        if (!isNonEmptyString(ids[index]) || !isNonEmptyObject(connects)) {
+            return undefined;
+        }
+        const source = (connects['source'] as Item | undefined)?.['node'];
+        const destination = (connects['destination'] as Item | undefined)?.['node'];
+        return isNonEmptyString(source) && isNonEmptyString(destination) ? { source, destination } : undefined;
+    });
+}
+
+const CORE_DEF_REF: Record<'node' | 'relationship', string> = {
+    node: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node',
+    relationship: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship',
+};
+
+/**
+ * The `required` property names a Standard adds on top of a CALM core definition: the union of
+ * every `allOf` entry's `required` array, plus the document's own top-level `required` array
+ * (both are valid JSON Schema and have the same effect), when at least one `allOf` entry `$ref`s
+ * the core definition named by `coreDef` (`'node'` or `'relationship'`). `[]` when no entry has
+ * that `$ref`, or the document is not shaped like a Standard.
+ */
+export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship'): string[] {
+    const allOf = items(json?.['allOf']);
+    if (!allOf.some((entry) => entry['$ref'] === CORE_DEF_REF[coreDef])) {
+        return [];
+    }
+    const required = new Set<string>();
+    for (const entry of [...allOf, json]) {
+        const list = entry?.['required'];
+        if (Array.isArray(list)) {
+            for (const name of list) {
+                if (isNonEmptyString(name)) {
+                    required.add(name);
+                }
+            }
+        }
+    }
+    return [...required];
+}
+
+const standardProperties = (json: CalmDocLike | null | undefined): Item =>
+    Object.assign({}, ...[...items(json?.['allOf']), json].map((entry) => entry?.['properties']).filter(isNonEmptyObject));
+
+const ajv = new Ajv2020({ strict: false });
+const validators = new Map<string, ValidateFunction | null>();
+
+/** Whether `value` is valid against a property schema; true when the schema cannot compile on its own (a `$ref`, say). */
+function fits(value: unknown, schema: Item): boolean {
+    const key = JSON.stringify(schema);
+    if (!validators.has(key)) {
+        try {
+            validators.set(key, ajv.compile(schema));
+        } catch {
+            validators.set(key, null);
+        }
+    }
+    return validators.get(key)?.(value) ?? true;
+}
+
+const listed = (value: unknown): unknown[] => (Array.isArray(value) ? value : []);
+
+/**
+ * A value for each property a Standard requires: the first of the value in `values`, the schema's
+ * `const`, `default`, `examples` and `enum`, and a plain value of its `type`, that is valid against the property schema.
+ * A `pattern` that none of these match gets a value that does not match it.
+ */
+export function standardExample(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship', values: CalmDocLike = {}): CalmDocLike {
+    const properties = standardProperties(json);
+    return Object.fromEntries(standardRequires(json, coreDef).map((name) => {
+        const schema = isNonEmptyObject(properties[name]) ? properties[name] : {};
+        const candidates = [
+            ...(Object.prototype.hasOwnProperty.call(values, name) ? [values[name]] : []),
+            ...('const' in schema ? [schema['const']] : []),
+            ...('default' in schema ? [schema['default']] : []),
+            ...listed(schema['examples']),
+            ...listed(schema['enum']),
+            ...({ boolean: [true, false], integer: [0, 1], number: [0, 1] }[String(schema['type'])] ?? ['example', '0']),
+        ];
+        return [name, candidates.find((candidate) => fits(candidate, schema)) ?? candidates[0]];
+    }));
+}
+
+/**
+ * `item` with the properties that `tutorialStandard` declares replaced by values for `standard`,
+ * so a hint follows the learner's Standard and drops the tutorial's properties it does not require.
+ */
+export function withStandard(
+    item: CalmDocLike, coreDef: 'node' | 'relationship', standard: CalmDocLike | null, tutorialStandard: CalmDocLike | null,
+): CalmDocLike {
+    const replaced = Object.keys(standardProperties(tutorialStandard));
+    const kept = Object.fromEntries(Object.entries(item).filter(([name]) => !replaced.includes(name)));
+    return { ...kept, ...standardExample(standard, coreDef, item) };
+}
+
+/**
+ * At least one item, at least one name, and every item has every name as an own property.
+ * An empty `names` list fails, so a Standard that requires nothing never completes a step.
+ */
+export function everyHas(list: unknown, names: string[]): boolean {
+    return Array.isArray(list) && list.length > 0 && names.length > 0
+        && list.every((item) => typeof item === 'object' && item !== null && !Array.isArray(item)
+            && names.every((name) => Object.prototype.hasOwnProperty.call(item, name)));
+}
+
+/** Every string `$ref` anywhere in a pattern or schema, once each, in document order. */
+export function patternRefs(json: unknown): string[] {
+    const refs = new Set<string>();
+    const walk = (value: unknown) => {
+        if (Array.isArray(value)) {
+            value.forEach(walk);
+        } else if (typeof value === 'object' && value !== null) {
+            for (const [key, child] of Object.entries(value)) {
+                if (key === '$ref' && isNonEmptyString(child)) {
+                    refs.add(child);
+                } else {
+                    walk(child);
+                }
+            }
+        }
+    };
+    walk(json);
+    return [...refs];
+}
+
+/**
+ * The `$ref`s that every element of a pattern's `properties.nodes` or `properties.relationships` must match:
+ * `items.$ref` and each `$ref` directly in `items.allOf`. A `$ref` under `anyOf`, `not`, `prefixItems` or `contains` does not count.
+ */
+export function patternArrayRefs(json: CalmDocLike | null | undefined, key: 'nodes' | 'relationships'): string[] {
+    const itemsSchema = patternArray(json, key)?.['items'];
+    if (!isNonEmptyObject(itemsSchema)) {
+        return [];
+    }
+    return [itemsSchema, ...items(itemsSchema['allOf'])]
+        .map((schema) => schema['$ref'])
+        .filter(isNonEmptyString);
+}
+
+/** A non-empty string `description` on a document, node or relationship. */
+export const hasDescription = (item: Item | null | undefined): boolean => isNonEmptyString(item?.['description']);
+
+// The rule `architecture-has-no-placeholder-properties-string` warns on.
+const PLACEHOLDER = /^\[\[\s*[A-Z_]+\s*\]\]$/;
+
+/** A `[[ PLACEHOLDER ]]` string anywhere in `value`, as `calm generate` writes. */
+export function hasPlaceholder(value: unknown): boolean {
+    if (typeof value === 'string') {
+        return PLACEHOLDER.test(value);
+    }
+    if (typeof value === 'object' && value !== null) {
+        return Object.values(value).some(hasPlaceholder);
+    }
+    return false;
+}
+
 /** A saved workspace file's text (absolute path), or null when it does not exist. */
-export function fileText(state: LessonState, path: string): string | null {
+export function fileText(state: HintFiles, path: string): string | null {
     return Object.prototype.hasOwnProperty.call(state.files, path) ? state.files[path] : null;
 }
 
 /** A saved workspace file parsed as a JSON object; null when it is missing, not JSON, or not an object. */
-export function fileJson(state: LessonState, path: string): CalmDocLike | null {
+export function fileJson(state: HintFiles, path: string): CalmDocLike | null {
     const text = fileText(state, path);
     if (text === null) {
         return null;
@@ -187,6 +410,29 @@ export function fileJson(state: LessonState, path: string): CalmDocLike | null {
     } catch {
         return null;
     }
+}
+
+export interface UrlMappingEntry { url: string; path: string; exists: boolean }
+
+/**
+ * The entries of a `-u` URL mapping file: each URL with its local path resolved against the
+ * mapping file's folder, as the CLI and the lab resolve it. A value that is not a non-empty string
+ * gives `path: ''` and `exists: false`. `[]` when the mapping is missing or not a JSON object.
+ */
+export function urlMappingEntries(state: LessonState, mappingPath: string): UrlMappingEntry[] {
+    const directory = mappingPath.slice(0, mappingPath.lastIndexOf('/')) || '/';
+    return Object.entries(fileJson(state, mappingPath) ?? {}).map(([url, value]) => {
+        if (!isNonEmptyString(value)) {
+            return { url, path: '', exists: false };
+        }
+        const path = resolvePath(directory, value);
+        return { url, path, exists: fileText(state, path) !== null };
+    });
+}
+
+/** The mapping's URLs whose local file exists: URL → absolute path. */
+export function urlMappingTargets(state: LessonState, mappingPath: string): Record<string, string> {
+    return Object.fromEntries(urlMappingEntries(state, mappingPath).filter((entry) => entry.exists).map((entry) => [entry.url, entry.path]));
 }
 
 const MARKDOWN_HEADING = /^(#{1,6})\s+(.*?)(?:\s+#+)?\s*$/;

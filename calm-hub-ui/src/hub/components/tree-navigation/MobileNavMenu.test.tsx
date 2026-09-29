@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi, Mock } from 'vitest';
 import { MobileNavMenu } from './MobileNavMenu.js';
 import type { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
 vi.mock('react-router-dom', async () => {
     const actual = await vi.importActual('react-router-dom');
@@ -65,16 +66,23 @@ const namespaceCounts = [
 ] as NamespaceCounts[];
 const domainCounts: DomainControlCount[] = [{ domain: 'security', controlCount: 7 }];
 
+// A group-only node (`platform`, no namespace of its own) with one real child
+// (`platform.payments`) — exercises the nested tree and the group-only case.
+const nestedNamespaceCounts = [
+    ...namespaceCounts,
+    { namespace: 'platform.payments', architectures: 1, patterns: 0, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 1 },
+] as NamespaceCounts[];
+
 const props = {
     namespaceCounts,
     domainCounts,
     onClose: vi.fn(),
 };
 
-const renderMenu = () =>
+const renderMenu = (overrides: Partial<React.ComponentProps<typeof MobileNavMenu>> = {}) =>
     render(
         <MemoryRouter>
-            <MobileNavMenu {...props} />
+            <MobileNavMenu {...props} {...overrides} />
         </MemoryRouter>
     );
 
@@ -240,5 +248,84 @@ describe('MobileNavMenu', () => {
         fireEvent.click(screen.getByLabelText('Back'));
         fireEvent.click(screen.getByText('Control Domains'));
         expect(await screen.findByText("Couldn't load control domains")).toBeInTheDocument();
+    });
+
+    describe('namespace tree', () => {
+        it('nests a child namespace under its parent', async () => {
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage: createMemoryStorage() });
+            fireEvent.click(screen.getByText('Namespaces'));
+
+            expect(await screen.findByText('platform')).toBeInTheDocument();
+            expect(screen.getByText('payments')).toBeInTheDocument();
+        });
+
+        it('expands and collapses the chevron in place, without changing level or closing the drawer', async () => {
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage: createMemoryStorage() });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Collapse platform'));
+            expect(screen.queryByText('payments')).not.toBeInTheDocument();
+            // Still on the namespaces level, drawer still open.
+            expect(screen.getByRole('heading', { name: 'Namespaces' })).toBeInTheDocument();
+            expect(props.onClose).not.toHaveBeenCalled();
+
+            fireEvent.click(screen.getByLabelText('Expand platform'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+        });
+
+        it('shows the hidden descendant count only while a row is collapsed', async () => {
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage: createMemoryStorage() });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+            expect(screen.queryByTestId('nested-count-badge')).not.toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Collapse platform'));
+            expect(screen.getByTestId('nested-count-badge')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Expand platform'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+            expect(screen.queryByTestId('nested-count-badge')).not.toBeInTheDocument();
+        });
+
+        it("still opens the namespace's types list when its label is tapped", async () => {
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage: createMemoryStorage() });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('payments'));
+            expect(await screen.findByText('Architectures')).toBeInTheDocument();
+            expect(screen.getByRole('heading', { name: 'platform.payments' })).toBeInTheDocument();
+        });
+
+        it("does nothing when a group-only row's label is tapped, but its chevron still works", async () => {
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage: createMemoryStorage() });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('platform')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByText('platform'));
+            // No types level was opened — still on the namespaces list.
+            expect(screen.getByRole('heading', { name: 'Namespaces' })).toBeInTheDocument();
+            expect(screen.getByText('payments')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Collapse platform'));
+            expect(screen.queryByText('payments')).not.toBeInTheDocument();
+        });
+
+        it('persists expansion state across a remount via injected storage', async () => {
+            const storage = createMemoryStorage();
+            const { unmount } = renderMenu({ namespaceCounts: nestedNamespaceCounts, storage });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('payments')).toBeInTheDocument();
+
+            fireEvent.click(screen.getByLabelText('Collapse platform'));
+            expect(screen.queryByText('payments')).not.toBeInTheDocument();
+            unmount();
+
+            renderMenu({ namespaceCounts: nestedNamespaceCounts, storage });
+            fireEvent.click(screen.getByText('Namespaces'));
+            expect(await screen.findByText('platform')).toBeInTheDocument();
+            expect(screen.queryByText('payments')).not.toBeInTheDocument();
+        });
     });
 });

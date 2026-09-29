@@ -3,7 +3,7 @@ import { createVfs, type Vfs } from '../lab/vfs';
 import { runCommand, type Line } from '../shell';
 import type { CommandOutcome } from '../cli/outcome';
 import { freshOutcomes, isRejection } from './checks';
-import { commandText, HOME_DIR, type HintCommand, type Lesson, type LessonState, type LessonStep } from './types';
+import { commandText, hintContent, HOME_DIR, type HintCommand, type Lesson, type LessonState, type LessonStep } from './types';
 
 export interface Replay {
     vfs: Vfs;
@@ -73,7 +73,7 @@ export function startReplay(lesson: Lesson): Replay {
         },
         async runHint(step) {
             if (step.hint.kind === 'file') {
-                vfs.write(step.hint.path ?? lesson.editorFile, step.hint.content);
+                vfs.write(step.hint.path ?? lesson.editorFile, hintContent(step.hint, { files: vfs.toJSON().files }));
                 return;
             }
             cwd = HOME_DIR;

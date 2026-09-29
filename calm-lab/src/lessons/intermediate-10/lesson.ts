@@ -152,6 +152,8 @@ export const INTERMEDIATE_10: Lesson = {
         message:
             'You linked architecture decision records to your architecture. The `adrs` array traces each significant ' +
             'decision back to the architecture it shaped, whether the record lives in your workspace or an external tool.',
-        links: [],
+        links: [
+            { to: '?lesson=intermediate-17', label: 'Next lesson: Introduction to patterns' },
+        ],
     },
 };
