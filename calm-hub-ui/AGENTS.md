@@ -280,7 +280,9 @@ restyled desktop while targeting mobile — don't.
   menu) portal into the navbar `#navbar-actions` slot instead of floating in the
   render pane. See `components/navbar/Navbar.tsx` and `diagram-section/DiagramSection.tsx`.
 - **iOS-style drill-down explorer** on mobile (`tree-navigation/MobileNavMenu.tsx`):
-  one flat list per level, not a tree.
+  one flat list per level for `types`, `resources`, `domains` and `controls`. The
+  `namespaces` level is the exception — it renders as a nested tree, because the
+  hierarchy is already latent in the dotted names.
 - **Full-bleed render pane** with the minimap/zoom controls hidden (pinch is the
   native gesture) — see `visualizer/components/reactflow/`.
 - **Tabbed detail views** where desktop stacks panels (e.g.
