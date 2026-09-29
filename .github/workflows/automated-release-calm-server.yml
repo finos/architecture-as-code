@@ -448,16 +448,18 @@ jobs:
         run: |
           # Publish only if the latest completed OSV Scanner run on main passed recently.
           # The age check stops a disabled or stalled scan workflow from passing this gate.
+          # Pull request runs are excluded: a fork PR from a branch named main also reports branch=main.
           RUN=$(gh run list \
             --workflow=osv-scanner.yml \
             --branch=main \
             --status=completed \
-            --limit=1 \
-            --json conclusion,createdAt,url)
+            --limit=20 \
+            --json conclusion,createdAt,event,url \
+            --jq '[.[] | select(.event != "pull_request")][0] // {}')
           echo "Latest osv-scanner run on main: $RUN"
 
-          CONCLUSION=$(echo "$RUN" | jq -r '.[0].conclusion // empty')
-          CREATED=$(echo "$RUN" | jq -r '.[0].createdAt // empty')
+          CONCLUSION=$(echo "$RUN" | jq -r '.conclusion // empty')
+          CREATED=$(echo "$RUN" | jq -r '.createdAt // empty')
           if [ "$CONCLUSION" != "success" ]; then
             echo "❌ The latest dependency scan on main did not pass. Fix or suppress the findings before releasing."
             exit 1
