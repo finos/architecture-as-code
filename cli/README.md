@@ -630,13 +630,13 @@ Options:
 calm init-config \
   --calm-hub-url https://calmhub.example.com \
   --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org \
-  --auth-plugin-path ~/plugins/auth-plugin.js \
-  --direct-url-auth-module ~/plugins/direct-url-auth.js \
+  --auth-plugin-path /full/path/to/plugins/auth-plugin.js \
+  --direct-url-auth-module /full/path/to/plugins/direct-url-auth.js \
   --direct-url-auth-config-path ~/plugins/direct-url-auth.config.json \
   --direct-url-auth-authenticated-hosts protected.example.com,secure.example.com
 ```
 
-The two host-list options trim whitespace, remove empty entries, and merge new hosts with the existing values without duplicates. Scalar options replace their existing values when supplied. Plugin and module paths are stored as provided and validated when the CLI uses them.
+The two host-list options trim whitespace, remove empty entries, and merge new hosts with the existing values without duplicates. Scalar options replace their existing values when supplied. Plugin and module paths are stored as provided and validated at use time by the CLI. Fully qualified paths are recommended to avoid unpredictable behavior caused by relative path resolution.
 
 ## Authentication plugins
 

@@ -7,7 +7,6 @@ import {
 } from '@finos/calm-shared';
 import { Command } from 'commander';
 import { MockInstance } from 'vitest';
-import { resolve } from 'path';
 
 let calmShared: typeof import('@finos/calm-shared');
 let validateModule: typeof import('./command-helpers/validate');
@@ -1625,22 +1624,24 @@ describe('CLI Commands', () => {
                 calmHubUrl: 'https://calmhub.example.com',
                 allowedRemoteHosts: ['schemas.example.com', 'calm.finos.org'],
                 authPluginPath: '~/plugins/auth-plugin.js',
-                directUrlAuthModule: resolve(cliConfigModule.resolveHomeDir('~/plugins/direct-url-auth.js')),
+                directUrlAuthModule: '~/plugins/direct-url-auth.js',
                 directUrlAuthConfigPath: '~/plugins/direct-url-auth.config.json',
                 directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
             });
         });
 
-        it('saves a relative direct URL auth module path as absolute', async () => {
+        it('saves a relative direct URL auth module path unchanged', async () => {
             const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
 
             await program.parseAsync([
                 'node', 'cli.js', 'init-config',
                 '--direct-url-auth-module', './dist/direct-url-auth.js',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
             ]);
 
             expect(saveCliConfig).toHaveBeenCalledWith({
-                directUrlAuthModule: resolve('./dist/direct-url-auth.js'),
+                directUrlAuthModule: './dist/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
             });
         });
 
@@ -1671,6 +1672,7 @@ describe('CLI Commands', () => {
                 authPluginPath: '/old/auth-plugin.js',
                 directUrlAuthModule: '/old/direct-url-auth.js',
                 directUrlAuthConfigPath: '/old/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
             });
             const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
 
@@ -1685,6 +1687,7 @@ describe('CLI Commands', () => {
                 authPluginPath: '/new/auth-plugin.js',
                 directUrlAuthModule: '/new/direct-url-auth.js',
                 directUrlAuthConfigPath: '/new/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
             });
         });
     });

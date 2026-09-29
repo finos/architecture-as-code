@@ -463,7 +463,7 @@ Example:
             }
 
             if (options.directUrlAuthModule) {
-                existingConfig.directUrlAuthModule = path.resolve(cliConfig.resolveHomeDir(options.directUrlAuthModule));
+                existingConfig.directUrlAuthModule = options.directUrlAuthModule;
             }
 
             if (options.directUrlAuthConfigPath) {
@@ -474,6 +474,11 @@ Example:
                 const newHosts = (options.directUrlAuthAuthenticatedHosts as string).split(',').map((host: string) => host.trim()).filter(Boolean);
                 const existingHosts = existingConfig.directUrlAuthAuthenticatedHosts ?? [];
                 existingConfig.directUrlAuthAuthenticatedHosts = [...new Set([...existingHosts, ...newHosts])];
+            }
+            
+            const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(existingConfig);
+            if (directUrlAuthConfig) {
+                cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
             }
 
             const configPath = cliConfig.getUserConfigLocation();
