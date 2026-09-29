@@ -211,8 +211,8 @@ repository:
           .github/workflows/osv-scanner.yml on every pull request, on push to main and twice each
           working day. Scans the root npm lockfile, the calm-hub and calm-models Maven projects and
           the CALM Studio Cargo lockfile; fails on CVSS >= 5; suppressions with justification in
-          osv-scanner.toml. The CLI and calm-server release workflows publish only if the latest
-          scan on main passed within four days.
+          osv-scanner.toml. The CLI and calm-server release workflows publish only if the scan of
+          the commit being released passed.
         rulesets:
           - OSV database, CVSS >= 5
         integration:

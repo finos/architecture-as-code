@@ -450,30 +450,33 @@ jobs:
 
       - name: Check dependency scan status
         run: |
-          # Publish only if the latest completed OSV Scanner run on main passed recently.
-          # The age check stops a disabled or stalled scan workflow from passing this gate.
-          # Pull request runs are excluded: a fork PR from a branch named main also reports branch=main.
-          RUN=$(gh run list \
-            --workflow=osv-scanner.yml \
-            --branch=main \
-            --status=completed \
-            --limit=20 \
-            --json conclusion,createdAt,event,url \
-            --jq '[.[] | select(.event != "pull_request")][0] // {}')
-          echo "Latest osv-scanner run on main: $RUN"
+          # Publish only if OSV Scanner passed on the commit being released.
+          # Wait for the push-triggered scan of that commit; a missing or failed scan blocks the release.
+          # Only push runs count: a pull request run can report the same branch name or commit.
+          SHA=$(git rev-parse HEAD)
+          RUN='{}'
+          for _ in $(seq 1 30); do
+            RUN=$(gh run list \
+              --workflow=osv-scanner.yml \
+              --commit="$SHA" \
+              --event=push \
+              --limit=1 \
+              --json status,conclusion,url \
+              --jq '.[0] // {}')
+            STATUS=$(echo "$RUN" | jq -r '.status // empty')
+            if [ "$STATUS" = "completed" ]; then
+              break
+            fi
+            echo "Waiting for the dependency scan of $SHA (status: ${STATUS:-not started})..."
+            sleep 30
+          done
+          echo "Dependency scan of $SHA: $RUN"
 
-          CONCLUSION=$(echo "$RUN" | jq -r '.conclusion // empty')
-          CREATED=$(echo "$RUN" | jq -r '.createdAt // empty')
-          if [ "$CONCLUSION" != "success" ]; then
-            echo "❌ The latest dependency scan on main did not pass. Fix or suppress the findings before releasing."
+          if [ "$(echo "$RUN" | jq -r '.conclusion // empty')" != "success" ]; then
+            echo "❌ The dependency scan of $SHA did not pass. Fix or suppress the findings before releasing."
             exit 1
           fi
-          AGE_DAYS=$(( ($(date +%s) - $(date -d "$CREATED" +%s)) / 86400 ))
-          if [ "$AGE_DAYS" -gt 4 ]; then
-            echo "❌ The latest dependency scan on main is $AGE_DAYS days old. Check that osv-scanner.yml is enabled."
-            exit 1
-          fi
-          echo "✅ Dependency scan passed on main $AGE_DAYS day(s) ago."
+          echo "✅ Dependency scan passed on $SHA."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
