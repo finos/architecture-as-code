@@ -107,6 +107,21 @@ describe('ItemCard', () => {
         expect(screen.getByText('1 version')).toBeInTheDocument();
     });
 
+    it('falls back to the customId instead of "0 versions" when the version count is zero', () => {
+        // GitHub-backed summaries always report a count of 0 - the count is unknown, not zero.
+        render(
+            <ItemCard
+                name="Position Service"
+                type="Architectures"
+                customId="position-service"
+                versionCount={0}
+                onActivate={() => {}}
+            />
+        );
+        expect(screen.getByText('position-service')).toBeInTheDocument();
+        expect(screen.queryByText(/0 versions/)).not.toBeInTheDocument();
+    });
+
     it('carries no aria-pressed on a plain browse card (not a toggle)', () => {
         // Browse cards omit `active`, so the activation button must not read as a toggle.
         render(<ItemCard name="Browse Me" type="Architectures" onActivate={() => {}} />);

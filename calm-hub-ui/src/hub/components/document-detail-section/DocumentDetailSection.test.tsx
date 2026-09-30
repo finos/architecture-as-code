@@ -397,4 +397,41 @@ describe('DocumentDetailSection', () => {
 
         expect(container.textContent).toContain('Standard');
     });
+
+    it('renders a JSON string with leading whitespace as JSON, not markdown', () => {
+        const data: Data = {
+            id: 'std-json',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '  \n{"unique-id": "std-json"}',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.querySelector('.prose')).toBeNull();
+    });
+
+    it('falls back to the document id in the breadcrumb when markdown has no heading', () => {
+        const data: Data = {
+            id: 'std-no-heading',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: 'Plain prose with no heading.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.querySelector('.prose')).not.toBeNull();
+        expect(container.textContent).toContain('std-no-heading');
+    });
 });

@@ -30,21 +30,14 @@ interface DocumentDetailSectionProps {
 }
 
 function getDisplayName(data: Data): string {
-    if (typeof data.data === 'string') {
-        const content = data.data as string;
-        const headingMatch = content.match(/^#\s+(.+)$/m);
-        if (headingMatch) return headingMatch[1];
-    }
-    if (typeof data.data === 'object' && data.data && 'name' in (data.data as object)) {
-        return String((data.data as Record<string, unknown>).name);
-    }
-    return data.id;
+    const headingMatch = (data.data as string).match(/^#\s+(.+)$/m);
+    return headingMatch ? headingMatch[1] : data.id;
 }
 
+// The GitHub backend serves a standard's .md sibling as a plain string; JSON documents
+// arrive parsed as objects, or as a string that opens with "{".
 function isMarkdownContent(data: Data): boolean {
-    if (typeof data.data !== 'string') return false;
-    const content = data.data as string;
-    return content.startsWith('#') || content.startsWith('---') || !content.startsWith('{');
+    return typeof data.data === 'string' && !data.data.trimStart().startsWith('{');
 }
 
 function calmTypeToUrlSegment(calmType: string): string {
@@ -171,8 +164,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     const displayName = isFlow ? data.data?.name : isMarkdown ? getDisplayName(data) : undefined;
     const typeLabel = isFlow ? 'Flow'
         : data.calmType === 'Standards' ? 'Standard'
-            : isMarkdown ? data.calmType
-                : undefined;
+            : undefined;
 
     const handleVersionChange = (version: string) => {
         if (version === data.version) return;
