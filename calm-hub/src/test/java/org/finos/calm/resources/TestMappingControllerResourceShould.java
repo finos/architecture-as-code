@@ -555,6 +555,40 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void keep_backend_order_when_the_versions_are_commit_shas() throws Exception {
+        // Semver sorting would put the SHA first (it parses as 0.0.0); backend order is history order.
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("sha-test")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "sha-test")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+                .thenReturn(List.of("2.0.0", "abc1234", "1.0.0"));
+
+        given().when().get("/calm/namespaces/finos/patterns/sha-test/versions")
+                .then().statusCode(200)
+                .body("values", hasSize(3))
+                .body("values[0]", is("2.0.0"))
+                .body("values[1]", is("abc1234"))
+                .body("values[2]", is("1.0.0"));
+    }
+
+    @Test
+    void still_semver_sort_when_an_all_digit_version_is_not_a_real_sha() throws Exception {
+        // "1234567" is SHA-shaped but also valid under VERSION_REGEX, so it must not switch off sorting.
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("digits-test")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "digits-test")).thenReturn(mapping);
+        when(mockPatternStore.getPatternVersions(any(Pattern.class)))
+                .thenReturn(List.of("1.0.0", "1234567"));
+
+        given().when().get("/calm/namespaces/finos/patterns/digits-test/versions")
+                .then().statusCode(200)
+                .body("values[0]", is("1234567"))
+                .body("values[1]", is("1.0.0"));
+    }
+
+    @Test
     void return_404_when_mapping_not_found_on_list_versions() throws Exception {
         when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "nonexistent")).thenThrow(new MappingNotFoundException());
 
