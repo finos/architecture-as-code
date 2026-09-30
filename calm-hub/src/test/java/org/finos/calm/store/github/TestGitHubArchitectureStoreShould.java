@@ -30,6 +30,7 @@ import java.util.Map;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -72,6 +73,7 @@ class TestGitHubArchitectureStoreShould {
 
         assertThat(result, hasSize(1));
         assertThat(result.get(0).getName(), equalTo("My Architecture"));
+        assertThat(result.get(0).getDescription(), is(nullValue()));
     }
 
     @Test
