@@ -189,7 +189,7 @@ repository:
     tools:
       - name: CodeQL
         type: SAST
-        comment: GitHub code scanning default setup; runs on every pull request and weekly against main.
+        comment: .github/workflows/codeql.yml (advanced setup); runs on every pull request, including pull requests from forks, and weekly against main.
         rulesets:
           - default
         integration:
