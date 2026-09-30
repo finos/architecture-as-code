@@ -16,6 +16,8 @@ import java.util.Set;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.everyItem;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -24,7 +26,7 @@ import static org.hamcrest.Matchers.not;
 /**
  * End-to-end proof, against the same real local git repos as
  * {@link GitHubUserAccessDomainReadIntegration} (no mocking of any GitHub store or registry
- * class), of four behaviours this rework changed and that a unit test alone can't fully
+ * class), of the behaviours this rework changed and that a unit test alone can't fully
  * verify because they depend on real clone/registry wiring:
  *
  * <ul>
@@ -38,6 +40,7 @@ import static org.hamcrest.Matchers.not;
  *       not the 500 it returned before the Phase 2 revert (the domain-scoped route - the
  *       correct one - is proven separately in {@link GitHubUserAccessDomainReadIntegration})
  *       </li>
+ *   <li>search only returns results from namespaces the caller can read</li>
  * </ul>
  */
 @QuarkusTest
@@ -97,6 +100,8 @@ class GitHubReworkBehaviorIntegration {
 
         assertThat(versions, not(hasItem("latest")));
         assertThat(versions, everyItem(matchesPattern(SHA_PATTERN)));
+        // The commits API is unreachable in this fixture, so the list is exactly the clone's HEAD SHA.
+        assertThat(versions, contains(cloneManager.headSha("finos")));
     }
 
     @Test
@@ -118,6 +123,30 @@ class GitHubReworkBehaviorIntegration {
                 .then()
                 .statusCode(400)
                 .body(org.hamcrest.Matchers.containsString("Unsupported resource type"));
+    }
+
+    @Test
+    @TestSecurity(user = "alice", roles = "group1")
+    void search_only_the_namespaces_the_caller_can_read() {
+        // Both repos hold a "searchable-*" standard; alice only has group1, which grants "finos".
+        given()
+                .when().get("/calm/search?q=searchable")
+                .then()
+                .statusCode(200)
+                .body("standards.name", contains("Searchable Standard"))
+                .body("standards.namespace", contains("finos"));
+    }
+
+    @Test
+    @TestSecurity(user = "bob", roles = {"group1", "group2"})
+    void search_every_namespace_when_the_caller_can_read_all_of_them() {
+        // Proves the "other" fixture standard is indexed, so the single-namespace result
+        // above is scoping and not an empty index.
+        given()
+                .when().get("/calm/search?q=searchable")
+                .then()
+                .statusCode(200)
+                .body("standards.name", containsInAnyOrder("Searchable Standard", "Searchable Other"));
     }
 
     private int rateLimitPolicyStandardId() {

@@ -22,7 +22,8 @@ import java.util.Map;
  * <p>"finos-repo" also carries a {@code building-blocks/rate-limit-policy.json} file -
  * see {@link GitHubReworkBehaviorIntegration} for what that proves (the Building
  * Block-to-Standard alias, and the "latest" removal, end to end against a real local clone
- * rather than a mock).
+ * rather than a mock). Each repo also carries one {@code standards/searchable-*.json} file so
+ * the namespace scoping of search can be proven.
  */
 public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManager {
 
@@ -39,10 +40,12 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
 
             createRepo(originRoot.resolve("finos-repo.git"), Map.of(
                     "controls/security/access-control.json", "{}",
-                    "building-blocks/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}"
+                    "building-blocks/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}",
+                    "standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}"
             ));
             createRepo(originRoot.resolve("other-repo.git"), Map.of(
-                    "controls/finance/other-control.json", "{}"
+                    "controls/finance/other-control.json", "{}",
+                    "standards/searchable-other.json", "{\"name\":\"Searchable Other\"}"
             ));
 
             LOG.info("GitHub fixture repos created under {}", originRoot);
@@ -56,6 +59,10 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
                 "calm.database.mode", "github",
                 "calm.auth.enabled", "true",
                 "calm.github.oauth.base-url", baseUrl,
+                // Nothing listens on port 1: the commits-API call for version history fails fast
+                // and the stores fall back to the clone's HEAD SHA, instead of reaching the real
+                // api.github.com from a test.
+                "calm.github.api-url", "http://127.0.0.1:1",
                 "calm.github.clone-directory", cloneDirectory.toString(),
                 "calm.github.namespaces", "finos|finos-repo|main|group1,other|other-repo|main|group2"
         );
@@ -89,7 +96,7 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
         deleteRecursively(originRoot);
         deleteRecursively(cloneDirectory);
         for (String key : new String[]{"calm.database.mode", "calm.auth.enabled", "calm.github.oauth.base-url",
-                "calm.github.clone-directory", "calm.github.namespaces"}) {
+                "calm.github.api-url", "calm.github.clone-directory", "calm.github.namespaces"}) {
             System.clearProperty(key);
         }
     }
