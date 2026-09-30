@@ -35,6 +35,8 @@ export function createEdge(config: EdgeConfig): Edge {
         id,
         source,
         target,
+        sourceHandle: 'source',
+        targetHandle: 'target',
         type: 'custom',
         animated,
         style: {

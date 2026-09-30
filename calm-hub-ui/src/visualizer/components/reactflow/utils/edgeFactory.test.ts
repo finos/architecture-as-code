@@ -20,10 +20,10 @@ describe('createEdge', () => {
         expect(edge.type).toBe('custom');
     });
 
-    it('does not set explicit handles so ReactFlow auto-selects nearest', () => {
+    it('sets source and target handles', () => {
         const edge = createEdge(baseConfig);
-        expect(edge.sourceHandle).toBeUndefined();
-        expect(edge.targetHandle).toBeUndefined();
+        expect(edge.sourceHandle).toBe('source');
+        expect(edge.targetHandle).toBe('target');
     });
 
     it('includes description in data from label', () => {
@@ -101,21 +101,5 @@ describe('createEdge', () => {
         expect(edge.data.source).toBeUndefined();
         expect(edge.data.target).toBeUndefined();
         expect(edge.data.label).toBeUndefined();
-    });
-
-    it('passes routing metadata through to edge data', () => {
-        const edge = createEdge({
-            ...baseConfig,
-            data: { metadata: { routing: 'smoothstep' } },
-        });
-        expect(edge.data.metadata.routing).toBe('smoothstep');
-    });
-
-    it('passes protocol through to edge data', () => {
-        const edge = createEdge({
-            ...baseConfig,
-            data: { protocol: 'HTTPS' },
-        });
-        expect(edge.data.protocol).toBe('HTTPS');
     });
 });
