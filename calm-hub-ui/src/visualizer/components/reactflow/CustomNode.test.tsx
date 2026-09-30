@@ -239,6 +239,7 @@ describe('CustomNode — external URL support', () => {
             ['an empty string', ''],
             ['whitespace', '   '],
             ['a non-string value', { not: 'a colour' }],
+            ['a url()', 'url(https://host/pixel.png)'],
         ])('ignores %s as the background, keeping the default background and border', (_label, background) => {
             const styled = renderStyled({ 'building-block-style': { background } });
             const unstyled = renderStyled({});

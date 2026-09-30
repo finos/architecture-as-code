@@ -21,10 +21,7 @@ import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitectur
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
-
-function usableColor(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
-}
+import { usableColor } from './utils/usableColor.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -100,8 +97,7 @@ function CustomNodeComponent({ data }: NodeProps) {
   const archPath = isSameOriginArch ? archResolution.path : undefined;
 
     // Extract building-block-style colors from metadata (if present)
-    // Only a non-empty string is a usable CSS colour; anything else is ignored rather than
-    // written into the style.
+    // Only a non-empty string is a usable CSS colour; anything else is ignored.
     const rawBlockStyle = data.metadata?.['building-block-style'] as { background?: unknown; text?: unknown } | undefined;
     const blockBackground = usableColor(rawBlockStyle?.background);
     const blockText = usableColor(rawBlockStyle?.text);
