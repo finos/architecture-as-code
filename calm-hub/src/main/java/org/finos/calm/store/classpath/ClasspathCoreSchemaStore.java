@@ -5,6 +5,8 @@ import jakarta.enterprise.inject.Typed;
 import jakarta.json.Json;
 import jakarta.json.JsonObject;
 import jakarta.json.JsonReader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -28,6 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @ApplicationScoped
 @Typed(ClasspathCoreSchemaStore.class)
 public class ClasspathCoreSchemaStore implements org.finos.calm.store.CoreSchemaStore {
+
+    private static final Logger LOG = LoggerFactory.getLogger(ClasspathCoreSchemaStore.class);
 
     private static final String SCHEMA_BASE_PATH = "META-INF/calm-schemas/";
     private static final String VERSIONS_INDEX = SCHEMA_BASE_PATH + "versions.txt";
@@ -110,6 +114,7 @@ public class ClasspathCoreSchemaStore implements org.finos.calm.store.CoreSchema
     private Object loadJsonResource(String path) {
         try (InputStream is = Thread.currentThread().getContextClassLoader().getResourceAsStream(path)) {
             if (is == null) {
+                LOG.error("Schema resource listed in files.txt is not on the classpath: {}", path);
                 return null;
             }
             try (JsonReader reader = Json.createReader(is)) {
@@ -117,6 +122,7 @@ public class ClasspathCoreSchemaStore implements org.finos.calm.store.CoreSchema
                 return obj.toString();
             }
         } catch (IOException e) {
+            LOG.error("Failed to read schema resource {}", path, e);
             return null;
         }
     }
