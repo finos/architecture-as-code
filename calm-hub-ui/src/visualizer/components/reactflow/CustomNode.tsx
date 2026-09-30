@@ -172,8 +172,9 @@ function CustomNodeComponent({ data }: NodeProps) {
       {/* Base node - always visible, fixed size */}
       <div
         style={{
-          background: buildingBlockStyle?.background || `${nodeTypeStyle.color}12`,
-          border: `2px solid ${buildingBlockStyle?.background || borderColor}`,
+          background: buildingBlockStyle?.background || THEME.colors.card,
+          // The AIGF risk colour outranks the block style so a risky node stays flagged
+          border: `2px solid ${riskLevel ? borderColor : (buildingBlockStyle?.background ?? borderColor)}`,
           borderRadius: '12px',
           padding: '16px',
           width: '100%',

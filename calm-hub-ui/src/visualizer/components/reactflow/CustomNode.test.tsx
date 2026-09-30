@@ -3,6 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
+import { THEME, getRiskLevelColor } from './theme.js';
 
 vi.mock('reactflow', () => ({
     Handle: ({ position, id }: { position: string; id: string }) => (
@@ -228,5 +229,52 @@ describe('CustomNode — external URL support', () => {
         const nodeDiv = container.querySelector('[data-testid="custom-node"] > div');
         expect(nodeDiv).not.toBeNull();
         expect(nodeDiv?.getAttribute('style')).toContain('rgb(28, 69, 135)');
+    });
+
+    // Round-trips a colour through the DOM so hex and rgb() spellings compare equal.
+    function normalisedColor(color: string): string {
+        const probe = document.createElement('div');
+        probe.style.color = color;
+        return probe.style.color;
+    }
+
+    function styledNodeProps(nodeType: string, metadata: Record<string, unknown>) {
+        return {
+            id: 'node-styled',
+            type: 'custom',
+            selected: false,
+            zIndex: 0,
+            isConnectable: true,
+            xPos: 0,
+            yPos: 0,
+            dragging: false,
+            data: { label: 'Styled Node', description: 'A styled node', 'node-type': nodeType, metadata },
+        };
+    }
+
+    it('uses the block style as the border when the node has no risk level', () => {
+        const { container } = renderNode(
+            styledNodeProps('webclient', { 'building-block-style': { background: '#1C4587' } })
+        );
+        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
+        expect(nodeDiv.style.borderColor).toBe(normalisedColor('#1C4587'));
+    });
+
+    it('keeps the AIGF risk colour as the border when a block style is also set', () => {
+        const { container } = renderNode(
+            styledNodeProps('webclient', {
+                'building-block-style': { background: '#1C4587' },
+                aigf: { 'risk-level': 'high' },
+            })
+        );
+        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
+        expect(nodeDiv.style.borderColor).toBe(normalisedColor(getRiskLevelColor('high')));
+        expect(nodeDiv.style.background).toContain('rgb(28, 69, 135)');
+    });
+
+    it('falls back to the card background for a node type with no catalogued colour', () => {
+        const { container } = renderNode(styledNodeProps('not-a-known-type', {}));
+        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
+        expect(nodeDiv.style.background).toBe(normalisedColor(THEME.colors.card));
     });
 });
