@@ -91,7 +91,10 @@ describe('intermediate-18 lesson', () => {
         }
     });
 
-    it('has no completion links yet', () => {
-        expect(INTERMEDIATE_18.completion.links).toEqual([]);
+    it('links to the next lesson', () => {
+        expect(INTERMEDIATE_18.completion.links).toContainEqual({
+            to: '?lesson=intermediate-19',
+            label: 'Next lesson: Enforcing standards with patterns',
+        });
     });
 });
