@@ -78,7 +78,6 @@ export interface EdgeBadgeStyle {
  */
 export interface EdgeBadgeProps {
     hasFlowInfo: boolean;
-    hasAIGF: boolean;
     badgeStyle: EdgeBadgeStyle;
     onMouseEnter?: () => void;
     onMouseLeave?: () => void;

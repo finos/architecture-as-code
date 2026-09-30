@@ -70,7 +70,7 @@ function FloatingEdgeComponent({
     // the badge is the only signal that metadata exists, independent of edgeLabel.
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
-    const badgeStyle = getBadgeStyle(hasFlowInfo, hasAIGF);
+    const badgeStyle = getBadgeStyle(hasFlowInfo);
     const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF;
 
     return (
@@ -111,7 +111,6 @@ function FloatingEdgeComponent({
                         {(hasFlowInfo || hasAIGF) && (
                             <EdgeBadge
                                 hasFlowInfo={hasFlowInfo}
-                                hasAIGF={hasAIGF}
                                 badgeStyle={badgeStyle}
                             />
                         )}
