@@ -647,6 +647,18 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void return_200_for_a_commit_sha_pattern_version() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{\"version\": \"abc1234\"}");
+
+        given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/abc1234")
+                .then().statusCode(200).body(containsString("abc1234"));
+    }
+
+    @Test
     void return_400_when_latest_is_requested_as_a_version_on_the_shared_front_controller() {
         // "latest" is not a version anywhere on this backend-agnostic route - it never
         // reaches parseTypePlural/the store, it's rejected by bean validation before
