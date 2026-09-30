@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IoChevronForwardOutline } from 'react-icons/io5';
 import { NamespaceCounts } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { CountBadge } from './CountBadge.js';
+import { anchorFlyout, type FlyoutAnchor } from './flyout-anchor.js';
 import { buildNamespaceTree, flattenNamespaceTree, indentFor, isNamespace, type NamespaceTreeNode } from './namespace-tree.js';
 
 interface CollapsedRailProps {
@@ -12,33 +13,8 @@ interface CollapsedRailProps {
     onExpand: () => void;
 }
 
-const PANEL_GUTTER = 8;
-
 function isWithin(container: HTMLElement, target: EventTarget | null): boolean {
     return target instanceof Node && container.contains(target);
-}
-
-interface PanelAnchor {
-    position: CSSProperties;
-    maxHeight: number;
-}
-
-/**
- * Viewport coordinates for the fly-out beside a trigger. The panel is fixed, not absolute,
- * because the initials scroll and a scroll container clips anything positioned inside it.
- * It grows downward from the trigger, or upward from it where that leaves more room, so the
- * last rows of a root near the foot of the window stay on screen.
- */
-function anchorTo(trigger: HTMLElement): PanelAnchor {
-    const viewport = window.innerHeight;
-    const rect = trigger.getBoundingClientRect();
-    const roomBelow = viewport - rect.top - PANEL_GUTTER;
-    const roomAbove = rect.bottom - PANEL_GUTTER;
-    const cap = viewport * 0.6;
-
-    return roomBelow >= roomAbove
-        ? { position: { left: rect.right, top: rect.top }, maxHeight: Math.round(Math.min(cap, roomBelow)) }
-        : { position: { left: rect.right, bottom: viewport - rect.bottom }, maxHeight: Math.round(Math.min(cap, roomAbove)) };
 }
 
 function FlyoutRow({ node, depth, active, onSelect }: { node: NamespaceTreeNode; depth: number; active: boolean; onSelect: () => void }) {
@@ -100,7 +76,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     // a link keeps focus after navigating so the pointer leaving would not close it.
     const pointerInside = useRef(false);
     const focusInside = useRef(false);
-    const [anchor, setAnchor] = useState<PanelAnchor | null>(null);
+    const [anchor, setAnchor] = useState<FlyoutAnchor | null>(null);
 
     /**
      * Measured as the panel opens, because the rail scrolls and the trigger moves with it.
@@ -108,7 +84,9 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
      * would hand React a new object each time for coordinates that have not changed.
      */
     const open = () => {
-        if (!isOpen && triggerRef.current) setAnchor(anchorTo(triggerRef.current));
+        if (!isOpen && triggerRef.current) {
+            setAnchor(anchorFlyout(triggerRef.current.getBoundingClientRect(), window.innerHeight));
+        }
         onOpen();
     };
 
@@ -181,7 +159,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 // margin on the panel. A margin sits outside the container, so crossing it puts
                 // the pointer over a non-descendant and fires mouseleave before the panel is
                 // reached. As padding it stays part of the hit area.
-                <div className="fixed pl-1 z-50" style={anchor?.position}>
+                <div className="fixed pl-1 z-50" style={{ left: anchor?.left, top: anchor?.top, bottom: anchor?.bottom }}>
                     <div
                         className="flex flex-col gap-0.5 p-1.5 rounded-[12px]"
                         style={{
@@ -234,7 +212,7 @@ export function CollapsedRail({ namespaceCounts, onExpand }: CollapsedRailProps)
                 </button>
             </div>
 
-            <div className="flex flex-col items-center gap-1.5 w-full flex-1 min-h-0 overflow-auto pb-3">
+            <div className="flex flex-col items-center gap-1.5 w-full flex-1 min-h-0 overflow-auto pt-1 pb-3">
                 {tree.map((root) => (
                     <RootInitial
                         key={root.path}

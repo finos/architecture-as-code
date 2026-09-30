@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { CollapsedRail } from './CollapsedRail.js';
+import { anchorFlyout } from './flyout-anchor.js';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import type { NamespaceCounts } from '../../../model/counts.js';
@@ -34,15 +35,7 @@ const flyoutPanel = () => screen.getByText('calm').closest('div[style*="max-heig
 function stubRect(trigger: HTMLElement, top: number) {
     const height = 24;
     vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
-        top,
-        bottom: top + height,
-        left: 0,
-        right: 32,
-        width: 32,
-        height,
-        x: 0,
-        y: top,
-        toJSON: () => ({}),
+        top, bottom: top + height, left: 0, right: 32, width: 32, height, x: 0, y: top, toJSON: () => ({}),
     });
 }
 
@@ -197,9 +190,14 @@ describe('CollapsedRail', () => {
 
     it('caps the fly-out height so a deep subtree can scroll', () => {
         renderRail();
-        fireEvent.focus(screen.getByRole('button', { name: 'finos' }));
-        // 60% of jsdom's 768px window, which is the smaller of the cap and the room below.
-        expect(flyoutPanel()).toHaveStyle({ maxHeight: '461px', overflowY: 'auto' });
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+
+        fireEvent.focus(trigger);
+
+        // The figures are anchorFlyout's, over jsdom's 768px window; its own suite covers them.
+        expect(flyoutWrapper()).toHaveStyle({ top: '100px', left: '32px' });
+        expect(flyoutPanel()).toHaveStyle({ maxHeight: `${anchorFlyout(trigger.getBoundingClientRect(), 768).maxHeight}px`, overflowY: 'auto' });
     });
 
     it('scrolls the root initials, so a window too short for them all still reaches every one', () => {
@@ -210,6 +208,8 @@ describe('CollapsedRail', () => {
         const list = screen.getByRole('button', { name: 'finos' }).closest('.overflow-auto');
         expect(list?.className).toContain('flex-1');
         expect(list?.className).toContain('min-h-0');
+        // The focus ring is drawn 3px outside the initial, and the scroll container clips it.
+        expect(list?.className).toContain('pt-1');
     });
 
     it('positions the fly-out against the viewport, so the scrolling rail cannot clip it', () => {
@@ -221,19 +221,7 @@ describe('CollapsedRail', () => {
         expect(positioned).toBeInTheDocument();
     });
 
-    it('limits the fly-out to the room below the trigger', () => {
-        renderRail();
-        const trigger = screen.getByRole('button', { name: 'finos' });
-        stubRect(trigger, 350);
-
-        fireEvent.focus(trigger);
-
-        expect(flyoutWrapper()).toHaveStyle({ top: '350px', left: '32px' });
-        // 768 - 350 - 8 of room, which is less than the 460.8px cap.
-        expect(flyoutPanel()).toHaveStyle({ maxHeight: '410px' });
-    });
-
-    it('opens the fly-out upward when the trigger is near the foot of the window', () => {
+    it('takes the upward anchor when the trigger is near the foot of the window', () => {
         renderRail();
         const trigger = screen.getByRole('button', { name: 'finos' });
         stubRect(trigger, 700);
@@ -244,7 +232,6 @@ describe('CollapsedRail', () => {
         const wrapper = flyoutWrapper();
         expect(wrapper).toHaveStyle({ bottom: '44px' });
         expect(wrapper.style.top).toBe('');
-        expect(flyoutPanel()).toHaveStyle({ maxHeight: '461px' });
     });
 
     it('renders a group-only root row inside the fly-out without a link', () => {
