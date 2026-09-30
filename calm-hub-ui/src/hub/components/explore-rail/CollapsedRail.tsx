@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IoChevronForwardOutline } from 'react-icons/io5';
 import { NamespaceCounts } from '../../../model/counts.js';
@@ -12,8 +12,33 @@ interface CollapsedRailProps {
     onExpand: () => void;
 }
 
+const PANEL_GUTTER = 8;
+
 function isWithin(container: HTMLElement, target: EventTarget | null): boolean {
     return target instanceof Node && container.contains(target);
+}
+
+interface PanelAnchor {
+    position: CSSProperties;
+    maxHeight: number;
+}
+
+/**
+ * Viewport coordinates for the fly-out beside a trigger. The panel is fixed, not absolute,
+ * because the initials scroll and a scroll container clips anything positioned inside it.
+ * It grows downward from the trigger, or upward from it where that leaves more room, so the
+ * last rows of a root near the foot of the window stay on screen.
+ */
+function anchorTo(trigger: HTMLElement): PanelAnchor {
+    const viewport = window.innerHeight;
+    const rect = trigger.getBoundingClientRect();
+    const roomBelow = viewport - rect.top - PANEL_GUTTER;
+    const roomAbove = rect.bottom - PANEL_GUTTER;
+    const cap = viewport * 0.6;
+
+    return roomBelow >= roomAbove
+        ? { position: { left: rect.right, top: rect.top }, maxHeight: Math.round(Math.min(cap, roomBelow)) }
+        : { position: { left: rect.right, bottom: viewport - rect.bottom }, maxHeight: Math.round(Math.min(cap, roomAbove)) };
 }
 
 function FlyoutRow({ node, depth, active, onSelect }: { node: NamespaceTreeNode; depth: number; active: boolean; onSelect: () => void }) {
@@ -75,6 +100,13 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     // a link keeps focus after navigating so the pointer leaving would not close it.
     const pointerInside = useRef(false);
     const focusInside = useRef(false);
+    const [anchor, setAnchor] = useState<PanelAnchor | null>(null);
+
+    /** Measured as the panel opens, because the rail scrolls and the trigger moves with it. */
+    const open = () => {
+        if (triggerRef.current) setAnchor(anchorTo(triggerRef.current));
+        onOpen();
+    };
 
     const closeIfLeft = () => {
         if (!pointerInside.current && !focusInside.current) onClose();
@@ -89,11 +121,10 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
 
     return (
         <div
-            className="relative"
             onMouseEnter={() => {
                 pointerInside.current = true;
                 dismissedRef.current = false;
-                onOpen();
+                open();
             }}
             onMouseLeave={() => {
                 pointerInside.current = false;
@@ -101,7 +132,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
             }}
             onFocus={() => {
                 focusInside.current = true;
-                if (!dismissedRef.current) onOpen();
+                if (!dismissedRef.current) open();
             }}
             onBlur={(e) => {
                 if (isWithin(e.currentTarget, e.relatedTarget)) return;
@@ -126,7 +157,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 onClick={() => {
                     dismissedRef.current = false;
                     focusInside.current = true;
-                    onOpen();
+                    open();
                 }}
                 className="flex items-center justify-center font-semibold text-[13px] rounded-[7px] border-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]"
                 style={{
@@ -146,12 +177,12 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 // margin on the panel. A margin sits outside the container, so crossing it puts
                 // the pointer over a non-descendant and fires mouseleave before the panel is
                 // reached. As padding it stays part of the hit area.
-                <div className="absolute top-0 left-full pl-1 z-50">
+                <div className="fixed pl-1 z-50" style={anchor?.position}>
                     <div
                         className="flex flex-col gap-0.5 p-1.5 rounded-[12px]"
                         style={{
                             width: 220,
-                            maxHeight: '60vh',
+                            maxHeight: anchor?.maxHeight,
                             overflowY: 'auto',
                             backgroundColor: colors.redesign.surface,
                             border: `1px solid ${colors.redesign.border}`,
@@ -199,7 +230,7 @@ export function CollapsedRail({ namespaceCounts, onExpand }: CollapsedRailProps)
                 </button>
             </div>
 
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 w-full flex-1 min-h-0 overflow-auto pb-3">
                 {tree.map((root) => (
                     <RootInitial
                         key={root.path}
