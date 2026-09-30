@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.UserAccessStore;
+import org.finos.calm.store.github.GitHubUserAccessStore;
 import org.finos.calm.store.mongo.MongoUserAccessStore;
 import org.finos.calm.store.nitrite.NitriteUserAccessStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,22 +37,32 @@ public class TestUserAccessStoreProducerShould {
     @Mock
     private Instance<NitriteUserAccessStore> mockNitriteUserAccessStoreInstance;
 
+    @Mock
+    private GitHubUserAccessStore mockGitHubUserAccessStore;
+
+    @Mock
+    private Instance<GitHubUserAccessStore> mockGitHubUserAccessStoreInstance;
+
     private UserAccessStoreProducer producer;
 
     @BeforeEach
     public void setup() throws Exception {
         producer = new UserAccessStoreProducer();
-        
-        // Use reflection to inject the mocked dependencies
+
         Field mongoField = UserAccessStoreProducer.class.getDeclaredField("mongoUserAccessStore");
         mongoField.setAccessible(true);
         when(mockMongoUserAccessStoreInstance.get()).thenReturn(mockMongoUserAccessStore);
         mongoField.set(producer, mockMongoUserAccessStoreInstance);
-        
+
         Field nitriteField = UserAccessStoreProducer.class.getDeclaredField("standaloneUserAccessStore");
         nitriteField.setAccessible(true);
         when(mockNitriteUserAccessStoreInstance.get()).thenReturn(mockNitriteUserAccessStore);
         nitriteField.set(producer, mockNitriteUserAccessStoreInstance);
+
+        Field githubField = UserAccessStoreProducer.class.getDeclaredField("gitHubUserAccessStore");
+        githubField.setAccessible(true);
+        when(mockGitHubUserAccessStoreInstance.get()).thenReturn(mockGitHubUserAccessStore);
+        githubField.set(producer, mockGitHubUserAccessStoreInstance);
     }
 
     @Test
@@ -97,15 +109,23 @@ public class TestUserAccessStoreProducerShould {
 
     @Test
     public void testProduceUserAccessStore_whenDatabaseModeIsUnknown_returnsMongoStore() throws Exception {
-        // Arrange
         Field databaseModeField = UserAccessStoreProducer.class.getDeclaredField("databaseMode");
         databaseModeField.setAccessible(true);
         databaseModeField.set(producer, "unknown");
 
-        // Act
         UserAccessStore result = producer.produceUserAccessStore();
 
-        // Assert
         assertThat(result, is(sameInstance(mockMongoUserAccessStore)));
+    }
+
+    @Test
+    public void testProduceUserAccessStore_whenDatabaseModeIsGithub_returnsGitHubStore() throws Exception {
+        Field databaseModeField = UserAccessStoreProducer.class.getDeclaredField("databaseMode");
+        databaseModeField.setAccessible(true);
+        databaseModeField.set(producer, DatabaseMode.GITHUB);
+
+        UserAccessStore result = producer.produceUserAccessStore();
+
+        assertThat(result, is(sameInstance(mockGitHubUserAccessStore)));
     }
 }
