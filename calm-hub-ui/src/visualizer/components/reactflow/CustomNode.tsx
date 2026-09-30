@@ -22,6 +22,10 @@ import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
 
+function usableColor(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
  * Architecture", "Open Architecture"): one filled `primary` and one bordered
@@ -96,7 +100,11 @@ function CustomNodeComponent({ data }: NodeProps) {
   const archPath = isSameOriginArch ? archResolution.path : undefined;
 
     // Extract building-block-style colors from metadata (if present)
-    const buildingBlockStyle = data.metadata?.['building-block-style'] as { background?: string; text?: string } | undefined;
+    // Only a non-empty string is a usable CSS colour; anything else is ignored rather than
+    // written into the style.
+    const rawBlockStyle = data.metadata?.['building-block-style'] as { background?: unknown; text?: unknown } | undefined;
+    const blockBackground = usableColor(rawBlockStyle?.background);
+    const blockText = usableColor(rawBlockStyle?.text);
 
     // Extract AIGF data (if present in node metadata)
     const aigf = data.metadata?.aigf;
@@ -172,13 +180,13 @@ function CustomNodeComponent({ data }: NodeProps) {
       {/* Base node - always visible, fixed size */}
       <div
         style={{
-          background: buildingBlockStyle?.background || THEME.colors.card,
+          background: blockBackground ?? THEME.colors.card,
           // The AIGF risk colour outranks the block style so a risky node stays flagged
-          border: `2px solid ${riskLevel ? borderColor : (buildingBlockStyle?.background ?? borderColor)}`,
+          border: `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
           padding: '16px',
           width: '100%',
-          color: buildingBlockStyle?.text || THEME.colors.foreground,
+          color: blockText ?? THEME.colors.foreground,
           fontSize: '14px',
           fontWeight: 500,
           boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
@@ -186,10 +194,8 @@ function CustomNodeComponent({ data }: NodeProps) {
         }}
       >
       {/* Hidden handles to satisfy React Flow; floating edge computes actual attachment */}
-      <Handle type="target" position={Position.Top} id="top-target" style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ opacity: 0 }} />
-      <Handle type="target" position={Position.Left} id="left-target" style={{ opacity: 0 }} />
-      <Handle type="source" position={Position.Right} id="right-source" style={{ opacity: 0 }} />
+      <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
+      <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
 
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
         <div style={{ fontWeight: 600, marginBottom: '4px', flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>

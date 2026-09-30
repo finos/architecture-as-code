@@ -8,19 +8,13 @@ function FloatingEdgeComponent({
     id,
     source,
     target,
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-    sourcePosition,
-    targetPosition,
     style = {},
     markerEnd,
     markerStart,
     data,
 }: EdgeProps<EdgeData>) {
     const [isHovered, setIsHovered] = useState(false);
-    const routing = data?.metadata?.routing as string | undefined;
+    const routing = data?.metadata?.routing;
 
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
     const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
@@ -29,12 +23,9 @@ function FloatingEdgeComponent({
         return null;
     }
 
-    // For smoothstep/straight: use ReactFlow's native handle-based positions (precise attachment)
-    // For bezier (default): use floating edge calculation (curves naturally into nodes)
-    const useNativePositions = routing === 'smoothstep' || routing === 'straight';
-    const { sx, sy, tx, ty, sourcePos, targetPos } = useNativePositions
-        ? { sx: sourceX, sy: sourceY, tx: targetX, ty: targetY, sourcePos: sourcePosition, targetPos: targetPosition }
-        : getEdgeParams(sourceNode, targetNode);
+    // Every routing attaches at the node border nearest the other node. A native handle
+    // position is fixed per handle, so it cannot do that.
+    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
 
     // Calculate perpendicular offset for bidirectional edges
     const direction = data?.direction;
@@ -121,8 +112,6 @@ function FloatingEdgeComponent({
                                 hasFlowInfo={hasFlowInfo}
                                 hasAIGF={hasAIGF}
                                 badgeStyle={badgeStyle}
-                                onMouseEnter={() => setIsHovered(true)}
-                                onMouseLeave={() => setIsHovered(false)}
                             />
                         )}
                         {edgeLabel && (

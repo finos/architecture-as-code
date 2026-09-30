@@ -6,13 +6,11 @@ import { restoreLocation, setHostname } from '../../../test-support/window-locat
 import { THEME, getRiskLevelColor } from './theme.js';
 
 vi.mock('reactflow', () => ({
-    Handle: ({ position, id }: { position: string; id: string }) => (
-        <div data-testid={`handle-${id}`} data-position={position} />
-    ),
-    Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' },
+    Handle: () => null,
+    Position: { Right: 'right', Left: 'left' },
 }));
 
-function makeNodeProps(details?: Record<string, unknown>) {
+function makeNodeProps(details?: Record<string, unknown>, extraData: Record<string, unknown> = {}) {
     return {
         id: 'node-1',
         type: 'custom',
@@ -27,6 +25,7 @@ function makeNodeProps(details?: Record<string, unknown>) {
             description: 'A test node',
             'node-type': 'service',
             details,
+            ...extraData,
         },
     };
 }
@@ -192,89 +191,68 @@ describe('CustomNode — external URL support', () => {
         expect(screen.getByTitle('Has detailed architecture')).toBeInTheDocument();
     });
 
-    it('renders handles on all four sides for edge connection', () => {
-        const props = makeNodeProps();
-        const { container } = renderNode(props);
+    describe('building-block-style metadata', () => {
+        const BLOCK_BLUE = '#1C4587';
 
-        expect(container.querySelector('[data-testid="handle-top-target"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="handle-bottom-source"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="handle-left-target"]')).not.toBeNull();
-        expect(container.querySelector('[data-testid="handle-right-source"]')).not.toBeNull();
-    });
+        // Round-trips a colour through the DOM so hex and rgb() spellings compare equal.
+        function normalisedColor(color: string): string {
+            const probe = document.createElement('div');
+            probe.style.color = color;
+            return probe.style.color;
+        }
 
-    it('applies building-block-style background and text colors from metadata', () => {
-        const props = {
-            id: 'node-styled',
-            type: 'custom',
-            selected: false,
-            zIndex: 0,
-            isConnectable: true,
-            xPos: 0,
-            yPos: 0,
-            dragging: false,
-            data: {
-                label: 'Styled Node',
-                description: 'A styled node',
-                'node-type': 'webclient',
-                metadata: {
-                    'building-block-style': {
-                        background: '#1C4587',
-                        text: '#ffffff',
-                    },
-                },
-            },
-        };
+        function renderStyled(metadata: Record<string, unknown>, nodeType = 'webclient') {
+            const { container } = renderNode(makeNodeProps(undefined, { 'node-type': nodeType, metadata }));
+            return container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
+        }
 
-        const { container } = renderNode(props);
-        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div');
-        expect(nodeDiv).not.toBeNull();
-        expect(nodeDiv?.getAttribute('style')).toContain('rgb(28, 69, 135)');
-    });
+        it('applies the background and text colours', () => {
+            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE, text: '#ffffff' } });
 
-    // Round-trips a colour through the DOM so hex and rgb() spellings compare equal.
-    function normalisedColor(color: string): string {
-        const probe = document.createElement('div');
-        probe.style.color = color;
-        return probe.style.color;
-    }
+            expect(nodeDiv.style.background).toBe(normalisedColor(BLOCK_BLUE));
+            expect(nodeDiv.style.color).toBe(normalisedColor('#ffffff'));
+        });
 
-    function styledNodeProps(nodeType: string, metadata: Record<string, unknown>) {
-        return {
-            id: 'node-styled',
-            type: 'custom',
-            selected: false,
-            zIndex: 0,
-            isConnectable: true,
-            xPos: 0,
-            yPos: 0,
-            dragging: false,
-            data: { label: 'Styled Node', description: 'A styled node', 'node-type': nodeType, metadata },
-        };
-    }
+        it('uses the block background as the border when the node has no risk level', () => {
+            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE } });
 
-    it('uses the block style as the border when the node has no risk level', () => {
-        const { container } = renderNode(
-            styledNodeProps('webclient', { 'building-block-style': { background: '#1C4587' } })
-        );
-        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
-        expect(nodeDiv.style.borderColor).toBe(normalisedColor('#1C4587'));
-    });
+            expect(nodeDiv.style.borderColor).toBe(normalisedColor(BLOCK_BLUE));
+        });
 
-    it('keeps the AIGF risk colour as the border when a block style is also set', () => {
-        const { container } = renderNode(
-            styledNodeProps('webclient', {
-                'building-block-style': { background: '#1C4587' },
+        it('keeps the AIGF risk colour as the border when a block style is also set', () => {
+            const nodeDiv = renderStyled({
+                'building-block-style': { background: BLOCK_BLUE },
                 aigf: { 'risk-level': 'high' },
-            })
-        );
-        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
-        expect(nodeDiv.style.borderColor).toBe(normalisedColor(getRiskLevelColor('high')));
-        expect(nodeDiv.style.background).toContain('rgb(28, 69, 135)');
-    });
+            });
 
-    it('falls back to the card background for a node type with no catalogued colour', () => {
-        const { container } = renderNode(styledNodeProps('not-a-known-type', {}));
-        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
-        expect(nodeDiv.style.background).toBe(normalisedColor(THEME.colors.card));
+            expect(nodeDiv.style.borderColor).toBe(normalisedColor(getRiskLevelColor('high')));
+            expect(nodeDiv.style.background).toBe(normalisedColor(BLOCK_BLUE));
+        });
+
+        it('falls back to the card background for a node type with no catalogued colour', () => {
+            const nodeDiv = renderStyled({}, 'not-a-known-type');
+
+            expect(nodeDiv.style.background).toBe(normalisedColor(THEME.colors.card));
+        });
+
+        it.each([
+            ['an empty string', ''],
+            ['whitespace', '   '],
+            ['a non-string value', { not: 'a colour' }],
+        ])('ignores %s as the background, keeping the default background and border', (_label, background) => {
+            const styled = renderStyled({ 'building-block-style': { background } });
+            const unstyled = renderStyled({});
+
+            expect(styled.style.background).toBe(unstyled.style.background);
+            expect(styled.style.borderColor).not.toBe('');
+            expect(styled.style.borderColor).toBe(unstyled.style.borderColor);
+        });
+
+        it('ignores a non-string text colour', () => {
+            const styled = renderStyled({ 'building-block-style': { text: 42 } });
+            const unstyled = renderStyled({});
+
+            expect(styled.style.color).toBe(unstyled.style.color);
+        });
     });
 });

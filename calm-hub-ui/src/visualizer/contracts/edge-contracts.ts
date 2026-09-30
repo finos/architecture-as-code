@@ -53,6 +53,8 @@ export interface EdgeData {
     /** Set by flow animation - true when this edge has already been visited. */
     flowVisited?: boolean;
     metadata?: {
+        /** How the edge is drawn: a `straight` line, a right-angled `smoothstep`, or a `bezier` curve (default). */
+        routing?: 'bezier' | 'smoothstep' | 'straight';
         aigf?: {
             'controls-applied'?: string[];
             mitigations?: (string | Mitigation)[];
@@ -78,8 +80,8 @@ export interface EdgeBadgeProps {
     hasFlowInfo: boolean;
     hasAIGF: boolean;
     badgeStyle: EdgeBadgeStyle;
-    onMouseEnter: () => void;
-    onMouseLeave: () => void;
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
 }
 
 /**
