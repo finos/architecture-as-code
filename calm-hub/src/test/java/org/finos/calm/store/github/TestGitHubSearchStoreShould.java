@@ -26,6 +26,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @MockitoSettings(strictness = Strictness.LENIENT)
@@ -128,5 +130,22 @@ class TestGitHubSearchStoreShould {
         GroupedSearchResults result = store.search("payment", Optional.empty());
 
         assertThat(result.getAdrs(), is(empty()));
+    }
+
+    @Test
+    void only_return_results_from_readable_namespaces_using_a_single_snapshot() {
+        RegistryEntry visible = new RegistryEntry("payment-svc", Path.of("architectures/payment.json"),
+                RegistryResourceType.ARCHITECTURE, "Payment Service", Instant.now());
+        RegistryEntry hidden = new RegistryEntry("payment-hidden", Path.of("architectures/hidden.json"),
+                RegistryResourceType.ARCHITECTURE, "Payment Hidden", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(new RegistrySnapshot(
+                Map.of("finos", List.of(visible), "other", List.of(hidden)), Map.of()));
+
+        GroupedSearchResults result = store.search("payment", Optional.of(Set.of("finos")));
+
+        assertThat(result.getArchitectures().size(), is(1));
+        assertThat(result.getArchitectures().get(0).getName(), is("Payment Service"));
+        assertThat(result.getArchitectures().get(0).getNamespace(), is("finos"));
+        verify(registryService, times(1)).getSnapshot();
     }
 }
