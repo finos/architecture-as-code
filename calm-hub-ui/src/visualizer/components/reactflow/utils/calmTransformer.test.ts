@@ -118,8 +118,8 @@ describe('parseCALMData', () => {
     it('gives an interacts edge no label of its own when the relationship has no description', () => {
         const data: CalmArchitectureSchema = {
             nodes: [
-                { 'unique-id': 'actor-1', name: 'User', 'node-type': 'actor' },
-                { 'unique-id': 'node-1', name: 'Service A', 'node-type': 'service' },
+                { 'unique-id': 'actor-1', name: 'User', description: 'A user', 'node-type': 'actor' },
+                { 'unique-id': 'node-1', name: 'Service A', description: 'A service', 'node-type': 'service' },
             ],
             relationships: [
                 {
@@ -138,8 +138,8 @@ describe('parseCALMData', () => {
     it('keeps the description an author wrote on an interacts relationship', () => {
         const data: CalmArchitectureSchema = {
             nodes: [
-                { 'unique-id': 'actor-1', name: 'User', 'node-type': 'actor' },
-                { 'unique-id': 'node-1', name: 'Service A', 'node-type': 'service' },
+                { 'unique-id': 'actor-1', name: 'User', description: 'A user', 'node-type': 'actor' },
+                { 'unique-id': 'node-1', name: 'Service A', description: 'A service', 'node-type': 'service' },
             ],
             relationships: [
                 {
