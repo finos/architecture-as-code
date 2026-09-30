@@ -1,6 +1,7 @@
 import { memo, useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
 import { getEdgeParams } from './utils/floatingEdges.js';
+import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 
@@ -115,7 +116,22 @@ function FloatingEdgeComponent({
                             />
                         )}
                         {edgeLabel && (
-                            <span className="text-[0.625rem] leading-tight px-1 py-0.5 rounded bg-base-100/90 border border-base-300 text-base-content/60 max-w-[10rem] truncate inline-block">
+                            <span
+                                style={{
+                                    display: 'inline-block',
+                                    fontSize: '10px',
+                                    lineHeight: 1.25,
+                                    padding: '2px 4px',
+                                    borderRadius: '4px',
+                                    background: THEME.colors.card,
+                                    border: `1px solid ${THEME.colors.border}`,
+                                    color: THEME.colors.muted,
+                                    maxWidth: '160px',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                }}
+                            >
                                 {edgeLabel}
                             </span>
                         )}

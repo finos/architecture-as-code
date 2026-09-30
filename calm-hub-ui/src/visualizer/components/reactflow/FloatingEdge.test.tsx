@@ -2,6 +2,7 @@ import type { ComponentProps } from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatingEdge } from './FloatingEdge.js';
+import { THEME } from './theme.js';
 
 const { bezier, smoothStep, straight, edgeParams } = vi.hoisted(() => ({
     bezier: vi.fn(() => ['M bezier', 11, 12]),
@@ -116,6 +117,15 @@ describe('FloatingEdge', () => {
 
             expect(screen.getByText('Calls the ledger')).toBeInTheDocument();
             expect(screen.queryByTestId('edge-badge')).toBeNull();
+        });
+
+        it('styles the label from the theme tokens', () => {
+            renderEdge({ description: 'Calls the ledger' });
+            const label = screen.getByText('Calls the ledger');
+
+            expect(label.style.background).toBe(THEME.colors.card);
+            expect(label.style.border).toContain(THEME.colors.border);
+            expect(label.style.color).toBe(THEME.colors.muted);
         });
 
         it('falls back to the protocol as the label', () => {
