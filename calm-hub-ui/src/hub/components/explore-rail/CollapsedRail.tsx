@@ -102,9 +102,13 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     const focusInside = useRef(false);
     const [anchor, setAnchor] = useState<PanelAnchor | null>(null);
 
-    /** Measured as the panel opens, because the rail scrolls and the trigger moves with it. */
+    /**
+     * Measured as the panel opens, because the rail scrolls and the trigger moves with it.
+     * Only on the way open: focus moving between rows bubbles here too, and re-measuring
+     * would hand React a new object each time for coordinates that have not changed.
+     */
     const open = () => {
-        if (triggerRef.current) setAnchor(anchorTo(triggerRef.current));
+        if (!isOpen && triggerRef.current) setAnchor(anchorTo(triggerRef.current));
         onOpen();
     };
 
