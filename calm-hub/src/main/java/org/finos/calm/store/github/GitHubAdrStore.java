@@ -21,12 +21,11 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * GitHub-mode {@link AdrStore}: ADRs are not modelled in the registry at all - there is no
- * {@code RegistryResourceType.ADR} and no file-classification rule that would produce one -
- * so every namespace reports zero ADRs rather than a partial or wrong listing, and every
- * per-ADR lookup is an unconditional {@link GitHubWriteNotSupportedException}. This is a
- * deliberate scope cut, not an oversight: unlike the other resource types, ADRs have no
- * settled on-disk convention this backend could safely detect. Extends only
+ * GitHub-mode {@link AdrStore}: the registry indexes {@code adrs/} files as
+ * {@link org.finos.calm.store.github.registry.RegistryResourceType#ADR}, but this store does
+ * not serve them - there is no settled on-disk convention it could safely map to numbered,
+ * revisioned ADRs. Every namespace reports zero ADRs and every per-ADR lookup is "not found".
+ * {@link GitHubSearchStore} leaves ADRs out of its results for the same reason. Extends only
  * {@link AbstractGitHubStore} (not {@link AbstractReadOnlyGitHubStore}) because there is no
  * file to read - {@code verifyNamespace} is the only shared behaviour this store needs.
  */

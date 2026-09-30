@@ -116,4 +116,17 @@ class TestGitHubSearchStoreShould {
         assertThat(result.getPatterns(), is(org.hamcrest.Matchers.not(empty())));
         assertThat(result.getPatterns().get(0).getName(), is("Payment Pattern"));
     }
+
+    @Test
+    void not_return_adrs_because_the_adr_store_cannot_serve_them() {
+        // GitHubAdrStore 404s every per-ADR lookup, so a hit here would be an id that leads nowhere.
+        RegistryEntry adr = new RegistryEntry("payment-decision", Path.of("adrs/payment-decision.md"),
+                RegistryResourceType.ADR, "Payment Decision", Instant.now());
+        when(registryService.getSnapshot()).thenReturn(
+                new RegistrySnapshot(Map.of("finos", List.of(adr)), Map.of()));
+
+        GroupedSearchResults result = store.search("payment", Optional.empty());
+
+        assertThat(result.getAdrs(), is(empty()));
+    }
 }
