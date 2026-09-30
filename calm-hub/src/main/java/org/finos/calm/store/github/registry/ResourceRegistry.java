@@ -21,6 +21,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -128,7 +130,20 @@ public class ResourceRegistry {
         // rebuild even though the repo content hasn't changed. Sorting by path makes
         // that choice at least stable.
         entries.sort(Comparator.comparing(e -> e.filePath().toString()));
-        return entries;
+        return withoutShadowedMarkdownStandards(entries);
+    }
+
+    // A standard's .md sibling is a rendering of the same standard, served through the JSON
+    // entry (GitHubStandardStore prefers the sibling on read). Indexing both would list one
+    // standard twice under the same id.
+    private List<RegistryEntry> withoutShadowedMarkdownStandards(List<RegistryEntry> entries) {
+        Set<Path> shadowed = entries.stream()
+                .filter(e -> e.type() == RegistryResourceType.STANDARD && e.filePath().toString().endsWith(".json"))
+                .map(e -> StandardFiles.markdownSibling(e.filePath()))
+                .collect(Collectors.toSet());
+        return entries.stream()
+                .filter(e -> !(e.type() == RegistryResourceType.STANDARD && shadowed.contains(e.filePath())))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     private RegistryEntry parseFile(Path root, Path filePath) {

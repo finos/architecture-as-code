@@ -206,6 +206,35 @@
             </resource>
         </resources>
         <plugins>
+            <!-- Fail the build when ../calm/release is missing (e.g. a build context that copies
+                 only calm-hub/): the resource block above would otherwise silently bundle no
+                 schema JSON, and GitHub mode would 404 every /calm/schemas request at runtime. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>require-bundled-calm-schemas</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.parent.basedir}/calm/release/1.0/meta/calm.json</file>
+                                        <file>${project.parent.basedir}/calm/release/1.1/meta/calm.json</file>
+                                        <file>${project.parent.basedir}/calm/release/1.2/meta/calm.json</file>
+                                    </files>
+                                    <message>../calm/release is missing - CALM Hub bundles its meta-schemas from there, so it must be part of the build context.</message>
+                                </requireFilesExist>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Quarkus Maven Plugin -->
             <plugin>
                 <groupId>io.quarkus</groupId>

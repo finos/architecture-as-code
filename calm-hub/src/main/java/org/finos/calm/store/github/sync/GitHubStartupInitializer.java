@@ -107,8 +107,8 @@ public class GitHubStartupInitializer {
     }
 
     void cloneAndRebuild() {
+        Instant start = Instant.now();
         try {
-            Instant start = Instant.now();
             cloneManager.cloneAll();
 
             Instant rebuildStart = Instant.now();
@@ -116,9 +116,20 @@ public class GitHubStartupInitializer {
             metrics.recordRegistryRebuild(Duration.between(rebuildStart, Instant.now()));
 
             Duration total = Duration.between(start, Instant.now());
-            metrics.recordSyncSuccess(total);
-            LOG.info("GitHub clone complete in {}ms — state: {}", total.toMillis(), cloneManager.getState());
+            // cloneAll() never throws - per-repo git failures are folded into the clone
+            // state, so success has to be judged from the state it left behind.
+            GitHubCloneManager.State stateAfterClone = cloneManager.getState();
+            if (stateAfterClone == GitHubCloneManager.State.FAILED
+                    || stateAfterClone == GitHubCloneManager.State.DEGRADED) {
+                metrics.recordSyncFailure(total);
+                LOG.error("GitHub clone completed in {}ms but left state {} - at least one namespace failed to clone",
+                        total.toMillis(), stateAfterClone);
+            } else {
+                metrics.recordSyncSuccess(total);
+                LOG.info("GitHub clone complete in {}ms — state: {}", total.toMillis(), stateAfterClone);
+            }
         } catch (Exception e) {
+            metrics.recordSyncFailure(Duration.between(start, Instant.now()));
             LOG.error("GitHub clone failed: {}", e.getMessage(), e);
         }
     }

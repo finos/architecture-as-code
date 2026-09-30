@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { IoTimeOutline } from 'react-icons/io5';
 import { colors } from '../../../../theme/colors.js';
+import { isCommitSha } from '../../../../model/version.js';
 
 interface TimelineHeaderProps {
     /** The version currently shown in the main area — surfaced as the mono pill. */
@@ -18,8 +19,6 @@ interface TimelineHeaderProps {
  * explanatory copy makes it obvious that clicking a moment re-renders both the
  * Diagram and JSON views.
  */
-const isCommitSha = (v: string) => /^[0-9a-f]{5,40}$/.test(v);
-
 export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps) {
     const displayVersion = isCommitSha(currentVersion) ? currentVersion : `v${currentVersion}`;
     return (

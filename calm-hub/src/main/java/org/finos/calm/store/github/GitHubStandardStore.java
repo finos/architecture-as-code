@@ -14,6 +14,7 @@ import org.finos.calm.domain.namespaces.NamespaceResourceSummary;
 import org.finos.calm.domain.standards.CreateStandardRequest;
 import org.finos.calm.store.StandardStore;
 import org.finos.calm.store.github.registry.RegistryResourceType;
+import org.finos.calm.store.github.registry.StandardFiles;
 import org.finos.calm.store.github.sync.GitHubCloneManager;
 import org.finos.calm.store.github.access.NamespaceFileReader;
 import org.finos.calm.store.github.api.GitHubFileHistoryClient;
@@ -98,10 +99,7 @@ public class GitHubStandardStore extends AbstractReadOnlyGitHubStore implements 
         if (!relativeFilePath.toString().endsWith(".json")) {
             return relativeFilePath;
         }
-        String baseName = relativeFilePath.getFileName().toString()
-                .replaceAll("\\.(guideline|standard|calm)\\.json$", "")
-                .replace(".json", "");
-        Path relativeMdSibling = relativeFilePath.resolveSibling(baseName + ".md");
+        Path relativeMdSibling = StandardFiles.markdownSibling(relativeFilePath);
         return fileReader.existsContained(namespace, relativeMdSibling) ? relativeMdSibling : relativeFilePath;
     }
 

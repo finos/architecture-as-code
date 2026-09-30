@@ -30,14 +30,6 @@ interface ItemCardProps {
      * Namespace cards leave the header a plain stripe; only control-style cards set it.
      */
     thumbnailIcon?: ReactNode;
-    /**
-     * When defined, the card is a selectable toggle whose pressed state this reflects:
-     * `true` paints the selected treatment (interaction-blue outline + elevated shadow)
-     * and sets `aria-pressed` on the activation button. Left `undefined` for plain
-     * browse cards so they carry no `aria-pressed` and don't read as toggles.
-     * Only meaningful on the `<button>` form (unset {@link href}).
-     */
-    active?: boolean;
     /** `data-testid` for the activation element (default `item-card`). */
     testId?: string;
     /**
@@ -67,19 +59,11 @@ export function ItemCard({
     meta,
     thumbnailHeight = 96,
     thumbnailIcon,
-    active,
     testId = 'item-card',
     href,
     onActivate,
 }: ItemCardProps) {
     const { accent, tint } = getResourceTypeColors(type);
-    // Selected treatment mirrors the diagram's selected-node style: an interaction-blue
-    // outline + elevated shadow while the item's detail panel is open. Uses the brand
-    // interaction blue (not the type accent) so selection reads consistently. Only the
-    // button form is a toggle, so this is gated to cards without an href — a link-card
-    // is plain navigation and never carries the "selected" treatment (or aria-pressed).
-    const selected = active === true && href === undefined;
-    const selectedAccent = colors.redesign.primary;
     // Striped header derived from the type's own tokens (tint + accent at low
     // alpha) rather than hardcoded mockup hexes, so it tracks the palette.
     const stripes = `repeating-linear-gradient(135deg, ${tint}, ${tint} 7px, ${accent}20 7px, ${accent}20 14px)`;
@@ -105,10 +89,8 @@ export function ItemCard({
         <article
             className="group relative rounded-[12px] overflow-hidden bg-base-100 hover:-translate-y-0.5 hover:shadow-md"
             style={{
-                border: `1px solid ${selected ? selectedAccent : colors.redesign.border}`,
-                boxShadow: selected ? redesignTokens.shadow.floating : redesignTokens.shadow.card,
-                outline: selected ? `2px solid ${selectedAccent}` : undefined,
-                outlineOffset: selected ? '1px' : undefined,
+                border: `1px solid ${colors.redesign.border}`,
+                boxShadow: redesignTokens.shadow.card,
                 transition: redesignTokens.transition,
             }}
         >
@@ -127,9 +109,6 @@ export function ItemCard({
                     <button
                         type="button"
                         data-testid={testId}
-                        // Only forwarded when `active` is defined, so plain browse cards
-                        // (which don't pass it) carry no aria-pressed and aren't toggles.
-                        aria-pressed={active}
                         onClick={onActivate}
                         className={activationClass}
                         style={{ color: colors.redesign.ink }}

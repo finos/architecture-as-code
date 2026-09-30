@@ -195,6 +195,46 @@ class TestResourceRegistryShould {
     }
 
     @Test
+    void index_a_standard_once_when_it_has_a_markdown_sibling() throws IOException {
+        Path stdDir = tempDir.resolve("standards");
+        Files.createDirectories(stdDir);
+        Files.writeString(stdDir.resolve("policy.json"), "{\"name\": \"Policy\"}");
+        Files.writeString(stdDir.resolve("policy.md"), "# Policy\n\nProse rendering of the same standard.");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
+        assertThat(entries, hasSize(1));
+        assertThat(entries.get(0).filePath(), equalTo(Path.of("standards/policy.json")));
+    }
+
+    @Test
+    void index_a_standard_once_when_a_compound_extension_json_has_a_markdown_sibling() throws IOException {
+        Path stdDir = tempDir.resolve("standards");
+        Files.createDirectories(stdDir);
+        Files.writeString(stdDir.resolve("policy.standard.json"), "{\"name\": \"Policy\"}");
+        Files.writeString(stdDir.resolve("policy.md"), "# Policy");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        List<RegistryEntry> entries = registryService.listByType("finos", RegistryResourceType.STANDARD);
+        assertThat(entries, hasSize(1));
+        assertThat(entries.get(0).filePath(), equalTo(Path.of("standards/policy.standard.json")));
+    }
+
+    @Test
+    void keep_a_markdown_standard_whose_sibling_json_is_in_another_directory() throws IOException {
+        Files.createDirectories(tempDir.resolve("standards/a"));
+        Files.createDirectories(tempDir.resolve("standards/b"));
+        Files.writeString(tempDir.resolve("standards/a/policy.json"), "{\"name\": \"Policy\"}");
+        Files.writeString(tempDir.resolve("standards/b/policy.md"), "# Policy");
+
+        registryService.rebuild(Map.of("finos", tempDir));
+
+        assertThat(registryService.listByType("finos", RegistryResourceType.STANDARD), hasSize(2));
+    }
+
+    @Test
     void not_index_a_markdown_file_under_a_removed_guidelines_directory() throws IOException {
         Path guideDir = tempDir.resolve("guidelines/security");
         Files.createDirectories(guideDir);

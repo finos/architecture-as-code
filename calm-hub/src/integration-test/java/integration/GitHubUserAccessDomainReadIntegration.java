@@ -110,6 +110,8 @@ class GitHubUserAccessDomainReadIntegration {
                 .then()
                 .statusCode(200)
                 .extract().jsonPath().getString("values[0]");
+        // The commits API is unreachable in this fixture, so the only version is the clone's HEAD SHA.
+        org.hamcrest.MatcherAssert.assertThat(sha, org.hamcrest.Matchers.equalTo(cloneManager.headSha("finos")));
 
         given()
                 .when().get("/api/calm/domains/security/controls/" + controlId + "/requirement/versions/" + sha)
