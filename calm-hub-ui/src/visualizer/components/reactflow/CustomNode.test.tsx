@@ -5,8 +5,10 @@ import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 
 vi.mock('reactflow', () => ({
-    Handle: () => null,
-    Position: { Right: 'right', Left: 'left' },
+    Handle: ({ position, id }: { position: string; id: string }) => (
+        <div data-testid={`handle-${id}`} data-position={position} />
+    ),
+    Position: { Top: 'top', Right: 'right', Bottom: 'bottom', Left: 'left' },
 }));
 
 function makeNodeProps(details?: Record<string, unknown>) {
@@ -187,5 +189,44 @@ describe('CustomNode — external URL support', () => {
         renderNode(props, vi.fn());
 
         expect(screen.getByTitle('Has detailed architecture')).toBeInTheDocument();
+    });
+
+    it('renders handles on all four sides for edge connection', () => {
+        const props = makeNodeProps();
+        const { container } = renderNode(props);
+
+        expect(container.querySelector('[data-testid="handle-top-target"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="handle-bottom-source"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="handle-left-target"]')).not.toBeNull();
+        expect(container.querySelector('[data-testid="handle-right-source"]')).not.toBeNull();
+    });
+
+    it('applies building-block-style background and text colors from metadata', () => {
+        const props = {
+            id: 'node-styled',
+            type: 'custom',
+            selected: false,
+            zIndex: 0,
+            isConnectable: true,
+            xPos: 0,
+            yPos: 0,
+            dragging: false,
+            data: {
+                label: 'Styled Node',
+                description: 'A styled node',
+                'node-type': 'webclient',
+                metadata: {
+                    'building-block-style': {
+                        background: '#1C4587',
+                        text: '#ffffff',
+                    },
+                },
+            },
+        };
+
+        const { container } = renderNode(props);
+        const nodeDiv = container.querySelector('[data-testid="custom-node"] > div');
+        expect(nodeDiv).not.toBeNull();
+        expect(nodeDiv?.getAttribute('style')).toContain('rgb(28, 69, 135)');
     });
 });
