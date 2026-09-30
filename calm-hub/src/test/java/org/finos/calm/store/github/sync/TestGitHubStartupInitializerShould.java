@@ -90,6 +90,7 @@ class TestGitHubStartupInitializerShould {
                 "finos", Path.of("/tmp/finos"),
                 "team", Path.of("/tmp/team")
         ));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.READY);
 
         initializer.onStart(new StartupEvent());
 
@@ -98,6 +99,7 @@ class TestGitHubStartupInitializerShould {
         verify(cloneManager).cloneAll();
         verify(registryService).rebuild(any());
         verify(metrics).recordSyncSuccess(any());
+        verify(metrics, never()).recordSyncFailure(any());
     }
 
     @Test
@@ -136,6 +138,36 @@ class TestGitHubStartupInitializerShould {
 
         verify(cloneManager).cloneAll();
         verify(registryService, never()).rebuild(any());
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
+    }
+
+    @Test
+    void record_failure_metric_when_clone_all_leaves_clone_state_failed() {
+        // cloneAll() never throws - per-repo git errors are folded into the clone state,
+        // so an unreachable GitHub must not be recorded as a successful startup sync.
+        GitHubStartupInitializer initializer = initializerFor(
+                Optional.of(List.of("finos|finos/repo|main")), "github");
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.FAILED);
+
+        initializer.onStart(new StartupEvent());
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
+    }
+
+    @Test
+    void record_failure_metric_when_clone_all_leaves_clone_state_degraded() {
+        GitHubStartupInitializer initializer = initializerFor(
+                Optional.of(List.of("finos|finos/repo|main")), "github");
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.DEGRADED);
+
+        initializer.onStart(new StartupEvent());
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
     }
 
     @Test
