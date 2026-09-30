@@ -28,6 +28,12 @@ describe('TimelineHeader', () => {
         expect(pill).toHaveTextContent('v2.0.0-beta');
     });
 
+    it('prepends "v" for a short all-digit label that is not a commit SHA', () => {
+        render(<TimelineHeader currentVersion="20240" />);
+        const pill = screen.getByTestId('timeline-version-pill');
+        expect(pill).toHaveTextContent('v20240');
+    });
+
     it('sets the title attribute with the raw version', () => {
         render(<TimelineHeader currentVersion="cb7686e" />);
         const pill = screen.getByTestId('timeline-version-pill');

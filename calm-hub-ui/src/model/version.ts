@@ -32,12 +32,21 @@ export function compareVersions(a: string, b: string): number {
 }
 
 /**
+ * True for an abbreviated or full commit SHA. Matches the backend's SHA rule
+ * (`ResourceValidationConstants.VERSION_OR_SHA_REGEX`), so the UI and API agree on
+ * what counts as a SHA.
+ */
+export function isCommitSha(version: string): boolean {
+    return /^[0-9a-f]{7,40}$/.test(version);
+}
+
+/**
  * Return versions sorted newest-first.
  * For commit SHAs, the backend returns chronological (oldest first) —
  * reverse to get newest-first, matching semver sort behavior.
  */
 export function sortVersionsDescending(versions: string[]): string[] {
-    if (versions.length > 0 && /^[0-9a-f]{5,40}$/.test(versions[0])) {
+    if (versions.length > 0 && isCommitSha(versions[0])) {
         return [...versions].reverse();
     }
     return [...versions].sort((a, b) => compareVersions(b, a));
