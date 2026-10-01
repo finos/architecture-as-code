@@ -1690,6 +1690,28 @@ describe('CLI Commands', () => {
                 directUrlAuthAuthenticatedHosts: ['protected.example.com'],
             });
         });
+
+        it('fails when --direct-url-auth-module is set without --direct-url-authenticated-hosts', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-module', './dist/direct-url-auth.js',
+            ])).rejects.toThrow(/directUrlAuth\.authenticatedHosts must be a non-empty array/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
+
+        it('fails when --direct-url-auth-authenticated-hosts is set without --direct-url-auth-module', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
+            ])).rejects.toThrow(/directUrlAuth\.module must be a non-empty string/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
     });
 
 });

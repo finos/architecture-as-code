@@ -636,6 +636,8 @@ calm init-config \
   --direct-url-auth-authenticated-hosts protected.example.com,secure.example.com
 ```
 
+ `--direct-url-auth-module` and `--direct-url-auth-authenticated-hosts` must be set together. You can add `--direct-url-auth-config-path` and additional hosts the next time you run `calm init-config`.
+
 The two host-list options trim whitespace, remove empty entries, and merge new hosts with the existing values without duplicates. Scalar options replace their existing values when supplied. Plugin and module paths are stored as provided and validated at use time by the CLI. Fully qualified paths are recommended to avoid unpredictable behavior caused by relative path resolution.
 
 ## Authentication plugins
