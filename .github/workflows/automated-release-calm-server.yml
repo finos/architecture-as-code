@@ -464,6 +464,20 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing CALM Server version: $VERSION"
 
+      - name: Package tarball and generate SBOM
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-assets sbom-work/calm-server
+          npm pack --workspace calm-server --pack-destination release-assets > /dev/null
+          TARBALL=$(ls release-assets/*.tgz)
+          # Install the packed package on its own so the SBOM describes exactly what npm consumers receive.
+          tar -xzf "$TARBALL" -C sbom-work/calm-server --strip-components=1
+          cd sbom-work/calm-server
+          npm pkg delete devDependencies scripts
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock
+          npm sbom --sbom-format cyclonedx --omit dev > "$GITHUB_WORKSPACE/release-assets/calm-server-${VERSION}.cdx.json"
+          ls -la "$GITHUB_WORKSPACE/release-assets"
+
       - name: Create Git tag
         run: |
           git config user.name "github-actions[bot]"
@@ -490,13 +504,13 @@ jobs:
           gh release create "calm-server-v${{ steps.version.outputs.version }}" \
             --title "CALM Server v${{ steps.version.outputs.version }}" \
             --notes "$RELEASE_NOTES" \
-            --target main
+            --target main \
+            "$GITHUB_WORKSPACE"/release-assets/*
 
       - name: Publish to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          cd calm-server
-          npm publish --provenance --access public
+          npm publish "$GITHUB_WORKSPACE"/release-assets/*.tgz --provenance --access public
           
           echo "✅ Successfully published @finos/calm-server@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY
