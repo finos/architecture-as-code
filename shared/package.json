@@ -26,8 +26,7 @@
         "test": "node scripts/check-browser-entry.mjs && vitest run",
         "check:browser-entry": "node scripts/check-browser-entry.mjs",
         "lint": "eslint src",
-        "lint-fix": "eslint src --fix",
-        "dependency-check": "dependency-check --project 'calm-shared' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
+        "lint-fix": "eslint src --fix"
     },
     "eslintConfig": {
         "extends": "../.eslintrc.json"

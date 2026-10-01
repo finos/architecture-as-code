@@ -26,7 +26,6 @@
         "test:smoke": "vitest run --config vitest.smoke.mts",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix",
-        "dependency-check": "dependency-check --project 'calm-cli' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml",
         "semantic-release": "semantic-release"
     },
     "publishConfig": {
