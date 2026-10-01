@@ -343,4 +343,95 @@ describe('DocumentDetailSection', () => {
         expect(mockFetchVersionsByCustomId).toHaveBeenCalledWith('test-ns', 'my-payment-standard', 'Standards');
         expect(mockFetchStandardVersions).not.toHaveBeenCalled();
     });
+
+    it('renders markdown content when data is a markdown string', () => {
+        const data: Data = {
+            id: 'std-123',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '# TLS Policy\n\nAll services must use TLS 1.2+.',
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(screen.getByText('All services must use TLS 1.2+.')).toBeInTheDocument();
+    });
+
+    it('shows display name from markdown heading in breadcrumb', () => {
+        const data: Data = {
+            id: '12345',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '# My Standard Name\n\nContent.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.textContent).toContain('My Standard Name');
+    });
+
+    it('shows type label in breadcrumb', () => {
+        const data: Data = {
+            id: 'std-1',
+            version: 'latest',
+            name: 'fae-calm',
+            calmType: 'Standards',
+            data: '# Test\n\nBody.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.textContent).toContain('Standard');
+    });
+
+    it('renders a JSON string with leading whitespace as JSON, not markdown', () => {
+        const data: Data = {
+            id: 'std-json',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: '  \n{"unique-id": "std-json"}',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.querySelector('.prose')).toBeNull();
+    });
+
+    it('falls back to the document id in the breadcrumb when markdown has no heading', () => {
+        const data: Data = {
+            id: 'std-no-heading',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: 'Plain prose with no heading.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        expect(container.querySelector('.prose')).not.toBeNull();
+        expect(container.textContent).toContain('std-no-heading');
+    });
 });

@@ -42,8 +42,6 @@ node_modules
 
 **/tsconfig.tsbuildinfo
 
-!/.mvn/wrapper/maven-wrapper.jar
-
 # Stray Java compiler output (e.g. from running `javac` outside Maven)
 *.class
 /io/

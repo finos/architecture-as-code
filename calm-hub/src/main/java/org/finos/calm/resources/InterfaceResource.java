@@ -110,7 +110,7 @@ public class InterfaceResource {
     public Response getInterfaceForVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("interfaceId") Integer interfaceId,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version
     ) {
         try {
             return Response.ok(interfaceStore.getInterfaceForVersion(namespace, interfaceId, version)).build();
