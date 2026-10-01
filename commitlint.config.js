@@ -16,6 +16,7 @@ module.exports = {
         'calm-lab',
         'docs',
         'vscode',
+        'intellij',
         'calm-suite',
         'deps',
         'ci',

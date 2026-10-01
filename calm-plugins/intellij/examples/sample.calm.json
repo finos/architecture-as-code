@@ -1,0 +1,93 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "customer",
+      "node-type": "actor",
+      "name": "Customer",
+      "description": "Places and tracks orders through the storefront."
+    },
+    {
+      "unique-id": "storefront",
+      "node-type": "webclient",
+      "name": "Storefront",
+      "description": "Web application for browsing products and placing orders."
+    },
+    {
+      "unique-id": "orders",
+      "node-type": "service",
+      "name": "Order service",
+      "description": "Validates orders and coordinates fulfillment."
+    },
+    {
+      "unique-id": "inventory",
+      "node-type": "service",
+      "name": "Inventory service",
+      "description": "Tracks stock availability and reserves products."
+    },
+    {
+      "unique-id": "database",
+      "node-type": "database",
+      "name": "Order database",
+      "description": "Stores orders and their status."
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "browse",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "customer"
+          },
+          "destination": {
+            "node": "storefront"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "place-order",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "storefront"
+          },
+          "destination": {
+            "node": "orders"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "reserve-stock",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "orders"
+          },
+          "destination": {
+            "node": "inventory"
+          }
+        }
+      },
+      "protocol": "HTTPS"
+    },
+    {
+      "unique-id": "persist-order",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "orders"
+          },
+          "destination": {
+            "node": "database"
+          }
+        }
+      },
+      "protocol": "JDBC"
+    }
+  ]
+}

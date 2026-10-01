@@ -1,0 +1,20 @@
+{{!-- Only emit a subgraph if it has content --}}
+{{#if (or (gt (length nodes) 0) (gt (length containers) 0))}}
+    subgraph {{{mermaidId id}}}["{{label}}"]
+    direction TB
+    {{#each nodes}}
+    {{#if @root.renderNodeTypeShapes}}
+        {{> typed-node.hbs}}
+    {{else}}
+        {{{mermaidId id}}}["{{label}}"]:::node
+    {{/if}}
+        {{#each interfaces}}
+            {{{mermaidId id}}}["{{label}}"]:::iface
+        {{/each}}
+    {{/each}}
+    {{#each containers}}
+        {{> container.hbs}}
+    {{/each}}
+    end
+    class {{{mermaidId id}}} boundary
+{{/if}}

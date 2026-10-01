@@ -1,0 +1,53 @@
+:root { font: 14px -apple-system,BlinkMacSystemFont,"Segoe WPC","Segoe UI",system-ui,Ubuntu,sans-serif; color: #ccc; background: #1e1e1e; color-scheme: dark; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { height: 100vh; display: flex; flex-direction: column; }
+header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #181818; }
+strong { font-size: 16px; }
+.filename { font-size: 12px; color: #aaa; overflow-wrap: anywhere; }
+nav { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid #454545; }
+nav > span { font-weight: 600; }
+.actions { display: flex; gap: 20px; align-items: center; }
+.actions label { display: flex; gap: 8px; align-items: center; cursor: pointer; }
+input[type=checkbox] { width: 15px; height: 15px; accent-color: #007acc; }
+button { font: inherit; border: 1px solid transparent; background: #383c40; color: #fff; border-radius: 3px; padding: 6px 12px; cursor: pointer; }
+button:hover { filter: brightness(1.18); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, input:focus-visible { outline: 2px solid #007acc; outline-offset: 2px; }
+.body { flex: 1; display: flex; min-height: 0; padding: 10px; gap: 10px; }
+article { flex: 1; min-width: 0; display: flex; flex-direction: column; border: 1px solid #454545; border-radius: 6px; padding: 20px 16px 16px; }
+h1 { font-size: 28px; margin: 12px 0 18px; padding-bottom: 12px; border-bottom: 1px solid #454545; }
+.diagram-frame { position: relative; flex: 1; min-height: 180px; border: 1px solid #454545; border-radius: 6px; overflow: hidden; }
+.canvas { width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.canvas:active { cursor: grabbing; }
+.canvas g.node { cursor: pointer; }
+.canvas g.node:focus-visible { outline: 2px solid #007acc; }
+.zoom-controls { position: absolute; right: 16px; top: 16px; display: flex; gap: 4px; padding: 4px; border: 1px solid #454545; border-radius: 8px; background: #1e1e1e; }
+.zoom-controls button { background: #0e639c; font-size: 22px; font-weight: 600; width: 40px; height: 34px; padding: 0; }
+.message { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: min(90%,480px); text-align: center; line-height: 1.6; }
+h2 { font-size: 18px; }
+.message p { color: #aaa; overflow-wrap: anywhere; }
+.error h2 { color: #f48771; }
+aside { width: 260px; overflow: auto; padding: 16px; border: 1px solid #454545; border-radius: 6px; overflow-wrap: anywhere; }
+.close { float: right; }
+dt { color: #aaa; margin-top: 20px; font-size: 12px; }
+dd { margin: 6px 0; line-height: 1.6; }
+footer { display: flex; justify-content: space-between; gap: 12px; padding: 6px 14px; color: #aaa; font-size: 11px; border-top: 1px solid #454545; }
+@media (max-width: 520px) { header { align-items: flex-start; flex-direction: column; } aside { width: 180px; } h1 { font-size: 22px; } article { padding: 10px; } footer { flex-direction: column; gap: 4px; } }
+
+.edit-toolbar { display: flex; gap: 8px; padding: 8px 14px; flex-wrap: wrap; border-bottom: 1px solid #454545; }
+aside { width: 300px; flex-shrink: 0; }
+fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+form label { display: flex; flex-direction: column; gap: 6px; margin: 16px 0; }
+form input, form textarea, form select { width: 100%; font: inherit; background: #292929; color: #ddd; border: 1px solid #666; border-radius: 3px; padding: 7px; }
+form input:read-only { color: #aaa; }
+form small, .hint { color: #aaa; font-size: 12px; line-height: 1.5; }
+form button[type=submit] { background: #0e639c; }
+form [role=alert], .edit-error { color: #ffad99; line-height: 1.5; }
+.edit-error { padding: 8px 14px; }
+.item { display: block; width: 100%; text-align: left; margin: 6px 0; overflow-wrap: anywhere; }
+select:focus-visible, textarea:focus-visible { outline: 2px solid #007acc; }
+
+.canvas .connection-hit { fill: none; stroke: transparent; stroke-width: 16px; vector-effect: non-scaling-stroke; pointer-events: stroke; cursor: pointer; }
+.canvas .connection-hit:hover, .canvas .connection-hit:focus-visible { stroke: #007acc55; outline: none; }
+.canvas [data-connection-id] { cursor: pointer; }

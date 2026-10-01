@@ -1,0 +1,48 @@
+```mermaid
+{{{themeFrontMatter themeColors }}}
+{{{mermaidInitConfig layoutEngine}}}
+flowchart TB
+{{{themeClassDefs themeColors renderNodeTypeShapes}}}
+
+{{!-- Render container forest (if any) --}}
+{{#each containers}}
+    {{> container.hbs}}
+{{/each}}
+
+{{!-- Render loose nodes (not inside any rendered container) --}}
+{{#each looseNodes}}
+    {{#if ../renderNodeTypeShapes}}
+    {{> typed-node.hbs}}
+    {{else}}
+    {{{mermaidId id}}}["{{label}}"]:::node
+    {{/if}}
+    {{#each interfaces}}
+        {{{mermaidId id}}}["{{label}}"]:::iface
+    {{/each}}
+{{/each}}
+
+{{!-- Edges --}}
+{{#each edges}}
+    {{{mermaidId source}}} -->{{#if label}}|{{{mermaidText label}}}|{{/if}} {{{mermaidId target}}}
+{{/each}}
+
+{{!-- Dotted attachments (node -> interface) --}}
+{{#each attachments}}
+    {{{mermaidId from}}} -.- {{{mermaidId to}}}
+{{/each}}
+
+{{!-- Highlights --}}
+{{#each highlightNodeIds}}
+    class {{{mermaidId this}}} highlight
+{{/each}}
+{{!-- Clickable links for containers + loose nodes --}}
+{{#if linkPrefix}}
+    {{#each containers}}
+        {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+    {{/each}}
+    {{#each looseNodes}}
+        {{> click-links.hbs this linkPrefix=../linkPrefix linkMap=../linkMap}}
+    {{/each}}
+{{/if}}
+
+```

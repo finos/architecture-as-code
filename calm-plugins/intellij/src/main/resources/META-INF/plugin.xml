@@ -1,0 +1,23 @@
+<idea-plugin>
+    <id>dev.calm.intellij.preview</id>
+    <name>CALM Canvas Preview</name>
+    <vendor>CALM IntelliJ Prototype</vendor>
+    <description><![CDATA[
+        Preview CALM architecture JSON as an interactive diagram. Open CALM Canvas
+        from a JSON file's context menu. Add and edit nodes and connects relationships,
+        with live document updates, targeted JSON changes and native undo/redo.
+    ]]></description>
+    <depends>com.intellij.modules.platform</depends>
+    <extensions defaultExtensionNs="com.intellij">
+        <iconMapper mappingFile="CalmIconMappings.json"/>
+        <toolWindow id="CALM Canvas" anchor="right" icon="/icons/calm.svg" factoryClass="dev.calm.intellij.CalmToolWindowFactory"/>
+    </extensions>
+    <actions>
+        <action id="Calm.OpenCanvas" class="dev.calm.intellij.OpenCanvasAction"
+                text="Open CALM Canvas" description="Preview this CALM architecture">
+            <add-to-group group-id="EditorPopupMenu" anchor="last"/>
+            <add-to-group group-id="ProjectViewPopupMenu" anchor="last"/>
+            <add-to-group group-id="ToolsMenu" anchor="last"/>
+        </action>
+    </actions>
+</idea-plugin>
