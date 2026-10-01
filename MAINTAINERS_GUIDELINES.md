@@ -74,7 +74,7 @@ Maintainers help keep work discoverable and moving:
 Maintainers are expected to protect repository quality, not just merge code:
 
 - Keep required workflows green before merge and investigate recurring failures instead of normalizing them.
-- Pay close attention to repository-wide automation such as CodeQL, Semgrep, CVE scanning, license scanning, lockfile validation, and component build workflows.
+- Pay close attention to repository-wide automation such as CodeQL, Semgrep, OSV Scanner, license scanning, lockfile validation, and component build workflows.
 - Make sure documentation and examples evolve with behavior changes so contributor and user guidance stays trustworthy.
 - Make sure technical rationale is documented clearly and locally when the design is non-obvious; avoid circular comments or explanations that force readers to bounce between files to understand a decision.
 - Treat dependency updates, workflow changes, and shared-package changes as potentially cross-cutting work that may affect multiple downstream components.
