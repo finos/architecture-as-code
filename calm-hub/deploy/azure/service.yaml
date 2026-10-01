@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: calm-hub
+  namespace: calm-hub
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+  selector:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/component: api

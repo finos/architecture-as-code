@@ -95,4 +95,56 @@ describe('metadataFieldsFromSchemas', () => {
 		]);
 		expect(metadataFieldsFromSchemas(schemas, 'node').fields).toEqual([]);
 	});
+
+	it('detects array properties with string and object items (R86)', () => {
+		const schema = {
+			$id: 'https://example.com/with-arrays.json',
+			$defs: {
+				'example-node-metadata': {
+					type: 'object',
+					properties: {
+						tags: {
+							type: 'array',
+							items: { type: 'string' },
+						},
+						contacts: {
+							type: 'array',
+							items: {
+								type: 'object',
+								properties: {
+									name: { type: 'string' },
+									role: { type: 'string', enum: ['owner', 'ops'] },
+								},
+							},
+						},
+						status: {
+							type: 'array',
+							items: { type: 'string', enum: ['planned', 'active'] },
+						},
+					},
+				},
+			},
+		};
+		const { fields } = metadataFieldsFromSchemas(
+			new Map([[schema.$id, schema]]),
+			'node'
+		);
+		expect(fields.find((f) => f.key === 'tags')).toMatchObject({
+			kind: 'array',
+			itemKind: 'string',
+			path: ['tags'],
+		});
+		const contacts = fields.find((f) => f.key === 'contacts');
+		expect(contacts).toMatchObject({
+			kind: 'array',
+			itemKind: 'object',
+			path: ['contacts'],
+		});
+		expect(contacts?.itemFields?.map((f) => f.key)).toEqual(['name', 'role']);
+		expect(fields.find((f) => f.key === 'status')).toMatchObject({
+			kind: 'array',
+			itemKind: 'enum',
+			itemEnumValues: ['planned', 'active'],
+		});
+	});
 });

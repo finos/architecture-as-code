@@ -49,6 +49,9 @@ export function createDefaultProjectConfig(name = 'project'): CalmProjectConfig 
 		neighbors: {
 			searchRoots: [],
 		},
+		ui: {
+			demo: false,
+		},
 	};
 }
 
@@ -94,6 +97,11 @@ export function isCalmProjectConfig(value: unknown): value is CalmProjectConfig 
 		}
 		const urlMapping = v['urlMapping'] as Record<string, unknown>;
 		if (typeof urlMapping['path'] !== 'string') return false;
+	}
+	if (v['ui'] !== undefined) {
+		if (!v['ui'] || typeof v['ui'] !== 'object' || Array.isArray(v['ui'])) return false;
+		const ui = v['ui'] as Record<string, unknown>;
+		if (ui['demo'] !== undefined && typeof ui['demo'] !== 'boolean') return false;
 	}
 	return true;
 }

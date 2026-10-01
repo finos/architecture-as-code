@@ -2,16 +2,21 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-/** Field descriptor for schema-driven metadata forms (R17). */
+/** Field descriptor for schema-driven metadata forms (R17 / R86). */
 export interface MetadataFieldDescriptor {
 	key: string;
 	label: string;
 	required: boolean;
-	kind: 'string' | 'enum';
+	kind: 'string' | 'enum' | 'array';
 	enumValues?: string[];
 	/** Dot path for nested values, e.g. `archimate.layer` */
 	path: string[];
 	readOnly?: boolean;
+	/** For `kind: 'array'` — element type. */
+	itemKind?: 'string' | 'enum' | 'object';
+	itemEnumValues?: string[];
+	/** For object array items — fields relative to each item (paths are local keys). */
+	itemFields?: MetadataFieldDescriptor[];
 }
 
 const LIFECYCLE = ['planned', 'active', 'deprecated', 'retired'] as const;
@@ -156,12 +161,21 @@ export function readMetadataPath(
 	metadata: Record<string, unknown> | undefined,
 	path: string[],
 ): string {
+	const current = readMetadataValue(metadata, path);
+	return typeof current === 'string' ? current : '';
+}
+
+/** Read any value at a metadata path (string, array, object, …). */
+export function readMetadataValue(
+	metadata: Record<string, unknown> | undefined,
+	path: string[],
+): unknown {
 	let current: unknown = metadata;
 	for (const segment of path) {
-		if (typeof current !== 'object' || current === null) return '';
+		if (typeof current !== 'object' || current === null) return undefined;
 		current = (current as Record<string, unknown>)[segment];
 	}
-	return typeof current === 'string' ? current : '';
+	return current;
 }
 
 export function writeMetadataPath(
@@ -169,7 +183,23 @@ export function writeMetadataPath(
 	path: string[],
 	value: string,
 ): Record<string, unknown> {
-	const root = metadata ? structuredClone(metadata) : {};
+	return writeMetadataValue(metadata, path, value === '' ? undefined : value);
+}
+
+/** Deep-clone plain JSON data. Avoids structuredClone — Svelte 5 proxies throw DataCloneError. */
+export function cloneJson<T>(value: T): T {
+	if (value === undefined) return value;
+	return JSON.parse(JSON.stringify(value)) as T;
+}
+
+/** Write any JSON value at a metadata path. `undefined` deletes the leaf. */
+export function writeMetadataValue(
+	metadata: Record<string, unknown> | undefined,
+	path: string[],
+	value: unknown,
+): Record<string, unknown> {
+	const root: Record<string, unknown> = metadata ? cloneJson(metadata) : {};
+	if (path.length === 0) return root;
 	let current: Record<string, unknown> = root;
 	for (let i = 0; i < path.length - 1; i++) {
 		const segment = path[i]!;
@@ -180,12 +210,30 @@ export function writeMetadataPath(
 		current = current[segment] as Record<string, unknown>;
 	}
 	const leaf = path[path.length - 1]!;
-	if (value === '') {
+	if (value === undefined) {
 		delete current[leaf];
 	} else {
 		current[leaf] = value;
 	}
 	return root;
+}
+
+export function readMetadataArray(
+	metadata: Record<string, unknown> | undefined,
+	path: string[],
+): unknown[] {
+	const value = readMetadataValue(metadata, path);
+	return Array.isArray(value) ? [...value] : [];
+}
+
+export function formatJsonPretty(value: unknown): string {
+	if (value === undefined) return '—';
+	if (typeof value === 'string') return value;
+	try {
+		return JSON.stringify(value, null, 2);
+	} catch {
+		return '—';
+	}
 }
 
 export function groupMetadataFields(fields: MetadataFieldDescriptor[]): {
@@ -217,12 +265,5 @@ export function previewNestedMetadata(
 	metadata: Record<string, unknown> | undefined,
 	key: string
 ): string {
-	const value = metadata?.[key];
-	if (value === undefined) return '—';
-	if (typeof value === 'string') return value;
-	try {
-		return JSON.stringify(value);
-	} catch {
-		return '—';
-	}
+	return formatJsonPretty(metadata?.[key]);
 }

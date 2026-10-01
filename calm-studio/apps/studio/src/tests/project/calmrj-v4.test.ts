@@ -20,6 +20,7 @@ describe('project defaults', () => {
 		expect(cfg.name).toBe('onebank');
 		expect(cfg.naming.profile).toBe('cengineering-archimate');
 		expect(cfg.neighbors?.searchRoots).toEqual([]);
+		expect(cfg.ui?.demo).toBe(false);
 	});
 
 	it('rejects invalid config', () => {

@@ -3,11 +3,14 @@
 
 <!--
   MetadataForm.svelte — Schema-driven editor for CALM `metadata` (nodes and relationships).
+  R86: array fields as per-element lists; nested JSON pretty-printed.
 -->
 <script lang="ts">
 	import {
 		readMetadataPath,
+		readMetadataValue,
 		writeMetadataPath,
+		writeMetadataValue,
 		groupMetadataFields,
 		previewNestedMetadata,
 		type MetadataFieldDescriptor,
@@ -19,6 +22,7 @@
 		upsertExtraMetadata,
 	} from '$lib/metadata/extraMetadata';
 	import NestedMetadataDialog from './NestedMetadataDialog.svelte';
+	import ArrayPropertyEditor from './ArrayPropertyEditor.svelte';
 	import { getModel } from '$lib/stores/calmModel.svelte';
 	import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
 	import { getPackForNodeType } from '@calmstudio/extensions';
@@ -143,6 +147,12 @@
 		}, 300);
 	}
 
+	function handleArrayChange(field: MetadataFieldDescriptor, nextArr: unknown[]) {
+		if (readonly || field.readOnly || !onCommit) return;
+		signalFirstEdit();
+		onCommit(writeMetadataValue(metadata, field.path, nextArr));
+	}
+
 	function commitExtra(next: Record<string, unknown>) {
 		if (readonly || !onCommit) return;
 		signalFirstEdit();
@@ -166,8 +176,17 @@
 		commitExtra(upsertExtraMetadata(metadata, key, value));
 	}
 
+	function handleExtraArray(key: string, nextArr: unknown[]) {
+		commitExtra({ ...(metadata ?? {}), [key]: nextArr });
+	}
+
 	function handleRemoveExtra(key: string) {
 		commitExtra(removeExtraMetadata(metadata, key));
+	}
+
+	function isArrayField(field: MetadataFieldDescriptor): boolean {
+		if (field.kind === 'array') return true;
+		return Array.isArray(readMetadataValue(metadata, field.path));
 	}
 </script>
 
@@ -178,6 +197,7 @@
 
 		<div class="fields">
 			{#each grouped.top as field (field.key)}
+				{@const raw = readMetadataValue(metadata, field.path)}
 				{@const value = readMetadataPath(metadata, field.path)}
 				{@const displayValue = value || fallbackValues[field.key] || ''}
 				<div class="field">
@@ -186,7 +206,17 @@
 						{#if field.required}<span class="required">*</span>{/if}
 					</label>
 
-					{#if readonly || field.readOnly}
+					{#if isArrayField(field)}
+						<ArrayPropertyEditor
+							idPrefix="meta-{elementId}-{field.key}"
+							values={Array.isArray(raw) ? raw : []}
+							itemKind={field.itemKind ?? 'string'}
+							itemEnumValues={field.itemEnumValues}
+							itemFields={field.itemFields}
+							{readonly}
+							onchange={(next) => handleArrayChange(field, next)}
+						/>
+					{:else if readonly || field.readOnly}
 						<div class="read-only-field" id="meta-{elementId}-{field.key}" title={displayValue}>
 							{displayValue || '—'}
 						</div>
@@ -222,7 +252,7 @@
 				<div class="field">
 					<span class="field-label">{group.key}</span>
 					<div class="nested-preview">
-						<code class="preview-text">{previewNestedMetadata(metadata, group.key)}</code>
+						<pre class="preview-text">{previewNestedMetadata(metadata, group.key)}</pre>
 						{#if !readonly && onCommit}
 							<button
 								type="button"
@@ -243,11 +273,39 @@
 			{#each extraEntries as entry (entry.key)}
 				<div class="field extra-row">
 					<label class="field-label" for="extra-{elementId}-{entry.key}">{entry.key}</label>
-					{#if readonly}
-						<div class="read-only-field" id="extra-{elementId}-{entry.key}">{entry.value}</div>
+					{#if entry.isArray}
+						<ArrayPropertyEditor
+							idPrefix="extra-{elementId}-{entry.key}"
+							values={Array.isArray(entry.raw) ? entry.raw : []}
+							itemKind={
+								Array.isArray(entry.raw) &&
+								entry.raw[0] !== null &&
+								typeof entry.raw[0] === 'object'
+									? 'object'
+									: 'string'
+							}
+							{readonly}
+							onchange={(next) => handleExtraArray(entry.key, next)}
+						/>
+						{#if !readonly}
+							<button
+								type="button"
+								class="remove-btn"
+								onclick={() => handleRemoveExtra(entry.key)}
+								aria-label="Remove {entry.key}"
+							>
+								×
+							</button>
+						{/if}
+					{:else if readonly}
+						{#if entry.nested}
+							<pre class="preview-text" id="extra-{elementId}-{entry.key}">{entry.value}</pre>
+						{:else}
+							<div class="read-only-field" id="extra-{elementId}-{entry.key}">{entry.value}</div>
+						{/if}
 					{:else if entry.nested}
 						<div class="nested-preview">
-							<code class="preview-text">{entry.value}</code>
+							<pre class="preview-text">{entry.value}</pre>
 							<button
 								type="button"
 								class="add-btn"
@@ -433,15 +491,28 @@
 	.nested-preview {
 		display: flex;
 		gap: 6px;
-		align-items: center;
+		align-items: flex-start;
 	}
 	.preview-text {
 		flex: 1;
 		min-width: 0;
+		margin: 0;
+		padding: 8px;
 		font-size: 11px;
-		overflow: hidden;
-		text-overflow: ellipsis;
-		white-space: nowrap;
+		font-family: var(--font-mono, monospace);
+		line-height: 1.4;
+		white-space: pre-wrap;
+		word-break: break-word;
+		max-height: 200px;
+		overflow: auto;
+		background: var(--color-surface-secondary, #f8fafc);
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 6px;
+	}
+	:global(.dark) .preview-text {
+		background: #0f1320;
+		border-color: #334155;
+		color: #cbd5e1;
 	}
 	.remove-btn,
 	.add-btn {
@@ -452,6 +523,7 @@
 		background: #fff;
 		cursor: pointer;
 		font-size: 12px;
+		flex-shrink: 0;
 	}
 	.remove-btn {
 		color: #b91c1c;

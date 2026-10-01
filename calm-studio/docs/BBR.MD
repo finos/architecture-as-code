@@ -133,6 +133,12 @@ V11
 V12
 - Pri vkladání již referencovaneho elementu použit originalni hodnotu detailed-architecture. ne odkaz na soubor zh nejž se vkladá. Tj  vždz vkladat odkaz na soubor v němž je nod skutečne definován ne jen referencován. tj tam kde neni definovan element detailed-architecture.
 - u target v move dialogu nabízet výber cile ze stromu projektu
+V13
+- odstraň / skryj toolbar Demo; po načtení projektu skryj vestavěné template záložky FluxNova a OpenGRIS. Default `ui.demo: false` v `.calmrj`. Zapnutí Demo v Project settings ukáže obojí. Bez otevřeného projektu zůstane Demo UI viditelné. Netýká se Palette packů.
+V14
+- nahraď export do calmscript exportem diagramu v Mermaid notaci (`flowchart`); nabídni `.mmd` i `.md` (fenced blok). Odstraň disabled záložku calmscript vedle CALM JSON; místo ní read-only záložka Mermaid. Bez importu Mermaid→CALM. Balíček `packages/calmscript` nemaž.
+V15
+- properties editor: needitovat pole (array) jako jeden záznam — editace jednotlivých prvků (primitiva i objekty), inline seznam Add/Remove; prázdné pole ukáže Add. Vnořené JSON zobrazovat jako formátovaný (pretty) víceřádkový text v náhledu i v Edit dialogu. Platí pro metadata / customMetadata (JSON) / controls-interfaces dle výskytu polí.
 Vxx
 - použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```

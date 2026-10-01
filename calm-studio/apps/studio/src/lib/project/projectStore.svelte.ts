@@ -330,6 +330,15 @@ export function setHubUrl(url: string): void {
 	});
 }
 
+/** Set `ui.demo` in the project file (R84). Persists with the next save of `.calmrj`. */
+export function setUiDemo(demo: boolean): void {
+	if (!projectFileConfig) return;
+	setProjectFile({
+		...projectFileConfig,
+		ui: { ...projectFileConfig.ui, demo },
+	});
+}
+
 export function setNamingConfig(naming: CalmProjectConfig['naming']): void {
 	if (!projectFileConfig) return;
 	setProjectFile({ ...projectFileConfig, naming });

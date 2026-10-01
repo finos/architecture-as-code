@@ -19,8 +19,9 @@ describe('generic metadata', () => {
 		};
 		const extra = extraMetadataEntries(metadata, [['owner']]);
 		expect(extra.map((e) => e.key).sort()).toEqual(['nested', 'ticket']);
-		expect(extra.find((e) => e.key === 'nested')?.value).toBe('{"a":1}');
+		expect(extra.find((e) => e.key === 'nested')?.value).toBe('{\n  "a": 1\n}');
 		expect(extra.find((e) => e.key === 'nested')?.nested).toBe(true);
+		expect(extra.find((e) => e.key === 'nested')?.isArray).toBe(false);
 		expect(extra.find((e) => e.key === 'ticket')?.nested).toBe(false);
 	});
 

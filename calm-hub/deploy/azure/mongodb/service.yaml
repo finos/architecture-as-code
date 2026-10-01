@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongodb
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/part-of: calm
+    app.kubernetes.io/component: database
+spec:
+  type: ClusterIP
+  ports:
+    - name: mongo
+      port: 27017
+      targetPort: mongo
+  selector:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/component: database

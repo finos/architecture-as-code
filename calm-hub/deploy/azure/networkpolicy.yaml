@@ -1,0 +1,42 @@
+# Allows the AKS Application Routing add-on and same-namespace pods.
+# Kubelet probes are allowed by Azure CNI / Azure NPM and are not listed here.
+# Change the namespace selector if the ingress controller runs elsewhere.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: calm-hub
+  namespace: calm-hub
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: calm-hub
+      app.kubernetes.io/component: api
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: app-routing-system
+        - podSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8080
+  egress:
+    - ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    # 443: Entra ID discovery and JWKS. 27017: MongoDB. 10255: Cosmos DB Mongo (RU) fallback.
+    - ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 27017
+        - protocol: TCP
+          port: 10255

@@ -138,6 +138,49 @@ function fieldsFromObjectSchema(
 		if (!prop) continue;
 		const nextPath = [...path, key];
 		const nestedProps = isRecord(prop['properties']) ? prop['properties'] : undefined;
+		const typeList = Array.isArray(prop['type'])
+			? prop['type'].filter((t): t is string => typeof t === 'string')
+			: typeof prop['type'] === 'string'
+				? [prop['type']]
+				: [];
+		const isArray =
+			typeList.includes('array') || (typeList.length === 0 && prop['items'] !== undefined);
+		if (isArray && prop['items'] !== undefined) {
+			const items = unwrapSchema(prop['items'], rootDoc, schemas, new Set()) ?? {};
+			const itemEnums = enumValuesOf(items);
+			const itemNested = isRecord(items['properties']) ? items['properties'] : undefined;
+			const itemIsObject =
+				items['type'] === 'object' ||
+				(Array.isArray(items['type']) && items['type'].includes('object')) ||
+				!!itemNested;
+			let itemKind: 'string' | 'enum' | 'object' = 'string';
+			let itemFields: MetadataFieldDescriptor[] | undefined;
+			let itemEnumValues: string[] | undefined;
+			if (itemIsObject) {
+				itemKind = 'object';
+				itemFields = itemNested
+					? fieldsFromObjectSchema(items, rootDoc, schemas, [], depth + 1).map((f) => ({
+							...f,
+							// Paths inside an array item are relative to the item object.
+							path: f.path,
+						}))
+					: [];
+			} else if (itemEnums) {
+				itemKind = 'enum';
+				itemEnumValues = itemEnums;
+			}
+			fields.push({
+				key,
+				label: labelOf(key, prop),
+				required: required.has(key),
+				kind: 'array',
+				path: nextPath,
+				itemKind,
+				...(itemEnumValues ? { itemEnumValues } : {}),
+				...(itemFields ? { itemFields } : {}),
+			});
+			continue;
+		}
 		const isObject =
 			prop['type'] === 'object' ||
 			(Array.isArray(prop['type']) && prop['type'].includes('object')) ||

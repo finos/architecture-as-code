@@ -61,6 +61,17 @@ export interface CalmProjectConfig {
 	hub?: { url: string };
 	/** Project-relative path to a CLI-shaped `url-mapping.json` (R75). */
 	urlMapping?: CalmProjectUrlMappingConfig;
+	/** Optional UI flags (R84). Project file only — not user-home overlay. */
+	ui?: CalmProjectUiConfig;
+}
+
+/** UI flags in `.calmrj` (R84). */
+export interface CalmProjectUiConfig {
+	/**
+	 * When true, show toolbar Demos and bundled FluxNova/OpenGRIS template tabs.
+	 * Default / missing = false after a project is open.
+	 */
+	demo: boolean;
 }
 
 /** Canonical URL → local file map used by `calm validate -u` (R75). */

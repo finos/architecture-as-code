@@ -1,0 +1,43 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: calm-hub-bootstrap
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+    app.kubernetes.io/component: bootstrap
+data:
+  bootstrap.js: |
+    const username = process.env.BOOTSTRAP_ADMIN_USERNAME;
+    if (!username || username === "REPLACE_OBJECT_ID") {
+      print("BOOTSTRAP_ADMIN_USERNAME is unset; no GLOBAL admin was created");
+      quit(1);
+    }
+    if (!/^[A-Za-z0-9._-]+$/.test(username)) {
+      print("username must match Hub USERNAME_REGEX. Use the Entra object id, not the UPN.");
+      quit(1);
+    }
+
+    const target = db.getSiblingDB(process.env.MONGODB_DATABASE || "calmSchemas");
+    const filter = { username: username, namespace: "GLOBAL", permission: "admin" };
+    if (target.userAccess.findOne(filter)) {
+      print("GLOBAL admin already present for " + username);
+      quit(0);
+    }
+
+    const counter = target.counters.findOneAndUpdate(
+      { _id: "userAccessStoreCounter" },
+      { $inc: { sequence_value: 1 } },
+      { upsert: true, returnDocument: "after" }
+    );
+    const userAccessId = NumberInt(counter.sequence_value);
+    const now = new Date();
+    target.userAccess.insertOne({
+      username: username,
+      permission: "admin",
+      namespace: "GLOBAL",
+      userAccessId: userAccessId,
+      createdAt: now,
+      lastUpdated: now
+    });
+    print("Created GLOBAL admin for " + username + " (userAccessId " + userAccessId + ")");

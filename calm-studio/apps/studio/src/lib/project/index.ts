@@ -7,11 +7,19 @@ export type {
 	CalmProjectNaming,
 	CalmProjectNamingPattern,
 	CalmProjectRulesetEntry,
+	CalmProjectUiConfig,
 	CalmProjectUrlMappingConfig,
 	NamingResolveContext,
 	NamingResolveResult,
 } from './types';
 export { createDefaultProjectConfig, isCalmProjectConfig, CENGINEERING_ARCHIMATE_PROFILE } from './defaults';
+export {
+	DEMO_TEMPLATE_CATEGORIES,
+	filterTemplateCategoriesForDemo,
+	isDemoTemplateCategory,
+	isProjectDemoEnabled,
+	shouldShowDemoUi,
+} from './demoUi';
 export { resolveExtractPath, normalizeSlug, collapseDuplicateSlugInFileName } from './naming';
 export {
 	collectExtractSubgraph,

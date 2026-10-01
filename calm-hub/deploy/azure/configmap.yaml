@@ -1,0 +1,32 @@
+# Non-secret runtime config for the Quarkus "oidc" profile.
+# Edit the REPLACE_* values and the public hostname before the first apply.
+# CALM_HUB_BASE_URL, the Ingress host, and the Entra redirect URI must be the same origin.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: calm-hub-config
+  namespace: calm-hub
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+data:
+  QUARKUS_PROFILE: oidc
+  CALM_OIDC_PROVIDER: entra-id
+  # v2.0 issuer. The iss claim and this value must match exactly, with no trailing slash.
+  CALM_OIDC_ISSUER_URL: https://login.microsoftonline.com/REPLACE_TENANT_ID/v2.0
+  CALM_OIDC_CLIENT_ID: REPLACE_CLIENT_ID
+  # Entra object id. preferred_username is a UPN (user@domain) and Hub rejects '@' in usernames.
+  CALM_OIDC_USERNAME_CLAIM: oid
+  CALM_OIDC_SCOPES: openid profile email
+  CALM_HUB_BASE_URL: https://calm-hub.example.com
+  QUARKUS_OIDC_APPLICATION_TYPE: service
+  QUARKUS_OIDC_TOKEN_LIFESPAN_GRACE: 30S
+  QUARKUS_MONGODB_DATABASE: calmSchemas
+  # TLS terminates at the AKS ingress. The process itself stays on plain HTTP.
+  QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING: "true"
+  QUARKUS_HTTP_PROXY_ALLOW_X_FORWARDED: "true"
+  QUARKUS_HTTP_PROXY_TRUSTED_PROXIES: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
+  # Probes must stay anonymous. The oidc profile authenticates /api, /calm, and /mcp only.
+  QUARKUS_HTTP_AUTH_PERMISSION_HEALTH_PATHS: /q/health,/q/health/*
+  QUARKUS_HTTP_AUTH_PERMISSION_HEALTH_POLICY: permit
+  QUARKUS_LOG_CATEGORY__ORG_FINOS_CALM__LEVEL: INFO

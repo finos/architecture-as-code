@@ -21,7 +21,11 @@
 	import { onMount } from 'svelte';
 	import { getTemplatesByCategory, getAllCategories } from './registry';
 	import { getAllPatterns } from './patternRegistry';
-	import { getProjectConfig } from '$lib/project/projectStore.svelte';
+	import { getProjectConfig, getProjectFileConfig } from '$lib/project/projectStore.svelte';
+	import {
+		filterTemplateCategoriesForDemo,
+		shouldShowDemoUi,
+	} from '$lib/project/demoUi';
 	import { hubUrlFromProject } from '$lib/hub/hubUrl';
 	import { listHubNamespaces, listHubPatterns, type HubPatternSummary } from '$lib/hub/hubClient';
 
@@ -72,14 +76,27 @@
 	let hubPatterns = $state<Record<string, HubPatternSummary[]>>({});
 	let hubError = $state<string | null>(null);
 
+	const showDemoUi = $derived(
+		shouldShowDemoUi(getProjectFileConfig() !== null, getProjectFileConfig())
+	);
+
 	const categories = $derived.by(() => {
 		const showLocal = getAllPatterns().length > 0 || !!hubUrl;
 		const base = showLocal
 			? [...getAllCategories().filter((c) => c !== 'patterns'), 'patterns']
 			: getAllCategories();
-		return [...base, ...hubNamespaces.map((ns) => `hub:${ns}`)];
+		const all = [...base, ...hubNamespaces.map((ns) => `hub:${ns}`)];
+		return filterTemplateCategoriesForDemo(all, showDemoUi);
 	});
-	let activeCategory = $state(getAllCategories()[0] ?? 'fluxnova');
+	let activeCategory = $state(
+		filterTemplateCategoriesForDemo(getAllCategories(), true)[0] ?? 'general'
+	);
+
+	$effect(() => {
+		if (categories.length > 0 && !categories.includes(activeCategory)) {
+			activeCategory = categories[0]!;
+		}
+	});
 
 	const activeTemplates = $derived(
 		activeCategory === 'patterns' || activeCategory.startsWith('hub:')

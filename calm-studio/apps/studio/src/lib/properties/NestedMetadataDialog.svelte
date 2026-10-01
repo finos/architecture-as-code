@@ -4,9 +4,14 @@
 <script lang="ts">
 	import {
 		readMetadataPath,
+		readMetadataValue,
 		writeMetadataPath,
+		writeMetadataValue,
+		formatJsonPretty,
+		cloneJson,
 		type MetadataFieldDescriptor,
 	} from '$lib/metadata/metadataForm';
+	import ArrayPropertyEditor from './ArrayPropertyEditor.svelte';
 
 	let {
 		title,
@@ -26,19 +31,28 @@
 		oncancel: () => void;
 	} = $props();
 
-	/* Dialog is created per open; capture the starting values once. */
-	let draft = $state<Record<string, unknown>>(structuredClone(metadata));
+	/* Dialog is created per open; capture the starting values once (JSON clone — Svelte proxies). */
+	let draft = $state<Record<string, unknown>>(cloneJson(metadata ?? {}));
 	let rawDraft = $state(
-		rawValue && typeof rawValue === 'object'
-			? JSON.stringify(rawValue, null, 2)
-			: rawValue == null
-				? '{}'
-				: JSON.stringify(rawValue, null, 2)
+		rawValue === undefined || rawValue === null
+			? '{}'
+			: typeof rawValue === 'string'
+				? rawValue
+				: formatJsonPretty(rawValue)
 	);
 	let error = $state<string | null>(null);
 
 	function setField(field: MetadataFieldDescriptor, value: string) {
 		draft = writeMetadataPath(draft, field.path, value);
+	}
+
+	function setArrayField(field: MetadataFieldDescriptor, next: unknown[]) {
+		draft = writeMetadataValue(draft, field.path, next);
+	}
+
+	function isArrayField(field: MetadataFieldDescriptor): boolean {
+		if (field.kind === 'array') return true;
+		return Array.isArray(readMetadataValue(draft, field.path));
 	}
 
 	function submit() {
@@ -64,11 +78,21 @@
 			<div class="fields">
 				{#each fields as field (field.key)}
 					{@const value = readMetadataPath(draft, field.path)}
+					{@const raw = readMetadataValue(draft, field.path)}
 					<label class="field-label" for="nested-{field.key}">
 						{field.label}
 						{#if field.required}<span class="required">*</span>{/if}
 					</label>
-					{#if field.kind === 'enum' && field.enumValues}
+					{#if isArrayField(field)}
+						<ArrayPropertyEditor
+							idPrefix="nested-{field.key}"
+							values={Array.isArray(raw) ? raw : []}
+							itemKind={field.itemKind ?? 'string'}
+							itemEnumValues={field.itemEnumValues}
+							itemFields={field.itemFields}
+							onchange={(next) => setArrayField(field, next)}
+						/>
+					{:else if field.kind === 'enum' && field.enumValues}
 						<select
 							id="nested-{field.key}"
 							class="input"
@@ -116,7 +140,7 @@
 		background: rgba(15, 23, 42, 0.45);
 	}
 	.dialog {
-		width: min(480px, calc(100vw - 32px));
+		width: min(560px, calc(100vw - 32px));
 		max-height: calc(100vh - 48px);
 		overflow: auto;
 		padding: 18px 20px;
@@ -151,8 +175,10 @@
 		font-family: inherit;
 	}
 	.textarea {
-		min-height: 160px;
+		min-height: 200px;
 		font-family: var(--font-mono, monospace);
+		white-space: pre;
+		line-height: 1.4;
 	}
 	.error {
 		color: #b91c1c;

@@ -9,17 +9,29 @@ const RESERVED = new Set(['building-block-style', 'fidelity-style', '_layout']);
 export function extraMetadataEntries(
 	metadata: Record<string, unknown> | undefined,
 	schemaPaths: string[][]
-): Array<{ key: string; value: string; nested: boolean; raw: unknown }> {
+): Array<{ key: string; value: string; nested: boolean; isArray: boolean; raw: unknown }> {
 	if (!metadata) return [];
 	const schemaTop = new Set(schemaPaths.map((p) => p[0]).filter(Boolean) as string[]);
-	const out: Array<{ key: string; value: string; nested: boolean; raw: unknown }> = [];
+	const out: Array<{ key: string; value: string; nested: boolean; isArray: boolean; raw: unknown }> =
+		[];
 	for (const [key, value] of Object.entries(metadata)) {
 		if (RESERVED.has(key) || schemaTop.has(key)) continue;
+		const isArray = Array.isArray(value);
 		const nested = !!value && typeof value === 'object';
 		out.push({
 			key,
-			value: typeof value === 'string' ? value : JSON.stringify(value),
+			value:
+				typeof value === 'string'
+					? value
+					: (() => {
+							try {
+								return JSON.stringify(value, null, 2);
+							} catch {
+								return String(value);
+							}
+						})(),
 			nested,
+			isArray,
 			raw: value,
 		});
 	}

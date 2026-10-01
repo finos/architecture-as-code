@@ -13,7 +13,6 @@ export {
   subscribePackRegistry,
 } from './registry.js';
 export { parsePackJson, duplicateTypeIdWarnings, PACK_SCHEMA_ID } from './json/parsePack.js';
-export { loadPacksFromDirectories, orderedPackDirectories } from './json/loadPacksFromFs.js';
 export { corePack } from './packs/core.js';
 export { awsPack } from './packs/aws.js';
 export { gcpPack } from './packs/gcp.js';

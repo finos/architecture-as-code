@@ -34,6 +34,7 @@ services:
     environment:
       # Applied at JVM start — no image rebuild needed. Matches application-no-auth CORS.
       # JAVA_OPTS replaces the base compose value (this image ignores JAVA_OPTS_APPEND).
-      - "JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth -Dquarkus.http.cors.enabled=true -Dquarkus.http.cors.origins=http://localhost:5173,http://127.0.0.1:5173,http://localhost:8090,http://127.0.0.1:8090 -Dquarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS -Dquarkus.http.cors.headers=accept,authorization,content-type"
+      # Regex: localhost / 127.0.0.1 any port; *.creditasgroup.cz http/https optional port.
+      - "JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth -Dquarkus.http.cors.enabled=true -Dquarkus.http.cors.origins=/http:\\\\/\\\\/(localhost|127\\\\.0\\\\.0\\\\.1)(:\\\\d+)?/,/https?:\\\\/\\\\/([a-zA-Z0-9-]+\\\\.)*creditasgroup\\\\.cz(:\\\\d+)?/ -Dquarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS -Dquarkus.http.cors.headers=accept,authorization,content-type"
       - QUARKUS_HTTP_CORS_ENABLED=true
-      - "QUARKUS_HTTP_CORS_ORIGINS=http://localhost:5173,http://127.0.0.1:5173,http://localhost:8090,http://127.0.0.1:8090"
+      - "QUARKUS_HTTP_CORS_ORIGINS=/http:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?/,/https?:\\/\\/([a-zA-Z0-9-]+\\.)*creditasgroup\\.cz(:\\d+)?/"

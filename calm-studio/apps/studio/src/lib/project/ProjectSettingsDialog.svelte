@@ -17,6 +17,7 @@
 		setHubUrl,
 		setUrlMappingPath,
 		setNamingConfig,
+		setUiDemo,
 		applyUserConfig,
 		getUserConfig,
 	} from '$lib/project/projectStore.svelte';
@@ -47,6 +48,7 @@
 	let extensionsDir = $state(getProjectConfig()?.extensions?.dir ?? '');
 	let hubUrl = $state(normalizeHubUrl(getProjectFileConfig()?.hub?.url) ?? '');
 	let urlMappingPath = $state(getProjectFileConfig()?.urlMapping?.path ?? '');
+	let uiDemo = $state(getProjectFileConfig()?.ui?.demo === true);
 	let namingProfile = $state(getProjectFileConfig()?.naming.profile ?? '');
 	let namingRootDirs = $state(
 		Object.entries(getProjectFileConfig()?.naming.rootDirs ?? {}).map(([key, value]) => ({ key, value }))
@@ -71,6 +73,7 @@
 		| 'templates'
 		| 'neighbors'
 		| 'urlMapping'
+		| 'ui'
 		| 'user'
 	>('naming');
 
@@ -229,8 +232,10 @@
 		setHubUrl(hubUrl);
 		setUrlMappingPath(urlMappingPath);
 		setExtensionsDisabled(disabledPacks);
+		setUiDemo(uiDemo);
 		hubUrl = getProjectFileConfig()?.hub?.url ?? '';
 		urlMappingPath = getProjectFileConfig()?.urlMapping?.path ?? '';
+		uiDemo = getProjectFileConfig()?.ui?.demo === true;
 		await persist();
 	}
 
@@ -333,6 +338,7 @@
 				['templates', 'templates'],
 				['neighbors', 'neighbors'],
 				['urlMapping', 'urlMapping'],
+				['ui', 'ui'],
 				['user', 'user'],
 			] as [id, label]}
 				<button
@@ -565,6 +571,20 @@
 						Save
 					</button>
 				</div>
+			</section>
+			{/if}
+
+			{#if settingsTab === 'ui'}
+			<section class="section">
+				<h3 class="section-title">Demo UI</h3>
+				<p class="hint">
+					When off, the toolbar <strong>Demos</strong> menu and bundled FluxNova / OpenGRIS
+					template tabs are hidden. Palette extension packs stay available. Default is off.
+				</p>
+				<label class="check">
+					<input type="checkbox" bind:checked={uiDemo} disabled={saving} />
+					<span>Demo</span>
+				</label>
 			</section>
 			{/if}
 

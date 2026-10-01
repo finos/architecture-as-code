@@ -5,22 +5,22 @@
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Owner / DRI**        | TBD                                                                                                                                                                                                                                                                                    |
 | **Status**             | Draft                                                                                                                                                                                                                                                                                  |
-| **Version**            | 0.31                                                                                                                                                                                                                                                                                   |
-| **Last updated**       | 2026-09-29                                                                                                                                                                                                                                                                             |
+| **Version**            | 0.34                                                                                                                                                                                                                                                                                   |
+| **Last updated**       | 2026-10-01                                                                                                                                                                                                                                                                             |
 | **Target release**     | TBD                                                                                                                                                                                                                                                                                    |
 | **Reviewers**          | eng lead, design                                                                                                                                                                                                                                                                       |
 | **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                                                                                                                                                                                                             |
 | **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [Pack schema](../../extensions/calm-extension-pack.schema.json) · [VS Code pack PRD](../../calm-plugins/vscode/docs/prd.md) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
 
 
-> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders.
+> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders. **V13** hides the toolbar **Demos** button and the built-in **FluxNova** / **OpenGRIS** template tabs unless project `.calmrj` has `ui.demo: true` (default `false`). **V14** replaces the stub **calmscript** export and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** export (`.mmd` and `.md`) plus a **read-only Mermaid** preview tab. **V15** fixes properties editing so **array** values are edited **one element at a time** (primitives and objects), and nested JSON previews / dialogs show **pretty-printed** multi-line text instead of one line.
 
 ## Contents
 
 - [1. Problem and context](#1-problem-and-context)
 - [2. Goals, non-goals, and success metrics](#2-goals-non-goals-and-success-metrics)
 - [3. Target users and use cases](#3-target-users-and-use-cases)
-- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12)
+- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15)
 - [5. Requirements](#5-requirements)
 - [6. UX and design](#6-ux-and-design)
 - [7. Technical aspects](#7-technical-aspects)
@@ -109,6 +109,7 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Diagram undo                 | Snapshots exist, but Ctrl+Z is not bound (Meta+Z only), so Windows undo hits the JSON editor             |
 | Insert a referenced node     | `detailed-architecture` points at the file you dragged from, even when that file only references the node |
 | Move dialog target           | Typed path only. No folder picker from the project tree                                                  |
+| Demo toolbar + template tabs | Toolbar **Demos** always visible; Template picker always shows FluxNova and OpenGRIS                     |
 
 
 ## 2. Goals, non-goals, and success metrics
@@ -131,6 +132,9 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V10:** Create folders, **create named files**, and move folders from a **right-click menu on the Files-tree row under the pointer** (New file asks for the name immediately); Save As uses the selected tree folder and a naming-pattern filename; load **user-home config** then overlay the project file; split Project settings into **tabs**; enum dropdowns + nested JSON in a dialog; **Shift + marquee** multi-select with a **Select / Pan** left-button toggle, a **canvas mini-map** (click to pan the viewport), alignment / same-size / table tools; **arrange container to table**; disable bundled extension packs; open Hub `detailed-architecture` URLs as **read-only** editors (JSON locked; no Hub insert onto those tabs); resolve canonical artifact `$id` URLs through a project **`url-mapping.json`** (path in `.calmrj`).
 - **V11:** Remove the Select/Pan toggle and Space-pan. Empty-canvas drag **pans**; drag on a node **moves** it (the group, if it is already selected). **Shift+click** and **Shift+marquee** **toggle** membership. **Hub** is a left-panel tab: lazy tree namespace → architecture → version → nodes; drag a node like Files; the Hub dialog goes away. **Move one file** the same way as a folder (abort if the destination name exists); rewrite relative `detailed-architecture` on file and folder move only. Do not route a relationship around a container that contains one of its ends. JSON apply keeps `_layout` and `building-block-style` unless the user edited them. **Ctrl+Z / Ctrl+Y** undo diagram edits outside the JSON editor.
 - **V12:** When inserting a node from another document, `detailed-architecture` points at the file that **defines** it. Follow relative links until the node has no `detailed-architecture`. An `http(s)` link is copied and not followed. If the chain cannot be resolved, link the file you inserted from. The Move dialog for a **file or a folder** shows the project **folder tree** (including the root) and still has a text field. Move confirms.
+- **V13:** After a project loads, hide the toolbar **Demos** control and the Studio-bundled **FluxNova** / **OpenGRIS** template tabs unless `.calmrj` has `ui.demo: true`. Default is `ui.demo: false`. Without an open project, those UI pieces stay visible. Project settings has a **Demo** checkbox.
+- **V14:** Replace the stub **calmscript** Export item and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** downloads (`.mmd` and `.md`) and a **read-only Mermaid** preview tab. Leave `packages/calmscript` in the monorepo unused.
+- **V15:** Edit **array** properties as a list of individual values (including object items). Show nested JSON as **pretty-printed** multi-line text in the panel preview and in edit dialogs.
 
 **Non-goals**
 
@@ -188,6 +192,15 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Clicking a folder in the Move dialog to move immediately** — the tree fills the destination. **Move** still confirms (R83). Drag onto a folder in the Files tree is unchanged (R77).
 - **Picking a file as the Move destination** — folders and the project root only (R83).
 - **Namespace URL mapping** (BBR lines 136–137) — not this iteration.
+- **Deleting the Demos feature or `/demos` assets** — V13 only **hides** them when `ui.demo` is false (R84). The load path stays for `ui.demo: true`.
+- **Hiding FluxNova / OpenGRIS packs in the Palette** — V13 gates **Template picker tabs** only, not `extensions.disabled` (R84).
+- **Putting `ui.demo` in user-home config** — V13 is **project `.calmrj` only** (R84).
+- **Shipping or finishing the calmscript DSL** — V14 removes the stub export menu item and the disabled Code-panel tab. The `packages/calmscript` placeholder may stay in the monorepo unused (R85).
+- **Mermaid → CALM import / round-trip** — V14 is **CALM → Mermaid only** (R85).
+- **C4 Mermaid diagram types** (`C4Context`, …) — V14 uses **`flowchart`** with containers as subgraphs (R85).
+- **Deleting `packages/calmscript` from the workspace** — out of scope for V14; leave the package (R85).
+- **Editing an array as a single comma-joined or JSON-string text field** — V15 replaces that with per-element editors (R86).
+- **A separate full-screen JSON IDE for properties** — V15 keeps inline lists + existing nested dialog; no new IDE (R86).
 - **Mini-map hide/show, zoom-from-minimap, or editing nodes from the mini-map** — V10 mini-map is always visible; click (or drag the viewport mask) only **pans**. Zoom stays wheel / existing controls (R74).
 - **In-app editor for `url-mapping.json` entries** — V10 only **picks the mapping file** in project config (R75). Teams edit the JSON in the repo (same file as `calm validate -u`).
 - **Mapping Hub instance URLs** (`/calm/namespaces/…/architectures/…`) — those stay Hub (R69). Mapping is for canonical `$id` / `$schema` / `$ref` artifacts (Standards, Patterns, schemas).
@@ -263,6 +276,10 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Undo a canvas edit                             | Ctrl+Z undoes JSON text  | Ctrl+Z / Ctrl+Y undo diagram edits outside the JSON editor     | v11  |
 | Insert a node that is only a reference         | Link points at the file you dragged from | Link points at the file that defines the node (chain); `http(s)` copied | v12 |
 | Choose a Move destination                      | Type a path              | Pick a project folder in the dialog, or type it                | v12  |
+| Hide demos until the project opts in           | Demos + FluxNova/OpenGRIS always on | Hidden after project load unless `ui.demo: true`     | v13  |
+| Export / preview as Mermaid                    | calmscript stub only     | Flowchart `.mmd` + `.md`; read-only Mermaid tab                 | v14  |
+| Edit array properties element-by-element       | One text field for whole array | Inline list +/−; objects as mini-rows / nested fields    | v15  |
+| Nested JSON readable in properties             | One-line `JSON.stringify` | Pretty-printed multi-line preview and dialog                   | v15  |
 
 
 ## 3. Target users and use cases
@@ -335,6 +352,11 @@ CALM Studio today lets users model architecture in a single file with a palette 
 62. **UC-62 — Undo a canvas edit:** User moves a node, then Ctrl+Z. The node returns. The same keys inside the JSON editor undo text only.
 63. **UC-63 — Insert the defining file:** File A defines node X (no `detailed-architecture`). File B references X and points at A. User drags X from B onto the open diagram. The new stub points at A, with a path relative to the open file. If A’s link is `http(s)`, that URL is copied. If A cannot be opened, the stub points at B.
 64. **UC-64 — Pick a Move folder:** User chooses **Move** on a file or a folder. The dialog lists project folders, including the root. User selects a folder or types a path, then **Move**. The file or folder moves under the same rules as R77 / R60.
+65. **UC-65 — Demo UI off by default:** User opens a project whose `.calmrj` has no `ui.demo` (or `ui.demo: false`). The toolbar has no **Demos** button. Template picker has no **FluxNova** or **OpenGRIS** tabs. User turns **Demo** on in Project settings, saves, and both reappear. Before any project is open, Demos and those tabs stay visible.
+66. **UC-66 — Export Mermaid:** User opens Export and chooses **Mermaid (.mmd)** or **Mermaid (.md)**. The download is a flowchart of the active diagram (nodes, visible relationships, containers as subgraphs). There is no calmscript export item.
+67. **UC-67 — Preview Mermaid:** User opens the Code panel tab **Mermaid** (next to **CALM JSON**). The text is read-only and matches the export body. The old disabled **calmscript** tab is gone.
+68. **UC-68 — Edit array property:** User selects a node or relationship with an array metadata (or other properties) field. The panel shows one row per element with Add / Remove. Primitive items use an input or enum select; object items show fields for that item (or Expand / Edit for deep objects). An empty array still shows the list chrome and **Add**.
+69. **UC-69 — Read nested JSON:** User looks at a nested metadata object in the panel. The preview is indented multi-line JSON, not a single line. Opening **Edit…** keeps pretty formatting in the dialog.
 
 **Not for:** Users outside officially supported browsers (**Chrome**, **Safari**). Firefox, Edge, and older versions without File System Access API — file panel unavailable, rest of studio may work with limitations.
 
@@ -1408,6 +1430,109 @@ The Move dialog for a **file** and the Move dialog for a **folder** both show th
 
 **Out of scope for V12:** a project-wide search for a second definition of the same `unique-id`; turning an `http(s)` link into a local path on insert; click-to-move; picking a file as the destination; namespace URL rewriting (BBR lines 136–137).
 
+### 4.38 Demo UI gate (P1 — V13)
+
+**Problem.** Studio ships marketing demos and FluxNova / OpenGRIS sample templates that clutter day-to-day architecture work. Teams want them off after a project is open, and on only when they explicitly enable demo mode.
+
+**Config (R84)**
+
+Project `.calmrj` only (not user-home overlay):
+
+```json
+{
+  "ui": {
+    "demo": false
+  }
+}
+```
+
+- Missing `ui` or missing `ui.demo` → treat as **`false`**.
+- Default in Create-project / `createDefaultProjectConfig` → `"ui": { "demo": false }`.
+- Project settings: checkbox **Demo** under a UI / Demo section; saving writes `ui.demo`.
+
+**Behavior**
+
+| Context | `ui.demo` effective | Toolbar **Demos** | Template tabs **FluxNova** / **OpenGRIS** |
+| --- | --- | --- | --- |
+| No project open | n/a | **Visible** | **Visible** (bundled Studio categories) |
+| Project open, `false` / omitted | false | **Hidden** | **Hidden** |
+| Project open, `true` | true | **Visible** | **Visible** |
+
+- Hiding applies to **Studio-bundled** template categories `fluxnova` and `opengris` only. Other categories (General, AI Governance, Patterns, Hub, project `templates.dir` categories that are not those two) stay.
+- Do **not** disable FluxNova / OpenGRIS packs in the Palette via this flag.
+- Do **not** delete the Demos control, demo JSON under `/demos`, or template assets — only gate visibility.
+- Closing the project returns to the “no project” row (Demos and those tabs visible again).
+
+**Out of scope for V13:** user-home `ui.demo`; removing demo assets from the build; gating Palette packs; hiding other template categories.
+
+### 4.39 Mermaid export (P1 — V14)
+
+**Problem.** The Export menu and Code panel advertise **calmscript**, but the feature is a stub (“Phase 5”). Architects need a useful text diagram they can paste into Confluence, GitHub, and docs — Mermaid — not a disabled placeholder.
+
+**Replace**
+
+| Surface | Today | V14 |
+| --- | --- | --- |
+| Export menu | `calmscript (.calmscript)` stub download | **Mermaid (.mmd)** and **Mermaid (.md)** |
+| Code panel tabs | **CALM JSON** + disabled **calmscript** | **CALM JSON** + read-only **Mermaid** |
+| `packages/calmscript` | Placeholder package in workspace | **Unchanged** (not deleted; not wired) |
+
+**Diagram type**
+
+- Mermaid **`flowchart`** (default direction `TB`).
+- Each CALM node → one Mermaid node. Id = sanitized `unique-id`. Label = `name` (fallback `unique-id`).
+- Visible relationships (`connects`, `interacts`, …) → edges. Edge label = relationship type or display name when present.
+- Containers (`composed-of` / `deployed-in` nesting on canvas) → **`subgraph`**. Do **not** also draw those containment relationships as edges (same idea as hidden containment edges on canvas, R35).
+- Source = **active tab** persisted architecture (same model as CALM JSON / SVG export). Fog filter does **not** change the Mermaid text.
+
+**Formats (both in Export)**
+
+1. **`.mmd`** — raw Mermaid source only.
+2. **`.md`** — Markdown file whose body is one fenced Mermaid block (opening fence `mermaid`, then the same flowchart text as `.mmd`, then closing fence).
+
+Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `api-gateway.md`), or `architecture.mmd` / `architecture.md` when untitled.
+
+**Code panel Mermaid tab**
+
+- Selectable tab next to **CALM JSON**.
+- Content = same string as the `.mmd` body (no Markdown fence in the panel).
+- **Read-only** (no edit, no round-trip into the model).
+- Updates when the active diagram model changes (same cadence as the JSON panel’s external sync).
+- Escape Mermaid-sensitive characters in labels (`"`, newlines) so the preview stays valid.
+
+**Out of scope for V14:** Mermaid → CALM import; C4 Mermaid diagram kinds; deleting `packages/calmscript`; clipboard-only export as the sole path; live Mermaid render (SVG) inside Studio.
+
+### 4.40 Array properties and pretty nested JSON (P1 — V15)
+
+**Problem.** The properties panel treats many **array** values as a single text field, so architects cannot reliably add, edit, or remove one item. Nested objects / arrays show as a **one-line** `JSON.stringify` preview, which is unreadable for anything beyond a tiny object.
+
+**Surfaces (all property editors that can hold arrays or nested JSON)**
+
+| Surface | Array edit | Nested / object display |
+| --- | --- | --- |
+| Schema-driven `metadata` (`MetadataForm`) | Per-element list when schema or runtime value is an array | Pretty preview for nested groups |
+| Extra / free-form metadata keys | If value is a JSON array or object | Pretty preview; Edit keeps pretty JSON |
+| `NestedMetadataDialog` | Array fields inside the dialog use the same list pattern | Raw JSON textarea stays pretty (`null, 2`) |
+| `customMetadata` | If a value parses as JSON array/object, edit as list / nested — not one opaque string | Pretty when nested |
+| Controls / interfaces | Reuse list pattern where the model is already a list (e.g. requirements); do not regress existing Interfaces rows | n/a unless nested JSON appears |
+
+**Array editing (R86)**
+
+- **Inline** in the properties panel (not a separate Export-style flow): one **row per element**, **Add** and **Remove**.
+- **Empty array:** still show the list header / empty state and **Add** (do not hide until first value).
+- **Primitive items** (`string`, `number`, `boolean`, enum): one control per row (text / number / checkbox / select).
+- **Object items:** each row is a mini-form of known schema fields for `items`, or Expand / Edit into nested fields. Deep/unknown object shape may use a pretty JSON textarea **for that one item** only — never for the whole array as one string.
+- Persist as a real JSON **array** in the model (not a comma-separated string).
+- Read-only / Hub-locked tabs: list is visible, Add/Remove/edit disabled.
+
+**Pretty nested JSON (R86)**
+
+- Panel preview: `JSON.stringify(value, null, 2)` (or equivalent), multi-line, monospace, scroll if tall.
+- Nested edit dialog: always show pretty JSON for raw object/array bodies; do not collapse to one line on open.
+- Do not change `_layout` / `building-block-style` handling (R48, R49, R80).
+
+**Out of scope for V15:** a full tree JSON editor product; YAML; importing Excel lists; changing CALM schema shapes; editing `metadata._layout` via this list UI.
+
 ## 5. Requirements
 
 ### Iteration 1 — P0
@@ -1589,7 +1714,31 @@ The Move dialog for a **file** and the Move dialog for a **folder** both show th
 | R83 | As an architect I want to pick the Move destination from the project folder tree.                  | P1       | - [ ] File Move and folder Move dialogs show the project folder tree, including the root - [ ] Only folders are selectable - [ ] A selected folder fills the destination-folder field; the text field stays editable - [ ] **Move** still confirms; the tree click does not move - [ ] Drag onto a folder in the Files tree is unchanged (R77, R60) - [ ] Name clash, dirty cancel, and relative-link rewrite stay as R77 / R60 | Open   |
 
 
-### Iteration 15 — P2
+### Iteration 15 — P1 (V13 — demo UI gate)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R84 | As an architect I want demos and FluxNova/OpenGRIS sample templates hidden unless I turn Demo on. | P1       | - [x] `.calmrj` key `ui.demo` (boolean); missing → `false`; Create project writes `ui.demo: false` - [x] Project settings checkbox **Demo** reads/writes `ui.demo` - [x] Project open + `ui.demo` false/omitted: toolbar **Demos** hidden; Template picker hides bundled categories `fluxnova` and `opengris` - [x] Project open + `ui.demo` true: Demos and those tabs visible - [x] No project open: Demos and those tabs visible - [x] Other template categories unchanged - [x] Palette packs unchanged (not `extensions.disabled`) - [x] Demo assets and load code remain for `ui.demo: true` - [x] User-home config does not define `ui.demo` | Done   |
+
+
+### Iteration 16 — P1 (V14 — Mermaid export)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R85 | As an architect I want to export and preview the active diagram as Mermaid instead of calmscript. | P1       | - [x] Export menu has **Mermaid (.mmd)** and **Mermaid (.md)**; no **calmscript** item - [x] Both downloads are `flowchart` of the active tab (nodes + visible relationships; containers as `subgraph`; no containment edges) - [x] `.md` wraps the same body in a ` ```mermaid ` fence - [x] Code panel: **Mermaid** tab is read-only; shows the `.mmd` body; updates with the model - [x] Disabled **calmscript** tab is removed - [x] No Mermaid → CALM import - [x] `packages/calmscript` remains in the monorepo but is not used by Studio UI | Done   |
+
+
+### Iteration 17 — P1 (V15 — array properties + pretty nested JSON)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R86 | As an architect I want to edit array properties one value at a time and read nested JSON as formatted text. | P1       | - [x] Array fields in properties (metadata schema/extra, customMetadata when JSON array, controls/interfaces lists as applicable) use an **inline** row-per-element UI with Add/Remove - [x] Primitive and **object** items are editable per element (object = mini-form or per-item pretty JSON; never the whole array as one string) - [x] Empty array shows list + Add - [x] Nested object/array **preview** is pretty-printed multi-line - [x] Nested **Edit** dialog keeps pretty JSON - [x] Model stores a JSON array - [x] Read-only tabs do not mutate - [x] `_layout` / `building-block-style` unchanged | Done   |
+
+
+### Iteration 18 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
@@ -1622,6 +1771,8 @@ The Move dialog for a **file** and the Move dialog for a **folder** both show th
 - Shift is the multi-select modifier; Ctrl+drag remains duplicate (R21). Marquee starts on empty canvas, not on a node (node drag still moves).
 - `extensions.disabled` lists **bundled** pack ids only; extra `extensions.dir` packs stay until removed from disk.
 - Canonical `$id` / `$schema` / `$ref` resolution uses the same `url-mapping.json` object as CALM CLI `-u` (keys = URLs, values relative to the mapping file). Path to that file lives in `.calmrj` `urlMapping.path`. Hub instance URLs are not mapping keys (#67).
+- Mermaid export (R85) is a lossy projection for docs: positions, colors, and extension metadata need not round-trip. Fog does not filter the Mermaid text.
+- Array property editors (R86) persist JSON arrays; object items may use schema fields or per-item pretty JSON, not a single string for the whole array.
 
 ## 6. UX and design
 
@@ -1921,6 +2072,55 @@ The Move dialog for a **file** and the Move dialog for a **folder** both show th
 - The same tree is on the folder Move dialog. Folders and the project root only.
 - A click fills the folder field. **Move** confirms.
 
+### Demo UI (V13, R84)
+
+```
+.calmrj → "ui": { "demo": false }     // default after Create project / omit
+
+No project open     → Demos button ON; FluxNova + OpenGRIS tabs ON
+Project, demo false → Demos button OFF; those two tabs OFF
+Project, demo true  → Demos button ON; those two tabs ON
+```
+
+- Project settings: checkbox **Demo**.
+- Palette packs and other template categories unchanged.
+
+### Mermaid export and preview (V14, R85)
+
+```
+Export ▾
+  … CALM / SVG / PNG …
+  Mermaid (.mmd)     ← raw flowchart
+  Mermaid (.md)      ← ```mermaid fence
+  (no calmscript)
+
+Code panel
+  [ CALM JSON ] [ Mermaid ]     ← Mermaid = read-only; calmscript tab gone
+```
+
+- Same flowchart body for panel, `.mmd`, and the fenced `.md` content.
+- Containers → subgraphs; containment edges not drawn as Mermaid edges.
+
+### Array properties + pretty nested JSON (V15, R86)
+
+```
+Metadata / properties
+  tags[]
+    [0]  [prod________]  [−]
+    [1]  [pci_________]  [−]
+    [ + Add ]
+
+  archimate (nested)
+    {
+      "layer": "Application",
+      "element": "…"
+    }                         ← multi-line pretty
+    [ Edit… ]
+```
+
+- Object array item: mini fields per row, or Expand for that index.
+- Empty array: header + Add still visible.
+
 ### Hub read-only tab (V10, R69–R70)
 
 - Banner: “Read-only — loaded from CALM Hub”. JSON editor non-editable. Hub Insert and palette drop disabled.
@@ -2128,16 +2328,19 @@ TBD — Figma link after review.
 | **Diagram undo (V11)**         | `history.svelte.ts`, canvas shortcut                                                                       | Ctrl+Z / Ctrl+Y outside the JSON editor; per tab (R81)                                          |
 | **Defining reference (V12)**   | Files drop, Hub drop, Find neighbors                                                                       | Follow `detailed-architecture` to the defining file; rewrite the relative path (R82)            |
 | **Move dialog tree (V12)**     | file and folder Move dialogs                                                                               | Folder tree plus text field; folders and root; Move confirms (R83)                              |
+| **Demo UI gate (V13)**         | Toolbar, TemplatePicker, ProjectSettings, `.calmrj` `ui.demo`                                              | Hide Demos + bundled FluxNova/OpenGRIS tabs unless `ui.demo: true` (R84)                        |
+| **Mermaid export (V14)**       | `export.ts`, Mermaid serializer, `Toolbar.svelte`, `CodePanel.svelte`                                      | Replace calmscript stub with flowchart `.mmd` / `.md` + read-only Mermaid tab (R85)             |
+| **Array + pretty nested (V15)**| `MetadataForm`, `NestedMetadataDialog`, `metadataForm.ts`, CustomMetadata / Controls as needed           | Per-element array editors; pretty nested preview/dialog (R86)                                   |
 | **Canvas mini-map (V10)**      | `CalmCanvas.svelte` MiniMap                                                                                | Overview + viewport mask; click pans (zoom unchanged) (R74)                                     |
 | **Container table (V10)**      | layout / container command                                                                                 | Arrange to table; resize container (R67)                                                        |
 | **Disable bundled packs (V10)**| pack loader, `.calmrj` `extensions.disabled`                                                               | Hide listed bundled ids from palette (R68)                                                      |
 | **Hub URL + JSON lock (V10)**  | glasses / Hub tab, `CodePanel`                                                                             | Hub `detailed-architecture` opens RO; JSON locked; no Hub insert (R69–R70)                      |
 | **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                                                | TabBar, per-tab model/canvas state, FIFO limit 10, close/evict guards                           |
 | Layout                         | `apps/studio/src/routes/+page.svelte`                                                                      | Palette/Files toggle, TabBar, active tab → canvas + JSON                                        |
-| JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                                            | Fix selection + cursor; bind to active tab                                                      |
+| JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                                            | Fix selection + cursor; bind to active tab; **Mermaid** read-only tab (R85)                    |
 | **Reference UI**               | `apps/studio/src/lib/canvas/nodes/*.svelte`, `projection.ts`                                               | Glasses icon, `isReference`, navigation to `detailed-architecture`                              |
 | Containment                    | `apps/studio/src/lib/canvas/containment.ts`, `CalmCanvas.svelte`                                           | Alt+drop / Alt+extract; sizing; no nest on plain drag (R39)                                     |
-| Export                         | `apps/studio/src/lib/io/export.ts`, `exportImagePrep.ts`                                                   | CALM round-trip; SVG/PNG capture; **do not restrict** `includeStyleProperties` in html-to-image |
+| Export                         | `apps/studio/src/lib/io/export.ts`, `exportImagePrep.ts`, Mermaid serializer (new)                         | CALM round-trip; SVG/PNG; Mermaid `.mmd` / `.md` (R85); remove calmscript download              |
 | Model merge (export)           | `apps/studio/src/lib/stores/calmModel.svelte.ts`, `projection.ts`                                          | `buildPersistedArchitecture`, `getExportJson`, `flowToCalm` / `calmToFlow`                      |
 | Model store (P1)               | `apps/studio/src/lib/stores/calmModel.svelte.ts`                                                           | Document envelope (`$schema`)                                                                   |
 | Properties (P1)                | `NodeProperties.svelte`, `EdgeProperties.svelte`, `MetadataForm.svelte` (new)                              | Schema-driven `metadata` editor; read-only reference mode (R17, R18)                            |
@@ -2483,6 +2686,10 @@ Extend / add:
 - `apps/studio/src/tests/canvas/diagramUndo.test.ts` — new (Ctrl+Z restores a move; JSON focus does not step the diagram stack) (V11)
 - `apps/studio/src/tests/canvas/definingFileRef.test.ts` — new (follow the chain; relative path from the current file; `http(s)` copied; missing file falls back to the source document) (V12)
 - `apps/studio/src/tests/explorer/moveDialogTree.test.ts` — new (file and folder dialogs list folders and the root; selection fills the folder field; Move still confirms) (V12)
+- `apps/studio/src/tests/project/demoUiGate.test.ts` — new (`ui.demo` default false; hide Demos + fluxnova/opengris when project open; show when true; no-project shows) (V13)
+- `apps/studio/src/tests/io/mermaidExport.test.ts` — new (flowchart nodes/edges; container → subgraph; no containment edge; `.md` fence; id sanitize) (V14)
+- `apps/studio/src/tests/properties/arrayPropertyEditor.test.ts` — new (add/remove primitive; object item; empty + Add; persist array) (V15)
+- `apps/studio/src/tests/properties/nestedPrettyPreview.test.ts` — new (`previewNestedMetadata` multi-line; dialog raw stays pretty) (V15)
 - `apps/studio/src/tests/canvas/canvasMinimap.test.ts` — new (minimap present; click pans viewport; zoom unchanged) (V10)
 - `apps/studio/src/tests/canvas/selectionAlign.test.ts` — new (align row/column/axis; even spacing; same size) (V10)
 - `apps/studio/src/tests/layout/arrangeContainerTable.test.ts` — new (default grid + rows/cols; container resize) (V10)
@@ -2534,6 +2741,33 @@ Extend / add:
 - [ ] Manual smoke: drag a node whose link is a Hub URL → the stub keeps that URL
 - [ ] Manual smoke: Move a file and a folder by picking a folder in the dialog, including the project root; typing a path still works; drag onto a folder in the tree still works
 - [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 15 (P1, V13)
+
+- [x] Acceptance criteria R84 met
+- [x] Unit tests: missing `ui.demo` → false; Create default has `ui.demo: false`; with project false/true the Demos visibility and fluxnova/opengris tab filter match the table in §4.38
+- [ ] Manual smoke: open project without `ui.demo` → no Demos button; Template picker has no FluxNova/OpenGRIS; Palette still has packs if enabled
+- [ ] Manual smoke: Project settings → Demo on → save → Demos and tabs return
+- [ ] Manual smoke: close project / no folder → Demos and tabs visible again
+- [x] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 16 (P1, V14)
+
+- [x] Acceptance criteria R85 met
+- [x] Unit tests: flowchart from fixture; nested container → subgraph; containment not emitted as edge; `.md` has fence; unique-id sanitize
+- [ ] Manual smoke: Export → Mermaid (.mmd) and (.md) download; no calmscript menu item
+- [ ] Manual smoke: Code panel **Mermaid** tab shows the same body as `.mmd`; tab is read-only; **calmscript** tab gone
+- [ ] Manual smoke: edit canvas → Mermaid tab text updates
+- [x] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 17 (P1, V15)
+
+- [x] Acceptance criteria R86 met
+- [x] Unit tests: array add/remove; object item edit; empty array shows Add; preview is multi-line pretty; dialog JSON stays pretty; model is an array
+- [ ] Manual smoke: metadata array — edit one element without rewriting the whole field as a string
+- [ ] Manual smoke: nested object preview wraps / indents; Edit… shows pretty JSON
+- [ ] Manual smoke: read-only Hub tab — array list visible, no Add/Remove
+- [x] `npm run test --workspace=@calmstudio/studio` passes
 
 ### Definition of Done — iteration 11 (P1/P0, BBR V8.2)
 
@@ -2740,6 +2974,19 @@ Extend / add:
 | 79  | Which Move dialogs show the folder tree                                                          | —        | PM     | **Resolved** — file Move and folder Move (R83). |
 | 80  | Tree versus typed path                                                                           | —        | PM     | **Resolved** — both. The tree fills the folder field. **Move** still confirms. Drag onto a folder in the Files tree stays (R83). |
 | 81  | What the tree may select                                                                         | —        | PM     | **Resolved** — folders and the project root. A file is not a destination (R83). |
+| 82  | Where `ui.demo` lives                                                                            | —        | PM     | **Resolved** — project `.calmrj` only: `ui.demo` boolean; default / missing = false (R84). |
+| 83  | Demo UI with no project open                                                                     | —        | PM     | **Resolved** — Demos button and FluxNova/OpenGRIS tabs stay visible until a project loads (R84). |
+| 84  | What Demo hides                                                                                  | —        | PM     | **Resolved** — toolbar Demos + bundled Template categories `fluxnova` and `opengris` only. Not Palette packs. Not other categories (R84). |
+| 85  | Remove vs hide Demos                                                                             | —        | PM     | **Resolved** — hide when `ui.demo` is false; keep assets and code for `true` (R84). |
+| 86  | Replace calmscript export with what                                                             | —        | PM     | **Resolved** — Mermaid `flowchart`; Export offers `.mmd` and `.md`; Code panel read-only **Mermaid** tab; remove disabled calmscript tab (R85). |
+| 87  | Mermaid diagram kind                                                                             | —        | PM     | **Resolved** — `flowchart` with containers as subgraphs. Not C4 Mermaid (R85). |
+| 88  | Mermaid round-trip                                                                               | —        | PM     | **Resolved** — export / preview only. No Mermaid → CALM (R85). |
+| 89  | `packages/calmscript`                                                                            | —        | PM     | **Resolved** — leave the package; stop wiring it in Studio UI (R85). |
+| 90  | Where array property editing applies                                                             | —        | PM     | **Resolved** — all properties surfaces that can hold arrays / nested JSON (metadata, customMetadata when JSON, controls/interfaces lists) (R86). |
+| 91  | Array of objects                                                                                 | —        | PM     | **Resolved** — per-element edit; object = mini-form or per-item pretty JSON (R86). |
+| 92  | Array UI placement                                                                               | —        | PM     | **Resolved** — inline list in the panel with Add/Remove (R86). |
+| 93  | Nested JSON formatting                                                                           | —        | PM     | **Resolved** — pretty preview and pretty dialog (R86). |
+| 94  | Empty array                                                                                      | —        | PM     | **Resolved** — show list chrome + Add (R86). |
 | 66  | Canvas overview: none vs mini-map click-to-pan                                                   | —        | PM     | **Resolved** — always-visible mini-map (bottom-right); click pans viewport to that point (centered); zoom unchanged; no hide/zoom-from-minimap (#66). |
 | 67  | How Studio finds a local file for a canonical `$id` URL                                          | —        | PM     | **Resolved** — `.calmrj` `urlMapping.path` → `url-mapping.json` (CALM CLI `-u` / CEngineering-App shape); values relative to the mapping file; Hub instance URLs skip the map; no network fetch (#67). |
 
@@ -2807,6 +3054,9 @@ Extend / add:
 | `extensions.disabled`    | Bundled pack ids hidden from the palette (R68)                                                         |
 | Hub-sourced tab          | Editor whose document was loaded from Hub — fully read-only including JSON (R70)                       |
 | Files-tree context menu  | Right-click on the tree row under the pointer; New folder / New file / Move (R71–R72)                  |
+| Mermaid flowchart export | CALM → Mermaid `flowchart` (`.mmd` / `.md`); read-only Code-panel tab; replaces calmscript stub (R85) |
+| Array property editor    | Inline row-per-element Add/Remove for JSON arrays in properties; object items supported (R86)         |
+| Pretty nested preview    | Multi-line indented JSON for nested metadata preview and dialog (R86)                                 |
 
 
 ### Implementation order
@@ -2858,7 +3108,10 @@ Extend / add:
 45. **V11 container obstacle + JSON layout + diagram undo** (R79–R81)
 46. **V12 defining file** (R82) — Files, Hub, and Find neighbors
 47. **V12 Move dialog tree** (R83) — file and folder dialogs
-48. **P2 desktop / watch** (R13, R14)
+48. **V13 demo UI gate** (R84) — `ui.demo`; hide Demos + FluxNova/OpenGRIS tabs
+49. **V14 Mermaid export** (R85) — replace calmscript stub with flowchart `.mmd` / `.md` + Mermaid tab
+50. **V15 array properties + pretty nested** (R86)
+51. **P2 desktop / watch** (R13, R14)
 
 ### Constraints for AI coding agent
 
@@ -2901,6 +3154,9 @@ Extend / add:
 - **R78:** Hub is a left-panel tab with lazy expand to nodes. Remove `HubBrowseDialog`. A node with no `detailed-architecture` uses that version URL. A node that is itself a reference follows R82. No Hub PUT/POST.
 - **R82:** on insert from another document, follow relative `detailed-architecture` to the file that defines the node and write a new relative path from the current file. Copy `http(s)` and stop. Do **not** search the project for another definition. Do **not** use `url-mapping.json` on insert. Unresolved chain → the document you inserted from.
 - **R83:** file and folder Move dialogs show a folder tree, including the project root, plus the text field. **Move** still confirms. Do **not** treat a file as a destination. Drag-onto-folder stays.
+- **R84:** gate toolbar Demos and bundled Template categories `fluxnova` / `opengris` with project `.calmrj` `ui.demo` (default false). Do **not** delete demo assets. Do **not** disable Palette packs. Do **not** put `ui.demo` in user-home config. No project open → show Demos and those tabs.
+- **R85:** replace calmscript Export item and Code-panel tab with Mermaid `flowchart` (`.mmd` + `.md` download; read-only Mermaid tab). Containers → subgraphs; do **not** emit containment as edges. Do **not** implement Mermaid → CALM. Do **not** delete `packages/calmscript`. Do **not** ship C4 Mermaid kinds.
+- **R86:** edit arrays as inline per-element lists (Add/Remove; empty shows Add). Support object items. Pretty-print nested JSON in panel preview and Edit dialog. Apply across properties surfaces that hold arrays/nested JSON. Do **not** store the whole array as one string. Do **not** edit `_layout` via this UI.
 - **R79:** a container that holds an endpoint is not an obstacle for that relationship. Do **not** drop bezier (R50) and do **not** stop avoiding other nodes.
 - **R80:** JSON apply keeps `_layout` and `building-block-style` unless the applied text changed them. Do **not** run auto-layout on apply. Re-key `_layout` when only `unique-id` changes.
 - **R81:** bind Ctrl+Z / Ctrl+Y (and Cmd) for diagram edits when focus is outside the JSON editor. Do **not** undo file or folder moves. Do **not** step the diagram stack from a JSON-editor key.
@@ -2909,7 +3165,7 @@ Extend / add:
 - **R66 / R67:** group tools on nodes; container arrange-to-table resizes the container (R47).
 - **R68:** `extensions.disabled` is bundled pack ids only — do not use it to hide `extensions.dir` packs.
 - **R69 / R70:** Hub URLs open in the editor; Hub-sourced tabs lock JSON; no Hub insert onto those tabs; no Hub PUT/POST (#54).
-- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–14.
+- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–17.
 
 ### Change log
 
@@ -2947,6 +3203,9 @@ Extend / add:
 | 2026-09-20 | 0.29    | stakeholder      | **R75 / #67:** resolve artifact location from canonical URL via project `url-mapping.json` (CLI `-u` / CEngineering-App shape); path in `.calmrj` `urlMapping.path` |
 | 2026-09-29 | 0.30    | stakeholder      | **BBR V11 (lines 125–132):** R76–R81. Remove Select/Pan (R73 superseded). Hub tab replaces the dialog. Move one file. Container with an endpoint is not an obstacle. JSON keeps layout. Ctrl+Z undoes canvas edits. R13–R14 → Iteration 14 |
 | 2026-09-29 | 0.31    | stakeholder      | **BBR V12 (lines 134–135):** R82–R83. Insert follows `detailed-architecture` to the defining file. Move dialogs offer a project folder tree. R13–R14 → Iteration 15 |
+| 2026-09-30 | 0.32    | stakeholder      | **V13:** R84. Hide toolbar Demos and bundled FluxNova/OpenGRIS template tabs unless `.calmrj` `ui.demo: true` (default false). R13–R14 → Iteration 16 |
+| 2026-09-30 | 0.33    | stakeholder      | **V14:** R85. Replace calmscript stub with Mermaid flowchart export (`.mmd` + `.md`) and read-only Code-panel Mermaid tab; leave `packages/calmscript`. R13–R14 → Iteration 17 |
+| 2026-10-01 | 0.34    | stakeholder      | **V15:** R86. Array properties edited per element (inline list; objects included); nested JSON pretty in preview and dialog. R13–R14 → Iteration 18 |
 
 
 ### Session decisions (2026-06-28)
@@ -3174,6 +3433,48 @@ Extend / add:
 | Insert surfaces              | Files drag, Hub drag, Find neighbors. Not palette or same-file duplicate (#78, R82).                                            |
 | Move dialog tree             | File and folder dialogs. Tree plus text. Folders and the project root. **Move** confirms (#79–#81, R83).                        |
 | BBR V12                      | **In scope** (R82–R83). Namespace URL mapping (BBR lines 136–137) is not.                                                       |
-| Iteration priority           | V12 = Iteration 14; Tauri/watch R13–R14 = Iteration 15                                                                          |
+| Iteration priority           | V12 = Iteration 14; V13 = Iteration 15; Tauri/watch R13–R14 = Iteration 16                                                      |
+
+
+### Session decisions (2026-09-30, V13 demo UI)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Config key                   | Project `.calmrj` `"ui": { "demo": false }` only. Missing = false. Create project writes false (#82, R84).                      |
+| No project                   | Demos + FluxNova/OpenGRIS tabs remain visible (#83, R84).                                                                       |
+| What is gated                | Toolbar Demos; bundled Template categories `fluxnova` and `opengris`. Not Palette. Not other tabs (#84, R84).                   |
+| Remove vs hide               | Hide only; keep `/demos` and load path for `ui.demo: true` (#85, R84).                                                          |
+| Settings UI                  | Project settings checkbox **Demo** (R84).                                                                                       |
+| V13                          | **In scope** (R84).                                                                                                             |
+| Iteration priority           | V13 = Iteration 15; V14 = Iteration 16; V15 = Iteration 17; Tauri/watch R13–R14 = Iteration 18                                  |
+
+
+### Session decisions (2026-09-30, V14 Mermaid)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Surfaces                     | Export download **and** Code-panel read-only **Mermaid** tab; remove disabled calmscript tab (#86, R85).                        |
+| Diagram kind                 | Mermaid `flowchart` (TB); containers as `subgraph`; no containment edges (#87, R85).                                            |
+| Round-trip                   | CALM → Mermaid only (#88, R85).                                                                                                 |
+| `packages/calmscript`        | Leave in monorepo; do not wire into Studio UI (#89, R85).                                                                       |
+| Download formats             | Both `.mmd` (raw) and `.md` (fenced `mermaid` block) (#86, R85).                                                                |
+| V14                          | **In scope** (R85).                                                                                                             |
+| Iteration priority           | V14 = Iteration 16; Tauri/watch R13–R14 = Iteration 17                                                                          |
+
+
+### Session decisions (2026-10-01, V15 array properties)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Surfaces                     | All property editors that hold arrays / nested JSON (#90, R86).                                                                 |
+| Object arrays                | Per-element edit; mini-form or per-item pretty JSON (#91, R86).                                                                 |
+| UI                           | Inline list + Add/Remove in the panel (#92, R86).                                                                               |
+| Nested display               | Pretty preview **and** pretty dialog (#93, R86).                                                                                |
+| Empty array                  | Show list + Add (#94, R86).                                                                                                     |
+| V15                          | **In scope** (R86).                                                                                                             |
+| Iteration priority           | V15 = Iteration 17; Tauri/watch R13–R14 = Iteration 18                                                                          |
 
 

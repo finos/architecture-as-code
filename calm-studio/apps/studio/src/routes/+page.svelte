@@ -128,7 +128,11 @@
 	import { checkForUpdates } from '$lib/desktop/updater';
 	import { registerFileOpenHandler } from '$lib/desktop/fileOpen';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
+	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsMermaid, exportAsMermaidMarkdown, exportAsScalerToml } from '$lib/io/export';
+	import {
+		architectureToMermaid,
+		architectureToMermaidMarkdown,
+	} from '$lib/io/mermaidExport';
 	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 	import { getReferencedNodeIds } from '@calmstudio/calm-core';
 	import { detectPacksFromArch } from '$lib/io/sidecar';
@@ -166,7 +170,12 @@
 		projectRelativeFileExists,
 		writeProjectRelativeFile,
 	} from '$lib/project/projectFs';
-	import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
+	import {
+		getProjectConfig,
+		getProjectFileConfig,
+		getProjectRootHandle,
+	} from '$lib/project/projectStore.svelte';
+	import { shouldShowDemoUi } from '$lib/project/demoUi';
 	import { relativePathBetween } from '$lib/explorer/relativePath';
 	import ExtractToDiagramDialog from '$lib/project/ExtractToDiagramDialog.svelte';
 	import { isReferenceNode } from '$lib/metadata/referenceNode';
@@ -465,6 +474,10 @@
 
 	/** When true, the full-screen TemplatePicker modal is shown. */
 	let showTemplatePicker = $state(false);
+	/** R84: Demos + FluxNova/OpenGRIS tabs — on when no project, or ui.demo true. */
+	const showDemoUi = $derived(
+		shouldShowDemoUi(getProjectFileConfig() !== null, getProjectFileConfig())
+	);
 	let pendingPattern = $state<{
 		card: CalmPatternCard;
 		options: CalmOption[];
@@ -1342,6 +1355,10 @@
 		getModel();
 		return getModelJson();
 	});
+	const mermaidSource = $derived.by(() => {
+		activeTabId;
+		return architectureToMermaid(getModel());
+	});
 	const isDocumentModified = $derived(hasUnsavedChanges(calmJson));
 
 	// ─── Selection state ─────────────────────────────────────────────────────
@@ -2030,10 +2047,22 @@
 		await exportAsPng(nodes, edges);
 	}
 
-	function handleExportCalmscript() {
-		// Phase 4 stub: export CALM JSON with a header comment — Phase 5 will provide real calmscript
-		const json = getExportJson(nodes, edges);
-		exportAsCalmscript(`// calmscript export — full DSL support coming in Phase 5\n// CALM JSON representation:\n${json}\n`);
+	function handleExportMermaid() {
+		const text = architectureToMermaid(getModel());
+		const stem = exportStem();
+		exportAsMermaid(text, `${stem}.mmd`);
+	}
+
+	function handleExportMermaidMd() {
+		const text = architectureToMermaidMarkdown(getModel());
+		const stem = exportStem();
+		exportAsMermaidMarkdown(text, `${stem}.md`);
+	}
+
+	function exportStem(): string {
+		const name = getFileName();
+		if (!name) return 'architecture';
+		return name.replace(/\.(calm\.)?json$/i, '') || 'architecture';
 	}
 
 	function handleExportScalerToml() {
@@ -2294,7 +2323,8 @@
 			onexportcalm={handleExportCalm}
 			onexportsvg={handleExportSvg}
 			onexportpng={handleExportPng}
-			onexportcalmscript={handleExportCalmscript}
+			onexportmermaid={handleExportMermaid}
+			onexportmermaidmd={handleExportMermaidMd}
 			onexportscalertoml={handleExportScalerToml}
 			onloaddemo={handleLoadDemo}
 			ontemplates={() => (showTemplatePicker = true)}
@@ -2306,6 +2336,7 @@
 			governanceScore={getArchitectureScore()}
 			showGovernanceBadge={hasAINodes()}
 			showScalerTomlExport={showScalerTomlExport}
+			showDemos={showDemoUi}
 			flows={flows}
 			activeFlowId={activeFlowId}
 			onflowchange={setActiveFlowId}
@@ -2568,6 +2599,7 @@
 				{#key tabRenderKey}
 				<CodePanel
 					value={calmJson}
+					mermaid={mermaidSource}
 					onchange={handleCodeChange}
 					parseError={codeParseError}
 					selectedNodeId={selectedNodeId}

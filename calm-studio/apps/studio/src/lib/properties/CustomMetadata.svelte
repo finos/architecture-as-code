@@ -10,6 +10,8 @@
 		addCustomMetadata,
 		removeCustomMetadata,
 	} from '$lib/stores/calmModel.svelte';
+	import ArrayPropertyEditor from './ArrayPropertyEditor.svelte';
+	import { formatJsonPretty } from '$lib/metadata/metadataForm';
 
 	let {
 		nodeId,
@@ -29,6 +31,15 @@
 
 	const entries = $derived(Object.entries(metadata));
 
+	function tryParseArray(value: string): unknown[] | null {
+		try {
+			const parsed: unknown = JSON.parse(value);
+			return Array.isArray(parsed) ? parsed : null;
+		} catch {
+			return null;
+		}
+	}
+
 	function handleValueChange(key: string, value: string) {
 		if (readonly) return;
 		clearTimeout(debounceTimers[key]);
@@ -36,6 +47,12 @@
 			addCustomMetadata(nodeId, key, value);
 			onmutate?.();
 		}, 300);
+	}
+
+	function handleArrayChange(key: string, next: unknown[]) {
+		if (readonly) return;
+		addCustomMetadata(nodeId, key, formatJsonPretty(next));
+		onmutate?.();
 	}
 
 	function handleDelete(key: string) {
@@ -84,7 +101,8 @@
 	{#if entries.length > 0}
 		<div class="metadata-list">
 			{#each entries as [key, value] (key)}
-				<div class="metadata-row">
+				{@const parsedArray = tryParseArray(value)}
+				<div class="metadata-row" class:array-row={!!parsedArray}>
 					<input
 						class="key-input"
 						type="text"
@@ -93,15 +111,27 @@
 						aria-label="Property key (read-only)"
 						title={key}
 					/>
-					<input
-						class="value-input"
-						type="text"
-						value={value}
-						oninput={(e) => handleValueChange(key, (e.target as HTMLInputElement).value)}
-						placeholder="value"
-						aria-label="Property value for {key}"
-						disabled={readonly}
-					/>
+					{#if parsedArray}
+						<div class="array-wrap">
+							<ArrayPropertyEditor
+								idPrefix="custom-{nodeId}-{key}"
+								values={parsedArray}
+								itemKind={parsedArray[0] && typeof parsedArray[0] === 'object' ? 'object' : 'string'}
+								{readonly}
+								onchange={(next) => handleArrayChange(key, next)}
+							/>
+						</div>
+					{:else}
+						<input
+							class="value-input"
+							type="text"
+							value={value}
+							oninput={(e) => handleValueChange(key, (e.target as HTMLInputElement).value)}
+							placeholder="value"
+							aria-label="Property value for {key}"
+							disabled={readonly}
+						/>
+					{/if}
 					{#if !readonly}
 					<button
 						class="delete-btn"
@@ -226,6 +256,15 @@
 		align-items: center;
 		gap: 4px;
 		min-height: 32px;
+	}
+
+	.metadata-row.array-row {
+		align-items: flex-start;
+	}
+
+	.array-wrap {
+		flex: 1;
+		min-width: 0;
 	}
 
 	.key-input {

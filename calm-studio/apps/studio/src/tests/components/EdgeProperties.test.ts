@@ -181,7 +181,7 @@ describe('EdgeProperties', () => {
 			props: { edge, onmutate: () => {} },
 		});
 		expect(getByText('Metadata')).toBeTruthy();
-		expect(getByText(/"relationship":"Serving"/)).toBeTruthy();
+		expect(getByText(/"relationship": "Serving"/)).toBeTruthy();
 		await fireEvent.click(getByText('Edit…'));
 		const select = getByLabelText(/archimate relationship/i) as HTMLSelectElement;
 		expect(select.value).toBe('Serving');
