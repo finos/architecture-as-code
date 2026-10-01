@@ -115,6 +115,44 @@ describe('parseCALMData', () => {
         expect(result.edges[0].data['relationship-type']).toEqual({ interacts: { actor: 'actor-1', nodes: ['node-1'] } });
     });
 
+    it('gives an interacts edge no label of its own when the relationship has no description', () => {
+        const data: CalmArchitectureSchema = {
+            nodes: [
+                { 'unique-id': 'actor-1', name: 'User', description: 'A user', 'node-type': 'actor' },
+                { 'unique-id': 'node-1', name: 'Service A', description: 'A service', 'node-type': 'service' },
+            ],
+            relationships: [
+                {
+                    'unique-id': 'rel-1',
+                    'relationship-type': { interacts: { actor: 'actor-1', nodes: ['node-1'] } },
+                },
+            ],
+        };
+
+        const result = parseCALMData(data);
+
+        // A made-up "interacts" label would show as a permanent pill on every actor edge.
+        expect(result.edges[0].data.description).toBe('');
+    });
+
+    it('keeps the description an author wrote on an interacts relationship', () => {
+        const data: CalmArchitectureSchema = {
+            nodes: [
+                { 'unique-id': 'actor-1', name: 'User', description: 'A user', 'node-type': 'actor' },
+                { 'unique-id': 'node-1', name: 'Service A', description: 'A service', 'node-type': 'service' },
+            ],
+            relationships: [
+                {
+                    'unique-id': 'rel-1',
+                    description: 'uses',
+                    'relationship-type': { interacts: { actor: 'actor-1', nodes: ['node-1'] } },
+                },
+            ],
+        };
+
+        expect(parseCALMData(data).edges[0].data.description).toBe('uses');
+    });
+
     it('handles deployed-in relationships by setting parentId', () => {
         const data: CalmArchitectureSchema = {
             nodes: [
