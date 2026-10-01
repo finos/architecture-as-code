@@ -70,6 +70,9 @@ src/
 │   │   ├── interfaces        # Store abstractions
 │   │   ├── mongo/           # MongoDB implementations
 │   │   ├── nitrite/         # NitriteDB implementations
+│   │   ├── github/          # Read-only stores over cloned GitHub repos (+ config/sync/registry/api/access)
+│   │   ├── classpath/       # CALM meta-schemas bundled in the JAR (GitHub mode has no database)
+│   │   ├── noop/            # GitHub-mode stubs for stores with nothing to back them
 │   │   └── producer/        # CDI producers for store selection
 │   ├── domain/               # Domain models
 │   └── config/               # Configuration beans
@@ -118,31 +121,47 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 1. **mongo** (default) - MongoDB production storage
 2. **standalone** - NitriteDB embedded storage (no external DB needed)
 3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
+4. **github** - read-only; namespaces map to cloned GitHub repos (`calm.github.namespaces`, one
+   `namespace|repo|branch|groups` entry each). Writes return 501. Versions are commit SHAs, never
+   `latest`. Needs no database.
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`
-- Implementations in `store/mongo/` and `store/nitrite/`
-- Producers in `store/producer/` select implementation at runtime via `@LookupIfProperty`
+- Implementations in `store/mongo/`, `store/nitrite/` and `store/github/`
+- `store/github/` reads from an in-memory registry (`registry/`) rebuilt after each clone or pull
+  (`sync/`). Its stores extend `AbstractGitHubStore` (no file to read) or
+  `AbstractReadOnlyGitHubStore` (reads the file at a SHA or from the clone).
+- A store with nothing to back it in GitHub mode gets a stub: `store/noop/` for stores that
+  need no namespace check, or a `store/github/` store that only does `verifyNamespace` (e.g.
+  `GitHubAdrStore`, `GitHubDocumentStore`)
+- Producers in `store/producer/` select the implementation at runtime from `DatabaseMode`. Every
+  producer needs a `github` arm: the Mongo store is gated on the mode, so a missing arm fails
+  every request in GitHub mode with an unsatisfied resolution.
 
 Example Producer Pattern:
 ```java
 @ApplicationScoped
 public class ArchitectureStoreProducer {
-    
+
     @Inject
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
-    
-    @Inject MongoArchitectureStore mongoStore;
-    
-    @Inject NitriteArchitectureStore nitriteStore;
-    
+
+    @Inject Instance<MongoArchitectureStore> mongoStore;
+
+    @Inject Instance<NitriteArchitectureStore> nitriteStore;
+
+    @Inject Instance<GitHubArchitectureStore> gitHubStore;
+
     @Produces
     @ApplicationScoped
     public ArchitectureStore produceStore() {
-        return "standalone".equals(databaseMode) 
-            ? nitriteStore 
-            : mongoStore;
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
+            return nitriteStore.get();
+        }
+        return mongoStore.get();
     }
 }
 ```
@@ -366,7 +385,7 @@ All four workflows:
 ### Adding New Storage Modes
 1. Create implementation package: `org.finos.calm.store.newmode`
 2. Implement store interfaces
-3. Update Producer classes to inject and conditionally return new implementation
+3. Update every Producer class: inject `Instance<NewStore>` and add a `DatabaseMode` arm
 4. Add mode to configuration documentation
 
 ### MCP Server
@@ -403,11 +422,11 @@ All four workflows:
 
 ### Coverage Requirements
 
-**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
 
 ```bash
 # Run the same check CI uses — always run this before pushing changes
-../mvnw clean verify -Ddependency-check.skip=true
+../mvnw clean verify
 ```
 
 **Exclusions** (from `pom.xml`): `**/*Builder.*`, `**/*CalmResourceErrorResponses.*`, `**/*Constants.*`, `**/*NamespaceStandardSummary.*`, `**/*ArchitectureRequest.*`, `**/config/**/*`, and `**/domain/**/*` are excluded from the coverage check.
@@ -569,8 +588,8 @@ trail in this iteration — read it via direct DB access or ops tooling.
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
 2. Implement all store interfaces
-3. Update all Producer classes to include new implementation
-4. Add conditional logic based on `calm.database.mode`
+3. Update all Producer classes to include new implementation (`Instance<>` + a `DatabaseMode` arm)
+4. Add a producer test for the new mode
 5. Document in README.md
 
 ### Working with MongoDB

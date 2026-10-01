@@ -1,7 +1,9 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.inject.Instance;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.TimelineStore;
+import org.finos.calm.store.github.GitHubTimelineStore;
 import org.finos.calm.store.mongo.MongoTimelineStore;
 import org.finos.calm.store.nitrite.NitriteTimelineStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestTimelineStoreProducerShould {
     @Mock
     Instance<NitriteTimelineStore> nitriteTimelineStoreInstance;
 
+
+    @Mock
+    GitHubTimelineStore gitHubTimelineStore;
+
+    @Mock
+    Instance<GitHubTimelineStore> gitHubTimelineStoreInstance;
     private TimelineStoreProducer timelineStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestTimelineStoreProducerShould {
         timelineStoreProducer.mongoTimelineStore = mongoTimelineStoreInstance;
         when(nitriteTimelineStoreInstance.get()).thenReturn(nitriteTimelineStore);
         timelineStoreProducer.standaloneTimelineStore = nitriteTimelineStoreInstance;
+        when(gitHubTimelineStoreInstance.get()).thenReturn(gitHubTimelineStore);
+        timelineStoreProducer.gitHubTimelineStore = gitHubTimelineStoreInstance;
     }
 
     @Test
@@ -69,5 +79,14 @@ public class TestTimelineStoreProducerShould {
         TimelineStore result = timelineStoreProducer.produceTimelineStore();
 
         assertThat(result, is(sameInstance(mongoTimelineStore)));
+    }
+
+    @Test
+    void return_github_timeline_store_when_database_mode_is_github() {
+        timelineStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        TimelineStore result = timelineStoreProducer.produceTimelineStore();
+
+        assertThat(result, is(sameInstance(gitHubTimelineStore)));
     }
 }

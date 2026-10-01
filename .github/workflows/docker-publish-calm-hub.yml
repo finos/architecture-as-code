@@ -53,7 +53,7 @@ jobs:
             # Step 4: Build the application with Maven
             - name: Build with Maven
               working-directory: calm-hub
-              run: mvn -P integration clean package -Ddependency-check.skip=true
+              run: mvn -P integration clean package
 
             - name: Resolve CALM Hub version
               id: version
@@ -133,6 +133,8 @@ jobs:
                   file: calm-hub/src/main/docker/Dockerfile.jvm
                   platforms: linux/amd64,linux/arm64
                   push: true
+                  sbom: true
+                  provenance: mode=max
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha

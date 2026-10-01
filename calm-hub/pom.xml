@@ -73,7 +73,7 @@
         <dependency>
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
-            <version>20240325.1</version>
+            <version>20260101.1</version>
         </dependency>
 
         <!-- Caffeine in-memory cache. Use the Quarkus extension, not the bare
@@ -182,7 +182,59 @@
         </dependency>
     </dependencies>
     <build>
+        <!-- The default src/main/resources binding is replaced once <resources> is
+             declared explicitly, so it's re-added here alongside the calm-schemas
+             resource: ClasspathCoreSchemaStore (GitHub storage mode's CoreSchemaStore)
+             reads META-INF/calm-schemas/<version>/meta/<file>.json from the classpath,
+             and this copies that content straight from the repo's own canonical CALM
+             schema tree instead of duplicating it by hand. Only released (non-rc,
+             non-draft) versions are bundled; versions.txt and each version's files.txt
+             are hand-authored under src/main/resources/META-INF/calm-schemas/ and kept
+             in sync with calm/release/ by TestClasspathCoreSchemaStoreShould. -->
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/../calm/release</directory>
+                <targetPath>META-INF/calm-schemas</targetPath>
+                <includes>
+                    <include>1.0/meta/*.json</include>
+                    <include>1.1/meta/*.json</include>
+                    <include>1.2/meta/*.json</include>
+                </includes>
+            </resource>
+        </resources>
         <plugins>
+            <!-- Fail the build when ../calm/release is missing (e.g. a build context that copies
+                 only calm-hub/): the resource block above would otherwise silently bundle no
+                 schema JSON, and GitHub mode would 404 every /calm/schemas request at runtime. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>require-bundled-calm-schemas</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.parent.basedir}/calm/release/1.0/meta/calm.json</file>
+                                        <file>${project.parent.basedir}/calm/release/1.1/meta/calm.json</file>
+                                        <file>${project.parent.basedir}/calm/release/1.2/meta/calm.json</file>
+                                    </files>
+                                    <message>../calm/release is missing - CALM Hub bundles its meta-schemas from there, so it must be part of the build context.</message>
+                                </requireFilesExist>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <!-- Quarkus Maven Plugin -->
             <plugin>
                 <groupId>io.quarkus</groupId>
@@ -489,43 +541,6 @@
                 <skip.installnodenpm>true</skip.installnodenpm>
                 <skip.npm>true</skip.npm>
             </properties>
-        </profile>
-        <profile>
-            <id>dependency-check</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <!-- OWASP Dependency Check Plugin -->
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>12.2.2</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <!-- Optional configuration: reuse suppression file if present -->
-                        <configuration>
-                            <formats>HTML,JSON</formats>
-                            <failOnError>true</failOnError>
-                            <skipSystemScope>true</skipSystemScope>
-                            <!-- Disable .NET analyzers to avoid dotnet requirement -->
-                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                            <!-- Use environment-provided NVD API Key, fallback to Maven property -->
-                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                            <suppressionFiles>
-                                <suppressionFile>
-                                    ${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
-                            </suppressionFiles>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
 </project>
