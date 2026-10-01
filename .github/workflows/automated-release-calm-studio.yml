@@ -8,6 +8,7 @@ permissions:
     contents: write
     issues: write
     pull-requests: write
+    id-token: write # needed for npm provenance
 
 on:
     push:
@@ -61,3 +62,4 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
                   NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+                  NPM_CONFIG_PROVENANCE: true
