@@ -30,3 +30,11 @@ ecosystem = "npm"
 vulnerability.ignore = true
 effectiveUntil = 2026-11-30
 reason = "Bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles a fixed undici."
+
+[[PackageOverrides]]
+name = "brace-expansion"
+version = "5.0.9"
+ecosystem = "npm"
+vulnerability.ignore = true
+effectiveUntil = 2026-11-30
+reason = "Bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles brace-expansion >= 5.0.12."
