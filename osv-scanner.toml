@@ -2,6 +2,7 @@
 # A maintainer may add an entry only when the finding is non-exploitable in this
 # project. Each entry must give the justification in `reason` and an `ignoreUntil`
 # date for re-review. See SECURITY.md, "Dependency and Code Scanning Policy".
+# Every entry must have a matching not_affected statement in vex/calm.openvex.json.
 
 # glib 0.18 comes in through Tauri's Linux GTK stack for the CALM Studio desktop app.
 # The unsound iterator impls on glib::VariantStrIter are not called by CALM Studio code,

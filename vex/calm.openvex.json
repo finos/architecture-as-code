@@ -1,0 +1,174 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
+  "author": "Architecture as Code (CALM) Maintainers",
+  "role": "Project maintainers",
+  "timestamp": "2026-10-01T00:00:00Z",
+  "version": 1,
+  "tooling": "Maintained by hand alongside osv-scanner.toml",
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "GHSA-wrw7-89jp-8q8g"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
+          "subcomponents": [
+            {
+              "@id": "pkg:cargo/glib@0.18.5"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "glib 0.18 is pinned by the Tauri GTK stack used by the CALM Studio desktop app. CALM Studio does not call the unsound glib::VariantStrIter iterator implementations. The fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-2vr4-cq9g-pvrc",
+        "aliases": [
+          "CVE-2026-101910"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The runtime copy of ip-address is 10.7.2."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-rpw4-54j3-4h4q",
+        "aliases": [
+          "CVE-2026-101913"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The runtime copy of ip-address is 10.7.2."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-j6r3-76f7-8jcv",
+        "aliases": [
+          "CVE-2026-101912"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.5.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The runtime copy of ip-address is 10.7.2."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-r53p-7pc4-xj5r",
+        "aliases": [
+          "CVE-2026-18540"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.28.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.28.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The runtime copy of undici is 7.30.0."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-q2hr-2g5m-vwhr",
+        "aliases": [
+          "CVE-2026-102277"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/brace-expansion@5.0.9"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/brace-expansion@5.0.9"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The other copies of brace-expansion are 5.0.12 or the unaffected 1.x and 2.x lines."
+    }
+  ]
+}
