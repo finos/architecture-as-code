@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-01T00:00:00Z",
-  "version": 1,
+  "version": 2,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -34,20 +34,10 @@
       },
       "products": [
         {
-          "@id": "pkg:npm/%40finos/calm-cli",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-cli"
         },
         {
-          "@id": "pkg:npm/%40finos/calm-server",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-server"
         }
       ],
       "status": "not_affected",
@@ -63,20 +53,10 @@
       },
       "products": [
         {
-          "@id": "pkg:npm/%40finos/calm-cli",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-cli"
         },
         {
-          "@id": "pkg:npm/%40finos/calm-server",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-server"
         }
       ],
       "status": "not_affected",
@@ -92,20 +72,10 @@
       },
       "products": [
         {
-          "@id": "pkg:npm/%40finos/calm-cli",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-cli"
         },
         {
-          "@id": "pkg:npm/%40finos/calm-server",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/ip-address@10.5.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-server"
         }
       ],
       "status": "not_affected",
@@ -121,20 +91,10 @@
       },
       "products": [
         {
-          "@id": "pkg:npm/%40finos/calm-cli",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/undici@6.28.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-cli"
         },
         {
-          "@id": "pkg:npm/%40finos/calm-server",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/undici@6.28.0"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-server"
         }
       ],
       "status": "not_affected",
@@ -150,25 +110,16 @@
       },
       "products": [
         {
-          "@id": "pkg:npm/%40finos/calm-cli",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/brace-expansion@5.0.9"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-cli"
         },
         {
-          "@id": "pkg:npm/%40finos/calm-server",
-          "subcomponents": [
-            {
-              "@id": "pkg:npm/brace-expansion@5.0.9"
-            }
-          ]
+          "@id": "pkg:npm/%40finos/calm-server"
         }
       ],
       "status": "not_affected",
       "justification": "component_not_present",
       "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The other copies of brace-expansion are 5.0.12 or the unaffected 1.x and 2.x lines."
     }
-  ]
+  ],
+  "last_updated": "2026-10-01T00:00:00Z"
 }
