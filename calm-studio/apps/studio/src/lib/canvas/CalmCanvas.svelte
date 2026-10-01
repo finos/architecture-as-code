@@ -50,7 +50,10 @@
 	import { copy, paste } from '$lib/stores/clipboard.svelte';
 	import { applyFromCanvas, setSchemaHintForNodeType, getModel } from '$lib/stores/calmModel.svelte';
 	import { relativePathBetween } from '$lib/explorer/relativePath';
+	import { resolveDefiningHrefFromProject } from '$lib/explorer/definingHref';
+	import { isHttpHref } from '$lib/explorer/rewriteDetailedArchitecture';
 	import { CALM_NODE_REF_MIME, type CalmNodeRefDragPayload } from '$lib/explorer/types';
+	import { getProjectRootHandle } from '$lib/project/projectStore.svelte';
 	import { getFileRelativePath } from '$lib/io/fileState.svelte';
 	import DuplicateNodeDialog, {
 		type DuplicateNodeResult,
@@ -66,6 +69,15 @@
 		CANVAS_NODES_CONTEXT,
 		type CanvasNodesGetter,
 	} from './edgeRouting/routedEdgePath';
+	import { alignBoxes, type AlignMode } from './selectionAlign';
+	import { containerSizeForChildren, packChildrenInSquareGrid } from '$lib/layout/containerGrid';
+	import {
+		canvasPointerInteraction,
+		isDiagramShortcutIgnored,
+		nodeIdsInRect,
+		toggleSelectionIds,
+	} from './mousePanSelect';
+	import CanvasMinimap from './CanvasMinimap.svelte';
 
 	import '@xyflow/svelte/dist/style.css';
 
@@ -186,6 +198,7 @@
 		onfileimport,
 		oncanvaschange,
 		readonly = false,
+		readonlyReason = '',
 		ondblclicknode,
 		onnavigatereference,
 		onfindneighbors,
@@ -204,6 +217,7 @@
 		oncanvaschange?: () => void;
 		/** When true, disables dragging, connecting, delete keys, and all mutation handlers. Used for C4 navigation mode. */
 		readonly?: boolean;
+		readonlyReason?: string;
 		/** Called when a node is double-clicked in readonly mode. Used for C4 drill-down navigation. */
 		ondblclicknode?: (node: Node) => void;
 		/** Called when user double-clicks reference glasses on a node. */
@@ -232,6 +246,139 @@
 	 */
 	function notifyChange() {
 		if (!readonly) oncanvaschange?.();
+	}
+
+	const selectedCount = $derived(nodes.filter((n) => n.selected).length);
+	const selectedContainer = $derived(
+		nodes.find((n) => n.selected && nodes.some((c) => c.parentId === n.id)) ?? null
+	);
+	let tableCols = $state('');
+	let tableRows = $state('');
+	let shiftHeld = $state(false);
+	let marquee = $state<{ x1: number; y1: number; x2: number; y2: number } | null>(null);
+	const flowInteraction = $derived(
+		canvasPointerInteraction({
+			shiftHeld,
+			readonly,
+		})
+	);
+
+	function handleWindowKeydown(event: KeyboardEvent) {
+		if (event.key === 'Shift') shiftHeld = true;
+		const key = event.key.toLowerCase();
+		const mod = event.ctrlKey || event.metaKey;
+		if (!mod || isDiagramShortcutIgnored(event.target)) return;
+		if (key === 'z' && !event.shiftKey) {
+			event.preventDefault();
+			handleUndo();
+		} else if (key === 'y' || (key === 'z' && event.shiftKey)) {
+			event.preventDefault();
+			handleRedo();
+		}
+	}
+
+	function handleWindowKeyup(event: KeyboardEvent) {
+		if (event.key === 'Shift') shiftHeld = false;
+	}
+
+	function handleWindowBlur() {
+		shiftHeld = false;
+		marquee = null;
+	}
+
+	function handleMarqueeDown(event: PointerEvent) {
+		if (readonly || !event.shiftKey || event.button !== 0) return;
+		const target = event.target;
+		if (!(target instanceof Element)) return;
+		if (target.closest('.svelte-flow__node')) return;
+		if (!target.closest('.svelte-flow__pane') && !target.closest('.svelte-flow')) return;
+		event.preventDefault();
+		event.stopPropagation();
+		marquee = { x1: event.clientX, y1: event.clientY, x2: event.clientX, y2: event.clientY };
+	}
+
+	function handleMarqueeMove(event: PointerEvent) {
+		if (!marquee) return;
+		marquee = { ...marquee, x2: event.clientX, y2: event.clientY };
+	}
+
+	function handleMarqueeUp() {
+		if (!marquee) return;
+		const box = marquee;
+		marquee = null;
+		const a = screenToFlowPosition({ x: box.x1, y: box.y1 });
+		const b = screenToFlowPosition({ x: box.x2, y: box.y2 });
+		const rect = {
+			x: Math.min(a.x, b.x),
+			y: Math.min(a.y, b.y),
+			width: Math.abs(a.x - b.x),
+			height: Math.abs(a.y - b.y),
+		};
+		if (rect.width < 3 && rect.height < 3) return;
+		const hits = nodeIdsInRect(nodes, rect);
+		const selected = nodes.filter((n) => n.selected).map((n) => n.id);
+		const next = toggleSelectionIds(selected, hits);
+		nodes = nodes.map((n) => ({ ...n, selected: next.has(n.id) }));
+	}
+
+	function applyAlign(mode: AlignMode) {
+		if (readonly) return;
+		const selected = nodes.filter((n) => n.selected);
+		if (selected.length < 2 && mode !== 'table') return;
+		pushSnapshot(nodes, edges);
+		const boxes = selected.map((n) => ({
+			id: n.id,
+			x: n.position.x,
+			y: n.position.y,
+			width: n.width ?? 180,
+			height: n.height ?? 70,
+		}));
+		const next = alignBoxes(boxes, mode);
+		const byId = new Map(next.map((b) => [b.id, b]));
+		nodes = nodes.map((n) => {
+			const box = byId.get(n.id);
+			if (!box) return n;
+			return {
+				...n,
+				position: { x: box.x, y: box.y },
+				width: box.width,
+				height: box.height,
+			};
+		});
+		notifyChange();
+	}
+
+	function arrangeSelectedContainer() {
+		if (readonly || !selectedContainer) return;
+		const childIds = nodes.filter((n) => n.parentId === selectedContainer.id).map((n) => n.id);
+		if (childIds.length === 0) return;
+		pushSnapshot(nodes, edges);
+		const padding = { top: 56, left: 40, bottom: 40, right: 40 };
+		const positions = new Map(
+			nodes.map((n) => [
+				n.id,
+				{ x: n.position.x, y: n.position.y, width: n.width, height: n.height },
+			])
+		);
+		const cols = Number.parseInt(tableCols, 10);
+		const rows = Number.parseInt(tableRows, 10);
+		const packed = packChildrenInSquareGrid(positions, childIds, {
+			gap: 40,
+			padding,
+			cols: Number.isFinite(cols) && cols > 0 ? cols : undefined,
+			rows: Number.isFinite(rows) && rows > 0 ? rows : undefined,
+		});
+		const size = containerSizeForChildren(packed, childIds, padding);
+		nodes = nodes.map((n) => {
+			if (n.id === selectedContainer.id) {
+				return { ...n, width: size.width, height: size.height };
+			}
+			if (n.parentId !== selectedContainer.id) return n;
+			const p = packed.get(n.id);
+			if (!p) return n;
+			return { ...n, position: { x: p.x, y: p.y } };
+		});
+		notifyChange();
 	}
 
 	// ─── Svelte Flow context ─────────────────────────────────────────────────
@@ -354,7 +501,7 @@
 		if (refRaw) {
 			try {
 				const ref = JSON.parse(refRaw) as CalmNodeRefDragPayload;
-				handleNodeRefDrop(ref, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+				await handleNodeRefDrop(ref, screenToFlowPosition({ x: event.clientX, y: event.clientY }));
 			} catch {
 				// ignore malformed payload
 			}
@@ -401,7 +548,7 @@
 		notifyChange();
 	}
 
-	function handleNodeRefDrop(
+	async function handleNodeRefDrop(
 		ref: CalmNodeRefDragPayload,
 		position: { x: number; y: number }
 	) {
@@ -410,12 +557,33 @@
 			return;
 		}
 
-		pushSnapshot(nodes, edges);
-
 		const currentPath = getFileRelativePath();
-		const detailedPath = currentPath
+		const sourceFallback = currentPath
 			? relativePathBetween(currentPath, ref.sourceRelativePath)
 			: ref.sourceRelativePath;
+		let detailedPath = ref.detailedArchitecture?.trim() || '';
+		if (!detailedPath) {
+			const root = getProjectRootHandle();
+			if (root && ref.sourceRelativePath && !isHttpHref(ref.sourceRelativePath)) {
+				try {
+					detailedPath = await resolveDefiningHrefFromProject({
+						root,
+						sourcePath: ref.sourceRelativePath,
+						nodeUniqueId: id,
+						currentFile: currentPath,
+					});
+				} catch {
+					detailedPath = sourceFallback;
+				}
+			} else {
+				detailedPath = sourceFallback;
+			}
+		}
+		if (nodes.some((n) => n.id === id || n.data?.calmId === id)) {
+			return;
+		}
+
+		pushSnapshot(nodes, edges);
 
 		const resolvedType = resolveNodeType(ref.nodeType);
 		const newNode: Node = {
@@ -667,6 +835,35 @@
 
 	let dragStartParentId: string | undefined = undefined;
 	let dragStartPosition: { x: number; y: number } | undefined = undefined;
+	let dragBefore: { nodes: Node[]; edges: Edge[] } | null = null;
+
+	function flowGeometryChanged(
+		beforeNodes: Node[],
+		beforeEdges: Edge[],
+		afterNodes: Node[],
+		afterEdges: Edge[]
+	): boolean {
+		if (beforeNodes.length !== afterNodes.length || beforeEdges.length !== afterEdges.length) return true;
+		const byId = new Map(beforeNodes.map((n) => [n.id, n]));
+		for (const node of afterNodes) {
+			const prev = byId.get(node.id);
+			if (!prev) return true;
+			if (prev.position.x !== node.position.x || prev.position.y !== node.position.y) return true;
+			if (prev.parentId !== node.parentId) return true;
+		}
+		const edgeKey = (edge: Edge) => `${edge.id}:${edge.source}:${edge.target}:${edge.type ?? ''}`;
+		const beforeKeys = beforeEdges.map(edgeKey).sort().join('|');
+		const afterKeys = afterEdges.map(edgeKey).sort().join('|');
+		return beforeKeys !== afterKeys;
+	}
+
+	function commitDragHistory() {
+		const before = dragBefore;
+		dragBefore = null;
+		if (!before) return;
+		if (!flowGeometryChanged(before.nodes, before.edges, nodes, edges)) return;
+		pushSnapshot(before.nodes, before.edges);
+	}
 	let altHeldDuringDrag = false;
 
 	let pendingContainment: {
@@ -724,8 +921,13 @@
 	}) {
 		if (readonly || !targetNode) {
 			duplicateDragOrigin = null;
+			dragBefore = null;
 			return;
 		}
+		dragBefore = {
+			nodes: JSON.parse(JSON.stringify(nodes)) as Node[],
+			edges: JSON.parse(JSON.stringify(edges)) as Edge[],
+		};
 		const ev = event as MouseEvent;
 		altHeldDuringDrag = ev.altKey;
 		dragStartParentId = targetNode.parentId;
@@ -775,7 +977,10 @@
 		event: MouseEvent | TouchEvent;
 	}) {
 		document.body.style.cursor = '';
-		if (readonly) return;
+		if (readonly) {
+			dragBefore = null;
+			return;
+		}
 
 		const draggedNode = targetNode;
 		if (!draggedNode) return;
@@ -809,11 +1014,13 @@
 			sourceSnapshot.position = origin.position;
 			sourceSnapshot.parentId = origin.parentId;
 			pendingDuplicate = { source: sourceSnapshot, dropPosition };
+			dragBefore = null;
 			return;
 		}
 		duplicateDragOrigin = null;
 
 		if (draggedNode.type === 'container') {
+			commitDragHistory();
 			applyFromCanvas(nodes, edges);
 			notifyChange();
 			return;
@@ -823,7 +1030,7 @@
 
 		if (alt) {
 			if (dropParentId && dropParentId !== originalParentId) {
-				pushSnapshot(nodes, edges);
+				commitDragHistory();
 				let nextNodes = nodes;
 				let nextEdges = edges;
 				if (originalParentId) {
@@ -851,7 +1058,7 @@
 				return;
 			}
 			if (originalParentId && dropParentId !== originalParentId) {
-				pushSnapshot(nodes, edges);
+				commitDragHistory();
 				const extracted = extractChildFromParent(originalParentId, draggedNode.id, nodes, edges);
 				nodes = extracted.nodes;
 				edges = extracted.edges;
@@ -859,6 +1066,7 @@
 				notifyChange();
 				return;
 			}
+			commitDragHistory();
 			applyFromCanvas(nodes, edges);
 			notifyChange();
 			return;
@@ -890,6 +1098,7 @@
 			nodes = syncContainmentRelData(nodes, edges);
 		}
 
+		commitDragHistory();
 		applyFromCanvas(nodes, edges);
 		notifyChange();
 	}
@@ -991,7 +1200,7 @@
 
 	function handleUndo() {
 		if (readonly) return;
-		const snapshot = undo();
+		const snapshot = undo({ nodes, edges });
 		if (snapshot) {
 			nodes = snapshot.nodes;
 			edges = snapshot.edges;
@@ -1010,12 +1219,12 @@
 	}
 
 	function handleCopy() {
-		if (readonly) return;
+		if (readonly || pendingDuplicate) return;
 		copy(nodes);
 	}
 
 	function handlePaste() {
-		if (readonly) return;
+		if (readonly || pendingDuplicate) return;
 		const newNodes = paste(nodes);
 		if (newNodes.length > 0) {
 			pushSnapshot(nodes, edges);
@@ -1025,6 +1234,7 @@
 	}
 
 	function handleSelectAll() {
+		if (pendingDuplicate) return;
 		nodes = nodes.map((n) => ({ ...n, selected: true }));
 	}
 
@@ -1064,6 +1274,13 @@
 	}
 </script>
 
+<svelte:window
+	onkeydown={handleWindowKeydown}
+	onkeyup={handleWindowKeyup}
+	onpointerup={handleMarqueeUp}
+	onblur={handleWindowBlur}
+/>
+
 <!--
   Full-size canvas wrapper. ondragover + ondrop handle palette drops.
   The wrapper div must fill its parent (h-full w-full) so SvelteFlow
@@ -1073,14 +1290,16 @@
 -->
 <div
 	class="relative h-full w-full"
+	class:canvas-pan={!shiftHeld}
 	ondragover={handleDragOver}
 	ondrop={handleDrop}
+	onpointerdowncapture={handleMarqueeDown}
+	onpointermove={handleMarqueeMove}
+	onpointerup={handleMarqueeUp}
 	role="main"
 	aria-label="CALM diagram canvas"
 	use:shortcut={{
 		trigger: [
-			{ key: 'z', modifier: ['meta'], callback: handleUndo },
-			{ key: 'z', modifier: ['meta', 'shift'], callback: handleRedo },
 			{ key: 'c', modifier: ['meta'], callback: handleCopy },
 			{ key: 'v', modifier: ['meta'], callback: handlePaste },
 			{ key: 'a', modifier: ['meta'], callback: handleSelectAll },
@@ -1094,14 +1313,14 @@
 		{nodeTypes}
 		{edgeTypes}
 		deleteKey={readonly ? [] : ['Delete', 'Backspace']}
-		nodesDraggable={!readonly}
+		nodesDraggable={flowInteraction.nodesDraggable}
 		nodesConnectable={!readonly}
-		selectionKey="Shift"
-		multiSelectionKey="Meta"
+		selectionOnDrag={flowInteraction.selectionOnDrag}
+		multiSelectionKey="Shift"
+		panOnDrag={flowInteraction.panOnDrag}
 		fitView
 		fitViewOptions={{ maxZoom: 1.2, padding: 0.2 }}
 		zoomOnScroll={true}
-		panOnDrag={true}
 		panOnScroll={false}
 		onconnect={handleConnect}
 		onnodedragstart={handleNodeDragStart}
@@ -1117,7 +1336,44 @@
 	>
 		<Background variant={BackgroundVariant.Dots} gap={20} size={1} />
 		<EdgeMarkers />
+		<CanvasMinimap />
 	</SvelteFlow>
+
+	{#if marquee}
+		<div
+			class="marquee"
+			style="left: {Math.min(marquee.x1, marquee.x2)}px; top: {Math.min(marquee.y1, marquee.y2)}px; width: {Math.abs(marquee.x2 - marquee.x1)}px; height: {Math.abs(marquee.y2 - marquee.y1)}px;"
+		></div>
+	{/if}
+
+	{#if readonlyReason}
+		<div class="readonly-banner" role="status">{readonlyReason}</div>
+	{/if}
+
+	{#if !readonly && selectedCount >= 2}
+		<div class="align-toolbar" role="toolbar" aria-label="Selection alignment">
+			<button type="button" onclick={() => applyAlign('top')}>Top</button>
+			<button type="button" onclick={() => applyAlign('bottom')}>Bottom</button>
+			<button type="button" onclick={() => applyAlign('center-y')}>Row axis</button>
+			<button type="button" onclick={() => applyAlign('left')}>Left</button>
+			<button type="button" onclick={() => applyAlign('right')}>Right</button>
+			<button type="button" onclick={() => applyAlign('center-x')}>Col axis</button>
+			<button type="button" onclick={() => applyAlign('distribute-x')}>Even X</button>
+			<button type="button" onclick={() => applyAlign('distribute-y')}>Even Y</button>
+			<button type="button" onclick={() => applyAlign('same-width')}>Same W</button>
+			<button type="button" onclick={() => applyAlign('same-height')}>Same H</button>
+			<button type="button" onclick={() => applyAlign('same-size')}>Same size</button>
+			<button type="button" onclick={() => applyAlign('table')}>Table</button>
+		</div>
+	{/if}
+
+	{#if !readonly && selectedContainer}
+		<div class="align-toolbar table-toolbar" role="toolbar" aria-label="Arrange container">
+			<input class="table-input" bind:value={tableCols} placeholder="cols" aria-label="Columns" />
+			<input class="table-input" bind:value={tableRows} placeholder="rows" aria-label="Rows" />
+			<button type="button" onclick={arrangeSelectedContainer}>Arrange to table</button>
+		</div>
+	{/if}
 
 	<!-- Floating search panel — shown when Cmd+F is pressed -->
 	{#if searchOpen}
@@ -1258,6 +1514,80 @@
 	.edge-menu-item:disabled {
 		opacity: 0.45;
 		cursor: not-allowed;
+	}
+
+	.canvas-pan :global(.svelte-flow__pane) {
+		cursor: grab;
+	}
+
+	.canvas-pan:active :global(.svelte-flow__pane) {
+		cursor: grabbing;
+	}
+
+	.marquee {
+		position: fixed;
+		z-index: 30;
+		pointer-events: none;
+		border: 1px solid var(--color-accent, #3b82f6);
+		background: color-mix(in srgb, var(--color-accent, #3b82f6) 18%, transparent);
+	}
+
+	.readonly-banner {
+		position: absolute;
+		top: 8px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		padding: 6px 12px;
+		border-radius: 6px;
+		background: #334155;
+		color: #fff;
+		font-size: 12px;
+	}
+
+	.align-toolbar {
+		position: absolute;
+		bottom: 12px;
+		left: 50%;
+		transform: translateX(-50%);
+		z-index: 20;
+		display: flex;
+		flex-wrap: wrap;
+		gap: 4px;
+		max-width: 90%;
+		padding: 6px;
+		border-radius: 8px;
+		background: var(--color-surface, #fff);
+		border: 1px solid var(--color-border, #e2e8f0);
+	}
+
+	.table-toolbar {
+		bottom: 52px;
+	}
+
+	:global(.svelte-flow__minimap.canvas-minimap) {
+		z-index: 8;
+		margin: 8px;
+		overflow: hidden;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 8px;
+		box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+	}
+
+	.align-toolbar button,
+	.table-input {
+		height: 26px;
+		padding: 0 8px;
+		font-size: 11px;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 4px;
+		background: #fff;
+		cursor: pointer;
+	}
+
+	.table-input {
+		width: 52px;
+		cursor: text;
 	}
 
 	:global(.dark) .edge-menu-item {

@@ -20,6 +20,7 @@ describe('project defaults', () => {
 		expect(cfg.name).toBe('onebank');
 		expect(cfg.naming.profile).toBe('cengineering-archimate');
 		expect(cfg.neighbors?.searchRoots).toEqual([]);
+		expect(cfg.ui?.demo).toBe(false);
 	});
 
 	it('rejects invalid config', () => {
@@ -39,6 +40,22 @@ describe('project defaults', () => {
 			isCalmProjectConfig({
 				...cfg,
 				templates: { dir: 1 },
+			} as unknown)
+		).toBe(false);
+	});
+
+	it('accepts optional urlMapping.path', () => {
+		const cfg = createDefaultProjectConfig('onebank');
+		expect(
+			isCalmProjectConfig({
+				...cfg,
+				urlMapping: { path: 'url-mapping.json' },
+			})
+		).toBe(true);
+		expect(
+			isCalmProjectConfig({
+				...cfg,
+				urlMapping: { path: 1 },
 			} as unknown)
 		).toBe(false);
 	});

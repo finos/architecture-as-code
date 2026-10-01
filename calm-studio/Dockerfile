@@ -42,6 +42,8 @@ COPY calm-models ./calm-models
 # Vite aliases @finos/calm-shared/* to source (generate-from-pattern).
 COPY shared ./shared
 COPY calm-studio ./calm-studio
+# Bundled JSON packs: import.meta.glob from @calmstudio/extensions → repo-root extensions/packs.
+COPY extensions ./extensions
 
 RUN npm pkg delete scripts.prepare \
  && npm install --no-audit --no-fund \

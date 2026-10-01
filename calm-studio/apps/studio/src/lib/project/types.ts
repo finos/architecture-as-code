@@ -52,6 +52,31 @@ export interface CalmProjectConfig {
 	templates?: CalmProjectTemplatesConfig;
 	/** Optional folder of CALM CLI pattern JSON files (R41). */
 	patterns?: CalmProjectTemplatesConfig;
+	/** Extra pack folder and/or bundled pack ids to hide (R44, R68). */
+	extensions?: {
+		dir?: string;
+		disabled?: string[];
+	};
+	/** Optional CALM Hub origin (scheme + host + port, no `/api`). Overrides `~/.calm.json` when both exist. */
+	hub?: { url: string };
+	/** Project-relative path to a CLI-shaped `url-mapping.json` (R75). */
+	urlMapping?: CalmProjectUrlMappingConfig;
+	/** Optional UI flags (R84). Project file only — not user-home overlay. */
+	ui?: CalmProjectUiConfig;
+}
+
+/** UI flags in `.calmrj` (R84). */
+export interface CalmProjectUiConfig {
+	/**
+	 * When true, show toolbar Demos and bundled FluxNova/OpenGRIS template tabs.
+	 * Default / missing = false after a project is open.
+	 */
+	demo: boolean;
+}
+
+/** Canonical URL → local file map used by `calm validate -u` (R75). */
+export interface CalmProjectUrlMappingConfig {
+	path: string;
 }
 
 export interface NamingResolveContext {

@@ -9,6 +9,7 @@ type PatternsLoadedCallback = (patterns: unknown[]) => void;
 type TemplatesLoadedCallback = (templates: unknown[]) => void;
 type BuildingBlocksLoadedCallback = (nodes: unknown[]) => void;
 type StandardsLoadedCallback = (standards: unknown[]) => void;
+type PacksLoadedCallback = (packs: unknown[]) => void;
 type StandardProseCallback = (url: string, prose: string) => void;
 type DrillResultCallback = (
     json: string,
@@ -23,6 +24,7 @@ let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let templatesLoadedCallback: TemplatesLoadedCallback | undefined;
 let buildingBlocksLoadedCallback: BuildingBlocksLoadedCallback | undefined;
 let standardsLoadedCallback: StandardsLoadedCallback | undefined;
+let packsLoadedCallback: PacksLoadedCallback | undefined;
 let standardProseCallback: StandardProseCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
 
@@ -42,6 +44,9 @@ export function setBuildingBlocksLoadedCallback(
 }
 export function setStandardsLoadedCallback(cb: StandardsLoadedCallback): void {
     standardsLoadedCallback = cb;
+}
+export function setPacksLoadedCallback(cb: PacksLoadedCallback): void {
+    packsLoadedCallback = cb;
 }
 export function setStandardProseCallback(cb: StandardProseCallback): void {
     standardProseCallback = cb;
@@ -70,6 +75,9 @@ export function initBridge(): void {
                     break;
                 case 'standardsLoaded':
                     standardsLoadedCallback?.(msg.standards);
+                    break;
+                case 'packsLoaded':
+                    packsLoadedCallback?.(msg.packs);
                     break;
                 case 'standardProse':
                     standardProseCallback?.(msg.url, msg.prose);

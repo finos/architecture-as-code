@@ -6,12 +6,26 @@ import type { PackDefinition, NodeTypeEntry } from './types.js';
 
 /** Module-level registry map: pack id -> PackDefinition */
 const registry = new Map<string, PackDefinition>();
+const listeners = new Set<() => void>();
+
+/** Subscribe to pack register/reset. Used by the palette after project overlay. */
+export function subscribePackRegistry(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notify(): void {
+  for (const listener of listeners) listener();
+}
 
 /**
  * Register a pack in the registry. Re-registration with the same id overwrites.
  */
 export function registerPack(pack: PackDefinition): void {
   registry.set(pack.id, pack);
+  notify();
 }
 
 /**
@@ -45,6 +59,13 @@ export function getAllPacks(): PackDefinition[] {
   return [...registry.values()];
 }
 
+/** Remove a pack by id. Used to hide bundled packs (R68). */
+export function unregisterPack(id: string): boolean {
+  const existed = registry.delete(id);
+  if (existed) notify();
+  return existed;
+}
+
 /**
  * Given a list of CALM type strings, returns unique pack IDs for those that are
  * colon-prefixed and whose pack is registered.
@@ -66,4 +87,5 @@ export function getPacksForTypes(types: string[]): string[] {
  */
 export function resetRegistry(): void {
   registry.clear();
+  notify();
 }

@@ -21,6 +21,7 @@
 	import { asCalmFlowNodeData } from '$lib/canvas/flowTypes';
 	import { isReferenceNode, getDetailedArchitectureHref } from '$lib/metadata/referenceNode';
 	import { getMetadataFieldsForNodeType } from '$lib/metadata/metadataForm';
+	import { getNodeStyleOverride, writeNodeStyleOverride } from '$lib/canvas/buildingBlockStyle';
 
 	let {
 		node,
@@ -150,6 +151,20 @@
 				onmutate?.();
 			}
 		}, 300);
+	}
+
+	const styleOverride = $derived(getNodeStyleOverride(nd.metadata));
+
+	function handleStyleColor(kind: 'background' | 'text', value: string) {
+		if (isReadOnly) return;
+		signalFirstEdit();
+		const current = (nd.metadata as Record<string, unknown> | undefined) ?? {};
+		const next = writeNodeStyleOverride(current, {
+			background: kind === 'background' ? value : styleOverride.background,
+			text: kind === 'text' ? value : styleOverride.text,
+		});
+		updateNodeProperty(nd.calmId, 'metadata', next);
+		onmutate?.();
 	}
 
 	function getTypeLabel(type: string): string {
@@ -317,10 +332,38 @@
 		{/if}
 	</div>
 
+	<div class="fields">
+		<div class="field">
+			<label class="field-label" for="node-color-bg">Background color</label>
+			<input
+				id="node-color-bg"
+				class="field-color"
+				type="color"
+				value={styleOverride.background ?? '#ffffff'}
+				onchange={(e) => handleStyleColor('background', (e.currentTarget as HTMLInputElement).value)}
+				aria-label="Background color"
+				disabled={isReadOnly}
+			/>
+		</div>
+		<div class="field">
+			<label class="field-label" for="node-color-text">Text color</label>
+			<input
+				id="node-color-text"
+				class="field-color"
+				type="color"
+				value={styleOverride.text ?? '#1e293b'}
+				onchange={(e) => handleStyleColor('text', (e.currentTarget as HTMLInputElement).value)}
+				aria-label="Text color"
+				disabled={isReadOnly}
+			/>
+		</div>
+	</div>
+
 	<!-- Schema-driven metadata (R17) -->
 	<MetadataForm
 		elementId={nd.calmId}
 		fields={getMetadataFieldsForNodeType(calmType)}
+		nodeType={calmType}
 		metadata={(nd.metadata as Record<string, unknown> | undefined) ?? {}}
 		fallbackValues={{ element: calmType }}
 		readonly={isReference}
@@ -671,6 +714,16 @@
 	.field-select:disabled {
 		opacity: 0.75;
 		cursor: not-allowed;
+	}
+
+	.field-color {
+		width: 48px;
+		height: 28px;
+		padding: 0;
+		border: 1px solid var(--color-border, #e2e8f0);
+		border-radius: 6px;
+		background: transparent;
+		cursor: pointer;
 	}
 
 </style>

@@ -1,0 +1,157 @@
+{
+  "$schema": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "$id": "https://calm.finos.org/extensions/packs/opengris.extension.json",
+  "id": "opengris",
+  "label": "OpenGRIS",
+  "version": "1.0.0",
+  "standard": {
+    "$id": "https://calm.finos.org/extensions/opengris/opengris.standard.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "href": "../standards/opengris.standard.json",
+    "calmVersion": "1.2",
+    "status": "proposed"
+  },
+  "color": {
+    "bg": "#f0fdf4",
+    "border": "#16a34a",
+    "stroke": "#15803d",
+    "badge": "[OGRIS]"
+  },
+  "nodes": [
+    {
+      "typeId": "opengris:scheduler",
+      "label": "Scheduler",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"8\" r=\"2\"/><path d=\"M8 2v2M8 12v2M2 8h2M12 8h2M3.5 3.5l1.5 1.5M11 11l1.5 1.5M3.5 12.5l1.5-1.5M11 5l1.5-1.5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Central hub that routes tasks from clients to available workers via Cap'n Proto/ZeroMQ"
+    },
+    {
+      "typeId": "opengris:worker",
+      "label": "Worker",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"1.5\"/><path d=\"M8 6v4M6 8h4\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Executes distributed tasks assigned by the scheduler; runs on GNU/Linux"
+    },
+    {
+      "typeId": "opengris:worker-manager",
+      "label": "Worker Manager",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"1\" y=\"3\" width=\"14\" height=\"10\" rx=\"1.5\" stroke-dasharray=\"3 1.5\"/><rect x=\"3\" y=\"6\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"9\" y=\"6\" width=\"4\" height=\"4\" rx=\"1\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Provisions and terminates workers on demand via adapters (Baremetal, AWS Batch, AWS ECS, IBM Symphony)",
+      "isContainer": true
+    },
+    {
+      "typeId": "opengris:client",
+      "label": "Client",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"8\" rx=\"1.5\"/><path d=\"M5 14h6M8 11v3\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Submits tasks to the scheduler and retrieves results; cross-platform (Windows/Linux)"
+    },
+    {
+      "typeId": "opengris:object-storage",
+      "label": "Object Storage",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><ellipse cx=\"8\" cy=\"5\" rx=\"5\" ry=\"2\"/><path d=\"M3 5v6c0 1.1 2.24 2 5 2s5-.9 5-2V5\"/><path d=\"M3 8c0 1.1 2.24 2 5 2s5-.9 5-2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Stores serialized task arguments and results; C++ implementation for performance"
+    },
+    {
+      "typeId": "opengris:cluster",
+      "label": "Cluster",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"1\" y=\"2\" width=\"14\" height=\"12\" rx=\"2\"/><rect x=\"3\" y=\"5\" width=\"3\" height=\"3\" rx=\"0.7\"/><rect x=\"7\" y=\"5\" width=\"3\" height=\"3\" rx=\"0.7\"/><rect x=\"5\" y=\"9\" width=\"3\" height=\"3\" rx=\"0.7\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Container grouping a full Scaler deployment (scheduler, workers, object storage)",
+      "isContainer": true,
+      "defaultChildren": [
+        "opengris:scheduler",
+        "opengris:worker",
+        "opengris:object-storage"
+      ]
+    },
+    {
+      "typeId": "opengris:task-graph",
+      "label": "Task Graph",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"3\" cy=\"8\" r=\"2\"/><circle cx=\"13\" cy=\"4\" r=\"2\"/><circle cx=\"13\" cy=\"12\" r=\"2\"/><path d=\"M5 8l6-3M5 8l6 3\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "DAG-based task dependency graph from opengris-pargraph; nodes are functions, edges are data dependencies"
+    },
+    {
+      "typeId": "opengris:parallel-function",
+      "label": "Parallel Function",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M4 3v10M7 3v10M10 3v10\" stroke-linecap=\"round\"/><path d=\"M12 8l2 0M14 8l-2-2M14 8l-2 2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f0fdf4",
+        "border": "#16a34a",
+        "stroke": "#15803d",
+        "badge": "[OGRIS]"
+      },
+      "description": "Function decorated with @parallel from opengris-parfun executing via map-reduce across worker pool"
+    }
+  ],
+  "relationships": [
+    {
+      "typeId": "connects",
+      "label": "Connects",
+      "calmCoreVariant": "connects",
+      "description": "Directed connection from a source node to a destination node"
+    },
+    {
+      "typeId": "composed-of",
+      "label": "Composed of",
+      "calmCoreVariant": "composed-of",
+      "description": "Containment: container is composed of member nodes"
+    },
+    {
+      "typeId": "deployed-in",
+      "label": "Deployed in",
+      "calmCoreVariant": "deployed-in",
+      "description": "Deployment: nodes are deployed in a container"
+    },
+    {
+      "typeId": "interacts",
+      "label": "Interacts",
+      "calmCoreVariant": "interacts",
+      "description": "An actor interacts with one or more nodes"
+    },
+    {
+      "typeId": "options",
+      "label": "Options",
+      "calmCoreVariant": "options",
+      "description": "Choice among alternative relationship options"
+    }
+  ]
+}

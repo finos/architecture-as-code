@@ -14,6 +14,11 @@ import {
 	getRelationshipVariant,
 } from '@calmstudio/calm-core';
 import { scanDirectoryTree } from '$lib/explorer/folderScan';
+import {
+	chainDocumentFromUnknown,
+	resolveDefiningHref,
+	type DefiningChainDocument,
+} from '$lib/explorer/definingHref';
 import type { ExplorerTreeEntry } from '$lib/explorer/types';
 
 export type NeighborDirection = 'in' | 'out' | 'related';
@@ -31,6 +36,11 @@ export interface NeighborHit {
 	sourceRelativePath: string;
 	/** Preferred home file of the neighbor node (for detailed-architecture). */
 	neighborHomePath: string;
+	/**
+	 * File that defines the neighbor, or an http(s) URL copied from the chain (R82).
+	 * Project-relative when it is a file. Empty when not yet resolved.
+	 */
+	definingDocumentId: string;
 	relationship: CalmRelationship;
 	neighborNode: CalmNode;
 }
@@ -143,7 +153,8 @@ export function collectNeighborsFromArchitecture(
 	arch: CalmArchitecture,
 	focusUniqueId: string,
 	sourceRelativePath: string,
-	nodeIndex?: Map<string, IndexedNode>
+	nodeIndex?: Map<string, IndexedNode>,
+	documents?: Map<string, DefiningChainDocument>
 ): NeighborHit[] {
 	const localById = new Map(arch.nodes.map((n) => [n['unique-id'], n]));
 	const hits: NeighborHit[] = [];
@@ -163,6 +174,12 @@ export function collectNeighborsFromArchitecture(
 				placeholderNode(neighborId);
 
 			const neighborHomePath = indexed?.relativePath ?? sourceRelativePath;
+			const definingDocumentId = definingDocumentForNeighbor(
+				neighborId,
+				neighborHomePath,
+				neighborNode,
+				documents
+			);
 
 			hits.push({
 				rowId: `${sourceRelativePath}::${rel['unique-id']}::${neighborId}`,
@@ -175,6 +192,7 @@ export function collectNeighborsFromArchitecture(
 				direction: directionFor(rel, focusUniqueId, neighborId),
 				sourceRelativePath,
 				neighborHomePath,
+				definingDocumentId,
 				relationship: JSON.parse(JSON.stringify(rel)) as CalmRelationship,
 				neighborNode: JSON.parse(JSON.stringify(neighborNode)) as CalmNode,
 			});
@@ -323,6 +341,12 @@ export async function scanProjectNeighbors(
 		}
 	}
 
+	const documents = new Map<string, DefiningChainDocument>();
+	for (const file of indexedFiles) {
+		const doc = chainDocumentFromUnknown(file.relativePath, file.arch);
+		if (doc) documents.set(file.relativePath, doc);
+	}
+
 	const hits: NeighborHit[] = [];
 	for (const file of indexedFiles) {
 		hits.push(
@@ -330,10 +354,40 @@ export async function scanProjectNeighbors(
 				file.arch,
 				focusUniqueId,
 				file.relativePath,
-				nodeIndex
+				nodeIndex,
+				documents
 			)
 		);
 	}
 
 	return dedupeNeighborHits(hits);
+}
+
+function definingDocumentForNeighbor(
+	neighborId: string,
+	homePath: string,
+	neighborNode: CalmNode,
+	documents?: Map<string, DefiningChainDocument>
+): string {
+	const href = neighborNode.details?.['detailed-architecture'];
+	const source =
+		documents?.get(homePath) ??
+		chainDocumentFromUnknown(homePath, {
+			nodes: [
+				{
+					'unique-id': neighborId,
+					details:
+						typeof href === 'string' && href
+							? { 'detailed-architecture': href }
+							: undefined,
+				},
+			],
+		});
+	if (!source) return homePath;
+	return resolveDefiningHref({
+		source,
+		nodeUniqueId: neighborId,
+		currentFile: null,
+		load: (path) => documents?.get(path) ?? null,
+	});
 }

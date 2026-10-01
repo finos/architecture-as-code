@@ -9,9 +9,11 @@
 import type { Node, Position } from '@xyflow/svelte';
 import {
 	collectNodeObstacles,
+	relationshipObstacleExclusions,
 	routeEdgeOrthogonal,
 	type HandlePosition,
 } from './obstacleRouter';
+import { orthogonalPathToBezier } from './bezierPath';
 
 export const CANVAS_NODES_CONTEXT = 'calm-canvas-nodes';
 
@@ -39,10 +41,7 @@ export function getRoutedEdgePath(
 		targetId?: string;
 	}
 ): [string, number, number] {
-	const exclude = new Set<string>();
-	if (args.sourceId) exclude.add(args.sourceId);
-	if (args.targetId) exclude.add(args.targetId);
-
+	const exclude = relationshipObstacleExclusions(nodes, args.sourceId, args.targetId);
 	const obstacles = collectNodeObstacles(nodes, exclude, 0);
 	const result = routeEdgeOrthogonal({
 		source: {
@@ -58,5 +57,5 @@ export function getRoutedEdgePath(
 		obstacles,
 		padding: 8,
 	});
-	return [result.path, result.labelX, result.labelY];
+	return [orthogonalPathToBezier(result.path), result.labelX, result.labelY];
 }

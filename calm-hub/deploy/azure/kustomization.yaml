@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - namespace.yaml
+  - serviceaccount.yaml
+  - configmap.yaml
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  - pdb.yaml
+  - networkpolicy.yaml
+images:
+  - name: finos/calm-hub
+    newName: finos/calm-hub
+    newTag: latest

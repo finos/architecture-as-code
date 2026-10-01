@@ -58,7 +58,23 @@
 	import { pushSnapshot, resetHistory, undo, redo, exportHistoryState, loadHistoryState, createEmptyHistoryState } from '$lib/stores/history.svelte';
 	import { layoutCalm, type LayoutDirection } from '$lib/layout/elkLayout';
 	import { buildLayoutSizeHints } from '$lib/layout/layoutSizeHints';
+	import {
+		jsonApplyHasLayout,
+		layoutMapToPositionMap,
+		mergePositionMaps,
+		prepareJsonLayout,
+		readLayoutMap,
+	} from '$lib/layout/layoutPersist';
+	import type { ArchitectureWithMetadata } from '$lib/stores/documentEnvelope';
+	import { patternSchemaToArchitecture, architectureToPatternSchema } from '$lib/templates/patternSchemaGraph';
+	import { hubUrlFromProject, isHubArchitectureUrl } from '$lib/hub/hubUrl';
+	import { fetchHubArchitecture, resolveHubPatternDocument } from '$lib/hub/hubClient';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
+	import { saveAsDefaults, primaryNodeFromCanvas } from '$lib/project/saveAsDefaults';
+	import {
+		retargetOpenDocumentAfterMove,
+		rewriteDetailedArchitectureHref,
+	} from '$lib/explorer/rewriteDetailedArchitecture';
 	import {
 		getFileName,
 		getFileHandle,
@@ -68,6 +84,7 @@
 		markClean,
 		resetFileState,
 		setCleanSnapshot,
+		setFileRelativePath,
 	} from '$lib/io/fileState.svelte';
 	import UnsavedChangesDialog from '$lib/io/UnsavedChangesDialog.svelte';
 	import BulkUnsavedDialog from '$lib/io/BulkUnsavedDialog.svelte';
@@ -101,7 +118,7 @@
 	import { resolveDetailedArchitecture } from '$lib/reference/resolveReference';
 	import OutsideProjectInfobox from '$lib/reference/OutsideProjectInfobox.svelte';
 	import { findFileInTree, readFileContent } from '$lib/explorer/folderScan';
-	import { getExplorerTree } from '$lib/explorer/explorerTree.svelte';
+	import { getExplorerTree, getSelectedExplorerPath } from '$lib/explorer/explorerTree.svelte';
 	import { isTauri } from '$lib/desktop/isTauri';
 	import { updateWindowTitle } from '$lib/desktop/titleBar';
 	import { buildAppMenu, updateRecentFilesMenu } from '$lib/desktop/menu';
@@ -111,7 +128,11 @@
 	import { checkForUpdates } from '$lib/desktop/updater';
 	import { registerFileOpenHandler } from '$lib/desktop/fileOpen';
 	import { readTextFile } from '@tauri-apps/plugin-fs';
-	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsCalmscript, exportAsScalerToml } from '$lib/io/export';
+	import { exportAsCalm, exportAsSvg, exportAsPng, exportAsMermaid, exportAsMermaidMarkdown, exportAsScalerToml } from '$lib/io/export';
+	import {
+		architectureToMermaid,
+		architectureToMermaidMarkdown,
+	} from '$lib/io/mermaidExport';
 	import type { CalmArchitecture, CalmRelationship } from '@calmstudio/calm-core';
 	import { getReferencedNodeIds } from '@calmstudio/calm-core';
 	import { detectPacksFromArch } from '$lib/io/sidecar';
@@ -145,15 +166,20 @@
 	import { resolveExtractPath } from '$lib/project/naming';
 	import {
 		ensureWritePermission,
+		getExistingDirectory,
 		projectRelativeFileExists,
 		writeProjectRelativeFile,
 	} from '$lib/project/projectFs';
-	import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
+	import {
+		getProjectConfig,
+		getProjectFileConfig,
+		getProjectRootHandle,
+	} from '$lib/project/projectStore.svelte';
+	import { shouldShowDemoUi } from '$lib/project/demoUi';
 	import { relativePathBetween } from '$lib/explorer/relativePath';
 	import ExtractToDiagramDialog from '$lib/project/ExtractToDiagramDialog.svelte';
 	import { isReferenceNode } from '$lib/metadata/referenceNode';
 	import { asCalmFlowNodeData } from '$lib/canvas/flowTypes';
-
 	let nodes = $state.raw<Node[]>([]);
 	let edges = $state.raw<Edge[]>([]);
 
@@ -448,10 +474,17 @@
 
 	/** When true, the full-screen TemplatePicker modal is shown. */
 	let showTemplatePicker = $state(false);
+	/** R84: Demos + FluxNova/OpenGRIS tabs — on when no project, or ui.demo true. */
+	const showDemoUi = $derived(
+		shouldShowDemoUi(getProjectFileConfig() !== null, getProjectFileConfig())
+	);
 	let pendingPattern = $state<{
 		card: CalmPatternCard;
 		options: CalmOption[];
 	} | null>(null);
+	let documentReadonly = $state(false);
+	let activeKind = $state<'architecture' | 'pattern' | 'hub'>('architecture');
+	let patternEdit = $state<{ base: object; fromHub: boolean } | null>(null);
 
 	// ─── Unsaved changes dialog (Save / Don't save / Cancel) ─────────────────
 
@@ -537,6 +570,109 @@
 		return tab.modelJson !== tab.cleanSnapshot;
 	}
 
+	function confirmDirtyFolderMove(movedPaths: string[]): boolean {
+		persistActiveTab();
+		const moved = new Set(movedPaths);
+		const dirtyCount = diagramTabs.filter(
+			(tab) => tab.relativePath && moved.has(tab.relativePath) && isTabDirty(tab)
+		).length;
+		if (dirtyCount === 0) return true;
+		const what =
+			movedPaths.length === 1
+				? 'This open diagram has unsaved changes.'
+				: `${dirtyCount} open diagram(s) in this folder have unsaved changes.`;
+		return window.confirm(`${what} Move anyway? Unsaved edits stay in the editor.`);
+	}
+
+	function rewriteCanvasDetails(
+		tabNodes: Node[],
+		oldPath: string,
+		newPath: string,
+		sourcePrefix: string,
+		destPrefix: string
+	): Node[] {
+		return tabNodes.map((node) => {
+			const details = node.data?.calmDetails as Record<string, unknown> | undefined;
+			if (!details || typeof details !== 'object') return node;
+			const href = details['detailed-architecture'];
+			if (typeof href !== 'string') return node;
+			const next = rewriteDetailedArchitectureHref(
+				href,
+				oldPath,
+				newPath,
+				sourcePrefix,
+				destPrefix
+			);
+			if (next === href) return node;
+			return {
+				...node,
+				data: { ...node.data, calmDetails: { ...details, 'detailed-architecture': next } },
+			};
+		});
+	}
+
+	function handleFolderMove(
+		mapping: Record<string, string>,
+		sourcePrefix: string,
+		destPrefix: string
+	): void {
+		persistActiveTab();
+		const wasDirty = hasUnsavedChanges(getModelJson());
+		const oldActivePath = getFileRelativePath();
+		const tree = getExplorerTree();
+		diagramTabs = diagramTabs.map((tab) => {
+			const oldPath = tab.relativePath;
+			if (!oldPath) return tab;
+			const newPath = mapping[oldPath] ?? oldPath;
+			let modelJson = tab.modelJson;
+			let jsonChanged = false;
+			try {
+				const parsed = JSON.parse(tab.modelJson) as unknown;
+				const retargeted = retargetOpenDocumentAfterMove(
+					oldPath,
+					parsed,
+					mapping,
+					sourcePrefix,
+					destPrefix
+				);
+				if (retargeted.changed) {
+					modelJson = JSON.stringify(retargeted.json, null, 2) + '\n';
+					jsonChanged = true;
+				}
+			} catch {
+				// Keep the in-memory JSON; disk rewrite already aborted on parse failure.
+			}
+			const file = findFileInTree(tree, newPath);
+			const name = newPath.split('/').pop() ?? tab.label;
+			const tabWasDirty = isTabDirty(tab);
+			return {
+				...tab,
+				relativePath: newPath,
+				modelJson,
+				cleanSnapshot: jsonChanged && !tabWasDirty ? modelJson : tab.cleanSnapshot,
+				label: file?.name ?? name,
+				fileHandle: file?.handle ?? tab.fileHandle,
+				nodes: rewriteCanvasDetails(tab.nodes, oldPath, newPath, sourcePrefix, destPrefix),
+			};
+		});
+		const active = diagramTabs.find((tab) => tab.id === activeTabId);
+		if (!active?.relativePath) return;
+		setFileRelativePath(active.relativePath);
+		if (oldActivePath) {
+			nodes = rewriteCanvasDetails(
+				nodes,
+				oldActivePath,
+				active.relativePath,
+				sourcePrefix,
+				destPrefix
+			);
+			applyFromCanvas(nodes, edges);
+		}
+		if (!wasDirty) {
+			markDocumentClean(active.label, active.fileHandle, active.relativePath);
+		}
+	}
+
 	function cloneFlowState<T>(value: T): T {
 		return JSON.parse(JSON.stringify(value)) as T;
 	}
@@ -590,6 +726,9 @@
 			modelJson: json,
 			selectedNodeId,
 			selectedEdgeId,
+			kind: activeKind,
+			readonly: documentReadonly,
+			patternBase: patternEdit?.base,
 		});
 	}
 
@@ -615,6 +754,9 @@
 		setCleanSnapshot(tab.cleanSnapshot);
 		selectedNodeId = tab.selectedNodeId;
 		selectedEdgeId = tab.selectedEdgeId;
+		activeKind = tab.kind ?? 'architecture';
+		documentReadonly = tab.readonly === true;
+		patternEdit = tab.patternBase ? { base: tab.patternBase, fromHub: tab.kind === 'pattern' && !tab.fileHandle } : null;
 		refreshGovernance();
 
 		await tick();
@@ -915,6 +1057,9 @@
 		edges = [];
 		selectedNodeId = null;
 		selectedEdgeId = null;
+		activeKind = 'architecture';
+		documentReadonly = false;
+		patternEdit = null;
 		const json = getModelJson();
 		setCleanSnapshot(json);
 
@@ -943,6 +1088,16 @@
 		const details = node.data?.calmDetails as Record<string, string> | undefined;
 		const href = details?.['detailed-architecture'];
 		if (!href) return;
+
+		const hubBase = hubUrlFromProject(getProjectConfig());
+		if (/^https?:\/\//.test(href) && isHubArchitectureUrl(href, hubBase)) {
+			try {
+				await openHubArchitectureTab(href, node.data?.label as string ?? calmId);
+			} catch (e) {
+				importError = (e as Error).message;
+			}
+			return;
+		}
 
 		// R22 — focus this unique-id in the target diagram after open
 		const focusUniqueId = (node.data?.calmId as string) ?? calmId;
@@ -1050,7 +1205,18 @@
 		refreshGovernance();
 	}
 
-	async function openGeneratedArchitecture(arch: CalmArchitecture): Promise<void> {
+	async function openGeneratedArchitecture(
+		arch: CalmArchitecture,
+		options: {
+			label?: string;
+			relativePath?: string | null;
+			fileHandle?: FileSystemFileHandle | string | null;
+			kind?: 'architecture' | 'pattern' | 'hub';
+			readonly?: boolean;
+			patternBase?: object;
+			markDirty?: boolean;
+		} = {}
+	): Promise<void> {
 		persistActiveTab();
 		if (!(await evictOldestTabIfNeeded())) return;
 
@@ -1062,13 +1228,18 @@
 		edges = [];
 		selectedNodeId = null;
 		selectedEdgeId = null;
+		activeKind = options.kind ?? 'architecture';
+		documentReadonly = options.readonly === true;
+		patternEdit = options.patternBase
+			? { base: options.patternBase, fromHub: options.kind === 'pattern' && !options.fileHandle }
+			: null;
 
 		const tabId = crypto.randomUUID();
 		const newTab: DiagramTabState = {
 			id: tabId,
-			label: 'Untitled',
-			fileHandle: null,
-			relativePath: null,
+			label: options.label ?? 'Untitled',
+			fileHandle: options.fileHandle ?? null,
+			relativePath: options.relativePath ?? null,
 			openedAt: Date.now(),
 			nodes: [],
 			edges: [],
@@ -1077,17 +1248,82 @@
 			cleanSnapshot: getModelJson(),
 			selectedNodeId: null,
 			selectedEdgeId: null,
+			kind: options.kind,
+			readonly: options.readonly,
+			patternBase: options.patternBase,
 		};
 		diagramTabs = [...diagramTabs, newTab];
 		activeTabId = tabId;
 
 		await importCalmFile(JSON.stringify(arch));
-		markDirty();
+		if (options.markDirty === false) {
+			markDocumentClean(options.label, options.fileHandle ?? null, options.relativePath ?? null);
+		} else {
+			markDirty();
+		}
+	}
+
+	async function openHubArchitectureTab(url: string, name: string): Promise<void> {
+		const existing = findTabByFile(diagramTabs, url, url);
+		if (existing) {
+			persistActiveTab();
+			activeTabId = existing.id;
+			await restoreTabState(existing);
+			return;
+		}
+		const arch = await fetchHubArchitecture(url);
+		await openGeneratedArchitecture(arch as CalmArchitecture, {
+			label: name,
+			relativePath: url,
+			fileHandle: url,
+			kind: 'hub',
+			readonly: true,
+			markDirty: false,
+		});
+	}
+
+	async function handleOpenPattern(pattern: object, name: string, source: 'local' | 'hub', url?: string) {
+		showTemplatePicker = false;
+		try {
+			const resolved = source === 'hub' ? await resolveHubPatternDocument(pattern, url) : pattern;
+			const arch = patternSchemaToArchitecture(resolved);
+			await openGeneratedArchitecture(arch, {
+				label: name,
+				kind: 'pattern',
+				patternBase: resolved,
+				markDirty: source === 'hub',
+			});
+		} catch (e) {
+			importError = (e as Error).message;
+		}
+	}
+
+	async function handleHubPatternSelect(pattern: object, name: string, url?: string) {
+		showTemplatePicker = false;
+		try {
+			const resolved = await resolveHubPatternDocument(pattern, url);
+			const options = patternGenerateOptions(resolved);
+			if (options.length > 0) {
+				pendingPattern = {
+					card: { id: name, name, description: '', relativePath: name, pattern: resolved },
+					options,
+				};
+				return;
+			}
+			await generatePatternIntoNewTab(resolved);
+		} catch (e) {
+			importError = (e as Error).message;
+		}
 	}
 
 	async function generatePatternIntoNewTab(pattern: object, choices?: CalmChoice[]): Promise<void> {
 		try {
-			const arch = await generateArchitectureFromPattern(pattern, choices);
+			const cfg = getProjectConfig();
+			const arch = await generateArchitectureFromPattern(pattern, choices, {
+				root: getProjectRootHandle(),
+				mappingPath: cfg?.urlMapping?.path,
+				hubUrl: cfg?.hub?.url,
+			});
 			await openGeneratedArchitecture(arch);
 		} catch (e) {
 			importError = (e as Error).message;
@@ -1118,6 +1354,10 @@
 		// Track model mutations (canvas sync, property edits, code panel apply).
 		getModel();
 		return getModelJson();
+	});
+	const mermaidSource = $derived.by(() => {
+		activeTabId;
+		return architectureToMermaid(getModel());
 	});
 	const isDocumentModified = $derived(hasUnsavedChanges(calmJson));
 
@@ -1204,6 +1444,7 @@
 	let codeChangeTimer: ReturnType<typeof setTimeout>;
 
 	function handleCodeChange(newValue: string) {
+		if (documentReadonly) return;
 		// Mark dirty immediately so open/save guards work before debounced parse.
 		markDirty();
 		// Debounce: wait 400ms after last change before parsing
@@ -1213,22 +1454,19 @@
 				const parsed = JSON.parse(newValue) as CalmArchitecture;
 				codeParseError = null;
 
-				// Build position map from current nodes to preserve positions
-				const positionMap = new Map<string, { x: number; y: number }>();
-				for (const n of nodes) {
-					if (n.data?.calmId) {
-						positionMap.set(n.data.calmId as string, { ...n.position });
-					}
-				}
+				const prepared = prepareJsonLayout(getModel(), parsed);
+				const positionMap = jsonApplyHasLayout(prepared)
+					? layoutMapToPositionMap(readLayoutMap(prepared.metadata))
+					: undefined;
 
 				// Push undo snapshot BEFORE applying
 				pushSnapshot(nodes, edges);
 
 				// Apply to canonical model (mutex prevents re-entry)
-				const applied = applyFromJson(parsed);
+				const applied = applyFromJson(prepared);
 				if (applied) {
-					// Project back to Svelte Flow format, preserving positions and selection
-					const projected = calmToFlow(parsed, positionMap);
+					// Positions come from JSON `_layout`, not the previous canvas (R80).
+					const projected = calmToFlow(prepared, positionMap);
 					const selectionMap = new Map<string, boolean>();
 					for (const n of nodes) {
 						if (n.selected && n.data?.calmId) selectionMap.set(n.data.calmId as string, true);
@@ -1529,9 +1767,16 @@
 			markDirty();
 		}
 
-		// Auto-layout with no pinned nodes on fresh import
+		const storedLayout = layoutMapToPositionMap(
+			readLayoutMap((parsed as ArchitectureWithMetadata).metadata)
+		);
 		const importHints = buildLayoutSizeHints(parsed);
-		const positionMap = await layoutCalm(parsed, new Set(), 'DOWN', importHints);
+		const pinned = new Set(storedLayout.keys());
+		const elkMap =
+			pinned.size > 0 && pinned.size === parsed.nodes.length
+				? new Map<string, { x: number; y: number; width?: number; height?: number }>()
+				: await layoutCalm(parsed, pinned, 'DOWN', importHints);
+		const positionMap = mergePositionMaps(elkMap, storedLayout);
 
 		await flushCanvasBeforeReplace();
 		applyArchitectureToCanvas(parsed, positionMap);
@@ -1593,7 +1838,30 @@
 	}
 
 	async function handleSave() {
+		if (documentReadonly) return;
 		try {
+			if (activeKind === 'pattern') {
+				const schema = architectureToPatternSchema(getModel(), patternEdit?.base ?? {});
+				const json = JSON.stringify(schema, null, 2) + '\n';
+				if (patternEdit?.fromHub || !getFileHandle()) {
+					const root = getProjectRootHandle();
+					const dir = getProjectConfig()?.patterns?.dir ?? 'patterns';
+					if (!root) {
+						importError = 'Open a project to save a local pattern copy';
+						return;
+					}
+					const slug = (getFileName() ?? 'pattern').replace(/[^a-z0-9]+/gi, '-').toLowerCase() || 'pattern';
+					const relative = `${dir}/${slug}.json`;
+					await writeProjectRelativeFile(root, relative, json);
+					markDocumentClean(`${slug}.json`, null, relative);
+					patternEdit = { base: schema, fromHub: false };
+				} else {
+					await saveFile(json, getFileHandle(), getFileName() ?? 'pattern.json');
+					markDocumentClean();
+				}
+				await refreshExplorerAfterSave();
+				return;
+			}
 			const json = getExportJson(nodes, edges);
 			syncCanvasToModel();
 			const handle = await saveFile(json, getFileHandle(), getFileName() ?? 'architecture.calm.json');
@@ -1608,7 +1876,30 @@
 		try {
 			const json = getExportJson(nodes, edges);
 			syncCanvasToModel();
-			const handle = await saveFileAs(json, getFileName() ?? 'architecture.calm.json');
+			const primary = primaryNodeFromCanvas(nodes);
+			const defaults = saveAsDefaults({
+				selectedPath: getSelectedExplorerPath(),
+				filenameFallback: getFileName() ?? 'architecture.calm.json',
+				primaryNodeType: primary?.type,
+				primaryNodeName: primary?.name,
+				config: getProjectConfig(),
+			});
+			const root = getProjectRootHandle();
+			let startIn: FileSystemHandle | undefined;
+			if (root) {
+				try {
+					startIn = defaults.folder
+						? await getExistingDirectory(root, defaults.folder)
+						: root;
+				} catch {
+					startIn = root;
+				}
+			}
+			const handle = await saveFileAs(
+				json,
+				defaults.fileName,
+				startIn ? { startIn } : undefined
+			);
 			// saveFileAs returns:
 			// - string path (Tauri desktop)
 			// - FileSystemFileHandle (browser FSA)
@@ -1673,7 +1964,7 @@
 			exportSvg: handleExportSvg,
 			exportPng: handleExportPng,
 			undo: () => {
-				const snapshot = undo();
+				const snapshot = undo({ nodes, edges });
 				if (snapshot) {
 					nodes = snapshot.nodes;
 					edges = snapshot.edges;
@@ -1756,10 +2047,22 @@
 		await exportAsPng(nodes, edges);
 	}
 
-	function handleExportCalmscript() {
-		// Phase 4 stub: export CALM JSON with a header comment — Phase 5 will provide real calmscript
-		const json = getExportJson(nodes, edges);
-		exportAsCalmscript(`// calmscript export — full DSL support coming in Phase 5\n// CALM JSON representation:\n${json}\n`);
+	function handleExportMermaid() {
+		const text = architectureToMermaid(getModel());
+		const stem = exportStem();
+		exportAsMermaid(text, `${stem}.mmd`);
+	}
+
+	function handleExportMermaidMd() {
+		const text = architectureToMermaidMarkdown(getModel());
+		const stem = exportStem();
+		exportAsMermaidMarkdown(text, `${stem}.md`);
+	}
+
+	function exportStem(): string {
+		const name = getFileName();
+		if (!name) return 'architecture';
+		return name.replace(/\.(calm\.)?json$/i, '') || 'architecture';
 	}
 
 	function handleExportScalerToml() {
@@ -2020,10 +2323,12 @@
 			onexportcalm={handleExportCalm}
 			onexportsvg={handleExportSvg}
 			onexportpng={handleExportPng}
-			onexportcalmscript={handleExportCalmscript}
+			onexportmermaid={handleExportMermaid}
+			onexportmermaidmd={handleExportMermaidMd}
 			onexportscalertoml={handleExportScalerToml}
 			onloaddemo={handleLoadDemo}
 			ontemplates={() => (showTemplatePicker = true)}
+			onhubbrowse={() => leftSidebar?.openHub()}
 			filename={getFileName()}
 			isDirty={isDocumentModified}
 			c4Level={getC4Level()}
@@ -2031,6 +2336,7 @@
 			governanceScore={getArchitectureScore()}
 			showGovernanceBadge={hasAINodes()}
 			showScalerTomlExport={showScalerTomlExport}
+			showDemos={showDemoUi}
 			flows={flows}
 			activeFlowId={activeFlowId}
 			onflowchange={setActiveFlowId}
@@ -2120,6 +2426,10 @@
 								onplacenode={handlePalettePlace}
 								currentFileRelativePath={getFileRelativePath()}
 								onopenexplorerfile={handleOpenExplorerFile}
+								onhubbrowse={() => leftSidebar?.openHub()}
+								onopenhubversion={(url, name) => void openHubArchitectureTab(url, name)}
+								onbeforefoldermove={confirmDirtyFolderMove}
+								onfoldermove={handleFolderMove}
 							/>
 						</Pane>
 
@@ -2225,6 +2535,12 @@
 										bind:this={canvas}
 										bind:nodes
 										bind:edges
+										readonly={documentReadonly}
+										readonlyReason={documentReadonly
+											? getFileRelativePath() && /^https?:\/\//.test(getFileRelativePath() ?? '')
+												? `Read-only — loaded from Hub: ${getFileRelativePath()}`
+												: 'Read-only diagram'
+											: ''}
 										onplacenode={handlePalettePlace}
 										onselectionchange={handleSelectionChange}
 										onfileimport={handleFileImport}
@@ -2270,7 +2586,7 @@
 							onfindneighbors={(id) => void openFindNeighbors(id)}
 							onfindusage={(id) => void openFindUsage(id)}
 							oncontainmentmembers={handleContainmentMembers}
-							readonly={isC4Mode()}
+							readonly={isC4Mode() || documentReadonly}
 						/>
 					</Pane>
 				</PaneGroup>
@@ -2283,10 +2599,12 @@
 				{#key tabRenderKey}
 				<CodePanel
 					value={calmJson}
+					mermaid={mermaidSource}
 					onchange={handleCodeChange}
 					parseError={codeParseError}
 					selectedNodeId={selectedNodeId}
 					selectedEdgeId={selectedEdgeId}
+					readonly={documentReadonly}
 				/>
 				{/key}
 			</Pane>
@@ -2314,6 +2632,8 @@
 			<TemplatePicker
 				onselect={handleTemplateLoad}
 				onpatternselect={(id) => void handlePatternSelect(id)}
+				onhubpatternselect={(pattern, name, url) => void handleHubPatternSelect(pattern, name, url)}
+				onopenpattern={(pattern, name, source, url) => void handleOpenPattern(pattern, name, source, url)}
 				oncancel={() => (showTemplatePicker = false)}
 			/>
 		{/if}

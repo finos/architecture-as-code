@@ -6,6 +6,7 @@
 	import ReferenceGlassesSlot from './ReferenceGlassesSlot.svelte';
 	import ContainerRelIcon from './ContainerRelIcon.svelte';
 	import { getNodeInterfaces } from './nodeData';
+	import { nodeStyleOverrideCss } from '$lib/canvas/buildingBlockStyle';
 	let { id, data, selected }: NodeProps = $props();
 	const interfaces = $derived(getNodeInterfaces(data as Record<string, unknown>));
 	const containmentRels = $derived(
@@ -17,6 +18,7 @@
 	let collapsed = $state((data as Record<string, unknown>).collapsed === true);
 	const errorCount = $derived((data as Record<string, unknown>).validationErrors as number ?? 0);
 	const warnCount = $derived((data as Record<string, unknown>).validationWarnings as number ?? 0);
+	const chromeStyle = $derived(nodeStyleOverrideCss((data as Record<string, unknown>).metadata));
 
 	function toggleCollapse() {
 		collapsed = !collapsed;
@@ -45,7 +47,7 @@
 {/if}
 
 {#if collapsed}
-	<div class="container collapsed" class:selected>
+	<div class="node-shell collapsed" class:selected style={chromeStyle}>
 		<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="collapsed-row">
@@ -60,7 +62,7 @@
 		</div>
 	</div>
 {:else}
-	<div class="container expanded" class:selected>
+	<div class="node-shell expanded" class:selected style={chromeStyle}>
 		<ReferenceGlassesSlot data={data as Record<string, unknown>} />
 		<ValidationBadge {errorCount} {warnCount} nodeId={(data as Record<string, unknown>).calmId as string ?? id} />
 		<div class="header">
@@ -80,20 +82,25 @@
 {/if}
 
 <style>
-	.container {
+	/* Do not name this `container` — Tailwind's .container sets max-width at breakpoints
+	   and clips the painted box while NodeResizer still grows (R47). */
+	.node-shell {
 		position: relative;
 		font-family: var(--node-font);
 		cursor: default;
 		user-select: none;
+		box-sizing: border-box;
+		max-width: none;
+		max-height: none;
 	}
-	.container.collapsed {
+	.node-shell.collapsed {
 		padding: 6px 12px;
 		background: var(--node-container-header-bg);
 		border: 1.5px solid var(--node-container-border);
 		border-radius: 6px;
 		min-width: 100px;
 	}
-	.container.collapsed.selected {
+	.node-shell.collapsed.selected {
 		border-color: var(--node-selected-ring);
 	}
 	.collapsed-row {
@@ -102,7 +109,7 @@
 		gap: 6px;
 		width: 100%;
 	}
-	.container.expanded {
+	.node-shell.expanded {
 		width: 100%;
 		height: 100%;
 		display: flex;
@@ -113,7 +120,7 @@
 		min-height: 120px;
 		overflow: hidden;
 	}
-	.container.expanded.selected {
+	.node-shell.expanded.selected {
 		border-color: var(--node-selected-ring);
 		border-style: solid;
 	}
@@ -151,7 +158,8 @@
 		font-size: 10px;
 		font-weight: 600;
 		color: var(--node-label-color);
-		max-width: 140px;
+		min-width: 0;
+		flex: 1;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;

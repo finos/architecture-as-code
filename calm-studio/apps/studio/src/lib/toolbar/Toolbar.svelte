@@ -28,10 +28,12 @@
 		onexportcalm,
 		onexportsvg,
 		onexportpng,
-		onexportcalmscript,
+		onexportmermaid,
+		onexportmermaidmd,
 		onexportscalertoml,
 		onloaddemo,
 		ontemplates,
+		onhubbrowse,
 		filename = null,
 		isDirty = false,
 		c4Level = null,
@@ -39,6 +41,7 @@
 		governanceScore = null,
 		showGovernanceBadge = false,
 		showScalerTomlExport = false,
+		showDemos = true,
 		flows = [],
 		activeFlowId = null,
 		onflowchange,
@@ -56,10 +59,12 @@
 		onexportcalm: () => void;
 		onexportsvg: () => void;
 		onexportpng: () => void;
-		onexportcalmscript: () => void;
+		onexportmermaid: () => void;
+		onexportmermaidmd: () => void;
 		onexportscalertoml?: (() => void) | undefined;
 		onloaddemo?: (demo: { id: string; name: string; path: string }) => void;
 		ontemplates?: () => void;
+		onhubbrowse?: () => void;
 		filename?: string | null;
 		isDirty?: boolean;
 		/** Current C4 view level. null = "All" (show everything), or 'context' | 'container' | 'component'. */
@@ -72,6 +77,8 @@
 		showGovernanceBadge?: boolean;
 		/** When true, shows the Scaler.toml export option (hidden when no OpenGRIS nodes). */
 		showScalerTomlExport?: boolean;
+		/** When false, hides the Demos dropdown (R84 / ui.demo). */
+		showDemos?: boolean;
 		/** List of flows from the architecture, shown in dropdown when non-empty. */
 		flows?: Array<{ id: string; name: string }>;
 		/** Currently active flow ID, or null for no active flow. */
@@ -172,6 +179,18 @@
 			</button>
 		{/if}
 
+		{#if onhubbrowse}
+			<button
+				type="button"
+				class="toolbar-btn templates-btn"
+				onclick={onhubbrowse}
+				aria-label="Browse CALM Hub"
+				title="Hub"
+			>
+				<span class="btn-label">Hub</span>
+			</button>
+		{/if}
+
 		<!-- Governance score badge — hidden when no AI nodes in architecture -->
 		{#if showGovernanceBadge && governanceScore !== null}
 			<div
@@ -226,43 +245,45 @@
 
 	<!-- Right: File action buttons + Export dropdown -->
 	<div class="toolbar-right">
-		<!-- Demo dropdown -->
-		<div class="demo-dropdown">
-			<button
-				type="button"
-				class="toolbar-btn demo-toggle"
-				onclick={(e) => { e.stopPropagation(); toggleDemoMenu(); }}
-				aria-label="Load demo architecture"
-				aria-expanded={showDemoMenu}
-				aria-haspopup="menu"
-				title="Demo Architectures"
-			>
-				<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
-					<polygon points="5 3 19 12 5 21 5 3" />
-				</svg>
-				<span class="btn-label">Demos</span>
-				<svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
-					<polyline points="6 9 12 15 18 9" />
-				</svg>
-			</button>
+		{#if showDemos}
+			<!-- Demo dropdown -->
+			<div class="demo-dropdown">
+				<button
+					type="button"
+					class="toolbar-btn demo-toggle"
+					onclick={(e) => { e.stopPropagation(); toggleDemoMenu(); }}
+					aria-label="Load demo architecture"
+					aria-expanded={showDemoMenu}
+					aria-haspopup="menu"
+					title="Demo Architectures"
+				>
+					<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+						<polygon points="5 3 19 12 5 21 5 3" />
+					</svg>
+					<span class="btn-label">Demos</span>
+					<svg class="chevron" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+						<polyline points="6 9 12 15 18 9" />
+					</svg>
+				</button>
 
-			{#if showDemoMenu}
-				<div class="demo-menu" role="menu" aria-label="Demo architectures">
-					{#each DEMOS as demo}
-						<button
-							type="button"
-							class="demo-menu-item"
-							role="menuitem"
-							onclick={() => handleDemoOption(demo)}
-						>
-							{demo.name}
-						</button>
-					{/each}
-				</div>
-			{/if}
-		</div>
+				{#if showDemoMenu}
+					<div class="demo-menu" role="menu" aria-label="Demo architectures">
+						{#each DEMOS as demo}
+							<button
+								type="button"
+								class="demo-menu-item"
+								role="menuitem"
+								onclick={() => handleDemoOption(demo)}
+							>
+								{demo.name}
+							</button>
+						{/each}
+					</div>
+				{/if}
+			</div>
 
-		<div class="toolbar-separator"></div>
+			<div class="toolbar-separator"></div>
+		{/if}
 
 		<!-- New -->
 		<button
@@ -414,9 +435,17 @@
 						type="button"
 						class="export-menu-item"
 						role="menuitem"
-						onclick={() => handleExportOption(onexportcalmscript)}
+						onclick={() => handleExportOption(onexportmermaid)}
 					>
-						calmscript (.calmscript)
+						Mermaid (.mmd)
+					</button>
+					<button
+						type="button"
+						class="export-menu-item"
+						role="menuitem"
+						onclick={() => handleExportOption(onexportmermaidmd)}
+					>
+						Mermaid (.md)
 					</button>
 					<button
 						type="button"

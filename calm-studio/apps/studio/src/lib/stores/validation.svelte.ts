@@ -20,6 +20,8 @@ import { validateCalmArchitecture, type ValidationIssue } from '@calmstudio/calm
 import { runAIGFRules } from '$lib/validation/aigf-rules';
 import { runProjectSpectralRules } from '$lib/project/spectralBridge';
 import { getProjectConfig, getProjectRootHandle } from '$lib/project/projectStore.svelte';
+import { getAllPatterns } from '$lib/templates/patternRegistry';
+import { validateArchitectureAgainstPattern } from '$lib/validation/patternValidate';
 
 // Re-export ValidationIssue for consumers that cannot resolve @calmstudio/calm-core via tsconfig
 export type { ValidationIssue };
@@ -59,8 +61,44 @@ export async function runValidationAsync(): Promise<void> {
 		getProjectConfig(),
 		getProjectRootHandle()
 	);
-	issues = sortIssues([...structural, ...aigf, ...spectral]);
+	const patternIssues = await runPatternValidation(model);
+	issues = sortIssues([...structural, ...aigf, ...spectral, ...patternIssues]);
 	panelOpen = true;
+}
+
+async function runPatternValidation(model: ReturnType<typeof getModel>): Promise<ValidationIssue[]> {
+	const config = getProjectConfig();
+	const patterns = getAllPatterns();
+	if (config?.patterns?.dir && patterns.length === 0) {
+		return [
+			{
+				severity: 'warning',
+				message: `No CALM CLI patterns found in patterns.dir (${config.patterns.dir})`,
+			},
+		];
+	}
+	const out: ValidationIssue[] = [];
+	for (const card of patterns) {
+		try {
+			const found = await validateArchitectureAgainstPattern(model, card.pattern, {
+				root: getProjectRootHandle(),
+				mappingPath: config?.urlMapping?.path,
+				hubUrl: config?.hub?.url,
+			});
+			for (const issue of found) {
+				out.push({
+					...issue,
+					message: `[${card.name}] ${issue.message}`,
+				});
+			}
+		} catch (e) {
+			out.push({
+				severity: 'warning',
+				message: `Pattern validate failed for ${card.name}: ${(e as Error).message}`,
+			});
+		}
+	}
+	return out;
 }
 
 /**

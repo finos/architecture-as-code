@@ -49,6 +49,73 @@ async function resolveDirectory(
 	return current;
 }
 
+export async function getExistingDirectory(
+	root: FileSystemDirectoryHandle,
+	relativeDir: string
+): Promise<FileSystemDirectoryHandle> {
+	return resolveDirectory(root, relativeDir, false);
+}
+
+export async function directoryExists(
+	root: FileSystemDirectoryHandle,
+	relativeDir: string
+): Promise<boolean> {
+	if (!relativeDir) return true;
+	try {
+		await getExistingDirectory(root, relativeDir);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+export async function removeDirectoryRecursive(
+	dir: FileSystemDirectoryHandle
+): Promise<void> {
+	for await (const [name, handle] of dir.entries()) {
+		if (handle.kind === 'directory') {
+			await removeDirectoryRecursive(handle as FileSystemDirectoryHandle);
+		}
+		await dir.removeEntry(name, { recursive: true });
+	}
+}
+
+export async function copyDirectoryContents(
+	source: FileSystemDirectoryHandle,
+	dest: FileSystemDirectoryHandle
+): Promise<void> {
+	for await (const [name, handle] of source.entries()) {
+		if (handle.kind === 'directory') {
+			const childDest = await dest.getDirectoryHandle(name, { create: true });
+			await copyDirectoryContents(handle as FileSystemDirectoryHandle, childDest);
+		} else {
+			const file = await (handle as FileSystemFileHandle).getFile();
+			const out = await dest.getFileHandle(name, { create: true });
+			const writable = await out.createWritable();
+			await writable.write(await file.arrayBuffer());
+			await writable.close();
+		}
+	}
+}
+
+export async function removeProjectRelativeFile(
+	root: FileSystemDirectoryHandle,
+	relativePath: string
+): Promise<void> {
+	const { dir, name } = splitRelativePath(relativePath);
+	const parent = dir ? await getExistingDirectory(root, dir) : root;
+	await parent.removeEntry(name);
+}
+
+export async function removeProjectRelativeDirectory(
+	root: FileSystemDirectoryHandle,
+	relativeDir: string
+): Promise<void> {
+	const { dir, name } = splitRelativePath(relativeDir);
+	const parent = dir ? await getExistingDirectory(root, dir) : root;
+	await parent.removeEntry(name, { recursive: true });
+}
+
 export async function readProjectRelativeText(
 	root: FileSystemDirectoryHandle,
 	relativePath: string

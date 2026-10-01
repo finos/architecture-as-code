@@ -1,0 +1,246 @@
+{
+  "$schema": "https://calm.finos.org/schemas/calm-extension-pack.schema.json",
+  "$id": "https://calm.finos.org/extensions/packs/ai.extension.json",
+  "id": "ai",
+  "label": "AI / Agentic",
+  "version": "1.0.0",
+  "standard": {
+    "$id": "https://calm.finos.org/extensions/ai/ai.standard.json",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "href": "../standards/ai.standard.json",
+    "calmVersion": "1.2",
+    "status": "proposed"
+  },
+  "color": {
+    "bg": "#f5f0ff",
+    "border": "#8b5cf6",
+    "stroke": "#7c3aed",
+    "badge": "[AI]"
+  },
+  "nodes": [
+    {
+      "typeId": "ai:llm",
+      "label": "LLM",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"2\"/><path d=\"M5 7h2M9 7h2M5 9.5h6\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Large Language Model inference endpoint"
+    },
+    {
+      "typeId": "ai:agent",
+      "label": "Agent",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"6\" r=\"3\"/><path d=\"M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5\" stroke-linecap=\"round\"/><path d=\"M8 9v2\" stroke-linecap=\"round\"/><path d=\"M6 12h4\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "An autonomous AI agent that takes actions"
+    },
+    {
+      "typeId": "ai:orchestrator",
+      "label": "Orchestrator",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"8\" r=\"2.5\"/><path d=\"M8 2v3.5M8 10.5V14M2 8h3.5M10.5 8H14\" stroke-linecap=\"round\"/><circle cx=\"8\" cy=\"2\" r=\"1.2\"/><circle cx=\"8\" cy=\"14\" r=\"1.2\"/><circle cx=\"2\" cy=\"8\" r=\"1.2\"/><circle cx=\"14\" cy=\"8\" r=\"1.2\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Coordinates multiple agents or pipeline steps"
+    },
+    {
+      "typeId": "ai:vector-store",
+      "label": "Vector Store",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><ellipse cx=\"8\" cy=\"5\" rx=\"5\" ry=\"2\"/><path d=\"M3 5v6c0 1.1 2.24 2 5 2s5-.9 5-2V5\"/><path d=\"M5 8l1 1 2-3\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Stores and retrieves vector embeddings for semantic search"
+    },
+    {
+      "typeId": "ai:tool",
+      "label": "Tool",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M9.5 2C8 2 6.5 3 6.5 4.5c0 .5.2 1 .5 1.4L3 10l1 3 3-1 4-4c.4.3.9.5 1.4.5 1.5 0 2.5-1.5 2.5-3 0-.5-.1-1-.3-1.3L13 5.5l-1.5 1.5L10 5.5 11.5 4l-1.3-1.7C10 2.1 9.7 2 9.5 2Z\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "A callable function or API exposed to an AI agent"
+    },
+    {
+      "typeId": "ai:memory",
+      "label": "Memory",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"4\" width=\"12\" height=\"8\" rx=\"1.5\"/><path d=\"M5 4V2.5M8 4V2.5M11 4V2.5M5 12v1.5M8 12v1.5M11 12v1.5\" stroke-linecap=\"round\"/><path d=\"M2 7h12M2 9h12\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Persistent or working memory for agent context"
+    },
+    {
+      "typeId": "ai:guardrail",
+      "label": "Guardrail",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M8 2L14 4.5V9C14 12 11.5 14.5 8 15 4.5 14.5 2 12 2 9V4.5L8 2Z\" stroke-linejoin=\"round\"/><path d=\"M5.5 8.5l2 2 4-4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Safety filter for validating agent inputs and outputs"
+    },
+    {
+      "typeId": "ai:embedding-model",
+      "label": "Embedding Model",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"5\" width=\"12\" height=\"6\" rx=\"1.5\"/><path d=\"M5 8h2M9 8h2\" stroke-linecap=\"round\"/><path d=\"M7 5V3M9 5V3M7 11v2M9 11v2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Converts text into vector embeddings"
+    },
+    {
+      "typeId": "ai:rag-pipeline",
+      "label": "RAG Pipeline",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"1\" y=\"6\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"6\" y=\"6\" width=\"4\" height=\"4\" rx=\"1\"/><rect x=\"11\" y=\"6\" width=\"4\" height=\"4\" rx=\"1\"/><path d=\"M5 8h1M10 8h1\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Retrieval-Augmented Generation processing pipeline"
+    },
+    {
+      "typeId": "ai:prompt-template",
+      "label": "Prompt Template",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"3\" width=\"12\" height=\"10\" rx=\"1.5\"/><path d=\"M5 6h6M5 8h4M5 10h5\" stroke-linecap=\"round\"/><path d=\"M10 3V1.5M10 13v1.5\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Reusable structured prompt with variable slots"
+    },
+    {
+      "typeId": "ai:api-gateway",
+      "label": "API Gateway",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"1\" y=\"5\" width=\"14\" height=\"6\" rx=\"1.5\"/><path d=\"M5 8h6M3 8v0M13 8v0\" stroke-linecap=\"round\"/><path d=\"M7 5V3M9 5V3M7 11v2M9 11v2\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Entry point gateway for AI API requests"
+    },
+    {
+      "typeId": "ai:human-in-the-loop",
+      "label": "Human in the Loop",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"5\" r=\"2.5\"/><path d=\"M4 14c0-2.2 1.8-4 4-4s4 1.8 4 4\" stroke-linecap=\"round\"/><path d=\"M1 8h3M12 8h3\" stroke-linecap=\"round\"/><path d=\"M2 10l2-2-2-2M14 10l-2-2 2-2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Human review or approval step in an AI pipeline"
+    },
+    {
+      "typeId": "ai:knowledge-base",
+      "label": "Knowledge Base",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M3 3h10v10H3Z\" rx=\"1\"/><path d=\"M6 3v10M3 6h10M3 9h10\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Structured domain knowledge repository for AI"
+    },
+    {
+      "typeId": "ai:eval-monitor",
+      "label": "Eval Monitor",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><circle cx=\"8\" cy=\"8\" r=\"5.5\"/><path d=\"M5 8l2 2 4-4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><path d=\"M8 2.5v1M8 12.5v1M2.5 8h1M12.5 8h1\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Evaluation and quality monitoring for AI outputs"
+    },
+    {
+      "typeId": "ai:mcp-server",
+      "label": "MCP Server",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><rect x=\"2\" y=\"3\" width=\"9\" height=\"4\" rx=\"1\"/><rect x=\"2\" y=\"9\" width=\"9\" height=\"4\" rx=\"1\"/><circle cx=\"4\" cy=\"5\" r=\"0.6\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"4\" cy=\"11\" r=\"0.6\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M11 5h2.5M11 11h2.5M13.5 5v6\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Model Context Protocol server exposing tools and resources to AI agents"
+    },
+    {
+      "typeId": "ai:observability",
+      "label": "Observability",
+      "icon": "<svg width=\"16\" height=\"16\" viewBox=\"0 0 16 16\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.2\"><path d=\"M2 11l3-4 3 2 3-5 3 4\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/><circle cx=\"5\" cy=\"7\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"8\" cy=\"9\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/><circle cx=\"11\" cy=\"4\" r=\"0.8\" fill=\"currentColor\" stroke=\"none\"/><path d=\"M2 13.5h12\" stroke-linecap=\"round\"/></svg>",
+      "color": {
+        "bg": "#f5f0ff",
+        "border": "#8b5cf6",
+        "stroke": "#7c3aed",
+        "badge": "[AI]"
+      },
+      "description": "Telemetry, tracing, and metrics for AI workloads"
+    }
+  ],
+  "relationships": [
+    {
+      "typeId": "connects",
+      "label": "Connects",
+      "calmCoreVariant": "connects",
+      "description": "Directed connection from a source node to a destination node"
+    },
+    {
+      "typeId": "composed-of",
+      "label": "Composed of",
+      "calmCoreVariant": "composed-of",
+      "description": "Containment: container is composed of member nodes"
+    },
+    {
+      "typeId": "deployed-in",
+      "label": "Deployed in",
+      "calmCoreVariant": "deployed-in",
+      "description": "Deployment: nodes are deployed in a container"
+    },
+    {
+      "typeId": "interacts",
+      "label": "Interacts",
+      "calmCoreVariant": "interacts",
+      "description": "An actor interacts with one or more nodes"
+    },
+    {
+      "typeId": "options",
+      "label": "Options",
+      "calmCoreVariant": "options",
+      "description": "Choice among alternative relationship options"
+    }
+  ]
+}

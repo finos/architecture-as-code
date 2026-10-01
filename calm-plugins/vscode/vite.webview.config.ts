@@ -7,6 +7,11 @@ import { jsonFromDisk } from './json-from-disk';
 export default defineConfig({
     plugins: [jsonFromDisk(), react(), tailwindcss()],
     json: { stringify: true },
+    server: {
+        fs: {
+            allow: [resolve(__dirname, '../..')],
+        },
+    },
     build: {
         target: 'esnext',
         outDir: 'dist/webview',

@@ -1,0 +1,419 @@
+{
+  "nodes": [
+    {
+      "unique-id": "hub-user",
+      "node-type": "actor",
+      "name": "Hub user",
+      "description": "Person who opens the CALM Hub UI in a browser and calls the API with an Entra ID token."
+    },
+    {
+      "unique-id": "platform-operator",
+      "node-type": "actor",
+      "name": "Platform operator",
+      "description": "Person who applies the Kubernetes manifests, assigns users in Entra ID, and creates the first GLOBAL admin grant."
+    },
+    {
+      "unique-id": "entra-id",
+      "node-type": "system",
+      "name": "Microsoft Entra ID",
+      "description": "Single-tenant identity provider. The app registration is a public single-page application. Assignment required limits who can sign in. The Hub validates ID tokens against the v2.0 issuer.",
+      "interfaces": [
+        {
+          "unique-id": "oidc-issuer",
+          "url": "https://login.microsoftonline.com/{tenant-id}/v2.0"
+        }
+      ],
+      "metadata": {
+        "platform": "single-page-application",
+        "grant": "authorization-code-pkce",
+        "scopes": "openid profile email",
+        "assignment-required": true
+      }
+    },
+    {
+      "unique-id": "aks-cluster",
+      "node-type": "system",
+      "name": "AKS cluster",
+      "description": "Azure Kubernetes Service cluster that runs CALM Hub. Application Routing terminates TLS. The Hub pods listen on plain HTTP.",
+      "metadata": {
+        "ingress-class": "webapprouting.kubernetes.azure.com",
+        "ingress-namespace": "app-routing-system"
+      }
+    },
+    {
+      "unique-id": "app-routing",
+      "node-type": "network",
+      "name": "Application Routing ingress",
+      "description": "AKS Application Routing ingress. Publishes the Hub on HTTPS and forwards requests to the calm-hub ClusterIP service on port 8080.",
+      "interfaces": [
+        {
+          "unique-id": "public-https",
+          "hostname": "calm-hub.example.com",
+          "port": 443
+        }
+      ],
+      "controls": {
+        "edge-tls": {
+          "description": "Browsers reach the Hub only over HTTPS. The certificate is a Kubernetes TLS secret or a Key Vault certificate.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "edge-tls",
+                "name": "Edge TLS",
+                "description": "Terminate TLS on the Application Routing ingress. The Hub process does not serve TLS."
+              }
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "service": "calm-hub",
+        "service-port": 8080
+      }
+    },
+    {
+      "unique-id": "calm-hub",
+      "node-type": "service",
+      "name": "CALM Hub",
+      "description": "Quarkus application from finos/calm-hub. Serves the UI and the API. The oidc profile checks Entra ID tokens and applies userAccess grants.",
+      "interfaces": [
+        {
+          "unique-id": "http-listener",
+          "port": 8080
+        },
+        {
+          "unique-id": "container-image",
+          "image": "finos/calm-hub:latest"
+        },
+        {
+          "unique-id": "health",
+          "path": "/q/health/ready"
+        }
+      ],
+      "controls": {
+        "entra-authentication": {
+          "description": "Every API call under /api/calm, /calm, and /mcp must carry an Entra ID token. The UI sends the ID token because its audience is the application client id.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "entra-authentication",
+                "name": "Entra ID authentication",
+                "description": "Validate issuer, audience, and signature of the ID token using the Entra v2.0 JWKS."
+              }
+            }
+          ]
+        },
+        "hub-authorization": {
+          "description": "CALM Hub grants are stored in userAccess and keyed by the Entra object id from the oid claim. A UPN is not a valid Hub username.",
+          "requirements": [
+            {
+              "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+              "config": {
+                "control-id": "hub-authorization",
+                "name": "Hub authorization by object id",
+                "description": "Map the authenticated principal to userAccess.username using the oid claim. The first GLOBAL admin is inserted by the bootstrap job."
+              }
+            }
+          ]
+        }
+      },
+      "metadata": {
+        "replicas": 2,
+        "namespace": "calm-hub",
+        "run-as-user": 185,
+        "cpu-request": "250m",
+        "memory-request": "768Mi",
+        "cpu-limit": "1",
+        "memory-limit": "1536Mi"
+      }
+    },
+    {
+      "unique-id": "mongodb",
+      "node-type": "database",
+      "name": "MongoDB",
+      "description": "Document store for CALM Hub, database calmSchemas. Production uses Cosmos DB for MongoDB vCore or Atlas. The mongodb/ manifests run a single-node StatefulSet for a lab cluster.",
+      "interfaces": [
+        {
+          "unique-id": "mongo-wire",
+          "port": 27017,
+          "database": "calmSchemas"
+        }
+      ],
+      "metadata": {
+        "placement": "external",
+        "lab-alternative": "calm-hub/deploy/azure/mongodb"
+      }
+    },
+    {
+      "unique-id": "bootstrap-admin",
+      "node-type": "service",
+      "name": "GLOBAL admin bootstrap",
+      "description": "One-shot Kubernetes Job. Inserts a GLOBAL admin userAccess row for one Entra object id so an operator can grant access to other users.",
+      "metadata": {
+        "kind": "Job",
+        "manifests": "calm-hub/deploy/azure/bootstrap",
+        "username-source": "entra-object-id"
+      }
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "workloads-deployed-in-aks",
+      "relationship-type": {
+        "deployed-in": {
+          "container": "aks-cluster",
+          "nodes": [
+            "app-routing",
+            "calm-hub",
+            "bootstrap-admin"
+          ]
+        }
+      }
+    },
+    {
+      "unique-id": "ingress-forwards-to-hub",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "app-routing"
+          },
+          "destination": {
+            "node": "calm-hub"
+          }
+        }
+      },
+      "protocol": "HTTP",
+      "description": "Forwards decrypted HTTP to the Hub service"
+    },
+    {
+      "unique-id": "hub-validates-with-entra",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "calm-hub"
+          },
+          "destination": {
+            "node": "entra-id"
+          }
+        }
+      },
+      "protocol": "HTTPS",
+      "description": "Loads OIDC discovery and JWKS, then checks the ID token issuer and audience"
+    },
+    {
+      "unique-id": "hub-reads-user-access",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "calm-hub"
+          },
+          "destination": {
+            "node": "mongodb"
+          }
+        }
+      },
+      "protocol": "TCP",
+      "description": "Reads and writes architectures and userAccess grants"
+    },
+    {
+      "unique-id": "bootstrap-writes-global-admin",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "bootstrap-admin"
+          },
+          "destination": {
+            "node": "mongodb"
+          }
+        }
+      },
+      "protocol": "TCP",
+      "description": "Inserts the first GLOBAL admin grant for an Entra object id"
+    },
+    {
+      "unique-id": "hub-user-opens-ingress",
+      "relationship-type": {
+        "interacts": {
+          "actor": "hub-user",
+          "nodes": [
+            "app-routing"
+          ]
+        }
+      },
+      "description": "Opens the Hub in a browser"
+    },
+    {
+      "unique-id": "hub-user-signs-in",
+      "relationship-type": {
+        "interacts": {
+          "actor": "hub-user",
+          "nodes": [
+            "entra-id"
+          ]
+        }
+      },
+      "description": "Signs in with authorization code and PKCE"
+    },
+    {
+      "unique-id": "operator-assigns-entra",
+      "relationship-type": {
+        "interacts": {
+          "actor": "platform-operator",
+          "nodes": [
+            "entra-id"
+          ]
+        }
+      },
+      "description": "Assigns users who are allowed to sign in"
+    },
+    {
+      "unique-id": "operator-bootstraps-admin",
+      "relationship-type": {
+        "interacts": {
+          "actor": "platform-operator",
+          "nodes": [
+            "bootstrap-admin"
+          ]
+        }
+      },
+      "description": "Runs the job that creates the first GLOBAL admin grant"
+    }
+  ],
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "unique-id": "calm-hub-aks-entra",
+  "name": "CALM Hub on AKS with Entra ID",
+  "description": "Production deployment of CALM Hub into an Azure Kubernetes Service cluster. Microsoft Entra ID authenticates users. CALM Hub authorizes them by Entra object id. TLS ends at the Application Routing ingress. The Hub stores documents in MongoDB.",
+  "flows": [
+    {
+      "unique-id": "user-sign-in",
+      "name": "User sign-in",
+      "description": "The browser loads the Hub, receives the Entra settings, and completes authorization code with PKCE. Later API calls send the ID token.",
+      "transitions": [
+        {
+          "relationship-unique-id": "hub-user-opens-ingress",
+          "sequence-number": 1,
+          "description": "The user opens the public Hub URL"
+        },
+        {
+          "relationship-unique-id": "ingress-forwards-to-hub",
+          "sequence-number": 2,
+          "description": "The UI loads anonymous auth config from /api/calm/auth/config"
+        },
+        {
+          "relationship-unique-id": "hub-user-signs-in",
+          "sequence-number": 3,
+          "description": "The browser redirects to Entra ID and returns an ID token"
+        },
+        {
+          "relationship-unique-id": "hub-validates-with-entra",
+          "sequence-number": 4,
+          "description": "The Hub checks the ID token against the Entra JWKS"
+        }
+      ]
+    },
+    {
+      "unique-id": "authorized-api-call",
+      "name": "Authorized API call",
+      "description": "A signed-in user calls the Hub API. Entra ID proves who they are. The userAccess store decides what they can do.",
+      "transitions": [
+        {
+          "relationship-unique-id": "hub-user-opens-ingress",
+          "sequence-number": 1,
+          "description": "The browser sends the ID token to the public URL"
+        },
+        {
+          "relationship-unique-id": "ingress-forwards-to-hub",
+          "sequence-number": 2,
+          "description": "The ingress forwards the request to the Hub pod"
+        },
+        {
+          "relationship-unique-id": "hub-validates-with-entra",
+          "sequence-number": 3,
+          "description": "The Hub validates the token and takes the oid claim as the username"
+        },
+        {
+          "relationship-unique-id": "hub-reads-user-access",
+          "sequence-number": 4,
+          "description": "The Hub loads userAccess grants for that object id"
+        }
+      ]
+    },
+    {
+      "unique-id": "bootstrap-global-admin",
+      "name": "Bootstrap GLOBAL admin",
+      "description": "An operator inserts the first GLOBAL admin grant so Hub authorization can be managed after Entra sign-in.",
+      "transitions": [
+        {
+          "relationship-unique-id": "operator-bootstraps-admin",
+          "sequence-number": 1,
+          "description": "The operator applies the bootstrap job with an Entra object id"
+        },
+        {
+          "relationship-unique-id": "bootstrap-writes-global-admin",
+          "sequence-number": 2,
+          "description": "The job writes a GLOBAL admin userAccess document"
+        }
+      ]
+    }
+  ],
+  "metadata": {
+    "manifests": "calm-hub/deploy/azure",
+    "kubernetes-namespace": "calm-hub",
+    "quarkus-profile": "oidc",
+    "oidc-provider": "entra-id",
+    "identity-claim": "oid",
+    "public-host": "calm-hub.example.com",
+    "_layout": {
+      "hub-user": {
+        "x": 179,
+        "y": 110,
+        "w": 250,
+        "h": 60
+      },
+      "platform-operator": {
+        "x": -89,
+        "y": 105,
+        "w": 250,
+        "h": 60
+      },
+      "entra-id": {
+        "x": -43,
+        "y": 735,
+        "w": 250,
+        "h": 60
+      },
+      "aks-cluster": {
+        "x": 316,
+        "y": 311,
+        "w": 800,
+        "h": 590
+      },
+      "app-routing": {
+        "x": 110,
+        "y": 80,
+        "w": 250,
+        "h": 60
+      },
+      "calm-hub": {
+        "x": 110,
+        "y": 476,
+        "w": 250,
+        "h": 60
+      },
+      "mongodb": {
+        "x": 680,
+        "y": 1260,
+        "w": 250,
+        "h": 60
+      },
+      "bootstrap-admin": {
+        "x": 440,
+        "y": 475,
+        "w": 250,
+        "h": 60
+      }
+    }
+  }
+}

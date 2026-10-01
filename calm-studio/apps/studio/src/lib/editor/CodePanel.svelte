@@ -3,10 +3,10 @@
 
 <script lang="ts">
 	import { EditorView } from '@codemirror/view';
+	import { EditorState, type Extension } from '@codemirror/state';
 	import { json, jsonParseLinter } from '@codemirror/lang-json';
 	import { linter, lintGutter } from '@codemirror/lint';
 	import { oneDark } from '@codemirror/theme-one-dark';
-	import type { Extension } from '@codemirror/state';
 	import CodeMirror from 'svelte-codemirror-editor';
 	import { isDark } from '$lib/stores/theme.svelte';
 	import { findNodeOffset, findRelationshipOffset } from './useJsonSync';
@@ -14,6 +14,8 @@
 	interface Props {
 		/** The CALM JSON string to display and edit. */
 		value: string;
+		/** Read-only Mermaid flowchart source for the Mermaid tab (R85). */
+		mermaid?: string;
 		/** Called on every edit with the new value. */
 		onchange?: (value: string) => void;
 		/** Error message to show in status bar; null/undefined when valid. */
@@ -22,9 +24,18 @@
 		selectedNodeId?: string | null;
 		/** When set, scrolls the editor to the corresponding edge JSON block. */
 		selectedEdgeId?: string | null;
+		readonly?: boolean;
 	}
 
-	let { value, onchange, parseError, selectedNodeId, selectedEdgeId }: Props = $props();
+	let {
+		value,
+		mermaid = '',
+		onchange,
+		parseError,
+		selectedNodeId,
+		selectedEdgeId,
+		readonly = false,
+	}: Props = $props();
 
 	let editorView = $state<EditorView | undefined>(undefined);
 	let localValue = $state(value);
@@ -32,11 +43,14 @@
 	let lastSyncedExternal = $state(value);
 	let lastSelectionNodeId = $state<string | null | undefined>(undefined);
 	let lastSelectionEdgeId = $state<string | null | undefined>(undefined);
+	let activeTab = $state<'json' | 'mermaid'>('json');
 
 	const extensions = $derived<Extension[]>([
 		linter(jsonParseLinter()),
 		lintGutter(),
 		EditorView.lineWrapping,
+		EditorView.editable.of(!readonly),
+		EditorState.readOnly.of(readonly),
 	]);
 
 	// Sync external model → editor only when not actively typing.
@@ -53,7 +67,7 @@
 		id: string | null | undefined,
 		finder: (json: string, id: string) => { start: number; end: number } | null
 	) {
-		if (!id || !editorView) return;
+		if (!id || !editorView || activeTab !== 'json') return;
 		const offsets = finder(localValue, id);
 		if (!offsets) return;
 		editorView.dispatch({
@@ -77,6 +91,7 @@
 	});
 
 	function handleChange(newValue: string) {
+		if (readonly) return;
 		localValue = newValue;
 		onchange?.(newValue);
 	}
@@ -99,41 +114,62 @@
 
 <div class="code-panel" class:dark={isDark()}>
 	<div class="tab-bar">
-		<div class="tabs">
-			<button class="tab active" type="button">CALM JSON</button>
+		<div class="tabs" role="tablist" aria-label="Code panel views">
 			<button
-				class="tab disabled"
+				class="tab"
+				class:active={activeTab === 'json'}
 				type="button"
-				disabled
-				title="Coming in Phase 5"
-				aria-disabled="true"
+				role="tab"
+				aria-selected={activeTab === 'json'}
+				onclick={() => (activeTab = 'json')}
 			>
-				calmscript
+				CALM JSON
+			</button>
+			<button
+				class="tab"
+				class:active={activeTab === 'mermaid'}
+				type="button"
+				role="tab"
+				aria-selected={activeTab === 'mermaid'}
+				onclick={() => (activeTab = 'mermaid')}
+			>
+				Mermaid
 			</button>
 		</div>
-		<span class="status" class:error={!!parseError} aria-live="polite">
-			<span class="status-dot"></span>
-			{parseError ? 'Invalid JSON' : 'Valid'}
-		</span>
+		{#if activeTab === 'json'}
+			<span class="status" class:error={!!parseError} aria-live="polite">
+				<span class="status-dot"></span>
+				{parseError ? 'Invalid JSON' : 'Valid'}
+			</span>
+		{:else}
+			<span class="status" aria-live="polite">
+				<span class="status-dot"></span>
+				Read-only
+			</span>
+		{/if}
 	</div>
 
-	<div class="editor-wrap" onfocusin={handleFocus} onfocusout={handleBlur}>
-		<CodeMirror
-			value={localValue}
-			lang={json()}
-			theme={isDark() ? oneDark : undefined}
-			{extensions}
-			lineNumbers
-			lineWrapping
-			nodebounce
-			onchange={handleChange}
-			onready={handleReady}
-			styles={{
-				'&': { height: '100%', fontSize: '12.5px' },
-				'.cm-scroller': { overflow: 'auto' },
-			}}
-		/>
-	</div>
+	{#if activeTab === 'json'}
+		<div class="editor-wrap" onfocusin={handleFocus} onfocusout={handleBlur}>
+			<CodeMirror
+				value={localValue}
+				lang={json()}
+				theme={isDark() ? oneDark : undefined}
+				{extensions}
+				lineNumbers
+				lineWrapping
+				nodebounce
+				onchange={handleChange}
+				onready={handleReady}
+				styles={{
+					'&': { height: '100%', fontSize: '12.5px' },
+					'.cm-scroller': { overflow: 'auto' },
+				}}
+			/>
+		</div>
+	{:else}
+		<pre class="mermaid-view" aria-label="Mermaid flowchart (read-only)">{mermaid}</pre>
+	{/if}
 </div>
 
 <style>
@@ -185,12 +221,7 @@
 		font-weight: 500;
 	}
 
-	.tab.disabled {
-		opacity: 0.4;
-		cursor: not-allowed;
-	}
-
-	.tab:not(.disabled):hover {
+	.tab:hover {
 		background: var(--color-surface-tertiary, rgba(0, 0, 0, 0.06));
 	}
 
@@ -235,6 +266,20 @@
 		height: 100%;
 	}
 
+	.mermaid-view {
+		flex: 1;
+		min-height: 0;
+		margin: 0;
+		padding: 10px 12px;
+		overflow: auto;
+		font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+		font-size: 12.5px;
+		line-height: 1.45;
+		white-space: pre;
+		color: var(--color-text-primary, var(--color-text));
+		background: var(--color-surface);
+	}
+
 	:global(.dark) .code-panel {
 		background: #0d1117;
 		border-top-color: #334155;
@@ -256,5 +301,10 @@
 
 	:global(.dark) .status {
 		color: #94a3b8;
+	}
+
+	:global(.dark) .mermaid-view {
+		background: #0d1117;
+		color: #e2e8f0;
 	}
 </style>

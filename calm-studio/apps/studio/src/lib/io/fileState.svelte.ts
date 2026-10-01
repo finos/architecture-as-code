@@ -59,6 +59,11 @@ export function getFileRelativePath(): string | null {
 	return fileRelativePath;
 }
 
+/** Update the project-relative path after save, extract, or a folder move. */
+export function setFileRelativePath(relativePath: string | null): void {
+	fileRelativePath = relativePath;
+}
+
 /** Returns true if the diagram has unsaved changes (flag or content differs from snapshot). */
 export function getIsDirty(): boolean {
 	return isDirty;

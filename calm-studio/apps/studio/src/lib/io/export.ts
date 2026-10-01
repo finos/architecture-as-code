@@ -8,7 +8,8 @@
  * - exportAsCalm: Downloads the current CALM JSON model.
  * - exportAsSvg: Captures the **entire** diagram as SVG via html-to-image.
  * - exportAsPng: Captures the **entire** diagram as PNG (2x Retina).
- * - exportAsCalmscript: Stub — downloads calmscript content (Phase 5 will fully implement DSL).
+ * - exportAsMermaid: Downloads Mermaid flowchart as .mmd.
+ * - exportAsMermaidMarkdown: Downloads the same flowchart wrapped in a Markdown fence (.md).
  * - exportAsScalerToml: Downloads a Scaler.toml config for OpenGRIS architectures.
  * - downloadDataUrl: Low-level helper for data URL downloads.
  *
@@ -219,20 +220,31 @@ export async function exportAsPng(nodes: Node[], _edges?: Edge[]): Promise<void>
 	downloadDataUrl(dataUrl, 'architecture.png');
 }
 
-// ─── calmscript export (stub) ─────────────────────────────────────────────────
+// ─── Mermaid export (R85) ─────────────────────────────────────────────────────
 
 /**
- * Export the current calmscript view content as a .calmscript file.
+ * Export Mermaid flowchart source as a .mmd file.
  *
- * Phase 4 stub: accepts the content string currently shown in the code panel.
- * Will be fully functional after Phase 5 implements the calmscript DSL compiler.
- *
- * @param content  Current calmscript view content string from the code panel
+ * @param content   Mermaid source (no Markdown fence)
+ * @param filename  Output filename (default: architecture.mmd)
  */
-export function exportAsCalmscript(content: string): void {
+export function exportAsMermaid(content: string, filename = 'architecture.mmd'): void {
 	const blob = new Blob([content], { type: 'text/plain' });
 	const url = URL.createObjectURL(blob);
-	downloadDataUrl(url, 'architecture.calmscript');
+	downloadDataUrl(url, filename);
+	setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+/**
+ * Export Mermaid flowchart wrapped in a Markdown fenced block as a .md file.
+ *
+ * @param content   Full Markdown document (including fences)
+ * @param filename  Output filename (default: architecture.md)
+ */
+export function exportAsMermaidMarkdown(content: string, filename = 'architecture.md'): void {
+	const blob = new Blob([content], { type: 'text/markdown' });
+	const url = URL.createObjectURL(blob);
+	downloadDataUrl(url, filename);
 	setTimeout(() => URL.revokeObjectURL(url), 0);
 }
 

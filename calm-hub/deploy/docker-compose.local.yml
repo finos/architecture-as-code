@@ -13,7 +13,7 @@ services:
       - ../../calm:/calm:ro
       - ../mongo/controls:/controls:ro
     environment:
-      - CALM_CONTROLS_BASE_PATH: /controls
+      - CALM_CONTROLS_BASE_PATH=/controls
       - CALM_SCHEMA_BASE_PATH=/calm
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
@@ -31,3 +31,10 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    environment:
+      # Applied at JVM start — no image rebuild needed. Matches application-no-auth CORS.
+      # JAVA_OPTS replaces the base compose value (this image ignores JAVA_OPTS_APPEND).
+      # Regex: localhost / 127.0.0.1 any port; *.creditasgroup.cz http/https optional port.
+      - "JAVA_OPTS=-Dquarkus.mongodb.connection-string=mongodb://mongodb:27017 -Dquarkus.profile=no-auth -Dquarkus.http.cors.enabled=true -Dquarkus.http.cors.origins=/http:\\\\/\\\\/(localhost|127\\\\.0\\\\.0\\\\.1)(:\\\\d+)?/,/https?:\\\\/\\\\/([a-zA-Z0-9-]+\\\\.)*creditasgroup\\\\.cz(:\\\\d+)?/ -Dquarkus.http.cors.methods=GET,POST,PUT,DELETE,PATCH,OPTIONS -Dquarkus.http.cors.headers=accept,authorization,content-type"
+      - QUARKUS_HTTP_CORS_ENABLED=true
+      - "QUARKUS_HTTP_CORS_ORIGINS=/http:\\/\\/(localhost|127\\.0\\.0\\.1)(:\\d+)?/,/https?:\\/\\/([a-zA-Z0-9-]+\\.)*creditasgroup\\.cz(:\\d+)?/"

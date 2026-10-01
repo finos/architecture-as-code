@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
+import { PackLoaderService } from '../services/pack-loader-service';
 import { DiagramExportService } from '../services/diagram-export-service';
 import type {
     ExtToWebviewMessage,
@@ -15,6 +16,7 @@ export class CanvasPanel {
     private currentDocument: vscode.TextDocument | undefined;
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
+    private packLoader: PackLoaderService;
     private exportService = new DiagramExportService();
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
@@ -34,6 +36,12 @@ export class CanvasPanel {
             `[CanvasPanel] constructor, workspaceRoot: ${workspaceRoot}`
         );
         this.assetService = new WorkspaceAssetService(workspaceRoot);
+        this.packLoader = new PackLoaderService(context, outputChannel);
+        this.packLoader.load();
+        this.packLoader.registerWatchers(() => {
+            this.packLoader.load();
+            this.sendPacks();
+        });
         void this.assetService.scanAll().then(() => {
             const fn = this.assetService!.getBuildingBlocks();
             const p = this.assetService!.getPatterns();
@@ -109,6 +117,7 @@ export class CanvasPanel {
         this.fileWatcher?.dispose();
         this.syncCoordinator.dispose();
         this.assetService?.dispose();
+        this.packLoader.dispose();
         for (const d of this.disposables) d.dispose();
         this.disposables = [];
         for (const cb of this.disposeCallbacks) cb();
@@ -126,6 +135,7 @@ export class CanvasPanel {
                     `[CanvasPanel] Webview ready. scanReady=${this.scanReady}`
                 );
                 this.sendInitialData();
+                this.sendPacks();
                 if (this.scanReady) {
                     this.sendAssets();
                 }
@@ -187,6 +197,14 @@ export class CanvasPanel {
         this.postMessage({ type: 'patternsLoaded', patterns: p });
         this.postMessage({ type: 'templatesLoaded', templates: t });
         this.postMessage({ type: 'standardsLoaded', standards: s });
+    }
+
+    private sendPacks(): void {
+        const packs = this.packLoader.getPacks();
+        this.log.appendLine(
+            `[CanvasPanel] Sending ${packs.length} extension packs to webview`
+        );
+        this.postMessage({ type: 'packsLoaded', packs });
     }
 
     /**

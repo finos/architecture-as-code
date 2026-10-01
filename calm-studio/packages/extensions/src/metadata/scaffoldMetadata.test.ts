@@ -2,10 +2,16 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
+import { initAllPacks } from '../index.js';
+import { resetRegistry } from '../registry.js';
 import { scaffoldNodeMetadata, scaffoldRelationshipMetadata } from './scaffoldMetadata.js';
 
 describe('scaffoldNodeMetadata', () => {
+	beforeEach(() => {
+		resetRegistry();
+		initAllPacks();
+	});
 	it('scaffolds archimate node metadata', () => {
 		expect(scaffoldNodeMetadata('archimate:applicationComponent')).toEqual({
 			owner: 'TBD',
@@ -23,8 +29,22 @@ describe('scaffoldNodeMetadata', () => {
 });
 
 describe('scaffoldRelationshipMetadata', () => {
+	beforeEach(() => {
+		resetRegistry();
+		initAllPacks();
+	});
+
 	it('scaffolds archimate relationship when either endpoint is archimate', () => {
 		expect(scaffoldRelationshipMetadata('service', 'archimate:node')).toEqual({
+			archimate: {
+				relationship: 'Association',
+				'calm-core-variant': 'connects',
+			},
+		});
+	});
+
+	it('uses pack relationshipDefaults when present', () => {
+		expect(scaffoldRelationshipMetadata('archimate:node', 'archimate:node')).toEqual({
 			archimate: {
 				relationship: 'Association',
 				'calm-core-variant': 'connects',

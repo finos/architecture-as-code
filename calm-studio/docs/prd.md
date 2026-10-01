@@ -1,28 +1,26 @@
 # CALM Studio — Modeling Extensions and Editor Fixes — PRD
 
 
-|                        |                                                                                                  |
-| ---------------------- | ------------------------------------------------------------------------------------------------ |
-| **Owner / DRI**        | TBD                                                                                              |
-| **Status**             | Draft                                                                                            |
-| **Version**            | 0.20                                                                                             |
-| **Last updated**       | 2026-09-01                                                                                       |
-| **Target release**     | TBD                                                                                              |
-| **Reviewers**          | eng lead, design                                                                                 |
-| **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                       |
-| **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
+|                        |                                                                                                                                                                                                                                                                                        |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner / DRI**        | TBD                                                                                                                                                                                                                                                                                    |
+| **Status**             | Draft                                                                                                                                                                                                                                                                                  |
+| **Version**            | 0.34                                                                                                                                                                                                                                                                                   |
+| **Last updated**       | 2026-10-01                                                                                                                                                                                                                                                                             |
+| **Target release**     | TBD                                                                                                                                                                                                                                                                                    |
+| **Reviewers**          | eng lead, design                                                                                                                                                                                                                                                                       |
+| **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                                                                                                                                                                                                             |
+| **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [Pack schema](../../extensions/calm-extension-pack.schema.json) · [VS Code pack PRD](../../calm-plugins/vscode/docs/prd.md) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
 
 
-> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension pack), required fields when creating elements, and direction reversal for all relationship types. **BBR V8 is out of scope.**
-
-
+> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders. **V13** hides the toolbar **Demos** button and the built-in **FluxNova** / **OpenGRIS** template tabs unless project `.calmrj` has `ui.demo: true` (default `false`). **V14** replaces the stub **calmscript** export and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** export (`.mmd` and `.md`) plus a **read-only Mermaid** preview tab. **V15** fixes properties editing so **array** values are edited **one element at a time** (primitives and objects), and nested JSON previews / dialogs show **pretty-printed** multi-line text instead of one line.
 
 ## Contents
 
 - [1. Problem and context](#1-problem-and-context)
 - [2. Goals, non-goals, and success metrics](#2-goals-non-goals-and-success-metrics)
 - [3. Target users and use cases](#3-target-users-and-use-cases)
-- [4. Proposed solution](#4-proposed-solution)
+- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15)
 - [5. Requirements](#5-requirements)
 - [6. UX and design](#6-ux-and-design)
 - [7. Technical aspects](#7-technical-aspects)
@@ -30,13 +28,11 @@
 - [9. Open questions and risks](#9-open-questions-and-risks)
 - [10. Appendix and change log](#10-appendix-and-change-log)
 
-
-
 ## 1. Problem and context
 
-CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
+CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. **In V9**, palette packs live only as TypeScript (`packages/extensions/src/packs/*.ts`). The VS Code plugin duplicates that tree and already diverges (no ArchiMate, no Standard URI). A team cannot add a node type without a code change, and there is no file contract that Hub or CLI can load. **In V8**, container children pack along one axis (ELK `rectpacking` with extreme `aspectRatio`), so nested diagrams look like a strip instead of a table; the XYFlow resize handle can be larger than the painted container; node positions and colors do not round-trip through Hub or the VS Code plugin; visible edges are not bezier; pattern **validation** is missing (V7 only generates); Project settings show `naming` as read-only. **In V8.1**, patterns come only from the local `patterns.dir`; there is no Hub URL in `.calmrj` / `~/.calm.json` and no way to browse Hub architectures as references. **In V8.2**, a CLI pattern is an opaque generate card — Studio cannot show or edit it as a graph the way Hub `PatternGraph` does; relationship `metadata` has no generic editor; **Ctrl+duplicate sometimes freezes the editor**. **In V10**, the Files tree cannot create or move folders, nor create a **named** CALM file in the folder under the pointer (today: File → New Untitled then Save As); Save As ignores the selected tree folder and naming patterns; project settings is a single long form with no user-home overlay; nested `metadata` is inline and enums are not always dropdowns; multi-select is Meta-click rather than Shift + marquee, with no alignment toolbar, and left-drag cannot switch between pan and select; there is **no canvas mini-map** of the current viewport; containers have no “arrange to table” command; bundled packs cannot be turned off; Hub `detailed-architecture` URLs still mix with R16 outside-project infoboxes; Hub tabs do not lock the JSON editor, and Hub catalog items can still be dropped onto a read-only diagram; canonical `$id` / `$schema` / `$ref` URLs (Standards, Patterns) have no project `url-mapping.json` equivalent to `calm validate -u`, so Studio cannot find the local artifact from the URL. **In V11**, choosing nodes still depends on a Select/Pan toggle that fights pan; Hub browse is a modal of namespaces, architectures, and versions, not a tree you drag from; the Files tree moves folders but not a single file; edges detour around a container even when one end of the relationship sits inside it; applying JSON can drop `metadata._layout` and node colors; and Ctrl+Z undoes JSON text only, not a move or a property edit on the canvas. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
 
-**Why now:** Users work with real CALM projects (multiple JSON files, cross-file references, enterprise naming like CEngineering), but must switch manually outside the studio and maintain project conventions by hand. Editor and export bugs undermine trust in the tool as the source of truth for CALM 1.2 documents.
+**Why now:** Users work with real CALM projects (multiple JSON files, cross-file references, enterprise naming like CEngineering), but must switch manually outside the studio and maintain project conventions by hand. Palette packs cannot be reused across Studio and VS Code without duplicating TypeScript. Layouts authored in Studio are lost in Hub and the VS Code plugin, so the three tools cannot share a diagram. Hub documents must not be edited in Studio (JSON still writable today). Editor and export bugs undermine trust in the tool as the source of truth for CALM 1.2 documents.
 
 **Current state (from code analysis):**
 
@@ -60,26 +56,60 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Ctrl+drag duplicate          | Missing — only clipboard paste; no modal, no relationship copy                                            |
 | Focus after reference nav    | Missing — `handleNavigateReference` opens tab but does not select target node                             |
 | Layout overlap / edges       | Partial — text-based box sizing exists; ELK uses fixed dims; edges do not avoid boxes                     |
-| Project file (`.calmrj`)     | Missing — no project config, ruleset selection, or naming conventions                                 |
-| Folder Spectral rules        | Missing — only built-in / core validation                                                             |
-| Extract node → diagram       | Missing — manual file create + stub wiring                                                            |
-| Find neighbors (project)     | Missing — no dialog to pull 1-hop linked nodes from other project files                               |
-| Diagram filter / fog         | Missing — no highlight/fog by focus neighbors or metadata                                             |
-| Save all                     | Missing — save only active tab                                                                        |
-| Bulk tab close               | Missing — close one tab only; no close left/right/all                                                 |
-| Radial layout                | Missing — dropdown is layered directions only (DOWN / RIGHT / UP)                                 |
-| Project templates            | Missing — picker lists bundled templates only; `.calmrj` has no `templates.dir`                   |
-| Docker deploy                | Partial — `Dockerfile` / `Dockerfile.static` / compose exist; documented one-command path unreliable |
-| Containment edge display     | Drawn as canvas edges **and** nested boxes — duplicate visualization                              |
-| Container → relationship UI  | Missing — no header icon to load containment relationship into properties                         |
-| Fog by node-type             | Missing — R29 modes are focus neighbors and single metadata value only                            |
-| Find usage                   | Missing — no reverse lookup of reference stubs / relationship endpoints in other files            |
-| Multi-child containment JSON | `flowToCalm` emits one 1:1 rel per child; CALM `nodes[]` not round-tripped                        |
-| Alt+drop containment         | Drag-into without modifier already nests + `composed-of`; no type picker; no Alt extract          |
-| Project path pickers         | Settings fields are free-text paths only                                                          |
-| CLI patterns in picker       | Missing — picker is `_template` architecture JSON only; no `calm generate` / shared instantiate   |
-
-
+| Project file (`.calmrj`)     | Missing — no project config, ruleset selection, or naming conventions                                     |
+| Folder Spectral rules        | Missing — only built-in / core validation                                                                 |
+| Extract node → diagram       | Missing — manual file create + stub wiring                                                                |
+| Find neighbors (project)     | Missing — no dialog to pull 1-hop linked nodes from other project files                                   |
+| Diagram filter / fog         | Missing — no highlight/fog by focus neighbors or metadata                                                 |
+| Save all                     | Missing — save only active tab                                                                            |
+| Bulk tab close               | Missing — close one tab only; no close left/right/all                                                     |
+| Radial layout                | Missing — dropdown is layered directions only (DOWN / RIGHT / UP)                                         |
+| Project templates            | Missing — picker lists bundled templates only; `.calmrj` has no `templates.dir`                           |
+| Docker deploy                | Partial — `Dockerfile` / `Dockerfile.static` / compose exist; documented one-command path unreliable      |
+| Containment edge display     | Drawn as canvas edges **and** nested boxes — duplicate visualization                                      |
+| Container → relationship UI  | Missing — no header icon to load containment relationship into properties                                 |
+| Fog by node-type             | Missing — R29 modes are focus neighbors and single metadata value only                                    |
+| Find usage                   | Missing — no reverse lookup of reference stubs / relationship endpoints in other files                    |
+| Multi-child containment JSON | `flowToCalm` emits one 1:1 rel per child; CALM `nodes[]` not round-tripped                                |
+| Alt+drop containment         | Drag-into without modifier already nests + `composed-of`; no type picker; no Alt extract                  |
+| Project path pickers         | Settings fields are free-text paths only                                                                  |
+| CLI patterns in picker       | Missing — picker is `_template` architecture JSON only; no `calm generate` / shared instantiate           |
+| JSON extension packs (V9)    | Missing — packs are TypeScript only; no shared file; VS Code fork diverges                                |
+| Container child packing      | One-axis strip — ELK `rectpacking` `aspectRatio` 99 / 0.01; not a near-square row/column table            |
+| Container visual vs resize   | Bug — NodeResizer / layout bbox can exceed painted container (CSS `max-width` / clip)                     |
+| Persist canvas layout        | Missing — positions not written to `metadata._layout` (Hub / VS Code map)                                 |
+| Persist node colors          | Missing — no `metadata.building-block-style` `{ background, text }`                                       |
+| Relationship line style      | Orthogonal / smooth-step — not bezier                                                                     |
+| Pattern validation           | Missing — V7 generate only; no `calm validate -p` equivalent                                              |
+| Edit naming / patterns       | Project settings: `naming` display-only; `patterns.dir` path only                                         |
+| Hub pattern catalog          | Missing — no Hub URL; picker has no namespace tabs                                                        |
+| Hub architecture browse      | Missing — `http(s)` `detailed-architecture` is out-of-project infobox only (R16)                          |
+| Pattern graph view / edit    | Missing — pattern is generate-only; no Hub-like PatternGraph canvas                                       |
+| Generic relationship metadata| Partial — R17 is pack-schema forms; no generic node/rel editor                                            |
+| Ctrl+duplicate freeze        | Bug — editor can hang after Ctrl+copy / duplicate (V8.2)                                                  |
+| Files tree folder create/move| Header buttons on selection — not the row under the pointer                                               |
+| Files tree new file          | Missing — File → New Untitled only; no name-first create in the tree folder                               |
+| Save As defaults             | System picker only — not the selected Files-tree folder; filename not from `naming.patterns`              |
+| User-home config overlay     | Missing — only project `*.calmrj`; SPA cannot silently read `~` (R53 #52)                                 |
+| Settings UI                  | One long dialog — not tabs per `.calmrj` block                                                            |
+| Metadata enum / nested JSON  | Partial — R17/R57 inline; enums not guaranteed dropdowns; nested objects not a separate dialog            |
+| Multi-select + align         | XYFlow `Shift` box / `Meta` multi; no Shift+click additive; no alignment / same-size toolbar              |
+| Canvas left-button mode      | Left-drag empty canvas always marquees; pan only middle/right — no Select/Pan toggle                      |
+| Canvas mini-map              | Missing — theme tokens exist; no overview of the current viewport; no click-to-pan                        |
+| Container arrange to table   | Layout packs on auto-layout (R46); no explicit table command with optional rows/cols                      |
+| Disable bundled packs        | Missing — all bundled `*.extension.json` always load                                                      |
+| Hub URL in editor            | Partial — R54 glasses for inserted Hub refs; other Hub `detailed-architecture` URLs still R16 infobox     |
+| Hub document JSON lock       | Partial — Hub tab canvas read-only (#57); JSON panel still editable; Hub insert onto that tab allowed     |
+| URL → local artifact file    | Missing — no `.calmrj` mapping path; `$id` not resolved like CLI `-u url-mapping.json`                    |
+| Canvas pointer (V11)         | Select/Pan toggle + Space (R73). Undo shortcut is Meta+Z only                                            |
+| Hub browse UI                | Modal columns: namespace → architecture → version. Insert is the whole architecture                       |
+| Move one file in Files tree  | Folder move only (R60). File-row **Move** is hidden (R71)                                                |
+| Edge vs container            | Every node box is an obstacle, including a container that holds an endpoint (R23)                        |
+| JSON apply vs layout         | Code apply keeps canvas x/y via a position map; `_layout` / colors can be dropped on round-trip          |
+| Diagram undo                 | Snapshots exist, but Ctrl+Z is not bound (Meta+Z only), so Windows undo hits the JSON editor             |
+| Insert a referenced node     | `detailed-architecture` points at the file you dragged from, even when that file only references the node |
+| Move dialog target           | Typed path only. No folder picker from the project tree                                                  |
+| Demo toolbar + template tabs | Toolbar **Demos** always visible; Template picker always shows FluxNova and OpenGRIS                     |
 
 
 ## 2. Goals, non-goals, and success metrics
@@ -95,6 +125,16 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V5:** Discover **project-wide 1-hop neighbors** of the selected node and add them as references (plus relationships with preserved `unique-id`); **session-only** canvas filter/fog by focus neighbors or a single metadata value; **Save all** dirty tabs; **bulk tab close** (left / right / all) with one summary dirty dialog.
 - **V6:** Offer **Radial** auto-layout; load **project templates** from a folder in `.calmrj` (merged with bundled); ship a **documented working Docker image**; hide **containment edges** and open their properties from a **container header icon**; add **node-type** as a third fog-filter mode; **Find usage** of the selected node in other project files.
 - **V7:** One `composed-of` and one `deployed-in` per container (`nodes[]`); **Alt+drop** to nest / **Alt+extract** to remove; filesystem pickers for project path fields; **CALM patterns** in the template picker generated via existing shared `instantiate` (not a new engine).
+- **V9:** Define each extension pack as a JSON file (schema + CALM Standard `$id`); load bundled packs from those files; optionally load extra packs from the project; share the same files with the VS Code plugin.
+- **V8:** Pack container children into a **near-square row/column grid**; make the painted container match its edit/layout size; persist **Hub/VS Code** `metadata._layout` and per-node `building-block-style`; draw visible relationships as **bezier**; validate architectures against CLI patterns with the shared CALM stack; edit `.calmrj` `naming` and `patterns` in Project settings.
+- **V8.1:** Load patterns from a configured CALM Hub (`.calmrj` `hub.url` or CLI `~/.calm.json` `calmHubUrl`); show Hub **namespaces as tabs** in the pattern picker; browse Hub architectures and insert them as `detailed-architecture` references.
+- **V8.2:** Visualize and graphically edit CLI patterns (Hub PatternGraph parity); generic `metadata` editing for **nodes and relationships**; fix the Ctrl+duplicate editor freeze.
+- **V10:** Create folders, **create named files**, and move folders from a **right-click menu on the Files-tree row under the pointer** (New file asks for the name immediately); Save As uses the selected tree folder and a naming-pattern filename; load **user-home config** then overlay the project file; split Project settings into **tabs**; enum dropdowns + nested JSON in a dialog; **Shift + marquee** multi-select with a **Select / Pan** left-button toggle, a **canvas mini-map** (click to pan the viewport), alignment / same-size / table tools; **arrange container to table**; disable bundled extension packs; open Hub `detailed-architecture` URLs as **read-only** editors (JSON locked; no Hub insert onto those tabs); resolve canonical artifact `$id` URLs through a project **`url-mapping.json`** (path in `.calmrj`).
+- **V11:** Remove the Select/Pan toggle and Space-pan. Empty-canvas drag **pans**; drag on a node **moves** it (the group, if it is already selected). **Shift+click** and **Shift+marquee** **toggle** membership. **Hub** is a left-panel tab: lazy tree namespace → architecture → version → nodes; drag a node like Files; the Hub dialog goes away. **Move one file** the same way as a folder (abort if the destination name exists); rewrite relative `detailed-architecture` on file and folder move only. Do not route a relationship around a container that contains one of its ends. JSON apply keeps `_layout` and `building-block-style` unless the user edited them. **Ctrl+Z / Ctrl+Y** undo diagram edits outside the JSON editor.
+- **V12:** When inserting a node from another document, `detailed-architecture` points at the file that **defines** it. Follow relative links until the node has no `detailed-architecture`. An `http(s)` link is copied and not followed. If the chain cannot be resolved, link the file you inserted from. The Move dialog for a **file or a folder** shows the project **folder tree** (including the root) and still has a text field. Move confirms.
+- **V13:** After a project loads, hide the toolbar **Demos** control and the Studio-bundled **FluxNova** / **OpenGRIS** template tabs unless `.calmrj` has `ui.demo: true`. Default is `ui.demo: false`. Without an open project, those UI pieces stay visible. Project settings has a **Demo** checkbox.
+- **V14:** Replace the stub **calmscript** Export item and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** downloads (`.mmd` and `.md`) and a **read-only Mermaid** preview tab. Leave `packages/calmscript` in the monorepo unused.
+- **V15:** Edit **array** properties as a list of individual values (including object items). Show nested JSON as **pretty-printed** multi-line text in the panel preview and in edit dialogs.
 
 **Non-goals**
 
@@ -106,8 +146,8 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Split view** (two diagrams side by side) — deferred; v1 uses tabs only.
 - **Duplicate tabs for the same file** — one file = one tab; reopening only switches to the active tab.
 - **Global undo/redo across tabs** — deferred; undo/redo applies **only within the active tab** (see #11).
-- **Generic metadata editor for arbitrary JSON Schema** without bundled pack schema in the repository — v1 only packs with `schemaUrl` / bundled schema (ArchiMate first).
-- **Opening links outside the project in the editor** — deferred; infobox + external browser tab only (see #10).
+- **Generic metadata editor for arbitrary JSON Schema** without bundled pack schema — **in scope for V8.2 (R57)**; V1/R17 still scaffolds from the active pack first.
+- **Opening links outside the project in the editor** — deferred for **local filesystem** paths; infobox + external browser tab (see #10). **V8.1** Hub `http(s)` architectures are in scope as Hub browse / Hub URL references (R54), not as a generic “open any URL in the editor”.
 - **Authoring Spectral rules in the UI** — V4 selects/enables existing ruleset files; rule authoring stays in external editors.
 - **Per-rule toggle inside a ruleset** — V4 enables/disables whole ruleset paths only (#19).
 - **Hard-coded CEngineering layout only** — naming is configurable; CEngineering is a bundled default profile, not the sole structure (#20).
@@ -115,58 +155,131 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Multi-hop neighbor discovery** or graph path search — V5 is 1 hop only (#24).
 - **Multi-select metadata filter values** — V5 allows a single value (#26).
 - **Moving or deleting** the source relationship from its home file when adding a neighbor — V5 **copies** the relationship into the current diagram with the same `unique-id` (#23).
-- **BBR V8** — unify layout with CALM Hub; split extensions into per-extension definitions reusable across Hub / VS Code / CLI.
-- **Spawning `calm` CLI** (child process) from the browser Studio — V7 **imports** generate from `@finos/calm-shared` (`instantiate` / `flattenAllOf` / `selectChoices`); do not reimplement instantiate (#42).
-- **Merging `composed-of` and `deployed-in` into one relationship** — still **at most one of each type** per container, never a mixed type (#35).
+- **Authoring CALM Standard documents in the Studio UI** — V9 ships Standard JSON files under `extensions/standards/`; Studio does not provide an in-app Standard editor.
+- **Pack marketplace / install UI** — still out; V9 is file load only (bundled + project folder).
+- **Deleting TypeScript pack modules in the same drop** — JSON is the runtime source; TS may remain as a generator (`extensions/export-from-ts.mjs`) until JSON load is proven.
+- **Spawning** `calm` **CLI** (child process) from the browser Studio — V7 **imports** generate from `@finos/calm-shared`; V8 **imports** pattern validate from the same stack (`calm validate -p` semantics). Do not spawn CLI; do not reimplement instantiate/validate (#42, #53).
+- **Writing layouts to Hub’s server-side layout API** — V8 persists `metadata._layout` **inside the architecture JSON** (same map Hub and the VS Code plugin already read). Pushing a separate Hub layout resource is out of scope.
+- **Writing Hub documents or Hub patterns back to the server** — V8.1/V8.2 are **read + local save**. Pattern graphic edit writes the **project file** under `patterns.dir`. Hub PUT/POST of architectures or patterns is out of scope (#54).
+- **Reading** `~/.calm.json` **in the browser SPA** — the File System Access API cannot see the user home directory. Browser uses `.calmrj` `hub.url` only. `calmHubUrl` from `~/.calm.json` applies when the host can read the home file (Tauri / Node / VS Code) (#52).
+- **A second layout file format** — do not invent Studio-only coordinates. The map is Hub `LayoutMap` / VS Code `metadata._layout` (#50).
+- **File pickers for** `naming.patterns` **templates** (`{{name}}` tokens) — those stay text fields in the V8 naming editor; pickers still cover rulesets, `urlMapping.path`, search roots, `templates.dir`, `patterns.dir`, `extensions.dir` (#41, R44, R52, R75).
+- **Merging** `composed-of` **and** `deployed-in` **into one relationship** — still **at most one of each type** per container, never a mixed type (#35).
 - **Containment without Alt** — V7 does **not** create or remove `composed-of` / `deployed-in` (or `parentId`) on plain drag (#37).
-- **File pickers for `naming.patterns` templates** (`{{name}}` tokens) — those stay text; pickers cover rulesets, search roots, `templates.dir`, `patterns.dir` (#41).
 - **Replacing bundled templates** when a project folder is set — V6 **merges**; same `_template.id` overwrites the bundled entry (#30).
 - **CALM Hub in the Studio Docker stack**, image publish to GHCR/CI — V6 is Studio SPA image + docs only (#31).
 - **Mounting a host architecture repo into the container as the project folder** — File System Access stays in the **browser**; Docker only serves the SPA (#31).
 - **Deleting or rewriting** `composed-of` / `deployed-in` in JSON when hiding their canvas edges — V6 hides the **line** only (#32).
 - **Combining fog modes (AND)** — V6 node-type is a **third independent** mode, not stacked on neighbors/metadata (#33).
 - **Find usage of the current file** — scan is **other** project files only, same exclusion as R28 (#34).
+- **Silent read of user home in the browser SPA** — V10 user-defaults still require an explicit File System Access grant (or a persisted handle). Desktop hosts may read `~/.calmrj` (#52, #59).
+- **Rewriting Hub `http(s)` `detailed-architecture` URLs on folder move** — V10 rewrites **relative file** links only. Hub URLs stay unchanged (#61).
+- **Git-aware move / rename tracking** — out of scope; Studio uses the File System Access API only.
+- **Rename, delete, copy, or paste folders/files** — V10 folder menu is **New folder**, **New file**, and **Move** only (R59–R60, R71–R72). No OS “Open in Explorer”, no clipboard cut.
+- **Folder commands only in the Files header** — V10 entry is the **row context menu** (right-click). Header keeps Open folder / Reveal / Settings / Hub; New folder / New file / Move are not header-primary (#63).
+- **Alignment of edges** — V10 group tools apply to **nodes** (and selected containers), not to relationship paths.
+- **Disabling project-overlay packs** — V10 `extensions.disabled` targets **bundled** pack ids. Extra packs from `extensions.dir` stay loadable unless the user removes them from disk.
+- **Unlocking Hub documents for in-place edit** — still out; Hub PUT/POST remains out of scope (#54). V10 **tightens** read-only: JSON panel locked; Hub catalog insert onto that tab forbidden.
+- **Select / Pan toggle and Space-to-pan** — removed in V11 (R76). Empty-canvas drag pans; Shift selects. No mouse-mode key in `.calmrj`. No third “zoom” tool; no V/H shortcuts.
+- **Hub browse dialog** — removed in V11. Browse and insert go through the Hub tab (R78).
+- **Converting existing absolute `detailed-architecture` paths on open or save** — V11 rewrites relative file links **on move only** (file and folder). `http(s)` stays unchanged (#61, #71).
+- **Rewriting `url-mapping.json` when a file or folder moves** — out of scope (R77).
+- **Undo of Files-tree moves** — diagram undo does not restore a moved file or folder (R81).
+- **Straight edges that ignore every obstacle** — V11 only stops the detour around a container that holds an endpoint. Other nodes stay obstacles. Bezier stays (R79, R50).
+- **Overwrite prompt when a moved file’s name already exists** — the move aborts (R77). Folder overwrite confirm (R60) is unchanged.
+- **Searching the whole project for another definition of the same `unique-id`** — V12 follows the `detailed-architecture` chain from the inserted node only (R82).
+- **Turning an `http(s)` `detailed-architecture` into a local path on insert** — copy the URL and stop. Do not consult `url-mapping.json` for this (R82).
+- **Clicking a folder in the Move dialog to move immediately** — the tree fills the destination. **Move** still confirms (R83). Drag onto a folder in the Files tree is unchanged (R77).
+- **Picking a file as the Move destination** — folders and the project root only (R83).
+- **Namespace URL mapping** (BBR lines 136–137) — not this iteration.
+- **Deleting the Demos feature or `/demos` assets** — V13 only **hides** them when `ui.demo` is false (R84). The load path stays for `ui.demo: true`.
+- **Hiding FluxNova / OpenGRIS packs in the Palette** — V13 gates **Template picker tabs** only, not `extensions.disabled` (R84).
+- **Putting `ui.demo` in user-home config** — V13 is **project `.calmrj` only** (R84).
+- **Shipping or finishing the calmscript DSL** — V14 removes the stub export menu item and the disabled Code-panel tab. The `packages/calmscript` placeholder may stay in the monorepo unused (R85).
+- **Mermaid → CALM import / round-trip** — V14 is **CALM → Mermaid only** (R85).
+- **C4 Mermaid diagram types** (`C4Context`, …) — V14 uses **`flowchart`** with containers as subgraphs (R85).
+- **Deleting `packages/calmscript` from the workspace** — out of scope for V14; leave the package (R85).
+- **Editing an array as a single comma-joined or JSON-string text field** — V15 replaces that with per-element editors (R86).
+- **A separate full-screen JSON IDE for properties** — V15 keeps inline lists + existing nested dialog; no new IDE (R86).
+- **Mini-map hide/show, zoom-from-minimap, or editing nodes from the mini-map** — V10 mini-map is always visible; click (or drag the viewport mask) only **pans**. Zoom stays wheel / existing controls (R74).
+- **In-app editor for `url-mapping.json` entries** — V10 only **picks the mapping file** in project config (R75). Teams edit the JSON in the repo (same file as `calm validate -u`).
+- **Mapping Hub instance URLs** (`/calm/namespaces/…/architectures/…`) — those stay Hub (R69). Mapping is for canonical `$id` / `$schema` / `$ref` artifacts (Standards, Patterns, schemas).
 
 **Success metrics**
 
 
-| Metric                                         | Baseline                | Target                                              | Due  |
-| ---------------------------------------------- | ----------------------- | --------------------------------------------------- | ---- |
-| Switch between CALM files in folder            | Manual open dialog      | ≤ 2 clicks (double-click in tree)                   | v1   |
-| JSON export contains all diagram relationships | Broken when nested      | 100% of canvas relationships in export              | v1   |
-| JSON editing without unwanted selection        | Selection on every sync | 0 unwanted full-select during editing               | v1   |
-| Cursor during JSON editing                     | Jumps to start          | Cursor stays in place while typing                  | v1   |
-| Cross-file reference                           | Not supported           | Drag node → `detailed-architecture` ref in model    | v1   |
-| Diagrams open simultaneously                   | 1                       | Up to 10 tabs, switching ≤ 1 click                  | v1.1 |
-| Open referenced diagram from canvas            | Not available           | Double-click glasses → activate existing tab        | v1.1 |
-| Metadata editing in properties panel           | customMetadata only     | Schema-driven form for extension packs              | v1.1 |
-| Accidental reference node edit in properties   | Possible                | 0 mutations via properties UI for references        | v1.1 |
-| Duplicate tab for same file                    | —                       | 0 duplicates — always switch to existing tab        | v1.1 |
-| Locate active file in Files tree               | Manual scroll/search    | ≤ 2 clicks (reveal button)                          | v3   |
-| Node list matches saved file                   | Stale until re-expand   | 100% refresh within 1 s after save                  | v3   |
-| In-file node duplicate (Ctrl+drag)             | Clipboard only          | Modal flow ≤ 3 actions; new `unique-id`             | v3   |
-| Referenced node visible after drill-down       | Tab opens, no focus     | Target node selected + in viewport within 1 s       | v3   |
-| Overlapping boxes after text resize            | Overlap on long labels  | 0 overlaps on reference test diagrams after layout  | v3   |
-| Edges through node interiors (manual layout)   | Common on drag/resize   | 0 interior intersections when alternate path exists | v3   |
-| Load / create project config on Open folder    | Not available           | Auto-load `*.calmrj` or Create wizard ≤ 2 clicks    | v4   |
-| Extra Spectral rulesets applied with core CALM | Core only               | Enabled rulesets from `.calmrj` run on validate     | v4   |
-| Extract node to new diagram file               | Manual                  | Dialog + stub + child file ≤ 4 actions              | v4   |
-| Find neighbors across project                  | Manual tree browse      | Dialog lists 1-hop peers; add ≤ 3 actions           | v5   |
-| Fog non-matching nodes/edges on filter         | Not available           | Match highlighted; others fogged; clear ≤ 1 click   | v5   |
-| Save all dirty tabs                            | Save active only        | All dirty tabs saved (Untitled → Save As) ≤ 2 clicks| v5   |
-| Bulk close tabs (left / right / all)           | Close one at a time     | VS Code menu; one summary dirty dialog              | v5   |
-| Radial auto-layout from toolbar                | Layered directions only | Radial in same dropdown; selected node = center     | v6   |
-| Load templates from project folder             | Bundled only            | `.calmrj` `templates.dir` merged into picker        | v6   |
-| One-command Docker Studio                      | Files exist, path broken| `compose up --build` serves SPA; healthcheck green  | v6   |
-| Containment shown twice (edge + nest)          | Both visible            | Nesting only; header icon opens relationship props  | v6   |
-| Fog by node-type                               | Neighbors / metadata    | Third mode; multi-select types on diagram           | v6   |
-| Find where a node is used                      | Manual tree browse      | Dialog of stubs + rel endpoints; open + focus       | v6   |
-| One composed-of / deployed-in per container    | One rel per child       | Single rel with `nodes[]`; properties edit members  | v7   |
-| Alt+drop / Alt+extract containment             | Plain drag-into         | Alt required; first drop picks type                 | v7   |
-| Pick project paths from disk                   | Type relative paths     | Directory picker for dirs; file picker for files    | v7   |
-| Generate from CALM CLI pattern                 | `_template` JSON only   | Pattern cards in picker; shared instantiate; new tab| v7   |
-
-
+| Metric                                         | Baseline                 | Target                                                          | Due  |
+| ---------------------------------------------- | ------------------------ | --------------------------------------------------------------- | ---- |
+| Switch between CALM files in folder            | Manual open dialog       | ≤ 2 clicks (double-click in tree)                               | v1   |
+| JSON export contains all diagram relationships | Broken when nested       | 100% of canvas relationships in export                          | v1   |
+| JSON editing without unwanted selection        | Selection on every sync  | 0 unwanted full-select during editing                           | v1   |
+| Cursor during JSON editing                     | Jumps to start           | Cursor stays in place while typing                              | v1   |
+| Cross-file reference                           | Not supported            | Drag node → `detailed-architecture` ref in model                | v1   |
+| Diagrams open simultaneously                   | 1                        | Up to 10 tabs, switching ≤ 1 click                              | v1.1 |
+| Open referenced diagram from canvas            | Not available            | Double-click glasses → activate existing tab                    | v1.1 |
+| Metadata editing in properties panel           | customMetadata only      | Schema-driven form for extension packs                          | v1.1 |
+| Accidental reference node edit in properties   | Possible                 | 0 mutations via properties UI for references                    | v1.1 |
+| Duplicate tab for same file                    | —                        | 0 duplicates — always switch to existing tab                    | v1.1 |
+| Locate active file in Files tree               | Manual scroll/search     | ≤ 2 clicks (reveal button)                                      | v3   |
+| Node list matches saved file                   | Stale until re-expand    | 100% refresh within 1 s after save                              | v3   |
+| In-file node duplicate (Ctrl+drag)             | Clipboard only           | Modal flow ≤ 3 actions; new `unique-id`                         | v3   |
+| Referenced node visible after drill-down       | Tab opens, no focus      | Target node selected + in viewport within 1 s                   | v3   |
+| Overlapping boxes after text resize            | Overlap on long labels   | 0 overlaps on reference test diagrams after layout              | v3   |
+| Edges through node interiors (manual layout)   | Common on drag/resize    | 0 interior intersections when alternate path exists             | v3   |
+| Load / create project config on Open folder    | Not available            | Auto-load `*.calmrj` or Create wizard ≤ 2 clicks                | v4   |
+| Extra Spectral rulesets applied with core CALM | Core only                | Enabled rulesets from `.calmrj` run on validate                 | v4   |
+| Extract node to new diagram file               | Manual                   | Dialog + stub + child file ≤ 4 actions                          | v4   |
+| Find neighbors across project                  | Manual tree browse       | Dialog lists 1-hop peers; add ≤ 3 actions                       | v5   |
+| Fog non-matching nodes/edges on filter         | Not available            | Match highlighted; others fogged; clear ≤ 1 click               | v5   |
+| Save all dirty tabs                            | Save active only         | All dirty tabs saved (Untitled → Save As) ≤ 2 clicks            | v5   |
+| Bulk close tabs (left / right / all)           | Close one at a time      | VS Code menu; one summary dirty dialog                          | v5   |
+| Radial auto-layout from toolbar                | Layered directions only  | Radial in same dropdown; selected node = center                 | v6   |
+| Load templates from project folder             | Bundled only             | `.calmrj` `templates.dir` merged into picker                    | v6   |
+| One-command Docker Studio                      | Files exist, path broken | `compose up --build` serves SPA; healthcheck green              | v6   |
+| Containment shown twice (edge + nest)          | Both visible             | Nesting only; header icon opens relationship props              | v6   |
+| Fog by node-type                               | Neighbors / metadata     | Third mode; multi-select types on diagram                       | v6   |
+| Find where a node is used                      | Manual tree browse       | Dialog of stubs + rel endpoints; open + focus                   | v6   |
+| One composed-of / deployed-in per container    | One rel per child        | Single rel with `nodes[]`; properties edit members              | v7   |
+| Alt+drop / Alt+extract containment             | Plain drag-into          | Alt required; first drop picks type                             | v7   |
+| Pick project paths from disk                   | Type relative paths      | Directory picker for dirs; file picker for files                | v7   |
+| Generate from CALM CLI pattern                 | `_template` JSON only    | Pattern cards in picker; shared instantiate; new tab            | v7   |
+| Palette pack as JSON shared with VS Code       | TypeScript per host      | Load `*.extension.json`; Standard `$id` in `$schema`            | v9   |
+| Extra org pack without Studio rebuild          | Code change required     | Drop JSON into project `extensions/` (FS load); palette updates | v9   |
+| Container children in a near-square grid       | One-axis strip           | Rows+columns; bounding box width ≈ height                       | v8   |
+| Painted container matches resize/layout size   | Visual clip / max-width  | Graphic grows with NodeResizer / ELK bbox                       | v8   |
+| Layout round-trip with Hub and VS Code         | Positions lost on reopen | `metadata._layout` `{ unique-id: { x, y, w, h } }`              | v8   |
+| Node colors round-trip with VS Code            | Pack colors only         | `building-block-style` `{ background, text }` on node metadata  | v8   |
+| Visible relationship line style                | Orthogonal / smooth-step | Bezier for `connects` / `interacts`                             | v8   |
+| Validate architecture against a CLI pattern    | Generate only            | Shared validate; findings in Problems                           | v8   |
+| Edit naming + patterns in Project settings     | Display-only naming      | Structured editor writes `.calmrj`                              | v8   |
+| Hub patterns in the picker                     | Local `patterns.dir`     | Namespaces as tabs; Hub URL from `.calmrj` or `~/.calm.json`    | v8.1 |
+| Reference a Hub architecture from Studio       | Infobox / browser only   | Browse Hub; `detailed-architecture` Hub URL                     | v8.1 |
+| See / edit a CLI pattern as a graph            | Generate card only       | PatternGraph-like canvas; save pattern JSON                     | v8.2 |
+| Generic metadata on nodes and relationships    | Pack form / node-only    | Schema or free-form editor for both                             | v8.2 |
+| Editor usable after Ctrl+duplicate             | Intermittent freeze      | 0 hangs on duplicate + continue editing                         | v8.2 |
+| Create folder from Files tree                  | Header button / none     | Right-click row → **New folder** under that node; naming default | v10  |
+| Create file from Files tree                    | File → New Untitled      | Right-click → **New file**; name dialog immediately; write + open | v10  |
+| Move folder with descendants                   | Header Move / OS         | Right-click folder → **Move**; tabs follow; relative DA rewritten | v10  |
+| Save As directory + filename                   | System picker only       | Tree selection + naming-pattern filename                        | v10  |
+| User config overlay                            | Project `.calmrj` only   | User file then project overlay (project wins)                   | v10  |
+| Enum / nested metadata                         | Inline / mixed widgets   | Schema enum = dropdown; nested JSON in dialog                   | v10  |
+| Multi-select + align                           | Meta-click / Shift box   | Shift+click + marquee; align / distribute / same size           | v10  |
+| Left mouse: pan vs select                      | Marquee always; pan MMB/RMB | Empty drag pans; node drag moves; Shift toggles (no toggle, no Space) | v11  |
+| Canvas overview / jump                         | None                     | Mini-map of nodes + current viewport; click pans to that point  | v10  |
+| Hub document JSON lock                         | Canvas RO, JSON editable | Hub-sourced tab: canvas + JSON locked; no Hub insert            | v10  |
+| Resolve artifact URL to a local file           | Network / missing / href | `.calmrj` `urlMapping.path` → `url-mapping.json` (`calm -u`)    | v10  |
+| Canvas pointer                                 | Select/Pan toggle        | Pan on empty drag; move on node drag; Shift toggles selection   | v11  |
+| Insert a Hub node                              | Modal Insert of architecture | Hub tab tree; drag node; dialog removed                      | v11  |
+| Move one file, keep relative links             | Folder move only         | File Move + drag; abort on name clash; relative DA rewritten   | v11  |
+| Edge through a container that holds an end     | Router walks around it   | That container is not an obstacle; bezier stays                | v11  |
+| JSON edit keeps layout and colors              | Round-trip can drop them | Same `_layout` / colors unless the user edited those keys      | v11  |
+| Undo a canvas edit                             | Ctrl+Z undoes JSON text  | Ctrl+Z / Ctrl+Y undo diagram edits outside the JSON editor     | v11  |
+| Insert a node that is only a reference         | Link points at the file you dragged from | Link points at the file that defines the node (chain); `http(s)` copied | v12 |
+| Choose a Move destination                      | Type a path              | Pick a project folder in the dialog, or type it                | v12  |
+| Hide demos until the project opts in           | Demos + FluxNova/OpenGRIS always on | Hidden after project load unless `ui.demo: true`     | v13  |
+| Export / preview as Mermaid                    | calmscript stub only     | Flowchart `.mmd` + `.md`; read-only Mermaid tab                 | v14  |
+| Edit array properties element-by-element       | One text field for whole array | Inline list +/−; objects as mini-rows / nested fields    | v15  |
+| Nested JSON readable in properties             | One-line `JSON.stringify` | Pretty-printed multi-line preview and dialog                   | v15  |
 
 
 ## 3. Target users and use cases
@@ -206,12 +319,48 @@ CALM Studio today lets users model architecture in a single file with a palette 
 29. **UC-29 — Alt containment:** User holds **Alt**, drops a node onto another → if that target has no containment rel, a type picker (composed-of / deployed-in); if one type exists, the child is appended to `nodes[]`; if both exist, the session **last-used** type for that container is used. **Alt+drag out** of a container removes the child from that relationship and un-nests. Plain drag does not change containment.
 30. **UC-30 — Path pickers:** In Project settings, user picks a folder (search roots, `templates.dir`, `patterns.dir`) or a file (ruleset path) via the system picker; stored path is project-relative.
 31. **UC-31 — Pattern as template:** User opens a project with `.calmrj` `patterns.dir` → Template picker lists pattern files as cards. Selecting one runs the **existing** generate pipeline (options dialog if the pattern has choices) and opens a **new untitled** tab with the architecture.
+32. **UC-32 — JSON extension pack:** User opens a project folder that contains `extensions/` (same layout as the monorepo root). Studio reads pack JSON **from disk** via File System Access; extra path from `.calmrj` `extensions.dir`. Palette merges packs; `standard.$id` is written into architecture `$schema` on first use. Without an open folder, Studio uses the bundled copy of repo-root `extensions/`.
+33. **UC-33 — Square container grid:** User runs layout on a container with many children → children sit in rows and columns; the nested group’s width and height are similar (not a single long row or column).
+34. **UC-34 — Container visual follows resize:** User enlarges a container with the resize handle → the painted border/header/body grow to the same size; no leftover empty resize frame around a clipped graphic.
+35. **UC-35 — Layout persists:** User places nodes, saves, closes the tab, reopens the file (Studio, Hub, or VS Code) → positions and sizes match `metadata._layout`. User sets node background/text colors → they persist as `building-block-style` and render in Hub/plugin.
+36. **UC-36 — Bezier relationships:** User draws or loads `connects` / `interacts` → canvas (and SVG/PNG export) shows bezier curves. Hidden containment (R35) stays hidden.
+37. **UC-37 — Validate with pattern:** User picks a CLI pattern and **Validate** → Studio runs the shared CALM pattern validator (same rules as `calm validate -p`); Problems lists findings; core CALM validation still runs (R25).
+38. **UC-38 — Edit naming and patterns:** User opens Project settings → edits `naming.profile`, `rootDirs`, `naming.patterns` templates, and the `patterns` section → Save writes `.calmrj`; Extract (R27) and the pattern picker use the new values.
+39. **UC-39 — Hub pattern tabs:** User configures Hub URL → pattern picker shows a tab per Hub namespace plus a **Local** tab for `patterns.dir`. Selecting a Hub pattern runs the existing generate flow (R41) into a new untitled tab.
+40. **UC-40 — Hub browse and reference:** User opens **Hub** browse → lists namespaces / architectures / versions → insert onto the canvas as a reference whose `detailed-architecture` is the Hub URL; glasses navigation uses Hub when the URL is in-Hub (R54), not the out-of-project infobox.
+41. **UC-41 — Pattern as diagram:** User opens a CLI pattern (local or Hub) → canvas shows nodes/relationships like Hub PatternGraph. User edits graphically → Save writes pattern JSON to `patterns.dir` (Hub write-back out of scope).
+42. **UC-42 — Generic metadata:** User selects a node or relationship → Metadata section edits pack fields **and** extra keys; changes sync to JSON.
+43. **UC-43 — Duplicate without freeze:** User Ctrl+drags a node, confirms the modal, continues editing (JSON panel, canvas, undo) → editor stays responsive.
+44. **UC-44 — New folder:** User **right-clicks** a Files-tree row (the node under the pointer) → **New folder** → name is prefilled from the project naming pattern (or a prompted name substituted into `{{name}}`) → folder appears on disk and in the tree under that directory (file row → parent directory; empty tree / project root → project root).
+45. **UC-45 — Move folder:** User **right-clicks** a folder row → **Move** (or drag) → descendants move with it; Files tree refreshes; open tabs whose files moved stay bound to the new path; relative `detailed-architecture` in **other** project files (and in moved files) is rewritten to the new path.
+46. **UC-46 — Save As with defaults:** User Save As → suggested folder is the Files-tree selection (directory, or parent of a selected file); suggested filename comes from `naming.patterns` for the primary node type (or document name).
+47. **UC-47 — User then project config:** User has a user-defaults file. Opening a project loads that file first, then overlays `*.calmrj`. Project values win on conflict.
+48. **UC-48 — Settings tabs:** User opens Project settings → one tab per config block (`naming`, `patterns`, `hub`, `extensions`, `validation`, `urlMapping`, …).
+49. **UC-49 — Metadata enums and nested dialog:** User selects a node/relationship → enum fields are dropdowns from the schema. Nested objects show as a preview; **Edit** opens a dialog of nested fields (same enum/dropdown rules). Panel does not inline-edit the nested tree.
+50. **UC-50 — Shift / marquee multi-select:** User holds **Shift** and clicks a node, or drags a rectangle on empty canvas. Each hit node **toggles** (add if absent, remove if present). Without Shift, click selects only that node; click on empty canvas clears the selection. Group tools: move, align row/column/axis, even spacing, same width/height/both, arrange as table.
+51. **UC-51 — Arrange container to table:** User selects a container → **Arrange to table** (default packing like R46, or explicit rows × columns) → children reflow; container resizes so they fit.
+52. **UC-52 — Disable bundled packs:** User lists pack ids in config → those bundled packs do not appear in the palette (core may be disabled). Project extra packs still load.
+53. **UC-53 — Open Hub detailed-architecture:** User double-clicks glasses on a Hub URL (inserted or typed) → Hub architecture opens in a **read-only** editor tab (canvas + JSON locked). Hub catalog insert onto that tab is blocked.
+54. **UC-54 — New file:** User **right-clicks** a Files-tree row → **New file** → a dialog **immediately asks for the file name** → empty CALM architecture is written into that directory and opened in a tab. Cancel / empty name writes nothing.
+55. **UC-55 — Pan and move (supersedes Select/Pan):** No mode toggle and no Space-pan. Drag on empty canvas pans. Drag on a node moves it (the whole selection, if that node is already selected). Shift drag on empty canvas is the marquee (UC-50).
+56. **UC-56 — Canvas mini-map:** User sees a mini-map of the diagram with the **current viewport** marked. Clicking a point on the mini-map **pans** the canvas so that world position is in view (viewport moves to the click). Zoom is unchanged.
+57. **UC-57 — URL → local artifact:** User sets `.calmrj` `urlMapping.path` to a `url-mapping.json` (same shape as CALM CLI `-u` / CEngineering-App). Studio resolves canonical `$id` / `$schema` / `$ref` URLs to project files; validate and schema load use that map and do **not** fetch the URL.
+58. **UC-58 — Hub tree:** User opens the **Hub** tab, expands namespace → architecture → version → nodes, and drags a node onto the current local diagram. The stub’s `detailed-architecture` is that version’s Hub URL. Double-click on the version opens it read-only. There is no Hub dialog.
+59. **UC-59 — Move one file:** User drags a file to another folder, or chooses **Move** on the file row. Relative `detailed-architecture` links still resolve. If the destination name exists, nothing moves.
+60. **UC-60 — Edge and container:** A relationship with one end inside a container is drawn across that container’s border on the short route, not around it. Other nodes are still avoided.
+61. **UC-61 — JSON keeps layout:** User edits a name in JSON. Positions, sizes, and colors stay. Deleting `_layout` clears layout. Renaming `unique-id` keeps that node’s box.
+62. **UC-62 — Undo a canvas edit:** User moves a node, then Ctrl+Z. The node returns. The same keys inside the JSON editor undo text only.
+63. **UC-63 — Insert the defining file:** File A defines node X (no `detailed-architecture`). File B references X and points at A. User drags X from B onto the open diagram. The new stub points at A, with a path relative to the open file. If A’s link is `http(s)`, that URL is copied. If A cannot be opened, the stub points at B.
+64. **UC-64 — Pick a Move folder:** User chooses **Move** on a file or a folder. The dialog lists project folders, including the root. User selects a folder or types a path, then **Move**. The file or folder moves under the same rules as R77 / R60.
+65. **UC-65 — Demo UI off by default:** User opens a project whose `.calmrj` has no `ui.demo` (or `ui.demo: false`). The toolbar has no **Demos** button. Template picker has no **FluxNova** or **OpenGRIS** tabs. User turns **Demo** on in Project settings, saves, and both reappear. Before any project is open, Demos and those tabs stay visible.
+66. **UC-66 — Export Mermaid:** User opens Export and chooses **Mermaid (.mmd)** or **Mermaid (.md)**. The download is a flowchart of the active diagram (nodes, visible relationships, containers as subgraphs). There is no calmscript export item.
+67. **UC-67 — Preview Mermaid:** User opens the Code panel tab **Mermaid** (next to **CALM JSON**). The text is read-only and matches the export body. The old disabled **calmscript** tab is gone.
+68. **UC-68 — Edit array property:** User selects a node or relationship with an array metadata (or other properties) field. The panel shows one row per element with Add / Remove. Primitive items use an input or enum select; object items show fields for that item (or Expand / Edit for deep objects). An empty array still shows the list chrome and **Add**.
+69. **UC-69 — Read nested JSON:** User looks at a nested metadata object in the panel. The preview is indented multi-line JSON, not a single line. Opening **Edit…** keeps pretty formatting in the dialog.
 
 **Not for:** Users outside officially supported browsers (**Chrome**, **Safari**). Firefox, Edge, and older versions without File System Access API — file panel unavailable, rest of studio may work with limitations.
 
 ## 4. Proposed solution
-
-
 
 ### 4.1 Left panel — Palette / Files toggle
 
@@ -252,8 +401,6 @@ The relative path is computed against the location of the currently edited file 
 - **Export relationships:** Merge canvas state with loaded model on persist/export; preserve `relationships` from model if canvas edges are not yet linked; infer `composed-of` from `parentId`; add inline `stroke` to edge paths in SVG/PNG (see §7.1).
 - **Container:** When promoting to container, set default dimensions (300×200, consistent with palette).
 
-
-
 ### 4.4 Tabbed diagram editor (P1)
 
 Newly opened diagrams (from file panel, toolbar Open, drag-drop, reference navigation) open in **tabs** below the toolbar:
@@ -284,8 +431,6 @@ stateDiagram-v2
 
 
 
-
-
 ### 4.5 Reference — glasses icon and navigation (P1)
 
 Nodes with `details.detailed-architecture` (reference elements from R4 or manually set) show a **glasses icon** on the canvas to highlight that they link to another diagram:
@@ -297,15 +442,11 @@ Nodes with `details.detailed-architecture` (reference elements from R4 or manual
   - **Target outside project** (relative path leads outside root, absolute path, `http(s)://` URL, or file unavailable via FS API): **do not open in editor**. Instead show an **infobox** with text **"Link leads outside project"** and a clickable link to the original `detailed-architecture` value. Click opens target in a **new browser tab** (`target="_blank"`, `rel="noopener noreferrer"`) — outside CalmStudio editor.
 - If target inside project physically does not exist (file deleted), show error in editor (toast / banner), canvas unchanged.
 
-
-
 ### 4.6 Model extensions (P1 — schema and properties)
 
-- On first element from palette, write CALM 1.2 `$schema` and extension URL to JSON header from central `schemaUrl` in the respective pack's `PackDefinition`.
+- On first element from palette, write CALM 1.2 `$schema` and extension Standard URL to JSON header from `standard.$id` in the pack JSON (`PackDefinition.schemaUrl` is the runtime alias).
 - When creating node/relation, fill required fields per schema (core + extension).
 - In properties panel, button to reverse direction for all relationship variants.
-
-
 
 ### 4.7 Metadata in properties and read-only reference (P1)
 
@@ -315,7 +456,7 @@ A CALM node/relationship may carry a `metadata` object (distinct from `customMet
 
 Properties panel adds a **Metadata** section with a form driven by the active pack's schema:
 
-- Load extension pack JSON Schema (`PackDefinition.schemaUrl` or bundled schema in `calm-core`).
+- Load extension pack JSON Schema (`standard.$id` / `PackDefinition.schemaUrl` or bundled schema in `calm-core`).
 - Show fields per `required` / `properties` (enum select, string input, nested objects e.g. `metadata.archimate`).
 - Validate input against schema before writing to model (same rules as CALM validator).
 
@@ -349,8 +490,6 @@ Nodes with non-empty `details.detailed-architecture` are **reference proxies** �
 - Also show `details.detailed-architecture` (read-only); changing the link target **is not** in properties — user edits JSON directly or deletes reference and creates a new one.
 - JSON editor: editing reference node remains possible (power user) — properties UI intentionally blocks all proxy node mutations.
 
-
-
 ### 4.8 Reveal active file in Files tree (P1 — BBR V3)
 
 In the **Files** panel header (next to **Open folder**), add a **Reveal in tree** button (icon: crosshair / target / locate):
@@ -360,8 +499,6 @@ In the **Files** panel header (next to **Open folder**), add a **Reveal in tree*
 - On click: expand all ancestor directories, expand the file row if collapsed, scroll the file row into view (`scrollIntoView`), apply a temporary highlight (same `.current` style or pulse).
 - If the file is not in the current tree (e.g. Save As outside project, untitled tab), show a short toast: *"Current file is not in the open project folder."*
 - Does **not** change the active tab or open files — navigation only within the tree.
-
-
 
 ### 4.9 Refresh node list on save (P1 — BBR V3)
 
@@ -416,8 +553,6 @@ sequenceDiagram
 
 
 
-
-
 ### 4.11 Focus referenced node after drill-down (P1 — BBR V3)
 
 Extend `handleNavigateReference` (glasses navigation, R16):
@@ -428,8 +563,6 @@ Extend `handleNavigateReference` (glasses navigation, R16):
 4. **Bring into view:** center or `fitView` on that node (padding ~40 px); do not reset zoom below user's current min zoom if tab was already open.
 5. If the id is **missing** in the target file (stale reference): show non-blocking warning toast; tab still opens; no selection.
 6. Properties panel and JSON editor sync to the focused node when found.
-
-
 
 ### 4.12 Layout — no overlap, edges avoid boxes (P1 — BBR V3, R23)
 
@@ -496,11 +629,13 @@ flowchart LR
 
 When the user opens a project folder (R1), Studio looks for **exactly one** `*.calmrj` file in the **folder root** (case-insensitive match on extension).
 
-| Situation | Behavior |
-| --- | --- |
-| One `*.calmrj` found | Load as active project config |
-| None found | Offer **Create project** wizard (defaults from bundled profile); user may skip and work without project features until created |
-| Multiple `*.calmrj` | Error toast; ask user to keep one file in root |
+
+| Situation            | Behavior                                                                                                                       |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| One `*.calmrj` found | Load as active project config                                                                                                  |
+| None found           | Offer **Create project** wizard (defaults from bundled profile); user may skip and work without project features until created |
+| Multiple `*.calmrj`  | Error toast; ask user to keep one file in root                                                                                 |
+
 
 **Format:** JSON. **Filename:** any (e.g. `onebank.calmrj`, `project.calmrj`). The file is the home for:
 
@@ -508,7 +643,9 @@ When the user opens a project folder (R1), Studio looks for **exactly one** `*.c
 2. **Directory structure + naming conventions** used by Extract (R27).
 3. **Templates folder** (`templates.dir`) used by the template picker (R33).
 4. **Patterns folder** (`patterns.dir`) used to list CALM CLI patterns in the same picker (R41).
-5. Future diagram-related settings (placeholder object allowed; unused keys ignored with forward compatibility).
+5. **CALM Hub URL** (`hub.url`) used by V8.1 pattern tabs and Hub browse (R53–R54). Overrides `calmHubUrl` from `~/.calm.json` when both exist (#52).
+6. **URL → file mapping** (`urlMapping.path`) used to resolve canonical `$id` / `$schema` / `$ref` to a local file (R75). Same JSON as CALM CLI `-u` / CEngineering-App `url-mapping.json`.
+7. Future diagram-related settings (placeholder object allowed; unused keys ignored with forward compatibility).
 
 ```json
 {
@@ -543,6 +680,8 @@ When the user opens a project folder (R1), Studio looks for **exactly one** `*.c
   },
   "templates": { "dir": "templates" },
   "patterns": { "dir": "patterns" },
+  "hub": { "url": "http://localhost:8080" },
+  "urlMapping": { "path": "url-mapping.json" },
   "diagrams": {}
 }
 ```
@@ -553,16 +692,12 @@ When the user opens a project folder (R1), Studio looks for **exactly one** `*.c
 
 **Bundled default profile** `cengineering-archimate` uses stereotype + slugified **element name** (`appserv.test-service`, `ep.get-users`, `appcomp.bem`). Extract places **one subfolder** under the **current diagram’s directory** (not from project root via unique-id). Patterns remain **editable** in `.calmrj` (#20).
 
-
-
 ### 4.14 Folder Spectral validation (P1 — BBR V4)
 
 - Ruleset files live in the project (typical path `validation/*.yaml` or `*.json`); `.calmrj` only stores relative paths + `enabled`.
 - On validate (toolbar / save / Problems panel): run core CALM validation, then each **enabled** Spectral ruleset against the active document (and optionally all open tabs — engineering choice; acceptance: at least active document).
 - Missing ruleset file → non-blocking warning, other rules still run.
 - **Out of scope:** in-app Spectral rule authoring; per-rule toggles inside a ruleset.
-
-
 
 ### 4.15 Naming conventions for new paths (P1 — BBR V4)
 
@@ -573,8 +708,6 @@ Used primarily by **Extract to diagram** (and future “New diagram from type”
 3. If profile is `cengineering-archimate` and pattern missing, fall back to bundled defaults for known ArchiMate stereotypes.
 4. If still unmapped: open Extract dialog with **empty** relative folder/file fields and a warning — user must fill paths manually; Extract is not blocked (#20).
 5. Dialog always lets the user **confirm or edit** folder and filename; config values are **defaults only**.
-
-
 
 ### 4.16 Extract node to separate diagram (P1 — BBR V4, #21)
 
@@ -618,9 +751,9 @@ sequenceDiagram
   Dialog->>Tabs: open child tab
 ```
 
+
+
 **Allowed types:** all node types. Reference proxies (already have `detailed-architecture`) — Extract **disabled**.
-
-
 
 ### 4.17 Find neighbors (P1 — BBR V5, #23–#25)
 
@@ -667,8 +800,6 @@ sequenceDiagram
 
 **Visual:** matching elements full opacity / emphasis; non-matching nodes **and edges** reduced opacity (fog / mist). Session-only — not written to `.calmrj` or JSON. Clear filter restores default rendering. Switching tabs clears or isolates filter per tab (engineering: per-tab session state preferred). **V6 R36** adds a third independent mode (node type) — see §4.25.
 
-
-
 ### 4.19 Save all (P1 — BBR V5, #27)
 
 Toolbar / File menu **Save all**:
@@ -679,30 +810,26 @@ Toolbar / File menu **Save all**:
 - After each successful save under project root, apply R20-style tree refresh for that file.
 - Report failures (permission, disk) without silent skip of remaining tabs — stop or continue with error toast (engineering: continue with aggregate error summary preferred).
 
-
-
 ### 4.20 Bulk close tabs (P1 — BBR V5, #28)
 
 Tab context menu (VS Code–style):
 
-| Action | Scope |
-| ------ | ----- |
-| Close | Current tab only (existing R15) |
-| Close tabs to the left | All tabs left of the **clicked** tab (not necessarily active) |
-| Close tabs to the right | All tabs right of the clicked tab |
-| Close all | **All** tabs including the current / clicked tab |
+
+| Action                  | Scope                                                         |
+| ----------------------- | ------------------------------------------------------------- |
+| Close                   | Current tab only (existing R15)                               |
+| Close tabs to the left  | All tabs left of the **clicked** tab (not necessarily active) |
+| Close tabs to the right | All tabs right of the clicked tab                             |
+| Close all               | **All** tabs including the current / clicked tab              |
+
 
 If the close set contains one or more dirty tabs, show **one** summary dialog listing dirty files: **Save all** / **Don't save** / **Cancel**. Save all uses R30 semantics for that subset (including Save As for Untitled). Cancel leaves all tabs unchanged. Clean tabs in the set close without prompts.
-
-
 
 ### 4.21 Radial layout (P1 — BBR V6, #29)
 
 Add **Radial** as a fourth item in the existing canvas layout dropdown (same control as Top to Bottom / Left to Right / Hierarchical). Choosing Radial and clicking Auto-layout runs ELK `radial` instead of `layered`. Direction options stay layered algorithms; Radial ignores the layered direction.
 
 **Center (#29):** if exactly one node is selected on the active canvas, that node is the radial root; otherwise ELK picks the center. Nested containers keep `parentId` nesting; radial applies to the graph ELK already receives (same containment flattening rules as layered).
-
-
 
 ### 4.22 Project templates (P1 — BBR V6, #30)
 
@@ -716,8 +843,6 @@ Add **Radial** as a fourth item in the existing canvas layout dropdown (same con
 
 **Merge (#30):** register project templates **after** bundled ones. Same `_template.id` **overwrites** the bundled entry. Empty / missing `dir` or missing folder → picker unchanged (bundled only). Template picker categories include project categories as extra tabs. Loading a template still strips `_template` before applying to the canvas (existing `loadTemplate` behavior).
 
-
-
 ### 4.23 Docker deploy (P1 — BBR V6, #31)
 
 Make **one documented command** from the **monorepo root** produce a running Studio:
@@ -729,8 +854,6 @@ Make **one documented command** from the **monorepo root** produce a running Stu
 
 Out of scope: CALM Hub in the same compose, GHCR publish, mounting architecture files into the container as a substitute for Open folder.
 
-
-
 ### 4.24 Hidden containment edges (P1 — BBR V6, #32)
 
 Do **not** draw canvas edges for `composed-of` and `deployed-in`. Containment remains visible only as nested boxes (`parentId`). `connects` and `interacts` stay drawn. JSON **keeps** the containment relationships unchanged.
@@ -739,15 +862,15 @@ SVG/PNG export must match the canvas (no containment lines).
 
 **Header icon** on a container node (parent with containment children):
 
-| Containment relationships on that node | Click |
-| -------------------------------------- | ----- |
-| 0 | Icon hidden or disabled |
-| 1 | Select that relationship; properties panel shows `EdgeProperties` (same as selecting the hidden edge) |
-| 2+ | Small menu: `name` or `unique-id` + variant (`composed-of` / `deployed-in`) → then same properties selection |
+
+| Containment relationships on that node | Click                                                                                                        |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 0                                      | Icon hidden or disabled                                                                                      |
+| 1                                      | Select that relationship; properties panel shows `EdgeProperties` (same as selecting the hidden edge)        |
+| 2+                                     | Small menu: `name` or `unique-id` + variant (`composed-of` / `deployed-in`) → then same properties selection |
+
 
 Icon lives in the **container header**, not on child nodes. Does not mark the diagram dirty by itself (selection only).
-
-
 
 ### 4.25 Node-type fog mode (P1 — BBR V6, #33)
 
@@ -758,8 +881,6 @@ Extend R29 with a **third independent** mode (not AND with neighbors/metadata):
 3. **Node type** (V6) — multi-select of `node-type` values **present on the current diagram**; matching nodes stay clear; non-matching nodes **and edges** fogged
 
 Radio still includes Off. Session-only; per-tab state preferred. Clear restores full opacity.
-
-
 
 ### 4.26 Find usage (P1 — BBR V6, #34)
 
@@ -772,8 +893,6 @@ A **hit** is either:
 
 Dialog lists file path, kind (`node` / `relationship`), node `name` or relationship `name`/`unique-id` and variant. Empty state: no usages in other files. Selecting a row **Open** (or double-click) opens/activates the file tab (R15/R2) and focuses: node → select + viewport (R22); relationship → select the corresponding edge (or its container if the edge is hidden by R35). Read-only — does not copy or mutate other files.
 
-
-
 ### 4.27 Merged containment relationships (P1 — BBR V7, #35)
 
 CALM 1.2 already models `composed-of` / `deployed-in` as **one relationship** with `container` + `nodes[]`. Studio today expands that to one canvas edge per child and `flowToCalm` writes **one relationship per child**. V7 round-trips the canonical shape.
@@ -785,42 +904,40 @@ CALM 1.2 already models `composed-of` / `deployed-in` as **one relationship** wi
 - **Properties (R38):** for `composed-of` / `deployed-in`, show **container** and an editable **member list** (`nodes[]`) — add/remove child unique-ids. Removing the last member **deletes** that relationship and un-nests remaining visual children. Do not present this as `connects` source/destination.
 - Header icon (R35): still 1 rel → properties, 2 rels (`composed-of` + `deployed-in`) → menu.
 
-
-
 ### 4.28 Alt+drop / Alt+extract containment (P1 — BBR V7, #36, #37)
 
 **Alt (Option on macOS) is required** to create or remove containment JSON and `parentId`. Plain drag does not nest into a container and does not add/remove `composed-of` / `deployed-in`.
 
 **Alt+drop** node A onto node B (B becomes container):
 
-| Existing containment on B | Action |
-| --- | --- |
-| None | Modal: **Composed of** / **Deployed in**. Creates one relationship (`nodes: [A]`) + `parentId`. Records last-used type for B. |
-| Exactly one variant | Append A to that relationship’s `nodes[]` (idempotent if already listed) + nest. |
-| Both variants | Append to the session **last-used** variant for B. If none recorded this session, show the same type picker. |
 
-Last-used is **in-memory per container `unique-id`**, not written to `.calmrj`.
+| Existing containment on B | Action                                                                                                                        |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| None                      | Modal: **Composed of** / **Deployed in**. Creates one relationship (`nodes: [A]`) + `parentId`. Records last-used type for B. |
+| Exactly one variant       | Append A to that relationship’s `nodes[]` (idempotent if already listed) + nest.                                              |
+| Both variants             | Append to the session **last-used** variant for B. If none recorded this session, show the same type picker.                  |
+
+
+Last-used is **in-memory per container** `unique-id`, not written to `.calmrj`.
 
 **Alt+drag out** of a container: remove A from **every** containment relationship of that parent that lists A. If a relationship’s `nodes[]` becomes empty, delete that relationship. Clear `parentId`. Marks dirty.
 
 Do not change R21 Ctrl+drag duplicate (Ctrl is not Alt). Dropping a **copy** inside a container still nests the copy (#17): no containment rel on the target → same type picker as first Alt+drop; one variant → append to `nodes[]`; both → last-used (else picker).
 
-
-
 ### 4.29 Project settings path pickers (P1 — BBR V7, #41)
 
 In Project settings, path fields are not typed only as text:
 
-| Field | Picker |
-| --- | --- |
+
+| Field                   | Picker                                                              |
+| ----------------------- | ------------------------------------------------------------------- |
 | Spectral ruleset `path` | **File** picker (`showOpenFilePicker`); store project-relative path |
-| `neighbors.searchRoots` | **Directory** picker |
-| `templates.dir` | **Directory** picker |
-| `patterns.dir` | **Directory** picker |
+| `neighbors.searchRoots` | **Directory** picker                                                |
+| `templates.dir`         | **Directory** picker                                                |
+| `patterns.dir`          | **Directory** picker                                                |
+
 
 If the chosen handle is **outside** the open project folder → error, do not write. User may still edit the text field. `naming.patterns.dir` / `.file` stay text (`{{name}}` tokens).
-
-
 
 ### 4.30 CALM CLI patterns in the template picker (P1 — BBR V7, #38–#40, #42)
 
@@ -833,8 +950,6 @@ Picker shows pattern cards alongside bundled/project `_template` cards (distinct
 3. Open a **new untitled tab** with the generated architecture (never overwrite the current tab). User saves via Save As.
 
 Missing/empty `patterns.dir` → no pattern cards (bundled `_template` templates unchanged).
-
-
 
 ```json
 {
@@ -887,11 +1002,538 @@ flowchart TB
 
 
 
+### 4.31 JSON extension packs (P1 — BBR V9)
 
+BBR V9: one definition per extension, reusable across Studio, VS Code, Hub, and CLI, loadable from a file.
+
+**Two documents, not one**
+
+
+| Document                                | Role                                                                      | Example `$id`                                                                                 |
+| --------------------------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Extension pack** (`*.extension.json`) | Tooling catalog: palette labels, colors, icons, `typeId`, container flags | `https://calm.finos.org/extensions/packs/ai.extension.json`                                   |
+| **CALM Standard** (JSON Schema)         | Validates architecture overlay (extra `node-type` values, `metadata`, …)  | ArchiMate: `https://calm.finos.org/extensions/archimate/calm-archimate-extension.schema.json` |
+
+
+The pack **points at** the Standard. It does not embed it. Hosts write `standard.$id` into architecture `$schema` (alongside CALM 1.2 `calm.json`) when the pack is first used — same behavior as today’s `PackDefinition.schemaUrl`.
+
+Canonical schema: `[extensions/calm-extension-pack.schema.json](../../extensions/calm-extension-pack.schema.json)` at the **monorepo root**. One file per pack under `[extensions/packs/](../../extensions/packs/)`. Matching CALM Standard JSON Schema under `[extensions/standards/](../../extensions/standards/)` (`standard.href`). Catalog: `[extensions/index.json](../../extensions/index.json)`. VS Code implementation: [calm-plugins/vscode/docs/prd.md](../../calm-plugins/vscode/docs/prd.md).
+
+**Load from the filesystem (required).** Pack JSON is not compiled into TypeScript. Every host reads `*.extension.json` from disk (Studio: File System Access on the open folder; VS Code / CLI / Hub: native `fs`). A bundled copy in the SPA/VSIX is only a **fallback** when no folder is open.
+
+**Load order (later same** `id` **wins)**
+
+1. Fallback bundled copy of repo-root `extensions/packs/` (palette when no project folder).
+2. Open project root: directory named `extensions/` (same layout as the monorepo: `packs/*.extension.json` or loose `*.extension.json`).
+3. Optional `.calmrj` `extensions.dir` — extra filesystem path, project-relative; directory picker like R40.
+4. Invalid file: warning, skip; other packs still register.
+
+```mermaid
+flowchart LR
+  Fallback[Bundled copy of repo extensions/] --> Loader[JSON pack loader]
+  ProjectRoot["FS: project/extensions/"] --> Loader
+  Extra["FS: .calmrj extensions.dir"] --> Loader
+  Loader -->|AJV vs pack schema| Registry[registerPack]
+  Registry --> Palette[NodePalette]
+  Registry --> Envelope["$schema += standard.$id"]
+```
+
+
+
+**Runtime mapping:** JSON → existing `PackDefinition` (`schemaUrl` = `standard.$id`). Palette, scaffold (`defaults.metadata`, `relationshipDefaults`), and `$schema` envelope consume the registry only — not TypeScript pack modules.
+
+**Core pack:** `standard.$id` is `https://calm.finos.org/release/1.2/meta/calm.json` (no local `href`). First core node writes only that URI (do not duplicate it in a `$schema` array).
+
+**Standards on disk:** every non-core pack has a Standard file at `extensions/standards/{id}.standard.json`. ArchiMate is a copy of the existing overlay schema (`status: published`). Other packs ship a proposed overlay that enumerates pack `node-type` values. Hosts write `standard.$id` into architecture `$schema` even if that URI is not yet published on calm.finos.org; validation uses `standard.href` on the filesystem.
+
+**Relationships:** each pack lists palette relationship types. Core and cloud/tech packs expose the five CALM 1.2 variants (`connects`, `composed-of`, `deployed-in`, `interacts`, `options`). ArchiMate lists ArchiMate relationship names mapped to those variants.
+
+**Do not:** marketplace UI; author/edit Standard JSON Schema in the Studio UI; fetch `standard.$id` from the network in the browser (use `standard.href` / bundled / project schema folders, same as R10).
+
+### 4.32 Hub-compatible layout and container grid (P1 — BBR V8)
+
+BBR V8 (lines 66–90): container children in a **table** (rows and columns) whose bounding box is close to a **square**; painted container size follows the layout/resize bbox; persist layout and colors in the **same JSON Hub and the VS Code plugin already use**; visible relationships as **bezier**; validate with the CALM CLI pattern stack; edit `naming` and `patterns` in Project settings.
+
+**Container child packing**
+
+Today `elkLayout.ts` uses ELK `rectpacking` with `elk.aspectRatio` `99` (DOWN) or `0.01` (RIGHT) — a one-axis strip. V8:
+
+- Arrange **direct children** of a container in a 2D grid (rows and columns), not a single row or column.
+- Choose row/column counts so the nested group’s **width ≈ height** (aspect ratio target **~1**). Empty cells allowed.
+- Applies on auto-layout for that container (including when children have internal `connects` / `interacts` — do not fall back to a one-axis layered strip for the nested group).
+- Nested `parentId` containment is unchanged. Top-level Radial / layered dropdown (R32) still applies to the **root** graph.
+
+**Container visual size (R47)**
+
+The XYFlow node (NodeResizer / ELK `w`/`h`) **is** the graphic. Remove CSS max-size clips that keep the painted header/body smaller than the layout bbox (today: `.label { max-width: 140px }` and any equivalent `max-width` / `overflow: hidden` on the expanded container that prevents the body from filling `width: 100%; height: 100%`). After the user resizes a container, the dashed border, header, and body fill the new size. R9 (minimum 300×200 on promote) still applies.
+
+**Layout persistence — same map as Hub and VS Code (#50)**
+
+Store positions on the **architecture** document, not a Studio-only sidecar:
+
+```json
+{
+  "metadata": {
+    "_layout": {
+      "slp.appcomp-slp": { "x": 2127, "y": -785, "w": 250, "h": 60 }
+    }
+  }
+}
+```
+
+- Key = node `unique-id`. Value = `{ x, y, w, h }` (integers). Same `LayoutMap` as `calm-hub-ui/src/model/layout.ts` and the VS Code plugin (`metadata._layout`).
+- **Write** on every successful document save (and Save all). Include every node currently on the canvas (containers and children).
+- **Read** on open: apply `_layout` to canvas positions/sizes **before** auto-layout. Missing ids get a default placement; extra ids are ignored.
+- Running auto-layout updates canvas positions; the next save overwrites `_layout`.
+- Do **not** call Hub’s server-side layout REST resource from Studio. Hub already reads this map when the architecture JSON is imported.
+
+**Node colors — VS Code `building-block-style` (#51)**
+
+```json
+{
+  "unique-id": "slp.appcomp-slp",
+  "metadata": {
+    "building-block-style": {
+      "background": "#a9e22c",
+      "text": "#6a2216"
+    }
+  }
+}
+```
+
+- Lives on **node** `metadata` (not architecture `metadata`). Properties: color pickers for background and text; omit the object when both are unset.
+- Canvas and SVG/PNG export honor the colors. Hub / VS Code already understand this key (`fidelity-style` is a read-only alias if present).
+
+**Bezier relationships (R50)**
+
+Visible `connects` and `interacts` edges use a **cubic Bezier** line style (XYFlow bezier / `getBezierPath`), including SVG/PNG export. `composed-of` / `deployed-in` stay **hidden** (R35). Obstacle routing (R23) may keep waypoints: segments between waypoints are Bezier, not 90° elbows (#55).
+
+**Pattern validation (R51, #53)**
+
+- Command equivalent: `calm validate -p <pattern> -a <architecture> -u <url-mapping.json>` (and the associated Standard when `$schema` lists it).
+- **Import** `@finos/calm-shared` validate / instantiate helpers — same rule as R41. Do **not** spawn the `calm` CLI in the browser.
+- Entry: Validate toolbar / Problems; user selects a pattern (local `patterns.dir` and, after V8.1, Hub tabs). Core CALM + Spectral (R25) still run.
+- When `.calmrj` `urlMapping.path` is set (R75), pass that map into the shared validator (CLI `-u` semantics). Missing / empty mapping → validate without a map (bundled CALM schemas still apply).
+- Findings appear in Problems; a missing pattern file is a warning, not a crash.
+
+**Project settings — `naming` and `patterns` (R52)**
+
+R26 already stores editable patterns in `.calmrj`; the settings UI is display-only today. V8 adds a structured editor:
+
+- `naming.profile`, `naming.rootDirs`, each `naming.patterns[node-type].dir` / `.file` (text templates with `{{name}}` — still **no** file picker for tokens, #41).
+- `patterns.dir` (existing picker) plus any other keys under the `patterns` object.
+- Save writes `.calmrj`. Invalid JSON / empty required fields → inline error, no write.
+
+```mermaid
+flowchart LR
+  Open[Open architecture] --> Layout["apply metadata._layout"]
+  Layout --> Canvas[XYFlow nodes]
+  Edit[Drag / resize / colors] --> Dirty[dirty tab]
+  Dirty --> Save[Save]
+  Save --> JSON["_layout + building-block-style"]
+  Hub[CALM Hub / VS Code] --> JSON
+```
+
+### 4.33 Hub patterns and document browse (P1 — BBR V8.1)
+
+BBR V8.1: load patterns from a configured CALM Hub; each **namespace is a tab** in the pattern picker; browse and reference Hub elements and diagrams.
+
+**Hub URL resolution (#52)**
+
+1. `.calmrj` `hub.url` if set (project wins).
+2. Else `calmHubUrl` from CALM CLI `~/.calm.json` when the host can read the user home directory (Tauri, Node, VS Code). Same key as `calm init-config`.
+3. Browser SPA **cannot** read `~/.calm.json`. If `hub.url` is unset, Hub tabs are hidden and the UI explains that the project file (or a desktop host) must set the URL.
+
+Optional Project settings field: Hub URL (text; validate absolute `http(s)`). Directory picker does **not** apply.
+
+**Pattern picker tabs (R53)**
+
+```
+[ Local ] [ onebank ] [ finos ] …
+```
+
+- **Local** = R41 `patterns.dir` (and bundled if any).
+- One tab per Hub namespace returned by the Hub API (`GET /calm/namespaces` or equivalent). Failed Hub fetch → toast; Local still works.
+- Hub pattern cards use the same **Pattern** badge and generate dialog as R41 (in-memory instantiate → new untitled tab). Do not overwrite the current tab (#39).
+
+**Browse and reference Hub architectures (R54)**
+
+- Hub catalog UI: namespace → architectures → versions (read-only list).
+- **Insert as reference:** new canvas node (or update selected) with `details.detailed-architecture` set to the Hub architecture URL (the same string Hub already uses in `detailed-architecture`).
+- **Open from glasses:** if the URL host matches the configured Hub, load that version into a **read-only** tab (or switch to an existing Hub tab keyed by URL). Do **not** treat configured Hub URLs as R16 “outside project” infoboxes.
+- Local file paths keep R16 behavior.
+- **Out of scope:** PUT/POST back to Hub; Hub auth UI beyond what the shared Hub client already supports; editing Hub documents in place.
+
+### 4.34 Pattern canvas, generic metadata, and Ctrl-copy freeze (P1/P0 — BBR V8.2)
+
+BBR V8.2: visualize CLI patterns like CALM Hub; graphically edit those patterns; generic metadata for nodes **and** relationships; freeze after Ctrl+duplicate.
+
+**Pattern visualization (R55)**
+
+Open a pattern (picker **Open pattern**, or a dedicated Pattern tab) on a canvas equivalent to Hub `PatternGraph`: nodes and relationships from the pattern JSON Schema (`properties.nodes` prefixItems / const, relationship slots). Read-only until R56. Layout may reuse `_layout` on the pattern document when present.
+
+**Graphical pattern edit (R56)**
+
+- Add/remove/move pattern nodes and relationships on that canvas.
+- Save writes the **pattern JSON Schema file** under `patterns.dir` (File System Access). Round-trip must still be a valid CALM CLI pattern so R41 generate works.
+- Hub-listed patterns: edit a **local copy** (Save As into `patterns.dir`). No Hub write-back (#54).
+
+**Generic metadata (R57)**
+
+Extends R17:
+
+- **Metadata** section on both `NodeProperties` and `EdgeProperties`.
+- Pack JSON Schema fields first (R17). Additional keys: generic object editor (string / number / boolean / nested JSON) so teams can set `building-block-style`, `_layout` is **not** edited here (canvas owns layout).
+- Changes sync model, canvas, and JSON. Reference nodes stay read-only (R18).
+
+**Ctrl+duplicate freeze (R58, P0)**
+
+After Ctrl+drag duplicate (R21) — including when the user confirms the modal and when they use Ctrl+A / copy during the flow — the editor must remain interactive: canvas pointer events, JSON panel typing, undo, and tab switch. Reproduce, add a regression test, and fix the hang (likely a `$effect` / history / selection loop after the copy lands).
+
+### 4.35 Project folders, config overlay, multi-select, and Hub read-only (P1 — BBR V10)
+
+BBR V10: edit the Files-tree directory structure from a **right-click menu on the row under the pointer** (New folder, **New file**, Move); Save As from the selected folder + naming pattern; user-home config under the project file; settings tabs; metadata enums + nested dialog; Shift / marquee multi-select and group layout; **Select / Pan left-button toggle**; **canvas mini-map** (click to pan); arrange container to table; disable bundled packs; open Hub `detailed-architecture` in a locked editor; **resolve canonical artifact URLs** via project `url-mapping.json`.
+
+**Folder create, new file, and move (R59–R60, R71–R72)**
+
+- Folder commands run from a **context menu on the Files-tree row under the pointer** (right-click). The click selects that row first — that is the node the user is on. Click outside or Escape closes the menu. Browser default menu is suppressed only on the Files tree.
+- **New folder** creates under the right-clicked **directory**. Right-click on a **file** → parent directory. Right-click on empty tree / project root → project root. Default name from `naming.patterns` / `naming.rootDirs` (prompt for `{{name}}` when the template needs it). User can edit before create. Writes on disk via File System Access; tree refreshes without a full re-open.
+- **New file** uses the same target directory. A dialog **asks for the file name immediately** (name field empty and focused; placeholder allowed; no Untitled tab first). Empty name / Cancel → no write. Missing `.json` suffix is added. Path separators are rejected. Existing file → overwrite confirm. Writes an **empty CALM architecture** (same envelope as File → New: `$schema` + empty `nodes` / `relationships`) onto disk, refreshes the tree, and **opens the file in a tab**. File → New (Untitled) is unchanged. No extra folder picker in this dialog.
+- **Move** appears on **folder** rows only (including nested folders and files). Confirm overwrite if the destination exists. Open tabs whose files moved keep the same tab identity and update `relativePath` / handles. Warn if the moved tree contains files that are open and dirty.
+- Header keeps Open folder / Reveal / Settings / Hub. **New folder**, **New file**, and **Move** are not header-primary (#63). Drag-move inside the project remains allowed (R60).
+- After the disk move, **rewrite relative file** `details.detailed-architecture` in the project so links still resolve (#61):
+  - Files **outside** the moved tree that pointed **into** it → new relative path from that file to the new location.
+  - Files **inside** the moved tree that pointed **outside** it → new relative path from the file’s new location to the same target.
+  - Two files that moved **together** → recompute relative path (often unchanged).
+  - **Do not** rewrite Hub `http(s)` URLs or paths outside the open project.
+  - Persist rewrites to disk for clean files; patch open tabs in memory (clean tabs save the path rewrite; dirty tabs stay dirty with updated paths). Parse failure → abort the whole move (no half-moved tree).
+
+**Save As defaults (R61)**
+
+When the user chooses Save As (or Untitled save):
+
+- Default **directory** = currently selected Files-tree folder, or the parent of a selected file, else project root.
+- Default **filename** = `naming.patterns[node-type].file` for the primary selected node (or the architecture’s main node-type if one is obvious), with `{{name}}` from the document `name` / `unique-id`. User can still change both.
+
+**User config overlay (R62)**
+
+Same JSON shape as `*.calmrj`.
+
+1. Load **user defaults** (if present).
+2. Overlay the project `*.calmrj`. Project values **win** on conflict. Objects deep-merge; arrays replace when the project key is present (#60).
+
+Browser SPA: no silent `~` read (#52, #59). User picks a defaults file once; persist the handle in IndexedDB (same pattern as extra `extensions.dir`). Desktop / Tauri later: `~/.calmrj` without a picker.
+
+**Settings tabs (R63)**
+
+Project settings (and the user-defaults editor when shown) split into **one tab per top-level config block** (`naming`, `patterns`, `hub`, `extensions`, `validation`, `templates`, `neighbors`, `urlMapping`, …). Empty / unused blocks still get a tab with the existing editor for that object.
+
+**Metadata enums and nested dialog (R64)**
+
+Extends R17 / R57:
+
+- Schema `enum` (and `const` with a small allowed set) → **dropdown**, not a free text field.
+- Nested objects / arrays: properties panel shows a **read-only preview**. **Edit** opens a **dialog** of the same field widgets (enums still dropdowns). Commit writes the nested value; Cancel leaves the model unchanged. `_layout` stays canvas-owned (R48).
+
+**Multi-select and group tools (R65–R66)**
+
+- **Shift+click** toggles a node in the selection (add if absent, remove if present). It does not replace the rest. **Ctrl+drag** remains duplicate (R21) — do not steal Ctrl for multi-select.
+- **Marquee** (Shift held, R76): pointer-down on empty canvas + drag draws a live rectangle; on pointer-up each intersecting node toggles. Visualize the rectangle and candidate nodes during the drag. Without Shift, that drag pans (R76).
+- With 2+ selected nodes (not a Hub read-only tab): **move as a group**; align to a **row** (top / bottom / horizontal axis) or **column** (left / right / vertical axis); **even spacing** in the row or column; **same width**, **same height**, **same width and height**; **arrange as table** (layout container / grid). Edges are not alignment targets.
+
+**Left mouse (R76 — supersedes R73)**
+
+There is no Select/Pan toggle and no Space-pan. See §4.36. Empty-canvas drag pans. Drag on a node moves it. Shift toggles selection (click or marquee). Hub / read-only tabs do not marquee and do not move nodes.
+
+**Canvas mini-map (R74)**
+
+A compact **overview** of the diagram sits on the canvas (bottom-right; does not cover Select/Pan or the alignment toolbar).
+
+- Nodes on the diagram appear on the mini-map. A **mask / rectangle** shows the **current viewport** and updates as the user pans or zooms the main canvas.
+- **Click** a point on the mini-map → the main viewport **pans** so that world position is the **center** of the visible canvas. **Zoom is unchanged.**
+- Dragging the viewport mask (or click-drag on the mini-map) is the same pan — it does not zoom and does not select or move nodes.
+- Visible on editable **and** Hub / read-only tabs (view navigation only). Empty diagrams still show the mini-map; a click still pans.
+- Does not steal Select/Pan, Shift, Ctrl+duplicate, or Files-tree / tab context menus. Not written to `.calmrj`. No hide control and no zoom-from-minimap in V10.
+
+**Arrange container to table (R67)**
+
+On a selected container: **Arrange to table**. Default packing = R46 near-square grid. Optional explicit **rows × columns**. After packing, **resize the container** so children fit (R47 visual size still matches the bbox).
+
+**Disable bundled packs (R68)**
+
+`.calmrj` / user defaults `extensions.disabled: string[]` of **bundled** pack ids. Those packs do not appear in the palette. Core may be disabled. Extra packs from `extensions.dir` are not listed here. If the palette would be empty, show a message; do not auto-re-enable core.
+
+```json
+{
+  "extensions": {
+    "dir": "standards",
+    "disabled": ["aws", "ai"]
+  }
+}
+```
+
+**Hub `detailed-architecture` and locked editors (R69–R70)**
+
+- Any `details.detailed-architecture` whose host matches configured `hub.url` opens in a **Hub editor tab** (glasses, or Open). Do not use the R16 outside-project infobox for those URLs (extends R54).
+- Tabs whose **source is Hub** (architecture or pattern loaded from Hub, not a local file) are **read-only**: canvas, properties, **and JSON**. Palette drop and Hub catalog **Insert** onto that tab are disabled. Local files stay editable; R18 still leaves JSON editable on a **local** file that contains reference stubs.
+
+**URL → local artifact (`urlMapping`, R75)**
+
+When Studio must find a file for a **canonical URL** (`$id`, `$schema` entry, `$ref`, Pattern / Standard URI), it uses a **url-mapping** file — the same contract as `calm validate -u` and CEngineering-App `url-mapping.json`.
+
+`.calmrj` (and user defaults overlay, R62):
+
+```json
+{
+  "urlMapping": { "path": "url-mapping.json" }
+}
+```
+
+- `path` is **project-relative**. Project settings: **file picker** (same rules as R40 — inside project, stored relative). Text field remains editable.
+- Mapping file shape: JSON object, keys = absolute canonical URLs, values = paths **relative to the mapping file** (not to the project root), resolved like shared `readUrlMappingFile`:
+
+```json
+{
+  "https://schemas.difa.creditas.cz/calm/standards/difa-standard.json": "standards/difa-standard.json",
+  "https://schemas.difa.creditas.cz/calm/patterns/difa-architecture-base.json": "patterns/difa-architecture-base.json"
+}
+```
+
+**Resolve order** for an `http(s)` URL:
+
+1. Host matches configured `hub.url` → Hub (R69). **Do not** look up Hub instance URLs in the mapping.
+2. Exact key in the mapping → local file (mapping-file directory + value).
+3. Else → warning; **no network fetch** in the browser (same as R10 / R43). Bundled CALM meta schemas still apply.
+
+**Callers:** pattern validate (R51, CLI `-u`); loading Standard / Pattern / schema `$ref` for validation and metadata forms; any other “artifact by `$id`” lookup in the open project. Missing mapping path, missing file, or invalid JSON → empty map + warning; project load and validate still run.
+
+Do **not** invent a second mapping format. Do **not** edit mapping entries in the settings UI (teams edit the JSON in the repo). Do **not** rewrite Hub catalog URLs.
+
+```
+┌─ Files ───────────────────────────────────────────────┐
+│ org-onebank/                                          │
+│   components-int/     ← right-click                   │
+│     ┌ context menu ─────────────┐                     │
+│     │ New folder…               │                     │
+│     │ New file…                 │                     │
+│     │ Move…                     │                     │
+│     └───────────────────────────┘                     │
+│     c/                                                │
+│       coa.appcomp.json                                │
+└───────────────────────────────────────────────────────┘
+
+┌─ Save As ─────────────────────────────────────────────┐
+│ Folder:  components-int/c/     (from tree selection)  │
+│ File:    coa.appcomp.json      (from naming.patterns) │
+└───────────────────────────────────────────────────────┘
+
+┌─ Config load ─────────────────────────────────────────┐
+│ 1. User defaults (~/.calmrj or granted FSA file)      │
+│ 2. Overlay project *.calmrj  (project wins)           │
+└───────────────────────────────────────────────────────┘
+```
+
+**Out of scope for V10:** git mv; rewriting Hub `http(s)` URLs; Hub PUT/POST; silent home-directory read in the SPA; aligning edges; disabling extra project packs by id; folder rename/delete/copy; OS Explorer; generating a template into New file (empty architecture only); persisting Select/Pan in `.calmrj`; a third zoom mouse tool; mini-map hide/show or zoom-from-minimap; in-app mapping-table editor.
+
+### 4.36 Pointer, Hub tree, file move, edges, and layout (P1 — BBR V11)
+
+BBR V11 (lines 125–132). Replaces the Select/Pan toggle (R73 / #65).
+
+**Pointer (R76)**
+
+- No **Select / Pan** control. No **Space** temporary pan.
+- **No Shift:** click a node selects only that node. Click on empty canvas clears the selection. Drag on empty canvas pans the viewport. Drag on a node moves it. If that node is already in a multi-selection, the group moves. If it is not selected, the drag selects only that node and then moves it.
+- **Shift:** click toggles that node (add if absent, remove if present) and leaves the rest of the selection. Drag on empty canvas draws a live rectangle. On pointer-up, each node that intersects the rectangle toggles the same way. Nodes outside the rectangle stay. The rectangle and the candidates are visible during the drag.
+- Middle-button and right-button drag still pan. Wheel zoom is unchanged. **Ctrl+drag** still duplicates (R21).
+- Hub / read-only tabs: pan and click-to-inspect only. No marquee and no node move (R70).
+- Group tools (R66) are unchanged once two or more nodes are selected.
+
+**Hub tab (R78)** — replaces `HubBrowseDialog`.
+
+Left panel tabs: **Palette | Files | Hub**.
+
+- On open, load **namespaces** only. Hub URL comes from project config, same as today. No `hub.url` → a message to set it, and no request.
+- Expand a namespace → architectures. Expand an architecture → versions. Expand a version → fetch that architecture and list its **nodes** (`name`, icon by `node-type`). One level per expand. A failed row shows an error; the rest of the tree stays.
+- **Drag a node** onto the active **local** diagram. Same stub as Files (R4), except `details.detailed-architecture` is the Hub **version URL**. Copy `name`, `node-type`, `description`. `unique-id` is the source node id.
+- **Double-click a version** opens that architecture in a read-only Hub tab (R69–R70), or activates the tab if it is already open.
+- Drop onto a Hub read-only tab is blocked (R70).
+- The header **Hub** control opens this tab. The modal dialog is removed.
+
+**Move one file (R77)**
+
+Same gestures as folder move (R60, R71): **Move** on the file’s context menu, and drag the file onto another folder in the project.
+
+- If a file with that name already exists at the destination, **abort**. No overwrite prompt. No partial write.
+- An open tab for that file follows the new path. A dirty file warns first; Cancel leaves the disk unchanged (same as R60).
+- Rewrite **relative** `details.detailed-architecture` in other project files and inside the moved file so each link still points at the same target file. Same rules as folder move (#61): `http(s)`, absolute paths, and drive-letter paths stay as written.
+- Do not rewrite `url-mapping.json`.
+- Do not convert non-relative paths on open or on save. New Files-tree references stay file-relative (R4).
+
+**Edges (R79)** — extends R23 and R50.
+
+A container is **not** an obstacle for a relationship when **at least one** endpoint lies inside that container.
+
+- Both ends inside: the path stays inside. It does not leave the container to go around it.
+- One end inside and one outside: the path may cross the container border. It does not walk around the perimeter.
+- Other nodes, and containers that contain **neither** end, stay obstacles.
+- Visible `connects` / `interacts` stay **bezier** between the route points (R50). Containment edges stay hidden (R35).
+
+**JSON must not destroy layout (R80)**
+
+The code panel shows `metadata._layout` and node `building-block-style` whenever they exist. Apply treats the JSON text as the source of truth for those keys.
+
+- If the applied text still has the same `_layout` entry, position and size stay. If it still has the same `building-block-style`, colors stay.
+- If the user deletes `_layout`, stored layout is cleared. Do not copy the previous canvas positions back in.
+- If the user changes a node’s `unique-id` and does not edit that node’s layout entry, re-key `_layout` from the old id to the new id. If the user’s `_layout` already contains both keys, the user’s object wins.
+- Do not run auto-layout on JSON apply.
+
+**Undo on the canvas (R81)**
+
+Diagram edits made **outside** the JSON editor are undoable: move, create, delete, connect, properties, align, containment, palette drop, Files or Hub drop, duplicate.
+
+- **Ctrl+Z** undoes. **Ctrl+Y** and **Ctrl+Shift+Z** redo. macOS **Cmd** does the same.
+- When focus is in the JSON editor, those keys undo **text** only (that path already works). They do not also step the diagram stack.
+- When focus is elsewhere, they step the **diagram** stack of the active tab only (R15).
+- On a Hub read-only tab, diagram undo does nothing.
+- A file or folder move is not on this stack.
+- Today the canvas binding is **Meta+Z** only, so on Windows Ctrl+Z never reaches the diagram. V11 binds **Ctrl** and **Meta**.
+
+**Out of scope for V11:** Select/Pan toggle; Space-pan; Hub modal; migrating absolute paths on save; rewriting `url-mapping.json`; undo of tree moves; straight lines that ignore every obstacle; an overwrite prompt when a moved file’s name exists.
+
+### 4.37 Defining file and Move tree (P1 — BBR V12)
+
+**Problem.** A node is often inserted from a file that only references it. The new stub then points at that intermediate file, so glasses opens a diagram that does not define the node. The Move dialog also asks for a typed path. In a large tree the user has to remember the folder.
+
+**Defining reference (R82)** — extends R4, R28, and R78.
+
+The rule applies when a node is inserted from another document: Files-tree drag, Hub-tree drag, and Find neighbors. It does not apply to a palette drop or to Ctrl+drag inside the same file. Stubs already on the canvas are not rewritten.
+
+Walk `details.detailed-architecture` for that `unique-id`:
+
+1. Start at the node in the document you inserted from.
+2. No `detailed-architecture` → that document is the definition. Stop.
+3. Value is `http(s)` → copy that URL onto the new stub. Do not fetch it. Do not look it up in `url-mapping.json`. Stop.
+4. Value is a relative path → open that file, resolved against the file that holds the stub. Find the same `unique-id`. Repeat from step 2.
+5. Write a **new** relative path from the **current** file to the defining file. Do not copy the stub’s path string as-is.
+6. Missing file, path outside the project, `unique-id` absent in the next file, or a repeated file (cycle) → link the document you inserted from. That is today’s behavior.
+
+A Hub node with no `detailed-architecture` is defined by that Hub version. The stub uses that version URL (R78). A Hub node whose link is relative is followed the same way. If the next document cannot be loaded, fall back to the Hub version URL.
+
+**Move dialog tree (R83)** — extends R60 and R77.
+
+The Move dialog for a **file** and the Move dialog for a **folder** both show the project folder tree, including the project root. Folders only. A file is not a destination.
+
+- Selecting a folder fills the destination-folder field. The name / path text stays and can still be typed.
+- **Move** still confirms. Selecting a folder does not move by itself.
+- Dragging a file or folder onto another folder in the Files tree is unchanged (R77, R60).
+- Abort, dirty-tab warning, and relative-link rewrite stay as they are (R77, R60).
+
+**Out of scope for V12:** a project-wide search for a second definition of the same `unique-id`; turning an `http(s)` link into a local path on insert; click-to-move; picking a file as the destination; namespace URL rewriting (BBR lines 136–137).
+
+### 4.38 Demo UI gate (P1 — V13)
+
+**Problem.** Studio ships marketing demos and FluxNova / OpenGRIS sample templates that clutter day-to-day architecture work. Teams want them off after a project is open, and on only when they explicitly enable demo mode.
+
+**Config (R84)**
+
+Project `.calmrj` only (not user-home overlay):
+
+```json
+{
+  "ui": {
+    "demo": false
+  }
+}
+```
+
+- Missing `ui` or missing `ui.demo` → treat as **`false`**.
+- Default in Create-project / `createDefaultProjectConfig` → `"ui": { "demo": false }`.
+- Project settings: checkbox **Demo** under a UI / Demo section; saving writes `ui.demo`.
+
+**Behavior**
+
+| Context | `ui.demo` effective | Toolbar **Demos** | Template tabs **FluxNova** / **OpenGRIS** |
+| --- | --- | --- | --- |
+| No project open | n/a | **Visible** | **Visible** (bundled Studio categories) |
+| Project open, `false` / omitted | false | **Hidden** | **Hidden** |
+| Project open, `true` | true | **Visible** | **Visible** |
+
+- Hiding applies to **Studio-bundled** template categories `fluxnova` and `opengris` only. Other categories (General, AI Governance, Patterns, Hub, project `templates.dir` categories that are not those two) stay.
+- Do **not** disable FluxNova / OpenGRIS packs in the Palette via this flag.
+- Do **not** delete the Demos control, demo JSON under `/demos`, or template assets — only gate visibility.
+- Closing the project returns to the “no project” row (Demos and those tabs visible again).
+
+**Out of scope for V13:** user-home `ui.demo`; removing demo assets from the build; gating Palette packs; hiding other template categories.
+
+### 4.39 Mermaid export (P1 — V14)
+
+**Problem.** The Export menu and Code panel advertise **calmscript**, but the feature is a stub (“Phase 5”). Architects need a useful text diagram they can paste into Confluence, GitHub, and docs — Mermaid — not a disabled placeholder.
+
+**Replace**
+
+| Surface | Today | V14 |
+| --- | --- | --- |
+| Export menu | `calmscript (.calmscript)` stub download | **Mermaid (.mmd)** and **Mermaid (.md)** |
+| Code panel tabs | **CALM JSON** + disabled **calmscript** | **CALM JSON** + read-only **Mermaid** |
+| `packages/calmscript` | Placeholder package in workspace | **Unchanged** (not deleted; not wired) |
+
+**Diagram type**
+
+- Mermaid **`flowchart`** (default direction `TB`).
+- Each CALM node → one Mermaid node. Id = sanitized `unique-id`. Label = `name` (fallback `unique-id`).
+- Visible relationships (`connects`, `interacts`, …) → edges. Edge label = relationship type or display name when present.
+- Containers (`composed-of` / `deployed-in` nesting on canvas) → **`subgraph`**. Do **not** also draw those containment relationships as edges (same idea as hidden containment edges on canvas, R35).
+- Source = **active tab** persisted architecture (same model as CALM JSON / SVG export). Fog filter does **not** change the Mermaid text.
+
+**Formats (both in Export)**
+
+1. **`.mmd`** — raw Mermaid source only.
+2. **`.md`** — Markdown file whose body is one fenced Mermaid block (opening fence `mermaid`, then the same flowchart text as `.mmd`, then closing fence).
+
+Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `api-gateway.md`), or `architecture.mmd` / `architecture.md` when untitled.
+
+**Code panel Mermaid tab**
+
+- Selectable tab next to **CALM JSON**.
+- Content = same string as the `.mmd` body (no Markdown fence in the panel).
+- **Read-only** (no edit, no round-trip into the model).
+- Updates when the active diagram model changes (same cadence as the JSON panel’s external sync).
+- Escape Mermaid-sensitive characters in labels (`"`, newlines) so the preview stays valid.
+
+**Out of scope for V14:** Mermaid → CALM import; C4 Mermaid diagram kinds; deleting `packages/calmscript`; clipboard-only export as the sole path; live Mermaid render (SVG) inside Studio.
+
+### 4.40 Array properties and pretty nested JSON (P1 — V15)
+
+**Problem.** The properties panel treats many **array** values as a single text field, so architects cannot reliably add, edit, or remove one item. Nested objects / arrays show as a **one-line** `JSON.stringify` preview, which is unreadable for anything beyond a tiny object.
+
+**Surfaces (all property editors that can hold arrays or nested JSON)**
+
+| Surface | Array edit | Nested / object display |
+| --- | --- | --- |
+| Schema-driven `metadata` (`MetadataForm`) | Per-element list when schema or runtime value is an array | Pretty preview for nested groups |
+| Extra / free-form metadata keys | If value is a JSON array or object | Pretty preview; Edit keeps pretty JSON |
+| `NestedMetadataDialog` | Array fields inside the dialog use the same list pattern | Raw JSON textarea stays pretty (`null, 2`) |
+| `customMetadata` | If a value parses as JSON array/object, edit as list / nested — not one opaque string | Pretty when nested |
+| Controls / interfaces | Reuse list pattern where the model is already a list (e.g. requirements); do not regress existing Interfaces rows | n/a unless nested JSON appears |
+
+**Array editing (R86)**
+
+- **Inline** in the properties panel (not a separate Export-style flow): one **row per element**, **Add** and **Remove**.
+- **Empty array:** still show the list header / empty state and **Add** (do not hide until first value).
+- **Primitive items** (`string`, `number`, `boolean`, enum): one control per row (text / number / checkbox / select).
+- **Object items:** each row is a mini-form of known schema fields for `items`, or Expand / Edit into nested fields. Deep/unknown object shape may use a pretty JSON textarea **for that one item** only — never for the whole array as one string.
+- Persist as a real JSON **array** in the model (not a comma-separated string).
+- Read-only / Hub-locked tabs: list is visible, Add/Remove/edit disabled.
+
+**Pretty nested JSON (R86)**
+
+- Panel preview: `JSON.stringify(value, null, 2)` (or equivalent), multi-line, monospace, scroll if tall.
+- Nested edit dialog: always show pretty JSON for raw object/array bodies; do not collapse to one line on open.
+- Do not change `_layout` / `building-block-style` handling (R48, R49, R80).
+
+**Out of scope for V15:** a full tree JSON editor product; YAML; importing Excel lists; changing CALM schema shapes; editing `metadata._layout` via this list UI.
 
 ## 5. Requirements
-
-
 
 ### Iteration 1 — P0
 
@@ -909,8 +1551,6 @@ flowchart TB
 | R9  | As a user I want container to have correct size after type change.                       | P0       | - [ ] After change/promotion to container dimensions ≥ 300×200 (or fit children) - [ ] Nested nodes visually inside container                                                                                                                                                                                                                                                                                                             | Open   |
 
 
-
-
 ### Iteration 2 — P1 (tabs, references, schema)
 
 
@@ -918,13 +1558,11 @@ flowchart TB
 | --- | ----------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
 | R15 | As an architect I want to open diagrams in tabs so I can work with multiple files at once.            | P1       | - [ ] New **not yet open** diagram opens in tab (file panel, Open, drop, demo, reference navigation) - [ ] **Same file again:** no new tab — only activate existing (match `relativePath` or `fileHandle`) - [ ] Active tab drives canvas, properties, and JSON editor - [ ] Tab switch without dialog; dirty state per tab - [ ] **Undo/redo only within active tab** (per-tab history stack) - [ ] Close tab: Save / Don't Save / Cancel dialog on unsaved changes - [ ] Max. **10** tabs; on 11th new file evict **FIFO** (oldest `openedAt`, not LRU) + unsaved guard - [ ] Label = file name + dirty indicator `•` | Open   |
 | R16 | As an architect I want to see glasses on reference node and open target diagram.                      | P1       | - [ ] Node with `details.detailed-architecture` shows glasses icon on canvas - [ ] Tooltip explains it is a reference - [ ] Double-click on glasses (not whole node) - [ ] Target **inside project:** editor tab (new or existing, no duplicate) - [ ] Target **outside project:** infobox "Link leads outside project" + clickable link; click → new **browser** tab (not editor) - [ ] Resolve relative path against current file / project root - [ ] Error when file missing inside project without editor crash                                                                                                    | Open   |
-| R10 | As an architect I want `$schema` written to JSON on first element.                                    | P1       | - [ ] First node from palette adds document header - [ ] Base: `https://calm.finos.org/release/1.2/meta/calm.json` - [ ] Extension URL from `schemaUrl` in that pack's `PackDefinition` - [ ] Round-trip: import → edit → export preserves header                                                                                                                                                                                                                                                                                                                                                                       | Open   |
+| R10 | As an architect I want `$schema` written to JSON on first element.                                    | P1       | - [ ] First node from palette adds document header - [ ] Base: `https://calm.finos.org/release/1.2/meta/calm.json` - [ ] Extension URL from pack `standard.$id` (`schemaUrl` alias) - [ ] Round-trip: import → edit → export preserves header                                                                                                                                                                                                                                                                                                                                                                           | Open   |
 | R11 | As an architect I want new elements to have required fields per schema.                               | P1       | - [ ] New node: `unique-id`, `node-type`, `name`, `description` (default text) - [ ] New relation: `unique-id`, `relationship-type` in correct CALM 1.2 nested shape - [ ] Extension pack: scaffold required fields in `metadata` per pack schema (see R17) - [ ] Validation passes without missing required fields                                                                                                                                                                                                                                                                                                     | Open   |
 | R12 | As an architect I want to reverse relationship direction in properties panel.                         | P1       | - [ ] "Reverse direction" button on selected edge - [ ] `connects`: swap source ↔ destination - [ ] `interacts`: swap actor ↔ nodes - [ ] `composed-of` / `deployed-in`: **swap container ↔ nodes** - [ ] Canvas and JSON update atomically                                                                                                                                                                                                                                                                                                                                                                             | Open   |
 | R17 | As an architect I want to edit node/relationship `metadata` in properties panel per extension schema. | P1       | - [ ] **Metadata** section in `NodeProperties` / `EdgeProperties` (separate from `customMetadata`) - [ ] Form generated from active pack extension JSON Schema (`schemaUrl` / bundled) - [ ] Support `required`, `enum`, nested objects (e.g. `metadata.archimate`) - [ ] Changes sync model, canvas, and JSON panel - [ ] On create from palette: fill all **required** metadata fields with defaults (R11) - [ ] Missing required fields after importing old file: validator warns; UI offers "Fill missing metadata"                                                                                                 | Open   |
 | R18 | As an architect I want reference nodes not editable in properties panel.                              | P1       | - [ ] Detection: `details.detailed-architecture` is non-empty string - [ ] Properties panel **fully read-only** for node and edge with cross-file reference (#13) - [ ] **No exception** — including `details.detailed-architecture`, `name`, `metadata` - [ ] Banner + "Open source" action (R16) - [ ] Properties UI edits do not call `updateNodeProperty` / `onmutate` - [ ] JSON editor remains editable (power user)                                                                                                                                                                                              | Open   |
-
-
 
 
 ### Iteration 3 — P1 (BBR V3 — file panel polish, duplication, layout)
@@ -939,61 +1577,168 @@ flowchart TB
 | R23 | As an architect I want layout without overlapping boxes and edges that avoid nodes.                   | P1       | - [ ] Auto-layout uses measured node dimensions where available (not fixed 180×70 only) - [ ] After layout on bundled reference diagrams: **0** overlapping node bounding boxes among siblings - [ ] **#16 / full R23:** Shared obstacle-aware edge router for all edge types - [ ] Edges do not intersect obstacle interiors (8 px padding) on auto-layout **and** manual placement - [ ] After label resize widens a node, affected edges re-route without running layout - [ ] Pinned / manually dragged nodes participate as obstacles for other edges - [ ] Long labels widen boxes without causing post-layout overlap on reference tests - [ ] Manual verification: `app.architecture.json` → layout → export SVG shows readable spacing - [ ] Manual verification: drag node between two others → connecting edges route around obstacles | Open   |
 
 
-
-
 ### Iteration 4 — P1 (BBR V4 — project file, Spectral rules, extract)
 
 
-| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
-| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| R24 | As an architect I want a `*.calmrj` project file so project settings live with the folder.                      | P1       | - [ ] On Open folder: detect one root `*.calmrj` (case-insensitive) and load it - [ ] Zero files → **Create project** wizard (or skip) - [ ] Multiple → error; do not guess - [ ] JSON format; any filename; writable via FS API - [ ] Stores `validation.rulesets[]`, `naming` profile/patterns, extensible `diagrams` object - [ ] Create seeds bundled profile `cengineering-archimate` (#20)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Open   |
-| R25 | As an architect I want folder Spectral rulesets that supplement core CALM validation.                           | P1       | - [ ] Core CALM schema validation **always** runs - [ ] Enabled ruleset paths from `.calmrj` run via Spectral against at least the active document - [ ] UI to enable/disable ruleset entries; persists to `.calmrj` - [ ] Paths relative to project root - [ ] Missing file → warning, other rules continue - [ ] **No** in-app rule authoring; **no** per-rule toggles (#19)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Open   |
-| R26 | As an architect I want naming/directory conventions in the project so new diagram paths have sane defaults.     | P1       | - [ ] `.calmrj` `naming.patterns` map `node-type` → `dir` + `file` templates - [ ] Bundled default profile `cengineering-archimate` (AppComp / AppServ / Endpoint style paths) - [ ] Patterns editable; not hard-coded as sole layout (#20) - [ ] Unmapped type → Extract dialog with empty path fields + warning (not blocked)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Open   |
-| R27 | As an architect I want to extract a node into its own diagram and leave a reference stub in the parent.         | P1       | - [ ] **Extract to diagram** on selected node (disabled if already a reference stub) - [ ] Modal: folder + filename, defaults from R26; user can edit - [ ] Child file = node + containment descendants + relationships fully inside set - [ ] Parent: stub keeps **same** `unique-id`, sets `details.detailed-architecture` relative path (#21) - [ ] External relationships stay on stub in parent - [ ] Create dirs as needed; overwrite confirm if file exists - [ ] Open child tab after success; Files tree shows new file - [ ] Stub gets glasses (R16) and read-only properties (R18) - [ ] All node types allowed except existing references                                                                                                                                                                                                                                                                                    | Open   |
-
-
+| ID  | User story                                                                                                  | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   | Status |
+| --- | ----------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R24 | As an architect I want a `*.calmrj` project file so project settings live with the folder.                  | P1       | - [ ] On Open folder: detect one root `*.calmrj` (case-insensitive) and load it - [ ] Zero files → **Create project** wizard (or skip) - [ ] Multiple → error; do not guess - [ ] JSON format; any filename; writable via FS API - [ ] Stores `validation.rulesets[]`, `naming` profile/patterns, extensible `diagrams` object - [ ] Create seeds bundled profile `cengineering-archimate` (#20)                                                                                                                                                                                                                                                      | Open   |
+| R25 | As an architect I want folder Spectral rulesets that supplement core CALM validation.                       | P1       | - [ ] Core CALM schema validation **always** runs - [ ] Enabled ruleset paths from `.calmrj` run via Spectral against at least the active document - [ ] UI to enable/disable ruleset entries; persists to `.calmrj` - [ ] Paths relative to project root - [ ] Missing file → warning, other rules continue - [ ] **No** in-app rule authoring; **no** per-rule toggles (#19)                                                                                                                                                                                                                                                                        | Open   |
+| R26 | As an architect I want naming/directory conventions in the project so new diagram paths have sane defaults. | P1       | - [ ] `.calmrj` `naming.patterns` map `node-type` → `dir` + `file` templates - [ ] Bundled default profile `cengineering-archimate` (AppComp / AppServ / Endpoint style paths) - [ ] Patterns editable; not hard-coded as sole layout (#20) - [ ] Unmapped type → Extract dialog with empty path fields + warning (not blocked)                                                                                                                                                                                                                                                                                                                       | Open   |
+| R27 | As an architect I want to extract a node into its own diagram and leave a reference stub in the parent.     | P1       | - [ ] **Extract to diagram** on selected node (disabled if already a reference stub) - [ ] Modal: folder + filename, defaults from R26; user can edit - [ ] Child file = node + containment descendants + relationships fully inside set - [ ] Parent: stub keeps **same** `unique-id`, sets `details.detailed-architecture` relative path (#21) - [ ] External relationships stay on stub in parent - [ ] Create dirs as needed; overwrite confirm if file exists - [ ] Open child tab after success; Files tree shows new file - [ ] Stub gets glasses (R16) and read-only properties (R18) - [ ] All node types allowed except existing references | Open   |
 
 
 ### Iteration 5 — P1 (BBR V5 — neighbors, filter/fog, save all, bulk tab close)
 
 
-| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
-| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| R28 | As an architect I want to find project-wide neighbors of the selected node and add them as references.          | P1       | - [ ] **Find neighbors** in toolbar **and** node context menu (#25) - [ ] Requires one selected node + open project folder - [ ] Scan all project CALM files **except** active diagram; 1 hop; inbound + outbound (#24) - [ ] Dialog: list with filters by node-type and relationship-type; multi-select; Add / Cancel - [ ] New neighbors inserted as R4 references - [ ] Relationships copied into current diagram with **same** `unique-id` (#23); source file unchanged - [ ] Neighbor already on canvas → add missing relationship only - [ ] Idempotent if relationship `unique-id` already present - [ ] Marks diagram dirty                                                                                                                                                                                                                                                                                                      | Open   |
-| R29 | As an architect I want to fog the diagram so only filtered nodes/edges stand out.                               | P1       | - [ ] Filter control on canvas/toolbar - [ ] Mode **Focus neighbors:** selected node + direct 1-hop peers on current diagram; others fogged - [ ] Mode **Metadata:** one key from header/pack schema + one value from values present on diagram - [ ] Fog applies to non-matching **nodes and edges** (#26) - [ ] Session-only; not persisted to `.calmrj` or JSON - [ ] Clear filter restores full opacity - [ ] Per-tab session state preferred                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Open   |
-| R30 | As an architect I want Save all so every dirty tab is written without switching tabs.                           | P1       | - [ ] **Save all** command (toolbar or File menu) - [ ] Saves **dirty tabs only** (#27) - [ ] Path known → save in place - [ ] Untitled → **Save As** then continue; Cancel Save As aborts remainder - [ ] Successful project saves trigger R20 tree refresh - [ ] Aggregate error feedback if any save fails                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Open   |
-| R31 | As an architect I want VS Code–style close left / right / all tabs with one dirty dialog.                       | P1       | - [ ] Tab context menu: Close tabs to the left, Close tabs to the right, Close all - [ ] Close all **includes** current tab (#28) - [ ] Left/right relative to the **clicked** tab - [ ] If close set has dirty tabs → **one** summary dialog: Save all / Don't save / Cancel - [ ] Save all in dialog uses R30 semantics for that subset - [ ] Cancel leaves tab bar unchanged - [ ] Clean tabs close without extra prompts                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Open   |
-
-
+| ID  | User story                                                                                             | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ------------------------------------------------------------------------------------------------------ | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R28 | As an architect I want to find project-wide neighbors of the selected node and add them as references. | P1       | - [ ] **Find neighbors** in toolbar **and** node context menu (#25) - [ ] Requires one selected node + open project folder - [ ] Scan all project CALM files **except** active diagram; 1 hop; inbound + outbound (#24) - [ ] Dialog: list with filters by node-type and relationship-type; multi-select; Add / Cancel - [ ] New neighbors inserted as R4 references - [ ] Relationships copied into current diagram with **same** `unique-id` (#23); source file unchanged - [ ] Neighbor already on canvas → add missing relationship only - [ ] Idempotent if relationship `unique-id` already present - [ ] Marks diagram dirty | Open   |
+| R29 | As an architect I want to fog the diagram so only filtered nodes/edges stand out.                      | P1       | - [ ] Filter control on canvas/toolbar - [ ] Mode **Focus neighbors:** selected node + direct 1-hop peers on current diagram; others fogged - [ ] Mode **Metadata:** one key from header/pack schema + one value from values present on diagram - [ ] Fog applies to non-matching **nodes and edges** (#26) - [ ] Session-only; not persisted to `.calmrj` or JSON - [ ] Clear filter restores full opacity - [ ] Per-tab session state preferred                                                                                                                                                                                   | Open   |
+| R30 | As an architect I want Save all so every dirty tab is written without switching tabs.                  | P1       | - [ ] **Save all** command (toolbar or File menu) - [ ] Saves **dirty tabs only** (#27) - [ ] Path known → save in place - [ ] Untitled → **Save As** then continue; Cancel Save As aborts remainder - [ ] Successful project saves trigger R20 tree refresh - [ ] Aggregate error feedback if any save fails                                                                                                                                                                                                                                                                                                                       | Open   |
+| R31 | As an architect I want VS Code–style close left / right / all tabs with one dirty dialog.              | P1       | - [ ] Tab context menu: Close tabs to the left, Close tabs to the right, Close all - [ ] Close all **includes** current tab (#28) - [ ] Left/right relative to the **clicked** tab - [ ] If close set has dirty tabs → **one** summary dialog: Save all / Don't save / Cancel - [ ] Save all in dialog uses R30 semantics for that subset - [ ] Cancel leaves tab bar unchanged - [ ] Clean tabs close without extra prompts                                                                                                                                                                                                        | Open   |
 
 
 ### Iteration 6 — P1 (BBR V6 — radial, project templates, Docker, containment UI, node-type fog, find usage)
 
 
-| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
-| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| R32 | As an architect I want Radial in the layout menu so hub-and-spoke diagrams lay out without layered directions.  | P1       | - [ ] **Radial** is a fourth option in the existing layout dropdown (#29) - [ ] Auto-layout uses ELK `radial` when Radial is selected - [ ] Exactly one selected node → that node is the radial center - [ ] No / multi selection → ELK chooses the center - [ ] Nested `parentId` containment preserved - [ ] Layered options (Top to Bottom / Left to Right / Hierarchical) unchanged | Open   |
-| R33 | As an architect I want templates from the project folder listed in the picker alongside bundled ones.           | P1       | - [ ] `.calmrj` optional `templates.dir` (project-relative) - [ ] Recursive scan of `.json` with `_template.id` / `name` / `category` (#30) - [ ] Registered **after** bundled; same id **overwrites** bundled - [ ] Invalid files skipped with warning; project load not blocked - [ ] Missing/empty dir → bundled only - [ ] Picker shows project categories; `loadTemplate` still strips `_template` | Open   |
-| R34 | As an operator I want a documented Docker deploy that builds and serves Studio in one command.                  | P1       | - [ ] From monorepo root: compose (or documented equivalent) **build + run** using multi-stage `calm-studio/Dockerfile` (#31) - [ ] SPA reachable on mapped port; nginx healthcheck passes - [ ] README: command, URL, healthcheck, browser-FS limitation - [ ] `Dockerfile.static` either fixed to a documented pre-build flow or clearly secondary - [ ] No Hub service, no GHCR publish in this story | Open   |
-| R35 | As an architect I want containment shown only as nested boxes, with a header icon to edit the relationship.     | P1       | - [ ] Canvas does **not** draw `composed-of` / `deployed-in` edges (#32) - [ ] Nesting via `parentId` unchanged; JSON relationships unchanged - [ ] `connects` / `interacts` still drawn - [ ] SVG/PNG matches canvas (no containment lines) - [ ] Container header icon: 1 rel → select it in properties; 2+ → menu then properties; 0 → hidden/disabled - [ ] Selection does not dirty the diagram | Open   |
-| R36 | As an architect I want to fog the diagram by node type as a third filter mode.                                  | P1       | - [ ] Third **independent** mode **Node type** next to Off / Focus neighbors / Metadata (#33) - [ ] Multi-select of `node-type` values present on the current diagram - [ ] Matching nodes clear; non-matching nodes **and edges** fogged - [ ] Session-only; Clear restores opacity; per-tab state preferred | Open   |
-| R37 | As an architect I want to find where the selected node is used in other project files and open that diagram.    | P1       | - [ ] **Find usage** in toolbar **and** node context menu (#34) - [ ] Requires one selected node + open project - [ ] Scan other project files only (same roots as R28) - [ ] Hits: reference stubs (same `unique-id` + `detailed-architecture`) **and** relationships where the id is an endpoint - [ ] Dialog: path, kind (node / relationship), name/id/variant - [ ] Open/double-click → tab + focus node or select edge (hidden containment → select via R35 icon/container) - [ ] Empty state; read-only (no writes) | Open   |
-
+| ID  | User story                                                                                                     | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Status |
+| --- | -------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R32 | As an architect I want Radial in the layout menu so hub-and-spoke diagrams lay out without layered directions. | P1       | - [ ] **Radial** is a fourth option in the existing layout dropdown (#29) - [ ] Auto-layout uses ELK `radial` when Radial is selected - [ ] Exactly one selected node → that node is the radial center - [ ] No / multi selection → ELK chooses the center - [ ] Nested `parentId` containment preserved - [ ] Layered options (Top to Bottom / Left to Right / Hierarchical) unchanged                                                                                                                                    | Open   |
+| R33 | As an architect I want templates from the project folder listed in the picker alongside bundled ones.          | P1       | - [ ] `.calmrj` optional `templates.dir` (project-relative) - [ ] Recursive scan of `.json` with `_template.id` / `name` / `category` (#30) - [ ] Registered **after** bundled; same id **overwrites** bundled - [ ] Invalid files skipped with warning; project load not blocked - [ ] Missing/empty dir → bundled only - [ ] Picker shows project categories; `loadTemplate` still strips `_template`                                                                                                                    | Open   |
+| R34 | As an operator I want a documented Docker deploy that builds and serves Studio in one command.                 | P1       | - [ ] From monorepo root: compose (or documented equivalent) **build + run** using multi-stage `calm-studio/Dockerfile` (#31) - [ ] SPA reachable on mapped port; nginx healthcheck passes - [ ] README: command, URL, healthcheck, browser-FS limitation - [ ] `Dockerfile.static` either fixed to a documented pre-build flow or clearly secondary - [ ] No Hub service, no GHCR publish in this story                                                                                                                   | Open   |
+| R35 | As an architect I want containment shown only as nested boxes, with a header icon to edit the relationship.    | P1       | - [ ] Canvas does **not** draw `composed-of` / `deployed-in` edges (#32) - [ ] Nesting via `parentId` unchanged; JSON relationships unchanged - [ ] `connects` / `interacts` still drawn - [ ] SVG/PNG matches canvas (no containment lines) - [ ] Container header icon: 1 rel → select it in properties; 2+ → menu then properties; 0 → hidden/disabled - [ ] Selection does not dirty the diagram                                                                                                                       | Open   |
+| R36 | As an architect I want to fog the diagram by node type as a third filter mode.                                 | P1       | - [ ] Third **independent** mode **Node type** next to Off / Focus neighbors / Metadata (#33) - [ ] Multi-select of `node-type` values present on the current diagram - [ ] Matching nodes clear; non-matching nodes **and edges** fogged - [ ] Session-only; Clear restores opacity; per-tab state preferred                                                                                                                                                                                                              | Open   |
+| R37 | As an architect I want to find where the selected node is used in other project files and open that diagram.   | P1       | - [ ] **Find usage** in toolbar **and** node context menu (#34) - [ ] Requires one selected node + open project - [ ] Scan other project files only (same roots as R28) - [ ] Hits: reference stubs (same `unique-id` + `detailed-architecture`) **and** relationships where the id is an endpoint - [ ] Dialog: path, kind (node / relationship), name/id/variant - [ ] Open/double-click → tab + focus node or select edge (hidden containment → select via R35 icon/container) - [ ] Empty state; read-only (no writes) | Open   |
 
 
 ### Iteration 7 — P1 (BBR V7 — merged containment, Alt gestures, path pickers, CLI patterns)
 
 
-| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
-| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| R38 | As an architect I want one composed-of and one deployed-in per container, with properties editing the member list. | P1       | - [ ] At most **one** `composed-of` and **one** `deployed-in` per container `unique-id` (#35) - [ ] Load **and** save merge same-type 1:1 rels: keep first `unique-id` (document order); union `nodes[]`; drop extras (dirty if file changed) - [ ] `flowToCalm` emits `container` + `nodes[]`, not one rel per child - [ ] Properties: container + editable member list (add/remove unique-ids); last member removed → delete rel + un-nest - [ ] Do **not** mix types into one relationship - [ ] Header icon (R35): 1 rel → properties; both types → menu | Open   |
-| R39 | As an architect I want Alt+drop to nest a node and Alt+extract to remove it from composed-of / deployed-in.     | P1       | - [ ] **Alt required** to create or remove containment JSON and `parentId`; plain drag does neither (#37) - [ ] Alt+drop onto node with **no** containment rel → type picker Composed of / Deployed in; create rel `nodes: [child]` + nest; record last-used - [ ] Exactly one variant on target → append child to that `nodes[]` (idempotent) + nest - [ ] Both variants → append to session **last-used** for that container; none this session → same picker (#36) - [ ] Last-used is in-memory `Map<containerId, variant>`, not `.calmrj` - [ ] Alt+drag out → remove child from every parent rel that lists it; empty `nodes[]` → delete that rel; clear `parentId`; dirty - [ ] R21 Ctrl+drag unchanged (Ctrl ≠ Alt); copy dropped in container still nests per #17 using picker / append / last-used | Open   |
-| R40 | As an architect I want to pick directories and files from disk in Project settings instead of typing paths.     | P1       | - [ ] Directory picker: `neighbors.searchRoots`, `templates.dir`, `patterns.dir` (#41) - [ ] File picker: Spectral ruleset `path` (`showOpenFilePicker`) - [ ] Store **project-relative** paths - [ ] Handle outside project folder → error, do not write - [ ] Text field still editable - [ ] `naming.patterns` dir/file templates stay text (`{{name}}`) | Open   |
-| R41 | As an architect I want CALM CLI patterns from the project listed as templates and generated with the existing engine. | P1       | - [ ] `.calmrj` optional `patterns.dir` (project-relative), **separate** from `templates.dir` (#38) - [ ] Recursive scan: JSON Schema patterns (`$schema`/`$id`, `properties.nodes` prefixItems/const) — **not** `_template` files - [ ] Invalid skipped with warning; missing/empty dir → no pattern cards - [ ] Distinct **Pattern** badge in picker - [ ] Options/choices → dialog equivalent to `calm generate` (`CalmChoice`) (#40) - [ ] Generate **in memory** by importing `@finos/calm-shared` (`flattenAllOf`, `selectChoices`, `instantiate`); do **not** spawn CLI; do **not** reimplement instantiate (#42) - [ ] Result opens a **new untitled** tab; never overwrite current tab (#39) | Open   |
+| ID  | User story                                                                                                            | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
+| --- | --------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R38 | As an architect I want one composed-of and one deployed-in per container, with properties editing the member list.    | P1       | - [ ] At most **one** `composed-of` and **one** `deployed-in` per container `unique-id` (#35) - [ ] Load **and** save merge same-type 1:1 rels: keep first `unique-id` (document order); union `nodes[]`; drop extras (dirty if file changed) - [ ] `flowToCalm` emits `container` + `nodes[]`, not one rel per child - [ ] Properties: container + editable member list (add/remove unique-ids); last member removed → delete rel + un-nest - [ ] Do **not** mix types into one relationship - [ ] Header icon (R35): 1 rel → properties; both types → menu                                                                                                                                                                                                                                                | Open   |
+| R39 | As an architect I want Alt+drop to nest a node and Alt+extract to remove it from composed-of / deployed-in.           | P1       | - [ ] **Alt required** to create or remove containment JSON and `parentId`; plain drag does neither (#37) - [ ] Alt+drop onto node with **no** containment rel → type picker Composed of / Deployed in; create rel `nodes: [child]` + nest; record last-used - [ ] Exactly one variant on target → append child to that `nodes[]` (idempotent) + nest - [ ] Both variants → append to session **last-used** for that container; none this session → same picker (#36) - [ ] Last-used is in-memory `Map<containerId, variant>`, not `.calmrj` - [ ] Alt+drag out → remove child from every parent rel that lists it; empty `nodes[]` → delete that rel; clear `parentId`; dirty - [ ] R21 Ctrl+drag unchanged (Ctrl ≠ Alt); copy dropped in container still nests per #17 using picker / append / last-used | Open   |
+| R40 | As an architect I want to pick directories and files from disk in Project settings instead of typing paths.           | P1       | - [ ] Directory picker: `neighbors.searchRoots`, `templates.dir`, `patterns.dir` (#41) - [ ] File picker: Spectral ruleset `path` and `urlMapping.path` (R75) (`showOpenFilePicker`) - [ ] Store **project-relative** paths - [ ] Handle outside project folder → error, do not write - [ ] Text field still editable - [ ] `naming.patterns` dir/file templates stay text (`{{name}}`)                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Open   |
+| R41 | As an architect I want CALM CLI patterns from the project listed as templates and generated with the existing engine. | P1       | - [ ] `.calmrj` optional `patterns.dir` (project-relative), **separate** from `templates.dir` (#38) - [ ] Recursive scan: JSON Schema patterns (`$schema`/`$id`, `properties.nodes` prefixItems/const) — **not** `_template` files - [ ] Invalid skipped with warning; missing/empty dir → no pattern cards - [ ] Distinct **Pattern** badge in picker - [ ] Options/choices → dialog equivalent to `calm generate` (`CalmChoice`) (#40) - [ ] Generate **in memory** by importing `@finos/calm-shared` (`flattenAllOf`, `selectChoices`, `instantiate`); do **not** spawn CLI; do **not** reimplement instantiate (#42) - [ ] Result opens a **new untitled** tab; never overwrite current tab (#39)                                                                                                       | Open   |
 
 
+### Iteration 8 — P1 (BBR V9 — JSON extension packs)
 
-### Iteration 8 — P2
+
+| ID  | User story                                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Status |
+| --- | --------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R42 | As an architect I want each extension pack defined as JSON so Studio, VS Code, Hub, and CLI can share one file. | P1       | - [ ] Pack files validate against `extensions/calm-extension-pack.schema.json` - [ ] Canonical location: **monorepo root** `extensions/packs/` (11 files, including ArchiMate) - [ ] Each pack includes `relationships[]` (five CALM variants, or ArchiMate names mapped to those variants) - [ ] Non-core Standard JSON Schema files in `extensions/standards/` - [ ] Catalog `extensions/index.json` lists `id` + `href` + `standard` - [ ] Runtime `PackDefinition` is populated from JSON **read from the filesystem**, not from `src/packs/*.ts` - [ ] VS Code consumes the **same** files (see plugin PRD); do not invent a second format | Open   |
+| R43 | As an architect I want each pack to reference its CALM Standard so `$schema` on new documents is correct.       | P1       | - [ ] Required `standard.$id` on every pack (CALM Standard JSON Schema URI) - [ ] Non-core packs have `standard.href` to `extensions/standards/*.standard.json` - [ ] R10 uses `standard.$id` (runtime `schemaUrl`) and validates via local `href` - [ ] Core pack: only `https://calm.finos.org/release/1.2/meta/calm.json` (no `href`) - [ ] Other packs: `$schema` array = CALM 1.2 meta + `standard.$id` - [ ] Write the URI even if it is not published on calm.finos.org (no network fetch)                                                                                                                                               | Open   |
+| R44 | As an architect I want extra packs from the project folder so org types appear without a Studio rebuild.        | P1       | - [ ] After Open folder, scan project `extensions/` on disk (File System Access) - [ ] `.calmrj` optional `extensions.dir` (project-relative extra FS path), separate from `templates.dir` / `patterns.dir` - [ ] Recursive `*.extension.json`; invalid skipped with warning - [ ] Same `id` overwrites earlier load - [ ] Directory picker in Project settings (same rules as R40) - [ ] Missing folder → fallback bundled copy only - [ ] Changing a pack file on disk refreshes the palette (re-read after save / explicit refresh; full watch is R14)                                                                                       | Open   |
+| R45 | As an architect I want a bad pack file skipped so the palette still works.                                      | P1       | - [ ] Schema validation before `registerPack` - [ ] Invalid JSON / schema fail → toast or console warning; other packs load - [ ] Duplicate `typeId` across different pack ids → warning                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Open   |
+
+
+### Iteration 9 — P1 (BBR V8 — container grid, Hub layout, bezier, pattern validate)
+
+
+| ID  | User story                                                                                                                    | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Status |
+| --- | ----------------------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R46 | As an architect I want container children laid out in a near-square table, not a single strip.                                | P1       | - [ ] Auto-layout packs **direct children** of a container into **rows and columns** (#56) - [ ] Nested group bounding-box aspect ratio ≈ **1** (not ELK `aspectRatio` 99 / 0.01) - [ ] Works with 1, 4, 9, and 10 children (last row may be short) - [ ] Internal `connects` / `interacts` among children do **not** revert the group to a one-axis strip - [ ] Root Radial / layered dropdown (R32) unchanged - [ ] Nested `parentId` preserved | Open   |
+| R47 | As an architect I want the painted container to grow when I resize its edit bounds.                                           | P1       | - [ ] XYFlow / ELK `w`/`h` equals the visible container (header + body + border) - [ ] No CSS max-size that clips the graphic smaller than the resize handle (remove `.label` `max-width: 140px` clip on expanded containers, or equivalent) - [ ] After NodeResizer, dashed border fills the new box - [ ] R9 minimum 300×200 on promote still holds                                                                                                                                                                                                                                                                                         | Open   |
+| R48 | As an architect I want node positions saved so Hub and the VS Code plugin reopen the same layout.                             | P1       | - [ ] On save: architecture `metadata._layout` map keyed by `unique-id` → `{ x, y, w, h }` (integers) - [ ] Shape matches Hub `LayoutMap` and VS Code plugin (`calm-hub-ui/src/model/layout.ts`) (#50) - [ ] On open: apply `_layout` **before** auto-layout; missing ids default; extra keys ignored - [ ] Auto-layout then save updates `_layout` - [ ] Do **not** call Hub layout REST; do **not** invent a second format - [ ] Round-trip: Studio save → Hub / VS Code shows the same positions | Open   |
+| R49 | As an architect I want node colors saved so Hub and the VS Code plugin show the same fill and text.                           | P1       | - [ ] Properties: background + text color pickers - [ ] Persist on **node** `metadata.building-block-style` `{ background, text }` (#51) - [ ] Omit object when both unset - [ ] Canvas + SVG/PNG use the colors - [ ] Read VS Code alias `fidelity-style` if `building-block-style` absent | Open   |
+| R50 | As an architect I want visible relationships drawn as bezier curves.                                                          | P1       | - [ ] `connects` and `interacts` render as cubic Bezier (XYFlow bezier / `getBezierPath`) - [ ] SVG/PNG export matches canvas - [ ] `composed-of` / `deployed-in` stay hidden (R35) - [ ] If R23 waypoints exist, segments between them are Bezier, not orthogonal elbows (#55)                                                                                                                                                                                                                                                                                                                                                              | Open   |
+| R51 | As an architect I want to validate an architecture against a CALM CLI pattern with the same engine as the CLI.                | P1       | - [ ] Validate action accepts a pattern from `patterns.dir` (Hub patterns in R53) - [ ] Semantics match `calm validate -p` + optional `-u` (R75) + core CALM / Standard from `$schema` - [ ] **Import** `@finos/calm-shared` — do **not** spawn `calm` (#53) - [ ] Findings in Problems; missing pattern → warning - [ ] R25 Spectral still runs                                                                                                                                                                                                                                                                                                                    | Open   |
+| R52 | As an architect I want to edit the project `naming` and `patterns` sections in settings instead of only seeing a summary.     | P1       | - [ ] Project settings editor for `naming.profile`, `rootDirs`, and each `naming.patterns` `dir`/`file` template - [ ] Editor for `.calmrj` `patterns` object (`dir` plus any extra keys) - [ ] Save writes `.calmrj`; Extract (R27) and pattern picker (R41) use new values - [ ] `{{name}}` tokens stay **text** — no file picker (#41) - [ ] Invalid values → inline error, no write | Open   |
+
+
+### Iteration 10 — P1 (BBR V8.1 — Hub patterns and browse)
+
+
+| ID  | User story                                                                                                          | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Status |
+| --- | ------------------------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R53 | As an architect I want Hub patterns listed by namespace as tabs next to local CLI patterns.                         | P1       | - [ ] Hub URL: `.calmrj` `hub.url` overrides; else `~/.calm.json` `calmHubUrl` when home is readable (#52) - [ ] Browser SPA: Hub tabs only if `hub.url` set; never attempt to read `~/.calm.json` - [ ] Pattern picker: **Local** tab + one tab per Hub namespace - [ ] Hub fetch fail → toast; Local still works - [ ] Selecting a Hub pattern uses R41 generate (shared instantiate, new untitled tab, #39) | Open   |
+| R54 | As an architect I want to browse Hub architectures and drop them onto the diagram as references.                    | P1       | - [ ] Catalog UI: namespace → architecture → version (read-only) - [ ] Insert reference: `details.detailed-architecture` = Hub URL - [ ] Glasses on that URL: open **read-only** Hub tab (or switch existing); **not** R16 out-of-project infobox when host matches configured Hub - [ ] Local paths keep R16 - [ ] No Hub PUT/POST of architectures or patterns (#54)                                                                                                                                                                                                | Open   |
+
+
+### Iteration 11 — P1 / P0 (BBR V8.2 — pattern canvas, generic metadata, Ctrl+copy freeze)
+
+
+| ID  | User story                                                                                                       | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                          | Status |
+| --- | ---------------------------------------------------------------------------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R55 | As an architect I want to see a CLI pattern as a diagram the way CALM Hub shows PatternGraph.                    | P1       | - [ ] Open pattern (local file or Hub card) → canvas of pattern nodes/relationships - [ ] Visual parity with Hub `PatternGraph` (nodes, relationships, empty state) - [ ] Read-only until R56 - [ ] Apply `_layout` on the pattern document when present | Open   |
+| R56 | As an architect I want to edit a CLI pattern graphically and save it.                                            | P1       | - [ ] Add/remove/move nodes and relationships on the pattern canvas - [ ] Save writes a valid CALM CLI pattern JSON Schema under `patterns.dir` - [ ] R41 generate still works on the saved file - [ ] Hub patterns: Save As local copy only — no Hub write-back (#54)                                                                                                                                                                       | Open   |
+| R57 | As an architect I want generic `metadata` editing on both nodes and relationships.                               | P1       | - [ ] Metadata section on node **and** relationship properties - [ ] Pack schema fields (R17) plus extra keys (string/number/boolean/nested JSON) - [ ] Sync to model, canvas, JSON - [ ] Do **not** edit `_layout` here (R48 owns it) - [ ] Reference nodes remain read-only (R18)                                                                                                                                                          | Open   |
+| R58 | As a user I want the editor to keep working after I duplicate a node with Ctrl.                                  | P0       | - [ ] After R21 Ctrl+drag duplicate (OK and Cancel), canvas, JSON panel, undo, and tab switch stay responsive - [ ] No hang when Ctrl+A / copy is used during or immediately after the flow - [ ] Regression test covers the freeze path (effect / history / selection loop)                                                                                                                                                                 | Open   |
+
+
+### Iteration 12 — P1 (BBR V10 — folders, config overlay, multi-select, Hub read-only)
+
+
+| ID  | User story                                                                                                              | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R59 | As an architect I want to create a folder in the Files tree using the project naming pattern.                           | P1       | - [ ] **New folder** from the **right-click menu** on the target row (R71) - [ ] Target = right-clicked directory; file row → parent; none → project root - [ ] Default name from `naming.patterns` / `rootDirs` (prompt for `{{name}}` when needed); user can edit - [ ] Creates the directory on disk (FSA); tree shows it without re-open - [ ] Cancel / empty name → no write - [ ] Invalid name (path separators) → inline error                                                                                                  | Open   |
+| R60 | As an architect I want to move a folder including its nested folders and files, with references in other files updated. | P1       | - [ ] **Move** from the **right-click menu** on that folder (R71); drag within the project still allowed - [ ] Descendants move with the folder - [ ] Destination exists → confirm overwrite / cancel - [ ] Open tabs for moved files keep identity; `relativePath` / handles update - [ ] Dirty moved files: warn before move; Cancel leaves disk unchanged - [ ] Rewrite relative file `details.detailed-architecture` in **other** project files and in **moved** files so links still resolve (#61) - [ ] Hub `http(s)` URLs unchanged - [ ] Persist rewrites; patch open tabs; parse failure aborts the whole move - [ ] Files tree refreshes to the new location | Open   |
+| R61 | As an architect I want Save As to start from the selected tree folder and a naming-pattern filename.                    | P1       | - [ ] Default directory = selected Files-tree folder, or parent of selected file, else project root - [ ] Default filename from `naming.patterns` for the primary node-type (or document name / `unique-id`) - [ ] User can change folder and filename before write - [ ] Existing R30 Untitled / overwrite confirm unchanged                                                                                                               | Open   |
+| R62 | As an architect I want user-home defaults loaded first and then overlaid by the project file.                           | P1       | - [ ] Same schema as `*.calmrj` - [ ] Load order: user defaults → project overlay; **project wins** - [ ] Objects deep-merge; arrays replace if the project key is present (#60) - [ ] Browser: explicit picker + persisted FSA handle; **no silent `~` read** (#52, #59) - [ ] Desktop later: `~/.calmrj` without picker - [ ] Missing user file → project only, no error | Open   |
+| R63 | As an architect I want Project settings split into tabs, one per config block.                                          | P1       | - [ ] One tab per top-level `.calmrj` object (`naming`, `patterns`, `hub`, `extensions`, `validation`, `templates`, `neighbors`, `urlMapping`, …) - [ ] Existing editors for those blocks remain (R52, R40, R53, R75) - [ ] Save still writes one project file - [ ] User-defaults editor uses the same tab layout when shown                                                                                                                              | Open   |
+| R64 | As an architect I want schema enums as dropdowns and nested JSON edited in a dialog, with a preview in the panel.       | P1       | - [ ] Pack / CALM schema `enum` → dropdown of allowed values (R17/R57) - [ ] Nested object/array: panel **preview only** (not inline tree edit) - [ ] **Edit** opens a dialog of nested fields; same enum/dropdown rules - [ ] OK writes nested value; Cancel no-op - [ ] Do not edit `_layout` here (R48) - [ ] Reference nodes remain read-only (R18)                                                                                    | Open   |
+| R65 | As an architect I want to multi-select nodes with Shift+click and a drag rectangle.                                     | P1       | - [ ] **Shift+click** toggles the node (add if absent, remove if present); does not replace the rest of the selection - [ ] **Shift+drag** on empty canvas: live rectangle; on pointer-up each intersecting node **toggles** the same way; nodes outside stay - [ ] Rectangle and candidate nodes visualized during drag - [ ] Without Shift, click selects only that node; click on empty canvas clears the selection (R76) - [ ] **Ctrl+drag** still duplicates (R21) — do not use Ctrl as the multi-select modifier - [ ] Marquee disabled on Hub read-only tabs (R70) | Open   |
+| R66 | As an architect I want alignment, even spacing, and same-size tools on a multi-selection.                               | P1       | - [ ] Enabled when **2+** nodes selected on an editable tab - [ ] Move selection as a group - [ ] Align **row**: top / bottom / horizontal axis - [ ] Align **column**: left / right / vertical axis - [ ] Even spacing in the row or column - [ ] Same width; same height; same width **and** height - [ ] Arrange selection as **table** (grid) - [ ] Updates `_layout` on save (R48) - [ ] Edges are not alignment targets                                                                                                                                                | Open   |
+| R67 | As an architect I want to arrange a container’s children into a table and resize the container to fit.                  | P1       | - [ ] **Arrange to table** on selected container - [ ] Default packing = R46 near-square grid - [ ] Optional explicit rows × columns - [ ] Container bbox grows/shrinks so children fit; painted size matches (R47) - [ ] Children stay in the same containment relationship (`nodes[]`)                                                                                                                                                                                                                      | Open   |
+| R68 | As an architect I want to turn off bundled extension packs in configuration.                                            | P1       | - [ ] `extensions.disabled` array of bundled pack `id`s in user and/or project config - [ ] Disabled packs do not appear in the palette - [ ] Core pack **may** be disabled - [ ] Extra packs from `extensions.dir` are **not** targeted by this list - [ ] Empty palette → message; do not auto-re-enable core - [ ] Project overlay still wins (R62)                                                                                                                                                         | Open   |
+| R69 | As an architect I want Hub `detailed-architecture` URLs to open in the editor, not as an outside-project infobox.       | P1       | - [ ] Glasses / Open on a Hub URL (host matches `hub.url`) → Hub tab keyed by URL (or switch existing) - [ ] Applies to browse-inserted **and** typed Hub URLs - [ ] Local relative paths keep R16 - [ ] Load failure → toast; no crash; tab not left half-initialized - [ ] No Hub PUT/POST (#54)                                                                                                                                            | Open   |
+| R70 | As an architect I want Hub-sourced editors fully locked, including JSON, with no Hub insert onto those diagrams.        | P1       | - [ ] Hub-sourced tab (architecture or pattern from Hub, not a local file): canvas, properties, **and JSON** read-only - [ ] Palette drop and Hub catalog **Insert** disabled on that tab - [ ] Local files remain editable; R18 JSON exception still applies to **local** files that contain reference stubs - [ ] Banner explains read-only + source Hub URL                                                                                 | Open   |
+| R71 | As an architect I want folder actions on a right-click menu of the Files-tree node I am on.                             | P1       | - [ ] **Right-click** a folder or file row (or empty tree / root) opens a context menu at the pointer - [ ] The clicked row becomes the selection (the node the user is on) before the menu shows - [ ] Folder row: **New folder**, **New file**, **Move** (R59–R60, R72) - [ ] File row: **New folder**, **New file** (parent dir); **Move** moves that file (R77) - [ ] Empty / root: **New folder**, **New file** at project root; **Move** hidden - [ ] Escape / click outside / left-click elsewhere closes the menu - [ ] Does not steal canvas or tab right-click menus - [ ] Header New folder / Move / New file are not required (#63) | Open   |
+| R72 | As an architect I want to create a new CALM file from the Files-tree menu by naming it in a dialog.                     | P1       | - [ ] **New file** on the same target directory as R59 - [ ] Dialog **asks for the file name immediately** (name field empty and focused; no Untitled tab first; no extra folder picker) - [ ] Cancel / empty name → no write - [ ] Invalid name (path separators) → inline error - [ ] Missing `.json` suffix is added - [ ] Existing path → overwrite confirm / cancel - [ ] Writes an empty CALM architecture (same envelope as File → New) - [ ] Tree refreshes; file **opens in a tab** (or activates if already open) - [ ] File → New Untitled remains unchanged | Open   |
+| R73 | As an architect I want to switch the left mouse button between panning the canvas and selecting nodes.                  | P1       | Superseded by **R76** (V11). Do not ship the Select/Pan toggle or Space-pan. | Superseded |
+| R74 | As an architect I want a mini-map of the canvas so I can jump the current viewport by clicking it.                      | P1       | - [ ] Mini-map visible on the canvas (bottom-right) on editable and Hub/read-only tabs - [ ] Shows diagram nodes and a **mask for the current viewport**; mask tracks pan/zoom - [ ] **Click** a point → main viewport **pans** so that world position is centered; **zoom unchanged** - [ ] Dragging the mask / click-drag on the mini-map also pans; does not select or move nodes - [ ] Empty diagram: mini-map still shown; click still pans - [ ] Does not cover the alignment toolbar (no Select/Pan control — R76) - [ ] Does not steal Shift, Ctrl+duplicate, or canvas context menus - [ ] Not written to `.calmrj`; no hide control; no zoom-from-minimap | Open   |
+| R75 | As an architect I want canonical artifact URLs resolved to local files via a project `url-mapping.json`.                | P1       | - [ ] `.calmrj` `urlMapping.path` (project-relative) points at a mapping file; optional; missing → empty map - [ ] File picker in Project settings (R40 rules: inside project, relative path) - [ ] JSON shape = CALM CLI `-u` / CEngineering-App: `{ "<canonical-url>": "<path relative to mapping file>" }` - [ ] Values resolve against the mapping file directory (shared `readUrlMappingFile` semantics) - [ ] Exact URL key match; used for `$id` / `$schema` / `$ref` / Pattern / Standard lookup and R51 validate (`-u`) - [ ] Hub instance URLs (`hub.url`) skip the map (R69) - [ ] Unmapped URL → warning; **no browser network fetch** - [ ] Invalid / missing mapping file → warning; empty map; load/validate continue - [ ] No in-app table editor for entries; no second mapping format | Open   |
+
+
+### Iteration 13 — P1 (BBR V11 — pointer, Hub tree, file move, edges, layout)
+
+
+| ID  | User story                                                                                                              | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Status |
+| --- | ----------------------------------------------------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R76 | As an architect I want to pan by dragging empty canvas and select by holding Shift, without a Select/Pan toggle.       | P1       | - [ ] No Select/Pan control and no Space-pan - [ ] Drag on empty canvas pans - [ ] Drag on a node moves it; a node already in a multi-selection moves the group; a node that is not selected becomes the only selection and then moves - [ ] Click without Shift selects only that node; click on empty canvas clears the selection - [ ] Shift+click and Shift+marquee toggle membership (R65) - [ ] Middle/right drag still pan; wheel zoom unchanged; Ctrl+drag still duplicates (R21) - [ ] Hub / read-only: pan and click-to-inspect only; no marquee; no node move - [ ] Not written to `.calmrj` | Open   |
+| R77 | As an architect I want to move one file in the Files tree and keep relative links to that file.                        | P1       | - [ ] **Move** on a file row, and drag onto another project folder (R71) - [ ] Destination name exists → abort; no overwrite; no partial write - [ ] Open tab follows the new path; dirty file warns; Cancel leaves disk unchanged - [ ] Rewrite relative `detailed-architecture` in other files and in the moved file so the target file stays the same (#61) - [ ] `http(s)`, absolute, and drive-letter paths unchanged - [ ] Do not rewrite `url-mapping.json` - [ ] Do not convert non-relative paths on open or save - [ ] Folder move (R60) unchanged, including its overwrite confirm | Open   |
+| R78 | As an architect I want to browse CALM Hub as a tree next to Files and drag a node onto the diagram.                    | P1       | - [ ] Left panel tab **Hub** beside Palette and Files - [ ] Open loads **namespaces** only - [ ] Expand: namespace → architectures → versions → nodes (`name` + `node-type` icon) - [ ] One request per expand; a failed row does not clear the tree - [ ] No `hub.url` → message, no request - [ ] Drag a node onto the active **local** diagram: stub like R4. No `detailed-architecture` on that node → that version’s Hub URL. Otherwise R82 chooses the target - [ ] Double-click a version opens a read-only Hub tab, or activates it (R69–R70) - [ ] Drop onto a Hub read-only tab is blocked - [ ] `HubBrowseDialog` is removed; header Hub opens this tab | Open   |
+| R79 | As an architect I want a relationship to take the short path across a container that holds one of its ends.            | P1       | - [ ] A container that contains at least one endpoint is not an obstacle for that relationship - [ ] Both ends inside → path stays inside that container - [ ] One end inside → path may cross the border; it does not walk around the perimeter - [ ] Other nodes and containers that contain neither end stay obstacles (R23) - [ ] Visible `connects` / `interacts` stay bezier between route points (R50) - [ ] Containment edges stay hidden (R35) | Open   |
+| R80 | As an architect I want a JSON edit to keep layout and colors unless I change those keys.                               | P1       | - [ ] Code panel includes `metadata._layout` and `building-block-style` when they exist - [ ] Apply of text that does not change those keys keeps position, size, and colors - [ ] User deletes `_layout` → stored layout is cleared; old canvas positions are not written back - [ ] User changes `unique-id` and does not edit that layout entry → key moves to the new id - [ ] User’s `_layout` wins when it already has both the old and the new key - [ ] JSON apply does not run auto-layout | Open   |
+| R81 | As an architect I want to undo and redo diagram edits that I did not make in the JSON editor.                          | P1       | - [ ] Ctrl+Z undoes and Ctrl+Y / Ctrl+Shift+Z redo when focus is not in the JSON editor; Cmd does the same on macOS - [ ] Covers move, create, delete, connect, properties, align, containment, palette drop, Files/Hub drop, duplicate - [ ] Focus in the JSON editor: those keys undo text only and do not step the diagram stack - [ ] Diagram stack is per active tab (R15) - [ ] Hub read-only: diagram undo does nothing - [ ] File and folder moves are not undone - [ ] Ctrl is bound, not only Meta | Open   |
+
+
+### Iteration 14 — P1 (BBR V12 — defining file, Move tree)
+
+
+| ID  | User story                                                                                         | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | -------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R82 | As an architect I want an inserted reference to point at the file that defines the node.           | P1       | - [ ] Applies to Files-tree drag, Hub-tree drag, and Find neighbors - [ ] Follow relative `detailed-architecture` until the node has none - [ ] The written path is relative from the current file to that defining file - [ ] `http(s)` is copied and not followed; `url-mapping.json` is not consulted - [ ] Missing file, path outside the project, missing `unique-id`, or a cycle → link the document you inserted from - [ ] Hub node with no `detailed-architecture` still uses that version URL (R78) - [ ] Palette drop and same-file Ctrl+drag are unchanged - [ ] Stubs already on the canvas are not rewritten | Open   |
+| R83 | As an architect I want to pick the Move destination from the project folder tree.                  | P1       | - [ ] File Move and folder Move dialogs show the project folder tree, including the root - [ ] Only folders are selectable - [ ] A selected folder fills the destination-folder field; the text field stays editable - [ ] **Move** still confirms; the tree click does not move - [ ] Drag onto a folder in the Files tree is unchanged (R77, R60) - [ ] Name clash, dirty cancel, and relative-link rewrite stay as R77 / R60 | Open   |
+
+
+### Iteration 15 — P1 (V13 — demo UI gate)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R84 | As an architect I want demos and FluxNova/OpenGRIS sample templates hidden unless I turn Demo on. | P1       | - [x] `.calmrj` key `ui.demo` (boolean); missing → `false`; Create project writes `ui.demo: false` - [x] Project settings checkbox **Demo** reads/writes `ui.demo` - [x] Project open + `ui.demo` false/omitted: toolbar **Demos** hidden; Template picker hides bundled categories `fluxnova` and `opengris` - [x] Project open + `ui.demo` true: Demos and those tabs visible - [x] No project open: Demos and those tabs visible - [x] Other template categories unchanged - [x] Palette packs unchanged (not `extensions.disabled`) - [x] Demo assets and load code remain for `ui.demo: true` - [x] User-home config does not define `ui.demo` | Done   |
+
+
+### Iteration 16 — P1 (V14 — Mermaid export)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R85 | As an architect I want to export and preview the active diagram as Mermaid instead of calmscript. | P1       | - [x] Export menu has **Mermaid (.mmd)** and **Mermaid (.md)**; no **calmscript** item - [x] Both downloads are `flowchart` of the active tab (nodes + visible relationships; containers as `subgraph`; no containment edges) - [x] `.md` wraps the same body in a ` ```mermaid ` fence - [x] Code panel: **Mermaid** tab is read-only; shows the `.mmd` body; updates with the model - [x] Disabled **calmscript** tab is removed - [x] No Mermaid → CALM import - [x] `packages/calmscript` remains in the monorepo but is not used by Studio UI | Done   |
+
+
+### Iteration 17 — P1 (V15 — array properties + pretty nested JSON)
+
+
+| ID  | User story                                                                                      | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | ----------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R86 | As an architect I want to edit array properties one value at a time and read nested JSON as formatted text. | P1       | - [x] Array fields in properties (metadata schema/extra, customMetadata when JSON array, controls/interfaces lists as applicable) use an **inline** row-per-element UI with Add/Remove - [x] Primitive and **object** items are editable per element (object = mini-form or per-item pretty JSON; never the whole array as one string) - [x] Empty array shows list + Add - [x] Nested object/array **preview** is pretty-printed multi-line - [x] Nested **Edit** dialog keeps pretty JSON - [x] Model stores a JSON array - [x] Read-only tabs do not mutate - [x] `_layout` / `building-block-style` unchanged | Done   |
+
+
+### Iteration 18 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
@@ -1014,12 +1759,22 @@ flowchart TB
 - CALM 1.2 `composed-of` / `deployed-in` already use `container` + `nodes[]`; Studio’s 1:1 canvas edges are a projection, not the persisted shape (#35).
 - Browser Studio cannot spawn `calm` CLI or call `runGenerate` (Node `fs.writeFileSync`); generation wraps `instantiate` in memory with bundled SchemaDirectory / CALM meta schemas (#42).
 - Last-used containment type is session memory only; a new browser session with both variants on a container shows the type picker again (#36).
-
-
+- Bundled pack JSON in monorepo-root `extensions/` is the source of truth; hosts **load it from the filesystem**. TypeScript `src/packs/*.ts` is a generator only after V9. SPA/VSIX may embed a copy only for when no folder is open.
+- A pack file is not a CALM Standard. `standard.$id` is the Standard’s JSON Schema `$id` (CALM definition of Standard).
+- Architecture `metadata._layout` is the Hub/VS Code `LayoutMap` (unique-id → `{ x, y, w, h }`). Studio does not own a second layout schema (#50).
+- Node colors persist as node `metadata.building-block-style` (`background`, `text`), matching the VS Code plugin (#51).
+- Browser Studio still cannot spawn `calm` CLI; pattern **validate** (R51) imports the same shared stack as generate (R41) (#53).
+- Browser SPA cannot read `~/.calm.json`. Hub features in the browser require `.calmrj` `hub.url` (#52).
+- Hub browse/reference is read-only against the Hub API; graphic pattern edits save to the project filesystem (#54).
+- User defaults use the same JSON shape as `*.calmrj`. Project overlay wins. Browser never reads `~` without a granted handle (#52, #59).
+- Folder move rewrites relative file `detailed-architecture` across the project (inbound and outbound); Hub URLs unchanged; open tabs retarget (#61).
+- Shift is the multi-select modifier; Ctrl+drag remains duplicate (R21). Marquee starts on empty canvas, not on a node (node drag still moves).
+- `extensions.disabled` lists **bundled** pack ids only; extra `extensions.dir` packs stay until removed from disk.
+- Canonical `$id` / `$schema` / `$ref` resolution uses the same `url-mapping.json` object as CALM CLI `-u` (keys = URLs, values relative to the mapping file). Path to that file lives in `.calmrj` `urlMapping.path`. Hub instance URLs are not mapping keys (#67).
+- Mermaid export (R85) is a lossy projection for docs: positions, colors, and extension metadata need not round-trip. Fog does not filter the Mermaid text.
+- Array property editors (R86) persist JSON arrays; object items may use schema fields or per-item pretty JSON, not a single string for the whole array.
 
 ## 6. UX and design
-
-
 
 ### Left panel — toggle
 
@@ -1039,27 +1794,23 @@ flowchart TB
 └─────────────────────────┘
 ```
 
-
-
 ### File panel — interactions
 
 
-| Action               | Behavior                                                                                               |
-| -------------------- | ------------------------------------------------------------------------------------------------------ |
-| Single-click file    | Select (highlight)                                                                                     |
-| Double-click file    | New tab, or **switch** to existing for same file (no duplicate)                                        |
-| Drag node to canvas  | Create reference only from **another** file (self-ref forbidden)                                       |
-| Expand file          | Lazy load nodes (parse JSON)                                                                           |
-| Double-click glasses | Inside project: editor tab; outside project: infobox + browser link (R16)                              |
-| **Reveal in tree**   | If Palette active → switch to Files; expand ancestors, scroll to active tab file, highlight (R19, #18) |
-| After **Save**       | Refresh node preview list for saved file if in project (R20)                                           |
-| Open folder          | Load `*.calmrj` or offer Create project (R24)                                                          |
-| **Extract to diagram** | Context menu on node → path dialog → child file + parent stub (R27)                                  |
-| **Find neighbors**     | Toolbar + node context menu → dialog → add references + copy relationships (R28)                     |
-| **Find usage**         | Toolbar + node context menu → dialog of stubs + rel endpoints in other files → open + focus (R37)    |
-| **Save all**           | Toolbar / File menu → dirty tabs only; Untitled → Save As (R30)                                      |
-
-
+| Action                 | Behavior                                                                                               |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ |
+| Single-click file      | Select (highlight)                                                                                     |
+| Double-click file      | New tab, or **switch** to existing for same file (no duplicate)                                        |
+| Drag node to canvas    | Create reference only from **another** file (self-ref forbidden)                                       |
+| Expand file            | Lazy load nodes (parse JSON)                                                                           |
+| Double-click glasses   | Inside project: editor tab; outside project: infobox + browser link (R16)                              |
+| **Reveal in tree**     | If Palette active → switch to Files; expand ancestors, scroll to active tab file, highlight (R19, #18) |
+| After **Save**         | Refresh node preview list for saved file if in project (R20)                                           |
+| Open folder            | Load `*.calmrj` or offer Create project (R24)                                                          |
+| **Extract to diagram** | Context menu on node → path dialog → child file + parent stub (R27)                                    |
+| **Find neighbors**     | Toolbar + node context menu → dialog → add references + copy relationships (R28)                       |
+| **Find usage**         | Toolbar + node context menu → dialog of stubs + rel endpoints in other files → open + focus (R37)      |
+| **Save all**           | Toolbar / File menu → dirty tabs only; Untitled → Save As (R30)                                        |
 
 
 ### Find neighbors dialog (V5, R28)
@@ -1079,8 +1830,6 @@ flowchart TB
 - Scan excludes active diagram; 1 hop both directions.
 - Already-on-canvas neighbors: Add only missing relationship.
 
-
-
 ### Diagram filter / fog (V5, R29)
 
 ```
@@ -1095,8 +1844,6 @@ flowchart TB
 - Matching nodes/edges full opacity; others fogged (including edges).
 - Session-only; not persisted.
 - **Type** mode is independent of Focus neighbors / Metadata (R36).
-
-
 
 ### Find usage dialog (V6, R37)
 
@@ -1115,8 +1862,6 @@ flowchart TB
 - Scan excludes active diagram (same roots as R28).
 - Open focuses the stub node or selects the relationship (R35 if containment edge is hidden).
 
-
-
 ### Containment type picker (V7, R39)
 
 ```
@@ -1132,8 +1877,6 @@ flowchart TB
 
 - Shown on **first** Alt+drop onto a node with no containment rel, or when **both** variants exist and there is no session last-used for that container.
 - Cancel leaves diagram unchanged (no `parentId`, no relationship).
-
-
 
 ### Containment properties — member list (V7, R38)
 
@@ -1151,8 +1894,6 @@ flowchart TB
 - Not `connects` source/destination. Removing the last member deletes the relationship and un-nests remaining visual children.
 - Swap (R12) still swaps `container` with the whole `nodes[]` list.
 
-
-
 ### Project settings path pickers (V7, R40)
 
 ```
@@ -1166,8 +1907,6 @@ flowchart TB
 
 - Stored value is project-relative. Outside project → error, no write.
 - `naming.patterns` templates stay text (`{{name}}`).
-
-
 
 ### Pattern generate (V7, R41)
 
@@ -1184,7 +1923,219 @@ flowchart TB
 - Template picker shows pattern cards with a **Pattern** badge next to `_template` cards.
 - Generate uses imported `@finos/calm-shared` instantiate (not CLI spawn). Result → **new untitled** tab.
 
+### Project settings — naming and patterns (V8, R52)
 
+```
+┌─ Project settings ────────────────────────────────────┐
+│ Naming profile: [cengineering-archimate________]      │
+│ rootDirs.application-component: [application-components]
+│                                                       │
+│ Patterns (node-type → dir / file)                     │
+│  archimate:applicationComponent                       │
+│    dir:  [appcomp.{{name}}______________]             │
+│    file: [{{name}}.appcomp.json_________]             │
+│  [+ Add pattern]                                      │
+│                                                       │
+│ patterns.dir: [patterns]              [Browse…]       │
+│ Hub URL:      [http://localhost:8080]                 │  ← V8.1, R53
+│                                      [Save]           │
+└───────────────────────────────────────────────────────┘
+```
+
+- `{{name}}` tokens stay text. Hub URL is a text field (absolute `http(s)`).
+
+### Pattern picker — Hub namespace tabs (V8.1, R53)
+
+```
+┌─ Templates / patterns ────────────────────────────────┐
+│ [ Local ] [ onebank ] [ finos ]                       │
+│  ┌ Pattern ┐  ┌ Pattern ┐                             │
+│  │ trades  │  │ payments│                             │
+└───────────────────────────────────────────────────────┘
+```
+
+- Local tab = `patterns.dir`. Other tabs = Hub namespaces. Generate still opens a new untitled architecture tab (R41).
+
+### Hub browse (V8.1, R54)
+
+```
+┌─ CALM Hub ────────────────────────────────────────────┐
+│ Namespace: [onebank ▼]                                │
+│ Architecture          Version                         │
+│  coa.appcomp          1.0.1                           │
+│  slp.appcomp          1.0.0     [Insert reference]    │
+└───────────────────────────────────────────────────────┘
+```
+
+- Insert sets `details.detailed-architecture` to the Hub URL. Glasses open a read-only Hub tab.
+
+### Files tree folders, new file, and Save As (V10, R59–R61, R71–R72)
+
+```
+┌─ Files ───────────────────────────────────────────────┐
+│ 📁 org-onebank/                                       │
+│    📁 components-int/          ← right-click          │
+│       ┌ New folder… ────────────────────────────────┐ │
+│       │ New file…                                   │ │
+│       │ Move…                                       │ │
+│       └─────────────────────────────────────────────┘ │
+│       📁 c/                                           │
+│          📄 coa.appcomp.json                          │
+└───────────────────────────────────────────────────────┘
+
+┌─ New file ────────────────────────────────────────────┐
+│ File name: [________________]  ← focused, empty       │
+│                              [Cancel]  [Create]       │
+└───────────────────────────────────────────────────────┘
+
+┌─ Save As ─────────────────────────────────────────────┐
+│ Folder: [components-int/c/     ▼]  (tree selection)   │
+│ File:   [coa.appcomp.json       ]  (naming.patterns)  │
+│                              [Cancel]  [Save]         │
+└───────────────────────────────────────────────────────┘
+```
+
+- New folder / New file / Move write through File System Access; tree refreshes in place. Entry is the **right-click menu on that row** (R71–R72).
+- New file asks for the name immediately, writes an empty CALM architecture, and opens the tab. File → New Untitled is unchanged (#64).
+- After move, rewrite relative `detailed-architecture` in other files and in moved files so links still resolve. Hub URLs unchanged (#61).
+
+### Project settings tabs (V10, R63)
+
+```
+┌─ Project settings ────────────────────────────────────┐
+│ [naming] [patterns] [hub] [extensions] [validation] … │
+│                                                       │
+│  (editor for the selected block)                      │
+└───────────────────────────────────────────────────────┘
+```
+
+### Metadata nested dialog (V10, R64)
+
+```
+┌─ Properties — Metadata ───────────────────────────────┐
+│ layer:     [Business        ▼]   ← schema enum        │
+│ archimate: { … }  [preview]  [Edit…]                  │
+└───────────────────────────────────────────────────────┘
+
+┌─ Edit nested metadata ────────────────────────────────┐
+│ viewpoint: [Application     ▼]                        │
+│ … nested fields …                                     │
+│                              [Cancel]  [OK]           │
+└───────────────────────────────────────────────────────┘
+```
+
+### Pointer, multi-select, and mini-map (V11, R65–R67, R74, R76)
+
+```
+┌─ Canvas ──────────────────────────────────────────────┐
+│  (no Select/Pan toggle)              ┌ mini-map ───┐  │
+│                                      │  ▢ nodes     │  │
+│   drag empty → pan                   │  ┌viewport┐  │  │
+│   drag node  → move                  │  └────────┘  │  │
+│   Shift+drag empty → toggle marquee  └ click → pan ─┘  │
+└───────────────────────────────────────────────────────┘
+```
+
+- No Select/Pan control and no Space-pan (R76).
+- Shift+click and Shift+marquee **toggle** membership. The marquee shows a live rectangle and highlighted candidates.
+- Group toolbar when 2+ selected: align row/column/axis, even spacing, same size, arrange as table.
+- Container **Arrange to table**: default R46 grid or rows × columns; container resizes to fit.
+- Hub / read-only tabs: pan and click-to-inspect only.
+- Mini-map (bottom-right): current viewport mask; **click** pans the main view to that point; zoom unchanged (R74).
+
+### Hub tab (V11, R78)
+
+```
+┌─ Hub ─────────────────────────────────────────────────┐
+│ ▸ onebank          (namespaces on open)              │
+│   ▸ coa                                              │
+│       ▸ 1.0.0          double-click → read-only tab  │
+│           coa   drag → reference on the local diagram│
+└───────────────────────────────────────────────────────┘
+```
+
+### Move dialog (V12, R83)
+
+```
+┌─ Move file ───────────────────────────────────────────┐
+│ Destination path   [ coa.comp.architecture.json     ] │
+│ Destination folder [ org/components-int/c           ] │
+│ ┌ folders ──────────────────────────────────────────┐ │
+│ │ ▸ (project root)                                  │ │
+│ │   ▾ org                                           │ │
+│ │       components-int                              │ │
+│ └───────────────────────────────────────────────────┘ │
+│                              [Cancel]  [Move]         │
+└───────────────────────────────────────────────────────┘
+```
+
+- The same tree is on the folder Move dialog. Folders and the project root only.
+- A click fills the folder field. **Move** confirms.
+
+### Demo UI (V13, R84)
+
+```
+.calmrj → "ui": { "demo": false }     // default after Create project / omit
+
+No project open     → Demos button ON; FluxNova + OpenGRIS tabs ON
+Project, demo false → Demos button OFF; those two tabs OFF
+Project, demo true  → Demos button ON; those two tabs ON
+```
+
+- Project settings: checkbox **Demo**.
+- Palette packs and other template categories unchanged.
+
+### Mermaid export and preview (V14, R85)
+
+```
+Export ▾
+  … CALM / SVG / PNG …
+  Mermaid (.mmd)     ← raw flowchart
+  Mermaid (.md)      ← ```mermaid fence
+  (no calmscript)
+
+Code panel
+  [ CALM JSON ] [ Mermaid ]     ← Mermaid = read-only; calmscript tab gone
+```
+
+- Same flowchart body for panel, `.mmd`, and the fenced `.md` content.
+- Containers → subgraphs; containment edges not drawn as Mermaid edges.
+
+### Array properties + pretty nested JSON (V15, R86)
+
+```
+Metadata / properties
+  tags[]
+    [0]  [prod________]  [−]
+    [1]  [pci_________]  [−]
+    [ + Add ]
+
+  archimate (nested)
+    {
+      "layer": "Application",
+      "element": "…"
+    }                         ← multi-line pretty
+    [ Edit… ]
+```
+
+- Object array item: mini fields per row, or Expand for that index.
+- Empty array: header + Add still visible.
+
+### Hub read-only tab (V10, R69–R70)
+
+- Banner: “Read-only — loaded from CALM Hub”. JSON editor non-editable. Hub Insert and palette drop disabled.
+
+### Pattern canvas (V8.2, R55–R56)
+
+```
+┌─ Pattern: trades-api ─────────────────────────────────┐
+│  [Save]  (writes patterns.dir JSON Schema)            │
+│  ┌ node ┐     bezier      ┌ node ┐                    │
+│  │  A   │ ─────────────── │  B   │                    │
+└───────────────────────────────────────────────────────┘
+```
+
+- Hub PatternGraph parity for layout of pattern nodes/relationships. Hub-sourced patterns: Save As into `patterns.dir`.
 
 ### Ctrl+drag duplicate modal (V3, R21)
 
@@ -1202,8 +2153,6 @@ flowchart TB
 - OK creates copy at drop position; if inside container, nests copy with containment edge (#17).
 - Cancel aborts.
 
-
-
 ### Extract to diagram modal (V4, R27)
 
 ```
@@ -1217,8 +2166,6 @@ flowchart TB
 
 - Defaults from `.calmrj` naming; user may edit both fields.
 - Extract writes child, rewrites parent stub, opens child tab.
-
-
 
 ### Diagram tabs (P1)
 
@@ -1235,25 +2182,23 @@ flowchart TB
 ```
 
 
-| Action                 | Behavior                                             |
-| ---------------------- | ---------------------------------------------------- |
-| Click tab              | Activate diagram; JSON panel switches to its content |
-| Open already open file | **Do not add** tab — only switch to existing         |
-| × on tab               | Close; if dirty → Save / Don't Save / Cancel dialog  |
-| Open 11th **new** file | Close oldest tab (FIFO) + unsaved guard              |
-| Ctrl+Z / Ctrl+Y        | Undo/redo **active tab only** (per-tab history)      |
-| New diagram (no file)  | Tab "Untitled" or similar label                      |
-| Right-click tab        | Close / Close left / Close right / Close all (R31)   |
-| Close all              | Includes current tab; one summary dirty dialog (#28) |
-| **Save all**           | Dirty tabs only; Untitled → Save As (R30)            |
-| Layout dropdown        | Top to Bottom / Left to Right / Hierarchical / **Radial** (R32) |
-| **Find usage**         | Toolbar + node context menu (R37)                    |
-| Container header icon  | Load hidden containment relationship into properties (R35) |
-| **Alt+drop** on node   | Nest into target; type picker / append / last-used (R39) |
-| **Alt+drag out**       | Un-nest; remove child from containment `nodes[]` (R39) |
+| Action                 | Behavior                                                                         |
+| ---------------------- | -------------------------------------------------------------------------------- |
+| Click tab              | Activate diagram; JSON panel switches to its content                             |
+| Open already open file | **Do not add** tab — only switch to existing                                     |
+| × on tab               | Close; if dirty → Save / Don't Save / Cancel dialog                              |
+| Open 11th **new** file | Close oldest tab (FIFO) + unsaved guard                                          |
+| Ctrl+Z / Ctrl+Y        | Undo/redo **active tab only** (per-tab history)                                  |
+| New diagram (no file)  | Tab "Untitled" or similar label                                                  |
+| Right-click tab        | Close / Close left / Close right / Close all (R31)                               |
+| Close all              | Includes current tab; one summary dirty dialog (#28)                             |
+| **Save all**           | Dirty tabs only; Untitled → Save As (R30)                                        |
+| Layout dropdown        | Top to Bottom / Left to Right / Hierarchical / **Radial** (R32)                  |
+| **Find usage**         | Toolbar + node context menu (R37)                                                |
+| Container header icon  | Load hidden containment relationship into properties (R35)                       |
+| **Alt+drop** on node   | Nest into target; type picker / append / last-used (R39)                         |
+| **Alt+drag out**       | Un-nest; remove child from containment `nodes[]` (R39)                           |
 | Template picker        | Bundled + project `_template` + **Pattern** cards from `patterns.dir` (R33, R41) |
-
-
 
 
 ### Reference node — glasses (P1)
@@ -1283,8 +2228,6 @@ flowchart TB
 - Link shows raw `detailed-architecture` value (or absolute URL after resolution).
 - **Do not** `fetch` or `showDirectoryPicker` for targets outside selected folder.
 
-
-
 ### Properties — reverse direction (P1)
 
 On selected edge in `EdgeProperties`, swap button (↔) with label by variant:
@@ -1296,8 +2239,6 @@ On selected edge in `EdgeProperties`, swap button (↔) with label by variant:
 | `interacts`   | Swap `actor` ↔ `nodes`        |
 | `composed-of` | Swap `container` ↔ `nodes`    |
 | `deployed-in` | Swap `container` ↔ `nodes`    |
-
-
 
 
 ### Properties — metadata (P1, R17)
@@ -1317,8 +2258,6 @@ On selected edge in `EdgeProperties`, swap button (↔) with label by variant:
 └─────────────────────────────────────┘
 ```
 
-
-
 ### Properties — reference node read-only (P1, R18)
 
 ```
@@ -1332,53 +2271,81 @@ On selected edge in `EdgeProperties`, swap button (↔) with label by variant:
 └─────────────────────────────────────┘
 ```
 
-
-
 ### Wireframes / prototype
 
 TBD — Figma link after review.
 
 ## 7. Technical aspects
 
-
-
 ### Affected modules
 
 
-| Module                         | File(s)                                                                        | Change                                                                                          |
-| ------------------------------ | ------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
-| File explorer (new)            | `apps/studio/src/lib/explorer/`                                                | FileTreePanel, folder scan, node preview, handle persist (IndexedDB)                            |
-| **Reveal + save refresh (V3)** | `FileExplorerPanel.svelte`, `+page.svelte` (`handleSave`)                      | R19 reveal button; R20 post-save `loadCalmNodesForFile`                                         |
-| **Duplicate modal (V3)**       | `CalmCanvas.svelte`, `DuplicateNodeDialog.svelte` (new), `calmModel.svelte.ts` | Ctrl+drag detection; relationship clone in current file only (R21)                              |
-| **Reference focus (V3)**       | `+page.svelte` (`handleNavigateReference`), `CalmCanvas.svelte`                | Post-open select + `fitView` by `unique-id` (R22)                                               |
-| **Layout (V3)**                | `elkLayout.ts`, `rectangleNodeSize.ts`, `edgeRouting/` (new), edge components  | Measured dims → ELK; obstacle router shared by all edges (R23, #16)                             |
-| **Project + extract (V4)**     | `apps/studio/src/lib/project/` (new), validation Spectral bridge, Extract dialog | Load/create `.calmrj`; ruleset enable; naming resolve; extract subgraph (R24–R27)               |
-| **Find neighbors (V5)**        | `apps/studio/src/lib/neighbors/` (new), dialog, project scan                     | 1-hop scan excl. active file; R4 insert + copy rel same `unique-id` (R28)                       |
-| **Diagram filter/fog (V5)**    | canvas overlay / toolbar filter, edge+node opacity                               | Session focus-neighbor + single metadata filter (R29)                                           |
-| **Save all + bulk close (V5)** | TabBar context menu, `+page.svelte` save/close orchestration                     | Save dirty only; Close left/right/all + summary dialog (R30–R31)                                |
-| **Radial layout (V6)**         | `elkLayout.ts`, canvas toolbar dropdown                                          | ELK `radial`; selected node = center (#29, R32)                                                 |
-| **Project templates (V6)**     | `templates/registry.ts`, `.calmrj` `templates.dir`, TemplatePicker               | Merge after bundled; same id overwrites (#30, R33)                                              |
-| **Docker (V6)**                | `calm-studio/Dockerfile`, `docker-compose.yml`, README                           | Multi-stage from monorepo root; healthcheck; docs (#31, R34)                                    |
-| **Containment UI (V6)**        | `projection.ts` / canvas edges, container node header, `EdgeProperties`          | Hide `composed-of`/`deployed-in` lines; header icon → properties (#32, R35)                     |
-| **Node-type fog (V6)**         | canvas/toolbar filter (R29 control)                                              | Third independent mode; multi-select types on diagram (#33, R36)                                |
-| **Find usage (V6)**            | `apps/studio/src/lib/usage/` (new), reuse project scan                           | Stubs + rel endpoints excl. active file; open + focus (#34, R37)                                |
-| **Merged containment (V7)**    | `projection.ts` (`flowToCalm` / `calmToFlow`), `EdgeProperties`                  | Merge 1:1 → `nodes[]` on load/save; member-list properties (#35, R38)                           |
-| **Alt containment (V7)**       | `CalmCanvas.svelte`, `containment.ts`                                            | Alt-only nest/un-nest; type picker; last-used map (#36, #37, R39)                               |
-| **Path pickers (V7)**          | Project settings UI, File System Access                                          | Directory/file pickers; project-relative; reject outside (#41, R40)                             |
-| **CLI patterns (V7)**          | Template picker, `.calmrj` `patterns.dir`, wrap `@finos/calm-shared` instantiate | Pattern cards; choices dialog; in-memory generate; new untitled tab (#38–#40, #42, R41)         |
-| **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                    | TabBar, per-tab model/canvas state, FIFO limit 10, close/evict guards                           |
-| Layout                         | `apps/studio/src/routes/+page.svelte`                                          | Palette/Files toggle, TabBar, active tab → canvas + JSON                                        |
-| JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                | Fix selection + cursor; bind to active tab                                                      |
-| **Reference UI**               | `apps/studio/src/lib/canvas/nodes/*.svelte`, `projection.ts`                   | Glasses icon, `isReference`, navigation to `detailed-architecture`                              |
-| Containment                    | `apps/studio/src/lib/canvas/containment.ts`, `CalmCanvas.svelte`               | Alt+drop / Alt+extract; sizing; no nest on plain drag (R39)                                     |
-| Export                         | `apps/studio/src/lib/io/export.ts`, `exportImagePrep.ts`                       | CALM round-trip; SVG/PNG capture; **do not restrict** `includeStyleProperties` in html-to-image |
-| Model merge (export)           | `apps/studio/src/lib/stores/calmModel.svelte.ts`, `projection.ts`              | `buildPersistedArchitecture`, `getExportJson`, `flowToCalm` / `calmToFlow`                      |
-| Model store (P1)               | `apps/studio/src/lib/stores/calmModel.svelte.ts`                               | Document envelope (`$schema`)                                                                   |
-| Properties (P1)                | `NodeProperties.svelte`, `EdgeProperties.svelte`, `MetadataForm.svelte` (new)  | Schema-driven `metadata` editor; read-only reference mode (R17, R18)                            |
-| Metadata scaffold (P1)         | `calmModel.svelte.ts`, `CalmCanvas.svelte`, `projection.ts`                    | Default `metadata` on create from pack schema                                                   |
-| Extensions (P1)                | `packages/extensions/src/packs/archimate.ts`, `archimateMetadataDefaults`      | `schemaUrl`; lookup `node-type` → layer/viewpoint (#14)                                         |
-
-
+| Module                         | File(s)                                                                                                    | Change                                                                                          |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| File explorer (new)            | `apps/studio/src/lib/explorer/`                                                                            | FileTreePanel, folder scan, node preview, handle persist (IndexedDB)                            |
+| **Reveal + save refresh (V3)** | `FileExplorerPanel.svelte`, `+page.svelte` (`handleSave`)                                                  | R19 reveal button; R20 post-save `loadCalmNodesForFile`                                         |
+| **Duplicate modal (V3)**       | `CalmCanvas.svelte`, `DuplicateNodeDialog.svelte` (new), `calmModel.svelte.ts`                             | Ctrl+drag detection; relationship clone in current file only (R21)                              |
+| **Reference focus (V3)**       | `+page.svelte` (`handleNavigateReference`), `CalmCanvas.svelte`                                            | Post-open select + `fitView` by `unique-id` (R22)                                               |
+| **Layout (V3)**                | `elkLayout.ts`, `rectangleNodeSize.ts`, `edgeRouting/` (new), edge components                              | Measured dims → ELK; obstacle router shared by all edges (R23, #16)                             |
+| **Project + extract (V4)**     | `apps/studio/src/lib/project/` (new), validation Spectral bridge, Extract dialog                           | Load/create `.calmrj`; ruleset enable; naming resolve; extract subgraph (R24–R27)               |
+| **Find neighbors (V5)**        | `apps/studio/src/lib/neighbors/` (new), dialog, project scan                                               | 1-hop scan excl. active file; R4 insert + copy rel same `unique-id` (R28)                       |
+| **Diagram filter/fog (V5)**    | canvas overlay / toolbar filter, edge+node opacity                                                         | Session focus-neighbor + single metadata filter (R29)                                           |
+| **Save all + bulk close (V5)** | TabBar context menu, `+page.svelte` save/close orchestration                                               | Save dirty only; Close left/right/all + summary dialog (R30–R31)                                |
+| **Radial layout (V6)**         | `elkLayout.ts`, canvas toolbar dropdown                                                                    | ELK `radial`; selected node = center (#29, R32)                                                 |
+| **Project templates (V6)**     | `templates/registry.ts`, `.calmrj` `templates.dir`, TemplatePicker                                         | Merge after bundled; same id overwrites (#30, R33)                                              |
+| **Docker (V6)**                | `calm-studio/Dockerfile`, `docker-compose.yml`, README                                                     | Multi-stage from monorepo root; healthcheck; docs (#31, R34)                                    |
+| **Containment UI (V6)**        | `projection.ts` / canvas edges, container node header, `EdgeProperties`                                    | Hide `composed-of`/`deployed-in` lines; header icon → properties (#32, R35)                     |
+| **Node-type fog (V6)**         | canvas/toolbar filter (R29 control)                                                                        | Third independent mode; multi-select types on diagram (#33, R36)                                |
+| **Find usage (V6)**            | `apps/studio/src/lib/usage/` (new), reuse project scan                                                     | Stubs + rel endpoints excl. active file; open + focus (#34, R37)                                |
+| **Merged containment (V7)**    | `projection.ts` (`flowToCalm` / `calmToFlow`), `EdgeProperties`                                            | Merge 1:1 → `nodes[]` on load/save; member-list properties (#35, R38)                           |
+| **Alt containment (V7)**       | `CalmCanvas.svelte`, `containment.ts`                                                                      | Alt-only nest/un-nest; type picker; last-used map (#36, #37, R39)                               |
+| **Path pickers (V7)**          | Project settings UI, File System Access                                                                    | Directory/file pickers; project-relative; reject outside (#41, R40)                             |
+| **CLI patterns (V7)**          | Template picker, `.calmrj` `patterns.dir`, wrap `@finos/calm-shared` instantiate                           | Pattern cards; choices dialog; in-memory generate; new untitled tab (#38–#40, #42, R41)         |
+| **JSON packs (V9)**            | repo-root `extensions/`, FS pack loader, `initAllPacks`, `documentEnvelope.ts`, `.calmrj` `extensions.dir` | Read `*.extension.json` from disk; `schemaUrl` = `standard.$id`; project merge (R42–R45)        |
+| **Container grid (V8)**        | `elkLayout.ts`, `ContainerNode.svelte`                                                                     | Rectpacking / grid `aspectRatio` ~1; painted size = NodeResizer bbox (R46–R47)                  |
+| **Layout persist (V8)**        | `projection.ts`, `calmModel.svelte.ts`, save path                                                          | `metadata._layout` Hub `LayoutMap`; apply on open (R48)                                         |
+| **Node colors (V8)**           | `NodeProperties.svelte`, node components, export                                                           | `building-block-style` on node metadata (R49)                                                   |
+| **Bezier edges (V8)**          | `ConnectsEdge` / `InteractsEdge`, `obstacleRouter.ts`, export                                              | Cubic Bezier line style (R50)                                                                   |
+| **Pattern validate (V8)**      | Problems / validate toolbar, wrap `@finos/calm-shared`                                                     | `calm validate -p` semantics; no CLI spawn (R51)                                                |
+| **Naming editor (V8)**         | `ProjectSettingsDialog.svelte`, `.calmrj`                                                                  | Edit `naming` + `patterns` objects (R52)                                                        |
+| **Hub patterns (V8.1)**        | pattern picker tabs, Hub client, `.calmrj` `hub.url`                                                       | Namespace tabs; URL from project or `~/.calm.json` (R53)                                        |
+| **Hub browse (V8.1)**          | Hub catalog UI, reference insert, glasses                                                                  | Hub URL `detailed-architecture`; read-only Hub tab (R54)                                        |
+| **Pattern canvas (V8.2)**      | new pattern canvas (Hub `PatternGraph` parity)                                                             | Visualize + edit CLI pattern JSON; save to `patterns.dir` (R55–R56)                             |
+| **Generic metadata (V8.2)**    | `MetadataForm.svelte`, `NodeProperties` / `EdgeProperties`                                                 | Pack schema + extra keys on node and relationship (R57)                                         |
+| **Ctrl+copy freeze (V8.2)**    | `DuplicateNodeDialog`, canvas `$effect` / history                                                          | Regression test + hang fix (R58)                                                                |
+| **Folder create/move (V10)**   | Files tree context menu, File System Access                                                                | Right-click row → New folder / New file / Move; descendants; retarget tabs; rewrite file `detailed-architecture` (R59–R61, R71–R72) |
+| **New file (V10)**             | Files tree context menu, empty architecture write                                                          | Name dialog immediately; write empty CALM file; open tab (R72, #64)                             |
+| **Save As defaults (V10)**     | `handleSaveAs`, naming resolve                                                                             | Tree selection + `naming.patterns` filename (R61)                                               |
+| **User config overlay (V10)**  | project load path, IDB handle                                                                              | User file then project; SPA picker only (R62)                                                   |
+| **Settings tabs (V10)**        | `ProjectSettingsDialog.svelte`                                                                             | One tab per `.calmrj` block (R63)                                                               |
+| **Metadata dialog (V10)**      | `MetadataForm.svelte`                                                                                      | Enum dropdown; nested preview + dialog (R64)                                                    |
+| **Multi-select / align (V10)** | `CalmCanvas.svelte`, selection toolbar                                                                     | Shift+click + marquee; align / distribute / same size (R65–R66)                                 |
+| **Pointer (V11)**              | `CalmCanvas.svelte` panOnDrag / selectionOnDrag                                                            | Empty drag pans; node drag moves; Shift toggles; no Select/Pan, no Space (R76)                  |
+| **Hub tab (V11)**              | left panel, `hubClient.ts`; remove `HubBrowseDialog`                                                       | Lazy tree to nodes; drag stub with Hub version URL (R78)                                        |
+| **Move one file (V11)**        | Files tree, `rewriteDetailedArchitecture.ts`                                                               | File Move + drag; abort on name clash; relative DA rewrite (R77)                                |
+| **Container obstacle (V11)**   | `obstacleRouter.ts`, `routedEdgePath.ts`                                                                   | Skip container that holds an endpoint; bezier stays (R79)                                       |
+| **JSON layout round-trip (V11)** | `+page.svelte` code apply, `layoutPersist.ts`                                                            | Keep `_layout` and colors unless the JSON text changed them (R80)                               |
+| **Diagram undo (V11)**         | `history.svelte.ts`, canvas shortcut                                                                       | Ctrl+Z / Ctrl+Y outside the JSON editor; per tab (R81)                                          |
+| **Defining reference (V12)**   | Files drop, Hub drop, Find neighbors                                                                       | Follow `detailed-architecture` to the defining file; rewrite the relative path (R82)            |
+| **Move dialog tree (V12)**     | file and folder Move dialogs                                                                               | Folder tree plus text field; folders and root; Move confirms (R83)                              |
+| **Demo UI gate (V13)**         | Toolbar, TemplatePicker, ProjectSettings, `.calmrj` `ui.demo`                                              | Hide Demos + bundled FluxNova/OpenGRIS tabs unless `ui.demo: true` (R84)                        |
+| **Mermaid export (V14)**       | `export.ts`, Mermaid serializer, `Toolbar.svelte`, `CodePanel.svelte`                                      | Replace calmscript stub with flowchart `.mmd` / `.md` + read-only Mermaid tab (R85)             |
+| **Array + pretty nested (V15)**| `MetadataForm`, `NestedMetadataDialog`, `metadataForm.ts`, CustomMetadata / Controls as needed           | Per-element array editors; pretty nested preview/dialog (R86)                                   |
+| **Canvas mini-map (V10)**      | `CalmCanvas.svelte` MiniMap                                                                                | Overview + viewport mask; click pans (zoom unchanged) (R74)                                     |
+| **Container table (V10)**      | layout / container command                                                                                 | Arrange to table; resize container (R67)                                                        |
+| **Disable bundled packs (V10)**| pack loader, `.calmrj` `extensions.disabled`                                                               | Hide listed bundled ids from palette (R68)                                                      |
+| **Hub URL + JSON lock (V10)**  | glasses / Hub tab, `CodePanel`                                                                             | Hub `detailed-architecture` opens RO; JSON locked; no Hub insert (R69–R70)                      |
+| **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                                                | TabBar, per-tab model/canvas state, FIFO limit 10, close/evict guards                           |
+| Layout                         | `apps/studio/src/routes/+page.svelte`                                                                      | Palette/Files toggle, TabBar, active tab → canvas + JSON                                        |
+| JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                                            | Fix selection + cursor; bind to active tab; **Mermaid** read-only tab (R85)                    |
+| **Reference UI**               | `apps/studio/src/lib/canvas/nodes/*.svelte`, `projection.ts`                                               | Glasses icon, `isReference`, navigation to `detailed-architecture`                              |
+| Containment                    | `apps/studio/src/lib/canvas/containment.ts`, `CalmCanvas.svelte`                                           | Alt+drop / Alt+extract; sizing; no nest on plain drag (R39)                                     |
+| Export                         | `apps/studio/src/lib/io/export.ts`, `exportImagePrep.ts`, Mermaid serializer (new)                         | CALM round-trip; SVG/PNG; Mermaid `.mmd` / `.md` (R85); remove calmscript download              |
+| Model merge (export)           | `apps/studio/src/lib/stores/calmModel.svelte.ts`, `projection.ts`                                          | `buildPersistedArchitecture`, `getExportJson`, `flowToCalm` / `calmToFlow`                      |
+| Model store (P1)               | `apps/studio/src/lib/stores/calmModel.svelte.ts`                                                           | Document envelope (`$schema`)                                                                   |
+| Properties (P1)                | `NodeProperties.svelte`, `EdgeProperties.svelte`, `MetadataForm.svelte` (new)                              | Schema-driven `metadata` editor; read-only reference mode (R17, R18)                            |
+| Metadata scaffold (P1)         | `calmModel.svelte.ts`, `CalmCanvas.svelte`, `projection.ts`                                                | Default `metadata` on create from pack schema                                                   |
+| Extensions (P1)                | repo-root `extensions/packs/*.extension.json`, FS loader in `packages/extensions`                          | `standard.$id` → `schemaUrl`; lookup `node-type` → layer/viewpoint from pack `defaults` (#14)   |
 
 
 ### Tab manager — concept (P1)
@@ -1409,8 +2376,6 @@ const MAX_TABS = 10;
 - When evicting oldest tab: same `ensureCanProceedWithUnsavedChanges` as manual close. Eviction **does not run** when activating already open file.
 - **DO NOT** change global single `calmModel` store without migration — either tab-scoped store, or map `tabId → state`.
 
-
-
 ### Reference navigation — path resolution (R16)
 
 ```typescript
@@ -1427,8 +2392,6 @@ const MAX_TABS = 10;
 - **out-of-project:** relative path leads outside root, or is `http(s)://` / absolute path → infobox "Link leads outside project", link `window.open(href, '_blank', 'noopener,noreferrer')`.
 - **missing-in-project:** path is in project but file does not exist → error message, no external link infobox.
 - If target already has open editor tab (match on `relativePath` or `fileHandle`), **only activate** — never create duplicate tab.
-
-
 
 ### Ctrl+drag duplicate — relationship clone rules (R21)
 
@@ -1455,8 +2418,6 @@ const DUPLICATE_RELS_KEY = 'calm-studio.duplicateRelationships';
 // default when unset: false
 ```
 
-
-
 ### Reference navigation — post-open focus (R22)
 
 ```typescript
@@ -1467,8 +2428,6 @@ const DUPLICATE_RELS_KEY = 'calm-studio.duplicateRelationships';
 //   fitView({ nodes: [id], padding: 0.2, duration: 200 })
 //   clear pendingReferenceFocus
 ```
-
-
 
 ### Obstacle-aware edge routing (R23, #16)
 
@@ -1565,8 +2524,6 @@ In v1 **no tree virtualization**. With 100+ JSON files loading may be slower —
 | Older Chrome/Safari versions | ❌              | Without `showDirectoryPicker` — graceful degradation |
 
 
-
-
 ### Cross-file reference — data model (verified CALM 1.2)
 
 Source: `calm/release/1.2/meta/core.json` → `defs.node.properties.details.properties.detailed-architecture` type `string`.
@@ -1597,8 +2554,6 @@ Source: `calm/release/1.2/meta/core.json` → `defs.node.properties.details.prop
 const relativePath = pathRelative(dirname(currentFile), sourceFile);
 ```
 
-
-
 ### Extension `$schema` — central registry in pack (P1)
 
 Add optional `schemaUrl` to `PackDefinition`:
@@ -1615,7 +2570,7 @@ export interface PackDefinition {
 }
 ```
 
-On first element from pack without `schemaUrl`, only base CALM 1.2 schema is written. Define values in `packages/extensions/src/packs/*.ts`, not hardcoded in UI.
+On first element from pack without `schemaUrl` / `standard.$id`, only base CALM 1.2 schema is written. Define values in `extensions/packs/*.extension.json` (`standard.$id`), not hardcoded in UI. TypeScript `src/packs/*.ts` is not the runtime source after V9.
 
 ### 7.1 Relationship export fix (R8) — implemented 2026-07-08
 
@@ -1655,22 +2610,16 @@ On `makeContainment(parentId, childId)`:
 2. **New:** Create edge with `relationship-type.composed-of` (or `deployed-in` by context).
 3. Set default container dimensions (300×200 min).
 
-
-
 ### JSON editor — sync strategy
 
 - Selection effect: dependency only on `selectedNodeId` / `selectedEdgeId`.
 - Value sync: when CodeMirror focused do not overwrite from model; debounced push from editor to model preserved.
-
-
 
 ### Dependencies
 
 - `@calmstudio/calm-core` — validation, relationship helpers
 - `@calmstudio/extensions` — icons and pack metadata
 - Existing `fileState.svelte.ts` — dirty flag, current file path
-
-
 
 ### Tests
 
@@ -1709,15 +2658,157 @@ Extend / add:
 - `apps/studio/src/tests/project/pathPickers.test.ts` — new (relative path; reject outside project) (V7)
 - `apps/studio/src/tests/templates/patternCards.test.ts` — new (scan `patterns.dir`; skip `_template`; skip invalid) (V7)
 - `apps/studio/src/tests/templates/generateFromPattern.test.ts` — new (wrap instantiate in memory; new untitled tab; no CLI spawn) (V7)
+- `packages/extensions/src/json-pack-loader.test.ts` — new (validate 11 bundled JSON packs; reject invalid; `standard.$id` → `schemaUrl`) (V9)
+- `apps/studio/src/tests/layout/containerGrid.test.ts` — new (row/column packing; aspect ≈ 1; not 99/0.01 strip) (V8)
+- `apps/studio/src/tests/layout/layoutPersist.test.ts` — new (`_layout` write/read; integer x,y,w,h; missing ids) (V8)
+- `apps/studio/src/tests/canvas/buildingBlockStyle.test.ts` — new (persist colors; `fidelity-style` alias) (V8)
+- `apps/studio/src/tests/canvas/bezierEdges.test.ts` — new (connects/interacts bezier; containment hidden) (V8)
+- `apps/studio/src/tests/validation/patternValidate.test.ts` — new (shared validate; no CLI spawn; Problems) (V8)
+- `apps/studio/src/tests/project/namingPatternsSettings.test.ts` — new (settings write `naming` + `patterns`) (V8)
+- `apps/studio/src/tests/hub/hubPatterns.test.ts` — new (URL resolution; namespace tabs; SPA skips `~/.calm.json`) (V8.1)
+- `apps/studio/src/tests/hub/hubBrowse.test.ts` — new (insert Hub URL reference; glasses skip R16 infobox) (V8.1)
+- `apps/studio/src/tests/patterns/patternGraph.test.ts` — new (pattern canvas from schema; save round-trip) (V8.2)
+- `apps/studio/src/tests/properties/genericMetadata.test.ts` — new (node + relationship extra keys) (V8.2)
+- `apps/studio/src/tests/canvas/ctrlDuplicateFreeze.test.ts` — new (post-duplicate editor still updates) (V8.2)
+- `apps/studio/src/tests/explorer/folderCreateMove.test.ts` — new (new folder naming default; move descendants; tab path update; rewrite relative `detailed-architecture` inbound/outbound; Hub URL unchanged) (V10)
+- `apps/studio/src/tests/explorer/newFileFromTree.test.ts` — new (name-first dialog; append `.json`; empty architecture write; open tab; cancel writes nothing) (V10)
+- `apps/studio/src/tests/project/saveAsDefaults.test.ts` — new (tree folder + naming filename) (V10)
+- `apps/studio/src/tests/project/userConfigOverlay.test.ts` — new (user then project; project wins; arrays replace) (V10)
+- `apps/studio/src/tests/project/settingsTabs.test.ts` — new (one tab per top-level block) (V10)
+- `apps/studio/src/tests/properties/metadataEnumDialog.test.ts` — new (enum dropdown; nested preview + dialog commit/cancel) (V10)
+- `apps/studio/src/tests/canvas/shiftMarqueeSelect.test.ts` — Shift+click and Shift+marquee **toggle** (add and remove); not replace-all (V11, was V10)
+- `apps/studio/src/tests/canvas/mousePanSelectMode.test.ts` — superseded by pointer tests below; do not assert a Select/Pan toggle (V11)
+- `apps/studio/src/tests/canvas/pointerPanMove.test.ts` — new (empty drag pans; node drag moves; Shift toggles click and marquee; no Space) (V11)
+- `apps/studio/src/tests/hub/hubTreePanel.test.ts` — new (namespaces on open; lazy expand to nodes; drag stub URL; dialog absent) (V11)
+- `apps/studio/src/tests/explorer/fileMove.test.ts` — new (single-file move; abort on name clash; relative DA inbound/outbound; Hub URL unchanged) (V11)
+- `apps/studio/src/tests/canvas/containerObstacle.test.ts` — new (container with an endpoint is not an obstacle; other nodes still are) (V11)
+- `apps/studio/src/tests/editor/jsonLayoutRoundTrip.test.ts` — new (unchanged `_layout` and colors survive apply; delete clears; unique-id re-key) (V11)
+- `apps/studio/src/tests/canvas/diagramUndo.test.ts` — new (Ctrl+Z restores a move; JSON focus does not step the diagram stack) (V11)
+- `apps/studio/src/tests/canvas/definingFileRef.test.ts` — new (follow the chain; relative path from the current file; `http(s)` copied; missing file falls back to the source document) (V12)
+- `apps/studio/src/tests/explorer/moveDialogTree.test.ts` — new (file and folder dialogs list folders and the root; selection fills the folder field; Move still confirms) (V12)
+- `apps/studio/src/tests/project/demoUiGate.test.ts` — new (`ui.demo` default false; hide Demos + fluxnova/opengris when project open; show when true; no-project shows) (V13)
+- `apps/studio/src/tests/io/mermaidExport.test.ts` — new (flowchart nodes/edges; container → subgraph; no containment edge; `.md` fence; id sanitize) (V14)
+- `apps/studio/src/tests/properties/arrayPropertyEditor.test.ts` — new (add/remove primitive; object item; empty + Add; persist array) (V15)
+- `apps/studio/src/tests/properties/nestedPrettyPreview.test.ts` — new (`previewNestedMetadata` multi-line; dialog raw stays pretty) (V15)
+- `apps/studio/src/tests/canvas/canvasMinimap.test.ts` — new (minimap present; click pans viewport; zoom unchanged) (V10)
+- `apps/studio/src/tests/canvas/selectionAlign.test.ts` — new (align row/column/axis; even spacing; same size) (V10)
+- `apps/studio/src/tests/layout/arrangeContainerTable.test.ts` — new (default grid + rows/cols; container resize) (V10)
+- `apps/studio/src/tests/project/disabledBundledPacks.test.ts` — new (`extensions.disabled` hides bundled ids) (V10)
+- `apps/studio/src/tests/hub/hubDetailedArchitectureOpen.test.ts` — new (Hub URL skips R16 infobox) (V10)
+- `apps/studio/src/tests/hub/hubReadonlyJsonLock.test.ts` — new (JSON locked; Hub insert blocked) (V10)
+- `apps/studio/src/tests/project/urlMappingResolve.test.ts` — new (`urlMapping.path`; values relative to mapping file; Hub URL skipped; missing file = empty map) (V10)
 - `components/EdgeProperties.test.ts` — swap direction (P1)
 - `components/MetadataForm.test.ts` — schema-driven fields, enum/required (P1)
 - `reference-readonly.test.ts` — properties locked when `detailed-architecture` set (P1)
 
-
-
 ## 8. Release criteria and rollout
 
+### Definition of Done — iteration 12 (P1, BBR V10)
 
+- [ ] All acceptance criteria R59–R75 met
+- [ ] Unit tests: folder create default; new file name-first write + open tab; folder move + tab retarget + rewrite relative `detailed-architecture`; Save As defaults; user then project overlay; settings tabs; enum dropdown + nested dialog; Shift+click + marquee (toggle — R76); mini-map click pans; align/same-size; container table; disabled bundled packs; Hub URL open; Hub JSON lock + insert blocked; `urlMapping.path` resolves `$id` to a file (values relative to mapping file). Do not assert a Select/Pan toggle.
+- [ ] Manual smoke: right-click a tree folder → New folder using naming default; folder appears under that row
+- [ ] Manual smoke: right-click a folder → New file → type a name → empty architecture on disk and open tab; Cancel writes nothing; File → New Untitled still works
+- [ ] Manual smoke: right-click a folder → Move with nested files → tree + open tab path update; other files’ relative `detailed-architecture` point to the new path; Hub URLs unchanged
+- [ ] Manual smoke: Save As → folder = tree selection; filename from `naming.patterns`
+- [ ] Manual smoke: user defaults + project overlay → project `hub.url` wins
+- [ ] Manual smoke: Project settings shows one tab per block
+- [ ] Manual smoke: enum field is a dropdown; nested object Edit dialog OK/Cancel
+- [ ] Manual smoke: Shift+click two nodes; marquee selects a cluster; align top + same width
+- [ ] Manual smoke: mini-map shows the current viewport; click a corner → canvas pans there; zoom unchanged
+- [ ] Manual smoke: container Arrange to table (default and 2×3) → container grows to fit
+- [ ] Manual smoke: `extensions.disabled` includes `core` → core gone from palette
+- [ ] Manual smoke: glasses on Hub URL → read-only tab; JSON not editable; Hub Insert disabled
+- [ ] Manual smoke: `.calmrj` `urlMapping.path` → Standard `$id` in `$schema` loads the mapped local file; Validate uses the map (`-u`); unmapped URL warns without fetch
+- [ ] Select/Pan smoke is **not** part of V10 anymore — pointer behavior is V11 (R76)
+
+### Definition of Done — iteration 13 (P1, BBR V11)
+
+- [ ] Acceptance criteria R76–R81 met. R73 stays superseded (no Select/Pan control in the UI).
+- [ ] Unit tests: empty-drag pan and node-drag move; Shift click and marquee toggle; Hub lazy tree and drag URL; single-file move aborts on clash and rewrites relative links; container-with-endpoint is not an obstacle; JSON apply keeps layout unless edited; Ctrl+Z undoes a canvas move.
+- [ ] Manual smoke: drag empty canvas pans; drag a node moves it; Shift+click adds then removes; Shift+marquee toggles a cluster; no Select/Pan button and no Space-pan.
+- [ ] Manual smoke: Hub tab lists namespaces only until expand; drag a node onto a local diagram; double-click version is read-only; Hub dialog is gone.
+- [ ] Manual smoke: move one file; a relative `detailed-architecture` in another file still opens the same target; name clash does nothing; a Hub URL in the moved file is unchanged.
+- [ ] Manual smoke: a relationship with one end inside a container crosses that border; a relationship between two outside nodes still avoids a third node.
+- [ ] Manual smoke: edit a name in JSON → positions and colors stay; delete `_layout` → layout clears; Ctrl+Z after a move restores the node; Ctrl+Z inside JSON undoes text only.
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 14 (P1, BBR V12)
+
+- [ ] Acceptance criteria R82–R83 met
+- [ ] Unit tests: chain ends at the file with no `detailed-architecture`; the new path is relative to the current file; `http(s)` is copied; a missing file links the document you inserted from; Move dialogs list folders and the root
+- [ ] Manual smoke: drag a node from a file that only references it → glasses opens the file that defines it
+- [ ] Manual smoke: drag a node whose link is a Hub URL → the stub keeps that URL
+- [ ] Manual smoke: Move a file and a folder by picking a folder in the dialog, including the project root; typing a path still works; drag onto a folder in the tree still works
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 15 (P1, V13)
+
+- [x] Acceptance criteria R84 met
+- [x] Unit tests: missing `ui.demo` → false; Create default has `ui.demo: false`; with project false/true the Demos visibility and fluxnova/opengris tab filter match the table in §4.38
+- [ ] Manual smoke: open project without `ui.demo` → no Demos button; Template picker has no FluxNova/OpenGRIS; Palette still has packs if enabled
+- [ ] Manual smoke: Project settings → Demo on → save → Demos and tabs return
+- [ ] Manual smoke: close project / no folder → Demos and tabs visible again
+- [x] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 16 (P1, V14)
+
+- [x] Acceptance criteria R85 met
+- [x] Unit tests: flowchart from fixture; nested container → subgraph; containment not emitted as edge; `.md` has fence; unique-id sanitize
+- [ ] Manual smoke: Export → Mermaid (.mmd) and (.md) download; no calmscript menu item
+- [ ] Manual smoke: Code panel **Mermaid** tab shows the same body as `.mmd`; tab is read-only; **calmscript** tab gone
+- [ ] Manual smoke: edit canvas → Mermaid tab text updates
+- [x] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 17 (P1, V15)
+
+- [x] Acceptance criteria R86 met
+- [x] Unit tests: array add/remove; object item edit; empty array shows Add; preview is multi-line pretty; dialog JSON stays pretty; model is an array
+- [ ] Manual smoke: metadata array — edit one element without rewriting the whole field as a string
+- [ ] Manual smoke: nested object preview wraps / indents; Edit… shows pretty JSON
+- [ ] Manual smoke: read-only Hub tab — array list visible, no Add/Remove
+- [x] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 11 (P1/P0, BBR V8.2)
+
+- [ ] All acceptance criteria R55–R58 met
+- [ ] Unit tests: pattern canvas from fixture schema; Save round-trip still instantiates (R41); generic metadata on node and edge; post-duplicate no hang
+- [ ] Manual smoke: open a CLI pattern → graph resembles Hub PatternGraph; edit + Save → generate still works
+- [ ] Manual smoke: Hub pattern → Save As into `patterns.dir` (no Hub write)
+- [ ] Manual smoke: extra metadata key on a `connects` edge appears in JSON
+- [ ] Manual smoke: Ctrl+drag duplicate 10 times, then type in JSON panel — no freeze
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 10 (P1, BBR V8.1)
+
+- [ ] All acceptance criteria R53–R54 met
+- [ ] Unit tests: `hub.url` overrides `calmHubUrl`; browser path ignores `~/.calm.json`; namespace tabs; Hub URL on `detailed-architecture`
+- [ ] Manual smoke: `.calmrj` Hub URL → picker shows Local + namespace tabs → generate untitled tab
+- [ ] Manual smoke: Hub down → toast; Local patterns still generate
+- [ ] Manual smoke: Insert Hub architecture → glasses opens read-only Hub tab; local relative path still uses R16
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 9 (P1, BBR V8)
+
+- [ ] All acceptance criteria R46–R52 met
+- [ ] Unit tests: container grid aspect ≈ 1; `_layout` round-trip; `building-block-style`; bezier path; pattern validate import; naming editor write
+- [ ] Manual smoke: container with 9 children → near-square table after layout
+- [ ] Manual smoke: resize container → painted graphic fills the handle box
+- [ ] Manual smoke: save → JSON has `metadata._layout`; reopen (or load in VS Code / Hub) → same positions
+- [ ] Manual smoke: set node colors → `building-block-style` in JSON; export SVG uses them
+- [ ] Manual smoke: `connects` is bezier; containment still has no line
+- [ ] Manual smoke: Validate with a CLI pattern → Problems; no `calm` process
+- [ ] Manual smoke: Project settings edit `naming.patterns` + Save → Extract uses new template
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
+### Definition of Done — iteration 8 (P1, BBR V9)
+
+- [ ] All acceptance criteria R42–R45 met
+- [ ] Unit tests: parse 11 JSON packs from `extensions/packs/`; reject invalid pack; FS `extensions/` overwrite by `id`; `$schema` from `standard.$id`
+- [ ] Manual smoke: Studio palette matches previous TypeScript packs (type ids + labels)
+- [ ] Manual smoke: Open folder = monorepo (or project with `extensions/`) → packs load from disk; first drop writes Standard URI into `$schema`
+- [ ] Manual smoke: corrupt JSON in project `extensions/` → warning; other packs remain
+- [ ] `npm run test --workspace=@calmstudio/studio` and `--workspace=@calmstudio/extensions` pass
 
 ### Definition of Done — iteration 7 (P1, BBR V7)
 
@@ -1731,8 +2822,6 @@ Extend / add:
 - [ ] Manual smoke: `patterns.dir` with a CLI pattern → Pattern card → options dialog if needed → new untitled tab; current tab unchanged
 - [ ] `npm run test --workspace=@calmstudio/studio` passes
 
-
-
 ### Definition of Done — iteration 6 (P1, BBR V6)
 
 - [ ] All acceptance criteria R32–R37 met
@@ -1744,32 +2833,26 @@ Extend / add:
 - [ ] Manual smoke: Node type fog multi-select → unmatched nodes/edges fogged; Clear restores
 - [ ] Manual smoke: Find usage → stub in file A + connects in file B → Open focuses each; current file not listed
 
-
-
 ### Definition of Done — iteration 5 (P1, BBR V5)
 
-- [ ] All acceptance criteria R28–R31 met
-- [ ] Unit tests for neighbor scan/add, fog filter, Save all, bulk close
-- [ ] Manual smoke: Find neighbors → filter by type → Add → references + edges with same `unique-id` as source
-- [ ] Manual smoke: neighbor already on canvas → only missing relationship added
-- [ ] Manual smoke: Focus neighbors filter → peers clear, others + edges fogged; Clear restores
-- [ ] Manual smoke: Metadata filter one key/value from values on diagram
-- [ ] Manual smoke: Save all with 3 dirty tabs + 1 Untitled (Save As) + 1 clean (skipped)
-- [ ] Manual smoke: Close tabs to the left / right / Close all with multiple dirty → one summary dialog
-
-
+- [x] All acceptance criteria R28–R31 met
+- [x] Unit tests for neighbor scan/add, fog filter, Save all, bulk close
+- [x] Manual smoke: Find neighbors → filter by type → Add → references + edges with same `unique-id` as source
+- [x] Manual smoke: neighbor already on canvas → only missing relationship added
+- [x] Manual smoke: Focus neighbors filter → peers clear, others + edges fogged; Clear restores
+- [x] Manual smoke: Metadata filter one key/value from values on diagram
+- [x] Manual smoke: Save all with 3 dirty tabs + 1 Untitled (Save As) + 1 clean (skipped)
+- [x] Manual smoke: Close tabs to the left / right / Close all with multiple dirty → one summary dialog
 
 ### Definition of Done — iteration 4 (P1, BBR V4)
 
-- [ ] All acceptance criteria R24–R27 met
-- [ ] Unit tests for `.calmrj` load/create, naming resolve, extract subgraph + stub
-- [ ] Manual smoke: Open folder without `.calmrj` → Create → file appears in root
-- [ ] Manual smoke: enable Spectral ruleset → validate shows extra findings on fixture
-- [ ] Manual smoke: Extract AppComp-like node → child path from defaults → stub + glasses → open child tab
-- [ ] Manual smoke: extract nested container → children move to child file; external `connects` stays on stub
-- [ ] Manual smoke: unmapped node-type → warning + empty path fields still extractable after manual path
-
-
+- [x] All acceptance criteria R24–R27 met
+- [x] Unit tests for `.calmrj` load/create, naming resolve, extract subgraph + stub
+- [x] Manual smoke: Open folder without `.calmrj` → Create → file appears in root
+- [x] Manual smoke: enable Spectral ruleset → validate shows extra findings on fixture
+- [x] Manual smoke: Extract AppComp-like node → child path from defaults → stub + glasses → open child tab
+- [x] Manual smoke: extract nested container → children move to child file; external `connects` stays on stub
+- [x] Manual smoke: unmapped node-type → warning + empty path fields still extractable after manual path
 
 ### Definition of Done — iteration 3 (P1, BBR V3)
 
@@ -1783,8 +2866,6 @@ Extend / add:
 - [x] Manual smoke: drag node between two connected peers → edges route around without layout (#16)
 - [x] Manual smoke: widen node name in properties → incident edges re-route live
 
-
-
 ### Definition of Done — iteration 2 (P1)
 
 - [x] All acceptance criteria R15–R18 and R10–R12 met
@@ -1793,8 +2874,6 @@ Extend / add:
 - [x] Manual smoke: reference node → double-click glasses → open target in editor (in-project)
 - [x] Manual smoke: ArchiMate node → metadata form → validation → export JSON
 - [x] Manual smoke: reference node → properties read-only → glasses navigation to source
-
-
 
 ### Definition of Done — iteration 1 (P0)
 
@@ -1806,111 +2885,178 @@ Extend / add:
 - [x] Supported browser documentation (Chrome, Safari)
 - [x] File panel smoke test in Chrome **and** Safari
 
-
-
 ### Rollout
 
 - Feature without feature flag (basic left panel UX change)
 - Release note: new file panel, editor and export fixes
 
-
-
 ## 9. Open questions and risks
 
 
-| #   | Question / risk                                                              | Severity | Owner  | Status                                                                                                       |
-| --- | ---------------------------------------------------------------------------- | -------- | ------ | ------------------------------------------------------------------------------------------------------------ |
-| 1   | ~~Exact JSON shape~~ `detailed-architecture`                                 | —        | eng    | **Resolved** — `details.detailed-architecture: string` per CALM 1.2                                          |
-| 2   | ~~Relative vs. absolute URL~~                                                | —        | eng    | **Resolved** — always relative path                                                                          |
-| 3   | ~~Safari / Firefox File System Access API support~~                          | —        | PM     | **Resolved** — official support Chrome + Safari                                                              |
-| 4   | ~~Swap semantics for~~ `composed-of`                                         | —        | design | **Resolved** — swap container ↔ nodes                                                                        |
-| 5   | ~~Extension~~ `$schema` ~~URL registry~~                                     | —        | eng    | **Resolved** — `schemaUrl` in `PackDefinition`                                                               |
-| 6   | ~~Performance with large folders (100+ JSON)~~                               | —        | PM     | **Risk accepted** — no virtualization in v1                                                                  |
-| 7   | ~~Preserve folder permission after refresh~~                                 | —        | eng    | **Resolved** — persist `FileSystemDirectoryHandle` in IndexedDB                                              |
-| 8   | ~~Drag node from same file as current~~                                      | —        | PM     | **Resolved** — forbid (no drag / no drop)                                                                    |
-| 9   | ~~Eviction order at 11 tabs (FIFO vs LRU)~~                                  | —        | PM     | **Resolved** — FIFO by `openedAt` (open order, not LRU)                                                      |
-| 10  | ~~Opening reference outside selected project folder~~                        | —        | PM     | **Resolved** — not in editor; infobox "Link leads outside project" + link in new browser tab                 |
-| 11  | ~~Undo/redo scope with multiple tabs~~                                       | —        | eng    | **Resolved** — undo/redo only within active tab (per-tab stack)                                              |
-| 12  | ~~Duplicate tabs for same file~~                                             | —        | PM     | **Resolved** — always switch to existing tab, never duplicate                                                |
-| 13  | ~~Editing~~ `details.detailed-architecture` ~~in read-only reference panel~~ | —        | PM     | **Resolved** — properties **fully read-only**, including link path; change only via JSON or new reference    |
-| 14  | ~~Default ArchiMate~~ `viewpoint` ~~/~~ `layer` ~~on scaffold~~              | —        | eng    | **Resolved** — lookup `node-type` → `layer` + `viewpoint` in ArchiMate pack (table §4.7)                     |
-| 15  | ~~JSON/SVG export without relationships / empty SVG~~                        | —        | eng    | **Resolved** — merge model+canvas, inline edge stroke, no `includeStyleProperties` (§7.1, R8)                |
-| 16  | ~~Edge obstacle routing for manually placed nodes after resize~~             | —        | PM     | **Confirmed** — full in-scope for R23: shared orthogonal obstacle router, live on drag/resize (#16)          |
-| 17  | ~~Ctrl+drag into container while duplicating~~                               | —        | PM     | **Confirmed** — duplicate at drop position; drop inside container → apply containment on **copy** only (#17) |
-| 18  | ~~Reveal when Files panel on Palette tab~~                                   | —        | PM     | **Confirmed** — auto-switch left panel to Files tab on Reveal click (#18)                                    |
-| 19  | ~~Project validation rules format / selection granularity~~                  | —        | PM     | **Resolved** — Spectral rulesets; `.calmrj` path + enabled flag; core CALM always on; no per-rule toggle     |
-| 20  | ~~Naming conventions hard-coded vs configurable~~                            | —        | PM     | **Resolved** — configurable patterns in `.calmrj` + bundled `cengineering-archimate` default                 |
-| 21  | ~~Extract node semantics (subgraph, stub id, external rels)~~                | —        | PM     | **Resolved** — children+internal rels to child; same `unique-id` stub; external rels stay on parent stub     |
-| 22  | ~~`.calmrj` discovery / create~~                                             | —        | PM     | **Resolved** — one root `*.calmrj`; Create wizard if missing; error if multiple                              |
-| 23  | ~~Neighbor relationship insert semantics~~                                   | —        | PM     | **Resolved** — copy relationship into current diagram with **same** `unique-id`; source file unchanged (#23) |
-| 24  | ~~Neighbor scan scope / depth / direction~~                                 | —        | PM     | **Resolved** — other project files only; 1 hop; inbound + outbound; already-on-canvas → rel only (#24)       |
-| 25  | ~~Find neighbors entry points~~                                              | —        | PM     | **Resolved** — toolbar **and** node context menu (#25)                                                       |
-| 26  | ~~Diagram filter persistence and modes~~                                     | —        | PM     | **Resolved** — session-only; focus 1-hop neighbors; single metadata value; fog nodes **and** edges (#26)     |
-| 27  | ~~Save all scope / Untitled~~                                                | —        | PM     | **Resolved** — dirty tabs only; Untitled → Save As (#27)                                                     |
-| 28  | ~~Bulk close dirty handling~~                                                | —        | PM     | **Resolved** — VS Code menu; Close all includes current; one summary dialog (#28)                            |
-| 29  | ~~Radial layout placement and center~~                                       | —        | PM     | **Resolved** — fourth dropdown item; selected node = center; else ELK chooses (#29)                          |
-| 30  | ~~Project templates vs bundled~~                                             | —        | PM     | **Resolved** — `templates.dir` in `.calmrj`; same `_template` shape; merge; same id overwrites (#30)         |
-| 31  | ~~Docker scope~~                                                             | —        | PM     | **Resolved** — working multi-stage image + docs; no Hub compose; no GHCR; browser FS limitation (#31)        |
-| 32  | ~~Containment edge hiding and property access~~                              | —        | PM     | **Resolved** — hide `composed-of` and `deployed-in`; header icon; 2+ → menu (#32)                            |
-| 33  | ~~Node-type filter vs existing fog modes~~                                   | —        | PM     | **Resolved** — third independent mode; multi-select types on diagram (#33)                                   |
-| 34  | ~~Find usage hit definition~~                                                | —        | PM     | **Resolved** — stubs (id + `detailed-architecture`) **and** relationship endpoints in other files (#34)      |
-| 35  | ~~Merge composed-of / deployed-in on the same container~~                    | —        | PM     | **Resolved** — max one of each type; merge 1:1 on load/draw; keep first `unique-id`; union `nodes[]` (#35)  |
-| 36  | ~~Alt+drop when both containment types exist~~                               | —        | PM     | **Resolved** — append to session last-used for that container; else type picker (#36)                       |
-| 37  | ~~Alt vs plain drag for containment~~                                        | —        | PM     | **Resolved** — Alt required to nest/un-nest; plain drag does neither (#37)                                   |
-| 38  | ~~Where CLI patterns are configured~~                                        | —        | PM     | **Resolved** — `.calmrj` `patterns.dir`, separate from `templates.dir` (#38)                                 |
-| 39  | ~~Where generated architecture opens~~                                       | —        | PM     | **Resolved** — always a new untitled tab (#39)                                                               |
-| 40  | ~~Pattern generate options UX~~                                              | —        | PM     | **Resolved** — dialog with the same choices as `calm generate` (#40)                                         |
-| 41  | ~~Which settings fields get filesystem pickers~~                             | —        | PM     | **Resolved** — dirs: search roots, `templates.dir`, `patterns.dir`; files: ruleset paths; not naming tokens (#41) |
-| 42  | ~~Generate engine: CLI spawn vs import~~                                     | —        | PM     | **Resolved** — import `@finos/calm-shared` instantiate in memory; do not spawn CLI; do not reimplement (#42) |
-| 43  | Docker compose context mismatch (`Dockerfile.static` vs monorepo `Dockerfile`) | Medium | eng    | Open — R34 must pick one working documented path                                                             |
-| 44  | ELK radial quality on nested containers                                      | Low    | eng    | Open — keep `parentId`; accept ELK default if nested radial is poor                                          |
-| 45  | Browser wrap of `runGenerate` (Node `fs`) vs public `instantiate` API        | Medium | eng    | Open — R41 must use exported shared functions; if only `runGenerate` writes disk, wrap instantiate only      |
-
-
+| #   | Question / risk                                                                                  | Severity | Owner  | Status                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------ | -------- | ------ | ----------------------------------------------------------------------------------------------------------------- |
+| 1   | ~~Exact JSON shape~~ `detailed-architecture`                                                     | —        | eng    | **Resolved** — `details.detailed-architecture: string` per CALM 1.2                                               |
+| 2   | ~~Relative vs. absolute URL~~                                                                    | —        | eng    | **Resolved** — always relative path                                                                               |
+| 3   | ~~Safari / Firefox File System Access API support~~                                              | —        | PM     | **Resolved** — official support Chrome + Safari                                                                   |
+| 4   | ~~Swap semantics for~~ `composed-of`                                                             | —        | design | **Resolved** — swap container ↔ nodes                                                                             |
+| 5   | ~~Extension~~ `$schema` ~~URL registry~~                                                         | —        | eng    | **Resolved** — `schemaUrl` in `PackDefinition`                                                                    |
+| 6   | ~~Performance with large folders (100+ JSON)~~                                                   | —        | PM     | **Risk accepted** — no virtualization in v1                                                                       |
+| 7   | ~~Preserve folder permission after refresh~~                                                     | —        | eng    | **Resolved** — persist `FileSystemDirectoryHandle` in IndexedDB                                                   |
+| 8   | ~~Drag node from same file as current~~                                                          | —        | PM     | **Resolved** — forbid (no drag / no drop)                                                                         |
+| 9   | ~~Eviction order at 11 tabs (FIFO vs LRU)~~                                                      | —        | PM     | **Resolved** — FIFO by `openedAt` (open order, not LRU)                                                           |
+| 10  | ~~Opening reference outside selected project folder~~                                            | —        | PM     | **Resolved** — not in editor; infobox "Link leads outside project" + link in new browser tab                      |
+| 11  | ~~Undo/redo scope with multiple tabs~~                                                           | —        | eng    | **Resolved** — undo/redo only within active tab (per-tab stack)                                                   |
+| 12  | ~~Duplicate tabs for same file~~                                                                 | —        | PM     | **Resolved** — always switch to existing tab, never duplicate                                                     |
+| 13  | ~~Editing~~ `details.detailed-architecture` ~~in read-only reference panel~~                     | —        | PM     | **Resolved** — properties **fully read-only**, including link path; change only via JSON or new reference         |
+| 14  | ~~Default ArchiMate~~ `viewpoint` ~~/~~ `layer` ~~on scaffold~~                                  | —        | eng    | **Resolved** — lookup `node-type` → `layer` + `viewpoint` in ArchiMate pack (table §4.7)                          |
+| 15  | ~~JSON/SVG export without relationships / empty SVG~~                                            | —        | eng    | **Resolved** — merge model+canvas, inline edge stroke, no `includeStyleProperties` (§7.1, R8)                     |
+| 16  | ~~Edge obstacle routing for manually placed nodes after resize~~                                 | —        | PM     | **Confirmed** — full in-scope for R23: shared orthogonal obstacle router, live on drag/resize (#16)               |
+| 17  | ~~Ctrl+drag into container while duplicating~~                                                   | —        | PM     | **Confirmed** — duplicate at drop position; drop inside container → apply containment on **copy** only (#17)      |
+| 18  | ~~Reveal when Files panel on Palette tab~~                                                       | —        | PM     | **Confirmed** — auto-switch left panel to Files tab on Reveal click (#18)                                         |
+| 19  | ~~Project validation rules format / selection granularity~~                                      | —        | PM     | **Resolved** — Spectral rulesets; `.calmrj` path + enabled flag; core CALM always on; no per-rule toggle          |
+| 20  | ~~Naming conventions hard-coded vs configurable~~                                                | —        | PM     | **Resolved** — configurable patterns in `.calmrj` + bundled `cengineering-archimate` default                      |
+| 21  | ~~Extract node semantics (subgraph, stub id, external rels)~~                                    | —        | PM     | **Resolved** — children+internal rels to child; same `unique-id` stub; external rels stay on parent stub          |
+| 22  | `.calmrj` ~~discovery / create~~                                                                 | —        | PM     | **Resolved** — one root `*.calmrj`; Create wizard if missing; error if multiple                                   |
+| 23  | ~~Neighbor relationship insert semantics~~                                                       | —        | PM     | **Resolved** — copy relationship into current diagram with **same** `unique-id`; source file unchanged (#23)      |
+| 24  | ~~Neighbor scan scope / depth / direction~~                                                      | —        | PM     | **Resolved** — other project files only; 1 hop; inbound + outbound; already-on-canvas → rel only (#24)            |
+| 25  | ~~Find neighbors entry points~~                                                                  | —        | PM     | **Resolved** — toolbar **and** node context menu (#25)                                                            |
+| 26  | ~~Diagram filter persistence and modes~~                                                         | —        | PM     | **Resolved** — session-only; focus 1-hop neighbors; single metadata value; fog nodes **and** edges (#26)          |
+| 27  | ~~Save all scope / Untitled~~                                                                    | —        | PM     | **Resolved** — dirty tabs only; Untitled → Save As (#27)                                                          |
+| 28  | ~~Bulk close dirty handling~~                                                                    | —        | PM     | **Resolved** — VS Code menu; Close all includes current; one summary dialog (#28)                                 |
+| 29  | ~~Radial layout placement and center~~                                                           | —        | PM     | **Resolved** — fourth dropdown item; selected node = center; else ELK chooses (#29)                               |
+| 30  | ~~Project templates vs bundled~~                                                                 | —        | PM     | **Resolved** — `templates.dir` in `.calmrj`; same `_template` shape; merge; same id overwrites (#30)              |
+| 31  | ~~Docker scope~~                                                                                 | —        | PM     | **Resolved** — working multi-stage image + docs; no Hub compose; no GHCR; browser FS limitation (#31)             |
+| 32  | ~~Containment edge hiding and property access~~                                                  | —        | PM     | **Resolved** — hide `composed-of` and `deployed-in`; header icon; 2+ → menu (#32)                                 |
+| 33  | ~~Node-type filter vs existing fog modes~~                                                       | —        | PM     | **Resolved** — third independent mode; multi-select types on diagram (#33)                                        |
+| 34  | ~~Find usage hit definition~~                                                                    | —        | PM     | **Resolved** — stubs (id + `detailed-architecture`) **and** relationship endpoints in other files (#34)           |
+| 35  | ~~Merge composed-of / deployed-in on the same container~~                                        | —        | PM     | **Resolved** — max one of each type; merge 1:1 on load/draw; keep first `unique-id`; union `nodes[]` (#35)        |
+| 36  | ~~Alt+drop when both containment types exist~~                                                   | —        | PM     | **Resolved** — append to session last-used for that container; else type picker (#36)                             |
+| 37  | ~~Alt vs plain drag for containment~~                                                            | —        | PM     | **Resolved** — Alt required to nest/un-nest; plain drag does neither (#37)                                        |
+| 38  | ~~Where CLI patterns are configured~~                                                            | —        | PM     | **Resolved** — `.calmrj` `patterns.dir`, separate from `templates.dir` (#38)                                      |
+| 39  | ~~Where generated architecture opens~~                                                           | —        | PM     | **Resolved** — always a new untitled tab (#39)                                                                    |
+| 40  | ~~Pattern generate options UX~~                                                                  | —        | PM     | **Resolved** — dialog with the same choices as `calm generate` (#40)                                              |
+| 41  | ~~Which settings fields get filesystem pickers~~                                                 | —        | PM     | **Resolved** — dirs: search roots, `templates.dir`, `patterns.dir`; files: ruleset paths **and** `urlMapping.path` (R75); not naming tokens (#41) |
+| 42  | ~~Generate engine: CLI spawn vs import~~                                                         | —        | PM     | **Resolved** — import `@finos/calm-shared` instantiate in memory; do not spawn CLI; do not reimplement (#42)      |
+| 43  | Docker compose context mismatch (`Dockerfile.static` vs monorepo `Dockerfile`)                   | Medium   | eng    | Open — R34 must pick one working documented path                                                                  |
+| 44  | ELK radial quality on nested containers                                                          | Low      | eng    | Open — keep `parentId`; accept ELK default if nested radial is poor                                               |
+| 45  | Browser wrap of `runGenerate` (Node `fs`) vs public `instantiate` API                            | Medium   | eng    | Open — R41 must use exported shared functions; if only `runGenerate` writes disk, wrap instantiate only           |
+| 46  | Canonical home of pack JSON (Studio `definitions/` vs repo-root `extensions/` vs shared package) | —        | PM     | **Resolved** — monorepo root `extensions/`; hosts load from the filesystem (#46)                                  |
+| 47  | Write `$schema` for `status: proposed` Standard URIs that 404 today                              | —        | PM     | **Resolved** — write the URI; validate from `standard.href` on disk (#47)                                         |
+| 48  | Inline SVG in JSON vs external `icon.href` files                                                 | Low      | eng    | **Resolved for v1** — inline SVG (parity with TS); `href` allowed by schema                                       |
+| 49  | Relationship types in pack JSON                                                                  | —        | PM     | **Resolved** — required `relationships[]`; core variants on most packs; ArchiMate mapped names (#49)              |
+| 50  | Layout persist format vs Hub / VS Code                                                           | —        | PM     | **Resolved** — architecture `metadata._layout` `LayoutMap` `{ unique-id: { x, y, w, h } }`; write on save (#50)   |
+| 51  | Where node colors live                                                                           | —        | PM     | **Resolved** — node `metadata.building-block-style` `{ background, text }`; VS Code `fidelity-style` alias (#51)  |
+| 52  | Hub URL source in browser vs desktop                                                             | —        | PM     | **Resolved** — `.calmrj` `hub.url` wins; else `~/.calm.json` `calmHubUrl` when home is readable; SPA never reads home (#52) |
+| 53  | Pattern validate: CLI spawn vs import                                                            | —        | PM     | **Resolved** — import `@finos/calm-shared` (same as R41 generate); do not spawn `calm` (#53)                       |
+| 54  | Hub document write-back                                                                          | —        | PM     | **Resolved** — out of scope; Hub is read + local Save As for patterns (#54)                                       |
+| 55  | Bezier vs R23 orthogonal obstacle router                                                         | Medium   | eng    | Open — AC: visible edges are Bezier; keep R23 waypoints if present; segments between waypoints are Bezier         |
+| 56  | Container grid when children have internal edges                                                 | —        | PM     | **Resolved** — still a 2D near-square table; do not fall back to a one-axis strip (#56)                           |
+| 57  | Hub architecture tab: edit vs read-only                                                          | —        | PM     | **Resolved** — Hub-sourced tab fully read-only (canvas, properties, **JSON**); no Hub insert (R70). Local files remain editable. R18 JSON exception is **local** files only. |
+| 58  | Ctrl+duplicate freeze root cause                                                                 | Medium   | eng    | Open — R58 is P0; fix the hang (effect/history/selection); add regression test                                    |
+| 59  | User-defaults file location in the browser                                                       | —        | PM     | **Resolved** — same schema as `.calmrj`; SPA: picker + IDB handle; no silent `~`. Desktop later: `~/.calmrj` (#59) |
+| 60  | User vs project merge for arrays                                                                 | —        | PM     | **Resolved** — objects deep-merge; arrays replace when the project key is present; project wins (#60)             |
+| 61  | Rewrite `detailed-architecture` on folder move                                                   | —        | PM     | **Resolved** — rewrite **relative file** links inbound and outbound so they still resolve; Hub URLs unchanged; persist + patch open tabs; abort on parse failure (#61) |
+| 62  | Multi-select modifier vs Ctrl+duplicate                                                          | —        | PM     | **Resolved** — Shift+click additive + marquee; Ctrl+drag stays R21 duplicate (#62)                                |
+| 63  | Folder actions: header buttons vs tree context menu                                              | —        | PM     | **Resolved** — **Right-click** the Files-tree row under the pointer; menu holds New folder / New file / Move (R71–R72). Header is not the primary entry. Rename/delete/copy out of scope. |
+| 64  | New file: Untitled then Save As vs name-first dialog                                             | —        | PM     | **Resolved** — dialog **asks for the file name immediately**; write empty CALM architecture into the tree node’s directory and open the tab. File → New Untitled unchanged (#64). |
+| 65  | Left mouse: always marquee vs switchable pan                                                     | —        | PM     | **Superseded by #68** — V10 chose a Select/Pan toggle. V11 removes it. |
+| 68  | How to select after the Select/Pan toggle is removed                                            | —        | PM     | **Resolved** — empty drag pans; drag on a node moves it (group if already selected); Shift+click and Shift+marquee toggle; click without Shift replaces; click empty clears; no Space-pan (R76). |
+| 69  | Hub tree depth and the browse dialog                                                             | —        | PM     | **Resolved** — tab beside Files; namespace → architecture → version → nodes; drag a node; double-click version opens read-only; dialog removed (R78). |
+| 70  | Relationship path vs containers                                                                  | —        | PM     | **Resolved** — container that holds an endpoint is not an obstacle; other nodes still are; bezier stays (R79). |
+| 71  | When file paths in `detailed-architecture` become relative                                       | —        | PM     | **Resolved** — new links stay file-relative (R4). Rewrite relative links on file and folder move only. Do not convert absolute paths on open or save. `http(s)` unchanged (R77). |
+| 72  | What a JSON edit may do to layout                                                                | —        | PM     | **Resolved** — keep `_layout` and `building-block-style` unless the applied text changed them; delete clears; `unique-id` change re-keys; no auto-layout on apply (R80). |
+| 73  | What undo/redo V11 adds                                                                          | —        | PM     | **Resolved** — diagram edits outside the JSON editor (Ctrl+Z / Ctrl+Y). JSON text undo stays separate. File-tree moves are not undone (R81). |
+| 74  | File move when the destination name exists                                                       | —        | PM     | **Resolved** — abort. No overwrite prompt. `url-mapping.json` is not rewritten. Gestures match folder move (R77). |
+| 75  | Where an inserted reference points when the source node is itself a reference                    | —        | PM     | **Resolved** — follow the chain to the document where the node has no `detailed-architecture`. Write a new relative path from the current file (R82). |
+| 76  | What to write when that chain cannot be resolved                                                 | —        | PM     | **Resolved** — link the document you inserted from (R82). |
+| 77  | `http(s)` `detailed-architecture` on insert                                                      | —        | PM     | **Resolved** — copy the URL and stop. Do not map it to a local file (R82). |
+| 78  | Which insert paths use the defining-file rule                                                    | —        | PM     | **Resolved** — Files drag, Hub drag, and Find neighbors. Not palette drop or same-file Ctrl+drag (R82). |
+| 79  | Which Move dialogs show the folder tree                                                          | —        | PM     | **Resolved** — file Move and folder Move (R83). |
+| 80  | Tree versus typed path                                                                           | —        | PM     | **Resolved** — both. The tree fills the folder field. **Move** still confirms. Drag onto a folder in the Files tree stays (R83). |
+| 81  | What the tree may select                                                                         | —        | PM     | **Resolved** — folders and the project root. A file is not a destination (R83). |
+| 82  | Where `ui.demo` lives                                                                            | —        | PM     | **Resolved** — project `.calmrj` only: `ui.demo` boolean; default / missing = false (R84). |
+| 83  | Demo UI with no project open                                                                     | —        | PM     | **Resolved** — Demos button and FluxNova/OpenGRIS tabs stay visible until a project loads (R84). |
+| 84  | What Demo hides                                                                                  | —        | PM     | **Resolved** — toolbar Demos + bundled Template categories `fluxnova` and `opengris` only. Not Palette packs. Not other categories (R84). |
+| 85  | Remove vs hide Demos                                                                             | —        | PM     | **Resolved** — hide when `ui.demo` is false; keep assets and code for `true` (R84). |
+| 86  | Replace calmscript export with what                                                             | —        | PM     | **Resolved** — Mermaid `flowchart`; Export offers `.mmd` and `.md`; Code panel read-only **Mermaid** tab; remove disabled calmscript tab (R85). |
+| 87  | Mermaid diagram kind                                                                             | —        | PM     | **Resolved** — `flowchart` with containers as subgraphs. Not C4 Mermaid (R85). |
+| 88  | Mermaid round-trip                                                                               | —        | PM     | **Resolved** — export / preview only. No Mermaid → CALM (R85). |
+| 89  | `packages/calmscript`                                                                            | —        | PM     | **Resolved** — leave the package; stop wiring it in Studio UI (R85). |
+| 90  | Where array property editing applies                                                             | —        | PM     | **Resolved** — all properties surfaces that can hold arrays / nested JSON (metadata, customMetadata when JSON, controls/interfaces lists) (R86). |
+| 91  | Array of objects                                                                                 | —        | PM     | **Resolved** — per-element edit; object = mini-form or per-item pretty JSON (R86). |
+| 92  | Array UI placement                                                                               | —        | PM     | **Resolved** — inline list in the panel with Add/Remove (R86). |
+| 93  | Nested JSON formatting                                                                           | —        | PM     | **Resolved** — pretty preview and pretty dialog (R86). |
+| 94  | Empty array                                                                                      | —        | PM     | **Resolved** — show list chrome + Add (R86). |
+| 66  | Canvas overview: none vs mini-map click-to-pan                                                   | —        | PM     | **Resolved** — always-visible mini-map (bottom-right); click pans viewport to that point (centered); zoom unchanged; no hide/zoom-from-minimap (#66). |
+| 67  | How Studio finds a local file for a canonical `$id` URL                                          | —        | PM     | **Resolved** — `.calmrj` `urlMapping.path` → `url-mapping.json` (CALM CLI `-u` / CEngineering-App shape); values relative to the mapping file; Hub instance URLs skip the map; no network fetch (#67). |
 
 
 ## 10. Appendix and change log
 
-
-
 ### Glossary
 
 
-| Term                    | Meaning                                                                      |
-| ----------------------- | ---------------------------------------------------------------------------- |
-| Pack                    | Extension bundle of node types (aws, ai, core, …)                            |
-| `detailed-architecture` | CALM link to detailed architecture in another file                           |
-| Containment             | Visual nesting of node in container on canvas                                |
-| Tab                     | One open diagram instance in TabBar (max. 1 per file)                        |
-| FIFO eviction           | On 11th new file close tab with smallest `openedAt`                          |
-| Undo/redo               | Per tab — not shared across TabBar                                           |
-| Document envelope       | CALM JSON header (`$schema`, metadata)                                       |
-| CALM `metadata`         | Structured node/relationship object validated by extension schema            |
-| `customMetadata`        | Free key-value pairs outside CALM/extension schema (existing UI)             |
-| Reference node          | Node with `details.detailed-architecture` — proxy to another file            |
-| Reveal in tree          | Scroll Files panel to active tab's project file (R19)                        |
-| Relationship clone      | In-file only; rewire endpoints to new `unique-id` (R21)                      |
-| Obstacle router         | Orthogonal path around node bboxes; shared by all edge components (R23, #16) |
-| `.calmrj` / project file | JSON project config at folder root — rulesets, naming, `templates.dir`, `patterns.dir` (R24, R33, R41) |
-| Extract to diagram      | Move node subgraph to new file; parent becomes `detailed-architecture` stub (R27) |
-| Naming profile          | Template map `node-type` → dir/file; default `cengineering-archimate` (R26) |
-| Find neighbors          | Project-wide 1-hop peers of selected node; add as R4 refs + copy rels (R28) |
-| Diagram fog             | Session filter: dim non-matching nodes/edges (R29)                          |
-| Save all                | Persist all dirty tabs; Untitled → Save As (R30)                            |
-| Bulk tab close          | Close left / right / all with one summary dirty dialog (R31)                |
-| Radial layout           | ELK `radial` option in the layout dropdown; selected node = center (R32)    |
-| Project templates       | `.calmrj` `templates.dir`; merge with bundled; same id overwrites (R33)     |
-| Docker Studio           | Multi-stage nginx SPA from monorepo root; documented compose (R34)          |
-| Hidden containment edge | `composed-of` / `deployed-in` not drawn; nesting remains (R35)              |
-| Container rel icon      | Header control to load containment relationship into properties (R35)       |
-| Node-type fog           | Third independent R29 mode; multi-select types (R36)                        |
-| Find usage              | Reverse lookup of stubs + relationship endpoints in other files (R37)       |
-| Merged containment      | Max one `composed-of` and one `deployed-in` per container; `nodes[]` (R38)  |
-| Alt+drop / Alt+extract  | Alt nests or un-nests; first drop picks type; append to existing (R39)      |
-| Last-used containment   | Session `Map<containerId, variant>`; not persisted (R39, #36)               |
-| Path picker             | File/directory picker in Project settings; project-relative path (R40)      |
-| CALM pattern            | CLI JSON Schema pattern in `patterns.dir`; generate via shared instantiate (R41) |
-
+| Term                     | Meaning                                                                                                |
+| ------------------------ | ------------------------------------------------------------------------------------------------------ |
+| Pack                     | Extension bundle of node types (aws, ai, core, …)                                                      |
+| `detailed-architecture`  | CALM link to detailed architecture in another file                                                     |
+| Containment              | Visual nesting of node in container on canvas                                                          |
+| Tab                      | One open diagram instance in TabBar (max. 1 per file)                                                  |
+| FIFO eviction            | On 11th new file close tab with smallest `openedAt`                                                    |
+| Undo/redo                | Per tab — not shared across TabBar                                                                     |
+| Document envelope        | CALM JSON header (`$schema`, metadata)                                                                 |
+| CALM `metadata`          | Structured node/relationship object validated by extension schema                                      |
+| `customMetadata`         | Free key-value pairs outside CALM/extension schema (existing UI)                                       |
+| Reference node           | Node with `details.detailed-architecture` — proxy to another file                                      |
+| Reveal in tree           | Scroll Files panel to active tab's project file (R19)                                                  |
+| Relationship clone       | In-file only; rewire endpoints to new `unique-id` (R21)                                                |
+| Obstacle router          | Orthogonal path around node bboxes; shared by all edge components (R23, #16)                           |
+| `.calmrj` / project file | JSON project config at folder root — rulesets, naming, `templates.dir`, `patterns.dir`, `hub.url` (R24, R33, R41, R53) |
+| Extract to diagram       | Move node subgraph to new file; parent becomes `detailed-architecture` stub (R27)                      |
+| Naming profile           | Template map `node-type` → dir/file; default `cengineering-archimate` (R26)                            |
+| Find neighbors           | Project-wide 1-hop peers of selected node; add as R4 refs + copy rels (R28)                            |
+| Diagram fog              | Session filter: dim non-matching nodes/edges (R29)                                                     |
+| Save all                 | Persist all dirty tabs; Untitled → Save As (R30)                                                       |
+| Bulk tab close           | Close left / right / all with one summary dirty dialog (R31)                                           |
+| Radial layout            | ELK `radial` option in the layout dropdown; selected node = center (R32)                               |
+| Project templates        | `.calmrj` `templates.dir`; merge with bundled; same id overwrites (R33)                                |
+| Docker Studio            | Multi-stage nginx SPA from monorepo root; documented compose (R34)                                     |
+| Hidden containment edge  | `composed-of` / `deployed-in` not drawn; nesting remains (R35)                                         |
+| Container rel icon       | Header control to load containment relationship into properties (R35)                                  |
+| Node-type fog            | Third independent R29 mode; multi-select types (R36)                                                   |
+| Find usage               | Reverse lookup of stubs + relationship endpoints in other files (R37)                                  |
+| Merged containment       | Max one `composed-of` and one `deployed-in` per container; `nodes[]` (R38)                             |
+| Alt+drop / Alt+extract   | Alt nests or un-nests; first drop picks type; append to existing (R39)                                 |
+| Last-used containment    | Session `Map<containerId, variant>`; not persisted (R39, #36)                                          |
+| Path picker              | File/directory picker in Project settings; project-relative path (R40)                                 |
+| CALM pattern             | CLI JSON Schema pattern in `patterns.dir`; generate via shared instantiate (R41)                       |
+| Extension pack JSON      | `*.extension.json` palette catalog; not a CALM Standard (R42)                                          |
+| CALM Standard            | JSON Schema overlay; referenced from pack `standard.$id` (R43)                                         |
+| `extensions.dir`         | Extra FS folder of pack JSON; project root `extensions/` is scanned first (R44)                        |
+| `_layout`                | Architecture `metadata` map unique-id → `{ x, y, w, h }`; Hub / VS Code `LayoutMap` (R48)              |
+| `building-block-style`   | Node `metadata` `{ background, text }` colors shared with the VS Code plugin (R49)                     |
+| Container grid           | Row/column packing of container children; bounding box close to square (R46)                           |
+| Bezier relationship      | Cubic Bezier line style for visible `connects` / `interacts` (R50)                                     |
+| Pattern validate         | Shared `calm validate -p` (+ `-u` when `urlMapping.path` is set) without spawning CLI (R51, R75)       |
+| `urlMapping.path`        | Project-relative path to `url-mapping.json`; keys = canonical URLs; values relative to that file (R75) |
+| `hub.url`                | `.calmrj` CALM Hub base URL; overrides CLI `calmHubUrl` (R53)                                          |
+| Hub namespace tab        | Pattern picker tab per Hub namespace next to Local (R53)                                               |
+| Pattern canvas           | Hub PatternGraph-like editor for CLI pattern JSON Schema (R55–R56)                                     |
+| User defaults            | User-home `.calmrj`-shaped file loaded before the project overlay (R62)                                |
+| Config overlay           | User file first, project `*.calmrj` wins; objects deep-merge; arrays replace (R62, #60)                |
+| Settings tab             | One Project settings tab per top-level config block (R63)                                              |
+| Nested metadata dialog   | Preview in panel; edit nested JSON in a modal (R64)                                                    |
+| Marquee select           | Shift+drag rectangle on empty canvas; intersecting nodes **toggle** (R65, R76)                        |
+| Select / Pan mode        | Removed in V11. Empty drag pans; Shift toggles selection (R76). R73 superseded.                        |
+| Canvas mini-map          | Overview of nodes + current viewport mask; click pans (R74)                                            |
+| Group align              | Row/column/axis align, even spacing, same size, table on a multi-selection (R66)                       |
+| Arrange to table         | Pack container children into a grid and resize the container (R67)                                     |
+| `extensions.disabled`    | Bundled pack ids hidden from the palette (R68)                                                         |
+| Hub-sourced tab          | Editor whose document was loaded from Hub — fully read-only including JSON (R70)                       |
+| Files-tree context menu  | Right-click on the tree row under the pointer; New folder / New file / Move (R71–R72)                  |
+| Mermaid flowchart export | CALM → Mermaid `flowchart` (`.mmd` / `.md`); read-only Code-panel tab; replaces calmscript stub (R85) |
+| Array property editor    | Inline row-per-element Add/Remove for JSON arrays in properties; object items supported (R86)         |
+| Pretty nested preview    | Multi-line indented JSON for nested metadata preview and dialog (R86)                                 |
 
 
 ### Implementation order
@@ -1942,9 +3088,30 @@ Extend / add:
 25. **V7 Alt gestures** (R39) — Alt+drop / Alt+extract; type picker; last-used
 26. **V7 path pickers** (R40) — directory/file pickers in Project settings
 27. **V7 CLI patterns** (R41) — `patterns.dir` cards + in-memory instantiate
-28. **P2 desktop / watch** (R13, R14)
-
-
+28. **V9 JSON packs** (R42–R45) — repo-root `extensions/`, filesystem load, Standard `$id`
+29. **V8 container grid + visual size** (R46–R47)
+30. **V8 layout + colors** (R48–R49) — `_layout` + `building-block-style`
+31. **V8 bezier + pattern validate + naming editor** (R50–R52)
+32. **V8.1 Hub patterns + browse** (R53–R54)
+33. **V8.2 pattern canvas + generic metadata** (R55–R57)
+34. **V8.2 Ctrl+copy freeze** (R58) — P0; may land earlier if the hang blocks V8 work
+35. **V10 folders + new file + Save As** (R59–R61, R71–R72)
+36. **V10 user overlay + settings tabs** (R62–R63)
+37. **V10 metadata dialog** (R64)
+38. **V10 multi-select + mini-map + align + container table** (R65–R67, R74). Pointer toggle R73 is superseded by step 43.
+39. **V10 disable bundled packs** (R68)
+40. **V10 Hub open + JSON lock** (R69–R70)
+41. **V10 URL mapping** (R75) — `.calmrj` path + resolve `$id` for validate / schema load
+42. **V11 pointer** (R76, updates R65) — remove Select/Pan and Space-pan
+43. **V11 Hub tab** (R78) — replace the Hub dialog
+44. **V11 move one file** (R77)
+45. **V11 container obstacle + JSON layout + diagram undo** (R79–R81)
+46. **V12 defining file** (R82) — Files, Hub, and Find neighbors
+47. **V12 Move dialog tree** (R83) — file and folder dialogs
+48. **V13 demo UI gate** (R84) — `ui.demo`; hide Demos + FluxNova/OpenGRIS tabs
+49. **V14 Mermaid export** (R85) — replace calmscript stub with flowchart `.mmd` / `.md` + Mermaid tab
+50. **V15 array properties + pretty nested** (R86)
+51. **P2 desktop / watch** (R13, R14)
 
 ### Constraints for AI coding agent
 
@@ -1964,39 +3131,81 @@ Extend / add:
 - **R37 / #34:** find usage is read-only; do not copy or rewrite other files.
 - **R38 / #35:** persist at most one `composed-of` and one `deployed-in` per container; merge 1:1 children into `nodes[]`; do not mix types.
 - **R39 / #37:** do not nest or un-nest on plain drag — Alt is required. Last-used type is session memory only (#36).
-- **R40 / #41:** pickers only for search roots, `templates.dir`, `patterns.dir`, and ruleset files; do not add pickers for `naming.patterns` tokens.
+- **R40 / #41:** pickers only for search roots, `templates.dir`, `patterns.dir`, ruleset files, and `urlMapping.path`; do not add pickers for `naming.patterns` tokens.
 - **R41 / #42:** import `@finos/calm-shared` (`flattenAllOf`, `selectChoices`, `instantiate`); do **not** spawn `calm` CLI; do **not** reimplement instantiate. Open a new untitled tab (#39).
-- **R13 / R14:** still P2 — do not implement Tauri/watch in Iteration 7.
-
-
+- **R42–R45:** do not invent a second pack JSON format; load pack JSON from the **filesystem** (File System Access / Node `fs`); bundled copy is fallback only when no folder is open; do not fetch `standard.$id` over the network in the browser; do not author Standard documents in Studio.
+- **R46:** container children in a 2D near-square grid — do not keep `elk.aspectRatio` 99 / 0.01 as the nested packing rule.
+- **R47:** painted container must fill the layout/resize bbox — do not leave a CSS max-size that clips the graphic.
+- **R48 / R49:** persist Hub/VS Code `metadata._layout` and node `building-block-style` only — do not invent a Studio layout file; do not call Hub layout REST from Studio.
+- **R50:** bezier for visible `connects` / `interacts` only — do not draw containment edges (R35).
+- **R51 / R53:** import `@finos/calm-shared` for validate and Hub-pattern generate; do **not** spawn `calm` CLI.
+- **R52:** edit `naming` and `patterns` in settings; do **not** add file pickers for `{{name}}` tokens (#41).
+- **R54 / R56:** Hub is read-only; pattern Save writes `patterns.dir`; no Hub PUT/POST.
+- **R57:** generic metadata on nodes **and** relationships; do not put `_layout` in that form (R48).
+- **R58:** fix the freeze; do not disable Ctrl+duplicate (R21) as a workaround.
+- **R59 / R60 / R71:** folder commands from the **right-click menu on the Files-tree row**; create/move on disk via FSA; **do** rewrite relative file `detailed-architecture` in other files and in moved files (#61). Do **not** rewrite Hub URLs. Abort the move if a rewrite parse fails. Do **not** add rename/delete/copy. Header New folder / New file / Move are not required (#63).
+- **R72 / #64:** **New file** on the same menu; dialog asks for the name immediately (empty focused field); write empty CALM architecture (same envelope as File → New) then open the tab. Do **not** go through Untitled then Save As. Do **not** generate a template. File → New Untitled stays.
+- **R61:** Save As defaults from Files-tree selection + naming pattern; user can still change both.
+- **R62 / #59 / #60:** user defaults then project overlay; project wins; SPA needs a granted handle — do not silent-read `~`.
+- **R63:** settings tabs map to existing `.calmrj` blocks — do not invent a second config schema.
+- **R64:** enum → dropdown; nested JSON → dialog (panel preview only); do not put `_layout` in that form.
+- **R65 / R76 / #68:** Shift+click and Shift+marquee **toggle**; empty drag pans; node drag moves. Do **not** steal Ctrl from R21. Do **not** ship a Select/Pan toggle or Space-pan (R73 superseded).
+- **R77 / #71:** single-file move uses the same relative-link rewrite as R60. Abort when the destination name exists. Do **not** rewrite `url-mapping.json`. Do **not** convert absolute paths on save.
+- **R78:** Hub is a left-panel tab with lazy expand to nodes. Remove `HubBrowseDialog`. A node with no `detailed-architecture` uses that version URL. A node that is itself a reference follows R82. No Hub PUT/POST.
+- **R82:** on insert from another document, follow relative `detailed-architecture` to the file that defines the node and write a new relative path from the current file. Copy `http(s)` and stop. Do **not** search the project for another definition. Do **not** use `url-mapping.json` on insert. Unresolved chain → the document you inserted from.
+- **R83:** file and folder Move dialogs show a folder tree, including the project root, plus the text field. **Move** still confirms. Do **not** treat a file as a destination. Drag-onto-folder stays.
+- **R84:** gate toolbar Demos and bundled Template categories `fluxnova` / `opengris` with project `.calmrj` `ui.demo` (default false). Do **not** delete demo assets. Do **not** disable Palette packs. Do **not** put `ui.demo` in user-home config. No project open → show Demos and those tabs.
+- **R85:** replace calmscript Export item and Code-panel tab with Mermaid `flowchart` (`.mmd` + `.md` download; read-only Mermaid tab). Containers → subgraphs; do **not** emit containment as edges. Do **not** implement Mermaid → CALM. Do **not** delete `packages/calmscript`. Do **not** ship C4 Mermaid kinds.
+- **R86:** edit arrays as inline per-element lists (Add/Remove; empty shows Add). Support object items. Pretty-print nested JSON in panel preview and Edit dialog. Apply across properties surfaces that hold arrays/nested JSON. Do **not** store the whole array as one string. Do **not** edit `_layout` via this UI.
+- **R79:** a container that holds an endpoint is not an obstacle for that relationship. Do **not** drop bezier (R50) and do **not** stop avoiding other nodes.
+- **R80:** JSON apply keeps `_layout` and `building-block-style` unless the applied text changed them. Do **not** run auto-layout on apply. Re-key `_layout` when only `unique-id` changes.
+- **R81:** bind Ctrl+Z / Ctrl+Y (and Cmd) for diagram edits when focus is outside the JSON editor. Do **not** undo file or folder moves. Do **not** step the diagram stack from a JSON-editor key.
+- **R74 / #66:** canvas mini-map with current-viewport mask; **click pans** (center on click); do **not** change zoom; do **not** select/move nodes from the mini-map; do **not** add hide/show or persist in `.calmrj`.
+- **R75 / #67:** resolve canonical `$id` via `.calmrj` `urlMapping.path` + CLI-shaped `url-mapping.json`; values relative to the mapping file; do **not** fetch unmapped URLs; do **not** map Hub instance URLs; do **not** invent a second format or an in-app mapping table.
+- **R66 / R67:** group tools on nodes; container arrange-to-table resizes the container (R47).
+- **R68:** `extensions.disabled` is bundled pack ids only — do not use it to hide `extensions.dir` packs.
+- **R69 / R70:** Hub URLs open in the editor; Hub-sourced tabs lock JSON; no Hub insert onto those tabs; no Hub PUT/POST (#54).
+- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–17.
 
 ### Change log
 
 
-| Date       | Version | Author           | Change                                                                                                                                                  |
-| ---------- | ------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2026-06-28 | 0.1     | AI + stakeholder | Initial draft from BBR.MD, priority and decision refinement                                                                                             |
-| 2026-06-28 | 0.2     | stakeholder      | CALM 1.2 schema verification, relative paths, swap, pack registry                                                                                       |
-| 2026-06-28 | 0.3     | stakeholder      | Self-reference on drag forbidden (#8)                                                                                                                   |
-| 2026-06-28 | 0.4     | stakeholder      | Folder persist (#7), performance risk acceptance (#6)                                                                                                   |
-| 2026-06-28 | 0.5     | stakeholder      | Supported browsers: Chrome + Safari (#3)                                                                                                                |
-| 2026-06-29 | 0.6     | stakeholder      | BBR lines 10–11: diagram tabs (R15), glasses + navigation (R16)                                                                                         |
-| 2026-06-29 | 0.7     | stakeholder      | No duplicate tabs — switch to existing (#12)                                                                                                            |
-| 2026-06-29 | 0.8     | stakeholder      | Undo/redo per tab — decision #11 resolved                                                                                                               |
-| 2026-06-29 | 0.9     | stakeholder      | Reference outside project: infobox + external link (#10)                                                                                                |
-| 2026-06-29 | 0.10    | stakeholder      | Tab eviction: FIFO by openedAt (#9)                                                                                                                     |
-| 2026-07-03 | 0.11    | stakeholder      | BBR lines 13–14: metadata editor + scaffold (R17), read-only reference properties (R18)                                                                 |
-| 2026-07-03 | 0.12    | stakeholder      | Decision #13: reference properties fully read-only; #14: scaffold layer/viewpoint from `node-type`                                                      |
-| 2026-07-08 | 0.13    | eng              | **R8 done:** JSON/SVG/PNG export with relationships; §7.1 model merge, inline edge stroke, no `includeStyleProperties`                                  |
-| 2026-07-16 | 0.14    | stakeholder      | **BBR V3 (lines 19–24):** R19–R23 reveal in tree, save refresh, Ctrl+drag duplicate, reference focus, layout overlap; iteration 4 = former P2 (R13–R14) |
-| 2026-07-16 | 0.15    | stakeholder      | **Confirmed #17, #18:** container drop on duplicate; auto-switch to Files on Reveal                                                                     |
-| 2026-07-16 | 0.16    | stakeholder      | **Confirmed #16:** full obstacle-aware edge routing in R23 scope (manual placement + resize)                                                            |
-| 2026-07-21 | 0.17    | stakeholder      | **BBR V4 (lines 26–30):** R24–R27 `.calmrj`, Spectral rulesets, naming profile, extract-to-diagram; R13–R14 → Iteration 5; decisions #19–#22             |
-| 2026-07-26 | 0.18    | stakeholder      | **BBR V5 (lines 48–55):** R28–R31 find neighbors, diagram fog, Save all, bulk tab close; R13–R14 → Iteration 6; decisions #23–#28                        |
-| 2026-09-01 | 0.19    | stakeholder      | **BBR V6 (lines 58–64):** R32–R37 radial, project templates, Docker, hidden containment + header icon, node-type fog, find usage; V7 ignored; R13–R14 → Iteration 7; decisions #29–#34 |
+| Date       | Version | Author           | Change                                                                                                                                                                                    |
+| ---------- | ------- | ---------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-06-28 | 0.1     | AI + stakeholder | Initial draft from BBR.MD, priority and decision refinement                                                                                                                               |
+| 2026-06-28 | 0.2     | stakeholder      | CALM 1.2 schema verification, relative paths, swap, pack registry                                                                                                                         |
+| 2026-06-28 | 0.3     | stakeholder      | Self-reference on drag forbidden (#8)                                                                                                                                                     |
+| 2026-06-28 | 0.4     | stakeholder      | Folder persist (#7), performance risk acceptance (#6)                                                                                                                                     |
+| 2026-06-28 | 0.5     | stakeholder      | Supported browsers: Chrome + Safari (#3)                                                                                                                                                  |
+| 2026-06-29 | 0.6     | stakeholder      | BBR lines 10–11: diagram tabs (R15), glasses + navigation (R16)                                                                                                                           |
+| 2026-06-29 | 0.7     | stakeholder      | No duplicate tabs — switch to existing (#12)                                                                                                                                              |
+| 2026-06-29 | 0.8     | stakeholder      | Undo/redo per tab — decision #11 resolved                                                                                                                                                 |
+| 2026-06-29 | 0.9     | stakeholder      | Reference outside project: infobox + external link (#10)                                                                                                                                  |
+| 2026-06-29 | 0.10    | stakeholder      | Tab eviction: FIFO by openedAt (#9)                                                                                                                                                       |
+| 2026-07-03 | 0.11    | stakeholder      | BBR lines 13–14: metadata editor + scaffold (R17), read-only reference properties (R18)                                                                                                   |
+| 2026-07-03 | 0.12    | stakeholder      | Decision #13: reference properties fully read-only; #14: scaffold layer/viewpoint from `node-type`                                                                                        |
+| 2026-07-08 | 0.13    | eng              | **R8 done:** JSON/SVG/PNG export with relationships; §7.1 model merge, inline edge stroke, no `includeStyleProperties`                                                                    |
+| 2026-07-16 | 0.14    | stakeholder      | **BBR V3 (lines 19–24):** R19–R23 reveal in tree, save refresh, Ctrl+drag duplicate, reference focus, layout overlap; iteration 4 = former P2 (R13–R14)                                   |
+| 2026-07-16 | 0.15    | stakeholder      | **Confirmed #17, #18:** container drop on duplicate; auto-switch to Files on Reveal                                                                                                       |
+| 2026-07-16 | 0.16    | stakeholder      | **Confirmed #16:** full obstacle-aware edge routing in R23 scope (manual placement + resize)                                                                                              |
+| 2026-07-21 | 0.17    | stakeholder      | **BBR V4 (lines 26–30):** R24–R27 `.calmrj`, Spectral rulesets, naming profile, extract-to-diagram; R13–R14 → Iteration 5; decisions #19–#22                                              |
+| 2026-07-26 | 0.18    | stakeholder      | **BBR V5 (lines 48–55):** R28–R31 find neighbors, diagram fog, Save all, bulk tab close; R13–R14 → Iteration 6; decisions #23–#28                                                         |
+| 2026-09-01 | 0.19    | stakeholder      | **BBR V6 (lines 58–64):** R32–R37 radial, project templates, Docker, hidden containment + header icon, node-type fog, find usage; V7 ignored; R13–R14 → Iteration 7; decisions #29–#34    |
 | 2026-09-01 | 0.20    | stakeholder      | **BBR V7 (lines 65–70):** R38–R41 merged containment `nodes[]`, Alt+drop/extract, path pickers, CLI patterns via shared instantiate; V8 ignored; R13–R14 → Iteration 8; decisions #35–#42 |
-
-
+| 2026-09-19 | 0.21    | stakeholder      | **BBR V9:** JSON packs at repo-root `extensions/`; FS load; Standards in `extensions/standards/`; relationships in packs; `standard.$id` written even if unpublished; core → `calm.json`  |
+| 2026-09-20 | 0.22    | stakeholder      | **BBR V8 / V8.1 / V8.2 (lines 66–99):** container square grid; visual size = resize bbox; Hub/VS Code `_layout` + `building-block-style`; bezier; pattern validate; naming/patterns edit; Hub pattern tabs + browse; pattern canvas; generic metadata; Ctrl+copy freeze P0; R13–R14 → Iteration 12 |
+| 2026-09-20 | 0.23    | stakeholder      | **BBR V10 (lines 103–119):** folder create/move; Save As from tree + naming; user-home config overlay; settings tabs; metadata enum + nested dialog; Shift/marquee multi-select + align; container arrange-to-table; disable bundled packs; Hub `detailed-architecture` in editor; Hub JSON lock; R13–R14 → Iteration 13 |
+| 2026-09-20 | 0.24    | stakeholder      | **R60 / #61:** folder move **does** rewrite relative `detailed-architecture` in other files (and in moved files); Hub URLs unchanged |
+| 2026-09-20 | 0.25    | stakeholder      | **R71 / #63:** folder work as **right-click context menu** on the Files-tree row under the pointer; menu holds New folder / Move |
+| 2026-09-20 | 0.26    | stakeholder      | **R72 / #64:** **New file** on the same menu; dialog asks for the name immediately; write empty CALM architecture and open tab; File → New Untitled unchanged |
+| 2026-09-20 | 0.27    | stakeholder      | **R73 / #65:** canvas **Select / Pan** left-button toggle; Space = temporary pan; Hub/read-only locked to Pan |
+| 2026-09-20 | 0.28    | stakeholder      | **R74 / #66:** canvas **mini-map** of the current viewport; click pans the main view to that point; zoom unchanged |
+| 2026-09-20 | 0.29    | stakeholder      | **R75 / #67:** resolve artifact location from canonical URL via project `url-mapping.json` (CLI `-u` / CEngineering-App shape); path in `.calmrj` `urlMapping.path` |
+| 2026-09-29 | 0.30    | stakeholder      | **BBR V11 (lines 125–132):** R76–R81. Remove Select/Pan (R73 superseded). Hub tab replaces the dialog. Move one file. Container with an endpoint is not an obstacle. JSON keeps layout. Ctrl+Z undoes canvas edits. R13–R14 → Iteration 14 |
+| 2026-09-29 | 0.31    | stakeholder      | **BBR V12 (lines 134–135):** R82–R83. Insert follows `detailed-architecture` to the defining file. Move dialogs offer a project folder tree. R13–R14 → Iteration 15 |
+| 2026-09-30 | 0.32    | stakeholder      | **V13:** R84. Hide toolbar Demos and bundled FluxNova/OpenGRIS template tabs unless `.calmrj` `ui.demo: true` (default false). R13–R14 → Iteration 16 |
+| 2026-09-30 | 0.33    | stakeholder      | **V14:** R85. Replace calmscript stub with Mermaid flowchart export (`.mmd` + `.md`) and read-only Code-panel Mermaid tab; leave `packages/calmscript`. R13–R14 → Iteration 17 |
+| 2026-10-01 | 0.34    | stakeholder      | **V15:** R86. Array properties edited per element (inline list; objects included); nested JSON pretty in preview and dialog. R13–R14 → Iteration 18 |
 
 
 ### Session decisions (2026-06-28)
@@ -2041,8 +3250,6 @@ Extend / add:
 | Edge obstacle routing       | **Confirmed (#16):** orthogonal router, all edge types, live on drag/resize — not deferred       |
 
 
-
-
 ### Session decisions (2026-07-16, BBR V3)
 
 
@@ -2061,77 +3268,213 @@ Extend / add:
 | Edge obstacle routing    | **Confirmed (#16):** shared orthogonal router; 8 px padding; all edge types; live re-route on drag/resize |
 
 
-
 ### Session decisions (2026-07-21, BBR V4)
 
 
-| Decision                    | Choice                                                                                                      |
-| --------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Validation rules format     | Spectral rulesets; paths + `enabled` in `.calmrj`; core CALM always on (#19)                                |
-| Per-rule toggle             | Out of scope — whole ruleset only                                                                           |
-| Project file                | `*.calmrj` JSON, any name, one in root; Create if missing; error if multiple (#22)                          |
-| Naming                      | Configurable patterns + bundled `cengineering-archimate`; unmapped → empty path + warning (#20)             |
-| Extract subgraph            | Node + containment children + internal relationships (#21)                                                  |
-| Extract stub                | Same `unique-id` + `detailed-architecture` relative path                                                    |
-| External relationships      | Remain on stub in parent                                                                                    |
-| Extract node types          | All except existing reference stubs; open child tab after OK                                                |
-| Iteration priority          | V4 = Iteration 4 (P1); Tauri/watch R13–R14 = Iteration 6 (after V5)                                         |
-
+| Decision                | Choice                                                                                          |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| Validation rules format | Spectral rulesets; paths + `enabled` in `.calmrj`; core CALM always on (#19)                    |
+| Per-rule toggle         | Out of scope — whole ruleset only                                                               |
+| Project file            | `*.calmrj` JSON, any name, one in root; Create if missing; error if multiple (#22)              |
+| Naming                  | Configurable patterns + bundled `cengineering-archimate`; unmapped → empty path + warning (#20) |
+| Extract subgraph        | Node + containment children + internal relationships (#21)                                      |
+| Extract stub            | Same `unique-id` + `detailed-architecture` relative path                                        |
+| External relationships  | Remain on stub in parent                                                                        |
+| Extract node types      | All except existing reference stubs; open child tab after OK                                    |
+| Iteration priority      | V4 = Iteration 4 (P1); Tauri/watch R13–R14 = Iteration 6 (after V5)                             |
 
 
 ### Session decisions (2026-07-26, BBR V5)
 
 
-| Decision                         | Choice                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Neighbor relationship insert     | Copy into current diagram with **same** `unique-id`; source file unchanged (#23)                            |
-| Neighbor scan                    | Other project files only (exclude active); 1 hop; inbound + outbound (#24)                                  |
-| Neighbor already on canvas       | Add missing relationship only; do not duplicate node (#24)                                                  |
-| Find neighbors entry             | Toolbar **and** node context menu (#25)                                                                     |
-| Diagram filter                   | Session-only; focus 1-hop neighbors; single metadata key/value; fog nodes **and** edges (#26)               |
-| Metadata filter values           | Keys from header/pack schema; values from those present on the current diagram                              |
-| Save all                         | Dirty tabs only; Untitled → Save As; Cancel Save As aborts remainder (#27)                                  |
-| Bulk close                       | VS Code: left / right / all; Close all includes current; one summary dirty dialog (#28)                     |
-| Iteration priority               | V5 = Iteration 5 (P1, R28–R31); Tauri/watch R13–R14 = Iteration 6                                           |
-
+| Decision                     | Choice                                                                                        |
+| ---------------------------- | --------------------------------------------------------------------------------------------- |
+| Neighbor relationship insert | Copy into current diagram with **same** `unique-id`; source file unchanged (#23)              |
+| Neighbor scan                | Other project files only (exclude active); 1 hop; inbound + outbound (#24)                    |
+| Neighbor already on canvas   | Add missing relationship only; do not duplicate node (#24)                                    |
+| Find neighbors entry         | Toolbar **and** node context menu (#25)                                                       |
+| Diagram filter               | Session-only; focus 1-hop neighbors; single metadata key/value; fog nodes **and** edges (#26) |
+| Metadata filter values       | Keys from header/pack schema; values from those present on the current diagram                |
+| Save all                     | Dirty tabs only; Untitled → Save As; Cancel Save As aborts remainder (#27)                    |
+| Bulk close                   | VS Code: left / right / all; Close all includes current; one summary dirty dialog (#28)       |
+| Iteration priority           | V5 = Iteration 5 (P1, R28–R31); Tauri/watch R13–R14 = Iteration 6                             |
 
 
 ### Session decisions (2026-09-01, BBR V6)
 
 
-| Decision                         | Choice                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Radial in UI                     | Fourth item in the **same** layout dropdown; not a separate algorithm selector (#29)                        |
-| Radial center                    | Exactly one selected node → that node is center; otherwise ELK chooses (#29)                                |
-| Project templates format         | Same `_template` metadata as bundled; `templates.dir` in `.calmrj` (#30)                                    |
-| Project vs bundled templates     | **Merge**; same `_template.id` overwrites bundled (#30)                                                     |
-| Docker scope                     | Working multi-stage image + README; no Hub stack; no GHCR publish (#31)                                     |
-| Docker vs Open folder            | Container serves SPA; project open stays browser File System Access (#31)                                   |
-| Hidden containment variants      | Both `composed-of` and `deployed-in`; JSON unchanged (#32)                                                  |
-| Multiple containment rels        | Header icon: 1 → properties; 2+ → menu (`name` / `unique-id` + variant) (#32)                               |
-| Node-type fog                    | Third **independent** mode; multi-select types present on the diagram (#33)                                 |
-| Find usage hits                  | Reference stubs **and** relationship endpoints in **other** files; open + focus (#34)                       |
-| BBR V7                           | Out of scope for this revision                                                                              |
-| Iteration priority               | V6 = Iteration 6 (P1, R32–R37); Tauri/watch R13–R14 = Iteration 8 (after V7)                                |
-
+| Decision                     | Choice                                                                                |
+| ---------------------------- | ------------------------------------------------------------------------------------- |
+| Radial in UI                 | Fourth item in the **same** layout dropdown; not a separate algorithm selector (#29)  |
+| Radial center                | Exactly one selected node → that node is center; otherwise ELK chooses (#29)          |
+| Project templates format     | Same `_template` metadata as bundled; `templates.dir` in `.calmrj` (#30)              |
+| Project vs bundled templates | **Merge**; same `_template.id` overwrites bundled (#30)                               |
+| Docker scope                 | Working multi-stage image + README; no Hub stack; no GHCR publish (#31)               |
+| Docker vs Open folder        | Container serves SPA; project open stays browser File System Access (#31)             |
+| Hidden containment variants  | Both `composed-of` and `deployed-in`; JSON unchanged (#32)                            |
+| Multiple containment rels    | Header icon: 1 → properties; 2+ → menu (`name` / `unique-id` + variant) (#32)         |
+| Node-type fog                | Third **independent** mode; multi-select types present on the diagram (#33)           |
+| Find usage hits              | Reference stubs **and** relationship endpoints in **other** files; open + focus (#34) |
+| BBR V7                       | Out of scope for this revision                                                        |
+| Iteration priority           | V6 = Iteration 6 (P1, R32–R37); Tauri/watch R13–R14 = Iteration 8 (after V7)          |
 
 
 ### Session decisions (2026-09-01, BBR V7)
 
 
-| Decision                         | Choice                                                                                                      |
-| -------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Merge when                       | Always **max 1** `composed-of` and **max 1** `deployed-in` per container; merge 1:1 on load/draw (#35)     |
-| Merge identity                   | Keep first `unique-id` (document order); union `nodes[]`; do **not** mix types (#35)                        |
-| Alt+drop, both types exist       | Append to session **last-used** type for that container; no last-used → type picker (#36)                  |
-| Alt vs plain drag                | **Alt required** to create/remove containment (`parentId` + JSON); plain drag does neither (#37)            |
-| Pattern source                   | New `.calmrj` key **`patterns.dir`**, separate from `templates.dir` (#38)                                   |
-| Generate UX                      | Always a **new untitled tab** (#39)                                                                         |
-| Pattern options                  | **Dialog** with the same choices as `calm generate` (#40)                                                   |
-| Settings pickers                 | Directory: search roots, `templates.dir`, `patterns.dir`; file: ruleset paths; not `naming.patterns` (#41) |
-| Path storage                     | Project-relative; outside project → error (#41)                                                             |
-| Generate engine                  | **Import** `@finos/calm-shared` (`instantiate`, `flattenAllOf`, `selectChoices`); no CLI spawn (#42)        |
-| BBR V8                           | Out of scope for this revision                                                                              |
-| Iteration priority               | V7 = Iteration 7 (P1, R38–R41); Tauri/watch R13–R14 = Iteration 8                                           |
+| Decision                   | Choice                                                                                                     |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Merge when                 | Always **max 1** `composed-of` and **max 1** `deployed-in` per container; merge 1:1 on load/draw (#35)     |
+| Merge identity             | Keep first `unique-id` (document order); union `nodes[]`; do **not** mix types (#35)                       |
+| Alt+drop, both types exist | Append to session **last-used** type for that container; no last-used → type picker (#36)                  |
+| Alt vs plain drag          | **Alt required** to create/remove containment (`parentId` + JSON); plain drag does neither (#37)           |
+| Pattern source             | New `.calmrj` key `patterns.dir`, separate from `templates.dir` (#38)                                      |
+| Generate UX                | Always a **new untitled tab** (#39)                                                                        |
+| Pattern options            | **Dialog** with the same choices as `calm generate` (#40)                                                  |
+| Settings pickers           | Directory: search roots, `templates.dir`, `patterns.dir`; file: ruleset paths; not `naming.patterns` (#41) |
+| Path storage               | Project-relative; outside project → error (#41)                                                            |
+| Generate engine            | **Import** `@finos/calm-shared` (`instantiate`, `flattenAllOf`, `selectChoices`); no CLI spawn (#42)       |
+| BBR V8                     | Out of scope for this revision (superseded 2026-09-20)                                                     |
+| Iteration priority         | V7 = Iteration 7 (P1, R38–R41); Tauri/watch R13–R14 = Iteration 8 (superseded)                             |
+
+
+### Session decisions (2026-09-19, BBR V9)
+
+
+| Decision               | Choice                                                                                                     |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Pack file format       | JSON Schema `calm-extension-pack.schema.json`; one `*.extension.json` per pack (R42)                       |
+| Standard reference     | Required `standard.$id` (CALM Standard JSON Schema `$id`); runtime alias `schemaUrl` (R43)                 |
+| Canonical files        | Monorepo root `extensions/`; runtime loads from the filesystem (#46)                                       |
+| Project extra packs    | Project `extensions/` on disk + optional `.calmrj` `extensions.dir`; same `id` overwrites (R44)            |
+| Proposed Standard URIs | Written into `$schema`; local file at `standard.href` (`extensions/standards/`) (#47)                      |
+| Pack relationships     | Required `relationships[]`; five CALM variants or ArchiMate map (#49)                                      |
+| Core Standard          | `https://calm.finos.org/release/1.2/meta/calm.json` only; no local overlay href                            |
+| Icons                  | Inline SVG in JSON for bundled packs; schema also allows `icon.href` (#48)                                 |
+| VS Code                | Same JSON files; plugin-specific load/watch in [vscode/docs/prd.md](../../calm-plugins/vscode/docs/prd.md) |
+| BBR V8                 | Still out of scope (Hub layout) — superseded 2026-09-20                                                    |
+| Iteration priority     | V9 = Iteration 8 (P1, R42–R45); Tauri/watch R13–R14 = Iteration 9 (superseded)                             |
+
+
+### Session decisions (2026-09-20, BBR V8 / V8.1 / V8.2)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Container packing            | 2D rows+columns; nested bbox aspect ≈ 1; no one-axis `aspectRatio` 99 / 0.01 (#56)                                              |
+| Container visual size        | Painted node fills XYFlow / ELK bbox; remove visual max-size clip (R47)                                                         |
+| Layout persist format        | Architecture `metadata._layout` Hub/VS Code `LayoutMap` `{ unique-id: { x, y, w, h } }`; write on document save (#50)           |
+| Node colors                  | Node `metadata.building-block-style` `{ background, text }`; read `fidelity-style` alias (#51)                                  |
+| Relationship line style      | Bezier for visible `connects` / `interacts`; containment stays hidden (R35, R50)                                                |
+| Pattern validate engine      | Import `@finos/calm-shared` (`calm validate -p` semantics); no CLI spawn (#53)                                                  |
+| Naming / patterns UI         | Structured editor in Project settings; `{{name}}` tokens remain text (#41, R52)                                                 |
+| Hub URL                      | `.calmrj` `hub.url` overrides; else `~/.calm.json` `calmHubUrl` when home is readable; SPA never reads home (#52)               |
+| Hub pattern picker           | One tab per Hub namespace + Local (R53)                                                                                         |
+| Hub architectures            | Browse + insert Hub URL as `detailed-architecture`; glasses → read-only Hub tab; no Hub write-back (#54, #57)                   |
+| Pattern graphic edit         | Hub PatternGraph parity; Save to `patterns.dir`; Hub patterns Save As local only (R55–R56)                                      |
+| Generic metadata             | Nodes **and** relationships; pack schema first, extra keys allowed; `_layout` not in that form (R57)                            |
+| Ctrl+duplicate freeze        | P0 in V8.2 (R58); keep R21; add regression test                                                                                 |
+| BBR V8 / V8.1 / V8.2         | **In scope** (R46–R58)                                                                                                          |
+| Iteration priority           | V8 = Iteration 9; V8.1 = 10; V8.2 = 11; Tauri/watch R13–R14 = Iteration 12                                                      |
+
+
+### Session decisions (2026-09-20, BBR V10)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| New folder default           | Name from `naming.patterns` / `rootDirs`; prompt for `{{name}}` when the template needs it (R59)                                |
+| Folder command entry         | Right-click the Files-tree **row under the pointer**; menu: New folder, New file, Move (R71–R72, #63)                            |
+| New file from tree           | Name-first dialog (empty focused field); write empty CALM architecture; open tab. Not Untitled then Save As (#64)                |
+| Folder move                  | Descendants follow; retarget open tabs; **rewrite** relative file `detailed-architecture` inbound and outbound; Hub URLs unchanged (#61) |
+| Save As defaults             | Directory = Files-tree selection (or parent of file); filename from `naming.patterns` (R61)                                     |
+| User config                  | Same schema as `.calmrj`; load user then overlay project; project wins; objects deep-merge; arrays replace (#60)                |
+| Browser home file            | No silent `~` read; picker + IDB handle. Desktop later: `~/.calmrj` (#52, #59)                                                  |
+| Settings layout              | One tab per top-level config block (R63)                                                                                        |
+| Metadata nested edit         | Panel preview only; Edit → dialog; schema `enum` → dropdown (R64)                                                               |
+| Multi-select                 | Shift+click and Shift+marquee **toggle**; Ctrl+drag stays duplicate (R21, R65, R76)                     |
+| Mouse Select / Pan           | **Superseded (#68).** No toolbar toggle. Empty drag pans; node drag moves; no Space-pan (R76)           |
+| Canvas mini-map              | Always visible (bottom-right); viewport mask; click pans to that point; zoom unchanged (#66)            |
+| Group tools                  | Move; align row/column/axis; even spacing; same W/H/both; arrange as table (R66)                                                |
+| Container table              | Arrange to table = R46 default or explicit rows×cols; resize container to fit (R67)                                             |
+| Disable packs                | `extensions.disabled` = bundled pack ids; core allowed; extra `extensions.dir` packs not in this list (R68)                     |
+| Hub URL from glasses         | Any Hub `detailed-architecture` opens Hub tab — not R16 infobox (R69, extends R54)                                              |
+| Hub editor lock              | Hub-sourced tab: canvas + properties + **JSON** locked; no Hub insert / palette drop (R70). Local R18 JSON exception unchanged. |
+| Hub write-back               | Still out of scope (#54)                                                                                                        |
+| URL mapping                  | `.calmrj` `urlMapping.path` → CLI-shaped `url-mapping.json`; values relative to mapping file; Hub instance URLs skipped (#67)   |
+| BBR V10                      | **In scope** (R59–R75)                                                                                                          |
+| Iteration priority           | V10 = Iteration 12; V11 = Iteration 13; Tauri/watch R13–R14 = Iteration 14                                                      |
+| BBR V11                      | **In scope** (R76–R81). R73 superseded.                                                                                         |
+
+
+### Session decisions (2026-09-29, BBR V11)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Pointer                      | No Select/Pan, no Space. Empty drag pans. Node drag moves (group if already selected). Shift+click and Shift+marquee toggle (#68, R76). |
+| Hub browse                   | Left-panel tab. Lazy tree to nodes. Drag node = stub with version URL. Double-click version = read-only. Dialog removed (#69, R78). |
+| Move one file                | Same gestures as a folder. Abort if the name exists. Relative `detailed-architecture` rewritten both ways. `url-mapping.json` untouched (#71, #74, R77). |
+| Edge vs container            | Container that holds an endpoint is not an obstacle. Other nodes still are. Bezier stays (#70, R79).                            |
+| JSON and layout              | Keep `_layout` and colors unless the applied text changed them. Delete clears. `unique-id` re-keys. No auto-layout on apply (#72, R80). |
+| Undo                         | Diagram edits outside the JSON editor. Ctrl and Cmd. JSON text undo stays separate. Tree moves are not undone (#73, R81).       |
+| BBR V11                      | **In scope** (R76–R81)                                                                                                          |
+| Iteration priority           | V11 = Iteration 13; Tauri/watch R13–R14 = Iteration 14                                                                          |
+
+
+### Session decisions (2026-09-29, BBR V12)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Defining file                | Follow relative `detailed-architecture` until the node has none. Write a new relative path from the current file (#75, R82).    |
+| Unresolved chain             | Missing file, outside project, missing `unique-id`, or a cycle → the document you inserted from (#76, R82).                     |
+| `http(s)` on insert          | Copy the URL. Do not follow it and do not use `url-mapping.json` (#77, R82).                                                    |
+| Insert surfaces              | Files drag, Hub drag, Find neighbors. Not palette or same-file duplicate (#78, R82).                                            |
+| Move dialog tree             | File and folder dialogs. Tree plus text. Folders and the project root. **Move** confirms (#79–#81, R83).                        |
+| BBR V12                      | **In scope** (R82–R83). Namespace URL mapping (BBR lines 136–137) is not.                                                       |
+| Iteration priority           | V12 = Iteration 14; V13 = Iteration 15; Tauri/watch R13–R14 = Iteration 16                                                      |
+
+
+### Session decisions (2026-09-30, V13 demo UI)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Config key                   | Project `.calmrj` `"ui": { "demo": false }` only. Missing = false. Create project writes false (#82, R84).                      |
+| No project                   | Demos + FluxNova/OpenGRIS tabs remain visible (#83, R84).                                                                       |
+| What is gated                | Toolbar Demos; bundled Template categories `fluxnova` and `opengris`. Not Palette. Not other tabs (#84, R84).                   |
+| Remove vs hide               | Hide only; keep `/demos` and load path for `ui.demo: true` (#85, R84).                                                          |
+| Settings UI                  | Project settings checkbox **Demo** (R84).                                                                                       |
+| V13                          | **In scope** (R84).                                                                                                             |
+| Iteration priority           | V13 = Iteration 15; V14 = Iteration 16; V15 = Iteration 17; Tauri/watch R13–R14 = Iteration 18                                  |
+
+
+### Session decisions (2026-09-30, V14 Mermaid)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Surfaces                     | Export download **and** Code-panel read-only **Mermaid** tab; remove disabled calmscript tab (#86, R85).                        |
+| Diagram kind                 | Mermaid `flowchart` (TB); containers as `subgraph`; no containment edges (#87, R85).                                            |
+| Round-trip                   | CALM → Mermaid only (#88, R85).                                                                                                 |
+| `packages/calmscript`        | Leave in monorepo; do not wire into Studio UI (#89, R85).                                                                       |
+| Download formats             | Both `.mmd` (raw) and `.md` (fenced `mermaid` block) (#86, R85).                                                                |
+| V14                          | **In scope** (R85).                                                                                                             |
+| Iteration priority           | V14 = Iteration 16; Tauri/watch R13–R14 = Iteration 17                                                                          |
+
+
+### Session decisions (2026-10-01, V15 array properties)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Surfaces                     | All property editors that hold arrays / nested JSON (#90, R86).                                                                 |
+| Object arrays                | Per-element edit; mini-form or per-item pretty JSON (#91, R86).                                                                 |
+| UI                           | Inline list + Add/Remove in the panel (#92, R86).                                                                               |
+| Nested display               | Pretty preview **and** pretty dialog (#93, R86).                                                                                |
+| Empty array                  | Show list + Add (#94, R86).                                                                                                     |
+| V15                          | **In scope** (R86).                                                                                                             |
+| Iteration priority           | V15 = Iteration 17; Tauri/watch R13–R14 = Iteration 18                                                                          |
 
 

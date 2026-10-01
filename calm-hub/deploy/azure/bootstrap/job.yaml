@@ -1,0 +1,68 @@
+# One-shot grant of GLOBAL admin to an Entra object id.
+# Apply only after calm-hub-mongo and calm-hub-bootstrap secrets exist.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: calm-hub-bootstrap-admin
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+    app.kubernetes.io/component: bootstrap
+spec:
+  backoffLimit: 10
+  ttlSecondsAfterFinished: 86400
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: calm-hub
+        app.kubernetes.io/part-of: calm
+        app.kubernetes.io/component: bootstrap
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      restartPolicy: OnFailure
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: bootstrap
+          image: mongo:7.0
+          command:
+            - /bin/bash
+            - -c
+            - mongosh "$MONGODB_URI" --quiet --file /scripts/bootstrap.js
+          env:
+            - name: MONGODB_URI
+              valueFrom:
+                secretKeyRef:
+                  name: calm-hub-mongo
+                  key: connection-string
+            - name: MONGODB_DATABASE
+              value: calmSchemas
+            - name: BOOTSTRAP_ADMIN_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: calm-hub-bootstrap
+                  key: username
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: script
+              mountPath: /scripts
+              readOnly: true
+      volumes:
+        - name: script
+          configMap:
+            name: calm-hub-bootstrap

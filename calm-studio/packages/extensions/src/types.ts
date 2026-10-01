@@ -28,6 +28,18 @@ export interface NodeTypeEntry {
   rectangleLayout?: boolean;
   /** For containers: auto-populate with these child type IDs when placed on the canvas. */
   defaultChildren?: string[];
+  /** Values written onto a new node when placed from the palette. */
+  defaults?: {
+    metadata?: Record<string, unknown>;
+  };
+}
+
+/** Palette relationship type; maps to a CALM 1.2 relationship-type variant. */
+export interface RelationshipTypeEntry {
+  typeId: string;
+  label: string;
+  description?: string;
+  calmCoreVariant?: 'connects' | 'composed-of' | 'deployed-in' | 'interacts' | 'options';
 }
 
 /** A complete pack definition containing metadata and all node type entries. */
@@ -42,6 +54,14 @@ export interface PackDefinition {
   color: PackColor;
   /** All node type entries in this pack. */
   nodes: NodeTypeEntry[];
-  /** Optional JSON Schema URL written to `$schema` when this pack's types are first used. */
+  /** JSON Schema URL written to `$schema` when this pack's types are first used (`standard.$id`). */
   schemaUrl?: string;
+  /** Filesystem path to the Standard JSON Schema, relative to the pack file. */
+  standardHref?: string;
+  /** Relationship types offered in the palette for this pack. */
+  relationships?: RelationshipTypeEntry[];
+  /** Default relationship metadata when connecting nodes from this pack. */
+  relationshipDefaults?: {
+    metadata?: Record<string, unknown>;
+  };
 }

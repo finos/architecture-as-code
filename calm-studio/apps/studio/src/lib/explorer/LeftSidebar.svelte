@@ -5,8 +5,9 @@
 	import { tick } from 'svelte';
 	import NodePalette from '$lib/palette/NodePalette.svelte';
 	import FileExplorerPanel from '$lib/explorer/FileExplorerPanel.svelte';
+	import HubTreePanel from '$lib/hub/HubTreePanel.svelte';
 
-	type LeftPanelTab = 'palette' | 'files';
+	type LeftPanelTab = 'palette' | 'files' | 'hub';
 
 	const TAB_STORAGE_KEY = 'calm-studio-left-panel-tab';
 
@@ -19,14 +20,19 @@
 			relativePath: string,
 			handle: FileSystemFileHandle
 		) => void;
+		onhubbrowse?: () => void;
+		onbeforefoldermove?: (movedPaths: string[]) => boolean;
+		onfoldermove?: (mapping: Record<string, string>, sourcePrefix: string, destPrefix: string) => void;
+		onopenhubversion?: (url: string, name: string) => void;
 	}
 
-	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile }: Props = $props();
+	let { onplacenode, currentFileRelativePath = null, onopenexplorerfile, onhubbrowse, onbeforefoldermove, onfoldermove, onopenhubversion }: Props = $props();
 
 	function loadInitialTab(): LeftPanelTab {
 		if (typeof sessionStorage === 'undefined') return 'palette';
 		const stored = sessionStorage.getItem(TAB_STORAGE_KEY);
-		return stored === 'files' ? 'files' : 'palette';
+		if (stored === 'files' || stored === 'hub') return stored;
+		return 'palette';
 	}
 
 	let activeTab = $state<LeftPanelTab>(loadInitialTab());
@@ -55,6 +61,11 @@
 	export async function rescanTree(): Promise<void> {
 		await fileExplorer?.rescanTree();
 	}
+
+	/** R78 — show the Hub tree tab. */
+	export function openHub(): void {
+		setTab('hub');
+	}
 </script>
 
 <div class="left-sidebar">
@@ -79,6 +90,16 @@
 		>
 			Files
 		</button>
+		<button
+			type="button"
+			role="tab"
+			class="tab"
+			class:active={activeTab === 'hub'}
+			aria-selected={activeTab === 'hub'}
+			onclick={() => setTab('hub')}
+		>
+			Hub
+		</button>
 	</div>
 
 	<div class="panel-body" role="tabpanel">
@@ -91,7 +112,13 @@
 				bind:this={fileExplorer}
 				{currentFileRelativePath}
 				onopenfile={onopenexplorerfile}
+				{onhubbrowse}
+				{onbeforefoldermove}
+				{onfoldermove}
 			/>
+		</div>
+		<div class="panel-slot" class:hidden={activeTab !== 'hub'}>
+			<HubTreePanel onopenversion={onopenhubversion} />
 		</div>
 	</div>
 </div>

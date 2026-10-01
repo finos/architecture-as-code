@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://calm.finos.org/extensions/opengris/opengris.standard.json",
+  "title": "CALM OpenGRIS Extension Standard",
+  "description": "CALM 1.2 overlay Standard for the OpenGRIS pack. Extends node-type with the pack's type ids. Architecture shape remains https://calm.finos.org/release/1.2/meta/calm.json. Hosts write this $id into architecture $schema when the pack is first used, even before the URI is published on calm.finos.org.",
+  "$comment": "Proposed until published under calm.finos.org. Load from extensions/standards/ on the filesystem.",
+  "$defs": {
+    "node-type": {
+      "type": "string",
+      "enum": [
+        "opengris:scheduler",
+        "opengris:worker",
+        "opengris:worker-manager",
+        "opengris:client",
+        "opengris:object-storage",
+        "opengris:cluster",
+        "opengris:task-graph",
+        "opengris:parallel-function"
+      ],
+      "description": "OpenGRIS node-type values."
+    }
+  }
+}

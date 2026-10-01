@@ -2,14 +2,18 @@
 <!-- SPDX-License-Identifier: Apache-2.0 -->
 
 <script lang="ts">
+	import { onDestroy } from 'svelte';
 	import { useDnD } from './DnDProvider.svelte';
-	import { getAllPacks, initAllPacks } from '@calmstudio/extensions';
+	import { getAllPacks, initAllPacks, subscribePackRegistry } from '@calmstudio/extensions';
 	import type { PackDefinition, NodeTypeEntry } from '@calmstudio/extensions';
 
 	// Register all packs on import so they're available immediately
 	initAllPacks();
 
 	const dnd = useDnD();
+	let registryTick = $state(0);
+	const unsubscribePacks = subscribePackRegistry(() => { registryTick += 1; });
+	onDestroy(unsubscribePacks);
 
 	let { onplacenode }: { onplacenode?: (type: string) => void } = $props();
 
@@ -20,7 +24,10 @@
 	// Track expand/collapse state per pack id. Core starts expanded; others collapsed.
 	let expandedSections = $state<Record<string, boolean>>({ core: true });
 
-	const allPacks = $derived(getAllPacks());
+	const allPacks = $derived.by(() => {
+		void registryTick;
+		return getAllPacks();
+	});
 
 	/** Flat list of all nodes across all packs for search */
 	interface SearchResult {
@@ -157,6 +164,10 @@
 					</li>
 				{/if}
 			</ul>
+		{:else if allPacks.length === 0}
+			<p class="empty-state">
+				No extension packs are enabled. Turn bundled packs back on in Project settings.
+			</p>
 		{:else}
 			<!-- Collapsible pack sections -->
 			{#each allPacks as pack (pack.id)}

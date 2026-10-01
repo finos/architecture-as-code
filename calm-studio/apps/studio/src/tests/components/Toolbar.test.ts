@@ -19,7 +19,8 @@ function makeToolbarProps(overrides?: Record<string, unknown>) {
 		onexportcalm: vi.fn(),
 		onexportsvg: vi.fn(),
 		onexportpng: vi.fn(),
-		onexportcalmscript: vi.fn(),
+		onexportmermaid: vi.fn(),
+		onexportmermaidmd: vi.fn(),
 		...overrides,
 	};
 }
@@ -166,6 +167,16 @@ describe('Toolbar — Scaler.toml export button', () => {
 		// Open export menu first
 		await fireEvent.click(getByRole('button', { name: /export diagram/i }));
 		expect(queryByText('Scaler.toml (OpenGRIS)')).toBeNull();
+	});
+
+	it('renders Mermaid export items and not calmscript', async () => {
+		const { getByRole, getByText, queryByText } = render(Toolbar, {
+			props: makeToolbarProps(),
+		});
+		await fireEvent.click(getByRole('button', { name: /export diagram/i }));
+		expect(getByText('Mermaid (.mmd)')).toBeTruthy();
+		expect(getByText('Mermaid (.md)')).toBeTruthy();
+		expect(queryByText(/calmscript/i)).toBeNull();
 	});
 
 	it('renders Scaler.toml export button when showScalerTomlExport is true', async () => {

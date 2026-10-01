@@ -66,20 +66,81 @@ V7
 V8
 - upravit layout kontejneru aby řadil vnitřni prvky do tabulky (radky a sloupce )  ne jen do jednoho směru . Rozmer tabuky nasatavit tak aby vysledek se bližil čtverci   (stehná šiřka a výška)
 - u kontejneru odtranit max velikst pro vizualni čast tak aby pri zvetšeni hranic pro editaci se zvetšil i vizulani nahled na kontejner. Aktualne muže byt  velikost dle  layout manageru vetší než je velikost gravické reprezentace.
-- umožnit uložení layoutu (rozložení prvku) a tento uložený layout pri znovu otevření použít. inspirace pro foramt jak uložit layout hledejj calm-hub. idelane taka aby byl schodný a layout se přenesel do calm hub. 
+- umožnit uložení layoutu (rozložení prvku) a tento uložený layout pri znovu otevření použít. inspirace pro foramt jak uložit layout hledejj calm-hub a calm-vsplugin . idelane taka aby byl schodný a layout se přenesel do calm hub a calm vs pluginu. Zahrn i možnost nastavení barev  uzloženi pozice viz:
+
+``` 
+ "metadata": {
+    "_layout": {
+      "slp.appcomp-slp": {
+        "x": 2127,
+        "y": -785,
+        "w": 250,
+        "h": 60 }}}
+```
+uloženi barev :
+
+```
+"building-block-style": {
+"background": "#a9e22c",
+"text": "#6a2216"
+}
+```
 - uprav line style pro relation na bezier
 - rozsirit validaci dle patternů pomoci  calm cli
 - v konfiguraci umožnit editaci sekce naming a patterns  
 V8.1
 - umožnit načtené patternů z nakofigurovaneho calm-hub bud v konfiguraci projektu  bude obsahovat url calm hubu nebo v .calm.json v home adresaři uživatele viz konfigurace CALM-cli jednotlive name space se zobrazi jako založky v nabidce patternů 
-- umožnit referencování a prochazení elemetů a digramu z calm-hub přes name
+- umožnit referencování a prochazení elemetů a digramu z calm-hub 
 V8.2
 - umožnit vizualizaci patternu pro calm cli stejně jako to děla calm-hub 
 - umožnit grafickou editaci calm-cli pattern
+- genericka editace metadat pro node i relation
+- nalezena chyba editace se nekdy zasekne po editaci s ctrl a vytvoření kopie elementu 
 
 V9
-- sjednotit layout diagramů s calm_hub
 - extenzion do samostatné definice pro každou extenzion. Požadavek je aby se definice dala použit napřič spektrem tools jako je CALM-hub a calm plugin pro visual studio a calm-cli. Umožnit načist definici externě ze souboru.
+
+V10
+- editace adresářove struktury
+  - založeni nového adresaře idealně dle patternu  v nastaveni
+  - přesun adresářu včetně podlsožek a souboru v nich
+  - práce s adresářem jako kontextové menu na uzlu pod kurzorem (Right-click). Do menu přidat aktivity se složkou (Nová složka, Nový soubor, Přesun).
+  - Nový soubor: dialog se rovnou zeptá na jméno; zapíše prázdnou CALM architekturu do složky uzlu a otevře ji v záložce. File → New (Untitled) zůstává.
+- pri uloženi s výberem uloženi nabidnout jako adresař vybraný ve stromu a nazev predviplnit  dle patternu z projektu
+- umožnit uložení projektové konfigurace do home adrersaře uživatele. Pri načítani vzit user adresařa a pretižit ho projektovou verzi.
+- editaci konfigurace rozložit do založek po jednotlivých blocích konfigurace 
+- editace metadat:
+  - Jeli prvek ve schematu definovan jako enum nabizet hodnoty dle schematu jako drobdown box.
+  - umožnit editaci i vnořených json elementu jako strom edit boxů dle struktury json. Tuto editaci udělat jako samostatný dialog window. V panelu jen nahled bez editace. Pro jednotlive prvky plati stejný mechaniznus z predchozího bodu.
+- umožnit označit vice prku pomoci schift. Držim-li Schift  vybíram jednotlivé prvky kliknutím na prvek.  Prvky lze vybrat i pomocí myši .Pri kliknuti ataženi myši se vyberou prvky ve čteverci mezi začátkem tažení a ukočením taženi.. ctverec a vybítrané prvky jsou behem taženi vizualizovány. U prvku ve skupině je povoleno jen posouvaní po platně a ovladni zarovnani  do rady (na horni a spodni  hranu a do osy), do sloupce ( na predni a  zadni hranu a do osy) , do tabulky ( layout kontejneru), stejen mezery v řade nebo sloupci, Stejná šířka , Stejná výška, Stejná šířka a výška
+- přepínání funkce levého tlačítka myši mezi posunem plátna (Pan) a výběrem (Select). Výchozí Select. Space drží dočasný Pan. Na Hub / read-only záložkách jen Pan.
+- miniatura plátna zobrazující aktuální výřez. Kliknutím na miniaturu se aktuální výřez posune na pozici kliknutí (zoom beze změny).
+- u kontejneru přidat volbu usdpořádat do tabulky. Stejně jako při difaultnim vykreslení nebo s volbou počtu řadku a sloupců. Volba zmeni i velikost kontejneru aby se prvky vešli 
+- umožnit v konfiguraci vypnout buildin extenzion 
+- otevirat diagramy z reference na calm-hub v "detailed-architecture" 
+- neumožnit na read-only digramy vkladat prvky z calm-hub a UZAMKNOUT EDITACI JSON.
+- editory unichž zdroj  pochazejici z calm-hub otervírat jako readonly
+- pro nalezení lokace artefaktu dle URL použít soubor `url-mapping.json` (stejný formát jako CALM CLI `-u` / CEngineering-App); umístění souboru definovat v konfiguraci projektu
+- 
+V11
+- upravit vybíráni skupiny nodu takto: zmačknu schift a buď táhnu a vybiram přes vyber čtvercem nebo klikam na jednotlive nody bez schit pri zmačknutem schift se nody vždy přidávaji do výběru. bez zmacknuteho schiftu je chovani normálni viz aktulni mod pan. Tento mechanizmus nahradí prepinani fukce kurzoru select/pan a jemožne tento prepínač odstranit
+- prochánzeni hubu a přidávani elementu z hub udělaj obdobně jako panel files. Tj umísti ho vedle pallete a files jako založku hub. Obsah hubu vzkresli jako strom. Pri iniciaci načti jen uroven namespace. Další uzly načitej postupně pri rozkliknutí. Obdobně jako v dialogu.Pridavani elementu do aktualniho diagramu bude pretaženim tak jako u files.
+- přesouvani souboru ve stromě files. Umožnit přesouvat i jednotlivé soubory v ramci stromu adresářů. Při přesunu je potřeba upravit reference v ostatníh souborech.
+- vizualizace relations tak aby použivala přimou nejkratší cestu. Neobchazet kontejner,ve kterem je alespon jeden node z relace.  
+- používat relativni cesty v detailed-architecture od aktualniho souboru. Pri presunu souboru v obou přtipadech, samostnýu soubor i presun adresáře, tyto cesty aktualizovat tak aby bila zachována reference na ciílový soubor. 
+- editace json nesmi zničit layout 
+- undo/redo na úpravy nad canvasem
+V12
+- Pri vkladání již referencovaneho elementu použit originalni hodnotu detailed-architecture. ne odkaz na soubor zh nejž se vkladá. Tj  vždz vkladat odkaz na soubor v němž je nod skutečne definován ne jen referencován. tj tam kde neni definovan element detailed-architecture.
+- u target v move dialogu nabízet výber cile ze stromu projektu
+V13
+- odstraň / skryj toolbar Demo; po načtení projektu skryj vestavěné template záložky FluxNova a OpenGRIS. Default `ui.demo: false` v `.calmrj`. Zapnutí Demo v Project settings ukáže obojí. Bez otevřeného projektu zůstane Demo UI viditelné. Netýká se Palette packů.
+V14
+- nahraď export do calmscript exportem diagramu v Mermaid notaci (`flowchart`); nabídni `.mmd` i `.md` (fenced blok). Odstraň disabled záložku calmscript vedle CALM JSON; místo ní read-only záložka Mermaid. Bez importu Mermaid→CALM. Balíček `packages/calmscript` nemaž.
+V15
+- properties editor: needitovat pole (array) jako jeden záznam — editace jednotlivých prvků (primitiva i objekty), inline seznam Add/Remove; prázdné pole ukáže Add. Vnořené JSON zobrazovat jako formátovaný (pretty) víceřádkový text v náhledu i v Edit dialogu. Platí pro metadata / customMetadata (JSON) / controls-interfaces dle výskytu polí.
+Vxx
+- použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```
 ## fix
 ```

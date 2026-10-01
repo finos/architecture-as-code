@@ -316,6 +316,61 @@ export function collectNodeObstacles(
 	return obstacles;
 }
 
+function parentChain(
+	id: string | undefined,
+	byParent: Map<string, string | undefined>
+): string[] {
+	const chain: string[] = [];
+	let current = id ? byParent.get(id) : undefined;
+	const seen = new Set<string>();
+	while (current && !seen.has(current)) {
+		seen.add(current);
+		chain.push(current);
+		current = byParent.get(current);
+	}
+	return chain;
+}
+
+/**
+ * Ids that must not block a relationship (R79).
+ * Endpoints are excluded. A container that holds at least one endpoint is excluded.
+ * When both ends share a container, nodes outside that container are excluded too,
+ * so the path does not leave the container to go around it.
+ */
+export function relationshipObstacleExclusions(
+	nodes: Array<{ id: string; parentId?: string }>,
+	sourceId?: string,
+	targetId?: string
+): Set<string> {
+	const exclude = new Set<string>();
+	if (sourceId) exclude.add(sourceId);
+	if (targetId) exclude.add(targetId);
+	const byParent = new Map(nodes.map((n) => [n.id, n.parentId]));
+	const sourceParents = parentChain(sourceId, byParent);
+	const targetParents = parentChain(targetId, byParent);
+	for (const id of sourceParents) exclude.add(id);
+	for (const id of targetParents) exclude.add(id);
+
+	const shared = sourceParents.find((id) => targetParents.includes(id));
+	if (!shared) return exclude;
+
+	const inside = new Set<string>([shared]);
+	let grew = true;
+	while (grew) {
+		grew = false;
+		for (const node of nodes) {
+			if (node.parentId && inside.has(node.parentId) && !inside.has(node.id)) {
+				inside.add(node.id);
+				grew = true;
+			}
+		}
+	}
+	for (const node of nodes) {
+		if (!inside.has(node.id)) exclude.add(node.id);
+	}
+	return exclude;
+}
+
 /**
  * Push overlapping sibling boxes apart until none intersect (including gap).
  * Returns a new map; does not mutate the input.

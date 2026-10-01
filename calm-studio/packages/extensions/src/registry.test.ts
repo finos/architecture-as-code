@@ -1,13 +1,15 @@
 // SPDX-FileCopyrightText: 2024 CalmStudio contributors - see NOTICE file
 //
 // SPDX-License-Identifier: Apache-2.0
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
 	registerPack,
 	resolvePackNode,
 	getAllPacks,
 	getPacksForTypes,
 	resetRegistry,
+	subscribePackRegistry,
+	getPackForNodeType,
 } from './registry.js';
 import { corePack } from './packs/core.js';
 import { initAllPacks } from './index.js';
@@ -90,6 +92,22 @@ describe('PackRegistry', () => {
 		expect(getAllPacks().length).toBeGreaterThan(0);
 		resetRegistry();
 		expect(getAllPacks()).toEqual([]);
+	});
+
+	it('subscribePackRegistry notifies on register and reset', () => {
+		const listener = vi.fn();
+		const unsub = subscribePackRegistry(listener);
+		registerPack(corePack);
+		resetRegistry();
+		unsub();
+		registerPack(corePack);
+		expect(listener).toHaveBeenCalledTimes(2);
+	});
+
+	it('getPackForNodeType maps unprefixed types to core', () => {
+		registerPack(corePack);
+		expect(getPackForNodeType('actor')?.id).toBe('core');
+		expect(getPackForNodeType('missing:x')).toBeNull();
 	});
 });
 

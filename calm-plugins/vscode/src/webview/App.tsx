@@ -27,6 +27,7 @@ import {
     setTemplatesLoadedCallback,
     setBuildingBlocksLoadedCallback,
     setStandardsLoadedCallback,
+    setPacksLoadedCallback,
     setDrillResultCallback,
     setStandardProseCallback,
     notifyCanvasChanged,
@@ -44,6 +45,12 @@ import {
     type CalmArchitecture,
 } from './transforms/calm-editor-transformer';
 import { parseCALMData } from './transforms/calm-parser';
+import {
+    ensureSchemaOnFirstElement,
+    hasDocumentSchema,
+} from './utils/documentEnvelope';
+import { registerPack, resetRegistry, resolvePackNode } from '../extensions/registry.js';
+import type { PackDefinition } from '../extensions/types.js';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';
@@ -119,7 +126,12 @@ function CanvasApp() {
             }
             const currentNodes = reactFlowInstance.getNodes();
             const currentEdges = reactFlowInstance.getEdges();
-            const arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
+            let arch = flowToCalm(currentNodes, currentEdges, currentState.documentControls);
+            if (!hasDocumentSchema(arch) && arch.nodes.length > 0) {
+                const firstType = (currentNodes[0]?.data as { calmType?: string } | undefined)?.calmType;
+                arch = ensureSchemaOnFirstElement(arch, firstType);
+                setLastParsedArch(arch);
+            }
             const json = JSON.stringify(arch, null, 2);
             lastEmittedJson.current = json;
             notifyCanvasChanged(json);
@@ -150,7 +162,8 @@ function CanvasApp() {
         try {
             const arch = JSON.parse(json) as CalmArchitecture;
             if (!arch || !arch.nodes || arch.nodes.length === 0) {
-                setNodes([]); setEdges([]); setLastParsedArch(null);
+                setNodes([]); setEdges([]);
+                setLastParsedArch(arch ?? null);
                 useCanvasStore.setState({ documentControls: (arch as Record<string, unknown>)?.controls as Record<string, unknown> ?? {} });
                 lastEmittedJson.current = json;
                 return;
@@ -179,6 +192,13 @@ function CanvasApp() {
         setTemplatesLoadedCallback((t) => useCanvasStore.setState({ loadedTemplates: t as any }));
         setBuildingBlocksLoadedCallback((n) => useCanvasStore.setState({ buildingBlocks: n as any }));
         setStandardsLoadedCallback((s) => useCanvasStore.setState({ loadedStandards: s as any }));
+        setPacksLoadedCallback((incoming) => {
+            const packs = incoming as PackDefinition[];
+            if (packs.length === 0) return;
+            resetRegistry();
+            for (const pack of packs) registerPack(pack);
+            useCanvasStore.setState({ packRevision: Date.now() });
+        });
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
@@ -547,16 +567,29 @@ function CanvasApp() {
 
         if (!nodeType) return;
         const id = `${nodeType.replace(/[^a-zA-Z0-9]/g, '-')}-${Date.now()}`;
+        const packEntry = resolvePackNode(nodeType);
+        const metadata = packEntry?.defaults?.metadata
+            ? JSON.parse(JSON.stringify(packEntry.defaults.metadata))
+            : {};
+        const placeAsContainer = isContainer || packEntry?.isContainer === true;
 
-        if (isContainer) {
+        if (placeAsContainer) {
             setNodes((nds) => [...nds, {
                 id, type: 'container', position, width: 400, height: 300,
-                data: { label: nodeLabel || 'Container', calmId: id, calmType: nodeType, description: '', containerRole: 'default', containmentType: 'deployed-in' },
+                data: { label: nodeLabel || 'Container', calmId: id, calmType: nodeType, description: '', containerRole: 'default', containmentType: 'deployed-in', metadata },
             } as Node]);
         } else {
             setNodes((nds) => [...nds, {
                 id, type: resolveFlowNodeType(nodeType), position,
-                data: { label: nodeLabel || nodeType, calmId: id, calmType: nodeType, description: '', interfaces: [], metadata: {} },
+                data: {
+                    label: nodeLabel || nodeType,
+                    calmId: id,
+                    calmType: nodeType,
+                    description: '',
+                    interfaces: [],
+                    metadata,
+                    rectangleLayout: packEntry?.rectangleLayout === true,
+                },
             }]);
         }
         setTimeout(() => emitChange(true), 0);

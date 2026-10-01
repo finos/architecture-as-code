@@ -1,0 +1,33 @@
+# Requires the AKS Application Routing add-on (ingress class webapprouting.kubernetes.azure.com).
+# The host must match CALM_HUB_BASE_URL in configmap.yaml.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: calm-hub
+  namespace: calm-hub
+  labels:
+    app.kubernetes.io/name: calm-hub
+    app.kubernetes.io/part-of: calm
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 20m
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "120"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "120"
+    # Optional: terminate TLS with a certificate stored in Key Vault instead of calm-hub-tls.
+    # kubernetes.azure.com/tls-cert-keyvault-uri: https://REPLACE_VAULT.vault.azure.net/certificates/calm-hub
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  tls:
+    - hosts:
+        - calm-hub.example.com
+      secretName: calm-hub-tls
+  rules:
+    - host: calm-hub.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: calm-hub
+                port:
+                  number: 8080

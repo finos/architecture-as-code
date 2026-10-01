@@ -41,6 +41,6 @@ describe('documentEnvelope', () => {
 	test('buildSchemaForNodeType includes extension schemaUrl for pack types', () => {
 		const schema = buildSchemaForNodeType('ai:llm');
 		expect(schema).toContain(CALM_12_BASE_SCHEMA);
-		expect(schema).toContain('https://calm.finos.org/release/1.2/meta/ai.json');
+		expect(schema).toContain('https://calm.finos.org/extensions/ai/ai.standard.json');
 	});
 });

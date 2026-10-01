@@ -112,9 +112,14 @@ describe('initAllPacks', () => {
 		expect(packs.some((p) => p.id === 'core')).toBe(true);
 	});
 
-	it('getAllPacks() returns 10 packs after initAllPacks()', () => {
+	it('getAllPacks() returns 11 packs after initAllPacks()', () => {
 		initAllPacks();
-		expect(getAllPacks()).toHaveLength(10);
+		expect(getAllPacks()).toHaveLength(11);
+	});
+
+	it('registers the ArchiMate pack', () => {
+		initAllPacks();
+		expect(getAllPacks().some((p) => p.id === 'archimate')).toBe(true);
 	});
 
 	it('AWS pack has >= 30 node entries', () => {

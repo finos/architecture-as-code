@@ -26,6 +26,7 @@ export type ExtToWebviewMessage =
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'buildingBlocksLoaded'; nodes: unknown[] }
     | { type: 'standardsLoaded'; standards: unknown[] }
+    | { type: 'packsLoaded'; packs: unknown[] }
     | { type: 'standardProse'; url: string; prose: string }
     | {
           type: 'drillResult';

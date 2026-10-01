@@ -15,6 +15,8 @@
 		oncancel: () => void;
 	}
 
+	import { onMount } from 'svelte';
+
 	let { defaultName, onconfirm, oncancel }: Props = $props();
 
 	function loadCheckbox(): boolean {
@@ -26,7 +28,7 @@
 	let duplicateRelationships = $state(loadCheckbox());
 	let nameInput: HTMLInputElement | undefined = $state();
 
-	$effect(() => {
+	onMount(() => {
 		nameInput?.focus();
 		nameInput?.select();
 	});
@@ -39,9 +41,15 @@
 		if (event.key === 'Escape') {
 			event.preventDefault();
 			oncancel();
-		} else if (event.key === 'Enter') {
+			return;
+		}
+		if (event.key === 'Enter') {
 			event.preventDefault();
 			submit();
+			return;
+		}
+		if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a') {
+			event.stopPropagation();
 		}
 	}
 

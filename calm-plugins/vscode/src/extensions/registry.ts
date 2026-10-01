@@ -6,12 +6,25 @@ import type { PackDefinition, NodeTypeEntry } from './types.js';
 
 /** Module-level registry map: pack id -> PackDefinition */
 const registry = new Map<string, PackDefinition>();
+const listeners = new Set<() => void>();
+
+export function subscribePackRegistry(listener: () => void): () => void {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
+}
+
+function notify(): void {
+  for (const listener of listeners) listener();
+}
 
 /**
  * Register a pack in the registry. Re-registration with the same id overwrites.
  */
 export function registerPack(pack: PackDefinition): void {
   registry.set(pack.id, pack);
+  notify();
 }
 
 /**
@@ -36,6 +49,15 @@ export function getAllPacks(): PackDefinition[] {
   return [...registry.values()];
 }
 
+/** Resolve the pack definition for a CALM node type (core types map to the core pack). */
+export function getPackForNodeType(calmType: string): PackDefinition | null {
+  const colonIdx = calmType.indexOf(':');
+  if (colonIdx === -1) {
+    return registry.get('core') ?? null;
+  }
+  return registry.get(calmType.slice(0, colonIdx)) ?? null;
+}
+
 /**
  * Given a list of CALM type strings, returns unique pack IDs for those that are
  * colon-prefixed and whose pack is registered.
@@ -57,4 +79,5 @@ export function getPacksForTypes(types: string[]): string[] {
  */
 export function resetRegistry(): void {
   registry.clear();
+  notify();
 }

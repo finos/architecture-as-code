@@ -1,0 +1,90 @@
+# Single-node MongoDB for a lab cluster. Production should use Cosmos DB for MongoDB
+# vCore, Atlas, or a replica set, and only the calm-hub-mongo secret.
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+  labels:
+    app.kubernetes.io/name: mongodb
+    app.kubernetes.io/part-of: calm
+    app.kubernetes.io/component: database
+spec:
+  serviceName: mongodb
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mongodb
+      app.kubernetes.io/component: database
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mongodb
+        app.kubernetes.io/part-of: calm
+        app.kubernetes.io/component: database
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        fsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mongodb
+          image: mongo:7.0
+          ports:
+            - name: mongo
+              containerPort: 27017
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: calmhub
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-auth
+                  key: root-password
+            - name: MONGO_INITDB_DATABASE
+              value: calmSchemas
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              cpu: "1"
+              memory: 1Gi
+          volumeMounts:
+            - name: data
+              mountPath: /data/db
+          startupProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - mongosh --quiet --username calmhub --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping').ok"
+            periodSeconds: 10
+            timeoutSeconds: 10
+            failureThreshold: 30
+          readinessProbe:
+            exec:
+              command:
+                - bash
+                - -c
+                - mongosh --quiet --username calmhub --password "$MONGO_INITDB_ROOT_PASSWORD" --authenticationDatabase admin --eval "db.adminCommand('ping').ok"
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 3
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 20Gi
