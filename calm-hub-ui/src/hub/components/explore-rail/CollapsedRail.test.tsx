@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { CollapsedRail } from './CollapsedRail.js';
+import { anchorFlyout } from './flyout-anchor.js';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import type { NamespaceCounts } from '../../../model/counts.js';
@@ -26,6 +27,17 @@ const renderRail = (path = '/') => {
     );
     return { ...utils, onExpand };
 };
+
+const flyoutWrapper = () => screen.getByText('calm').closest('.fixed') as HTMLElement;
+const flyoutPanel = () => screen.getByText('calm').closest('div[style*="max-height"]') as HTMLElement;
+
+/** jsdom reports every box as zero-sized, so the trigger is placed by hand. */
+function stubRect(trigger: HTMLElement, top: number) {
+    const height = 24;
+    vi.spyOn(trigger, 'getBoundingClientRect').mockReturnValue({
+        top, bottom: top + height, left: 0, right: 32, width: 32, height, x: 0, y: top, toJSON: () => ({}),
+    });
+}
 
 describe('CollapsedRail', () => {
     it('shows one initial per root namespace, in tree order', () => {
@@ -89,7 +101,7 @@ describe('CollapsedRail', () => {
         fireEvent.focus(finosInitial);
         expect(screen.getByText('calm')).toBeInTheDocument();
 
-        fireEvent.mouseLeave(finosInitial.closest('.relative') as HTMLElement);
+        fireEvent.mouseLeave(finosInitial.parentElement as HTMLElement);
 
         expect(screen.getByText('calm')).toBeInTheDocument();
     });
@@ -123,7 +135,7 @@ describe('CollapsedRail', () => {
         // A margin would sit outside the hover container, so crossing it fires mouseleave and
         // unmounts the panel before the pointer arrives. jsdom has no geometry to catch that,
         // so the structure is asserted instead.
-        const positioned = screen.getByText('calm').closest('.absolute') as HTMLElement;
+        const positioned = screen.getByText('calm').closest('.fixed') as HTMLElement;
         expect(positioned.className).toContain('pl-1');
         expect(positioned.className).not.toContain('ml-1');
         expect(positioned.contains(screen.getByText('calm'))).toBe(true);
@@ -154,7 +166,7 @@ describe('CollapsedRail', () => {
     it('stays open when a part that cannot take focus is clicked under the pointer', () => {
         renderRail();
         const barclaysInitial = screen.getByRole('button', { name: 'barclays' });
-        fireEvent.mouseEnter(barclaysInitial.closest('.relative') as HTMLElement);
+        fireEvent.mouseEnter(barclaysInitial.parentElement as HTMLElement);
         barclaysInitial.focus();
         fireEvent.focus(barclaysInitial);
         expect(screen.getByText('payments')).toBeInTheDocument();
@@ -178,9 +190,90 @@ describe('CollapsedRail', () => {
 
     it('caps the fly-out height so a deep subtree can scroll', () => {
         renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+
+        fireEvent.focus(trigger);
+
+        // The figures are anchorFlyout's, over jsdom's 768px window; its own suite covers them.
+        expect(flyoutWrapper()).toHaveStyle({ top: '100px', left: '32px' });
+        expect(flyoutPanel()).toHaveStyle({ maxHeight: `${anchorFlyout(trigger.getBoundingClientRect(), 768).maxHeight}px`, overflowY: 'auto' });
+    });
+
+    it('follows its trigger when the rail scrolls under an open fly-out', () => {
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+        expect(flyoutWrapper()).toHaveStyle({ top: '100px' });
+
+        // Focus holds the panel open with no pointer on it, so nothing re-opens it. Without a
+        // listener the panel stays put and ends up beside an unrelated initial.
+        stubRect(trigger, 300);
+        fireEvent.scroll(window);
+
+        expect(flyoutWrapper()).toHaveStyle({ top: '300px' });
+    });
+
+    it('re-measures when the window is resized under an open fly-out', () => {
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+
+        stubRect(trigger, 260);
+        fireEvent(window, new Event('resize'));
+
+        expect(flyoutWrapper()).toHaveStyle({ top: '260px' });
+    });
+
+    it('stops listening once the fly-out closes', () => {
+        const removed = vi.spyOn(window, 'removeEventListener');
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+
+        fireEvent.blur(trigger, { relatedTarget: document.body });
+
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+        // One rail holds one listener per open root, so a missing cleanup accumulates them.
+        expect(removed.mock.calls.map(([event]) => event)).toEqual(expect.arrayContaining(['scroll', 'resize']));
+        removed.mockRestore();
+    });
+
+    it('scrolls the root initials, so a window too short for them all still reaches every one', () => {
+        renderRail();
+
+        // The rail sits in an overflow-hidden row, so an unbounded list is clipped with no way
+        // to scroll to the roots below the fold. jsdom has no layout, so the box is asserted.
+        const list = screen.getByRole('button', { name: 'finos' }).closest('.overflow-auto');
+        expect(list?.className).toContain('flex-1');
+        expect(list?.className).toContain('min-h-0');
+        // The focus ring is drawn 3px outside the initial, and the scroll container clips it.
+        expect(list?.className).toContain('pt-1');
+    });
+
+    it('positions the fly-out against the viewport, so the scrolling rail cannot clip it', () => {
+        renderRail();
         fireEvent.focus(screen.getByRole('button', { name: 'finos' }));
-        const panel = screen.getByText('calm').closest('div[style*="max-height"]');
-        expect(panel).toHaveStyle({ maxHeight: '60vh', overflowY: 'auto' });
+
+        // Scrolling the initials makes the rail a clipping box for anything positioned inside it.
+        const positioned = screen.getByText('calm').closest('.fixed');
+        expect(positioned).toBeInTheDocument();
+    });
+
+    it('takes the upward anchor when the trigger is near the foot of the window', () => {
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 700);
+
+        fireEvent.focus(trigger);
+
+        // Opening downward leaves 60px, so the last rows would sit below the window.
+        const wrapper = flyoutWrapper();
+        expect(wrapper).toHaveStyle({ bottom: '44px' });
+        expect(wrapper.style.top).toBe('');
     });
 
     it('renders a group-only root row inside the fly-out without a link', () => {
