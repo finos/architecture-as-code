@@ -1,5 +1,7 @@
 package org.finos.calm.domain;
 
+import java.util.List;
+
 /**
  * The one place that knows how a snapshot version is spelled.
  *
@@ -13,7 +15,7 @@ package org.finos.calm.domain;
  *
  * <p>Canonicalisation stays in {@link org.finos.calm.store.util.CanonicalVersion} and ordering in
  * {@link org.finos.calm.store.util.SemanticVersionOrder}. This class answers only "is it a snapshot, and what release
- * does it belong to", and both of those delegate to it.</p>
+ * does it belong to", plus which version a "latest" read resolves to.</p>
  */
 public final class ResourceVersion {
 
@@ -52,5 +54,28 @@ public final class ResourceVersion {
             return version;
         }
         return version + SNAPSHOT_SUFFIX;
+    }
+
+    /**
+     * The last release in {@code orderedVersions}, or the last version if all are snapshots.
+     * A snapshot never shadows an existing release as "latest".
+     *
+     * <p>Takes the store's order as given and does not compare versions: semver stores return
+     * versions ascending, and GitHub storage returns commit SHAs oldest first. A SHA history has
+     * no snapshots, so its newest commit wins.</p>
+     *
+     * @return the resolved version, or {@code null} if {@code orderedVersions} is null or empty.
+     */
+    public static String latestRelease(List<String> orderedVersions) {
+        if (orderedVersions == null || orderedVersions.isEmpty()) {
+            return null;
+        }
+        for (int i = orderedVersions.size() - 1; i >= 0; i--) {
+            String version = orderedVersions.get(i);
+            if (!isSnapshot(version)) {
+                return version;
+            }
+        }
+        return orderedVersions.getLast();
     }
 }

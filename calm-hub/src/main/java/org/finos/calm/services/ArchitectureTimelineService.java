@@ -162,7 +162,7 @@ public class ArchitectureTimelineService {
         }
 
         if (!orderedVersions.isEmpty()) {
-            timeline.put("current-moment", currentMoment(orderedVersions));
+            timeline.put("current-moment", ResourceVersion.latestRelease(orderedVersions));
         }
 
         logger.debug("Built implied timeline for architecture {} in namespace '{}' with {} moments",
@@ -200,17 +200,6 @@ public class ArchitectureTimelineService {
         List<String> ordered = new ArrayList<>(semverVersions);
         ordered.addAll(nonSemverVersions);
         return ordered;
-    }
-
-    /** The last non-snapshot version in {@code orderedVersions}, or the last version if all are snapshots. */
-    private String currentMoment(List<String> orderedVersions) {
-        for (int i = orderedVersions.size() - 1; i >= 0; i--) {
-            String version = orderedVersions.get(i);
-            if (!ResourceVersion.isSnapshot(version)) {
-                return version;
-            }
-        }
-        return orderedVersions.get(orderedVersions.size() - 1);
     }
 
     private boolean isSemver(String version) {

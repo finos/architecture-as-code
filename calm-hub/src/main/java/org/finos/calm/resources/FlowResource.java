@@ -12,6 +12,7 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
@@ -24,7 +25,6 @@ import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.CustomIdEnrichmentService;
 import org.finos.calm.store.FlowStore;
 import org.finos.calm.store.ResourceMappingStore;
-import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -124,7 +124,7 @@ public class FlowResource {
 
         try {
             List<String> versions =  store.getFlowVersions(flow);
-            String lastVersion = SemanticVersionOrder.latestRelease(versions);
+            String lastVersion = ResourceVersion.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);

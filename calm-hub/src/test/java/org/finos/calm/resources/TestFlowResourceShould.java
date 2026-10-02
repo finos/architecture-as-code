@@ -119,6 +119,25 @@ public class TestFlowResourceShould {
     }
 
     @Test
+    void return_the_newest_commit_as_latest_for_a_sha_history() throws NamespaceNotFoundException, FlowNotFoundException, FlowVersionNotFoundException {
+        // GitHub storage returns SHAs oldest first; the largest SHA string is not the newest.
+        String flowJson = "{ \"test\": \"json\" }";
+        Flow.FlowBuilder mockFlowBuilder = new Flow.FlowBuilder().setNamespace("validNamespace").setId(1);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(Arrays.asList("f00dbab", "1a2b3c4", "0cafe12"));
+        Flow expectedFlow = mockFlowBuilder.setVersion("0cafe12").build();
+        when(mockFlowStore.getFlowForVersion(expectedFlow)).thenReturn(flowJson);
+
+        given()
+                .when()
+                .get("/api/calm/namespaces/validNamespace/flows/1")
+                .then()
+                .statusCode(200)
+                .body(equalTo(flowJson));
+
+        verify(mockFlowStore, times(1)).getFlowForVersion(expectedFlow);
+    }
+
+    @Test
     void return_404_with_invalid_namespace_response_when_namespace_not_found() throws NamespaceNotFoundException, FlowNotFoundException {
         String invalidNamespace = "invalidNamespace";
         int validFlowId = 1;

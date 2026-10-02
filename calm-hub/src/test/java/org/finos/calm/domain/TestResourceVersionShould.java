@@ -4,7 +4,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -71,5 +75,40 @@ class TestResourceVersionShould {
         // Canonicalisation is CanonicalVersion's job, not this class's. Folding here as well
         // would put the same rule in two places, which is how they drift apart.
         assertThat(ResourceVersion.releaseVersion("1-0-0-SNAPSHOT"), is("1-0-0"));
+    }
+
+    @Test
+    void resolve_latest_release_to_null_for_a_null_or_empty_list() {
+        assertThat(ResourceVersion.latestRelease(null), is(nullValue()));
+        assertThat(ResourceVersion.latestRelease(List.of()), is(nullValue()));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_last_version_when_there_are_no_snapshots() {
+        assertThat(ResourceVersion.latestRelease(List.of("1.0.0", "1.5.0", "2.0.0")), is("2.0.0"));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_last_release_even_when_a_snapshot_follows_it() {
+        assertThat(ResourceVersion.latestRelease(List.of("1.0.0", "1.1.0-SNAPSHOT")), is("1.0.0"));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_last_snapshot_when_nothing_is_published_yet() {
+        assertThat(ResourceVersion.latestRelease(List.of("1.0.0-SNAPSHOT")), is("1.0.0-SNAPSHOT"));
+        assertThat(ResourceVersion.latestRelease(List.of("1.0.0-SNAPSHOT", "1.1.0-SNAPSHOT")), is("1.1.0-SNAPSHOT"));
+    }
+
+    @Test
+    void resolve_latest_release_to_the_newest_commit_in_a_sha_history() {
+        // SHAs have no semver order: the store's commit order decides, not the string value.
+        assertThat(ResourceVersion.latestRelease(List.of("f00dbab", "1a2b3c4", "0cafe12")), is("0cafe12"));
+    }
+
+    @Test
+    void not_mutate_the_input_list_when_resolving_latest_release() {
+        List<String> versions = new ArrayList<>(List.of("1.0.0", "2.0.0"));
+        ResourceVersion.latestRelease(versions);
+        assertThat(versions, contains("1.0.0", "2.0.0"));
     }
 }

@@ -725,10 +725,14 @@ public class MappingControllerService {
      *
      * <p>Deliberately after the release write, and deliberately not rolled back. The two are
      * separate store operations with no transaction across them, so one of them has to go
-     * first. If this fails, the release is correct and an orphan snapshot shadows it — a
-     * state the creation rule otherwise forbids, recoverable by deleting the snapshot. If the
-     * order were reversed, a failed release write would have already destroyed the user's
-     * work in progress.</p>
+     * first. If this fails, the release is correct but an orphan snapshot stays beside it — a
+     * state the creation rule otherwise forbids. No endpoint deletes a single version, so
+     * recovery needs a database edit or a delete of the whole resource. If the order were
+     * reversed, a failed release write would have already destroyed the user's work in
+     * progress.</p>
+     *
+     * <p>A release published through the numeric {@code /api/calm/...} write endpoints also
+     * leaves an orphan, because that path calls the store directly and never reaches here.</p>
      */
     private void deleteSnapshotForVersion(ResourceMapping mapping, String releaseVersion, List<String> versions) {
         // Canonicalised before comparing, as in the shadow check above this method's call site.
