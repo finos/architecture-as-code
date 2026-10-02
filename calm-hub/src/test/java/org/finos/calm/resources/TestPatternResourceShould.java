@@ -31,8 +31,8 @@ import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.LIMIT_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.OFFSET_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
@@ -329,7 +329,17 @@ public class TestPatternResourceShould {
                 .get("/api/calm/namespaces/finos/patterns/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(SNAPSHOT_VERSION_MESSAGE));
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_pattern() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/patterns/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(SNAPSHOT_VERSION_OR_SHA_MESSAGE));
     }
 
     private void verifyExpectedGetPattern(String namespace) throws PatternNotFoundException, NamespaceNotFoundException, PatternVersionNotFoundException {

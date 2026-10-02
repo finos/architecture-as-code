@@ -66,7 +66,7 @@ function parseInteractsRelationship(
 
     const actorId = interacts.actor;
     const targetNodeIds = interacts.nodes || [];
-    const label = rel.description || 'interacts';
+    const label = rel.description || '';
 
     targetNodeIds.forEach((targetId: string, targetIndex: number) => {
         edges.push(

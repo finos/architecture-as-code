@@ -5,7 +5,7 @@ import { THEME } from '../theme.js';
 describe('edgeBadge.utils', () => {
     describe('getBadgeStyle', () => {
         it('returns accent colors when hasFlowInfo is true', () => {
-            const result = getBadgeStyle(true, false);
+            const result = getBadgeStyle(true);
             expect(result).toEqual({
                 background: `${THEME.colors.accent}20`,
                 border: THEME.colors.accent,
@@ -14,7 +14,7 @@ describe('edgeBadge.utils', () => {
         });
 
         it('returns success colors when hasAIGF is true', () => {
-            const result = getBadgeStyle(false, true);
+            const result = getBadgeStyle(false);
             expect(result).toEqual({
                 background: `${THEME.colors.success}20`,
                 border: THEME.colors.success,
@@ -22,28 +22,8 @@ describe('edgeBadge.utils', () => {
             });
         });
 
-        it('returns muted colors when both flags are false', () => {
-            const result = getBadgeStyle(false, false);
-            // `muted` is a theme var, so its tint is mixed rather than suffixed with
-            // the `20` alpha byte the chromatic branches use.
-            expect(result).toEqual({
-                background: `color-mix(in srgb, ${THEME.colors.muted} 12.5%, transparent)`,
-                border: THEME.colors.muted,
-                iconColor: THEME.colors.muted,
-            });
-        });
-
-        it('prioritizes hasFlowInfo over hasAIGF when both are true', () => {
-            const result = getBadgeStyle(true, true);
-            expect(result).toEqual({
-                background: `${THEME.colors.accent}20`,
-                border: THEME.colors.accent,
-                iconColor: THEME.colors.accent,
-            });
-        });
-
         it('has the correct alpha value for background colors', () => {
-            const result = getBadgeStyle(true, false);
+            const result = getBadgeStyle(true);
             expect(result.background).toMatch(/^#[0-9a-f]+20$/i);
         });
     });

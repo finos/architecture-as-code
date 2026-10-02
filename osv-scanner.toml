@@ -1,0 +1,68 @@
+# Suppressions for the OSV Scanner workflow (.github/workflows/osv-scanner.yml).
+# A maintainer may add an entry only when the finding is non-exploitable in this
+# project. Each entry must give the justification in `reason` and an `ignoreUntil`
+# date for re-review. See SECURITY.md, "Dependency and Code Scanning Policy".
+# Every entry must have a matching not_affected statement in vex/calm.openvex.json.
+
+# glib 0.18 comes in through Tauri's Linux GTK stack for the CALM Studio desktop app.
+# The unsound iterator impls on glib::VariantStrIter are not called by CALM Studio code,
+# and the fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20.
+[[IgnoredVulns]]
+id = "GHSA-wrw7-89jp-8q8g"
+ignoreUntil = 2026-12-31
+reason = "glib 0.18 is pinned by Tauri's GTK stack; the unsound VariantStrIter impls are not used by CALM Studio. Re-check when Tauri supports gtk-rs 0.20."
+
+# npm bundles its own copies of these packages inside the npm CLI, which semantic-release
+# uses at release time. They are dev-only, never shipped, and npm overrides cannot reach
+# bundled dependencies. No npm release (11.20.0, 12.1.0) bundles fixed versions yet.
+# An ignored ID applies to every copy of the package, so check that the other copies are
+# outside the affected range before adding one.
+[[IgnoredVulns]]
+id = "GHSA-2vr4-cq9g-pvrc"
+ignoreUntil = 2026-11-30
+reason = "ip-address 10.5.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles ip-address >= 10.7.2."
+
+[[IgnoredVulns]]
+id = "GHSA-h3mg-xc3c-68pw"
+ignoreUntil = 2026-11-30
+reason = "ip-address 10.5.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles ip-address >= 10.7.2."
+
+[[IgnoredVulns]]
+id = "GHSA-j6r3-76f7-8jcv"
+ignoreUntil = 2026-11-30
+reason = "ip-address 10.5.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles ip-address >= 10.7.2."
+
+[[IgnoredVulns]]
+id = "GHSA-rpw4-54j3-4h4q"
+ignoreUntil = 2026-11-30
+reason = "ip-address 10.5.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles ip-address >= 10.7.2."
+
+[[IgnoredVulns]]
+id = "GHSA-3wwx-pv8p-q78v"
+ignoreUntil = 2026-11-30
+reason = "undici 6.28.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles undici >= 6.28.1."
+
+[[IgnoredVulns]]
+id = "GHSA-r53p-7pc4-xj5r"
+ignoreUntil = 2026-11-30
+reason = "undici 6.28.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles undici >= 6.28.1."
+
+[[IgnoredVulns]]
+id = "GHSA-rfgv-xxqx-mfg5"
+ignoreUntil = 2026-11-30
+reason = "undici 6.28.0 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles undici >= 6.28.1."
+
+[[IgnoredVulns]]
+id = "GHSA-6j4f-fj2g-mc7p"
+ignoreUntil = 2026-11-30
+reason = "brace-expansion 5.0.9 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles brace-expansion >= 5.0.12."
+
+[[IgnoredVulns]]
+id = "GHSA-q2hr-2g5m-vwhr"
+ignoreUntil = 2026-11-30
+reason = "brace-expansion 5.0.9 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles brace-expansion >= 5.0.12."
+
+[[IgnoredVulns]]
+id = "GHSA-qhr7-859c-m2p7"
+ignoreUntil = 2026-11-30
+reason = "brace-expansion 5.0.9 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles brace-expansion >= 5.0.12."

@@ -6,7 +6,9 @@ import static org.mockito.Mockito.when;
 
 import jakarta.enterprise.inject.Instance;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.DocumentStore;
+import org.finos.calm.store.github.GitHubDocumentStore;
 import org.finos.calm.store.mongo.MongoDocumentStore;
 import org.finos.calm.store.nitrite.NitriteDocumentStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,9 +24,13 @@ class TestDocumentStoreProducerShould {
 
     @Mock NitriteDocumentStore mockNitriteStore;
 
+    @Mock GitHubDocumentStore mockGitHubStore;
+
     @Mock Instance<MongoDocumentStore> mockMongo;
 
     @Mock Instance<NitriteDocumentStore> mockNitrite;
+
+    @Mock Instance<GitHubDocumentStore> mockGitHub;
 
     private DocumentStoreProducer producer;
 
@@ -33,6 +39,7 @@ class TestDocumentStoreProducerShould {
         producer = new DocumentStoreProducer();
         producer.mongo = mockMongo;
         producer.nitrite = mockNitrite;
+        producer.github = mockGitHub;
     }
 
     @Test
@@ -49,5 +56,13 @@ class TestDocumentStoreProducerShould {
         producer.databaseMode = "standalone";
 
         assertThat(producer.produceDocumentStore(), sameInstance((DocumentStore) mockNitriteStore));
+    }
+
+    @Test
+    void return_github_store_in_github_mode() {
+        when(mockGitHub.get()).thenReturn(mockGitHubStore);
+        producer.databaseMode = DatabaseMode.GITHUB;
+
+        assertThat(producer.produceDocumentStore(), sameInstance((DocumentStore) mockGitHubStore));
     }
 }
