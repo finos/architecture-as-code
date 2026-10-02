@@ -232,10 +232,19 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
     steps:
+      - name: Generate release app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.SRB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -336,7 +345,7 @@ jobs:
             git push origin "release/cli-v$NEXT_VERSION"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Create Pull Request
         run: |
@@ -371,7 +380,7 @@ jobs:
             exit 1
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
   prepare-major-release:
     needs: analyze
