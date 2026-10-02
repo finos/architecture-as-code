@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { EdgeBadge } from './EdgeBadge.js';
 import { getBadgeStyle } from '../utils/edgeBadge.utils.js';
@@ -7,34 +7,31 @@ import { THEME } from '../theme.js';
 describe('EdgeBadge', () => {
     const mockOnMouseEnter = vi.fn();
     const mockOnMouseLeave = vi.fn();
-    const defaultBadgeStyle = getBadgeStyle(false, false);
+    const flowBadgeStyle = getBadgeStyle(true);
 
     beforeEach(() => {
         vi.clearAllMocks();
     });
 
-    it('renders info icon when no flow info or AIGF', () => {
+    it('renders the arrow icon for flow info', () => {
         const { container } = render(
-            <EdgeBadge
-                hasFlowInfo={false}
-                hasAIGF={false}
-                badgeStyle={defaultBadgeStyle}
-                onMouseEnter={mockOnMouseEnter}
-                onMouseLeave={mockOnMouseLeave}
-            />
+            <EdgeBadge hasFlowInfo badgeStyle={flowBadgeStyle} />
         );
-        // The Info icon (lucide-react) renders as an SVG
-        const svg = container.querySelector('svg');
-        expect(svg).toBeTruthy();
-        expect(svg?.classList.contains('lucide-info')).toBe(true);
+        expect(container.querySelector('svg')?.classList.contains('lucide-arrow-right')).toBe(true);
+    });
+
+    it('renders the shield icon for AIGF metadata', () => {
+        const { container } = render(
+            <EdgeBadge hasFlowInfo={false} badgeStyle={getBadgeStyle(false)} />
+        );
+        expect(container.querySelector('svg')?.classList.contains('lucide-shield')).toBe(true);
     });
 
     it('calls onMouseEnter when hovered', () => {
         const { container } = render(
             <EdgeBadge
-                hasFlowInfo={false}
-                hasAIGF={false}
-                badgeStyle={defaultBadgeStyle}
+                hasFlowInfo
+                badgeStyle={flowBadgeStyle}
                 onMouseEnter={mockOnMouseEnter}
                 onMouseLeave={mockOnMouseLeave}
             />
@@ -47,9 +44,8 @@ describe('EdgeBadge', () => {
     it('calls onMouseLeave when mouse leaves', () => {
         const { container } = render(
             <EdgeBadge
-                hasFlowInfo={false}
-                hasAIGF={false}
-                badgeStyle={defaultBadgeStyle}
+                hasFlowInfo
+                badgeStyle={flowBadgeStyle}
                 onMouseEnter={mockOnMouseEnter}
                 onMouseLeave={mockOnMouseLeave}
             />
@@ -67,8 +63,7 @@ describe('EdgeBadge', () => {
         };
         const { container } = render(
             <EdgeBadge
-                hasFlowInfo={false}
-                hasAIGF={false}
+                hasFlowInfo
                 badgeStyle={customStyle}
                 onMouseEnter={mockOnMouseEnter}
                 onMouseLeave={mockOnMouseLeave}
@@ -83,25 +78,14 @@ describe('EdgeBadge', () => {
 
 describe('getBadgeStyle', () => {
     it('returns accent colors when hasFlowInfo is true', () => {
-        const style = getBadgeStyle(true, false);
+        const style = getBadgeStyle(true);
         expect(style.border).toBe(THEME.colors.accent);
         expect(style.iconColor).toBe(THEME.colors.accent);
     });
 
     it('returns success colors when hasAIGF is true and no flow info', () => {
-        const style = getBadgeStyle(false, true);
+        const style = getBadgeStyle(false);
         expect(style.border).toBe(THEME.colors.success);
         expect(style.iconColor).toBe(THEME.colors.success);
-    });
-
-    it('returns muted colors when neither hasFlowInfo nor hasAIGF', () => {
-        const style = getBadgeStyle(false, false);
-        expect(style.border).toBe(THEME.colors.muted);
-        expect(style.iconColor).toBe(THEME.colors.muted);
-    });
-
-    it('prioritizes flow info over AIGF', () => {
-        const style = getBadgeStyle(true, true);
-        expect(style.border).toBe(THEME.colors.accent);
     });
 });

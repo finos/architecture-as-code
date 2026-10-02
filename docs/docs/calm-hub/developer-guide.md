@@ -189,7 +189,7 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 
 - **JaCoCo**: 90% line coverage per class, enforced by `mvn verify`. Exclusions: `domain/**`, `*Constants`, `CalmHubScopes`, `LogSanitizationPolicy`.
 - **Integration tests require Docker** - they cannot be run from an IDE without Docker configured.
-- Always run `../mvnw clean verify -Ddependency-check.skip=true` before opening a pull request. This runs the same check as CI.
+- Always run `../mvnw clean verify` before opening a pull request. This runs the same check as CI.
 
 ---
 

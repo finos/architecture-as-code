@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.LayoutStore;
+import org.finos.calm.store.github.GitHubLayoutStore;
 import org.finos.calm.store.mongo.MongoLayoutStore;
 import org.finos.calm.store.nitrite.NitriteLayoutStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestLayoutStoreProducerShould {
     @Mock
     Instance<NitriteLayoutStore> nitriteLayoutStoreInstance;
 
+    @Mock
+    GitHubLayoutStore gitHubLayoutStore;
+
+    @Mock
+    Instance<GitHubLayoutStore> gitHubLayoutStoreInstance;
+
     private LayoutStoreProducer layoutStoreProducer;
 
     @BeforeEach
@@ -41,7 +49,9 @@ public class TestLayoutStoreProducerShould {
         when(mongoLayoutStoreInstance.get()).thenReturn(mongoLayoutStore);
         layoutStoreProducer.mongoLayoutStore = mongoLayoutStoreInstance;
         when(nitriteLayoutStoreInstance.get()).thenReturn(nitriteLayoutStore);
-        layoutStoreProducer.nitriteLayoutStore = nitriteLayoutStoreInstance;
+        layoutStoreProducer.standaloneLayoutStore = nitriteLayoutStoreInstance;
+        when(gitHubLayoutStoreInstance.get()).thenReturn(gitHubLayoutStore);
+        layoutStoreProducer.gitHubLayoutStore = gitHubLayoutStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestLayoutStoreProducerShould {
 
     @Test
     void return_mongo_layout_store_when_database_mode_is_not_recognized() {
-        // Given
         layoutStoreProducer.databaseMode = "unknown";
 
-        // When
         LayoutStore result = layoutStoreProducer.produceLayoutStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoLayoutStore)));
+    }
+
+    @Test
+    void return_github_layout_store_when_database_mode_is_github() {
+        layoutStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        LayoutStore result = layoutStoreProducer.produceLayoutStore();
+
+        assertThat(result, is(sameInstance(gitHubLayoutStore)));
     }
 }

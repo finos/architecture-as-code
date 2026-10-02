@@ -1,15 +1,21 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import type { ReactElement } from 'react';
+import { MemoryRouter } from 'react-router-dom';
+import { describe, expect, it } from 'vitest';
 import { ControlCard } from './ControlCard.js';
+
+const HREF = '/security/controls/5/detail';
+
+const renderCard = (ui: ReactElement) => render(<MemoryRouter>{ui}</MemoryRouter>);
 
 describe('ControlCard', () => {
     it('renders the control name, description, Control pill and mono id', () => {
-        render(
+        renderCard(
             <ControlCard
                 name="Encryption at rest"
                 description="All persisted data must be encrypted."
                 controlId={5}
-                onActivate={vi.fn()}
+                href={HREF}
             />
         );
 
@@ -19,27 +25,16 @@ describe('ControlCard', () => {
         expect(screen.getByText('#5')).toBeInTheDocument();
     });
 
-    it('activates the card when clicked', () => {
-        const onActivate = vi.fn();
-        render(<ControlCard name="Access Control" controlId={6} onActivate={onActivate} />);
+    it('is a link to the control deep link, not a toggle button', () => {
+        renderCard(<ControlCard name="Access Control" controlId={5} href={HREF} />);
 
-        fireEvent.click(screen.getByTestId('control-card'));
-
-        expect(onActivate).toHaveBeenCalledTimes(1);
-    });
-
-    it('marks the card as selected (aria-pressed) when active', () => {
-        render(<ControlCard name="Encryption" controlId={5} active onActivate={vi.fn()} />);
-        expect(screen.getByTestId('control-card')).toHaveAttribute('aria-pressed', 'true');
-    });
-
-    it('is not pressed when inactive (default)', () => {
-        render(<ControlCard name="Encryption" controlId={5} onActivate={vi.fn()} />);
-        expect(screen.getByTestId('control-card')).toHaveAttribute('aria-pressed', 'false');
+        const card = screen.getByTestId('control-card');
+        expect(card).toHaveAttribute('href', HREF);
+        expect(card).not.toHaveAttribute('aria-pressed');
     });
 
     it('renders without a description', () => {
-        render(<ControlCard name="Audit Logging" controlId={9} onActivate={vi.fn()} />);
+        renderCard(<ControlCard name="Audit Logging" controlId={9} href={HREF} />);
 
         expect(screen.getByText('Audit Logging')).toBeInTheDocument();
         expect(screen.getByText('#9')).toBeInTheDocument();

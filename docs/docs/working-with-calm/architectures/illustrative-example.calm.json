@@ -1,0 +1,244 @@
+{
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "unique-id": "direct-url-authentication-example",
+    "name": "Direct URL Authentication Example",
+    "description": "Illustrative architecture for obtaining an authorization header through a DirectUrlAuthPlugin and retrieving a protected CALM document.",
+    "nodes": [
+        {
+            "unique-id": "calm-cli",
+            "node-type": "service",
+            "name": "CALM CLI",
+            "description": "The CALM command-line interface that requests authorization headers and retrieves CALM documents."
+        },
+        {
+            "unique-id": "direct-url-auth-plugin",
+            "node-type": "service",
+            "name": "DirectUrlAuthPlugin",
+            "description": "The authentication plugin that checks cached tokens, reads local configuration, obtains OAuth tokens, and returns authorization headers."
+        },
+        {
+            "unique-id": "identity-services",
+            "node-type": "system",
+            "name": "Identity Services",
+            "description": "The identity services that provide Vault-backed client secrets and OAuth access tokens."
+        },
+        {
+            "unique-id": "authenticated-calm-repository",
+            "node-type": "system",
+            "name": "Authenticated CALM Repository",
+            "description": "The authenticated repository that provides protected CALM documents."
+        },
+        {
+            "unique-id": "local-execution-environment",
+            "node-type": "system",
+            "name": "Local Execution Environment",
+            "description": "The local environment that runs the CALM CLI, authentication plugin, and configuration."
+        },
+        {
+            "unique-id": "local-config-file",
+            "node-type": "datastore",
+            "name": "Local config file",
+            "description": "Local configuration containing the configPath and authentication settings required by the plugin."
+        },
+        {
+            "unique-id": "vault-kv-v2",
+            "node-type": "service",
+            "name": "Vault KV v2",
+            "description": "HashiCorp Vault KV v2 secret store containing the OAuth client secret."
+        },
+        {
+            "unique-id": "oauth-token-endpoint",
+            "node-type": "service",
+            "name": "OAuth token endpoint",
+            "description": "The OAuth endpoint that exchanges client credentials for an access token and expiry duration."
+        },
+        {
+            "unique-id": "protected-document-service",
+            "node-type": "datastore",
+            "name": "Protected document service",
+            "description": "The protected service that returns a CALM document when presented with a valid bearer authorization header."
+        }
+    ],
+    "relationships": [
+        {
+            "unique-id": "cli-requests-auth-headers",
+            "description": "Requests authorization headers for a direct URL and request body from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "direct-url-auth-plugin"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "plugin-reads-config",
+            "description": "Reads configPath from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "direct-url-auth-plugin"
+                    },
+                    "destination": {
+                        "node": "local-config-file"
+                    }
+                }
+            }
+        },
+        {
+            "unique-id": "plugin-reads-vault-secret",
+            "description": "Retrieves the OAuth client secret from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "direct-url-auth-plugin"
+                    },
+                    "destination": {
+                        "node": "vault-kv-v2"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "plugin-requests-oauth-token",
+            "description": "Obtains client credentials containing client_id, client_secret, and grant_type",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "direct-url-auth-plugin"
+                    },
+                    "destination": {
+                        "node": "oauth-token-endpoint"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "cli-requests-protected-document",
+            "description": "Requests the direct URL with an Authorization header from",
+            "relationship-type": {
+                "connects": {
+                    "source": {
+                        "node": "calm-cli"
+                    },
+                    "destination": {
+                        "node": "authenticated-calm-repository"
+                    }
+                }
+            },
+            "protocol": "HTTPS"
+        },
+        {
+            "unique-id": "authenticated-calm-repository-composed-of",
+            "description": "Composes the authenticated CALM repository from",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "authenticated-calm-repository",
+                    "nodes": [
+                        "protected-document-service"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "identity-services-composed-of",
+            "description": "Composes the identity services from",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "identity-services",
+                    "nodes": [
+                        "vault-kv-v2",
+                        "oauth-token-endpoint"
+                    ]
+                }
+            }
+        },
+        {
+            "unique-id": "local-execution-environment-composed-of",
+            "description": "Composes the local execution environment from",
+            "relationship-type": {
+                "composed-of": {
+                    "container": "local-execution-environment",
+                    "nodes": [
+                        "calm-cli",
+                        "direct-url-auth-plugin",
+                        "local-config-file"
+                    ]
+                }
+            }
+        }
+    ],
+    "flows": [
+        {
+            "unique-id": "direct-url-authenticated-document-retrieval",
+            "name": "Direct URL Authenticated Document Retrieval",
+            "description": "Obtains a bearer token when the cached token is missing or within the refresh window, then retrieves a protected CALM document. A still-valid cached token can use the cached authorization-header relationship instead of the refresh path.",
+            "transitions": [
+                {
+                    "relationship-unique-id": "cli-requests-auth-headers",
+                    "sequence-number": 1,
+                    "description": "CALM CLI requests authorization headers from the plugin."
+                },
+                {
+                    "relationship-unique-id": "plugin-reads-config",
+                    "sequence-number": 2,
+                    "description": "Plugin reads configPath from the local config file because the token requires refresh."
+                },
+                {
+                    "relationship-unique-id": "plugin-reads-config",
+                    "sequence-number": 3,
+                    "description": "Local config file returns AuthConfig.",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "plugin-reads-vault-secret",
+                    "sequence-number": 4,
+                    "description": "Plugin requests the Vault secret using X-Vault-Token."
+                },
+                {
+                    "relationship-unique-id": "plugin-reads-vault-secret",
+                    "sequence-number": 5,
+                    "description": "Vault returns the OAuth client secret from its KV v2 response.",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "plugin-requests-oauth-token",
+                    "sequence-number": 6,
+                    "description": "Plugin posts client credentials to the OAuth token endpoint."
+                },
+                {
+                    "relationship-unique-id": "plugin-requests-oauth-token",
+                    "sequence-number": 7,
+                    "description": "OAuth endpoint returns access_token and expires_in.",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "cli-requests-auth-headers",
+                    "sequence-number": 8,
+                    "description": "Plugin returns a bearer authorization header to the CALM CLI.",
+                    "direction": "destination-to-source"
+                },
+                {
+                    "relationship-unique-id": "cli-requests-protected-document",
+                    "sequence-number": 9,
+                    "description": "CALM CLI requests the direct URL with the authorization header."
+                },
+                {
+                    "relationship-unique-id": "cli-requests-protected-document",
+                    "sequence-number": 10,
+                    "description": "Protected document service returns the CALM document.",
+                    "direction": "destination-to-source"
+                }
+            ],
+            "metadata": {
+                "cached-token-path": "When the cached token is still valid, the plugin returns the cached authorization header directly to the CLI.",
+                "refresh-window": "60 seconds"
+            }
+        }
+    ]
+}

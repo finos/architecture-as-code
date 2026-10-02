@@ -232,10 +232,19 @@ jobs:
     runs-on: ubuntu-latest
     if: needs.analyze.outputs.should-release == 'true' && needs.analyze.outputs.release-type != 'major'
     steps:
+      - name: Generate release app token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.SRB_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -336,7 +345,7 @@ jobs:
             git push origin "release/cli-v$NEXT_VERSION"
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.SRB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
       - name: Create Pull Request
         run: |
@@ -371,7 +380,7 @@ jobs:
             exit 1
           fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
 
   prepare-major-release:
     needs: analyze
@@ -448,6 +457,38 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: main
 
+      - name: Check dependency scan status
+        run: |
+          # Publish only if OSV Scanner passed on the commit being released.
+          # Wait for the push-triggered scan of that commit; a missing or failed scan blocks the release.
+          # Only push runs count: a pull request run can report the same branch name or commit.
+          SHA=$(git rev-parse HEAD)
+          RUN='{}'
+          for _ in $(seq 1 30); do
+            RUN=$(gh run list \
+              --workflow=osv-scanner.yml \
+              --commit="$SHA" \
+              --event=push \
+              --limit=1 \
+              --json status,conclusion,url \
+              --jq '.[0] // {}')
+            STATUS=$(echo "$RUN" | jq -r '.status // empty')
+            if [ "$STATUS" = "completed" ]; then
+              break
+            fi
+            echo "Waiting for the dependency scan of $SHA (status: ${STATUS:-not started})..."
+            sleep 30
+          done
+          echo "Dependency scan of $SHA: $RUN"
+
+          if [ "$(echo "$RUN" | jq -r '.conclusion // empty')" != "success" ]; then
+            echo "❌ The dependency scan of $SHA did not pass. Fix or suppress the findings before releasing."
+            exit 1
+          fi
+          echo "✅ Dependency scan passed on $SHA."
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Setup Node.js
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
@@ -467,6 +508,20 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "Publishing CLI version: $VERSION"
+
+      - name: Package tarball and generate SBOM
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          mkdir -p release-assets sbom-work/cli
+          npm pack --workspace cli --pack-destination release-assets > /dev/null
+          TARBALL=$(ls release-assets/*.tgz)
+          # Install the packed package on its own so the SBOM describes exactly what npm consumers receive.
+          tar -xzf "$TARBALL" -C sbom-work/cli --strip-components=1
+          cd sbom-work/cli
+          npm pkg delete devDependencies scripts
+          npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock
+          npm sbom --sbom-format cyclonedx --omit dev > "$GITHUB_WORKSPACE/release-assets/calm-cli-${VERSION}.cdx.json"
+          ls -la "$GITHUB_WORKSPACE/release-assets"
 
       - name: Create Git tag
         run: |
@@ -494,13 +549,13 @@ jobs:
           gh release create "cli-v${{ steps.version.outputs.version }}" \
             --title "CLI v${{ steps.version.outputs.version }}" \
             --notes "$RELEASE_NOTES" \
-            --target main
+            --target main \
+            "$GITHUB_WORKSPACE"/release-assets/*
 
       - name: Publish to NPM
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN_SEMANTIC_RELEASE }}
         run: |
-          cd cli
-          npm publish --provenance
+          npm publish "$GITHUB_WORKSPACE"/release-assets/*.tgz --provenance
           
           echo "✅ Successfully published @finos/calm-cli@${{ steps.version.outputs.version }} to NPM" >> $GITHUB_STEP_SUMMARY

@@ -123,6 +123,34 @@ describe('useResourceFromRoute', () => {
         });
     });
 
+    it('reports a load error when no control matches the routed id', async () => {
+        fetchControlsForDomain.mockResolvedValue([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        renderAt('/security/controls/999/detail');
+        await waitFor(() => {
+            expect(callbacks.onLoadError).toHaveBeenCalled();
+        });
+        expect(callbacks.onControlLoad).not.toHaveBeenCalled();
+    });
+
+    it('prefers an id match over a name match', async () => {
+        fetchControlsForDomain.mockResolvedValue([
+            { id: 9, name: '5', description: 'named five' },
+            { id: 5, name: 'Encryption', description: 'id five' },
+        ]);
+        renderAt('/security/controls/5/detail');
+        await waitFor(() => {
+            expect(callbacks.onControlLoad).toHaveBeenCalledWith(expect.objectContaining({ controlId: 5 }));
+        });
+    });
+
+    it('reports a load error when the controls fetch fails', async () => {
+        fetchControlsForDomain.mockRejectedValue(new Error('boom'));
+        renderAt('/security/controls/5/detail');
+        await waitFor(() => {
+            expect(callbacks.onLoadError).toHaveBeenCalled();
+        });
+    });
+
     it('loads a control by name slug (search deep-link) and passes the title', async () => {
         fetchControlsForDomain.mockResolvedValue([
             { id: 5, name: 'encryption-at-rest', description: 'desc', title: 'Encryption at rest' },
@@ -205,6 +233,18 @@ describe('useResourceFromRoute — stale results after navigation', () => {
         await flush();
 
         expect(callbacks.onInterfaceLoad).not.toHaveBeenCalled();
+    });
+
+    it('drops a late control not-found that resolves after cleanup', async () => {
+        let resolveControls: (value: unknown) => void = () => undefined;
+        fetchControlsForDomain.mockReturnValue(new Promise((resolve) => { resolveControls = resolve; }));
+        const { unmount } = renderAt('/security/controls/999/detail');
+
+        unmount();
+        resolveControls([{ id: 5, name: 'Encryption', description: 'desc' }]);
+        await flush();
+
+        expect(callbacks.onLoadError).not.toHaveBeenCalled();
     });
 
     it('drops a late control success that resolves after cleanup', async () => {

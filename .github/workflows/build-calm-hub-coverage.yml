@@ -42,4 +42,4 @@ jobs:
             # Step 4: Build and Test
             - name: Build and Test
               working-directory: calm-hub
-              run: mvn clean verify -Ddependency-check.skip=true
+              run: mvn clean verify
