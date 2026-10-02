@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IoChevronForwardOutline } from 'react-icons/io5';
 import { NamespaceCounts } from '../../../model/counts.js';
@@ -15,6 +15,10 @@ interface CollapsedRailProps {
 
 function isWithin(container: HTMLElement, target: EventTarget | null): boolean {
     return target instanceof Node && container.contains(target);
+}
+
+function measure(trigger: HTMLElement): FlyoutAnchor {
+    return anchorFlyout(trigger.getBoundingClientRect(), window.innerHeight);
 }
 
 function FlyoutRow({ node, depth, active, onSelect }: { node: NamespaceTreeNode; depth: number; active: boolean; onSelect: () => void }) {
@@ -79,16 +83,31 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     const [anchor, setAnchor] = useState<FlyoutAnchor | null>(null);
 
     /**
-     * Measured as the panel opens, because the rail scrolls and the trigger moves with it.
-     * Only on the way open: focus moving between rows bubbles here too, and re-measuring
-     * would hand React a new object each time for coordinates that have not changed.
+     * Measured as the panel opens. Only on the way open: focus moving between rows bubbles
+     * here too, and re-measuring would hand React a new object each time for coordinates
+     * that have not changed.
      */
     const open = () => {
-        if (!isOpen && triggerRef.current) {
-            setAnchor(anchorFlyout(triggerRef.current.getBoundingClientRect(), window.innerHeight));
-        }
+        if (!isOpen && triggerRef.current) setAnchor(measure(triggerRef.current));
         onOpen();
     };
+
+    // The panel is fixed, so it does not travel with its trigger. While the keyboard holds it
+    // open there is no pointer to re-enter the trigger and re-measure, so scrolling the rail
+    // would leave the panel beside an unrelated initial. Scroll events do not bubble, hence
+    // the capture phase.
+    useEffect(() => {
+        if (!isOpen) return;
+        const reanchor = () => {
+            if (triggerRef.current) setAnchor(measure(triggerRef.current));
+        };
+        window.addEventListener('scroll', reanchor, true);
+        window.addEventListener('resize', reanchor);
+        return () => {
+            window.removeEventListener('scroll', reanchor, true);
+            window.removeEventListener('resize', reanchor);
+        };
+    }, [isOpen]);
 
     const closeIfLeft = () => {
         if (!pointerInside.current && !focusInside.current) onClose();

@@ -20,16 +20,24 @@ export interface FlyoutAnchor {
  * inside it, so the panel is fixed rather than absolute and needs coordinates of its own.
  * It opens from whichever side of the trigger has more room, so a root near the foot of the
  * window does not put its last rows off screen.
+ *
+ * The rail can scroll under an open panel, which leaves the trigger outside the window. The
+ * edge the panel is pinned to is held a gutter inside the window for that case, so the panel
+ * follows its trigger towards the edge but never past it.
  */
 export function anchorFlyout(trigger: DOMRect, viewportHeight: number): FlyoutAnchor {
-    const roomBelow = viewportHeight - trigger.top - FLYOUT_GUTTER;
-    const roomAbove = trigger.bottom - FLYOUT_GUTTER;
-    const downward = roomBelow >= roomAbove;
-    const maxHeight = Math.round(
-        Math.min(viewportHeight * FLYOUT_MAX_HEIGHT_FRACTION, downward ? roomBelow : roomAbove)
-    );
+    const downward = viewportHeight - trigger.top >= trigger.bottom;
+    const edge = clamp(downward ? trigger.top : viewportHeight - trigger.bottom, viewportHeight);
+    const maxHeight = Math.round(Math.min(
+        viewportHeight * FLYOUT_MAX_HEIGHT_FRACTION,
+        viewportHeight - edge - FLYOUT_GUTTER
+    ));
 
     return downward
-        ? { left: trigger.right, top: trigger.top, maxHeight }
-        : { left: trigger.right, bottom: viewportHeight - trigger.bottom, maxHeight };
+        ? { left: trigger.right, top: edge, maxHeight }
+        : { left: trigger.right, bottom: edge, maxHeight };
+}
+
+function clamp(offset: number, viewportHeight: number): number {
+    return Math.min(Math.max(offset, FLYOUT_GUTTER), Math.max(FLYOUT_GUTTER, viewportHeight - FLYOUT_GUTTER));
 }

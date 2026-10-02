@@ -200,6 +200,48 @@ describe('CollapsedRail', () => {
         expect(flyoutPanel()).toHaveStyle({ maxHeight: `${anchorFlyout(trigger.getBoundingClientRect(), 768).maxHeight}px`, overflowY: 'auto' });
     });
 
+    it('follows its trigger when the rail scrolls under an open fly-out', () => {
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+        expect(flyoutWrapper()).toHaveStyle({ top: '100px' });
+
+        // Focus holds the panel open with no pointer on it, so nothing re-opens it. Without a
+        // listener the panel stays put and ends up beside an unrelated initial.
+        stubRect(trigger, 300);
+        fireEvent.scroll(window);
+
+        expect(flyoutWrapper()).toHaveStyle({ top: '300px' });
+    });
+
+    it('re-measures when the window is resized under an open fly-out', () => {
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+
+        stubRect(trigger, 260);
+        fireEvent(window, new Event('resize'));
+
+        expect(flyoutWrapper()).toHaveStyle({ top: '260px' });
+    });
+
+    it('stops listening once the fly-out closes', () => {
+        const removed = vi.spyOn(window, 'removeEventListener');
+        renderRail();
+        const trigger = screen.getByRole('button', { name: 'finos' });
+        stubRect(trigger, 100);
+        fireEvent.focus(trigger);
+
+        fireEvent.blur(trigger, { relatedTarget: document.body });
+
+        expect(screen.queryByText('calm')).not.toBeInTheDocument();
+        // One rail holds one listener per open root, so a missing cleanup accumulates them.
+        expect(removed.mock.calls.map(([event]) => event)).toEqual(expect.arrayContaining(['scroll', 'resize']));
+        removed.mockRestore();
+    });
+
     it('scrolls the root initials, so a window too short for them all still reaches every one', () => {
         renderRail();
 
