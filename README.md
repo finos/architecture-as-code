@@ -1,8 +1,8 @@
 [![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8821/badge)](https://www.bestpractices.dev/projects/8821)
-[![CodeQL](https://github.com/finos/architecture-as-code/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/github-code-scanning/codeql)
-[![CVE Scanning for Maven](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-maven.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-maven.yml)
-[![CVE Scanning for Node.js](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-node.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-node.yml)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/8821/baseline)](https://www.bestpractices.dev/projects/8821)
+[![CodeQL](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml)
+[![OSV Scanner](https://github.com/finos/architecture-as-code/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/osv-scanner.yml)
 [![License Scanning for Maven](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-maven.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-maven.yml)
 [![License Scanning for Node.js](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-node.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-node.yml)
 

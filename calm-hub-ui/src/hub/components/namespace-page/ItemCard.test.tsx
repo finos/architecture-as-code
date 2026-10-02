@@ -107,6 +107,21 @@ describe('ItemCard', () => {
         expect(screen.getByText('1 version')).toBeInTheDocument();
     });
 
+    it('falls back to the customId instead of "0 versions" when the version count is zero', () => {
+        // GitHub-backed summaries always report a count of 0 - the count is unknown, not zero.
+        render(
+            <ItemCard
+                name="Position Service"
+                type="Architectures"
+                customId="position-service"
+                versionCount={0}
+                onActivate={() => {}}
+            />
+        );
+        expect(screen.getByText('position-service')).toBeInTheDocument();
+        expect(screen.queryByText(/0 versions/)).not.toBeInTheDocument();
+    });
+
     it('renders a thumbnail icon in the header when provided', () => {
         render(
             <ItemCard

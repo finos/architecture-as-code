@@ -1,13 +1,14 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-09-26'
+  last-updated: '2026-10-02'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
-    Architecture as Code (CALM) is a monorepo. The repositories listed under
-    project.repositories are subprojects/packages within this single GitHub
-    repository, not separate git repositories, compiled into independent
-    releases (npm packages, Docker images, a VS Code extension, etc).
+    Architecture as Code (CALM) spans three GitHub repositories: this monorepo,
+    finos/calm-schema and finos/calm-governance. The other entries under
+    project.repositories are subprojects/packages within this monorepo,
+    compiled into independent releases (npm packages, Docker images, a VS Code
+    extension, etc).
 
 project:
   name: Architecture as Code (CALM)
@@ -29,6 +30,17 @@ project:
     support-policy: https://github.com/finos/architecture-as-code/blob/main/SUPPORT.md
     signature-verification: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md#verifying-release-integrity-and-authenticity
   repositories:
+    - name: calm-schema
+      url: https://github.com/finos/calm-schema
+      comment: |
+        Separate repository. CALM JSON Schema, published to npm as
+        @finos/calm-schema with SLSA provenance. Status: Incubating, actively
+        maintained.
+    - name: calm-governance
+      url: https://github.com/finos/calm-governance
+      comment: |
+        Separate repository. Project-wide governance, maintainer roster and
+        contribution guidelines. Documentation only; no releases.
     - name: calm
       url: https://github.com/finos/architecture-as-code/tree/main/calm
       comment: |
@@ -95,7 +107,8 @@ project:
       comment: |
         SvelteKit visual CALM editor; itself a nested npm-workspace monorepo
         (calm-core, calmscript, extensions, github-action, mcp, diagram web
-        component, vscode-extension, studio app). Status: Experimental.
+        component, vscode-extension, studio app). Status: Experimental. Its npm and
+        desktop releases are outside the release controls in SECURITY.md until promoted.
     - name: calm-guard
       url: https://github.com/finos/architecture-as-code/tree/main/calm-guard
       comment: |
@@ -113,7 +126,7 @@ project:
     contact:
       name: Architecture as Code Maintainers
       primary: true
-    policy: https://github.com/finos/architecture-as-code/security/advisories/new
+    policy: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md
     comment: |
       GitHub private vulnerability reporting is enabled on this repository;
       use the "Report a vulnerability" action under the Security tab.
@@ -187,9 +200,21 @@ repository:
           and release pipeline. Reviewed at least yearly and whenever a
           component gains a new interface, trust boundary or distribution channel.
     tools:
+      - name: GitHub Secret Scanning
+        type: secret-scanning
+        comment: |
+          GitHub secret scanning with push protection, enabled in the repository
+          security settings. The setting is visible only to repository admins, so
+          it is declared here for unprivileged assessments (OSPS-BR-07.01).
+        rulesets:
+          - default
+        integration:
+          adhoc: true
+          ci: true
+          release: false
       - name: CodeQL
         type: SAST
-        comment: GitHub code scanning default setup; runs on every pull request and weekly against main.
+        comment: .github/workflows/codeql.yml (advanced setup); runs on every pull request, including pull requests from forks, and weekly against main.
         rulesets:
           - default
         integration:
@@ -205,6 +230,20 @@ repository:
           adhoc: false
           ci: true
           release: false
+      - name: OSV Scanner
+        type: SCA
+        comment: |
+          .github/workflows/osv-scanner.yml on every pull request, on push to main and twice each
+          working day. Scans the root npm lockfile, the calm-hub and calm-models Maven projects and
+          the CALM Studio Cargo lockfile; fails on CVSS >= 5; suppressions with justification in
+          osv-scanner.toml. The CLI and calm-server release workflows publish only if the scan of
+          the commit being released passed.
+        rulesets:
+          - OSV database, CVSS >= 5
+        integration:
+          adhoc: false
+          ci: true
+          release: true
       - name: Dependency Review
         type: SCA
         comment: actions/dependency-review-action on every pull request; blocks known-vulnerable and known-malicious dependencies.
