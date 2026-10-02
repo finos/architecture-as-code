@@ -13,14 +13,19 @@ import { getNodeTypeColor } from '../../../visualizer/components/reactflow/theme
  * node chrome is stripped (coloured blocks instead of labelled nodes).
  */
 
+// Fixed dimensions: a React Flow node wrapper has no intrinsic size, so a
+// child sized with `100%` collapses to zero and renders nothing.
+const THUMB_NODE_WIDTH = 160;
+const THUMB_NODE_HEIGHT = 44;
+
 const ThumbNode = memo(({ data }: NodeProps) => {
     const nodeType = (data as Record<string, unknown>)['node-type'] as string | undefined;
     return (
         <div
             style={{
-                width: '100%',
-                height: '100%',
-                borderRadius: 3,
+                width: THUMB_NODE_WIDTH,
+                height: THUMB_NODE_HEIGHT,
+                borderRadius: 4,
                 background: getNodeTypeColor(nodeType ?? 'system'),
                 opacity: 0.9,
             }}
