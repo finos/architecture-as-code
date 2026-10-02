@@ -63,7 +63,15 @@ const sidebars = {
         },
         'working-with-calm/calm-studio',
         'working-with-calm/vscode-extension',
-        'working-with-calm/cli',
+        {
+          type: 'category',
+          label: 'CALM CLI',
+          link: {type: 'doc', id: 'calm-cli/calm-cli-overview'},
+          items: [
+            'working-with-calm/cli',
+            'working-with-calm/directurl-auth-plugin',
+          ],
+        },
         'working-with-calm/validation-server',
         'working-with-calm/voice-mode',
         'working-with-calm/visualizing-architectures',

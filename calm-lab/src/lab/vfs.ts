@@ -8,7 +8,6 @@
  * browser; storage access is guarded anyway for private-browsing mode.
  */
 
-const STORAGE_KEY = 'calm-lab-workspace-v1';
 const HOME = '/workspace';
 
 export interface VfsEntry { name: string; isDir: boolean }
@@ -59,15 +58,18 @@ function isVfsSnapshot(data: unknown): data is VfsSnapshot {
     return typeof data === 'object' && data !== null && 'files' in data;
 }
 
-export function createVfs(seedFiles: Record<string, string>): Vfs {
+export function createVfs(seedFiles: Record<string, string>, storageKey: string | null): Vfs {
     let files: Record<string, string> = {...seedFiles};
     let cwd = HOME;
 
     const persist = () => {
+        if (storageKey === null) {
+            return;
+        }
         const storage = getStorage();
         if (storage) {
             try {
-                storage.setItem(STORAGE_KEY, JSON.stringify({files, cwd}));
+                storage.setItem(storageKey, JSON.stringify({files, cwd}));
             } catch {
                 // Quota/security errors are non-fatal; keep working in memory.
             }
@@ -139,15 +141,17 @@ export function createVfs(seedFiles: Record<string, string>): Vfs {
         },
     };
 
-    const storage = getStorage();
-    if (storage) {
-        try {
-            const raw = storage.getItem(STORAGE_KEY);
-            if (raw) {
-                vfs.fromJSON(JSON.parse(raw));
+    if (storageKey !== null) {
+        const storage = getStorage();
+        if (storage) {
+            try {
+                const raw = storage.getItem(storageKey);
+                if (raw) {
+                    vfs.fromJSON(JSON.parse(raw));
+                }
+            } catch {
+                // Corrupt persisted state — fall back to the seed.
             }
-        } catch {
-            // Corrupt persisted state — fall back to the seed.
         }
     }
 

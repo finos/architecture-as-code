@@ -1,8 +1,8 @@
 [![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8821/badge)](https://www.bestpractices.dev/projects/8821)
-[![CodeQL](https://github.com/finos/architecture-as-code/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/github-code-scanning/codeql)
-[![CVE Scanning for Maven](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-maven.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-maven.yml)
-[![CVE Scanning for Node.js](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-node.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/cve-scanning-node.yml)
+[![OpenSSF Baseline](https://www.bestpractices.dev/projects/8821/baseline)](https://www.bestpractices.dev/projects/8821)
+[![CodeQL](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml)
+[![OSV Scanner](https://github.com/finos/architecture-as-code/actions/workflows/osv-scanner.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/osv-scanner.yml)
 [![License Scanning for Maven](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-maven.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-maven.yml)
 [![License Scanning for Node.js](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-node.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/license-scanning-node.yml)
 
@@ -76,6 +76,10 @@ We accept contributions via Pull Request, to make a contribution:
 6. Push to the branch (`git push origin feature/fooBar`)
 7. Create a new Pull Request
 
+## Support and Security
+
+Support is community-based and best-effort: ask in a [Support Question](https://github.com/finos/architecture-as-code/issues/new?template=Support_question.md) issue or at Office Hours. [SUPPORT.md](SUPPORT.md) states which releases are supported and when a release stops receiving security updates. To report a vulnerability privately, follow [SECURITY.md](SECURITY.md), which also holds the dependency and code scanning policy and instructions for verifying release integrity. The project's threat model is in [THREAT_MODEL.md](THREAT_MODEL.md).
+
 ## Governance
 
 The project's governance policies, Maintainer roster and Code of Conduct are maintained in
@@ -92,6 +96,8 @@ in the project.
 
 The maintainers of each subproject in this monorepo are listed in the [Projects](#projects) table
 above.
+
+A contributor must be nominated and approved by a vote of the existing Maintainers before they are granted write access to this repository, as set out in [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md#maintainer-qualifications).
 
 ## GitHub actions
 

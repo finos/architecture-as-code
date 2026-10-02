@@ -55,7 +55,7 @@ done
 if [[ "${RUN_MAVEN}" == true ]]; then
     echo "[build] Building calm-hub with Maven..."
     cd "${SCRIPT_DIR}"
-    "${REPO_ROOT}/mvnw" package -DskipITs -Ddependency-check.skip=true
+    "${REPO_ROOT}/mvnw" package -DskipITs
     cd "${REPO_ROOT}"
 fi
 
