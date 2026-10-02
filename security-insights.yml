@@ -35,7 +35,7 @@ project:
       comment: |
         Separate repository. CALM JSON Schema, published to npm as
         @finos/calm-schema with SLSA provenance. Status: Incubating, actively
-        maintained. Holds the same security controls as this repository.
+        maintained.
     - name: calm-governance
       url: https://github.com/finos/calm-governance
       comment: |

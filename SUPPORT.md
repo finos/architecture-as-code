@@ -8,6 +8,7 @@ Support is provided by the community on a best-effort basis. There is no service
 
 - **Questions and usage help:** open a [Support Question](https://github.com/finos/architecture-as-code/issues/new?template=Support_question.md) issue, or join the monthly community meeting and weekly Office Hours listed in the [README](README.md#getting-involved).
 - **Bugs:** open a [Bug Report](https://github.com/finos/architecture-as-code/issues/new?template=Bug_report.md).
+- **CALM specification:** ask questions, report bugs and propose schema changes in [finos/calm-schema](https://github.com/finos/calm-schema/issues/new/choose). Report a vulnerability in the schema privately through its [Security tab](https://github.com/finos/calm-schema/security/advisories/new).
 - **Security vulnerabilities:** do not open a public issue. Follow [SECURITY.md](SECURITY.md).
 - **Documentation:** https://calm.finos.org
 
