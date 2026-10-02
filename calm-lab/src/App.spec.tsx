@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import appCss from './app.css?inline';
 
 vi.mock('./lab/Lab', () => ({
     default: ({lesson}: {lesson: {id: string}}) => <div data-testid="lab" data-lesson={lesson.id} />,
@@ -32,6 +33,19 @@ describe('App header', () => {
             expect(link).toHaveAttribute('target', '_blank');
             expect(link).toHaveAttribute('rel', 'noopener noreferrer');
         }
+    });
+
+    it('keeps the navbar stable on narrow screens', () => {
+        // jsdom has no layout engine, so lock the CSS invariants that prevent this regression.
+        expect(appCss).toMatch(/\.navbar__brand\s*\{[^}]*flex-shrink:\s*0;/);
+        expect(appCss).toMatch(/\.navbar__link\s*\{[^}]*white-space:\s*nowrap;/);
+        expect(appCss).toMatch(/\.colorModeToggle\s*\{[^}]*flex-shrink:\s*0;/);
+        expect(appCss).toMatch(
+            /@media \(max-width: 460px\)[\s\S]*?\.navbar__external\s*\{\s*display:\s*none;\s*\}/,
+        );
+        expect(appCss).toMatch(
+            /@media \(max-width: 340px\)[\s\S]*?\.navbar__logo\s*\{\s*display:\s*none;\s*\}/,
+        );
     });
 
     it('renders the lab inside the frame', () => {
