@@ -126,7 +126,7 @@ project:
     contact:
       name: Architecture as Code Maintainers
       primary: true
-    policy: https://github.com/finos/architecture-as-code/security/advisories/new
+    policy: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md
     comment: |
       GitHub private vulnerability reporting is enabled on this repository;
       use the "Report a vulnerability" action under the Security tab.
