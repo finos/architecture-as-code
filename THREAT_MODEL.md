@@ -8,7 +8,7 @@ Last reviewed: 2026-09-26.
 
 | Component | Runs as | Trust boundary |
 |---|---|---|
-| CALM specification (`calm/`) | JSON Schema files served from calm.finos.org | Consumed by every other component and by third-party tools |
+| CALM specification ([finos/calm-schema](https://github.com/finos/calm-schema)) | JSON Schema files served from calm.finos.org and published to npm as `@finos/calm-schema` | Consumed by every other component and by third-party tools |
 | `@finos/calm-cli` (bundles `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets`) | Developer workstation or CI job | Reads architecture, pattern and template files supplied by the user; fetches remote schemas |
 | `@finos/calm-server` | Local HTTP service (binds `127.0.0.1` by default) | Validates documents sent over HTTP; no authentication |
 | CALM Hub (`calm-hub/`) and Hub UI | Server-side service, Docker image | Multi-tenant store of architectures with per-namespace authorization |

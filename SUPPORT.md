@@ -17,7 +17,7 @@ The project ships several independently released components. For every component
 
 | Component | Distribution | Supported |
 |---|---|---|
-| CALM specification (`calm/`) | https://calm.finos.org/release, tagged `<major>.<minor>.<patch>` | Latest release. Earlier published releases stay available at their URLs so existing documents keep validating, but they receive no further changes. |
+| CALM specification ([finos/calm-schema](https://github.com/finos/calm-schema)) | https://calm.finos.org/release and npm `@finos/calm-schema`, tagged `v<major>.<minor>` | Latest release. Earlier published releases stay available at their URLs so existing documents keep validating, but they receive no further changes. |
 | `@finos/calm-cli`, `@finos/calm-server` | npm | Latest published version of each package. `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets` are bundled into the CLI and are not published separately. |
 | `calm-models` (Java) | Maven Central | Latest published version. |
 | CALM Hub | Docker Hub `finos/calm-hub` (and the read-only and native variants) | Latest tag. |
