@@ -206,6 +206,73 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expected);
     });
 
+    test('validates the controls tutorial with the documented command', async () => {
+        const tutorials = path.resolve(__dirname, '../../docs/docs/tutorials');
+        const beginner = fs.readFileSync(path.join(tutorials, 'beginner/07-complete-architecture.md'), 'utf8');
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/08-controls.md'), 'utf8');
+        const architecture = JSON.parse([...beginner.matchAll(/```json\n([\s\S]*?)\n```/g)].at(-1)![1]);
+        const tutorialDir = path.join(tempDir, 'controls-tutorial');
+        fs.mkdirSync(path.join(tutorialDir, 'architectures'), { recursive: true });
+
+        for (const [, filename, content] of tutorial.matchAll(/```json title="([^"]+)"\n([\s\S]*?)\n```/g)) {
+            const target = path.join(tutorialDir, filename);
+            fs.mkdirSync(path.dirname(target), { recursive: true });
+            fs.writeFileSync(target, content);
+        }
+
+        // Read the prompt values, so this also exercises the examples readers copy.
+        const controls = [...tutorial.matchAll(/```text\n([\s\S]*?)\n```/g)].map(([, prompt]) => ({
+            description: prompt.match(/description: "([^"]+)"/)![1],
+            requirements: [...prompt.matchAll(/requirement-url: "([^"]+)"\s+config(?: \(inline\))?(-url)?: (.*)/g)]
+                .map(([, url, external, config]) => ({
+                    'requirement-url': url,
+                    [external ? 'config-url' : 'config']: JSON.parse(config),
+                })),
+        }));
+        expect(controls.map(control => control.requirements.length)).toEqual([2, 2, 1, 2]);
+        architecture.controls = { security: controls[0], performance: controls[1] };
+        architecture.nodes.find((node: { 'unique-id': string }) => node['unique-id'] === 'payment-service').controls = {
+            compliance: controls[2],
+        };
+        architecture.nodes.find((node: { 'unique-id': string }) => node['unique-id'] === 'api-gateway').controls = {
+            performance: controls[3],
+        };
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorial.match(/```bash\ncalm (validate[^\n]+)\n```/)![1].split(' ');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(stdout)).toMatchObject({
+            hasErrors: false,
+            hasWarnings: false,
+            jsonSchemaValidationOutputs: [],
+            spectralSchemaValidationOutputs: [],
+        });
+
+        const comparison = JSON.parse([...tutorial.matchAll(/```json\n([\s\S]*?)\n```/g)].at(-1)![1]);
+        expect(comparison.requirements).toEqual(architecture.controls.security.requirements);
+
+        const requirement = architecture.controls.security.requirements[0];
+        const controlId = requirement.config['control-id'];
+        delete requirement.config['control-id'];
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'control-id\''),
+        });
+
+        // Restore the inline config before checking the external config independently.
+        requirement.config['control-id'] = controlId;
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const configPath = path.join(tutorialDir, architecture.controls.security.requirements[1]['config-url']);
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        delete config.name;
+        fs.writeFileSync(configPath, JSON.stringify(config));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'name\''),
+        });
+    });
+
     test('validate command outputs JSON to file', async () => {
         const apiGatewayPath = path.join(
             __dirname,
