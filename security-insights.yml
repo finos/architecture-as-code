@@ -1,6 +1,6 @@
 header:
   schema-version: 2.2.0
-  last-updated: '2026-09-26'
+  last-updated: '2026-10-02'
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
@@ -188,6 +188,18 @@ repository:
           and release pipeline. Reviewed at least yearly and whenever a
           component gains a new interface, trust boundary or distribution channel.
     tools:
+      - name: GitHub Secret Scanning
+        type: secret-scanning
+        comment: |
+          GitHub secret scanning with push protection, enabled in the repository
+          security settings. The setting is visible only to repository admins, so
+          it is declared here for unprivileged assessments (OSPS-BR-07.01).
+        rulesets:
+          - default
+        integration:
+          adhoc: true
+          ci: true
+          release: false
       - name: CodeQL
         type: SAST
         comment: .github/workflows/codeql.yml (advanced setup); runs on every pull request, including pull requests from forks, and weekly against main.
