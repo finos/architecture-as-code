@@ -7,6 +7,7 @@ import { resolveResourceDetailPath } from '../tree-navigation/navigation-loaders
 import { NamespacePageHeader } from './NamespacePageHeader.js';
 import { SegmentedTypeTabs } from './SegmentedTypeTabs.js';
 import { ItemCard } from './ItemCard.js';
+import { ArchitectureThumbnail } from './ArchitectureThumbnail.js';
 import { EmptyState } from './EmptyState.js';
 import { useNamespaceItems } from './useNamespaceItems.js';
 import { useActiveType } from './useActiveType.js';
@@ -98,6 +99,16 @@ export function NamespacePage({ namespace, counts }: NamespacePageProps) {
                                 type={active}
                                 customId={item.customId}
                                 versionCount={item.versionCount}
+                                // Architectures get a live miniature of the diagram;
+                                // the other types keep the striped header.
+                                thumbnail={
+                                    active === 'Architectures' && item.customId ? (
+                                        <ArchitectureThumbnail
+                                            namespace={namespace}
+                                            customId={item.customId}
+                                        />
+                                    ) : undefined
+                                }
                                 onActivate={() => openItem(active, item.id)}
                             />
                         ))}

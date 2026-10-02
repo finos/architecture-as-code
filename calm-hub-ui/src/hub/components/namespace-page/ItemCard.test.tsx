@@ -133,4 +133,16 @@ describe('ItemCard', () => {
         );
         expect(screen.getByTestId('thumb-icon')).toBeInTheDocument();
     });
+
+    it('renders a live thumbnail in the header in place of the striped one', () => {
+        render(
+            <ItemCard
+                name="Payment Switch"
+                type="Architectures"
+                thumbnail={<div data-testid="arch-thumbnail" />}
+                onActivate={() => {}}
+            />
+        );
+        expect(screen.getByTestId('arch-thumbnail')).toBeInTheDocument();
+    });
 });

@@ -30,6 +30,11 @@ interface ItemCardProps {
      * Namespace cards leave the header a plain stripe; only control-style cards set it.
      */
     thumbnailIcon?: ReactNode;
+    /**
+     * Optional live preview that replaces the striped header (e.g. a miniature of
+     * an architecture's diagram). When set, {@link thumbnailIcon} is ignored.
+     */
+    thumbnail?: ReactNode;
     /** `data-testid` for the activation element (default `item-card`). */
     testId?: string;
     /**
@@ -59,6 +64,7 @@ export function ItemCard({
     meta,
     thumbnailHeight = 96,
     thumbnailIcon,
+    thumbnail,
     testId = 'item-card',
     href,
     onActivate,
@@ -94,12 +100,16 @@ export function ItemCard({
                 transition: redesignTokens.transition,
             }}
         >
-            <div
-                className={thumbnailIcon ? 'flex items-center justify-center' : undefined}
-                style={{ height: thumbnailHeight, background: stripes }}
-            >
-                {thumbnailIcon}
-            </div>
+            {thumbnail ? (
+                <div style={{ height: thumbnailHeight, overflow: 'hidden' }}>{thumbnail}</div>
+            ) : (
+                <div
+                    className={thumbnailIcon ? 'flex items-center justify-center' : undefined}
+                    style={{ height: thumbnailHeight, background: stripes }}
+                >
+                    {thumbnailIcon}
+                </div>
+            )}
             <div className="p-[14px]">
                 {href ? (
                     <Link to={href} data-testid={testId} className={activationClass} style={{ color: colors.redesign.ink }}>
