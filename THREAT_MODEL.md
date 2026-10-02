@@ -8,13 +8,13 @@ Last reviewed: 2026-09-26.
 
 | Component | Runs as | Trust boundary |
 |---|---|---|
-| CALM specification (`calm/`) | JSON Schema files served from calm.finos.org | Consumed by every other component and by third-party tools |
+| CALM specification ([finos/calm-schema](https://github.com/finos/calm-schema)) | JSON Schema files served from calm.finos.org and published to npm as `@finos/calm-schema` | Consumed by every other component and by third-party tools |
 | `@finos/calm-cli` (bundles `@finos/calm-shared`, `@finos/calm-models` and `@finos/calm-widgets`) | Developer workstation or CI job | Reads architecture, pattern and template files supplied by the user; fetches remote schemas |
 | `@finos/calm-server` | Local HTTP service (binds `127.0.0.1` by default) | Validates documents sent over HTTP; no authentication |
 | CALM Hub (`calm-hub/`) and Hub UI | Server-side service, Docker image | Multi-tenant store of architectures with per-namespace authorization |
 | VS Code extension | Inside the editor, renders a webview | Processes files in the user's workspace |
 | CALM Studio, CALMGuard, CALM Lab, `experimental/` | Various | Experimental; not covered by this assessment until promoted |
-| Build and release pipeline (`.github/workflows`) | GitHub Actions | Produces every released asset |
+| Build and release pipelines (`.github/workflows` here and in finos/calm-schema) | GitHub Actions | Produce every released asset |
 
 ## Assets to protect
 
@@ -66,8 +66,8 @@ Last reviewed: 2026-09-26.
 |---|---|---|---|
 | Pull requests from forks | Malicious workflow changes or code execution with repository secrets | Workflows run with `permissions:` declared per workflow and a read-only default token; repository secrets are not exposed to workflows triggered from forks; `pull_request_target` is used only by the labelling workflow, which never checks out or runs pull-request code | Low |
 | Third-party GitHub Actions | A compromised action exfiltrates tokens | Every action is pinned to a commit SHA and updated by Renovate; `step-security/harden-runner` audits egress | Low |
-| Dependencies (npm, Maven, Cargo) | Known vulnerabilities or malicious packages enter the tree | OSV Scanner blocks pull requests while any dependency tree has a known vulnerability with a CVSS score of 5 or higher, and the CLI and CALM Server releases require a passing scan of the commit being released; Dependency Review blocks pull requests that introduce known-vulnerable or known-malicious packages; Dependabot and Renovate raise update pull requests; a single root lockfile is validated in CI. See the policy in [SECURITY.md](SECURITY.md) | Low |
-| Publishing | An attacker with a stolen token publishes a rogue version | `@finos/calm-cli` and `@finos/calm-server` are published only from the release workflows with `--provenance`, so every version carries a SLSA attestation naming this repository and workflow. `calm-models` is published to Maven Central from its release workflow and GPG-signed. The CALM Studio release workflow publishes its npm packages with provenance. Docker images carry provenance and SBOM attestations. Secret scanning and push protection are enabled | Medium. Token theft from a maintainer's environment remains the main residual risk; tokens are rotated on any suspicion |
+| Dependencies (npm, Maven, Cargo) | Known vulnerabilities or malicious packages enter the tree | OSV Scanner blocks pull requests while any dependency tree has a known vulnerability with a CVSS score of 5 or higher, and the CLI and CALM Server releases require a passing scan of the commit being released; Dependency Review blocks pull requests that introduce known-vulnerable or known-malicious packages; Dependabot and Renovate raise update pull requests; a single root lockfile is validated in CI. In finos/calm-schema, whose only dependencies are test tools, Dependency Review and Dependabot apply. See the policy in [SECURITY.md](SECURITY.md) | Low |
+| Publishing | An attacker with a stolen token publishes a rogue version | `@finos/calm-cli` and `@finos/calm-server` are published only from the release workflows with `--provenance`, so every version carries a SLSA attestation naming this repository and workflow. `calm-models` is published to Maven Central from its release workflow and GPG-signed. The CALM Studio release workflow publishes its npm packages with provenance. Docker images carry provenance and SBOM attestations. `@finos/calm-schema` is published only by finos/calm-schema's `publish.yml` through npm trusted publishing, which uses a short-lived GitHub OIDC token, so no npm token is stored. The workflow runs the schema tests on the release tag first, and each version carries SLSA provenance naming finos/calm-schema. Secret scanning and push protection are enabled | Medium. Token theft from a maintainer's environment remains the main residual risk; tokens are rotated on any suspicion |
 | Repository | Direct pushes or unreviewed merges to `main` | Ruleset requires a pull request, one approving review, code-owner review, dismissal of stale reviews, and passing required status checks; force pushes and deletion are blocked | Low |
 
 ## Out of scope
