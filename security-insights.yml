@@ -4,10 +4,11 @@ header:
   last-reviewed: '2026-09-26'
   url: https://raw.githubusercontent.com/finos/architecture-as-code/main/security-insights.yml
   comment: |
-    Architecture as Code (CALM) is a monorepo. The repositories listed under
-    project.repositories are subprojects/packages within this single GitHub
-    repository, not separate git repositories, compiled into independent
-    releases (npm packages, Docker images, a VS Code extension, etc).
+    Architecture as Code (CALM) spans three GitHub repositories: this monorepo,
+    finos/calm-schema and finos/calm-governance. The other entries under
+    project.repositories are subprojects/packages within this monorepo,
+    compiled into independent releases (npm packages, Docker images, a VS Code
+    extension, etc).
 
 project:
   name: Architecture as Code (CALM)
@@ -29,6 +30,17 @@ project:
     support-policy: https://github.com/finos/architecture-as-code/blob/main/SUPPORT.md
     signature-verification: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md#verifying-release-integrity-and-authenticity
   repositories:
+    - name: calm-schema
+      url: https://github.com/finos/calm-schema
+      comment: |
+        Separate repository. CALM JSON Schema, published to npm as
+        @finos/calm-schema with SLSA provenance. Status: Incubating, actively
+        maintained.
+    - name: calm-governance
+      url: https://github.com/finos/calm-governance
+      comment: |
+        Separate repository. Project-wide governance, maintainer roster and
+        contribution guidelines. Documentation only; no releases.
     - name: calm
       url: https://github.com/finos/architecture-as-code/tree/main/calm
       comment: |
@@ -114,7 +126,7 @@ project:
     contact:
       name: Architecture as Code Maintainers
       primary: true
-    policy: https://github.com/finos/architecture-as-code/security/advisories/new
+    policy: https://github.com/finos/architecture-as-code/blob/main/SECURITY.md
     comment: |
       GitHub private vulnerability reporting is enabled on this repository;
       use the "Report a vulnerability" action under the Security tab.
