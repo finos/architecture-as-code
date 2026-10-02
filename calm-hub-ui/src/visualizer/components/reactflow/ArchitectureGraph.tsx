@@ -24,7 +24,14 @@ import { EmptyGraphState } from './EmptyGraphState.js';
 import { parseCALMData } from './utils/calmTransformer.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
-import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
+import {
+    applyPositions,
+    clearStoredNodePositions,
+    loadStoredNodePositions,
+    positionsMatchTopology,
+    toStoredPositions,
+    type StoredNodePosition,
+} from '../../services/node-position-service.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useNodeSearch } from './node-search-context.js';
 import type { ArchitectureGraphProps } from '../../contracts/contracts.js';
@@ -183,7 +190,20 @@ export function ArchitectureGraph({
         // applies when there is no default — i.e. a fresh architecture with
         // neither a document _layout nor a server-saved layout.
         const localPositions = viewportKey ? loadStoredNodePositions(viewportKey) : null;
-        const effectivePositions = localPositions ?? defaultLayout ?? null;
+        // A scratch layout is only reusable when the topology is unchanged: a new
+        // version can re-parent nodes, and stale positions would then restore
+        // them outside their container. Drop (and forget) the incompatible scratch.
+        const scratchUsable =
+            localPositions != null && positionsMatchTopology(localPositions, parsedNodes);
+        if (localPositions != null && !scratchUsable && viewportKey) {
+            clearStoredNodePositions(viewportKey);
+        }
+        // A shared default layout is subject to the same rule: a version that
+        // re-parents nodes makes it inapplicable.
+        const defaultUsable =
+            defaultLayout != null && positionsMatchTopology(defaultLayout, parsedNodes);
+        const effectivePositions =
+            (scratchUsable ? localPositions : null) ?? (defaultUsable ? defaultLayout : null) ?? null;
         const positionedNodes = applyPositions(parsedNodes, effectivePositions);
 
         setNodes(positionedNodes);

@@ -6,6 +6,15 @@ export interface StoredNodePosition {
     position: { x: number; y: number };
     width?: number;
     height?: number;
+    /**
+     * The node's container at save time (`null` = top-level). Recorded so a
+     * stored scratch layout is only reused when the diagram's containment is
+     * unchanged: a new version can re-parent nodes (e.g. move a scheme inside a
+     * region), and old positions would then place them outside their container.
+     * Absent on entries saved before this field existed — treated as `null`,
+     * which fails the check for any node that is now nested.
+     */
+    parentId?: string | null;
 }
 
 /**
@@ -71,8 +80,28 @@ export function toStoredPositions(nodes: Node[]): StoredNodePosition[] {
         return {
             id: node.id,
             position: { x: node.position.x, y: node.position.y },
+            // Only recorded for nested nodes, so a top-level node's stored entry
+            // is byte-for-byte what it was before this field existed.
+            ...(node.parentId ? { parentId: node.parentId } : {}),
             ...(w != null && h != null ? { width: w, height: h } : {}),
         };
+    });
+}
+
+/**
+ * True when a stored layout can be re-applied to the current parse. A stored
+ * position belongs to the same topology when the node's containment is
+ * unchanged (`parentId`), so a version that re-parents a node invalidates the
+ * whole layout rather than restoring that node outside its container. Entries
+ * for nodes that no longer exist are ignored, and a partial layout (only some
+ * nodes saved) is still accepted, matching the scratch layer's existing
+ * "apply what is stored, leave the rest to the auto-layout" behaviour.
+ */
+export function positionsMatchTopology(stored: StoredNodePosition[], nodes: Node[]): boolean {
+    const byId = new Map(nodes.map((n) => [n.id, n]));
+    return stored.every((s) => {
+        const node = byId.get(s.id);
+        return node === undefined || (s.parentId ?? null) === (node.parentId ?? null);
     });
 }
 

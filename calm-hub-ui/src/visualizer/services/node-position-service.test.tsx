@@ -6,6 +6,7 @@ import {
     buildViewportKey,
     clearStoredNodePositions,
     loadStoredNodePositions,
+    positionsMatchTopology,
     saveNodePositions,
     StoredNodePosition,
     toStoredPositions,
@@ -282,6 +283,63 @@ describe('node-position-service', () => {
             expect(result[0]).toEqual({ id: 'node-1', position: { x: 100, y: 200 } });
             expect(result[0]).not.toHaveProperty('width');
             expect(result[0]).not.toHaveProperty('height');
+        });
+
+        it('records parentId for nested nodes only', () => {
+            const nested: Node[] = [
+                { id: 'region', position: { x: 0, y: 0 }, data: {} },
+                { id: 'service', position: { x: 10, y: 20 }, data: {}, parentId: 'region' },
+            ];
+            expect(toStoredPositions(nested)).toEqual([
+                { id: 'region', position: { x: 0, y: 0 } },
+                { id: 'service', position: { x: 10, y: 20 }, parentId: 'region' },
+            ]);
+        });
+    });
+
+    describe('positionsMatchTopology', () => {
+        it('accepts a stored layout recorded for the same containment', () => {
+            const parsed: Node[] = [
+                { id: 'region', position: { x: 0, y: 0 }, data: {} },
+                { id: 'service', position: { x: 10, y: 20 }, data: {}, parentId: 'region' },
+            ];
+            expect(positionsMatchTopology(toStoredPositions(parsed), parsed)).toBe(true);
+        });
+
+        it('ignores stored entries for nodes that no longer exist', () => {
+            const parsed: Node[] = [
+                { id: 'region', position: { x: 0, y: 0 }, data: {} },
+                { id: 'service', position: { x: 10, y: 20 }, data: {}, parentId: 'region' },
+            ];
+            const stored: StoredNodePosition[] = [
+                { id: 'gone', position: { x: 1, y: 2 } },
+                { id: 'service', position: { x: 10, y: 20 }, parentId: 'region' },
+            ];
+            expect(positionsMatchTopology(stored, parsed)).toBe(true);
+        });
+
+        it('rejects a stored layout whose node was top-level at save time', () => {
+            const parsed: Node[] = [
+                { id: 'region', position: { x: 0, y: 0 }, data: {} },
+                { id: 'service', position: { x: 10, y: 20 }, data: {}, parentId: 'region' },
+            ];
+            const stored: StoredNodePosition[] = [
+                { id: 'region', position: { x: 0, y: 0 } },
+                { id: 'service', position: { x: 10, y: 20 } },
+            ];
+            expect(positionsMatchTopology(stored, parsed)).toBe(false);
+        });
+
+        it('rejects a stored layout whose node moved to a different container', () => {
+            const parsed: Node[] = [
+                { id: 'region-b', position: { x: 0, y: 0 }, data: {} },
+                { id: 'service', position: { x: 10, y: 20 }, data: {}, parentId: 'region-b' },
+            ];
+            const stored: StoredNodePosition[] = [
+                { id: 'region-b', position: { x: 0, y: 0 } },
+                { id: 'service', position: { x: 10, y: 20 }, parentId: 'region-a' },
+            ];
+            expect(positionsMatchTopology(stored, parsed)).toBe(false);
         });
     });
 });

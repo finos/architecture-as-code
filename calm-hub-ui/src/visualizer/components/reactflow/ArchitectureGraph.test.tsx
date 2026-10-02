@@ -4,7 +4,11 @@ import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
-import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
+import {
+    saveNodePositions,
+    clearStoredNodePositions,
+    loadStoredNodePositions,
+} from '../../services/node-position-service.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -73,6 +77,24 @@ const mockCalmData: CalmArchitectureSchema = {
             'relationship-type': {
                 connects: { source: { node: 'node-1' }, destination: { node: 'node-2' } },
             },
+        },
+    ],
+};
+
+/**
+ * A container with one nested child, keyed so a saved layout recorded while the
+ * child was top-level no longer matches the current containment.
+ */
+const nestedCalmData: CalmArchitectureSchema = {
+    nodes: [
+        { 'unique-id': 'container', name: 'Region', description: 'A region', 'node-type': 'network' },
+        { 'unique-id': 'child', name: 'Service', description: 'A service', 'node-type': 'service' },
+    ],
+    relationships: [
+        {
+            'unique-id': 'container-holds-child',
+            description: 'contains',
+            'relationship-type': { 'composed-of': { container: 'container', nodes: ['child'] } },
         },
     ],
 };
@@ -342,6 +364,24 @@ describe('ArchitectureGraph', () => {
             );
 
             expect(nodePosition('node-1')).toEqual({ x: 111, y: 222 });
+        });
+
+        it('discards and forgets a scratch layout recorded for a different containment', () => {
+            // Both nodes top-level when saved; 'child' is nested now, so the
+            // stored layout would place it outside its container.
+            saveNodePositions(key, [
+                { id: 'container', position: { x: 0, y: 0 }, data: {} },
+                { id: 'child', position: { x: 500, y: 500 }, data: {} },
+            ] as Node[]);
+
+            render(
+                <ArchitectureGraph jsonData={nestedCalmData} viewportKey={key} defaultLayout={null} />
+            );
+
+            // The incompatible position is not applied, and the entry is removed
+            // so it cannot be re-applied on the next load.
+            expect(nodePosition('child')).not.toEqual({ x: 500, y: 500 });
+            expect(loadStoredNodePositions(key)).toBeNull();
         });
 
         it('applies the server default when no local scratch is stored', () => {
