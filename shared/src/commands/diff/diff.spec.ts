@@ -291,6 +291,7 @@ describe('hasChanges', () => {
         ['ADR removed', { adrs: [] }, 'ADRs:          +0  -1  =0'],
         ['control added', { controls: { encryption: { description: 'Enforce TLS', requirements: [] }, audit: { description: 'Record access', requirements: [] } } }, 'Controls:      +1  -0  ~0'],
         ['control removed', { controls: {} }, 'Controls:      +0  -1  ~0'],
+        ['control modified', { controls: { encryption: { description: 'Enforce TLS 1.3', requirements: [] } } }, 'Controls modified:\n  - encryption'],
         ['metadata added', { metadata: [{ owner: 'team-a' }, { owner: 'team-b' }] }, 'Metadata:      +1  -0  ~0'],
         ['metadata removed', { metadata: [] }, 'Metadata:      +0  -1  ~0'],
     ] as const)('returns true for real architecture-level %s changes', (_changeType, patch, summaryLine) => {
@@ -364,6 +365,9 @@ describe('formatDiff', () => {
         expect(out).toContain('ADRs:          +1  -0  =1');
         expect(out).toContain('Controls:      +0  -0  ~1');
         expect(out).toContain('Metadata:      +1  -0  ~0');
+        expect(out).toContain('ADRs added:\n  - https://example.com/adr/002');
+        expect(out).toContain('Controls modified:\n  - security');
+        expect(out).not.toContain('ADRs removed:');
     });
 
     it('labels id-less pattern nodes by content instead of undefined', () => {
