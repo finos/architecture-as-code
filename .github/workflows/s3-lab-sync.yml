@@ -16,9 +16,12 @@ on:
             - 'calm-models/**'
             - 'calm-widgets/**'
             - 'calm/**'
+            - 'package.json'
+            - 'package-lock.json'
 
 jobs:
     sync-to-s3:
+        if: github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
 
         steps:
