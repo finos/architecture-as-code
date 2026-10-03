@@ -38,6 +38,7 @@ architecture-as-code/
 ├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
+├── calm-plugins/intellij/     # IntelliJ plugin (Kotlin/Gradle + npm webview)
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
@@ -75,6 +76,8 @@ from inside these folders.
   `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
   — it is an npm workspace *and* a Maven module.
 - **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
+
+- **Kotlin/Gradle** — `calm-plugins/intellij` builds the IntelliJ host with JDK 21. Its webview is a root npm workspace. See [its guide](calm-plugins/intellij/AGENTS.md).
 
 ## Node Version Requirements
 

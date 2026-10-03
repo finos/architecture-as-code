@@ -22,6 +22,7 @@ docs/contributing.md
 /calm-ai/package-lock.json
 /calm-models/package-lock.json
 /calm-plugins/vscode/package-lock.json
+/calm-plugins/intellij/webview/package-lock.json
 /calm-widgets/package-lock.json
 /calm-hub-ui/package-lock.json
 /cli/package-lock.json
