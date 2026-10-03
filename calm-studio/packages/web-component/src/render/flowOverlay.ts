@@ -78,10 +78,10 @@ export function renderFlowOverlay(
     const midY = midPoint.y;
 
     parts.push(
-      `<g class="flow-badge" data-summary="${escapeAttr(transition.summary)}">`,
+      `<g class="flow-badge" data-summary="${escapeAttr(transition.description)}">`,
       `  <circle cx="${midX}" cy="${midY}" r="10" fill="#3b82f6"/>`,
       `  <text x="${midX}" y="${midY}" fill="white" font-size="9" font-weight="bold" text-anchor="middle" dominant-baseline="central">${transition['sequence-number']}</text>`,
-      `  <title>${escapeAttr(transition.summary)}</title>`,
+      `  <title>${escapeAttr(transition.description)}</title>`,
       `</g>`
     );
   }
