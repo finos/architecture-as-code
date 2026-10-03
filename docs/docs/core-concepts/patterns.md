@@ -19,8 +19,9 @@ Patterns describe architecture blueprints. Instead of listing a fixed set of com
 
 Because they’re expressed in JSON Schema, patterns use familiar constraints such as:
 * const to enforce fixed values that identify required elements,
-* `prefixItems` and `minItems`/`maxItems` to require specific arrays of elements, and
-* `oneOf` / `anyOf` to offer allowable alternatives (e.g., different database options).
+* `prefixItems` and `minItems`/`maxItems` to require specific arrays of elements,
+* `oneOf` / `anyOf` to offer allowable alternatives (e.g., different database options), and
+* `items` to list candidates an architecture may add, none of them required.
 
 This schema-based definition makes patterns self-validating, versionable, and compatible with existing tooling.
 
@@ -32,6 +33,7 @@ Patterns are primarily about **structural intent**—what must exist and how it 
 * **User-authored fields (open but required)**: fields like `description` are typically left as `"type": "string"` (and may be required), so generated architectures include placeholders that users should replace.
 * **Required arrays of components**: `prefixItems` + `minItems`/`maxItems` are commonly used to require a specific set/count of nodes and relationships. 
 * **Choices**: `anyOf`/`oneOf` can model “pick one of these components/topologies” patterns.
+* **Optional candidates**: `items` holding `anyOf`/`oneOf` lists elements an architecture *may* add. A `prefixItems` entry is a single position and takes exactly one alternative, whereas `items` describes every position after the entries — so an architecture may build any number of its candidates, or none. Leave room in `maxItems` for them.
 
 ## Example pattern template
 
