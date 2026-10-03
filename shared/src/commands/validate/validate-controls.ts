@@ -154,7 +154,7 @@ async function resolveConfig(
 
     const configUrl = detail.configUrl.reference;
     try {
-        const config = await schemaDirectory.getSchema(configUrl) as Record<string, unknown> | undefined;
+        const config = await schemaDirectory.getDocument(configUrl, 'control') as Record<string, unknown> | undefined;
         if (!config) {
             logger.debug(`Config document not found at '${configUrl}', skipping validation`);
             return {};
