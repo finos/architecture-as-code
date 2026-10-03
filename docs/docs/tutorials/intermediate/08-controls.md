@@ -45,7 +45,7 @@ Controls can be applied at multiple levels:
 - **Relationship level:** Apply to specific connections between components
 - **Flow level:** Apply to business processes and data flows
 
-The examples below use CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json). It requires `control-id`, `name`, and `description`. Validation checks the documented configuration, not whether the running system meets the requirement. Use a more specific schema when you need to constrain settings such as encryption algorithms or latency limits.
+The examples below use CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json). It requires `control-id`, `name`, and `description`. The settings and targets below are illustrative. Validation checks the documented configuration, not whether the running system meets the requirement. Use a more specific schema when you need to constrain settings such as encryption algorithms or latency limits.
 
 ### 2. Add an Architecture-Level Security Control
 
@@ -135,7 +135,7 @@ Add a "performance" control with:
 calm validate -a architectures/ecommerce-platform.json
 ```
 
-The architecture and all seven control requirements should pass validation. If a control fails, check that its configuration has all three required fields and that `controls/tls-config.json` exists.
+The architecture and all seven control requirements should pass validation. If a control fails, check that its configuration has all three required fields and that `controls/tls-config.json` exists and has its `$id`.
 
 Now is a good time to use git to snapshot your progress. Stage your changes and commit them with a meaningful message before moving on.
 
