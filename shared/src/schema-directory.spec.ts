@@ -52,6 +52,17 @@ describe('SchemaDirectory', () => {
         expect(returnedSchema).toEqual(expectedValue);
     });
 
+    it('loads a document with an explicit type via getDocument', async () => {
+        const schemaDir = new SchemaDirectory(mockDocLoader);
+
+        const expectedValue = { 'control-id': 'SEC-002', name: 'TLS minimum version' };
+        mockDocLoader.loadMissingDocument.mockResolvedValueOnce(expectedValue);
+
+        const returned = await schemaDir.getDocument('controls/tls-config.json', 'control');
+        expect(returned).toEqual(expectedValue);
+        expect(mockDocLoader.loadMissingDocument).toHaveBeenCalledWith('controls/tls-config.json', 'control');
+    });
+
 
     it.each(TEST_ALL_SCHEMA)('resolves a reference from a stored schema %s', async (schema) => {
         const schemaDir = new SchemaDirectory(mockDocLoader);

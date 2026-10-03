@@ -139,14 +139,28 @@ export class SchemaDirectory {
      * @returns An entire schema as an object.
      */
     public async getSchema(schemaId: string): Promise<object | undefined> {
-        if (!this.schemas.has(schemaId)) {
+        return this.getDocument(schemaId, 'schema');
+    }
+
+    /**
+     * Return the document with the given id from the directory, loading it via the
+     * DocumentLoader if it has not already been loaded. Unlike {@link getSchema}, this
+     * accepts an explicit document type, so documents that are not JSON schemas (such as
+     * a control's config document, which has no `$id`) can be loaded without being
+     * rejected for lacking one.
+     * @param documentId The id (path or URL) of the document to load.
+     * @param type The CALM document type to load it as.
+     * @returns The document as an object, or undefined if it could not be loaded.
+     */
+    public async getDocument(documentId: string, type: CalmDocumentType): Promise<object | undefined> {
+        if (!this.schemas.has(documentId)) {
             try {
-                if (/^https?:\/\/json-schema\.org/.test(schemaId)) {
-                    throw new Error(`Attempted to load standard JSON Schema with ID ${schemaId}. This is not supported.`);
+                if (/^https?:\/\/json-schema\.org/.test(documentId)) {
+                    throw new Error(`Attempted to load standard JSON Schema with ID ${documentId}. This is not supported.`);
                 }
 
-                const document = await this.documentLoader.loadMissingDocument(schemaId, 'schema');
-                this.storeDocument(schemaId, 'schema', document);
+                const document = await this.documentLoader.loadMissingDocument(documentId, type);
+                this.storeDocument(documentId, type, document);
 
                 return document;
             }
@@ -154,14 +168,14 @@ export class SchemaDirectory {
                 if (err instanceof DocumentLoadError) {
                     if (err.name === 'OPERATION_NOT_IMPLEMENTED') {
                         const registered = this.getLoadedSchemas();
-                        this.logger.warn(`Schema with $id ${schemaId} not found. Returning undefined. Registered schemas: ${registered}`);
+                        this.logger.warn(`Document with id ${documentId} not found. Returning undefined. Registered documents: ${registered}`);
                         return undefined;
                     }
                 }
                 throw err;
             }
         }
-        return this.schemas.get(schemaId);
+        return this.schemas.get(documentId);
     }
 
     public async getPattern(patternId: string): Promise<object | undefined> {
