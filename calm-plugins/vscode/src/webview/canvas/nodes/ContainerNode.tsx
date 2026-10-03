@@ -8,19 +8,19 @@ export function ContainerNode({ id, data, selected }: NodeProps) {
 
     return (
         <>
-            <NodeResizer
-                isVisible={selected}
-                minWidth={180}
-                minHeight={120}
-                lineStyle={{ borderColor: '#6366f1' }}
-                handleStyle={{ width: '8px', height: '8px', background: '#6366f1', borderRadius: '2px' }}
-            />
             <Handle type="target" position={Position.Top} style={handleStyle} />
             <Handle type="source" position={Position.Bottom} style={handleStyle} />
             <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
             <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
 
             <div style={{ ...containerStyle, ...containerRoleStyle(role), ...(selected ? { borderColor: '#6366f1', borderStyle: 'solid' } : {}), ...(override.background ? { background: override.background } : {}) }}>
+                <NodeResizer
+                    isVisible={selected}
+                    minWidth={180}
+                    minHeight={120}
+                    lineStyle={{ borderColor: '#6366f1' }}
+                    handleStyle={{ width: '8px', height: '8px', background: '#6366f1', borderRadius: '2px' }}
+                />
                 <div style={{ ...headerStyle, ...headerRoleStyle(role) }}>
                     <div style={{ ...dotStyle, ...dotRoleStyle(role) }} />
                     <span style={{ ...labelBaseStyle, ...(role === 'solution' ? { color: '#2d6a4f', fontWeight: 700 } : {}), ...(override.text ? { color: override.text } : {}) }}>

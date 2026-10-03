@@ -2,7 +2,7 @@ import { CalmInterface } from './interface.js';
 import { CalmControls } from './control.js';
 import { CalmMetadata } from './metadata.js';
 import { CalmCore } from './core.js';
-import { ResolvableAndAdaptable } from './resolvable.js';
+import { Resolvable, ResolvableAndAdaptable } from './resolvable.js';
 import {
     CalmCoreSchema,
     CalmNodeDetailsSchema,
@@ -54,6 +54,7 @@ export class CalmNode implements CalmAdaptable<CalmNodeSchema, CalmNodeCanonical
         public nodeType: CalmNodeType,
         public name: string,
         public description: string,
+        public definitionId?: Resolvable<Record<string, unknown>>,
         public details?: CalmNodeDetails,
         public interfaces?: CalmInterface[],
         public controls?: CalmControls,
@@ -71,6 +72,7 @@ export class CalmNode implements CalmAdaptable<CalmNodeSchema, CalmNodeCanonical
             'node-type': this.nodeType,
             name: this.name,
             description: this.description,
+            ...(this.definitionId ? { 'definition-id': this.definitionId.reference } : {}),
             details: details,
             interfaces: this.interfaces ? this.interfaces.map(i => i.toCanonicalSchema()) : undefined,
             controls: this.controls ? this.controls.toCanonicalSchema() : undefined,
@@ -85,6 +87,7 @@ export class CalmNode implements CalmAdaptable<CalmNodeSchema, CalmNodeCanonical
             'node-type': nodeType,
             name,
             description,
+            'definition-id': definitionIdRef,
             details,
             interfaces,
             controls,
@@ -98,6 +101,7 @@ export class CalmNode implements CalmAdaptable<CalmNodeSchema, CalmNodeCanonical
             nodeType,
             name,
             description,
+            definitionIdRef ? new Resolvable<Record<string, unknown>>(definitionIdRef) : undefined,
             details ? CalmNodeDetails.fromSchema(details) : undefined,
             interfaces? interfaces.map(CalmInterface.fromSchema) : undefined,
             controls? CalmControls.fromSchema(controls): undefined,
