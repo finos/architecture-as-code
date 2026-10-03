@@ -1,9 +1,12 @@
 import {
+    type AdrDiffResult,
+    type ControlDiffResult,
     diffArchitectures,
     diffPatterns,
     diffTimelineAdjacent,
     diffTimelineMoments,
     type ArchitectureResolver,
+    type MetadataDiffResult,
     type MomentDiff,
     type NodesAndRelationshipsDiffResult,
     type TimelineInput,
@@ -16,12 +19,42 @@ export type DiffOutputFormat = 'json' | 'summary';
 export type DiffDocumentType = 'architecture' | 'pattern';
 
 export interface DiffRunResult {
-    diff: NodesAndRelationshipsDiffResult;
+    diff: DiffResult;
     formatted: string;
     hasChanges: boolean;
 }
 
-export function hasChanges(diff: NodesAndRelationshipsDiffResult): boolean {
+type DiffResult = NodesAndRelationshipsDiffResult & Partial<AdrDiffResult & ControlDiffResult & MetadataDiffResult>;
+
+interface ArchitectureLevelChangeCounts {
+    adrs: { added: number; removed: number; unchanged: number };
+    controls: { added: number; removed: number; modified: number };
+    metadata: { added: number; removed: number; modified: number };
+}
+
+function architectureLevelChangeCounts(diff: DiffResult): ArchitectureLevelChangeCounts {
+    const adrItems = diff.adrDiffItems ?? [];
+    return {
+        adrs: {
+            added: adrItems.filter((item) => item.changeType === 'added').length,
+            removed: adrItems.filter((item) => item.changeType === 'removed').length,
+            unchanged: adrItems.filter((item) => item.changeType === 'unchanged').length,
+        },
+        controls: {
+            added: Object.keys(diff.controlItemsAdded ?? {}).length,
+            removed: Object.keys(diff.controlItemsRemoved ?? {}).length,
+            modified: Object.keys(diff.controlItemsModified ?? {}).length,
+        },
+        metadata: {
+            added: diff.metadataObjectsAdded?.length ?? 0,
+            removed: diff.metadataObjectsRemoved?.length ?? 0,
+            modified: diff.metadataObjectsModified?.length ?? 0,
+        },
+    };
+}
+
+export function hasChanges(diff: DiffResult): boolean {
+    const counts = architectureLevelChangeCounts(diff);
     return (
         diff.nodesAdded.length > 0 ||
         diff.nodesRemoved.length > 0 ||
@@ -31,6 +64,14 @@ export function hasChanges(diff: NodesAndRelationshipsDiffResult): boolean {
         diff.edgesRemoved.length > 0 ||
         diff.edgesModified.length > 0 ||
         diff.edgesRenamed.length > 0 ||
+        counts.adrs.added > 0 ||
+        counts.adrs.removed > 0 ||
+        counts.controls.added > 0 ||
+        counts.controls.removed > 0 ||
+        counts.controls.modified > 0 ||
+        counts.metadata.added > 0 ||
+        counts.metadata.removed > 0 ||
+        counts.metadata.modified > 0 ||
         (diff.invalidItems?.nodes.length ?? 0) > 0 ||
         (diff.invalidItems?.relationships.length ?? 0) > 0 ||
         (diff.undiffableItems?.nodes.length ?? 0) > 0 ||
@@ -56,7 +97,7 @@ function edgeLabel(edge: CalmRelationshipSchema): string {
 }
 
 export function formatDiff(
-    diff: NodesAndRelationshipsDiffResult,
+    diff: DiffResult,
     format: DiffOutputFormat,
     documentType: DiffDocumentType = 'architecture',
 ): string {
@@ -67,6 +108,7 @@ export function formatDiff(
     const invalidEdges = diff.invalidItems?.relationships.length ?? 0;
     const undiffableNodes = diff.undiffableItems?.nodes.length ?? 0;
     const undiffableEdges = diff.undiffableItems?.relationships.length ?? 0;
+    const counts = architectureLevelChangeCounts(diff);
     const title = `CALM ${documentType} diff`;
     const lines = [
         title,
@@ -74,6 +116,15 @@ export function formatDiff(
         `Nodes:         +${diff.nodesAdded.length}  -${diff.nodesRemoved.length}  ~${diff.nodesModified.length}  ↔${diff.nodesRenamed.length}  =${diff.nodesSame.length}`,
         `Relationships: +${diff.edgesAdded.length}  -${diff.edgesRemoved.length}  ~${diff.edgesModified.length}  ↔${diff.edgesRenamed.length}  =${diff.edgesSame.length}`,
     ];
+    if (counts.adrs.added + counts.adrs.removed > 0) {
+        lines.push(`ADRs:          +${counts.adrs.added}  -${counts.adrs.removed}  =${counts.adrs.unchanged}`);
+    }
+    if (counts.controls.added + counts.controls.removed + counts.controls.modified > 0) {
+        lines.push(`Controls:      +${counts.controls.added}  -${counts.controls.removed}  ~${counts.controls.modified}`);
+    }
+    if (counts.metadata.added + counts.metadata.removed + counts.metadata.modified > 0) {
+        lines.push(`Metadata:      +${counts.metadata.added}  -${counts.metadata.removed}  ~${counts.metadata.modified}`);
+    }
     if (invalidNodes + invalidEdges > 0) {
         lines.push(`Invalid items: ${invalidNodes} node(s) + ${invalidEdges} relationship(s) skipped (missing unique-id)`);
     }
