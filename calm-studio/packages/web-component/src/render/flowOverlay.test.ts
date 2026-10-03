@@ -53,13 +53,13 @@ const sampleFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Client sends order request',
+      description: 'Client sends order request',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-2',
       'sequence-number': 2,
-      summary: 'Service processes order',
+      description: 'Service processes order',
       direction: 'source-to-destination',
     },
   ],
@@ -73,7 +73,7 @@ const reverseFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Response sent back',
+      description: 'Response sent back',
       direction: 'destination-to-source',
     },
   ],
@@ -87,19 +87,19 @@ const multiEdgeFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Step one',
+      description: 'Step one',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-2',
       'sequence-number': 2,
-      summary: 'Step two',
+      description: 'Step two',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-3',
       'sequence-number': 3,
-      summary: 'Step three',
+      description: 'Step three',
       direction: 'source-to-destination',
     },
   ],
@@ -163,6 +163,14 @@ describe('renderFlowOverlay', () => {
     expect(svg).toContain('>2<');
   });
 
+  it('Test 4b: renders the transition description in the badge tooltip', () => {
+    const svg = renderFlowOverlay(sampleFlow, twoEdgeLayouts);
+    // The badge <title> (tooltip) carries the transition description, not a
+    // non-existent `summary` field (see issue #3231).
+    expect(svg).toContain('<title>Client sends order request</title>');
+    expect(svg).toContain('<title>Service processes order</title>');
+  });
+
   it('animates along every fan-out edge of a multi-node relationship and renders one badge', () => {
     const fanOutLayouts = new Map([
       [
@@ -193,7 +201,7 @@ describe('renderFlowOverlay', () => {
         {
           'relationship-unique-id': 'rel-fan',
           'sequence-number': 1,
-          summary: 'Actor interacts with both services',
+          description: 'Actor interacts with both services',
           direction: 'source-to-destination',
         },
       ],
