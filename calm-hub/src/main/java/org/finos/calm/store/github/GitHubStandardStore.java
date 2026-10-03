@@ -64,7 +64,7 @@ public class GitHubStandardStore extends AbstractReadOnlyGitHubStore implements 
     }
 
     @Override
-    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
+    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace, String version) throws NamespaceNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
@@ -110,6 +110,19 @@ public class GitHubStandardStore extends AbstractReadOnlyGitHubStore implements 
 
     @Override
     public void deleteStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                            Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public boolean deleteStandardVersion(String namespace, int standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }

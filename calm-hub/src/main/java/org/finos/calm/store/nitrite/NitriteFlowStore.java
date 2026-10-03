@@ -23,8 +23,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * NitriteDB-backed implementation of {@link FlowStore}, used in standalone mode.
  *
@@ -71,18 +69,18 @@ public class NitriteFlowStore implements FlowStore {
     }
 
     @Override
-    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
+    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
         validateFlowJson(flowRequest.getFlowJson());
 
         int id = counterStore.getNextFlowSequenceValue();
         documentStore.createHeader(namespace, id, flowRequest.getName(), flowRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, flowRequest.getFlowJson());
+        documentStore.createFirstVersion(namespace, id, version, flowRequest.getFlowJson());
 
         LOG.info("Created flow with ID {} for namespace '{}'", id, namespace);
         return new Flow.FlowBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setFlow(flowRequest.getFlowJson())
                 .build();
@@ -176,5 +174,19 @@ public class NitriteFlowStore implements FlowStore {
             throw new FlowNotFoundException();
         }
         LOG.info("Deleted flow with ID {} from namespace '{}'", flowId, namespace);
+    }
+
+    @Override
+    public boolean deleteFlowVersion(String namespace, int flowId, String version)
+            throws NamespaceNotFoundException, FlowNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, flowId)) {
+            throw new FlowNotFoundException();
+        }
+        boolean deleted = documentStore.deleteVersion(namespace, flowId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of flow {} from namespace '{}'", version, flowId, namespace);
+        }
+        return deleted;
     }
 }

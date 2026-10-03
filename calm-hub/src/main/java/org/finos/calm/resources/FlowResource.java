@@ -12,6 +12,7 @@ import org.bson.json.JsonParseException;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.ValueWrapper;
@@ -35,8 +36,8 @@ import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MES
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.STRICT_SANITIZATION_POLICY;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_MESSAGE;
-import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_REGEX;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.SNAPSHOT_VERSION_OR_SHA_REGEX;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_REGEX;
 
 @Tag(name = "Storage API", description = "Numeric-ID based CALM storage endpoints")
@@ -93,7 +94,7 @@ public class FlowResource {
             @Valid @NotNull(message = "Request must not be null") CreateFlowRequest flowRequest
     ) throws URISyntaxException {
         try {
-            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace);
+            Flow flowForNamespace = store.createFlowForNamespace(flowRequest, namespace, "1.0.0");
             return flowWithLocationResponse(flowForNamespace);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating flow", namespace, e);
@@ -123,7 +124,7 @@ public class FlowResource {
 
         try {
             List<String> versions =  store.getFlowVersions(flow);
-            String lastVersion = versions.getLast();
+            String lastVersion = ResourceVersion.latestRelease(versions);
            return getFlowInternal(namespace,flowId, lastVersion);
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when getting the latest flow version", namespace, e);
@@ -174,7 +175,7 @@ public class FlowResource {
     public Response getFlow(
             @PathParam("namespace") @Pattern(regexp= NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("flowId") int flowId,
-            @PathParam("version") @Pattern(regexp = VERSION_OR_SHA_REGEX, message = VERSION_OR_SHA_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         return getFlowInternal(namespace, flowId, version);
     }
