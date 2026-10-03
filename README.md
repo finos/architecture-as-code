@@ -1,4 +1,5 @@
 [![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
+[![LFX Active Contributors](https://insights.linuxfoundation.org/api/badge/active-contributors?project=calm&repos=https://github.com/finos/architecture-as-code)](https://insights.linuxfoundation.org/project/calm/repository/finos_architecture-as-code)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8821/badge)](https://www.bestpractices.dev/projects/8821)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/8821/baseline)](https://www.bestpractices.dev/projects/8821)
 [![CodeQL](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml/badge.svg)](https://github.com/finos/architecture-as-code/actions/workflows/codeql.yml)
