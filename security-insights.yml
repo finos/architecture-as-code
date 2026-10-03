@@ -118,6 +118,12 @@ project:
       comment: |
         Docusaurus documentation site published at calm.finos.org.
         Status: Active.
+    - name: calm-lab
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-lab
+      comment: |
+        CALM Learning Lab, an in-browser terminal, editor and live diagram
+        that run the CALM engine. A static site deployed from main to
+        lab.calm.finos.org. Status: Active.
   vulnerability-reporting:
     reports-accepted: true
     bug-bounty-available: false
@@ -190,12 +196,12 @@ repository:
     assessments:
       self:
         name: Threat model and attack surface analysis
-        date: '2026-09-26'
+        date: '2026-10-03'
         evidence: https://github.com/finos/architecture-as-code/blob/main/THREAT_MODEL.md
         comment: |
           Maintainer-authored threat model and attack surface analysis covering
-          the CLI, CALM Server, CALM Hub, the VS Code extension and the build
-          and release pipeline. Reviewed at least yearly and whenever a
+          the CLI, CALM Server, CALM Hub, the VS Code extension, CALM Lab and
+          the build and release pipeline. Reviewed at least yearly and whenever a
           component gains a new interface, trust boundary or distribution channel.
     tools:
       - name: GitHub Secret Scanning

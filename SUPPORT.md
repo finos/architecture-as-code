@@ -23,7 +23,8 @@ The project ships several independently released components. For every component
 | `calm-models` (Java) | Maven Central | Latest published version. |
 | CALM Hub | Docker Hub `finos/calm-hub` (and the read-only and native variants) | Latest tag. |
 | CALM VS Code extension | Visual Studio Marketplace | Latest published version. |
-| CALM Studio, CALMGuard, CALM Lab, `experimental/` | Various | Experimental. No support commitment and no security-update commitment until they are promoted out of experimental status. |
+| CALM Lab | Web app at https://lab.calm.finos.org | The deployed version. There are no versioned releases: a change to the lab, or to a package it is built from, is deployed when it merges to `main`. |
+| CALM Studio, CALMGuard, `experimental/` | Various | Experimental. No support commitment and no security-update commitment until they are promoted out of experimental status. |
 
 ## When a release stops receiving security updates
 
