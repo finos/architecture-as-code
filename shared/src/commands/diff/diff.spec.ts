@@ -364,6 +364,8 @@ describe('formatDiff', () => {
         expect(out).toContain('ADRs:          +1  -0  =1');
         expect(out).toContain('Controls:      +0  -0  ~1');
         expect(out).toContain('Metadata:      +1  -0  ~0');
+        expect(out).toContain('ADRs added:\n  - https://example.com/adr/002');
+        expect(out).toContain('Controls modified:\n  - security');
     });
 
     it('labels id-less pattern nodes by content instead of undefined', () => {

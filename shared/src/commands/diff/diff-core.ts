@@ -146,6 +146,11 @@ export function formatDiff(
     list('Relationships removed:', diff.edgesRemoved.map(edgeLabel));
     list('Relationships modified:', diff.edgesModified.map((e) => edgeLabel(e.original)));
     list('Relationships renamed:', diff.edgesRenamed.map((r) => `${r.oldId} -> ${r.newId}`));
+    list('ADRs added:', (diff.adrDiffItems ?? []).filter((item) => item.changeType === 'added').map((item) => item.content));
+    list('ADRs removed:', (diff.adrDiffItems ?? []).filter((item) => item.changeType === 'removed').map((item) => item.content));
+    list('Controls added:', Object.keys(diff.controlItemsAdded ?? {}));
+    list('Controls removed:', Object.keys(diff.controlItemsRemoved ?? {}));
+    list('Controls modified:', Object.keys(diff.controlItemsModified ?? {}));
     return lines.join('\n');
 }
 
