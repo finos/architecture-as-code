@@ -48,26 +48,45 @@ interface WorkspaceFolder {
     uri: Uri;
 }
 
+export class WorkspaceEdit {
+    private _edits: Array<{ uri: unknown; range: unknown; newText: string }> = [];
+    replace(uri: unknown, range: unknown, newText: string): void {
+        this._edits.push({ uri, range, newText });
+    }
+}
+
 export const workspace: {
     workspaceFolders: WorkspaceFolder[] | undefined;
-    fs: { readFile: (uri: Uri) => Promise<Uint8Array> };
+    fs: {
+        readFile: (uri: Uri) => Promise<Uint8Array>;
+        writeFile: (uri: Uri, content: Uint8Array) => Promise<void>;
+    };
     getConfiguration: (section?: string) => {
         get: <T>(key: string) => T | undefined;
     };
     findFiles: (...args: unknown[]) => Promise<Uri[]>;
+    applyEdit: (edit: WorkspaceEdit) => Promise<boolean>;
 } = {
     workspaceFolders: [],
     fs: {
         readFile: async () => {
             throw new Error('ENOENT');
         },
+        writeFile: async () => {},
     },
     getConfiguration: () => ({ get: () => undefined }),
     findFiles: async () => [],
+    applyEdit: async () => true,
 };
 
-export const window = {
-    showWarningMessage: () => Promise.resolve(undefined),
-    showErrorMessage: () => Promise.resolve(undefined),
-    showInformationMessage: () => Promise.resolve(undefined),
+export const window: Record<string, (...args: unknown[]) => Promise<unknown>> = {
+    showWarningMessage: async () => undefined,
+    showErrorMessage: async () => undefined,
+    showInformationMessage: async () => undefined,
+    showOpenDialog: async () => undefined,
+    showSaveDialog: async () => undefined,
+};
+
+export const commands = {
+    executeCommand: async () => undefined,
 };

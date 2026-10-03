@@ -3,7 +3,7 @@ import { postMessage } from '../vscode-api';
 
 type ModelUpdateCallback = (
     json: string,
-    source: 'file' | 'ai' | 'text-editor'
+    source: 'file' | 'ai' | 'text-editor' | 'import'
 ) => void;
 type PatternsLoadedCallback = (patterns: unknown[]) => void;
 type TemplatesLoadedCallback = (templates: unknown[]) => void;
@@ -123,4 +123,8 @@ export function notifySaveBuildingBlock(
     content: string
 ): void {
     postMessage({ type: 'saveBuildingBlock', filename, content });
+}
+
+export function notifyRequestImportSvg(): void {
+    postMessage({ type: 'requestImportSvg' });
 }

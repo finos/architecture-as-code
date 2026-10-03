@@ -35,6 +35,7 @@ import {
     requestStandardProse,
     notifyRequestGenerateSpec,
     notifySaveBuildingBlock,
+    notifyRequestImportSvg,
 } from './stores/sync-bridge';
 import { postMessage } from './vscode-api';
 import {
@@ -826,6 +827,9 @@ function CanvasApp() {
                         <button onClick={handleGenerateSpec} className="fid-toolbar-btn fid-toolbar-btn--spec" title="Generate an architecture spec">Generate Spec</button>
                     )}
                     <button onClick={handleExportSvg} className="fid-toolbar-btn" title="Export the canvas as an SVG">Export SVG</button>
+                    {!store.readonlyMode && (
+                        <button onClick={() => notifyRequestImportSvg()} className="fid-toolbar-btn" title="Import an SVG diagram as CALM architecture">Import SVG</button>
+                    )}
                     {!store.readonlyMode && (
                         <ToolbarMenu items={[
                             { label: 'Templates', onClick: handleTemplates },
