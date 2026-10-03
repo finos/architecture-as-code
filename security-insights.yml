@@ -45,21 +45,19 @@ project:
       url: https://github.com/finos/architecture-as-code/tree/main/calm
       comment: |
         CALM JSON Meta Schema specification, the core architecture modelling
-        language this project is built around. Status: Incubating, actively
-        maintained.
+        language this project is built around. Status: Active.
     - name: cli
       url: https://github.com/finos/architecture-as-code/tree/main/cli
       comment: |
         @finos/calm-cli, the TypeScript CLI for validating, generating and
-        visualizing CALM architectures. Published to npm. Status: Incubating,
-        actively maintained.
+        visualizing CALM architectures. Published to npm. Status: Active.
     - name: shared
       url: https://github.com/finos/architecture-as-code/tree/main/shared
       comment: |
         @finos/calm-shared, TypeScript utilities shared across the CLI, the
         VSCode extension and other CALM tooling. Bundled into the CLI; not
         published separately.
-        Status: Incubating, actively maintained.
+        Status: Active.
     - name: calm-models
       url: https://github.com/finos/architecture-as-code/tree/main/calm-models
       comment: |
@@ -67,41 +65,41 @@ project:
         schema and consumed across the TypeScript packages. The TypeScript
         models are bundled into the CLI; the Java models are published to
         Maven Central.
-        Status: Incubating, actively maintained.
+        Status: Active.
     - name: calm-widgets
       url: https://github.com/finos/architecture-as-code/tree/main/calm-widgets
       comment: |
         @finos/calm-widgets, React visualization components and Handlebars
         template widgets used to render CALM architectures. Bundled into the
         CLI; not published separately.
-        Status: Incubating, actively maintained.
+        Status: Active.
     - name: calm-ai
       url: https://github.com/finos/architecture-as-code/tree/main/calm-ai
       comment: |
         AI agent tools and prompts for working with CALM. Prompt/tooling
         assets only (no build), managed separately from the CLI for easier
-        maintenance and broader reuse. Status: Incubating, actively maintained.
+        maintenance and broader reuse. Status: Active.
     - name: calm-hub
       url: https://github.com/finos/architecture-as-code/tree/main/calm-hub
       comment: |
         CALM Hub, a Java/Quarkus REST API backend for storing and serving
         CALM architectures (MongoDB or NitriteDB storage). Published as a
-        Docker image. Status: Incubating, actively maintained.
+        Docker image. Status: Active.
     - name: calm-hub-ui
       url: https://github.com/finos/architecture-as-code/tree/main/calm-hub-ui
       comment: |
-        React frontend for CALM Hub. Status: Incubating, actively maintained.
+        React frontend for CALM Hub. Status: Active.
     - name: calm-server
       url: https://github.com/finos/architecture-as-code/tree/main/calm-server
       comment: |
         @finos/calm-server, a TypeScript CALM server package. Published to
-        npm. Status: Incubating, actively maintained.
+        npm. Status: Active.
     - name: calm-plugins/vscode
       url: https://github.com/finos/architecture-as-code/tree/main/calm-plugins/vscode
       comment: |
         VS Code extension for authoring and validating CALM architectures.
         Published to the VS Code Marketplace as finos.calm-vscode-plugin.
-        Status: Incubating, actively maintained.
+        Status: Active.
     - name: calm-studio
       url: https://github.com/finos/architecture-as-code/tree/main/calm-studio
       comment: |
@@ -119,7 +117,13 @@ project:
       url: https://github.com/finos/architecture-as-code/tree/main/docs
       comment: |
         Docusaurus documentation site published at calm.finos.org.
-        Status: Incubating, actively maintained.
+        Status: Active.
+    - name: calm-lab
+      url: https://github.com/finos/architecture-as-code/tree/main/calm-lab
+      comment: |
+        CALM Learning Lab, an in-browser terminal, editor and live diagram
+        that run the CALM engine. A static site deployed from main to
+        lab.calm.finos.org. Status: Active.
   vulnerability-reporting:
     reports-accepted: true
     bug-bounty-available: false
@@ -192,12 +196,12 @@ repository:
     assessments:
       self:
         name: Threat model and attack surface analysis
-        date: '2026-09-26'
+        date: '2026-10-03'
         evidence: https://github.com/finos/architecture-as-code/blob/main/THREAT_MODEL.md
         comment: |
           Maintainer-authored threat model and attack surface analysis covering
-          the CLI, CALM Server, CALM Hub, the VS Code extension and the build
-          and release pipeline. Reviewed at least yearly and whenever a
+          the CLI, CALM Server, CALM Hub, the VS Code extension, CALM Lab and
+          the build and release pipeline. Reviewed at least yearly and whenever a
           component gains a new interface, trust boundary or distribution channel.
     tools:
       - name: GitHub Secret Scanning
