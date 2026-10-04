@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CALM_HUB_PROTOS } from '@finos/calm-shared';
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { readFileSync, writeFileSync } from 'fs';
@@ -24,7 +24,14 @@ export async function runValidate(options: ValidateOptions) {
     try {
         const { getUrlToLocalFileMap } = await import('./template');
         const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
-        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        // Resolve local file arguments against the working directory up front. The pattern's
+        // folder is handed to the loader as its basePath so relative $refs inside the pattern
+        // resolve correctly; that basePath must not be used to resolve the architecture, pattern,
+        // or timeline files themselves (see #3204). URLs and absolute paths pass through untouched.
+        const architecturePath = options.architecturePath ? resolveLocalPath(options.architecturePath) : undefined;
+        const patternPath = options.patternPath ? resolveLocalPath(options.patternPath) : undefined;
+        const timelinePath = options.timelinePath ? resolveLocalPath(options.timelinePath) : undefined;
+        const patternBasePath = patternPath ? path.dirname(patternPath) : undefined;
         const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
@@ -34,9 +41,9 @@ export async function runValidate(options: ValidateOptions) {
         let pattern: object | undefined = undefined;
         let timeline: object | undefined = undefined;
 
-        if (options.timelinePath) {
+        if (timelinePath) {
             const result = await loadTimeline(
-                options.timelinePath,
+                timelinePath,
                 docLoader,
                 schemaDirectory,
                 logger
@@ -46,8 +53,8 @@ export async function runValidate(options: ValidateOptions) {
         }
         else {
             const result = await loadArchitectureAndPattern(
-                options.architecturePath ?? '',
-                options.patternPath ?? '',
+                architecturePath ?? '',
+                patternPath,
                 docLoader,
                 schemaDirectory,
                 logger
@@ -97,6 +104,18 @@ function getErrorCause(error: unknown): unknown {
     return error instanceof Error && 'cause' in error
         ? error.cause
         : undefined;
+}
+
+/**
+ * Resolve a top-level file argument against the working directory. Relative local paths become
+ * absolute; URLs (calm:, http:, https:, file:) and already-absolute paths are returned unchanged,
+ * so the URL-aware loaders still receive them as-is.
+ */
+function resolveLocalPath(argPath: string): string {
+    if (argPath.startsWith('file://') || CALM_HUB_PROTOS.some(protocol => argPath.startsWith(protocol)) || path.isAbsolute(argPath)) {
+        return argPath;
+    }
+    return path.resolve(argPath);
 }
 
 

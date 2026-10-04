@@ -73,13 +73,11 @@ describe('runValidate', () => {
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation(function (filePath: string, _: string) {
-            if (filePath === 'arch.json') return Promise.resolve(dummyArch);
-            if (filePath === 'arch-of-pattern.json') return Promise.resolve(dummyArchOfAPattern);
-            if (filePath === 'arch-of-calm.json') return Promise.resolve(dummyArchOfCalmSchema);
-            if (filePath === 'pattern.json') return Promise.resolve(dummyPattern);
-            // Handle resolved absolute paths for $schema references
+            if (filePath.endsWith('arch.json')) return Promise.resolve(dummyArch);
+            if (filePath.endsWith('arch-of-pattern.json')) return Promise.resolve(dummyArchOfAPattern);
+            if (filePath.endsWith('arch-of-calm.json')) return Promise.resolve(dummyArchOfCalmSchema);
             if (filePath.endsWith('pattern.json')) return Promise.resolve(dummyPattern);
-            if (filePath === 'timeline.json') return Promise.resolve(dummyTimeline);
+            if (filePath.endsWith('timeline.json')) return Promise.resolve(dummyTimeline);
             return Promise.resolve();
         });
         mocks.getSchema.mockImplementation(function (schemaId: string) {
@@ -107,14 +105,31 @@ describe('runValidate', () => {
         await runValidate(options);
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('pattern.json'), 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should resolve the architecture path against the working directory, not the pattern folder', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'patterns/pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        await runValidate(options);
+
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('patterns/pattern.json'), 'pattern');
     });
 
     it('should process validation successfully with architecture only', async () => {
@@ -132,7 +147,7 @@ describe('runValidate', () => {
         await runValidate(options);
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
         expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
@@ -159,7 +174,7 @@ describe('runValidate', () => {
         // $schema reference is resolved to absolute path relative to architecture file
         const resolvedPatternPath = path.resolve(process.cwd(), 'pattern.json');
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedPatternPath);
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch-of-pattern.json'), 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
@@ -187,7 +202,7 @@ describe('runValidate', () => {
         // $schema reference is resolved to absolute path relative to architecture file
         const resolvedSchemaPath = path.resolve(process.cwd(), 'calm-schema.json');
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch-of-calm.json'), 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
         expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
@@ -212,7 +227,7 @@ describe('runValidate', () => {
         await runValidate(options);
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('pattern.json'), 'pattern');
         expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
@@ -240,7 +255,7 @@ describe('runValidate', () => {
         // $schema reference is resolved to absolute path relative to architecture file
         const resolvedSchemaPath = path.resolve(process.cwd(), 'calm-timeline-schema.json');
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
-        expect(mocks.loadMissingDocument).toHaveBeenCalledWith('timeline.json', 'timeline');
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('timeline.json'), 'timeline');
         expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
@@ -278,8 +293,8 @@ describe('runValidate', () => {
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         mocks.buildDocumentLoader.mockReturnValue({
             loadMissingDocument: vi.fn(function (filePath: string) {
-                if (filePath === 'arch.json') return dummyArch;
-                if (filePath === 'pattern.json') return dummyPattern;
+                if (filePath.endsWith('arch.json')) return dummyArch;
+                if (filePath.endsWith('pattern.json')) return dummyPattern;
                 return undefined;
             })
         });
