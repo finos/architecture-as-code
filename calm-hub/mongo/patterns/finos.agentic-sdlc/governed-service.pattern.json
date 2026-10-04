@@ -17,9 +17,33 @@
             "properties": {
               "controls": {
                 "type": "object",
-                "properties": {
-                  "sdlc-prev-017-service-dependency": {
-                    "$ref": "#/$defs/service-dependency-control"
+                "patternProperties": {
+                  "^[a-zA-Z0-9-]+$": {
+                    "if": {
+                      "type": "object",
+                      "properties": {
+                        "requirements": {
+                          "type": "array",
+                          "contains": {
+                            "type": "object",
+                            "properties": {
+                              "requirement-url": {
+                                "const": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-017-service-dependency-control/requirement/versions/1.0.0"
+                              }
+                            },
+                            "required": [
+                              "requirement-url"
+                            ]
+                          }
+                        }
+                      },
+                      "required": [
+                        "requirements"
+                      ]
+                    },
+                    "then": {
+                      "$ref": "#/$defs/service-dependency-control"
+                    }
                   }
                 }
               }
@@ -30,9 +54,13 @@
     },
     "relationships": {
       "type": "array",
-      "description": "Unconstrained here. What a service may connect to is stated by the relationships themselves and by node-level controls, and checked against the code by gates/drift-check.mjs."
+      "items": {
+        "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship"
+      },
+      "description": "Each relationship must be valid CALM; which nodes connect is unconstrained here. What a service may connect to is stated by the relationships themselves and by node-level controls, and checked against the code by gates/drift-check.mjs."
     },
     "controls": {
+      "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/controls",
       "type": "object",
       "properties": {
         "sdlc-prev-001-code-review": {
@@ -69,6 +97,7 @@
         "requirements": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 1,
           "prefixItems": [
             {
               "type": "object",
@@ -158,6 +187,7 @@
         "requirements": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 1,
           "prefixItems": [
             {
               "type": "object",
@@ -206,6 +236,7 @@
         "requirements": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 1,
           "prefixItems": [
             {
               "type": "object",
@@ -251,6 +282,7 @@
         "requirements": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 1,
           "prefixItems": [
             {
               "type": "object",
@@ -298,6 +330,7 @@
         "requirements": {
           "type": "array",
           "minItems": 1,
+          "maxItems": 1,
           "prefixItems": [
             {
               "type": "object",

@@ -23,6 +23,9 @@ The seed `name` of each control is its slug, so the name-based URL in each docum
 
     https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/<slug>/requirement/versions/1.0.0
 
+`controlId` is the id the Mongo seed assigns. The Nitrite seed (standalone and read-only hubs) assigns ids from its
+own counter, so use the slug, not the numeric id, to address a control.
+
 | controlId | control-id | name | phase | status |
 | --- | --- | --- | --- | --- |
 | 19 | SDLC-PREV-001 | Code Review | CODE | Draft |

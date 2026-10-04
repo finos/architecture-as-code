@@ -200,6 +200,8 @@ if [[ "${MODE}" == "readonly" ]]; then
     # The SDLC Common Controls Catalog: its control domain, the Standard its documents declare, and the
     # Agentic SDLC Blueprint's pattern and Standard that enforce it (all seeded from calm-hub/mongo/).
     assert_body_contains_all GET /api/calm/domains/finos-sdlc-common-controls/controls '"sdlc-prev-001-code-review"'
+    # Control seeding only warns on failure, so assert that all 22 controls are present.
+    assert_body_contains GET /api/calm/domains/counts '{"domain":"finos-sdlc-common-controls","controlCount":22}'
     assert GET /calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 200
     assert GET /calm/namespaces/finos.agentic-sdlc/standards/governed-node/versions/1.0.0 200
     assert GET /calm/namespaces/finos.agentic-sdlc/patterns/governed-service/versions/1.0.0 200

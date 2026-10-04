@@ -257,6 +257,10 @@ seed_named_documents_from_dir() {
         [[ -d "$namespace_dir" ]] || continue
         local namespace
         namespace=$(basename "$namespace_dir")
+        # Create the namespace when create_namespaces does not list it.
+        curl -s -o /dev/null -X POST "$CALM_HUB_URL/api/calm/namespaces" \
+            -H "$CONTENT_TYPE" \
+            -d "{\"name\": \"$namespace\", \"description\": \"$namespace namespace\"}"
         local document_file
         while IFS= read -r document_file; do
             [[ -f "$document_file" ]] || continue
