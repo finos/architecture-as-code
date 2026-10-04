@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-03T00:00:00Z",
-  "version": 2,
+  "version": 3,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -416,7 +416,7 @@
       "status": "not_affected",
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "http-cache-semantics 4.2.0 is used only as a private client cache: by make-fetch-happen inside the npm CLI that semantic-release uses at release time, and by got and cacheable-request under the Docusaurus update-notifier. The attack needs a shared cache that serves cached responses to other users, with attacker-controlled request headers. No CALM component runs a shared HTTP cache, and no published CALM package includes http-cache-semantics at runtime. No patched release exists yet."
+      "impact_statement": "http-cache-semantics 4.2.0 is used only as a private client cache: by make-fetch-happen inside the npm CLI that semantic-release uses at release time and under @npmcli/arborist in the license-checker-rseidelsohn dev tool, and by got and cacheable-request under the Docusaurus update-notifier. The attack needs a shared cache that serves cached responses to other users, with attacker-controlled request headers. No CALM component runs a shared HTTP cache, and no published CALM package includes http-cache-semantics at runtime. No patched release exists yet."
     }
   ],
   "last_updated": "2026-10-03T00:00:00Z"
