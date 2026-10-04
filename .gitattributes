@@ -1,1 +1,4 @@
 *.mov filter=lfs diff=lfs merge=lfs -text
+
+# EPS logos are image assets; keep them out of language stats
+*.eps linguist-detectable=false
