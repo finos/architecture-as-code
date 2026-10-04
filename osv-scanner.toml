@@ -68,13 +68,13 @@ ignoreUntil = 2026-11-30
 reason = "brace-expansion 5.0.9 is bundled inside the npm CLI used by semantic-release at release time; dev-only and not shipped. Remove when npm bundles brace-expansion >= 5.0.12."
 
 # braces 3.0.3 comes in only through build and dev tooling: micromatch (semantic-release,
-# vsce, stylelint, eslint-config-next, commitizen, Docusaurus) and chokidar 3 (Docusaurus
-# and webpack-dev-server). Every pattern it expands comes from project or tool config,
+# stylelint, eslint-config-next, Docusaurus) and chokidar 3 (Docusaurus and
+# webpack-dev-server). Every pattern it expands comes from project or tool config,
 # never from user input. No patched braces release exists yet.
 [[IgnoredVulns]]
 id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2026-12-31
-reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, vsce, stylelint, eslint-config-next, commitizen, Docusaurus, webpack-dev-server) and only expands patterns from project config, never user input. Remove when a patched braces release is available."
+reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, stylelint, eslint-config-next, Docusaurus, webpack-dev-server) and only expands patterns from project config, never user input. Remove when a patched braces release is available."
 
 # http-cache-semantics 4.2.0 comes in through make-fetch-happen (the npm CLI bundled with
 # semantic-release, and @npmcli/arborist under license-checker-rseidelsohn) and through
