@@ -16,7 +16,7 @@
     },
     "scripts": {
         "build": "tsup && npm run copy-calm-schema",
-        "copy-calm-schema": "copyfiles \"../calm/release/**/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/",
+        "copy-calm-schema": "copyfiles \"../calm/release/1.0-rc*/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/ && node ../scripts/copy-calm-schemas.mjs dist/calm",
         "test": "vitest run",
         "lint": "eslint src",
         "lint-fix": "eslint src --fix"
