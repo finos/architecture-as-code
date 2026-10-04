@@ -56,8 +56,8 @@
         "prepare": "husky"
     },
     "devDependencies": {
-        "@commitlint/cli": "^20.0.0",
-        "@commitlint/config-conventional": "^20.0.0",
+        "@commitlint/cli": "^21.2.3",
+        "@commitlint/config-conventional": "^21.2.3",
         "@finos/calm-schema": "1.2.0",
         "@stoplight/types": "^14.1.1",
         "@types/js-yaml": "^4.0.9",
