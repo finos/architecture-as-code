@@ -12,6 +12,8 @@ on:
             - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
             - 'calm/**'
+            - 'package.json'
+            - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-readonly-native.yml'
     # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
