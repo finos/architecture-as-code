@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@finos/calm-schema": "*",
     "@vitest/coverage-v8": "^4.1.0",
     "tsup": "^8.5.1",
     "typescript": "^5.7.0",

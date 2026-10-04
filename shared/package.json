@@ -67,6 +67,7 @@
         "winston": "^3.17.0"
     },
     "devDependencies": {
+        "@finos/calm-schema": "*",
         "esbuild": "^0.28.1"
     },
     "overrides": {

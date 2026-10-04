@@ -1,3 +1,5 @@
+import { createRequire } from 'module';
+import path from 'path';
 import type { Logger } from '../logger';
 
 export function createMockLogger(): Logger {
@@ -10,10 +12,33 @@ export function createMockLogger(): Logger {
     };
 }
 
+const ROOT_DIR = path.join(__dirname, '../../..');
+// Root devDependencies always install into the repository root node_modules.
+const ROOT_NODE_MODULES = path.join(ROOT_DIR, 'node_modules');
+
+// The release of each calm-schema-<major.minor> alias in the root package.json, oldest first, so
+// the alias that a schema update adds also joins the test matrix. Read with require, not fs, so
+// that specs which mock fs can still import this module.
+const ALIASED_RELEASES: string[] = Object.entries<string>(
+    createRequire(__filename)(path.join(ROOT_DIR, 'package.json')).devDependencies ?? {},
+)
+    .filter(([, spec]) => spec.startsWith('npm:@finos/calm-schema@'))
+    .map(([name]) => /^calm-schema-(\d+\.\d+)$/.exec(name)?.[1])
+    .filter((release): release is string => release !== undefined)
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+
 // Defines all the schema versions to test against.
-export const TEST_ALL_SCHEMA = [['1.0'], ['1.1'], ['1.2']];
+export const TEST_ALL_SCHEMA = ALIASED_RELEASES.map(release => [release]);
 export const TEST_1_1_SCHEMA_AND_ABOVE = TEST_ALL_SCHEMA.filter(s => s[0] != '1.0');
 export const TEST_1_2_SCHEMA_AND_ABOVE = TEST_1_1_SCHEMA_AND_ABOVE.filter(s => s[0] != '1.1');
+
+/**
+ * The schema folder of the latest @finos/calm-schema release or, when a release is given
+ * (e.g. '1.1'), of its calm-schema-<release> alias.
+ */
+export function calmSchemaDir(release?: string): string {
+    return path.join(ROOT_NODE_MODULES, release ? `calm-schema-${release}` : '@finos/calm-schema', 'schema');
+}
 
 /**
  * Take an architecture object and a desired schema release version, e.g. '1.3',

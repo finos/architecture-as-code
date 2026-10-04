@@ -3,6 +3,7 @@ import { JsonSchemaValidator } from './json-schema-validator';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
+import { calmSchemaDir } from '../../test/test-utils';
 import path from 'path';
 import { readFileSync } from 'fs';
 
@@ -67,7 +68,7 @@ describe('JsonSchemaValidator', () => {
 
 describe('JsonSchemaValidator integration', () => {
     // this test is specifically using schema 1.1, because it is about a pattern non-compliant with JSON Schema
-    const schemaDir = path.join(__dirname, '../../../../calm/release/1.1/meta/');
+    const schemaDir = calmSchemaDir('1.1');
     const badPatternPath = path.join(__dirname, '../../../test_fixtures/bad-schema/bad-json-schema.json');
 
     it('throws when compiling the bad-json-schema fixture', async () => {

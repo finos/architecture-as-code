@@ -628,7 +628,7 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway.json'
         );
-        const s = path.join(__dirname, '../../calm/release');
+        const s = path.join(__dirname, '../dist/calm/release');
         const out = path.join(tempDir, 'generate-output.json');
         await cli.run(['generate', '-p', p, '-o', out, '-s', s]);
         const actual = JSON.parse(fs.readFileSync(out, 'utf8'));
