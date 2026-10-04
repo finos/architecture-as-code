@@ -12,8 +12,8 @@ A control has a name and then consists of a description and the requirements of 
 
 Controls are made up of:
 
-* requirement-url: This is a schema the specifies how the control should be defined
-* config-url: The location of the implementation of control requirement, this defines how the control was fulfilled.
+* requirement-url: The schema that specifies how the control should be defined.
+* config-url: The configuration that shows how the control requirement is met.
 
 ## Example of control applied to a node
 
