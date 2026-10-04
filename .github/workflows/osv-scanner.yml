@@ -3,7 +3,8 @@ name: OSV Scanner
 # Software composition analysis (SCA) for every dependency tree in the repository.
 # Runs on every pull request with no path filter so it can be a required status
 # check, and needs no secrets so it also runs on pull requests from forks. The
-# CLI and CALM Server release workflows require a passing push run for the commit they release.
+# CLI and CALM Server release workflows and the CALM Lab deploy require a passing push run
+# for the commit they release or deploy.
 # See SECURITY.md, "Dependency and Code Scanning Policy".
 
 permissions:
