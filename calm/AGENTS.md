@@ -24,8 +24,7 @@ calm/
 │   └── meta/                  #   the published schema documents
 ├── release/<version>-rcN/      # Release candidates (e.g. 1.0-rc1) — siblings of the release, during testing
 ├── interfaces/                # Golden-source standardised interface definitions
-├── architecture/              # Reference architectures (e.g. calm-1.json, calm-2.json)
-└── getting-started/           # Tutorial material
+└── architecture/              # Reference architectures (e.g. calm-1.json, calm-2.json)
 ```
 
 ## Critical Rules for Schema Changes
