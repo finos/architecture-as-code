@@ -34,7 +34,7 @@ npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
-npm run copy-calm-schema         # Copy CALM JSON schemas from ../calm/
+npm run copy-calm-schema         # Copy CALM meta schemas from npm and ../calm/
 npm run copy-docify-templates    # Copy docify templates from ../shared/
 npm run copy-widgets             # Copy widget files from ../calm-widgets/
 npm run copy-ai-tools            # Copy AI agent files from ../calm-ai/
@@ -99,13 +99,13 @@ dist/
 └── widgets/              # Copied widget files (copy-widgets uses --up 4)
 ```
 
-Note: `copy-calm-schema` only bundles `**/meta/*` files (not every CALM schema)
-into `dist/calm/`.
+Note: `copy-calm-schema` only bundles meta schemas into `dist/calm/` (see Schema Handling).
 
 ## Key Concepts
 
 ### Schema Handling
-- CALM schemas live in `../calm/release/` and `../calm/draft/`
+- Released CALM schemas come from the `@finos/calm-schema` npm package. The root `package.json` pins each released version by alias (`calm-schema-1.0`, `calm-schema-1.1`, ...) and the latest version as `@finos/calm-schema`
+- Release candidates and drafts live in `../calm/release/` and `../calm/draft/`
 - Default schema directory: `../calm/release`
 - CLI accepts `-s, --schema-directory` to override
 - Schemas are copied during build, not at runtime
@@ -169,7 +169,7 @@ its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`).
 5. Update README.md with command documentation
 
 ### Modifying Schema Handling
-- Schemas are in `../calm/` directory (outside CLI)
+- `scripts/copy-calm-schemas.mjs` copies every `@finos/calm-schema` devDependency in the root `package.json`. The latest version must also have a `calm-schema-<major.minor>` alias, so a schema bump PR must add the new alias; the build fails until it does
 - Update copy script in `package.json` if schema structure changes
 - Test with `npm run build` to ensure schemas copy correctly
 
