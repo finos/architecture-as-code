@@ -17,7 +17,7 @@
     "scripts": {
         "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets && npm run copy-ai-tools && npm run copy-workspace-templates",
         "watch": "node watch.mjs",
-        "copy-calm-schema": "copyfiles \"../calm/release/**/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/",
+        "copy-calm-schema": "copyfiles \"../calm/release/1.0-rc*/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/ && node ../scripts/copy-calm-schemas.mjs dist/calm",
         "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
         "copy-widgets": "copyfiles \"../calm-widgets/dist/cli/widgets/**/*\" dist --up 4",
         "copy-ai-tools": "copyfiles \"../calm-ai/tools/**/*\" \"../calm-ai/ai-assistants/**/*\" \"../calm-ai/templates/**/*\" dist/calm-ai/ --up 2",
