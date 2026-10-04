@@ -38,6 +38,7 @@ architecture-as-code/
 ├── calm-lab/                  # Standalone learning lab app (lab.calm.finos.org)
 ├── calm-server/               # TypeScript server (@finos/calm-server)
 ├── calm-plugins/vscode/       # VSCode extension
+├── calm-plugins/intellij/     # IntelliJ plugin (Kotlin/Maven + npm webview)
 ├── calm-models/               # TypeScript data models
 ├── calm-widgets/              # React visualization components
 ├── calm-ai/                   # AI agent tools & prompts
@@ -70,11 +71,13 @@ from inside these folders.
 - **TypeScript/Node.js** — every package except the Java modules below. Built with tsup (esbuild),
   tested with vitest, managed as npm workspaces off a single root lockfile
   (see [Lockfile Regeneration](#lockfile-regeneration)).
-- **Java/Maven** — the root `pom.xml` is a reactor over six modules. Two carry Java code: `calm-hub`
+- **Java/Maven** — the root `pom.xml` is a reactor over six default modules. Two carry Java code: `calm-hub`
   (Quarkus 3.34+, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
   `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
   — it is an npm workspace *and* a Maven module.
 - **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
+
+- **Kotlin/Maven** — `calm-plugins/intellij` builds the IntelliJ host with JDK 25 against the 2026.2.1 SDK. Enable its `intellij` Maven profile to include it in the reactor. Existing Java modules keep their JDK 21 build. Its webview is a root npm workspace. See [its guide](calm-plugins/intellij/AGENTS.md).
 
 ## Node Version Requirements
 

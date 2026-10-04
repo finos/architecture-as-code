@@ -1,0 +1,13 @@
+.gradle/
+.intellijPlatform/
+.kotlin/
+build/
+webview/node_modules/
+webview/dist/
+webview/test-results/
+webview/playwright-report/
+.idea/
+*.iml
+local.properties
+
+target/
