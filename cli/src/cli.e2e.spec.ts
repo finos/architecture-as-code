@@ -12,10 +12,6 @@ const integrationTestPrefix = 'calm-consumer-test';
 let cli: CliInstall;
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
-const GETTING_STARTED_DIR = path.resolve(
-    __dirname,
-    '../../calm/getting-started'
-);
 const GETTING_STARTED_TEST_FIXTURES_DIR = path.resolve(
     __dirname,
     '../test_fixtures/getting-started'
@@ -881,8 +877,7 @@ describe('CLI Integration Tests', () => {
 
 
     test('Getting Started Verification - CLI Steps', async () => {
-        // This flow mirrors the public Getting Started guide to ensure the
-        // documentation actually works when the CLI resolves URLs locally.
+        // Runs generate and docify end to end, with URLs resolved to local fixtures.
         const actualOutputDir = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'actual-output');
 
         if (fs.existsSync(actualOutputDir)) {
@@ -892,7 +887,7 @@ describe('CLI Integration Tests', () => {
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
-            GETTING_STARTED_DIR,
+            GETTING_STARTED_TEST_FIXTURES_DIR,
             'conference-signup.pattern.json'
         );
         const outputArchitecture = path.resolve(

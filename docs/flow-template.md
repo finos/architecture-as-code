@@ -1,5 +1,5 @@
 ---
-architecture: ../calm/getting-started/conference-signup.pattern.json
+architecture: static/calm-example/trading-system.architecture.json
 description: Flow-focused documentation template
 ---
 
