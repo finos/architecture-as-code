@@ -16,18 +16,20 @@ import { THEME } from '../theme';
 export interface ParsedPatternData {
     nodes: Node[];
     edges: Edge[];
+    /** Set when parsing threw, so a broken pattern is not mistaken for an empty one. */
+    failed?: true;
 }
 
 /** A loosely-typed JSON Schema object for pattern traversal */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-type SchemaObject = Record<string, any>;
+export type SchemaObject = Record<string, any>;
 
 // ---- Schema traversal helpers ----
 
 /**
  * A pattern may declare its nodes and relationships directly, or inside an allOf branch.
  */
-function findDeclarations(pattern: SchemaObject, key: string, member: string): SchemaObject | undefined {
+export function findDeclarations(pattern: SchemaObject, key: string, member: string): SchemaObject | undefined {
     if (pattern['properties']?.[key]?.[member]) {
         return pattern['properties'][key];
     }
@@ -698,6 +700,6 @@ export function parsePatternData(pattern: SchemaObject): ParsedPatternData {
         return applyPatternLayout(regularNodes, groupNodes, edges);
     } catch (error) {
         console.error('Error parsing pattern data:', error);
-        return { nodes: [], edges: [] };
+        return { nodes: [], edges: [], failed: true };
     }
 }

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { parsePatternData } from './patternTransformer';
 
 // Helper to build a minimal pattern node schema item
@@ -72,6 +72,16 @@ describe('parsePatternData', () => {
         const result = parsePatternData({});
         expect(result.nodes).toEqual([]);
         expect(result.edges).toEqual([]);
+        expect(result.failed).toBeUndefined();
+    });
+
+    it('flags a pattern that cannot be parsed', () => {
+        const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+        const result = parsePatternData({ properties: { nodes: { prefixItems: 'not-an-array' } } });
+
+        expect(result).toEqual({ nodes: [], edges: [], failed: true });
+        consoleError.mockRestore();
     });
 
     it('creates nodes from a basic pattern', () => {

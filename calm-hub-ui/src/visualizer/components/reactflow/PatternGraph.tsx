@@ -19,7 +19,9 @@ import { DecisionGroupNode } from './DecisionGroupNode.js';
 import { SearchBar } from './SearchBar.js';
 import { THEME } from './theme.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
+import { PatternRulesState } from './PatternRulesState.js';
 import { parsePatternData } from './utils/patternTransformer.js';
+import { extractPatternRules, hasPatternRules } from './utils/patternRules.js';
 import { getMatchingNodeIds, isEdgeVisible, getUniqueNodeTypes } from './utils/searchUtils.js';
 import { useGraphInteractions } from './hooks/useGraphInteractions.js';
 import { applyPositions, loadStoredNodePositions, toStoredPositions, type StoredNodePosition } from '../../services/node-position-service.js';
@@ -118,10 +120,15 @@ export function PatternGraph({
     // supports — so this can't get stuck for a caller that forgot to pass one.
     const awaitingDefaultLayout = !!viewportKey && defaultLayout === undefined;
 
+    // Parsed during render, not in the effect, so the empty and error states
+    // below are decided on the first frame instead of after node state fills.
+    const parsed = useMemo(() => parsePatternData(patternData), [patternData]);
+    const rules = useMemo(() => extractPatternRules(patternData), [patternData]);
+
     useEffect(() => {
         if (awaitingDefaultLayout) return;
 
-        const { nodes: parsedNodes, edges: parsedEdges } = parsePatternData(patternData);
+        const { nodes: parsedNodes, edges: parsedEdges } = parsed;
         sourceNodesRef.current = parsedNodes;
         sourceEdgesRef.current = parsedEdges;
         // Precedence: a provided default layout (from document _layout or
@@ -137,7 +144,7 @@ export function PatternGraph({
         setDecisionPoints(extractDecisionPoints(parsedNodes));
         reportPositions(toStoredPositions(positionedNodes));
     }, [
-        patternData,
+        parsed,
         setNodes,
         setEdges,
         setAvailableNodeTypes,
@@ -217,12 +224,20 @@ export function PatternGraph({
         setDecisionSelections(new Map());
     }, []);
 
-    if (awaitingDefaultLayout) {
-        return <EmptyGraphState message="Loading saved layout…" />;
+    if (parsed.failed) {
+        return <EmptyGraphState message="This pattern could not be drawn. See the JSON view for its schema." />;
     }
 
-    if (nodes.length === 0) {
-        return <EmptyGraphState message="No pattern data to display. Load a CALM pattern to visualize." />;
+    if (parsed.nodes.length === 0) {
+        return hasPatternRules(rules) ? (
+            <PatternRulesState rules={rules} />
+        ) : (
+            <EmptyGraphState message="This pattern defines no nodes or relationships to draw." />
+        );
+    }
+
+    if (awaitingDefaultLayout) {
+        return <EmptyGraphState message="Loading saved layout…" />;
     }
 
     return (
