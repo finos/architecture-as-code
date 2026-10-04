@@ -1,5 +1,6 @@
 package org.finos.calm.store.util;
 
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
 
 import java.util.Comparator;
@@ -45,6 +46,12 @@ public final class SemanticVersionOrder {
         int comparison = Semver.tryParse(leftVersion).compareTo(Semver.tryParse(rightVersion));
         if (comparison != 0) {
             return comparison;
+        }
+        // A snapshot precedes the release it belongs to, per semver pre-release ordering.
+        boolean leftSnapshot = ResourceVersion.isSnapshot(leftVersion);
+        boolean rightSnapshot = ResourceVersion.isSnapshot(rightVersion);
+        if (leftSnapshot != rightSnapshot) {
+            return leftSnapshot ? -1 : 1;
         }
         // Total-order tiebreak so equal-ranking values (e.g. two unparseable
         // strings, both 0.0.0) still sort deterministically.

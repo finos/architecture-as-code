@@ -85,9 +85,15 @@ class TestGitHubFlowStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_flow_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteFlowVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void throw_unsupported_on_create_flow() {
         assertThrows(UnsupportedOperationException.class,
-                () -> store.createFlowForNamespace(new CreateFlowRequest(), "finos"));
+                () -> store.createFlowForNamespace(new CreateFlowRequest(), "finos", "1.0.0"));
     }
 
     @Test

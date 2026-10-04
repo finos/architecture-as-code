@@ -97,9 +97,21 @@ class TestGitHubInterfaceStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_update_interface_for_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.updateInterfaceForVersion(new CreateInterfaceRequest(), "finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_unsupported_on_delete_interface_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteInterfaceVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void throw_unsupported_on_create_interface() {
         assertThrows(UnsupportedOperationException.class,
-                () -> store.createInterfaceForNamespace(new CreateInterfaceRequest(), "finos"));
+                () -> store.createInterfaceForNamespace(new CreateInterfaceRequest(), "finos", "1.0.0"));
     }
 
     @Test

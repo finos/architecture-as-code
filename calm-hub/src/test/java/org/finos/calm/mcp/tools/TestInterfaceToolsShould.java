@@ -220,7 +220,7 @@ class TestInterfaceToolsShould {
     @Test
     void create_interface_successfully() throws NamespaceNotFoundException {
         CalmInterface created = new CalmInterface("Trading API", "REST interface for trades", "{}", 7, "1.0.0");
-        when(interfaceStore.createInterfaceForNamespace(any(), eq("finos")))
+        when(interfaceStore.createInterfaceForNamespace(any(), eq("finos"), anyString()))
                 .thenReturn(created);
 
         ToolResponse result = interfaceTools.createInterface("finos", "Trading API", "REST interface for trades", "{}");
@@ -233,7 +233,7 @@ class TestInterfaceToolsShould {
 
     @Test
     void return_error_when_creating_interface_in_missing_namespace() throws NamespaceNotFoundException {
-        when(interfaceStore.createInterfaceForNamespace(any(), anyString()))
+        when(interfaceStore.createInterfaceForNamespace(any(), anyString(), anyString()))
                 .thenThrow(new NamespaceNotFoundException());
 
         ToolResponse result = interfaceTools.createInterface("missing", "API", "desc", "{}");

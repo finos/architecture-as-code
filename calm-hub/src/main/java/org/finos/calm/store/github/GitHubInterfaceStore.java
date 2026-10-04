@@ -56,7 +56,7 @@ public class GitHubInterfaceStore extends AbstractReadOnlyGitHubStore implements
     }
 
     @Override
-    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace) throws NamespaceNotFoundException {
+    public CalmInterface createInterfaceForNamespace(CreateInterfaceRequest interfaceRequest, String namespace, String version) throws NamespaceNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
@@ -89,6 +89,19 @@ public class GitHubInterfaceStore extends AbstractReadOnlyGitHubStore implements
 
     @Override
     public void deleteInterface(String namespace, Integer interfaceId) throws NamespaceNotFoundException, InterfaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public CalmInterface updateInterfaceForVersion(CreateInterfaceRequest interfaceRequest, String namespace,
+                                            Integer interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public boolean deleteInterfaceVersion(String namespace, int interfaceId, String version)
+            throws NamespaceNotFoundException, InterfaceNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }

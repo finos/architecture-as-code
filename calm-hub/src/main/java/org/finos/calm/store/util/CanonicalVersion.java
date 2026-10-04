@@ -1,5 +1,7 @@
 package org.finos.calm.store.util;
 
+import org.finos.calm.domain.ResourceVersion;
+
 import java.util.Arrays;
 
 /**
@@ -33,6 +35,13 @@ import java.util.Arrays;
  * the callers instead would mean seven resource types each having to
  * remember to do it.
  *
+ * <h2>Snapshots</h2>
+ * A snapshot folds exactly as its release version does, and keeps the suffix:
+ * {@code 100-SNAPSHOT} and {@code 1-0-0-SNAPSHOT} both store as {@code 1.0.0-SNAPSHOT}.
+ * The suffix is deliberately <em>not</em> folded away — a snapshot and its release are two
+ * different documents, and merging them would make publishing a release overwrite its own
+ * snapshot instead of creating a new version.
+ *
  * <h2>Why this does not run the regex</h2>
  * {@code VERSION_REGEX} remains the definition of what the API accepts, and
  * this class must agree with it exactly. It does not <em>execute</em> it,
@@ -60,11 +69,12 @@ public final class CanonicalVersion {
         if (version == null) {
             return null;
         }
-        String[] segments = split(version);
+        String[] segments = split(ResourceVersion.releaseVersion(version));
         if (segments == null) {
             return version;
         }
-        return segments[0] + "." + segments[1] + "." + segments[2];
+        String canonical = segments[0] + "." + segments[1] + "." + segments[2];
+        return ResourceVersion.isSnapshot(version) ? ResourceVersion.asSnapshot(canonical) : canonical;
     }
 
     /**

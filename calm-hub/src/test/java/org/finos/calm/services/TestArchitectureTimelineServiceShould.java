@@ -142,6 +142,36 @@ public class TestArchitectureTimelineServiceShould {
     }
 
     @Test
+    void order_a_snapshot_immediately_before_its_release_and_set_current_moment_to_the_release() throws Exception {
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(2));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0-SNAPSHOT"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.0.0"));
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0"));
+    }
+
+    @Test
+    void set_current_moment_to_the_highest_release_even_when_a_snapshot_ranks_higher() throws Exception {
+        // A 1.1.0-SNAPSHOT past the published 1.0.0 must not become "current" — it isn't published yet.
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0", "1.1.0-SNAPSHOT"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(2));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.1.0-SNAPSHOT"));
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0"));
+    }
+
+    @Test
+    void set_current_moment_to_the_snapshot_when_nothing_is_published_yet() throws Exception {
+        JsonNode timeline = impliedTimelineFor(List.of("1.0.0-SNAPSHOT"));
+
+        assertThat(timeline.get("current-moment").asText(), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void treat_hyphenated_semver_as_semver() throws Exception {
         // Semver.parse accepts hyphen-separated versions (e.g. mongo-style "1-0-0")
         JsonNode timeline = impliedTimelineFor(List.of("2-0-0", "1-0-0"));
@@ -275,6 +305,20 @@ public class TestArchitectureTimelineServiceShould {
 
         assertThrows(NamespaceNotFoundException.class,
                 () -> service.getTimelineForArchitecture(NAMESPACE, ARCHITECTURE_ID));
+    }
+
+    @Test
+    void order_a_snapshot_into_position_rather_than_after_every_release() throws Exception {
+        // Before Semver.parse accepted the suffix, a snapshot was classified non-semver and
+        // appended after the sorted versions, so every implied timeline ended with it.
+        JsonNode timeline = impliedTimelineFor(List.of("2.0.0", "1.5.0-SNAPSHOT", "1.0.0"));
+
+        JsonNode moments = timeline.get("moments");
+        assertThat(moments.size(), is(3));
+        assertThat(moments.get(0).get("unique-id").asText(), is("1.0.0"));
+        assertThat(moments.get(1).get("unique-id").asText(), is("1.5.0-SNAPSHOT"));
+        assertThat(moments.get(2).get("unique-id").asText(), is("2.0.0"));
+        assertThat(timeline.get("current-moment").asText(), is("2.0.0"));
     }
 
     @Test

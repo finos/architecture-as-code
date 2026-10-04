@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.ResourceVersion;
 import org.finos.calm.domain.Semver;
 import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
@@ -17,11 +18,11 @@ import org.finos.calm.domain.timeline.NamespaceTimelineSummary;
 import org.finos.calm.domain.timeline.Timeline;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.TimelineStore;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -35,12 +36,13 @@ import java.util.List;
  * <h2>Ordering rule</h2>
  * Architecture versions are projected into moments ordered as follows:
  * <ol>
- *   <li>Versions that parse as valid semver are sorted ascending by semver first.</li>
+ *   <li>Versions that parse as valid semver are sorted ascending by semver first, with a
+ *       snapshot immediately before its release.</li>
  *   <li>Versions that are not valid semver keep their original storage order and are
  *       appended after the semver-ordered versions.</li>
  * </ol>
- * {@code current-moment} is the unique-id of the last moment in the resulting order (the
- * highest semver, or — if all versions are non-semver — the last in storage order).
+ * {@code current-moment} is the last non-snapshot moment in that order, falling back to the
+ * last moment overall only if every version is a snapshot.
  */
 @ApplicationScoped
 public class ArchitectureTimelineService {
@@ -160,7 +162,7 @@ public class ArchitectureTimelineService {
         }
 
         if (!orderedVersions.isEmpty()) {
-            timeline.put("current-moment", orderedVersions.get(orderedVersions.size() - 1));
+            timeline.put("current-moment", ResourceVersion.latestRelease(orderedVersions));
         }
 
         logger.debug("Built implied timeline for architecture {} in namespace '{}' with {} moments",
@@ -177,6 +179,9 @@ public class ArchitectureTimelineService {
      * cannot be relied upon to distinguish a real {@code 0.0.0} from an unparseable value. We
      * therefore classify versions explicitly using {@link Semver#parse(String)} (which throws on
      * non-semver input) before sorting.</p>
+     *
+     * <p>Sorts with {@link SemanticVersionOrder#ASCENDING} rather than plain {@code Semver}
+     * comparison, so a snapshot always orders before its release.</p>
      */
     private List<String> orderVersions(List<String> versions) {
         List<String> semverVersions = new ArrayList<>();
@@ -190,7 +195,7 @@ public class ArchitectureTimelineService {
             }
         }
 
-        semverVersions.sort(Comparator.comparing(Semver::parse));
+        semverVersions.sort(SemanticVersionOrder.ASCENDING);
 
         List<String> ordered = new ArrayList<>(semverVersions);
         ordered.addAll(nonSemverVersions);
