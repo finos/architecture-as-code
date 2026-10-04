@@ -30,13 +30,22 @@ export async function runValidate(options: ValidateOptions) {
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
         await schemaDirectory.loadSchemas();
 
+        // CLI file arguments are user-supplied paths: resolve them against the
+        // current working directory up front. The loader's basePath is the
+        // pattern's directory (for relative $refs inside documents); without
+        // this, a relative -a/--architecture path would be resolved against
+        // the pattern directory instead of CWD (issue #3204).
+        const architecturePath = options.architecturePath ? path.resolve(options.architecturePath) : options.architecturePath;
+        const patternPath = options.patternPath ? path.resolve(options.patternPath) : options.patternPath;
+        const timelinePath = options.timelinePath ? path.resolve(options.timelinePath) : options.timelinePath;
+
         let architecture: object | undefined = undefined;
         let pattern: object | undefined = undefined;
         let timeline: object | undefined = undefined;
 
-        if (options.timelinePath) {
+        if (timelinePath) {
             const result = await loadTimeline(
-                options.timelinePath,
+                timelinePath,
                 docLoader,
                 schemaDirectory,
                 logger
@@ -46,8 +55,8 @@ export async function runValidate(options: ValidateOptions) {
         }
         else {
             const result = await loadArchitectureAndPattern(
-                options.architecturePath ?? '',
-                options.patternPath ?? '',
+                architecturePath ?? '',
+                patternPath ?? '',
                 docLoader,
                 schemaDirectory,
                 logger
