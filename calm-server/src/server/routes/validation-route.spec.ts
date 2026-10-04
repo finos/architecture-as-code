@@ -1,11 +1,13 @@
 import request from 'supertest';
 import * as fs from 'fs';
+import os from 'os';
 
 import express, { Application } from 'express';
 import { ValidationRouter, hasDisallowedPatternRef } from './validation-route';
 import path from 'path';
 import { FileSystemDocumentLoader, SchemaDirectory, validate } from '@finos/calm-shared';
 import { vi } from 'vitest';
+import { copyCalmSchemas, ROOT_PACKAGE_JSON, schemaPackageJsonPaths } from '../../../../scripts/copy-calm-schemas.mjs';
 
 vi.mock('@finos/calm-shared', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@finos/calm-shared')>();
@@ -15,9 +17,21 @@ vi.mock('@finos/calm-shared', async (importOriginal) => {
     };
 });
 
-const schemaDirectoryPath: string = __dirname + '/../../../../calm/release';
 const apiGatewayPatternPath: string =
     __dirname + '/../../../test_fixtures/api-gateway';
+// The api-gateway fixture refs a 1.0-rc1 schema, which is not published to npm.
+const rc1SchemaPath: string = __dirname + '/../../../../calm/release/1.0-rc1/meta';
+
+let schemaDirectoryPath: string;
+
+beforeAll(() => {
+    schemaDirectoryPath = fs.mkdtempSync(path.join(os.tmpdir(), 'calm-server-schemas-'));
+    copyCalmSchemas(schemaDirectoryPath, schemaPackageJsonPaths(ROOT_PACKAGE_JSON));
+});
+
+afterAll(() => {
+    fs.rmSync(schemaDirectoryPath, { recursive: true, force: true });
+});
 
 function createValidationApp() {
     const app = express();
@@ -28,7 +42,7 @@ function createValidationApp() {
         router,
         new SchemaDirectory(
             new FileSystemDocumentLoader(
-                [schemaDirectoryPath, apiGatewayPatternPath],
+                [schemaDirectoryPath, rc1SchemaPath, apiGatewayPatternPath],
                 false
             )
         )

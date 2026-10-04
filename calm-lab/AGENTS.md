@@ -52,7 +52,7 @@ shim here.
 | Path | What it is |
 | --- | --- |
 | `src/engine.ts` | `validateArchitecture`, `validateOutcome`, `generateArchitecture` on `@finos/calm-shared/browser` |
-| `src/schemas.ts` | The CALM meta-schemas, imported from `calm/` and keyed by `$id` |
+| `src/schemas.ts` | The CALM meta-schemas, imported from `@finos/calm-schema` and `calm/draft` and keyed by `$id` |
 | `src/shell.ts` | The terminal's command interpreter; dispatches `calm` subcommands to `src/cli/` |
 | `src/cli/` | CLI-compatible `calm validate`/`calm generate`/`calm diff`: argument parsing, output and error text |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
@@ -62,10 +62,12 @@ shim here.
 | `src/lab/storage.ts` | Workspace and progress keys for each lesson, plus one shared UI-prefs key |
 
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
-`buildBrowserDocumentLoader` with `allowRemote: false`. Schemas are bundled from `calm/` in this
-repo, so the lab and the spec can never drift. A command with `-u` gets its own `SchemaDirectory`
-(`schemaDirectoryWith`): the mapped workspace files first (`src/cli/files.ts`), then the bundled
-schemas. Mapped paths resolve against the mapping file's directory, as in the CLI.
+`buildBrowserDocumentLoader` with `allowRemote: false`. `src/schemas.ts` bundles every release
+that the root `package.json` pins (`@finos/calm-schema` and each `calm-schema-<major.minor>`
+alias, found by `import.meta.glob`), and the draft schemas from `calm/draft`. A command with `-u`
+gets its own `SchemaDirectory` (`schemaDirectoryWith`): the mapped workspace files first
+(`src/cli/files.ts`), then the bundled schemas. Mapped paths resolve against the mapping file's
+directory, as in the CLI.
 
 ## The async rule
 
