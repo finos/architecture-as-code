@@ -89,8 +89,8 @@ CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH}" \
     bash "${INIT_NITRITE_SCRIPT}"
 
 # Verify the database was actually populated before baking it into the image.
-# init-nitrite.sh intentionally tolerates per-request failures (it only prints
-# warnings), so an empty database can otherwise pass the build undetected. Query
+# init-nitrite.sh tolerates some per-request failures (it only prints warnings
+# for them), so an empty database can otherwise pass the build undetected. Query
 # the namespaces endpoint and fail loudly if nothing was persisted.
 echo "[seed] Verifying seeded data..."
 NAMESPACE_RESPONSE="$(curl -s "${CALM_HUB_URL}/api/calm/namespaces" || true)"

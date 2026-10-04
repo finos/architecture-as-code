@@ -1,7 +1,7 @@
 {
   "controlId": 35,
   "name": "sdlc-prev-017-service-dependency-control",
-  "description": "Service Dependency Mapping provides visibility into how services and external APIs interact across systems and applications. It enables faster incident response, coordinated remediation, and reduced operational risk by maintaining an accurate, up-to-date view of runtime dependencies and their relationships at both service and application levels.",
+  "description": "Service Dependency Mapping provides visibility into how services and external APIs interact across systems and applications. It enables faster incident response, coordinated remediation, and reduced operational risk by maintaining an accurate, up-to-date view of runtime dependencies and their relationships at both service and application levels.\n\nThis control complements Component Inventory by extending visibility from artifact-level composition to runtime service and application-level dependency relationships.",
   "requirement": {
     "1-0-0": {
       "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",

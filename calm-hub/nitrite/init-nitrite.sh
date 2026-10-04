@@ -50,6 +50,24 @@ check_calmhub_status() {
     fi
 }
 
+# create_namespace <name> <description>
+# Returns non-zero when the namespace does not exist afterwards.
+create_namespace() {
+    local namespace="$1" description="$2"
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
+        -H "$CONTENT_TYPE" \
+        -d "$(jq -n --arg name "$namespace" --arg description "$description" '{name: $name, description: $description}')")
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_status "Namespace $namespace already exists, skipping"
+    else
+        print_warning "Failed to create namespace $namespace (HTTP $http_code)"
+        return 1
+    fi
+}
+
 # Function to create namespaces
 create_namespaces() {
     print_status "Creating namespaces..."
@@ -65,17 +83,7 @@ create_namespaces() {
             finos.agentic-sdlc) description="Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" ;;
             *) description="$namespace namespace" ;;
         esac
-        local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
-            -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$namespace\", \"description\": \"$description\"}")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created namespace $namespace"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Namespace $namespace already exists, skipping"
-        else
-            print_warning "Failed to create namespace $namespace (HTTP $http_code)"
-        fi
+        create_namespace "$namespace" "$description" || true
     done
 }
 
@@ -257,6 +265,11 @@ seed_named_documents_from_dir() {
         [[ -d "$namespace_dir" ]] || continue
         local namespace
         namespace=$(basename "$namespace_dir")
+        # Create the namespace when create_namespaces does not list it.
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed $resource into namespace $namespace"
+            exit 1
+        fi
         local document_file
         while IFS= read -r document_file; do
             [[ -f "$document_file" ]] || continue
@@ -5382,10 +5395,12 @@ create_domains_and_controls() {
                 --arg requirementJson "$requirement" \
                 '{name: $name, description: $description, requirementJson: $requirementJson}')
 
-            local location new_id
-            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
+            local headers http_code location new_id
+            headers=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
                 -H "$CONTENT_TYPE" \
-                --data-binary @- <<< "$payload" | grep -i '^location:' | tr -d '\r')
+                --data-binary @- <<< "$payload" | tr -d '\r')
+            http_code=$(echo "$headers" | head -n 1 | cut -d' ' -f2)
+            location=$(echo "$headers" | grep -i '^location:' || true)
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
 
             if [[ -n "$new_id" && "$new_id" =~ ^[0-9]+$ ]]; then
@@ -5395,7 +5410,8 @@ create_domains_and_controls() {
                         | jq --arg k "$orig_id" --arg v "$new_id" '. + {($k): $v}')
                 fi
             else
-                print_warning "Failed to create control '$name' in domain $api_domain"
+                print_error "Failed to create control '$name' in domain $api_domain (HTTP $http_code)"
+                exit 1
             fi
         done < <(find "$domain_dir" -maxdepth 1 -name '*.json' | sort)
     done
