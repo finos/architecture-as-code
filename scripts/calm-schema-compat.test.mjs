@@ -210,6 +210,7 @@ describe('useVersionArgs', () => {
             'install',
             '-D',
             '-E',
+            '--package-lock-only',
             '@finos/calm-schema@1.3.0',
             'calm-schema-1.3@npm:@finos/calm-schema@1.3.0',
         ]);
@@ -252,7 +253,10 @@ describe('planReport', () => {
         assert.match(plan.body, /\| calm-lab \| cancelled \| \[Log\]\(.*\/job\/calm-lab\) \|/);
         assert.match(plan.body, /\| calm-hub \| failure \| \[Log\]\(.*\/job\/calm-hub\) \|/);
         assert.doesNotMatch(plan.body, /\| cli \|/);
-        assert.match(plan.body, /npm install -D -E @finos\/calm-schema@1\.3\.0 calm-schema-1\.3@npm:@finos\/calm-schema@1\.3\.0/);
+        assert.match(
+            plan.body,
+            /npm install -D -E --package-lock-only @finos\/calm-schema@1\.3\.0 calm-schema-1\.3@npm:@finos\/calm-schema@1\.3\.0\nnpm ci\n/,
+        );
         assert.match(plan.body, /\*\*calm-hub\*\* \(in `calm-hub`\):\n\n```bash\nmvn -P integration clean verify\n```/);
         assert.match(plan.body, /npm run test --workspace=calm-lab/);
         assert.match(plan.body, /- Pin `@finos\/calm-schema` and the `calm-schema-1\.3` alias to 1\.3\.0\./);
@@ -389,6 +393,22 @@ describe('calm-schema-compat.mjs', () => {
         assert.equal(result.status, 1);
         assert.match(result.stderr, /@finos\/calm-schema 9\.9\.9 is not on npm/);
         assert.equal(result.stdout, '');
+    });
+
+    it('updates only the lockfile, then runs npm ci', () => {
+        const log = join(dir, 'npm-calls.log');
+        const bin = join(dir, 'bin');
+        mkdirSync(bin);
+        writeFileSync(join(bin, 'npm'), `#!/bin/sh\necho "$*" >> "${log}"\n`);
+        chmodSync(join(bin, 'npm'), 0o755);
+
+        const result = runScript(['use', '1.3.0'], { PATH: `${bin}:${process.env.PATH}` });
+
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(readFileSync(log, 'utf8').trim().split('\n'), [
+            'install -D -E --package-lock-only @finos/calm-schema@1.3.0 calm-schema-1.3@npm:@finos/calm-schema@1.3.0',
+            'ci',
+        ]);
     });
 
     it('fails to resolve an invalid version', () => {

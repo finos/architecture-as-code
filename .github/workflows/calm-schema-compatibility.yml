@@ -135,11 +135,8 @@ jobs:
               if: matrix.tool == 'calm-hub'
               uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-            - name: Install workspace
-              run: npm ci
-
-            # Changes package.json and package-lock.json in the runner only, so that the calm-hub
-            # build's own npm install keeps the version.
+            # Changes package.json and package-lock.json in the runner only, then runs npm ci, so
+            # that the calm-hub build's own npm install keeps the version.
             - name: Use @finos/calm-schema ${{ needs.resolve.outputs.version }}
               env:
                   VERSION: ${{ needs.resolve.outputs.version }}

@@ -176,9 +176,18 @@ export function skipReason({ eventName, version, pinned, issue, passed }) {
     return undefined;
 }
 
+// --package-lock-only, then npm ci: installing over an existing node_modules can prune other
+// platforms' optional packages from the lockfile that the update PR commits.
 export function useVersionArgs(version) {
     const { alias } = parseVersion(version);
-    return ['install', '-D', '-E', `${SCHEMA_PACKAGE}@${version}`, `${alias}@npm:${SCHEMA_PACKAGE}@${version}`];
+    return [
+        'install',
+        '-D',
+        '-E',
+        '--package-lock-only',
+        `${SCHEMA_PACKAGE}@${version}`,
+        `${alias}@npm:${SCHEMA_PACKAGE}@${version}`,
+    ];
 }
 
 export function toolResults(jobs) {
@@ -216,8 +225,8 @@ function reproduceSection(version, failed) {
         'At the repository root, with the Node version in `.nvmrc`:',
         '',
         '```bash',
-        'npm ci',
         `npm ${useVersionArgs(version).join(' ')}`,
+        'npm ci',
         '```',
         '',
         'Then run the commands of each tool that fails.',
@@ -333,6 +342,7 @@ const commands = {
 
     use(version) {
         run('npm', useVersionArgs(version), { cwd: REPO_ROOT });
+        run('npm', ['ci'], { cwd: REPO_ROOT });
     },
 
     test(tool) {

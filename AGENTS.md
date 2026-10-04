@@ -137,10 +137,12 @@ against a CALM Hub image, and the cli and calm-hub jobs already test the schema.
 calm-hub fails for each new `major.minor` release until its schema index files list the release
 (see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).
 
-To test a tool locally, run `npm ci`, then `node scripts/calm-schema-compat.mjs use <version>` and
+To test a tool locally, run `node scripts/calm-schema-compat.mjs use <version>`, then
 `node scripts/calm-schema-compat.mjs test <tool>`. The `use` command changes `package.json` and
-`package-lock.json` as the update PR must. If your PR does not update the schema, restore both
-files (`git checkout -- package.json package-lock.json`) and run `npm ci` when you are done.
+`package-lock.json` as the update PR must, with `npm install --package-lock-only`, then runs
+`npm ci`. It never installs over an existing `node_modules`, because that can prune other
+platforms' packages from the lockfile. If your PR does not update the schema, restore both files
+(`git checkout -- package.json package-lock.json`) and run `npm ci` when you are done.
 
 ## Package-Specific Guides
 
