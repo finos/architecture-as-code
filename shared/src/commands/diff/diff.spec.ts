@@ -287,13 +287,14 @@ describe('hasChanges', () => {
     });
 
     it.each([
-        ['ADR added', { adrs: ['adr-001', 'adr-002'] }, 'ADRs:          +1  -0  =1'],
-        ['ADR removed', { adrs: [] }, 'ADRs:          +0  -1  =0'],
-        ['control added', { controls: { encryption: { description: 'Enforce TLS', requirements: [] }, audit: { description: 'Record access', requirements: [] } } }, 'Controls:      +1  -0  ~0'],
-        ['control removed', { controls: {} }, 'Controls:      +0  -1  ~0'],
-        ['metadata added', { metadata: [{ owner: 'team-a' }, { owner: 'team-b' }] }, 'Metadata:      +1  -0  ~0'],
-        ['metadata removed', { metadata: [] }, 'Metadata:      +0  -1  ~0'],
-    ] as const)('returns true for real architecture-level %s changes', (_changeType, patch, summaryLine) => {
+        ['ADR added', { adrs: ['adr-001', 'adr-002'] }, ['ADRs:          +1  -0  =1', 'ADRs added:\n  - adr-002']],
+        ['ADR removed', { adrs: [] }, ['ADRs:          +0  -1  =0', 'ADRs removed:\n  - adr-001']],
+        ['control added', { controls: { encryption: { description: 'Enforce TLS', requirements: [] }, audit: { description: 'Record access', requirements: [] } } }, ['Controls:      +1  -0  ~0', 'Controls added:\n  - audit']],
+        ['control removed', { controls: {} }, ['Controls:      +0  -1  ~0', 'Controls removed:\n  - encryption']],
+        ['control modified', { controls: { encryption: { description: 'Enforce TLS 1.3', requirements: [] } } }, ['Controls:      +0  -0  ~1', 'Controls modified:\n  - encryption']],
+        ['metadata added', { metadata: [{ owner: 'team-a' }, { owner: 'team-b' }] }, ['Metadata:      +1  -0  ~0']],
+        ['metadata removed', { metadata: [] }, ['Metadata:      +0  -1  ~0']],
+    ] as const)('returns true for real architecture-level %s changes', (_changeType, patch, summaryLines) => {
         const baseFields = {
             adrs: ['adr-001'],
             controls: { encryption: { description: 'Enforce TLS', requirements: [] } },
@@ -304,7 +305,7 @@ describe('hasChanges', () => {
 
         expect(result.hasChanges).toBe(true);
         expect(hasChanges(result.diff)).toBe(true);
-        expect(result.formatted).toContain(summaryLine);
+        for (const line of summaryLines) expect(result.formatted).toContain(line);
     });
 });
 
@@ -364,6 +365,9 @@ describe('formatDiff', () => {
         expect(out).toContain('ADRs:          +1  -0  =1');
         expect(out).toContain('Controls:      +0  -0  ~1');
         expect(out).toContain('Metadata:      +1  -0  ~0');
+        expect(out).toContain('ADRs added:\n  - https://example.com/adr/002');
+        expect(out).toContain('Controls modified:\n  - security');
+        expect(out).not.toContain('ADRs removed:');
     });
 
     it('labels id-less pattern nodes by content instead of undefined', () => {
