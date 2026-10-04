@@ -43,7 +43,6 @@
         "@mermaid-js/layout-elk": "^0.2.1",
         "@stoplight/json": "^3.21.7",
         "commander": "^14.0.0",
-        "copyfiles": "^2.4.1",
         "execa": "^9.6.0",
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
@@ -59,6 +58,7 @@
         "@types/xml2js": "^0.4.14",
         "axios": "^1.20.0",
         "chokidar": "^4.0.3",
+        "native-copyfiles": "^2.1.0",
         "semantic-release": "^25.0.0",
         "tsup": "^8.4.0",
         "xml2js": "^0.6.2"

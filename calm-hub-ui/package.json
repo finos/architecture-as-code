@@ -14,7 +14,7 @@
         "lint": "eslint . && stylelint 'src/**/*.css'",
         "lint:css": "stylelint 'src/**/*.css'",
         "format": "prettier --write .",
-        "copy-public": "copyfiles -u 1 ../brand/**/* public/",
+        "copy-public": "copyfiles ../brand/**/* public/ -u 1",
         "start-cypress": "npx cypress open"
     },
     "dependencies": {
@@ -52,7 +52,6 @@
         "@vitejs/plugin-react": "^5.0.0",
         "@vitejs/plugin-react-swc": "^4.0.0",
         "autoprefixer": "^10.4.20",
-        "copyfiles": "^2.4.1",
         "cypress": "^15.7.0",
         "daisyui": "^5.0.0",
         "dotenv": "^17.2.3",
@@ -60,6 +59,7 @@
         "eslint-plugin-react-hooks": "^5.2.0",
         "eslint-plugin-react-refresh": "^0.5.0",
         "jsdom": "^26.0.0",
+        "native-copyfiles": "^2.1.0",
         "postcss": "^8.5.12",
         "prettier": "^3.3.3",
         "stylelint": "^16.26.0",

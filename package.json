@@ -133,9 +133,6 @@
         "eslint": {
             "minimatch": "^3.1.4"
         },
-        "copyfiles": {
-            "minimatch": "^3.1.4"
-        },
         "@stoplight/spectral-core": {
             "minimatch": "^3.1.4"
         },
