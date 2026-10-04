@@ -199,7 +199,7 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 - **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
   `docs`, `vscode`, `deps`, `ci`, `release`
 
-Run `npx cz` for an interactive prompt.
+Run `npm run commit` for an interactive prompt. Stage your changes first.
 
 Type and scope drive the automated release, so neither is cosmetic: `cli/.releaserc.json` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
