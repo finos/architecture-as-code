@@ -7,8 +7,17 @@ import org.finos.calm.domain.mapping.ChangeType;
  */
 public record Semver(int major, int minor, int patch) implements Comparable<Semver> {
 
+    /**
+     * The snapshot suffix is removed <em>before</em> the '-' to '.' replacement below.
+     * Reversing that order turns "1.0.0-SNAPSHOT" into "1.0.0.SNAPSHOT" — four segments,
+     * which is treated as unparseable and sorts as 0.0.0.
+     */
+    private static String[] segments(String version) {
+        return ResourceVersion.releaseVersion(version).replace('-', '.').split("\\.");
+    }
+
     public static Semver parse(String version) {
-        String[] parts = version.replace('-', '.').split("\\.");
+        String[] parts = segments(version);
         if (parts.length != 3) {
             throw new IllegalArgumentException("Invalid version format: " + version);
         }
@@ -20,7 +29,7 @@ public record Semver(int major, int minor, int patch) implements Comparable<Semv
     }
 
     public static Semver tryParse(String version) {
-        String[] parts = version.replace('-', '.').split("\\.");
+        String[] parts = segments(version);
         if (parts.length != 3) {
             return new Semver(0, 0, 0);
         }

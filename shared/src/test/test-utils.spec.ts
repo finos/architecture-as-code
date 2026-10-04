@@ -1,5 +1,33 @@
 import { describe, it, expect } from 'vitest';
-import { setCalmSchema, TEST_ALL_SCHEMA, TEST_1_1_SCHEMA_AND_ABOVE, TEST_1_2_SCHEMA_AND_ABOVE } from './test-utils';
+import { readFileSync } from 'fs';
+import path from 'path';
+import { calmSchemaDir, setCalmSchema, TEST_ALL_SCHEMA, TEST_1_1_SCHEMA_AND_ABOVE, TEST_1_2_SCHEMA_AND_ABOVE } from './test-utils';
+
+function schemaId(dir: string, file: string): string {
+    return JSON.parse(readFileSync(path.join(dir, file), 'utf-8')).$id;
+}
+
+describe('calmSchemaDir', () => {
+    it('returns the schema folder of the latest @finos/calm-schema release', () => {
+        expect(schemaId(calmSchemaDir(), 'calm.json')).toMatch(/^https:\/\/calm\.finos\.org\/release\/\d+\.\d+\/meta\/calm\.json$/);
+    });
+
+    it.each(TEST_ALL_SCHEMA)('returns the schema folder of the %s release', (release) => {
+        expect(schemaId(calmSchemaDir(release), 'core.json')).toBe(`https://calm.finos.org/release/${release}/meta/core.json`);
+    });
+});
+
+describe('TEST_ALL_SCHEMA', () => {
+    it('lists the release of each calm-schema alias in the root package.json, oldest first', () => {
+        const releases = TEST_ALL_SCHEMA.map(([release]) => release.split('.').map(Number));
+
+        expect(TEST_ALL_SCHEMA).toEqual(expect.arrayContaining([['1.0'], ['1.1'], ['1.2']]));
+        releases.slice(1).forEach(([major, minor], index) => {
+            const [previousMajor, previousMinor] = releases[index];
+            expect(major > previousMajor || (major === previousMajor && minor > previousMinor)).toBe(true);
+        });
+    });
+});
 
 describe('setCalmSchema', () => {
     describe('basic functionality', () => {

@@ -20,7 +20,7 @@ const FILES_WITH_GETTING_STARTED_URLS = [
     ),
     path.resolve(
         __dirname,
-        '../../calm/getting-started/conference-signup.pattern.json'
+        '../test_fixtures/getting-started/conference-signup.pattern.json'
     ),
 ];
 

@@ -400,7 +400,7 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas and controls + build `Dockerfile.readonly-static`)
+  (Maven package + stage `calm/` schemas, controls, standards and patterns + build `Dockerfile.readonly-static`)
 
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
@@ -422,11 +422,11 @@ All four workflows:
 
 ### Coverage Requirements
 
-**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
 
 ```bash
 # Run the same check CI uses — always run this before pushing changes
-../mvnw clean verify -Ddependency-check.skip=true
+../mvnw clean verify
 ```
 
 **Exclusions** (from `pom.xml`): `**/*Builder.*`, `**/*CalmResourceErrorResponses.*`, `**/*Constants.*`, `**/*NamespaceStandardSummary.*`, `**/*ArchitectureRequest.*`, `**/config/**/*`, and `**/domain/**/*` are excluded from the coverage check.

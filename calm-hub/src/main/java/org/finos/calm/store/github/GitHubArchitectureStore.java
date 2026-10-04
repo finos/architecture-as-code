@@ -95,4 +95,10 @@ public class GitHubArchitectureStore extends AbstractReadOnlyGitHubStore impleme
     public void deleteArchitecture(String namespace, int architectureId) throws NamespaceNotFoundException, ArchitectureNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
+
+    @Override
+    public boolean deleteArchitectureVersion(String namespace, int architectureId, String version)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
 }

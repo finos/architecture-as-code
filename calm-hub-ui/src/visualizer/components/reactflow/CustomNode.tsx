@@ -21,6 +21,7 @@ import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitectur
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
+import { usableColor } from './utils/usableColor.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -94,6 +95,12 @@ function CustomNodeComponent({ data }: NodeProps) {
   // indicator is suppressed and the hover panel surfaces the raw value instead.
   const isUnknownArch = !!detailedArchitecture && archResolution.type === 'unknown';
   const archPath = isSameOriginArch ? archResolution.path : undefined;
+
+    // Extract building-block-style colors from metadata (if present)
+    // Only a non-empty string is a usable CSS colour; anything else is ignored.
+    const rawBlockStyle = data.metadata?.['building-block-style'] as { background?: unknown; text?: unknown } | undefined;
+    const blockBackground = usableColor(rawBlockStyle?.background);
+    const blockText = usableColor(rawBlockStyle?.text);
 
     // Extract AIGF data (if present in node metadata)
     const aigf = data.metadata?.aigf;
@@ -169,12 +176,13 @@ function CustomNodeComponent({ data }: NodeProps) {
       {/* Base node - always visible, fixed size */}
       <div
         style={{
-          background: THEME.colors.card,
-          border: `2px solid ${borderColor}`,
+          background: blockBackground ?? THEME.colors.card,
+          // The AIGF risk colour outranks the block style so a risky node stays flagged
+          border: `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
           padding: '16px',
           width: '100%',
-          color: THEME.colors.foreground,
+          color: blockText ?? THEME.colors.foreground,
           fontSize: '14px',
           fontWeight: 500,
           boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,

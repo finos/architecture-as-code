@@ -84,14 +84,18 @@ public class NitriteArchitectureStore implements ArchitectureStore {
         namespaceStore.requireNamespace(architecture.getNamespace());
         validateArchitectureJson(architecture.getArchitectureJson());
 
+        // The version already carried on the Architecture object; callers that don't set one
+        // (the numeric-ID API, the MCP tool) still get the historical 1.0.0 default.
+        String version = architecture.getDotVersion() != null ? architecture.getDotVersion() : INITIAL_VERSION;
+
         int id = counterStore.getNextArchitectureSequenceValue();
         documentStore.createHeader(architecture.getNamespace(), id, architecture.getName(), architecture.getDescription());
-        documentStore.createFirstVersion(architecture.getNamespace(), id, architecture.getArchitectureJson());
+        documentStore.createFirstVersion(architecture.getNamespace(), id, version, architecture.getArchitectureJson());
 
         LOG.info("Created architecture with ID {} for namespace '{}'", id, architecture.getNamespace());
         return new Architecture.ArchitectureBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(architecture.getNamespace())
                 .setName(architecture.getName())
                 .setDescription(architecture.getDescription())
@@ -204,5 +208,19 @@ public class NitriteArchitectureStore implements ArchitectureStore {
             throw new ArchitectureNotFoundException();
         }
         LOG.info("Deleted architecture with ID {} from namespace '{}'", architectureId, namespace);
+    }
+
+    @Override
+    public boolean deleteArchitectureVersion(String namespace, int architectureId, String version)
+            throws NamespaceNotFoundException, ArchitectureNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, architectureId)) {
+            throw new ArchitectureNotFoundException();
+        }
+        boolean deleted = documentStore.deleteVersion(namespace, architectureId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of architecture {} from namespace '{}'", version, architectureId, namespace);
+        }
+        return deleted;
     }
 }

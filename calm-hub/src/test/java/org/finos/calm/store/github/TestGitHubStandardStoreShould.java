@@ -85,9 +85,21 @@ class TestGitHubStandardStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_update_standard_for_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.updateStandardForVersion(new CreateStandardRequest(), "finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_unsupported_on_delete_standard_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteStandardVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void throw_unsupported_on_create_standard() {
         assertThrows(UnsupportedOperationException.class,
-                () -> store.createStandardForNamespace(new CreateStandardRequest(), "finos"));
+                () -> store.createStandardForNamespace(new CreateStandardRequest(), "finos", "1.0.0"));
     }
 
     @Test

@@ -2,18 +2,20 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import { validate, SchemaDirectory, buildBrowserDocumentLoader, formatOutput, generate, diffDocuments } from './browser';
+import { calmSchemaDir } from './test/test-utils';
 
 // The spec itself reads the meta-schemas from disk; the code under test only ever sees objects.
-const META_DIR = path.join(__dirname, '../../calm/release/1.2/meta');
+const META_DIR = calmSchemaDir();
 const schemas: Record<string, object> = Object.fromEntries(
     readdirSync(META_DIR).filter((f) => f.endsWith('.json')).map((f) => {
         const doc = JSON.parse(readFileSync(path.join(META_DIR, f), 'utf-8'));
         return [doc.$id, doc];
     })
 );
+const CALM_SCHEMA_ID: string = JSON.parse(readFileSync(path.join(META_DIR, 'calm.json'), 'utf-8')).$id;
 
 const validArch = {
-    $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+    $schema: CALM_SCHEMA_ID,
     'unique-id': 'arch',
     nodes: [
         { 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'a service' },

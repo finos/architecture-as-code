@@ -354,7 +354,7 @@ Decorators attach supplementary information to nodes, relationships, and other e
 
 ---
 
-## 5. Real-World Control Examples from CALM Repo
+## 5. Control Examples
 
 ### Micro-segmentation on Kubernetes Cluster (node control)
 
@@ -367,8 +367,8 @@ Decorators attach supplementary information to nodes, relationships, and other e
     "security": {
       "description": "Security requirements for the Kubernetes cluster",
       "requirements": [{
-        "requirement-url": "https://calm.finos.org/getting-started/controls/micro-segmentation.requirement.json",
-        "config-url": "https://calm.finos.org/getting-started/controls/micro-segmentation.config.json"
+        "requirement-url": "https://myorg.example.com/controls/security/micro-segmentation.requirement.json",
+        "config-url": "https://myorg.example.com/controls/security/micro-segmentation.config.json"
       }]
     }
   }
@@ -392,8 +392,8 @@ Decorators attach supplementary information to nodes, relationships, and other e
     "security": {
       "description": "Security Controls for the connection",
       "requirements": [{
-        "requirement-url": "https://calm.finos.org/getting-started/controls/permitted-connection.requirement.json",
-        "config-url": "https://calm.finos.org/getting-started/controls/permitted-connection-jdbc.config.json"
+        "requirement-url": "https://myorg.example.com/controls/security/permitted-connection.requirement.json",
+        "config-url": "https://myorg.example.com/controls/security/permitted-connection-jdbc.config.json"
       }]
     }
   }

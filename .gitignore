@@ -39,7 +39,6 @@ node_modules
 **/.vscode-test/
 **/out/
 *.vsix
-**/dependency-check-report/
 
 **/tsconfig.tsbuildinfo
 

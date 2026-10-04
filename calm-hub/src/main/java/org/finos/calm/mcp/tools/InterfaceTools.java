@@ -130,7 +130,7 @@ public class InterfaceTools {
 
         try {
             CreateInterfaceRequest request = new CreateInterfaceRequest(name, description, interfaceJson);
-            CalmInterface result = interfaceStore.createInterfaceForNamespace(request, namespace);
+            CalmInterface result = interfaceStore.createInterfaceForNamespace(request, namespace, "1.0.0");
             logger.info("Interface created with ID [{}] in namespace [{}]", result.getId(), namespace);
             return ToolResponse.success("Interface created successfully with ID: " + result.getId() + " (version " + result.getVersion() + ") in namespace '" + namespace + "'.");
         } catch (NamespaceNotFoundException e) {
