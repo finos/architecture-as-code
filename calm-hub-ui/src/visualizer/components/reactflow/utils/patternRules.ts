@@ -15,7 +15,7 @@ export interface StandardLink {
     label: string;
     /** In-app route, for a Standard on this CALM Hub. */
     route?: string;
-    /** External URL, for any other absolute reference. */
+    /** External URL: another CALM Hub's UI page for the Standard, or the reference itself. */
     href?: string;
 }
 
@@ -75,6 +75,7 @@ export function resolveStandardRef(ref: string, hostname: string = window.locati
 
     const [, namespace, id, version] = match;
     const label = `${id} ${version}`;
-    if (url.hostname === hostname) return { label, route: `/${namespace}/standards/${id}/${version}` };
-    return isAbsolute ? { label, href: ref } : { label };
+    const route = `/${namespace}/standards/${id}/${version}`;
+    if (url.hostname === hostname) return { label, route };
+    return isAbsolute ? { label, href: `${url.origin}/#${route}` } : { label };
 }

@@ -156,8 +156,18 @@ describe('resolveStandardRef', () => {
         });
     });
 
-    it('links a Standard on another CALM Hub externally', () => {
-        expect(resolveStandardRef(GOVERNED_NODE, 'localhost')).toEqual({ label: 'governed-node 1.0.0', href: GOVERNED_NODE });
+    it('links a Standard on another CALM Hub to that hub\'s UI page', () => {
+        expect(resolveStandardRef(GOVERNED_NODE, 'localhost')).toEqual({
+            label: 'governed-node 1.0.0',
+            href: 'https://hub.calm.finos.org/#/finos.agentic-sdlc/standards/governed-node/1.0.0',
+        });
+    });
+
+    it('keeps the port of another CALM Hub', () => {
+        expect(resolveStandardRef('http://other-hub:9090/calm/namespaces/ns/standards/node/versions/1.0.0', 'localhost')).toEqual({
+            label: 'node 1.0.0',
+            href: 'http://other-hub:9090/#/ns/standards/node/1.0.0',
+        });
     });
 
     it('links any other absolute URL externally', () => {

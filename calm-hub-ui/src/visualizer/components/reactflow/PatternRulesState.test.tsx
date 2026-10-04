@@ -41,7 +41,7 @@ describe('PatternRulesState', () => {
         render(<PatternRulesState rules={rules} />);
 
         const link = screen.getByRole('link', { name: /governed-node 1.0.0/ });
-        expect(link).toHaveAttribute('href', GOVERNED_NODE);
+        expect(link).toHaveAttribute('href', 'https://hub.calm.finos.org/#/finos.agentic-sdlc/standards/governed-node/1.0.0');
         expect(link).toHaveAttribute('target', '_blank');
         expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });
