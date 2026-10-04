@@ -1,370 +1,96 @@
-# CALM VSCode Extension - AI Assistant Guide
+# CALM Canvas - AI Assistant Guide
 
-This guide helps AI assistants work efficiently with the CALM VSCode extension codebase.
+Read the [root AGENTS.md](../../AGENTS.md) and
+[CONTRIBUTING.md](../../CONTRIBUTING.md) first. Keep changes focused and use the
+repository PR template.
 
-## Tech Stack
+## Architecture
 
-- **Language**: TypeScript 5.8+
-- **Framework**: VSCode Extension API 1.88+
-- **State Management**: Zustand (Redux-like store)
-- **Build Tool**: tsup (esbuild-based)
-- **Test Framework**: Vitest
-- **Architecture Pattern**: MVVM + Hexagonal + Mediator
-- **UI Components**: Native VSCode API (TreeView, Webview, Commands)
+CALM Canvas has a TypeScript VS Code extension host and a React webview.
+ReactFlow renders the canvas, Zustand holds its state, and the two sides exchange
+typed messages. This replaces the old Tree View and Model/Docify/Template preview.
 
-## Key Commands
-
-**IMPORTANT**: Always run npm commands from the **repository root** using workspaces, not from within this package directory.
-
-```bash
-# Development (from repository root)
-npm run build --workspace calm-plugins/vscode          # Build extension
-npm run watch --workspace calm-plugins/vscode          # Watch mode (no auto-reload in VSCode)
-npm test --workspace calm-plugins/vscode               # Run Vitest tests
-npm run lint --workspace calm-plugins/vscode           # ESLint check
-npm run lint-fix --workspace calm-plugins/vscode       # Auto-fix linting issues
-npm run package --workspace calm-plugins/vscode        # Create .vsix package for distribution
-
-# Convenience scripts (run the build:shared prerequisite for you)
-npm run test:vscode                                    # build:shared + test the extension
-npm run package:vscode                                 # build:shared + package the extension
-
-# Testing Extension in VSCode
-# 1. Open the repository root in VSCode (File → Open Folder)
-# 2. Use the "calm-plugin: watch" task or run: npm run watch --workspace calm-plugins/vscode
-# 3. Press F5 (or Run → Start Debugging) to launch Extension Development Host
-# 4. In the new Extension Development Host window, open a CALM JSON file to activate extension
-```
-
-## Architecture Overview
-
-### 🏗️ Three-Layer Architecture
-
-**MVVM (Model-View-ViewModel)**
-```
-View (VSCode UI) <--> ViewModel (Framework-free) <--> Model (Zustand Store)
-```
-
-**Hexagonal Architecture** (Ports & Adapters)
-```
-src/core/
-├── ports/           # Interfaces (dependency inversion)
-├── services/        # Core business logic
-└── mediators/       # Cross-cutting orchestration
-```
-
-**Mediator Pattern**
-- Coordinates between services without tight coupling
-- Examples: RefreshService, SelectionService, WatchService
-
-### Directory Structure
-
-```
+```text
 src/
-├── extension.ts                    # VSCode entry point (activate/deactivate)
-├── calm-extension-controller.ts    # Main orchestrator (wires dependencies)
-├── application-store.ts            # Zustand global state
-│
-├── core/                           # Framework-free business logic
-│   ├── ports/                      # Interfaces for dependency inversion
-│   ├── services/                   # Core services (model, config, navigation, diagnostics, calm-schema-registry, logging)
-│   ├── mediators/                  # Cross-cutting coordinators (refresh, selection, watch, store-reaction)
-│   └── emitter.ts                 # Event system (framework-free)
-│
-├── features/                       # Feature modules
-│   ├── tree-view/                 # Sidebar tree navigation
-│   │   ├── tree-view-factory.ts  # Wires view + view-model
-│   │   ├── view/                 # VSCode-specific view (tree-view.ts, tree-item.ts)
-│   │   └── view-model/           # MVVM presentation logic (framework-free)
-│   ├── editor/                    # Editor integration (hover, CodeLens)
-│   └── preview/                   # Webview preview panel
-│       ├── webview/              # Webview internals (mermaid-renderer, pan-zoom-manager,
-│       │                         #   diagram-controls, panel.view)
-│       ├── docify-tab/           # Documentation generation
-│       ├── model-tab/            # Model data display
-│       └── template-tab/         # Template processing & live mode
-│
-├── commands/                       # VSCode command handlers
-├── models/                         # CALM model parsing & indexing
-└── cli/                           # CLI integration (deprecated, being replaced)
+├── extension/
+│   ├── extension.ts              # Activation, calm.openCanvas, CodeLens
+│   ├── webview/
+│   │   ├── canvas-panel.ts       # Panel lifecycle and message dispatch
+│   │   └── html-provider.ts      # Webview HTML and bundled assets
+│   ├── services/                 # Workspace assets, sync, export, CodeLens
+│   └── types/messages.ts         # Extension/webview message contracts
+├── webview/
+│   ├── main.tsx                  # React entry point
+│   ├── App.tsx                   # Canvas, editing, layout, validation, export
+│   ├── stores/                   # Zustand canvas state and sync bridge
+│   ├── transforms/               # CALM parsing and editor transformations
+│   ├── canvas/                   # ReactFlow node and edge components
+│   ├── panels/                   # Palette, properties, assets, templates
+│   └── utils/                    # Webview validation and helpers
+├── core/                         # CALM types, helpers, bundled schemas
+├── extensions/                   # Palette pack definitions and registry
+└── test/__mocks__/vscode.ts       # VS Code API mock for unit tests
 ```
 
-### Key Design Principles
+## Commands and settings
 
-1. **Framework Isolation**: ViewModels have NO `vscode` imports
-2. **Dependency Inversion**: Core depends on ports, not VSCode
-3. **Single Store**: All state in `application-store.ts`
-4. **Mediator Coordination**: Services don't call each other directly
+`package.json` is the source of truth for the public surface:
 
-## Key Concepts
+- Command: `calm.openCanvas` (**CALM: View in CALM Canvas**).
+- Supported document suffixes: `.calm.json`, `.architecture.json`,
+  `.template.json`, `.solution.json`, `.standard.json`, `.guideline.json`.
+- Settings: `calm.externalAssetsPath`, `calm.packs.enabled`,
+  `calm.packs.excludeNodes`.
 
-### State Management (Zustand)
+The editor title, context menus, keybinding, and CodeLens open the same canvas.
+Do not add guidance for removed preview tabs or settings such as `calm.urlMapping`.
 
-**Store Location**: `src/application-store.ts`
+## Data flow
 
-The store is created via the `createApplicationStore()` factory (using Zustand's
-`subscribeWithSelector` middleware), not a module-level `create()` singleton. The
-extension controller owns the instance and injects it where needed.
+- `CanvasPanel` loads the current document and workspace assets, then sends them
+  to the webview using the contracts in `src/extension/types/messages.ts`.
+- Canvas edits return as `canvasChanged` messages and are applied with
+  `vscode.WorkspaceEdit`. They update the document; they do not save it to disk.
+- `SyncCoordinator` suppresses the echo of a canvas write to prevent a sync loop.
+  File watchers and save events send file changes back to the canvas.
+- `WorkspaceAssetService` scans workspace roots and `calm.externalAssetsPath`
+  for building blocks, patterns, templates, standards, and guidelines.
+- Webview validation uses `src/webview/utils/validation.ts` and the schema and
+  semantic checks in `src/core/validation.ts`. Results appear in the canvas.
+- SVG export starts in `App.tsx` and is saved by `DiagramExportService`.
 
-```typescript
-interface ApplicationStore {
-    calmModel: CalmModel | null;
-    selectedNode: string | null;
-    isLoading: boolean;
-    // ... other state
-    
-    // Actions
-    setCalmModel: (model: CalmModel) => void;
-    setSelectedNode: (nodeId: string | null) => void;
-    // ... other actions
-}
-```
+When adding a feature, update the appropriate host or webview module and the
+message contract when necessary. Keep VS Code API access in the extension host
+and preserve the file/canvas synchronization guards.
 
-**Usage** (illustrative — the real store is a per-instance object created by the factory):
-```typescript
-import { createApplicationStore } from './application-store';
+## Development commands
 
-const store = createApplicationStore();
+Use Node 26 as specified by the root `.nvmrc`. Run npm commands from the
+repository root, with workspace selectors:
 
-// Read with a selector
-const model = store.getState().calmModel;
-
-// React to changes (subscribeWithSelector)
-store.subscribe(state => state.calmModel, model => { /* ... */ });
-```
-
-### MVVM Pattern
-
-**ViewModel Example**:
-```typescript
-// src/features/tree-view/view-model/tree-view-model.ts
-export class TreeViewModel {
-    // NO vscode imports!
-    constructor(
-        private store: ApplicationStore,
-        private emitter: Emitter
-    ) {}
-    
-    getTreeData(): TreeNode[] {
-        const model = this.store.getState().calmModel;
-        return this.transformToTree(model);
-    }
-}
-```
-
-**View (VSCode Specific)**:
-```typescript
-// src/features/tree-view/tree-data-provider.ts
-export class CalmTreeDataProvider implements vscode.TreeDataProvider {
-    constructor(private viewModel: TreeViewModel) {}
-    
-    getChildren(element?: TreeItem): TreeItem[] {
-        return this.viewModel.getTreeData().map(toTreeItem);
-    }
-}
-```
-
-### Mediator Pattern
-
-**Mediators** coordinate between services:
-
-```typescript
-// src/core/mediators/store-reaction-mediator.ts
-export class StoreReactionMediator {
-    constructor(
-        private store: ApplicationStore,
-        private refreshService: RefreshService,
-        private selectionService: SelectionService
-    ) {
-        // React to store changes
-        this.store.subscribe(
-            state => state.calmModel,
-            model => this.refreshService.refreshAll()
-        );
-    }
-}
-```
-
-### Navigation Service
-- **Purpose**: Handles navigation between CALM documents via `detailed-architecture` references.
-- **Key Logic**: Uses `DocumentLoader` from `@finos/calm-shared` to resolve URLs/relative paths to local files based on `calm.urlMapping`.
-- **Integration**: Called by `SelectionService` when a node with details is clicked.
-
-### Features
-
-#### Tree View
-- **Purpose**: Sidebar navigation of CALM model structure
-- **Location**: `src/features/tree-view/`
-- **Key Files**:
-  - `view/tree-view.ts` - VSCode TreeDataProvider implementation
-  - `view/tree-item.ts` - VSCode TreeItem wrapper
-  - `tree-view-factory.ts` - Wires the view and view-model together
-  - `view-model/tree-view-model.ts` - Business logic (framework-free)
-
-#### Validation Service
-- **Purpose**: Real-time CALM document validation with Problems panel integration
-- **Location**: `src/features/validation/`
-- **Key Files**:
-  - `validation-service.ts` - Main service, handles document events and diagnostics
-  - `validation-service.spec.ts` - Unit tests
-- **Behavior**:
-  - Validates on document open, save, and editor activation
-  - Clears diagnostics when editor tab is closed
-  - Uses content-based detection (checks `$schema` field for known CALM schemas)
-  - Produces precise line numbers for error positioning using shared enrichment logic
-- **Dependencies**: Uses `runValidation`, `enrichWithDocumentPositions` from `@finos/calm-shared`
-
-#### Webview Preview
-- **Purpose**: Multi-tab preview (Model, Docify, Template)
-- **Location**: `src/features/preview/`
-- **Tabs**:
-  - **Model Tab**: Display CALM JSON in formatted view
-  - **Docify Tab**: Generate documentation websites
-  - **Template Tab**: Live template processing with Handlebars
-
-#### Editor Integration
-- **Hover Providers**: Show info on hover
-- **CodeLens**: Inline commands in editor
-- **Location**: `src/features/editor/`
-
-## Testing
-
-### Test Structure
-- `*.spec.ts` - Unit tests alongside source
-- `test_fixtures/` - Sample CALM files for testing (`architecture/`, `navigable-architecture/`)
-
-### Running Tests
 ```bash
-# From repository root (preferred)
-npm test --workspace calm-plugins/vscode              # All tests
-npm test --workspace calm-plugins/vscode -- --watch   # Watch mode
-npm test --workspace calm-plugins/vscode -- <file>    # Specific test file
-```
-
-### Testing ViewModels
-ViewModels are framework-free, so they're easy to unit test:
-
-```typescript
-import { TreeViewModel } from './tree-view-model';
-
-describe('TreeViewModel', () => {
-    it('transforms model to tree', () => {
-        const store = createMockStore();
-        const vm = new TreeViewModel(store, mockEmitter);
-        
-        const tree = vm.getTreeData();
-        expect(tree).toHaveLength(3);
-    });
-});
-```
-
-## Common Tasks
-
-### Adding a New Command
-
-1. Register in `package.json`:
-```json
-{
-    "contributes": {
-        "commands": [{
-            "command": "calm.myCommand",
-            "title": "CALM: My Command"
-        }]
-    }
-}
-```
-
-2. Create handler in `src/commands/`:
-```typescript
-export function registerMyCommand(context: vscode.ExtensionContext) {
-    context.subscriptions.push(
-        vscode.commands.registerCommand('calm.myCommand', () => {
-            // Implementation
-        })
-    );
-}
-```
-
-3. Register in `src/extension.ts`:
-```typescript
-import { registerMyCommand } from './commands/my-command';
-
-export function activate(context: vscode.ExtensionContext) {
-    registerMyCommand(context);
-}
-```
-
-### Adding State to Store
-
-1. Update `src/application-store.ts` (add to the interface and the `createApplicationStore` factory):
-```typescript
-interface ApplicationStore {
-    myNewState: string;
-    setMyNewState: (value: string) => void;
-}
-
-export function createApplicationStore(): ApplicationStoreApi {
-    return createStore<ApplicationStore>()(
-        subscribeWithSelector((set) => ({
-            myNewState: '',
-            setMyNewState: (value) => set({ myNewState: value }),
-        }))
-    );
-}
-```
-
-### Creating a New ViewModel
-
-1. Create in appropriate feature folder (framework-free!):
-```typescript
-// src/features/my-feature/view-model/my-view-model.ts
-export class MyViewModel {
-    constructor(
-        private store: ApplicationStore,
-        private emitter: Emitter
-    ) {}
-    
-    // Methods that work with store, NO vscode imports
-}
-```
-
-2. Create VSCode View:
-```typescript
-// src/features/my-feature/my-view.ts
-import * as vscode from 'vscode';
-import { MyViewModel } from './view-model/my-view-model';
-
-export class MyView {
-    constructor(private viewModel: MyViewModel) {}
-    
-    // VSCode-specific implementation
-}
-```
-
-### Adding a Webview Tab
-
-1. Create tab component in `src/features/preview/my-tab/`
-2. Update `src/features/preview/preview-panel.ts` to include new tab
-3. Add HTML template if needed
-
-## Dependencies on Other Packages
-
-```
-vscode-plugin depends on:
-  ├── calm-models (via ../../calm-models)
-  ├── calm-widgets (via ../../calm-widgets)
-  └── shared (via ../../shared)
-```
-
-**Important**: Build dependencies first:
-```bash
-# From repository root (always use workspaces)
-npm run build:shared    # Builds models, widgets, shared
-# Or build individual packages:
+npm ci
 npm run build --workspace calm-models
-npm run build --workspace calm-widgets
-npm run build --workspace shared
+npm run build --workspace calm-plugins/vscode
+npm run watch --workspace calm-plugins/vscode
+npm test --workspace calm-plugins/vscode
+npm run lint --workspace calm-plugins/vscode
+npm run package --workspace calm-plugins/vscode
 ```
+
+The root also provides `npm run test:vscode` and `npm run package:vscode`, which
+run `build:shared` before the extension command. Watch mode builds the extension
+host; rebuild the webview after changes to React components.
+
+`esbuild.mjs` bundles `src/extension/extension.ts` into `dist/extension.js`.
+`vite.webview.config.ts` bundles `src/webview/main.tsx` into `dist/webview/`.
+Tests use `vitest.config.ts`, discover `*.test.ts` and `*.test.tsx`, and mock
+the VS Code API. Add focused tests beside the affected source file.
+
+To test the packaged extension, install the generated VSIX in a VS Code test
+profile and open a synthetic CALM model. Use **Developer: Open Webview Developer
+Tools** to inspect the React webview and the **CALM Canvas** output channel for
+extension-host logs.
 
 ## Bundled Schemas
 
@@ -372,50 +98,13 @@ npm run build --workspace shared
 and the build inlines them. The root `package.json` sets the version. A new schema release comes in
 through the PR that updates `@finos/calm-schema`.
 
-## Common Pitfalls
+## Common pitfalls
 
-1. **Importing vscode in ViewModels**: ViewModels must be framework-free!
-2. **Direct Service Calls**: Use mediators for cross-cutting concerns
-3. **Store Mutations**: Always use store actions, never mutate directly
-4. **Extension Not Activating**: Check `activationEvents` in package.json
-5. **Webview Not Updating**: Remember to postMessage from webview to extension
-6. **toCanonicalSchema adds undefined values**: When using `toCanonicalSchema()` from calm-models, ALL optional properties are added with `undefined` values. Code checking for property existence must check for truthy values, not just key existence. See [calm-widgets/AGENTS.md](../../calm-widgets/AGENTS.md) for details.
-7. **URL Mapping**: To test multi-document navigation, you likely need to configure `calm.urlMapping` in `.vscode/settings.json` to point to a mapping file (e.g. `calm-mapping.json`) in the workspace root.
-
-## Debugging
-
-### Debug Extension
-1. Open this folder in VSCode
-2. Set breakpoints in TypeScript source
-3. Press F5 (or Run → Start Debugging)
-4. Extension Development Host window opens
-5. Open a CALM file to trigger activation
-
-### Debug Webview
-1. In Extension Development Host: `Ctrl+Shift+P`
-2. Run: "Developer: Open Webview Developer Tools"
-3. Use browser devtools to debug webview
-
-## Configuration Files
-
-- `package.json` - Extension manifest, commands, views
-- `tsconfig.json` - TypeScript compiler options
-- `tsup.config.ts` - Build configuration
-- `vitest.config.mts` - Test configuration
-- `eslint.config.mjs` - Linting rules
-
-## Publishing
-
-```bash
-# From repository root
-npm run package:vscode                                 # build:shared + creates .vsix file
-# (or, if dependencies are already built: npm run package --workspace calm-plugins/vscode)
-# Then publish to VS Code Marketplace via GitHub Actions
-```
-
-## Useful Links
-
-- [DEVELOPER.md](./DEVELOPER.md) - Detailed architecture guide with diagrams
-- [README.md](./README.md) - User-facing documentation
-- [VSCode Extension API](https://code.visualstudio.com/api) - Official docs
-- [Root README](../../README.md) - Monorepo overview
+- Keep command IDs and configuration keys consistent with `package.json`.
+- Do not bypass `SyncCoordinator` when changing synchronization.
+- Respect read-only navigation when drilling into referenced assets.
+- Keep the webview and extension message types aligned.
+- Update the current canvas modules rather than adding code to the removed
+  `src/features/preview/` or Tree View structure.
+- Use the current build and test configuration files; this package does not use
+  the old tsup build or `*.spec.ts` test layout.
