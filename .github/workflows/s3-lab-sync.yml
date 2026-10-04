@@ -7,6 +7,10 @@ permissions:
     contents: read
     actions: read # needed for gh run list in the dependency scan check
 
+concurrency:
+    group: s3-lab-sync
+    cancel-in-progress: false
+
 on:
     workflow_dispatch: {}
     push:

@@ -171,6 +171,7 @@ also guards every storage access, so the lab degrades to in-memory in private-br
 ## Deploy
 
 `.github/workflows/s3-lab-sync.yml` builds `calm-lab/dist` and syncs it to
-`s3://lab.calm.finos.org/` on pushes to `main`, then invalidates CloudFront — the same shape as
-the docs sync. The bucket, distribution, DNS, certificate and
-`AWS_CLOUDFRONT_LAB_DISTRIBUTION_ID` are provisioned outside this repository.
+`s3://lab.calm.finos.org/` on pushes to `main`, then invalidates CloudFront. It deploys only from
+`main`, and only after the OSV Scanner push run for that commit has passed. The bucket,
+distribution, DNS, certificate and `AWS_CLOUDFRONT_LAB_DISTRIBUTION_ID` are provisioned outside
+this repository.
