@@ -400,7 +400,7 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas and controls + build `Dockerfile.readonly-static`)
+  (Maven package + stage `calm/` schemas, controls, standards and patterns + build `Dockerfile.readonly-static`)
 
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite

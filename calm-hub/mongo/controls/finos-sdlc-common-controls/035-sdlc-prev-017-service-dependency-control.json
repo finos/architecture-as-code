@@ -1,0 +1,135 @@
+{
+  "controlId": 35,
+  "name": "sdlc-prev-017-service-dependency-control",
+  "description": "Service Dependency Mapping provides visibility into how services and external APIs interact across systems and applications. It enables faster incident response, coordinated remediation, and reduced operational risk by maintaining an accurate, up-to-date view of runtime dependencies and their relationships at both service and application levels.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-017-service-dependency-control/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-017 Service Dependency Control",
+      "name": "Service Dependency Control",
+      "description": "Service Dependency Mapping provides visibility into how services and external APIs interact across systems and applications. It enables faster incident response, coordinated remediation, and reduced operational risk by maintaining an accurate, up-to-date view of runtime dependencies and their relationships at both service and application levels.\n\nThis control complements Component Inventory by extending visibility from artifact-level composition to runtime service and application-level dependency relationships.",
+      "control-id": "SDLC-PREV-017",
+      "category": "RUNTIME",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-17_service-dependency-control.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 17,
+        "control-type": "PREV",
+        "phase": "RUNTIME",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-OP-007",
+          "name": "Configuration Drift",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-7_configuration-drift.html"
+        },
+        {
+          "id": "SDLC-SEC-010",
+          "name": "Dependency and Transitive Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-10_dependency-and-transitive-supply-chain-compromise.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-009",
+          "name": "Component Inventory",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html"
+        },
+        {
+          "id": "SDLC-PREV-007",
+          "name": "Vulnerability Scanning - Dependencies",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-7_vulnerability-scanning-dependencies.html"
+        }
+      ],
+      "details": [
+        "Service Dependency Mapping is the practice of identifying, maintaining, and continuously updating relationships between services, applications, and their dependencies, including internal services and external APIs.",
+        "While component inventory focuses on what is included within a software artifact (e.g., libraries and packages), this control focuses on how those components are used and interconnected at runtime across systems. This enables organizations to understand dependencies not only at a technical level, but also at an application and business level.",
+        "The mapping provides visibility into upstream and downstream relationships, allowing teams to determine which services and applications are affected when a dependency changes, becomes unavailable, or is found to be vulnerable. It also enables identification of ownership, ensuring that responsible teams can take coordinated action within defined timelines.",
+        "This control includes:",
+        "- Mapping service-to-service dependencies across systems - Identifying which services belong to which application or business capability - Tracking dependencies on external APIs, data providers, and platform services - Maintaining ownership and team-level responsibility for each service and application - Understanding upstream and downstream impact relationships - Keeping dependency mappings aligned with production environments and deployments",
+        "Maintaining this mapping ensures that when a failure, vulnerability, or change occurs, its impact can be quickly understood across all affected services and applications, enabling faster and more coordinated responses."
+      ],
+      "requirements": [
+        "Service-to-service dependencies MUST be documented and maintained for all production systems",
+        {
+          "text": "Dependencies MUST include:",
+          "items": [
+            "Internal services",
+            "External APIs and third-party integrations"
+          ]
+        },
+        "Each service MUST be mapped to its corresponding application or business capability",
+        "Ownership information MUST be maintained for each service and application to enable clear accountability during incidents",
+        "Dependency mappings MUST capture upstream and downstream relationships to identify impact propagation",
+        "Dependency data MUST be kept up to date with production deployments and infrastructure changes",
+        "Changes to dependencies (e.g., new integrations, deprecated APIs, version upgrades) MUST be reflected in the mapping as part of the change management process",
+        "Dependency mapping SHOULD be integrated with observability, incident management, or service catalog systems where possible"
+      ],
+      "examples": [
+        "Vulnerability Propagation: When a critical vulnerability (e.g., Log4j) is identified in a shared library, dependency mapping enables teams to quickly identify all services using the affected library, all applications those services belong to, and the teams responsible for remediation. This allows coordinated fixes within defined timelines across the organization",
+        "API Deprecation: If an external API or third-party provider becomes unavailable or deprecated, dependency mapping allows identification of all dependent services and applications, enabling faster remediation and reducing production incidents",
+        "Failure Propagation: In distributed trading or real-time systems, if one service fails, dependency mapping helps identify downstream services and applications impacted, allowing proactive communication and mitigation",
+        "Platform Upgrades: During platform or OS upgrades (e.g., encryption or protocol changes), dependency mapping ensures all affected services and applications are identified, preventing runtime failures due to incompatibility",
+        "Incident Response: Dependency mapping reduces mean time to restore (MTTR) by enabling responders to quickly understand system relationships instead of relying on incomplete or outdated documentation"
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "cm-8",
+            "title": "CM-8 System Component Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A393%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C197.0%2C0%5D"
+          },
+          {
+            "id": "si-4",
+            "title": "SI-4 System Monitoring",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1079%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C111.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 CM-8: System Component Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 SI-4: System Monitoring",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-017"
+        },
+        "name": {
+          "const": "Service Dependency Control"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

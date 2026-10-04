@@ -1,0 +1,158 @@
+{
+  "controlId": 34,
+  "name": "sdlc-prev-016-test-execution",
+  "description": "Required appropriate testing as defined by the testing policy (SDLC-PREV-015 (https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html)) must be executed before any change is released to production. Human review and sign-off is required only when test failures occur or when the testing policy cannot be fully satisfied.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-016-test-execution/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-016 Test Execution and Sign-Off",
+      "name": "Test Execution and Sign-Off",
+      "description": "Required appropriate testing as defined by the testing policy (SDLC-PREV-015 (https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html)) must be executed before any change is released to production. Human review and sign-off is required only when test failures occur or when the testing policy cannot be fully satisfied.",
+      "control-id": "SDLC-PREV-016",
+      "category": "BUILD",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 16,
+        "control-type": "PREV",
+        "phase": "BUILD",
+        "status": "Draft",
+        "chain": [
+          "testing-assurance"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        },
+        {
+          "id": "SDLC-SEC-008",
+          "name": "Unauthorised Change",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-8_unauthorised-change.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-015",
+          "name": "Testing Requirements",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        },
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        },
+        {
+          "id": "SDLC-PREV-005",
+          "name": "Vulnerability Scanning - SAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html"
+        },
+        {
+          "id": "SDLC-PREV-006",
+          "name": "Vulnerability Scanning - DAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-6_vulnerability-scanning-dast.html"
+        }
+      ],
+      "details": [
+        "This control governs the execution of testing for each individual release. It bridges the gap between the testing policy (SDLC-PREV-015 (https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html)), which defines what testing must be performed, and the evidence trail (SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html)), which preserves the records of that testing. This control answers the question: for this specific change, was the required testing actually performed, and were the results acceptable?",
+        "When all required testing passes and the testing policy is fully satisfied, no manual intervention is needed — the automated pipeline confirms compliance and the release may proceed. Human review and sign-off is required only in two circumstances: when test failures exist that need to be assessed and accepted, or when the testing policy cannot be fully followed and an exception is needed. This keeps the control proportionate — it does not impose manual review overhead on the majority of releases where automated testing passes cleanly, but ensures accountability when it matters."
+      ],
+      "requirements": [
+        "All changes released to production MUST have completed the testing categories required for their classification as defined in the testing policy (SDLC-PREV-015 (https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html)) before release",
+        "Where all required testing passes and the testing policy is fully satisfied, the release MAY proceed without manual sign-off; the automated test results constitute sufficient evidence of compliance",
+        "Where test failures exist in the results failures MUST be explicitly reviewed and either remediated or accepted by a named individual; acceptance MUST be recorded with the identity of the approver, the rationale for acceptance, and confirmation that the failure is not attributable to the change being released",
+        "Where testing cannot be completed to the required standard prior to release, a documented and approved exception MUST be raised, specifying: who approved the exception, the justification, which test requirements were waived, any compensating controls applied (e.g., enhanced post-deployment monitoring), and a time-bound remediation commitment"
+      ],
+      "examples": [
+        "Happy Path: When a change passes all required automated tests, meets coverage thresholds, and satisfies all gate criteria defined in the testing policy, it proceeds to release without requiring manual review. The pipeline run and its results are the evidence — no additional sign-off is needed",
+        "Failed Test Acceptance: When a test failure is accepted rather than remediated, the sign-off record should include: the specific test(s) that failed, the reason the failure is considered acceptable for this release (e.g., pre-existing known issue tracked in ticket X, flaky test under investigation), and the name of the individual accepting the risk. This record forms part of the audit trail and must be preserved per SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html)"
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "ca-2",
+            "title": "CA-2 Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#page=111"
+          },
+          {
+            "id": "cm-4",
+            "title": "CM-4 Impact Analyses",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A375%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C509.0%2C0%5D"
+          },
+          {
+            "id": "si-2",
+            "title": "SI-2 Flaw Remediation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1070%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 SA-11: Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 CA-2: Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "OWASP DevSecOps Guideline",
+            "url": "https://owasp.org/www-project-devsecops-guideline/"
+          },
+          {
+            "title": "FFIEC IT Handbook - Information Security",
+            "url": "https://ithandbook.ffiec.gov/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-016"
+        },
+        "name": {
+          "const": "Test Execution and Sign-Off"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

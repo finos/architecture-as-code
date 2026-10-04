@@ -1,0 +1,159 @@
+{
+  "controlId": 33,
+  "name": "sdlc-prev-015-testing-requirements",
+  "description": "A testing policy must be defined that specifies the categories and scope of testing required before any change is released to production, proportionate to the risk profile of the change.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-015-testing-requirements/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-015 Testing Requirements",
+      "name": "Testing Requirements",
+      "description": "A testing policy must be defined that specifies the categories and scope of testing required before any change is released to production, proportionate to the risk profile of the change.",
+      "control-id": "SDLC-PREV-015",
+      "category": "LIFECYCLE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 15,
+        "control-type": "PREV",
+        "phase": "LIFECYCLE",
+        "status": "Draft",
+        "chain": [
+          "testing-assurance"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-016",
+          "name": "Test Execution and Sign-Off",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        },
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        },
+        {
+          "id": "SDLC-PREV-005",
+          "name": "Vulnerability Scanning - SAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html"
+        },
+        {
+          "id": "SDLC-PREV-006",
+          "name": "Vulnerability Scanning - DAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-6_vulnerability-scanning-dast.html"
+        },
+        {
+          "id": "SDLC-PREV-007",
+          "name": "Vulnerability Scanning - Dependencies",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-7_vulnerability-scanning-dependencies.html"
+        }
+      ],
+      "details": [
+        "This control establishes the policy layer of the organisation's testing posture: what types of testing must be performed and when. It does not govern whether the testing was actually executed (SDLC-PREV-016 (https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html)), whether it was enforced mechanically (SDLC-PREV-012 (https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html)), or whether the results were retained (SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html)). Its sole concern is that the organisation has defined, documented, and maintains a testing policy that maps required testing activities to change types.",
+        "The testing policy definition defines what degree of testing applies to different change types. This is particularly critical with manual testing due to the overall expense and you may wish to define when it is or is not appropriate to run which suites of testing. Without an explicit testing policy, testing decisions are left to individual judgement and vary across teams, repositories, and release cycles. This creates inconsistency, makes audit response difficult, and means the organisation cannot demonstrate that its testing expectations were defined in advance rather than rationalised after the fact. In regulated financial services environments, examiners expect a documented testing standard that exists independently of any individual release.",
+        "The policy must address the full spectrum of change types — from low-risk configuration updates to security-sensitive changes — and define what testing is required for each. It should be specific enough to be enforceable and auditable, but not so prescriptive that it cannot accommodate the diversity of technologies and delivery patterns within the organisation."
+      ],
+      "requirements": [
+        "A testing policy MUST be defined that specifies the categories of testing required for each change classification (e.g., patch, minor feature, major release, infrastructure change, security-sensitive change)",
+        "The policy MUST define a minimum testing baseline that applies to all changes regardless of classification; this baseline MUST include at minimum regression testing to confirm that existing behaviour is not broken",
+        "Changes to security-sensitive components — including authentication, authorisation, session management, cryptographic operations, and data handling — SHOULD require targeted security testing in addition to functional testing",
+        "Changes to critical code path that have ben identified as being partocularly sensitive to the application SHOULD require additional testing.",
+        "The policy MUST define minimum code coverage thresholds per repository or service, with documented rationale for the chosen threshold appropriate to the risk profile of the component",
+        "The policy MUST specify exit criteria that define what constitutes a passing test outcome for each change classification, including acceptable treatment of pre-existing known failures",
+        "The testing policy MUST be reviewed at least annually, or when significant changes to the technology stack, threat landscape, or regulatory requirements occur"
+      ],
+      "examples": [
+        "Change Classification: Define a simple taxonomy of change types and map required testing to each. For example: a dependency patch may require automated unit and integration tests plus a DAST scan; a new customer-facing feature may additionally require functional UAT and a targeted security review; a change to the authentication flow may require penetration testing or red team exercise sign-off before release",
+        "Coverage Thresholds: Define thresholds appropriate to the risk profile of each repository — a payment processing service may require 80% line coverage, while an internal tooling repository may set a lower bar. Document the rationale for the chosen threshold in the repository's governance documentation",
+        "Exit Criteria: Define release readiness criteria before testing begins, not after. Criteria should specify: no new test failures introduced by the change without documented acceptance; code coverage must not fall below the defined threshold; no new critical or high SAST or DAST findings introduced unresolved; security sign-off obtained for security-sensitive changes. Pre-existing failures that are known, tracked, and unrelated to the change may be accepted without blocking release, provided they are documented. Vague or unwritten criteria are easily gamed and do not provide meaningful assurance ase. SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html) (Test Evidence Retention) ensures the records of completed testing are preserved. All three are required for a complete testing assurance posture",
+        "Penetration Testing: Is usually an expensive practice sometimes dedicated to a sat of experts who will testing manually or semi-automatically to see if they can breach the system overall. Doing such testing on every release may not be advisable or cost effective, especially if the release was small. This practice will need to be defined somewhere."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "sa-15",
+            "title": "SA-15 Development Process, Standards, and Tools",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A914%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C624.0%2C0%5D"
+          },
+          {
+            "id": "cm-4",
+            "title": "CM-4 Impact Analyses",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A375%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C509.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 SA-11: Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 SA-15: Development Process, Standards, and Tools",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "OWASP DevSecOps Guideline",
+            "url": "https://owasp.org/www-project-devsecops-guideline/"
+          },
+          {
+            "title": "FFIEC IT Handbook - Information Security",
+            "url": "https://ithandbook.ffiec.gov/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-015"
+        },
+        "name": {
+          "const": "Testing Requirements"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

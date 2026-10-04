@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hub.calm.finos.org/calm/namespaces/finos.agentic-sdlc/standards/governed-node/versions/1.0.0",
+  "title": "Governed node",
+  "description": "What every node in this estate must carry for the gates to work. Services and databases declare the SDLC-PREV-013 inventory attributes the review policy reads; services also declare where their code lives, so gates/drift-check.mjs can find it; every interface declares its environment binding.",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node"
+    },
+    {
+      "if": {
+        "properties": {
+          "node-type": {
+            "enum": [
+              "service",
+              "database"
+            ]
+          }
+        },
+        "required": [
+          "node-type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "criticality-tier": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 4,
+                "description": "SDLC-PREV-013 system criticality tier, 1 is highest"
+              },
+              "data-classification": {
+                "enum": [
+                  "public",
+                  "internal",
+                  "confidential",
+                  "restricted"
+                ],
+                "description": "SDLC-PREV-013 data classification"
+              },
+              "system-manager": {
+                "type": "string",
+                "description": "SDLC-PREV-013 system manager"
+              }
+            },
+            "required": [
+              "criticality-tier",
+              "data-classification"
+            ]
+          }
+        },
+        "required": [
+          "metadata"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "node-type": {
+            "const": "service"
+          }
+        },
+        "required": [
+          "node-type"
+        ]
+      },
+      "then": {
+        "properties": {
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "source-path": {
+                "type": "string",
+                "pattern": "^[^/](.*[^/])?$",
+                "description": "Repository directory that holds this node's code"
+              }
+            },
+            "required": [
+              "source-path"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "properties": {
+        "interfaces": {
+          "type": "array",
+          "items": {
+            "$ref": "https://hub.calm.finos.org/calm/namespaces/finos.agentic-sdlc/standards/env-binding-interface/versions/1.0.0"
+          }
+        }
+      }
+    }
+  ]
+}

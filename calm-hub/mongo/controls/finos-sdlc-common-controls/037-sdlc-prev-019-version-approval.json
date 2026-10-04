@@ -1,0 +1,93 @@
+{
+  "controlId": 37,
+  "name": "sdlc-prev-019-version-approval",
+  "description": "Version Release Approval Gating ensures that no software version is promoted to production without passing a defined approval workflow, enforced either by designated human approvers, automated policy checks, or a combination of both. It establishes a verifiable, auditable gate at the version level—distinct from per-deployment gates—that confirms the release candidate has satisfied all governance, quality, and risk requirements before any deployment is permitted.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-019-version-approval/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-019 Version Release Approval Gating",
+      "name": "Version Release Approval Gating",
+      "description": "Version Release Approval Gating ensures that no software version is promoted to production without passing a defined approval workflow, enforced either by designated human approvers, automated policy checks, or a combination of both. It establishes a verifiable, auditable gate at the version level—distinct from per-deployment gates—that confirms the release candidate has satisfied all governance, quality, and risk requirements before any deployment is permitted.",
+      "control-id": "SDLC-PREV-019",
+      "category": "RELEASE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-19_version-approval.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 19,
+        "control-type": "PREV",
+        "phase": "RELEASE",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-BUS-012",
+          "name": "Business Reputation Risk from Non-Approved Software Version Releases",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-12_business-reputation.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        }
+      ],
+      "details": [
+        "Deployment gating (MI-12 (https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html)) controls whether an individual deployment job may proceed based on technical policy checks. Version Release Approval Gating operates at a higher level: it governs whether a named software version has received the organisational approval required to be released at all. A version may pass all automated deployment gates but still require explicit sign-off from a release manager, risk officer, or compliance stakeholder before it can be promoted from a candidate to an approved release.",
+        "This distinction is critical in regulated financial services environments where change management frameworks require named human accountability for production releases, not merely automated technical policy satisfaction.",
+        "The control supports two complementary approval mechanisms that may be used individually or in combination:",
+        "Manual Approval Workflows Named approvers—such as a release manager, change advisory board (CAB) member, or risk officer—explicitly authorise a release candidate before it can proceed to any production deployment. The approval is recorded against the specific version, is timestamped and attributed to an identified individual, and must be obtained before any deployment pipeline for that version is unlocked. Approval workflows may be tiered, requiring different sets of approvers depending on the risk classification of the application or the scope of the change.",
+        "Automated Policy Checks Policy-as-code evaluations assess the release candidate against a defined set of criteria that must all pass before the version is marked approved. These checks may include confirmation that all required test suites have executed and passed, that vulnerability findings are within approved thresholds, that security scan results have been attested, that mandatory review steps in the development workflow are complete, and that the release artefact matches a signed, verified build provenance record. Automated checks produce a structured approval record that can be used as audit evidence independently of human action.",
+        "In either case, the approval state is recorded at the version level in a system of record (e.g., a release management platform, ITSM tool, or policy engine), and downstream deployment pipelines are blocked from proceeding until the required approval state is confirmed."
+      ],
+      "requirements": [
+        "Every software version intended for production MUST be subject to a defined approval workflow before any production deployment is initiated",
+        "The approval workflow MUST be enforced by the release pipeline; pipelines MUST verify the approval state of the target version before proceeding and MUST fail if approval is absent or has been revoked",
+        "Approval workflows MUST specify which approver roles or automated checks are required, differentiated by application risk classification where appropriate",
+        "Manual approvals MUST be attributed to a named individual, timestamped, and recorded in an auditable system of record",
+        "Automated approval checks MUST produce a structured, machine-readable result that is retained as part of the release record",
+        "Approval state MUST be bound to a specific, immutable version identifier (e.g., a signed artefact digest or tagged commit SHA); approval of one version MUST NOT be transferable to another",
+        "A documented emergency release process MUST exist for critical production incidents requiring deployment of a non-approved version. Emergency releases MUST require real-time approval from a named authority, MUST be time-bounded, MUST be logged with documented justification, and MUST trigger a post-incident governance review",
+        "Emergency release overrides MUST be reported to risk and compliance functions within a defined timeframe (e.g., next business day)",
+        "Approval records, including any overrides, MUST be retained for a period consistent with applicable regulatory requirements and the organisation's record-keeping policy",
+        "The set of required approval checks and approver roles MUST be reviewed at least annually, or following any material change in the application's risk profile, regulatory obligations, or technology stack"
+      ],
+      "examples": [
+        "CAB-Gated Release: For a high-criticality payment processing service, the release workflow requires approval from a release manager and a risk officer before the pipeline is permitted to deploy any build to production. The CAB review is documented in the ITSM system against the specific version tag, and the deployment pipeline queries the ITSM API to confirm approval state before executing any production deployment steps.",
+        "Automated Policy-as-Code Approval: For a lower-risk internal tooling service, a policy engine evaluates the release candidate against a ruleset: all unit and integration tests passed, no critical CVEs in dependencies, SAST scan completed with no new high findings, and build provenance attestation verified. When all checks pass, the policy engine issues a signed approval record that the deployment pipeline accepts as authorisation to proceed.",
+        "Tiered Approval by Change Risk: An organisation classifies changes as standard, significant, or emergency. Standard changes (low-risk, well-understood) may be approved by automated policy checks alone. Significant changes require a named release manager sign-off in addition to automated checks. Emergency changes require a senior technology officer approval, are time-limite, and trigger mandatory post-deployment review.",
+        "Approval Binding to Artefact Digest: To prevent version substitution attacks or accidental promotion of a different build, approval is recorded against the SHA-256 digest of the release artefact rather than a version label alone. The pipeline verifies both that the version label matches an approved record and that the artefact digest matches the digest recorded at approval time.",
+        "Revocation: If a vulnerability is discovered in a version that has already been approved but not yet fully deployed, the approval can be revoked in the system of record, and the deployment pipeline will reject further deployments of that version until a new approval is granted for a remediated build."
+      ],
+      "references": {},
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-019"
+        },
+        "name": {
+          "const": "Version Release Approval Gating"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}
