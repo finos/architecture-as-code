@@ -266,8 +266,9 @@ if (isEmptyDatabase) {
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
     db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
     db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
-    // Standards are not seeded by this script, but the indexes still have to match the
-    // shape the store reads, since pinning the version skips the migration that creates them.
+    // Standards are not seeded by this script (the Nitrite seeder loads calm-hub/mongo/standards/),
+    // but the indexes still have to match the shape the store reads, since pinning the version
+    // skips the migration that creates them.
     db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
     db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
     db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
@@ -407,9 +408,9 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "controlStoreCounter",
-        sequence_value: 18
+        sequence_value: 40
     });
-    logSuccess("Initialized controlStoreCounter with sequence_value 18");
+    logSuccess("Initialized controlStoreCounter with sequence_value 40");
 } else {
     logSkip("controlStoreCounter already exists, no initialization needed");
 }
@@ -518,9 +519,11 @@ if (db.namespaces.countDocuments() === 0) {
         { name: "traderx", description: "TraderX namespace" },
         { name: "ai-governance-v2", description: "AI Governance v2 namespace" },
         { name: "qcon", description: "QCon scenario 3 namespace" },
-        { name: "finos.fluxnova", description: "FluxNova BPM example architectures" }
+        { name: "finos.fluxnova", description: "FluxNova BPM example architectures" },
+        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" },
+        { name: "finos.agentic-sdlc", description: "Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" }
     ]);
-    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova");
+    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls, finos.agentic-sdlc");
 } else {
     logSkip("Namespaces already exist, no initialization needed");
 }
@@ -531,12 +534,13 @@ if (db.domains.countDocuments() === 0) {
     db.domains.insertMany([
         { name: "security" },
         { name: "ai-governance" },
+        { name: "finos-sdlc-common-controls" },
         { name: "mcp-controls" },
         { name: "network" },
         { name: "compliance" },
         { name: "observability" }
     ]);
-    logSuccess("Initialized domains: security, ai-governance, mcp-controls, network, compliance, observability");
+    logSuccess("Initialized domains: security, ai-governance, finos-sdlc-common-controls, mcp-controls, network, compliance, observability");
 } else {
     logSkip("Domains already exist, no initialization needed");
 }

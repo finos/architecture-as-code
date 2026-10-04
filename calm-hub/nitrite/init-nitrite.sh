@@ -14,6 +14,8 @@ CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
 CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
+CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-}"
+CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
 
 # Colors for output
@@ -53,12 +55,14 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
         print_status "Creating namespace: $namespace"
         local description
         case "$namespace" in
             # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
             finos.fluxnova) description="FluxNova BPM example architectures" ;;
+            finos.sdlc-common-controls) description="The Standard the SDLC Common Controls Catalog control requirements conform to" ;;
+            finos.agentic-sdlc) description="Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" ;;
             *) description="$namespace namespace" ;;
         esac
         local http_code
@@ -228,6 +232,60 @@ post_named_document() {
         print_error "  \$id sent: $canonical"
         exit 1
     fi
+}
+
+# seed_named_documents_from_dir <base path> <resource plural> <default path beside this script>
+# Seeds every <base path>/<namespace>/*.json through the name-based API (post_named_document), so
+# the $id each document carries resolves on the hub. Namespace, slug and version are read from that
+# $id (.../calm/namespaces/<namespace>/<resource>/<slug>/versions/<version>) and the namespace must
+# match the directory. Failures are fatal, as for every name-based seed.
+seed_named_documents_from_dir() {
+    local base_path="$1" resource="$2" fallback="$3"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/$fallback" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No $resource directory at ${base_path:-$fallback}, skipping namespace $resource"
+        return
+    fi
+    print_status "Loading $resource from: $base_path"
+    local id_pattern="^.*/calm/namespaces/([^/]+)/${resource}/([^/]+)/versions/([^/]+)\$"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        local document_file
+        while IFS= read -r document_file; do
+            [[ -f "$document_file" ]] || continue
+            local id doc
+            id=$(jq -r '."$id" // empty' "$document_file")
+            if [[ ! "$id" =~ $id_pattern ]]; then
+                print_error "$document_file needs a \$id of the form .../calm/namespaces/<namespace>/$resource/<slug>/versions/<version>"
+                exit 1
+            fi
+            if [[ "${BASH_REMATCH[1]}" != "$namespace" ]]; then
+                print_error "$document_file declares namespace ${BASH_REMATCH[1]} but sits in $namespace/"
+                exit 1
+            fi
+            doc=$(cat "$document_file")
+            post_named_document "$namespace" "$resource" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "$doc"
+        done < <(find "$namespace_dir" -maxdepth 1 -name '*.json' | sort)
+    done
+}
+
+# Standards contributed by projects, one directory per namespace under calm-hub/mongo/standards/.
+create_namespace_standards() {
+    print_status "Creating namespace standards..."
+    seed_named_documents_from_dir "$CALM_STANDARDS_BASE_PATH" standards "../mongo/standards"
+}
+
+# Patterns contributed by projects, one directory per namespace under calm-hub/mongo/patterns/.
+create_namespace_patterns() {
+    print_status "Creating namespace patterns..."
+    seed_named_documents_from_dir "$CALM_PATTERNS_BASE_PATH" patterns "../mongo/patterns"
 }
 
 # Look up the numeric id of a namespace-scoped resource by its name.
@@ -5176,7 +5234,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
@@ -6199,11 +6257,13 @@ main() {
     create_core_schemas
     create_domains_and_controls
     create_patterns
+    create_namespace_patterns
     create_flows
     create_architectures
     create_layouts
     create_user_access
     create_standards
+    create_namespace_standards
     create_interfaces
     create_timeline_demo
 
@@ -6223,6 +6283,8 @@ show_help() {
     echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
     echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
+    echo "  -t, --standards-path PATH Set the base path for namespace standards"
+    echo "  -p, --patterns-path PATH Set the base path for namespace patterns"
     echo ""
     echo "Environment Variables:"
     echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
@@ -6231,6 +6293,12 @@ show_help() {
     echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
     echo "                          each holding control requirement JSON files"
     echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
+    echo "  CALM_STANDARDS_BASE_PATH Path to the standards directory containing one subdirectory per namespace,"
+    echo "                          each holding one Standard JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/standards relative to this script)"
+    echo "  CALM_PATTERNS_BASE_PATH Path to the patterns directory containing one subdirectory per namespace,"
+    echo "                          each holding one pattern JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/patterns relative to this script)"
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
@@ -6255,6 +6323,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -c|--controls-path)
             CALM_CONTROLS_BASE_PATH="$2"
+            shift 2
+            ;;
+        -t|--standards-path)
+            CALM_STANDARDS_BASE_PATH="$2"
+            shift 2
+            ;;
+        -p|--patterns-path)
+            CALM_PATTERNS_BASE_PATH="$2"
             shift 2
             ;;
         *)
