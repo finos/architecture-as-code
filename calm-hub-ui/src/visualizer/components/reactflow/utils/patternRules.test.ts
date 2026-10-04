@@ -70,6 +70,12 @@ describe('extractPatternRules', () => {
         expect(rules.relationshipStandards).toEqual([]);
     });
 
+    it('lists a Standard whose path only looks like a CALM meta-schema', () => {
+        const ref = 'https://example.com/meta/node.json';
+
+        expect(extractPatternRules({ properties: { nodes: { items: { $ref: ref } } } }).nodeStandards).toEqual([ref]);
+    });
+
     it('reads a Standard $ref placed directly on items', () => {
         const rules = extractPatternRules({ properties: { relationships: { items: { $ref: GOVERNED_NODE } } } });
 
@@ -99,6 +105,20 @@ describe('extractPatternRules', () => {
 
         expect(rules.nodeStandards).toEqual([GOVERNED_NODE]);
         expect(rules.requiredControls).toEqual(['code-review']);
+    });
+
+    it('merges rules from the root and every allOf branch', () => {
+        const otherStandard = 'https://hub.calm.finos.org/calm/namespaces/ns/standards/other/versions/1.0.0';
+        const rules = extractPatternRules({
+            properties: { controls: { required: ['code-review'] } },
+            allOf: [
+                { properties: { nodes: { items: { $ref: GOVERNED_NODE } }, controls: { required: ['deployment-gating', 'code-review'] } } },
+                { properties: { nodes: { items: { $ref: otherStandard } } } },
+            ],
+        });
+
+        expect(rules.nodeStandards).toEqual([GOVERNED_NODE, otherStandard]);
+        expect(rules.requiredControls).toEqual(['code-review', 'deployment-gating']);
     });
 
     it('returns no rules for a pattern without items or required controls', () => {

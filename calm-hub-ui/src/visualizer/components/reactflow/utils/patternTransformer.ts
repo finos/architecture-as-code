@@ -29,7 +29,7 @@ export type SchemaObject = Record<string, any>;
 /**
  * A pattern may declare its nodes and relationships directly, or inside an allOf branch.
  */
-export function findDeclarations(pattern: SchemaObject, key: string, member: string): SchemaObject | undefined {
+function findDeclarations(pattern: SchemaObject, key: string, member: string): SchemaObject | undefined {
     if (pattern['properties']?.[key]?.[member]) {
         return pattern['properties'][key];
     }
