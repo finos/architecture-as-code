@@ -402,6 +402,16 @@ All four workflows:
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
   (Maven package + stage `calm/` schemas, controls, standards and patterns + build `Dockerfile.readonly-static`)
 
+### Bundled CALM Meta-Schemas
+- GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
+- The frontend stage runs `npm run calm-hub:copy-schemas` after `npm install`. It copies every
+  `@finos/calm-schema` release that the root `package.json` pins into `target/calm-schemas`, which
+  the build bundles. The build removes the previous copy first, and an enforcer check fails the
+  build if the copy did not run
+- `versions.txt` and each `files.txt` under `src/main/resources/META-INF/calm-schemas/` are
+  hand-authored. When the root `package.json` adds a release, add it to them;
+  `TestClasspathCoreSchemaResourcesShould` fails until you do
+
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
@@ -665,7 +675,8 @@ CALM Hub is largely independent - it's a standalone REST API server.
 7. **`-Pserver-only` does not build or refresh the bundled UI**: it skips the Node/npm frontend
    stage entirely (see [README.md](./README.md#skipping-the-frontend-build)). A fresh clone built
    with this profile ships no UI at all; never use it for a release, Docker image, or CI build
-   that needs to serve the UI.
+   that needs to serve the UI. It (and `-Dskip.npm`) also skips the meta-schema copy, so after
+   `clean` the jar has no bundled meta-schemas and GitHub mode serves none.
 
 ## Known Issues
 
