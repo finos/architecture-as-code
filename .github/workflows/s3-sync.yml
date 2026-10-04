@@ -10,7 +10,6 @@ on:
             - main
         paths:
             - 'calm/draft/**'
-            - 'calm/getting-started/**'
             - 'calm/interfaces/**'
             - 'calm/release/**'
 
@@ -33,13 +32,10 @@ jobs:
             - name: Sync calm/release folder to S3
               run: |
                   aws s3 sync calm/release s3://${{ vars.AWS_S3_BUCKET }}/release --delete
-            - name: Sync calm/getting-started folder to S3
-              run: |
-                  aws s3 sync calm/getting-started s3://${{ vars.AWS_S3_BUCKET }}/getting-started --delete
             - name: Sync calm/interfaces folder to S3
               run: |
                   aws s3 sync calm/interfaces s3://${{ vars.AWS_S3_BUCKET }}/interfaces --delete
 
             - name: Invalidate CloudFront cache
               run: |
-                  aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/draft/*" "/release/*" "/getting-started/*" "/interfaces/*"
+                  aws cloudfront create-invalidation --distribution-id ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }} --paths "/draft/*" "/release/*" "/interfaces/*"
