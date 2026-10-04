@@ -87,6 +87,11 @@
     </build>
 
     <profiles>
+        <!-- IntelliJ 2026.2 requires JDK 25; other modules retain their JDK 21 build. -->
+        <profile>
+            <id>intellij</id>
+            <modules><module>calm-plugins/intellij</module></modules>
+        </profile>
         <profile>
             <id>release</id>
             <build>

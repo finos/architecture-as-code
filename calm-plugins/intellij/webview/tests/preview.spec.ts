@@ -19,6 +19,7 @@ test('packaged bundle renders offline under the embedded browser CSP', async ({ 
   })), readFileSync('tests/fixtures/fluxnova.architecture.json', 'utf8'));
   await expect(page.locator('.canvas g.node')).toHaveCount(10);
   await expect(page.locator('.canvas .cluster')).toHaveCount(1);
+  await expect(page.locator('.canvas .cluster > rect')).toHaveCSS('fill', 'rgb(67, 67, 67)');
   await expect(page.getByRole('checkbox', { name: 'Show Labels' })).not.toBeChecked();
   await expect(page.locator('.canvas .edgeLabel').filter({ hasText: /\S/ })).toHaveCount(0);
   const originalBox = await page.locator('.canvas > svg').getAttribute('viewBox');
@@ -170,4 +171,47 @@ test('clicks connection curves with labels off and selects parallel and reverse 
   await page.getByRole('button', { name: 'Close details' }).click();
   await page.locator('.canvas .edgeLabel').filter({ hasText: 'Second connection' }).click();
   await expect(page.getByLabel('Unique ID')).toHaveValue('parallel');
+});
+
+
+test('IDE colors update containers, edges and forms without resetting zoom or drafts', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByText('Open a CALM architecture')).toBeVisible();
+  await page.evaluate(json => window.dispatchEvent(new MessageEvent('message', { data: {
+    type: 'modelUpdated', documentId: 'file:///fluxnova.json', fileName: 'fluxnova.json',
+    revision: 1, version: '1', writable: true, json,
+  } })), readFileSync('tests/fixtures/fluxnova.architecture.json', 'utf8'));
+  await expect(page.locator('.canvas .cluster')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Zoom in' }).click();
+  const viewBox = await page.locator('.canvas > svg').getAttribute('viewBox');
+  await page.getByRole('button', { name: 'Add node', exact: true }).click();
+  await page.getByLabel('Name', { exact: true }).fill('Unfinished edit');
+  const colors = { background: '#fafafa', foreground: '#202020', muted: '#666666', border: '#888888',
+    button: '#eeeeee', buttonText: '#222222', input: '#ffffff', inputText: '#222222', accent: '#2255aa',
+    accentText: '#ffffff', selection: '#2255aa', error: '#aa2222', node: '#f0f0f0', container: '#e0e0e0' };
+  const publishTheme = (colors: Record<string, string>, dark: boolean) => page.evaluate(data =>
+    window.dispatchEvent(new MessageEvent('message', { data })), { type: 'themeUpdated', colors, dark });
+  await publishTheme(colors, false);
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(250, 250, 250)');
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'light');
+  await expect(page.locator('.cluster > rect')).toHaveCSS('fill', 'rgb(224, 224, 224)');
+  await expect(page.locator('path.flowchart-link').first()).toHaveCSS('stroke', 'rgb(32, 32, 32)');
+  await expect(page.locator('.node rect').first()).toHaveCSS('fill', 'rgb(240, 240, 240)');
+  await expect(page.locator('.cluster-label text').first()).toHaveCSS('fill', 'rgb(32, 32, 32)');
+  await expect(page.getByLabel('Name', { exact: true })).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.screenshot({ path: '../../../sandbox/intellij/theme-light.png' });
+  await publishTheme({ ...colors, background: '#202530', foreground: '#eeeeff', container: '#303545',
+    node: '#252a35', input: '#252a35', inputText: '#eeeeff', button: '#353a45', buttonText: '#eeeeff' }, true);
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(32, 37, 48)');
+  await expect(page.locator('.cluster > rect')).toHaveCSS('fill', 'rgb(48, 53, 69)');
+  await expect(page.locator('path.flowchart-link').first()).toHaveCSS('stroke', 'rgb(238, 238, 255)');
+  await expect(page.locator('html')).toHaveCSS('color-scheme', 'dark');
+  await expect(page.locator('.canvas > svg')).toHaveAttribute('viewBox', viewBox!);
+  await expect(page.getByLabel('Name', { exact: true })).toHaveValue('Unfinished edit');
+  await page.screenshot({ path: '../../../sandbox/intellij/theme-dark.png' });
+  await publishTheme({ ...colors, background: 'url(https://invalid.example)' }, false);
+  await expect(page.locator('html')).toHaveCSS('background-color', 'rgb(32, 37, 48)');
+  await page.getByRole('checkbox', { name: 'Show Labels' }).check();
+  await expect(page.locator('.canvas .edgeLabel').filter({ hasText: /\S/ }).first()).toBeVisible();
+  await expect(page.locator('.cluster > rect')).toHaveCSS('fill', 'rgb(48, 53, 69)');
 });

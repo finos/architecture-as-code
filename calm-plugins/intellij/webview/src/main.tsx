@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { diagramFor } from './diagram';
 import { renderDiagram } from './mermaid';
 import './style.css';
+import { applyTheme, themeDiagram } from './theme';
 import { Editor } from './Editor';
 import { Draft, newDraft, nodeDraft, connectionDraft } from './editing';
 
@@ -44,6 +45,7 @@ function Preview() {
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       const message = event.data;
+      if (message?.type === 'themeUpdated') { applyTheme(message); return; }
       if (message?.type === 'editResult' && message.requestId === pendingRequest.current) {
         pendingRequest.current = null; setPending(null);
         if (message.ok) setEditing(null);
@@ -77,6 +79,7 @@ function Preview() {
           if (cancelled) return;
           container.innerHTML = svgText;
           const svg = container.querySelector('svg')!;
+          themeDiagram(svg);
           const b = svg.viewBox.baseVal;
           initialBounds.current = { x: b.x, y: b.y, width: b.width, height: b.height };
           svg.style.width = '100%'; svg.style.height = '100%'; svg.style.maxWidth = 'none';

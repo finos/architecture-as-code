@@ -14,6 +14,7 @@ export function templates() {
 
 export default defineConfig({
   plugins: [templates(), react()],
+  optimizeDeps: { esbuildOptions: { target: 'es2022' } },
   resolve: { alias: { '@finos/calm-models/canonical': canonicalPath } },
   build: {
     target: 'es2022',

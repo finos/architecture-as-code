@@ -1,0 +1,75 @@
+name: Build IntelliJ Plugin
+permissions:
+    contents: read
+on:
+    pull_request:
+        branches: ['main', 'release*']
+        paths: ['calm-plugins/intellij/**', 'pom.xml', '.mvn/**', 'mvnw*', 'package.json', 'package-lock.json', '.nvmrc', '.npmrc', '.github/workflows/build-intellij-plugin.yml']
+    push:
+        branches: ['main', 'release*']
+        paths: ['calm-plugins/intellij/**', 'pom.xml', '.mvn/**', 'mvnw*', 'package.json', 'package-lock.json', '.nvmrc', '.npmrc', '.github/workflows/build-intellij-plugin.yml']
+    workflow_dispatch:
+jobs:
+    build-test-package:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+            - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+              with:
+                  node-version-file: .nvmrc
+                  cache: npm
+            - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+              with:
+                  distribution: temurin
+                  java-version: '25'
+                  cache: maven
+            - name: Install webview dependencies
+              run: npm ci --workspace calm-plugins/intellij/webview --ignore-scripts
+            - name: Check workspace lockfile
+              run: node scripts/validate-lockfile-platforms.js
+            - name: Lint
+              run: npm run lint:intellij
+            - name: Test webview
+              run: npm test --workspace calm-plugins/intellij/webview -- --coverage
+            - name: Build, test and package with Maven
+              run: ./mvnw -B -ntp -Pintellij -pl calm-plugins/intellij verify
+            - name: Install browser
+              run: npm run install:browser --workspace calm-plugins/intellij/webview
+            - name: Test browser
+              run: npm run test:intellij:browser
+            - name: Verify minimum and current IDE compatibility
+              run: |
+                  mkdir -p sandbox/intellij/sdks
+                  curl -fL --retry 3 -o sandbox/intellij/verifier.jar https://repo.maven.apache.org/maven2/org/jetbrains/intellij/plugins/verifier-cli/1.410/verifier-cli-1.410-all.jar
+                  for version in 2026.2.1 2026.2.3; do
+                      curl -fL --retry 3 -o "sandbox/intellij/sdks/idea-${version}.tar.gz" "https://download.jetbrains.com/idea/idea-${version}.tar.gz"
+                      checksum=$(curl -fsL "https://download.jetbrains.com/idea/idea-${version}.tar.gz.sha256" | awk '{print $1}')
+                      echo "$checksum  sandbox/intellij/sdks/idea-${version}.tar.gz" | sha256sum -c -
+                      mkdir -p "sandbox/intellij/sdks/${version}"
+                      tar -xzf "sandbox/intellij/sdks/idea-${version}.tar.gz" -C "sandbox/intellij/sdks/${version}" --strip-components=1
+                  done
+                  # Keep the existing local-install ID; mute only its reserved-word naming rule.
+                  java -jar sandbox/intellij/verifier.jar check-plugin calm-plugins/intellij/target/*-plugin.zip sandbox/intellij/sdks/2026.2.1 sandbox/intellij/sdks/2026.2.3 -runtime-dir "$JAVA_HOME" -verification-reports-dir sandbox/intellij/verification -mute TemplateWordInPluginId -offline
+                  python3 - <<'PYVERIFY'
+                  from pathlib import Path
+                  verdicts = list(Path('sandbox/intellij/verification').rglob('verification-verdict.txt'))
+                  assert len(verdicts) == 2, f'Expected two IDE verification results, got {len(verdicts)}'
+                  for verdict in verdicts:
+                      text = verdict.read_text()
+                      print(text)
+                      assert text.startswith('Compatible'), text
+                  PYVERIFY
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: calm-intellij
+                  path: calm-plugins/intellij/target/*-plugin.zip
+                  if-no-files-found: error
+            - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              if: always()
+              with:
+                  name: intellij-test-reports
+                  path: |
+                      calm-plugins/intellij/target/surefire-reports
+                      sandbox/intellij/coverage/
+                      sandbox/intellij/browser-results/
+                      sandbox/intellij/verification/

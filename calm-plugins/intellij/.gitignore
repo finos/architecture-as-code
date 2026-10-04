@@ -9,3 +9,5 @@ webview/playwright-report/
 .idea/
 *.iml
 local.properties
+
+target/

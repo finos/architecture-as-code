@@ -1,6 +1,8 @@
 <idea-plugin>
     <id>dev.calm.intellij.preview</id>
     <name>CALM Canvas Preview</name>
+    <version>@project.version@</version>
+    <idea-version since-build="@intellij.since.build@"/>
     <vendor>CALM IntelliJ Prototype</vendor>
     <description><![CDATA[
         Preview CALM architecture JSON as an interactive diagram. Open CALM Canvas
@@ -8,6 +10,7 @@
         with live document updates, targeted JSON changes and native undo/redo.
     ]]></description>
     <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.jcef</depends>
     <extensions defaultExtensionNs="com.intellij">
         <iconMapper mappingFile="CalmIconMappings.json"/>
         <toolWindow id="CALM Canvas" anchor="right" icon="/icons/calm.svg" factoryClass="dev.calm.intellij.CalmToolWindowFactory"/>

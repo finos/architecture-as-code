@@ -119,3 +119,7 @@ Copyright FINOS
 Distributed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0).
 
 SPDX-License-Identifier: [Apache-2.0](https://spdx.org/licenses/Apache-2.0)
+
+### IntelliJ plugin
+
+The [CALM IntelliJ plugin](calm-plugins/intellij/README.md) provides architecture preview and editing for IntelliJ IDEA 2026.2.1 and later. Build it with the root Maven wrapper and JDK 25; its webview uses the root npm workspace.

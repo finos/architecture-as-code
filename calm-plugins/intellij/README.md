@@ -5,8 +5,8 @@ and dark theme from FINOS CALM Preview 0.6.0. Version 0.3 adds form-based visual
 
 ## Try it
 
-1. Build the plugin or use `build/distributions/calm-intellij-0.3.3.zip` from this workspace.
-2. In IntelliJ IDEA 2025.3, open **Settings → Plugins → gear menu → Install Plugin from Disk** and select the ZIP. Restart if requested.
+1. Build the plugin or use `target/calm-intellij-0.4.1-plugin.zip` from this workspace.
+2. In IntelliJ IDEA 2026.2.1 or later, open **Settings → Plugins → gear menu → Install Plugin from Disk** and select the ZIP. Restart if requested.
 3. Open `examples/sample.calm.json`, or your own `*.calm.json` / `*.architecture.json` file.
 4. Right-click the file or its editor and select **Open CALM Canvas**. The preview opens in the right tool window.
 5. Pan, zoom, or click a node to edit its name, type and description. Click a connection line to edit its relationship, even with labels hidden. Use **Add node**, **Add connection**, or **Edit items** to work with nodes and `connects` relationships, including nodes inside containers.
@@ -18,38 +18,51 @@ JetBrains Runtime. When JCEF is unavailable, the tool window explains the requir
 
 ## Build
 
-Requires JDK 21 and Node 22.12 or newer with npm. Gradle 8.14.3 is pinned by the wrapper.
+Requires JDK 25 and the Node version in the repository's `.nvmrc` (26).
+The `intellij` Maven profile adds this module to the reactor without raising the JDK requirement for other modules.
+Run these commands from the **repository root**:
 
 ```sh
-./gradlew test buildPlugin
+npm ci --workspace calm-plugins/intellij/webview --ignore-scripts
+./mvnw -Pintellij -pl calm-plugins/intellij clean verify
 ```
 
-This downloads IntelliJ IDEA 2025.3.6 as the build target. To use an installed IDE:
+A full root `npm ci` also works. The focused install skips unrelated workspace
+lifecycle hooks. The required esbuild binary comes from its platform package.
+Maven compiles the webview, downloads the published IntelliJ 2026.2.1 API modules,
+compiles Kotlin, runs host tests, and packages the installable ZIP in
+`calm-plugins/intellij/target/`. No local IDE installation or Gradle is needed.
+IDE libraries and Kotlin's standard library have provided scope and are not bundled.
 
-```sh
-./gradlew test buildPlugin -PlocalIdePath="/Applications/IntelliJ IDEA.app"
-```
+Set `JAVA_HOME` to JDK 25. If npm is not on `PATH`, add
+`-Dnpm.executable=/absolute/path/to/npm` and include Node in `PATH`.
+`-Dwebview.skip=true` may be used only after a successful webview build.
 
-If Gradle cannot find npm, add `-PnpmExecutable="/absolute/path/to/bin/npm"`.
-Set `JAVA_HOME` to JDK 21 or the IDE's `Contents/jbr/Contents/Home` directory.
-The build installs locked frontend dependencies with `npm ci`, compiles the UI,
-and bundles JavaScript/CSS in the plugin. End users do not need Node or a web server.
-
-Run a separate development IDE with the plugin installed:
-
-```sh
-./gradlew runIde -PlocalIdePath="/Applications/IntelliJ IDEA.app"
-```
+The plugin declares minimum IDE build `262.9437.185` (2026.2.1) without an upper
+bound. The bundled **Web Browser (JCEF)** plugin must be enabled. Future IDE
+versions are allowed by the descriptor and still need compatibility verification.
+The Kotlin compiler and standard library match the SDK's Kotlin 2.4.0 baseline.
 
 ## Checks
 
+From the repository root:
+
 ```sh
-cd webview
-npm ci
-npm run build
-npm test
-npm run test:browser
+npm run lint:intellij
+npm test --workspace calm-plugins/intellij/webview -- --coverage
+npm run build:intellij
+npm run test:intellij:browser
+./mvnw -Pintellij -pl calm-plugins/intellij verify
 ```
+
+CI installs Playwright Chromium; local browser tests use Google Chrome.
+Browser artifacts and coverage reports go to `sandbox/intellij/`.
+To compile against another published SDK, pass `-Dintellij.build=<build number>`;
+keep the minimum supported build pinned and verify the packaged plugin on both.
+The CI workflow runs JetBrains Plugin Verifier on 2026.2.1 and 2026.2.3.
+It mutes only `TemplateWordInPluginId` for the existing development ID
+`dev.calm.intellij.preview`, preserving upgrades from earlier local builds.
+That reserved-word ID must be resolved before a first Marketplace publication.
 
 Browser tests use installed Google Chrome. They cover offline production rendering,
 node and connection forms, request acknowledgements, conflict handling, read-only
@@ -86,15 +99,16 @@ does not provide full schema validation.
 - `examples`: a small architecture for trying the plugin.
 
 The reference source is pinned to FINOS architecture-as-code commit `a253d0df` (VS Code extension 0.6.0).
-See `webview/vendor/preview-0.6/UPSTREAM.md`. The sibling source checkout is not needed to build.
+See `webview/vendor/preview-0.6/UPSTREAM.md`. The snapshot preserves the approved rendering while the current upstream renderer evolves.
 
 ## Next milestone
 
 Native schema diagnostics are the next milestone. Deletion, ID renaming, editing
 containment/interaction relationships, reusable asset discovery, drill navigation,
-diagram export and AI integration remain future work. The Docify/Template workflows in the VS Code screenshot are not part of this diagram preview. Compatibility is currently
-limited to the IntelliJ IDEA 2025.3 release line.
+diagram export and AI integration remain future work. The Docify/Template workflows in the VS Code screenshot are not part of this diagram preview. The minimum supported IDE is IntelliJ IDEA 2026.2.1.
 
 ## Icons
 
 Plugin and tool window icons reuse the SVG paths from FINOS `calm-plugins/vscode/media/icon.svg` and `calm-canvas.svg`. Resources provide plugin-list, standard and compact tool-window sizes. Dark variants lighten the navy strokes for contrast; the artwork geometry is unchanged. The upstream license and notice are bundled in `META-INF/calm-upstream`.
+
+The preview follows the active IntelliJ UI theme, including diagram containers, connections and edit forms. Theme changes apply immediately and preserve zoom and unfinished edits.

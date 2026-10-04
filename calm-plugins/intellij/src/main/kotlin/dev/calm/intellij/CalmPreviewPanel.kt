@@ -1,5 +1,6 @@
 package dev.calm.intellij
 
+import com.intellij.ide.ui.LafManagerListener
 import com.google.gson.Gson
 import com.google.gson.JsonParser
 import com.intellij.openapi.command.WriteCommandAction
@@ -48,13 +49,13 @@ class CalmPreviewPanel(private val project: Project) : JPanel(BorderLayout()), D
             val query = JBCefJSQuery.create(view as JBCefBrowserBase)
             Disposer.register(this, query)
             query.addHandler { message ->
-                later { if (message == "ready") { ready = true; publish() } else handleRequest(message) }
+                later { if (message == "ready") { ready = true; publishTheme(); publish() } else handleRequest(message) }
                 null
             }
             add(view.component, BorderLayout.CENTER)
             val script = resource("/webview/index.js")
             val css = resource("/webview/index.css")
-            view.loadHTML(PreviewHtml.render(script, css, query.inject("payload")))
+            view.loadHTML(PreviewHtml.render(script, css, query.inject("payload"), PreviewTheme.css(PreviewTheme.colors())))
         }
 
         EditorFactory.getInstance().eventMulticaster.addDocumentListener(object : DocumentListener {
@@ -66,6 +67,7 @@ class CalmPreviewPanel(private val project: Project) : JPanel(BorderLayout()), D
             }
         }, this)
         val connection = ApplicationManager.getApplication().messageBus.connect(this)
+        connection.subscribe(LafManagerListener.TOPIC, LafManagerListener { later { publishTheme() } })
         connection.subscribe(FileDocumentManagerListener.TOPIC, object : FileDocumentManagerListener {
             override fun beforeDocumentSaving(document: Document) {
                 val saved = FileDocumentManager.getInstance().getFile(document)
@@ -83,6 +85,12 @@ class CalmPreviewPanel(private val project: Project) : JPanel(BorderLayout()), D
     fun open(target: VirtualFile) {
         file = target
         publish()
+    }
+
+    private fun publishTheme() {
+        if (!ready || disposed) return
+        val colors = PreviewTheme.colors()
+        send(mapOf("type" to "themeUpdated", "colors" to colors, "dark" to PreviewTheme.isDark(colors)))
     }
 
     private fun publish() {
