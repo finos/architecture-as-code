@@ -17,8 +17,13 @@
             "properties": {
               "controls": {
                 "type": "object",
+                "properties": {
+                  "sdlc-prev-017-service-dependency": {
+                    "$ref": "#/$defs/service-dependency-control"
+                  }
+                },
                 "patternProperties": {
-                  "^[a-zA-Z0-9-]+$": {
+                  ".*": {
                     "if": {
                       "type": "object",
                       "properties": {
@@ -60,8 +65,12 @@
       "description": "Each relationship must be valid CALM; which nodes connect is unconstrained here. What a service may connect to is stated by the relationships themselves and by node-level controls, and checked against the code by gates/drift-check.mjs."
     },
     "controls": {
-      "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/controls",
       "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control.json#/defs/controls"
+        }
+      ],
       "properties": {
         "sdlc-prev-001-code-review": {
           "$ref": "#/$defs/code-review"
