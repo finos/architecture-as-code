@@ -58,7 +58,7 @@
         "@types/xml2js": "^0.4.14",
         "axios": "^1.20.0",
         "chokidar": "^4.0.3",
-        "native-copyfiles": "^2.1.0",
+        "native-copyfiles": "^2.0.0",
         "semantic-release": "^25.0.0",
         "tsup": "^8.4.0",
         "xml2js": "^0.6.2"
