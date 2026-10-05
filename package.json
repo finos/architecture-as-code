@@ -76,6 +76,7 @@
         "calm-schema-1.0": "npm:@finos/calm-schema@1.0.0",
         "calm-schema-1.1": "npm:@finos/calm-schema@1.1.0",
         "calm-schema-1.2": "npm:@finos/calm-schema@1.2.0",
+        "conventional-changelog-conventionalcommits": "^9.3.1",
         "eslint": "^9.39.2",
         "fetch-mock": "^12.5.2",
         "globals": "^16.0.0",
