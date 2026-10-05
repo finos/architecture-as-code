@@ -12,7 +12,7 @@
  *   use <version>  Install <version> as @finos/calm-schema and as its calm-schema-<major.minor> alias.
  *   test <tool>    Run the build and test commands of one tool.
  *   report         Plan the issue update from the job results (env: VERSION, RUN_URL,
- *                  JOBS_FILE, ISSUES_FILE, BODY_FILE).
+ *                  JOBS_FILE, ISSUES_FILE, BODY_FILE, EVENT_NAME, REF_NAME, DEFAULT_BRANCH).
  *
  * Outputs go to $GITHUB_OUTPUT when it is set, else to stdout.
  */
@@ -243,18 +243,28 @@ function reproduceSection(version, failed) {
             : []),
         `- Say \`Closes #${ISSUE_NUMBER_PLACEHOLDER}\` in its description, so that the merge closes this issue.`,
         '',
-        `To test a fix before the merge, run this workflow manually with version ${version}. ` +
-            'It closes this issue when all tools pass.',
+        `To test a fix before the merge, run this workflow manually on the fix branch with version ${version}. ` +
+            'It comments on this issue with the result.',
     ].join('\n');
+}
+
+/**
+ * The branch of a manual run that is not on the default branch, else undefined. Scheduled and
+ * dispatched runs always use the default branch.
+ */
+export function otherBranch({ eventName, refName, defaultBranch }) {
+    return eventName === 'workflow_dispatch' && refName !== defaultBranch ? refName : undefined;
 }
 
 /**
  * Decides what to do with the issue for this version.
  * action: "create" or "comment" when a tool fails, "close" or "none" when all tools pass.
+ * A run on another branch only comments on the open issue: its result can differ from the
+ * default branch, and a scheduled run skips any version that has an issue.
  */
-export function planReport({ version, jobs, openIssue, runUrl }) {
+export function planReport({ version, jobs, openIssue, runUrl, branch }) {
     const failed = toolResults(jobs).filter(({ conclusion }) => conclusion !== 'success');
-    const run = `[schema compatibility workflow](${runUrl})`;
+    const run = `[schema compatibility workflow](${runUrl})${branch ? ` on branch \`${branch}\`` : ''}`;
 
     if (failed.length > 0) {
         const intro = `The ${run} tested the tools against \`${SCHEMA_PACKAGE}\` ${version}. These tools fail:`;
@@ -262,12 +272,19 @@ export function planReport({ version, jobs, openIssue, runUrl }) {
         if (openIssue) {
             return { action: 'comment', issue: openIssue.number, passed: false, body: results };
         }
+        if (branch) {
+            return { action: 'none', passed: false, body: '' };
+        }
         const body = [results, '', reproduceSection(version, failed)].join('\n');
         return { action: 'create', title: issueTitle(version), passed: false, body };
     }
 
     if (openIssue) {
         const body = `All tools pass with \`${SCHEMA_PACKAGE}\` ${version} in the ${run}.`;
+        if (branch) {
+            const stays = `${body} The issue stays open until the fix is on the default branch.`;
+            return { action: 'comment', issue: openIssue.number, passed: true, body: stays };
+        }
         return { action: 'close', issue: openIssue.number, passed: true, body };
     }
     return { action: 'none', passed: true, body: '' };
@@ -358,12 +375,13 @@ const commands = {
     },
 
     report() {
-        const { VERSION, RUN_URL, JOBS_FILE, ISSUES_FILE, BODY_FILE } = process.env;
+        const { VERSION, RUN_URL, JOBS_FILE, ISSUES_FILE, BODY_FILE, EVENT_NAME, REF_NAME, DEFAULT_BRANCH } = process.env;
         const { version } = parseVersion(VERSION);
         // gh api --paginate --slurp writes an array of pages.
         const jobs = readJson(JOBS_FILE).flatMap(page => page.jobs);
         const openIssue = findIssue(readJson(ISSUES_FILE), version);
-        const plan = planReport({ version, jobs, openIssue, runUrl: RUN_URL });
+        const branch = otherBranch({ eventName: EVENT_NAME, refName: REF_NAME, defaultBranch: DEFAULT_BRANCH });
+        const plan = planReport({ version, jobs, openIssue, runUrl: RUN_URL, branch });
         writeFileSync(BODY_FILE, plan.body);
         console.error(`Action: ${plan.action}`);
         setOutputs({

@@ -124,15 +124,17 @@ with the commands of its `build-*.yml` workflow (listed in `scripts/calm-schema-
 stops before the tests if the version is not on npm. If a tool fails, the workflow opens one issue
 for that release (label `calm-schema-compatibility`), or comments on the open issue. The issue asks
 for `Closes #<issue>` in the PR that moves `@finos/calm-schema` to the release, so that the merge
-closes it. A run in which all tools pass also closes it. The workflow does not reopen a closed
-issue: a new failure gets a new issue. `cli-hub-smoke.yml` is not in the matrix: it tests the CLI
-against a CALM Hub image, and the cli and calm-hub jobs already test the schema.
+closes it. A run on the default branch in which all tools pass also closes it. A manual run on
+another branch only comments on the open issue: it never opens or closes one. The workflow does
+not reopen a closed issue: a new failure gets a new issue. `cli-hub-smoke.yml` is not in the
+matrix: it tests the CLI against a CALM Hub image, and the cli and calm-hub jobs already test the
+schema.
 
 | Trigger | Version | Notes |
 |---|---|---|
 | `repository_dispatch` | `client_payload.version` | From the finos/calm-schema publish workflow: `event_type: calm-schema-published`, `client_payload: {"version": "x.y.z"}`. Waits up to about five minutes for the version on npm |
 | Daily schedule | npm `latest` | Skips the pinned version, a version with any issue (open or closed), and a version that passed |
-| Manual run | `version` input, or npm `latest` | Always runs. Use it to test a fix |
+| Manual run | `version` input, or npm `latest` | Always runs. Run it on a fix branch to test the fix |
 
 calm-hub fails for each new `major.minor` release until its schema index files list the release
 (see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).

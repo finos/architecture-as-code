@@ -12,6 +12,7 @@ import {
     findIssue,
     issueTitle,
     LOOKUP_RETRY_MS,
+    otherBranch,
     parseVersion,
     pinnedVersion,
     planReport,
@@ -262,6 +263,7 @@ describe('planReport', () => {
         assert.match(plan.body, /- Pin `@finos\/calm-schema` and the `calm-schema-1\.3` alias to 1\.3\.0\./);
         assert.match(plan.body, /- If 1\.3 is a new release, add it to the calm-hub `versions\.txt` and `files\.txt`/);
         assert.match(plan.body, /- Say `Closes #ISSUE_NUMBER` in its description/);
+        assert.match(plan.body, /run this workflow manually on the fix branch with version 1\.3\.0\. It comments on this issue/);
     });
 
     it('asks for the calm-hub index files only when calm-hub fails', () => {
@@ -307,6 +309,59 @@ describe('planReport', () => {
             passed: true,
             body: '',
         });
+    });
+
+    describe('on another branch', () => {
+        const branch = 'fix/schema-1.3';
+
+        it('comments on the open issue, and does not close it, when all tools pass', () => {
+            const plan = planReport({ version: '1.3.0', jobs: jobs(), openIssue, runUrl: RUN_URL, branch });
+
+            assert.equal(plan.action, 'comment');
+            assert.equal(plan.issue, 42);
+            assert.equal(plan.passed, true);
+            assert.match(plan.body, /All tools pass with `@finos\/calm-schema` 1\.3\.0 in the .* on branch `fix\/schema-1\.3`\./);
+            assert.match(plan.body, /The issue stays open until the fix is on the default branch\./);
+        });
+
+        it('comments on the open issue with the branch when a tool fails', () => {
+            const plan = planReport({
+                version: '1.3.0',
+                jobs: jobs({ cli: 'failure' }),
+                openIssue,
+                runUrl: RUN_URL,
+                branch,
+            });
+
+            assert.equal(plan.action, 'comment');
+            assert.equal(plan.issue, 42);
+            assert.match(plan.body, /on branch `fix\/schema-1\.3` tested the tools/);
+            assert.match(plan.body, /\| cli \| failure \|/);
+        });
+
+        it('does not open an issue when a tool fails and no issue is open', () => {
+            assert.deepEqual(planReport({ version: '1.3.0', jobs: jobs({ cli: 'failure' }), runUrl: RUN_URL, branch }), {
+                action: 'none',
+                passed: false,
+                body: '',
+            });
+        });
+    });
+});
+
+describe('otherBranch', () => {
+    it('returns the branch of a manual run that is not on the default branch', () => {
+        assert.equal(otherBranch({ eventName: 'workflow_dispatch', refName: 'fix/x', defaultBranch: 'main' }), 'fix/x');
+    });
+
+    it('returns undefined for a manual run on the default branch', () => {
+        assert.equal(otherBranch({ eventName: 'workflow_dispatch', refName: 'main', defaultBranch: 'main' }), undefined);
+    });
+
+    it('returns undefined for scheduled and dispatched runs, which have no default branch to compare', () => {
+        for (const eventName of ['schedule', 'repository_dispatch']) {
+            assert.equal(otherBranch({ eventName, refName: 'main', defaultBranch: '' }), undefined);
+        }
     });
 });
 
@@ -481,6 +536,28 @@ describe('calm-schema-compat.mjs', () => {
             'action=create\nissue=\ntitle=Tools fail with @finos/calm-schema 1.3.0\npassed=false\nplaceholder=ISSUE_NUMBER\n',
         );
         assert.match(readFileSync(bodyFile, 'utf8'), /\| shared \| failure \|/);
+    });
+
+    it('opens no issue from a manual run on another branch', () => {
+        const jobsFile = join(dir, 'jobs.json');
+        const issuesFile = join(dir, 'issues.json');
+        const bodyFile = join(dir, 'body.md');
+        writeFileSync(jobsFile, JSON.stringify([{ jobs: jobs({ shared: 'failure' }) }]));
+        writeFileSync(issuesFile, '[]');
+
+        const result = runScript(['report'], {
+            VERSION: '1.3.0',
+            RUN_URL,
+            JOBS_FILE: jobsFile,
+            ISSUES_FILE: issuesFile,
+            BODY_FILE: bodyFile,
+            EVENT_NAME: 'workflow_dispatch',
+            REF_NAME: 'fix/x',
+            DEFAULT_BRANCH: 'main',
+        });
+
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.stdout, 'action=none\nissue=\ntitle=\npassed=false\nplaceholder=ISSUE_NUMBER\n');
     });
 
     it('fails for an unknown tool', () => {
