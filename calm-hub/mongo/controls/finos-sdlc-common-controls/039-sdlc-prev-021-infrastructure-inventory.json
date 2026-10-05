@@ -1,0 +1,225 @@
+{
+  "controlId": 39,
+  "name": "sdlc-prev-021-infrastructure-inventory",
+  "description": "Infrastructure Dependencies provides visibility into the infrastructure resources required to host and operate a software system. By maintaining an accurate inventory of the compute, network, and storage resources a given software system requires, we can better manage the system throughout its lifecycle. This improves operational visibility, supports security and compliance activities, and reduces the risk associated with unmanaged or unknown infrastructure requirements. The primary goal is to ensure that each software system is supported by the appropriate infrastructure and that those infrastructure requirements are understood and governed throughout the software lifecycle.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-021-infrastructure-inventory/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-021 Infrastructure Dependencies",
+      "name": "Infrastructure Dependencies",
+      "description": "Infrastructure Dependencies provides visibility into the infrastructure resources required to host and operate a software system. By maintaining an accurate inventory of the compute, network, and storage resources a given software system requires, we can better manage the system throughout its lifecycle. This improves operational visibility, supports security and compliance activities, and reduces the risk associated with unmanaged or unknown infrastructure requirements. The primary goal is to ensure that each software system is supported by the appropriate infrastructure and that those infrastructure requirements are understood and governed throughout the software lifecycle.",
+      "control-id": "SDLC-PREV-021",
+      "category": "RELEASE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-21_infrastructure-inventory.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 21,
+        "control-type": "PREV",
+        "phase": "RELEASE",
+        "status": "Draft",
+        "chain": [
+          "Inventory"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-OP-007",
+          "name": "Configuration Drift",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-7_configuration-drift.html"
+        },
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-009",
+          "name": "Component Inventory",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html"
+        },
+        {
+          "id": "SDLC-PREV-017",
+          "name": "Service Dependency Control",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-17_service-dependency-control.html"
+        }
+      ],
+      "details": [
+        "Infrastructure Dependencies is the practice of identifying, documenting, and maintaining an up-to-date record of the infrastructure resources required to support the software under management. This includes the compute, network, storage resources and identity and access management on which an application depends, regardless of whether it is deployed on-premises, in cloud environments, or across hybrid infrastructures.",
+        "Examples of infrastructure resources include:",
+        "* Compute resources such as physical servers, virtual machines, containers, Kubernetes clusters, and serverless execution environments. * Network resources such as load balancers, network segments, gateways, DNS services, and connectivity components. * Storage resources such as file systems, object storage, block storage, network-attached storage, relational databases, NoSQL databases, data warehouses, and managed database services. * Identity and Access Management such as customer, employee, and privileged.",
+        "Maintaining an accurate list of infrastructure dependencies enables organizations to understand system requirements for deployment, identify ownership and accountability, assess the impact of infrastructure changes, and support operational, security, and compliance activities.",
+        "Infrastructure Dependencies enables organizations to appropriately plan and react to changes in underlying infrastructure caused by planned and unplanned outages. It supports software management during platform upgrades, vulnerability remediation efforts, capacity planning, and infrastructure migrations. This control complements Component Inventory and Service Dependency Control by providing visibility into the infrastructure resources that software components and services depend upon at runtime."
+      ],
+      "requirements": [
+        "Infrastructure dependencies MUST include the compute, network, storage, and identity resources that support production workloads.",
+        {
+          "text": "Compute resources MUST include deployment and hosting information where applicable, such as:",
+          "items": [
+            "Physical servers",
+            "Virtual machines",
+            "Containers",
+            "Kubernetes clusters",
+            "Serverless execution environments"
+          ]
+        },
+        {
+          "text": "Network resources MUST include infrastructure components that provide connectivity, routing, traffic management, or external access where applicable, such as:",
+          "items": [
+            "Load balancers",
+            "DNS services",
+            "Network gateways",
+            "Network segments"
+          ]
+        },
+        {
+          "text": "Storage resources MUST include infrastructure used for persistent data storage where applicable, including:",
+          "items": [
+            "File systems",
+            "Object storage",
+            "Block storage",
+            "Relational databases",
+            "NoSQL databases",
+            "Data warehouses"
+          ]
+        },
+        {
+          "text": "Identity resources MUST include infrastructure used for persistent identity storage, including:",
+          "items": [
+            "Identity stores",
+            "Certificate vaults",
+            "Privileged access management stores"
+          ]
+        },
+        "Each infrastructure resource MUST include ownership information to ensure accountability for maintenance, security, and operational support.",
+        "The dependencies MUST identify the infrastructure resources associated with that system, application, or service.",
+        {
+          "text": "Infrastructure dependencies records MUST include deployment location information where applicable, such as:",
+          "items": [
+            "On-premises environments",
+            "Cloud environments",
+            "Hybrid environments",
+            "Geographic regions or data centers"
+          ]
+        },
+        "Infrastructure dependencies data MUST be reviewed and updated whenever infrastructure resources associated with the software are added, modified, migrated, or decommissioned.",
+        "Decommissioned infrastructure dependencies MUST be removed from active dependency lists or clearly identified as retired.",
+        "Changes to infrastructure resources MUST be reflected in the dependency list as part of the organization’s change management process.",
+        "Organizations SHOULD endeavor to put practices in place to maintain Infrastructure Dependencies lists aligned with Infrastructure Asset Management Inventories."
+      ],
+      "examples": [
+        "Software Deployment A software system is being prepared for production deployment. Infrastructure Dependencies identifies the compute, network, storage, and identity resources required to operate the system, enabling teams to confirm that the appropriate infrastructure has been provisioned and that required dependencies are understood before deployment.",
+        "Vulnerability Remediation A critical vulnerability is identified in an infrastructure platform or resource used by a software system. Infrastructure Dependencies enables teams to determine whether the software depends on the affected infrastructure, assess the potential impact, and coordinate remediation or migration activities with the appropriate infrastructure owners.",
+        "Platform Upgrade A software system depends on a Kubernetes cluster that is scheduled for an upgrade. Infrastructure Dependencies provides visibility into the system's reliance on the affected platform, enabling teams to assess compatibility, coordinate testing and deployment activities, and manage the risk of disruption to the software.",
+        "Infrastructure Migration A software system is being migrated from an on-premises environment to a cloud environment. Infrastructure Dependencies identifies the compute, network, storage, identity, and location requirements supporting the system, enabling teams to plan the target environment and verify that required infrastructure dependencies are preserved during the migration.",
+        "Operational Incident A software system experiences a production outage caused by the failure of an underlying load balancer or other infrastructure resource. Infrastructure Dependencies enables responders to identify the infrastructure supporting the affected software, determine ownership, understand relevant dependencies, and coordinate recovery activities with the responsible teams.",
+        "Software Decommissioning A software system is being retired. Infrastructure Dependencies identifies the infrastructure resources associated with the system, enabling teams to determine which compute, network, storage, and identity resources may also be decommissioned or reassigned while reducing the risk of removing infrastructure still required by other systems."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "cm-8",
+            "title": "CM-8 System Component Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A393%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C197.0%2C0%5D"
+          },
+          {
+            "id": "cm-12",
+            "title": "CM-12 Information Location",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A411%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C611.0%2C0%5D"
+          },
+          {
+            "id": "pm-5",
+            "title": "PM-5 System Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A689%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "eu-dora": [
+          {
+            "id": "dora-art-8",
+            "title": "DORA Art. 8 — Identification of ICT assets and dependencies",
+            "url": "https://www.springlex.eu/en/packages/dora/dora-regulation/article-8/",
+            "note": "Art. 8(1) requires financial entities to identify, classify and document all ICT supported business functions, the information assets and ICT assets supporting them, and their roles and dependencies, with the classification reviewed at least yearly. Art. 8(4) extends this to all information and ICT assets including remote sites, network resources and hardware, mapping those considered critical and the links and interdependencies between assets — the per-system infrastructure dependency record this mitigation requires."
+          }
+        ],
+        "uk-fca": [
+          {
+            "id": "sysc-15a-4",
+            "title": "FCA SYSC 15A.4 — Mapping",
+            "url": "https://handbook.fca.org.uk/handbook/SYSC/15A/4.html",
+            "note": "Requires firms to identify and document the people, processes, technology, facilities and information necessary to deliver each important business service. The technology and facilities legs of that mapping are the infrastructure dependency record; retained dependency data evidences the mapping in the firm's operational resilience self-assessment."
+          }
+        ],
+        "ffiec-itbooklets": [
+          {
+            "id": "aio-3",
+            "title": "AIO: III Common AIO Risk Management Topics",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/architecture-infrastructure-and-operations/iii-common-aio-risk-management-topics/",
+            "note": "The common AIO risk management topics include IT asset management: maintaining accurate inventories of hardware, software and information assets with assigned ownership and lifecycle (including end-of-life) tracking. The per-system dependency record implements the inventory expectation from the software system's perspective."
+          },
+          {
+            "id": "aio-5",
+            "title": "AIO: V Infrastructure",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/architecture-infrastructure-and-operations/v-infrastructure/",
+            "note": "Sets examiner expectations for managing the infrastructure components — hardware, networks, operating systems and storage — that support business operations. Knowing which software systems depend on which components underpins the resilience, upgrade and remediation activities the booklet describes."
+          }
+        ],
+        "us-nydfs": [
+          {
+            "id": "nydfs-500-13",
+            "title": "NYDFS 23 NYCRR §500.13 — Asset Management and Data Retention Requirements",
+            "url": "https://www.dfs.ny.gov/system/files/documents/2023/03/23NYCRR500_0.pdf",
+            "note": "Section 500.13(a) requires written policies producing and maintaining a complete, accurate and documented asset inventory of information systems — tracking each asset's owner, location, classification, support expiration date and recovery time objectives — covering hardware, operating systems, applications, infrastructure devices, APIs and cloud services. In force since November 2025."
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 CM-8: System Component Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 1800-5 — IT Asset Management practice guide",
+            "url": "https://csrc.nist.gov/pubs/sp/1800/5/final"
+          },
+          {
+            "title": "FFIEC IT Handbook — Architecture, Infrastructure, and Operations booklet",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/architecture-infrastructure-and-operations/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-021"
+        },
+        "name": {
+          "const": "Infrastructure Dependencies"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

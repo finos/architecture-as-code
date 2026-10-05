@@ -3,10 +3,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 /**
- * validation.ts — Shared CALM 1.2 architecture validation engine.
+ * validation.ts — Shared CALM architecture validation engine.
  *
  * Validates a CalmArchitecture object against:
- *   1. The FINOS CALM 1.2 meta-schema (vendored under `./schemas`)
+ *   1. The FINOS CALM meta-schema from the `@finos/calm-schema` package
  *      via Ajv (draft 2020-12).
  *   2. Semantic rules: dangling refs, duplicates, orphan nodes, self-loops.
  *   3. Info-level rules: nodes missing description.
@@ -20,14 +20,14 @@ import addFormats from 'ajv-formats';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
 import { getRelationshipVariant, getReferencedNodeIds } from './helpers.js';
 
-import calmSchema from './schemas/calm.json' with { type: 'json' };
-import coreSchema from './schemas/core.json' with { type: 'json' };
-import controlSchema from './schemas/control.json' with { type: 'json' };
-import controlRequirementSchema from './schemas/control-requirement.json' with { type: 'json' };
-import interfaceSchema from './schemas/interface.json' with { type: 'json' };
-import flowSchema from './schemas/flow.json' with { type: 'json' };
-import evidenceSchema from './schemas/evidence.json' with { type: 'json' };
-import unitsSchema from './schemas/units.json' with { type: 'json' };
+import calmSchema from '@finos/calm-schema/schema/calm.json' with { type: 'json' };
+import coreSchema from '@finos/calm-schema/schema/core.json' with { type: 'json' };
+import controlSchema from '@finos/calm-schema/schema/control.json' with { type: 'json' };
+import controlRequirementSchema from '@finos/calm-schema/schema/control-requirement.json' with { type: 'json' };
+import interfaceSchema from '@finos/calm-schema/schema/interface.json' with { type: 'json' };
+import flowSchema from '@finos/calm-schema/schema/flow.json' with { type: 'json' };
+import evidenceSchema from '@finos/calm-schema/schema/evidence.json' with { type: 'json' };
+import unitsSchema from '@finos/calm-schema/schema/units.json' with { type: 'json' };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +42,7 @@ export interface ValidationIssue {
 	path?: string;
 }
 
-// ─── Ajv setup (vendored CALM 1.2 meta-schemas) ──────────────────────────────
+// ─── Ajv setup (CALM meta-schemas from @finos/calm-schema) ───────────────────
 
 const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true });
 addFormats.default(ajv);
@@ -60,12 +60,12 @@ for (const s of [
 }
 
 /**
- * Returns the compiled CALM 1.2 root validator (`calm.json`).
+ * Returns the compiled CALM root validator (`calm.json`).
  * Compiled lazily so dynamic-import + tree-shaking remain friendly.
  */
 function getCalmValidator() {
 	const v = ajv.getSchema((calmSchema as { $id?: string }).$id ?? '');
-	if (!v) throw new Error('CALM 1.2 root schema not registered with Ajv');
+	if (!v) throw new Error('CALM root schema not registered with Ajv');
 	return v;
 }
 
@@ -80,7 +80,7 @@ const validateSchema = getCalmValidator();
 export function validateCalmArchitecture(arch: CalmArchitecture): ValidationIssue[] {
 	const issues: ValidationIssue[] = [];
 
-	// 1. JSON Schema validation against CALM 1.2 meta-schema
+	// 1. JSON Schema validation against the CALM meta-schema
 	const valid = validateSchema(arch);
 	if (!valid && validateSchema.errors) {
 		for (const err of validateSchema.errors) {

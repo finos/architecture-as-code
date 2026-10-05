@@ -1,0 +1,108 @@
+{
+  "controlId": 38,
+  "name": "sdlc-prev-020-requirements-approval",
+  "description": "The requirements forming the scope of a release must be explicitly reviewed and agreed by accountable stakeholders representing the business needs of the specific release of the product before that release proceeds to production.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-020-requirements-approval/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-020 Requirements Approval for Release",
+      "name": "Requirements Approval for Release",
+      "description": "The requirements forming the scope of a release must be explicitly reviewed and agreed by accountable stakeholders representing the business needs of the specific release of the product before that release proceeds to production.",
+      "control-id": "SDLC-PREV-020",
+      "category": "RELEASE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-20_requirements-approval.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 20,
+        "control-type": "PREV",
+        "phase": "RELEASE",
+        "status": "Draft",
+        "chain": [
+          "requirements-governance"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-BUS-012",
+          "name": "Business Reputation Risk from Non-Approved Software Version Releases",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-12_business-reputation.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-004",
+          "name": "Requirements Repository",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-4_requirements.html"
+        },
+        {
+          "id": "SDLC-PREV-019",
+          "name": "Version Release Approval Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-19_version-approval.html"
+        }
+      ],
+      "details": [
+        "A release without an agreed requirements baseline is a release without a definition of what was to be done. This evidence outlines the scope and intent of the software change and without it being linked to the specific release we cannot demonstrate that what has been produced aligns with that intention.",
+        "This approval must come from authorised persons representing or delegated to by the business function owning the application to ensure that it is built matching their intention for the product. Otherwise this risks impacting overall quality, wasted effort and time (opportunity cost) and in cases of sensitive software material risk to controls and or operational risk.",
+        "This control requires that, for every release, the requirements in scope are documented in the approved repository (MI-4 (https://finos.github.io/sdlc-common-controls/mitigations/mi-4_requirements.html)), reviewed by the stakeholders accountable for the business outcome and applicable obligations, and explicitly agreed before the release proceeds. It applies to the full requirement surface — business, functional, non-functional, security, and regulatory — not solely to feature-level user stories."
+      ],
+      "requirements": [
+        "Every release intended for production MUST have a documented set of requirements in scope, recorded in the approved requirements repository (MI-4 (https://finos.github.io/sdlc-common-controls/mitigations/mi-4_requirements.html))",
+        "Each in-scope requirement MUST be documented to a level that permits meaningful review — at minimum, a clear statement of intent, an identified accountable owner, and any applicable non-functional, security, or regulatory considerations called out against the requirement itself",
+        "Requirements in scope for the release MUST be reviewed and agreed by named approvers representing, at minimum: the accountable business or product owner",
+        "Approvals MUST be attributed to a named individual, timestamped, and bound to the specific release identifier or the components that make that release.",
+        "The in-scope requirement identifiers MUST be bound to the release identifier such that the requirements for any given release, and the release for any given approved requirement, can be retrieved after the fact",
+        "Approval evidence MUST be recorded in an auditable system of record and retained for a period consistent with applicable regulatory requirements and the organisation's record-retention policy"
+      ],
+      "examples": [
+        "Release-level review against a fixed scope: Ahead of a release, the product owner generates a list from the requirements repository of every requirement in scope for the release. They walk the list, confirm that it matches what the business has committed to deliver, and record the approval against the release identifier in the governance platform.",
+        "Reviewable requirement: Each requirement in the release list carries a clear statement of intent, a named owner, and any applicable non-functional, security, or regulatory considerations recorded against it. A vague one-line ticket would not pass review; the approver needs enough on each item to know what they are agreeing to.",
+        "Delegated approval: The business function head for the application has delegated release approval to a named senior product manager. The delegation is recorded in the governance system, and approvals signed by the delegate are accepted as if signed by the function head.",
+        "Traceability after the fact: Months after a release, the business wants to evidence which release delivered a particular commitment. The product owner queries the requirements repository for the requirement, follows the link to the release in which it was approved, and produces the approval record without having to reconstruct the trail manually."
+      ],
+      "references": {
+        "links": [
+          {
+            "title": "ISO 9001 — Quality management systems — Requirements",
+            "url": "https://www.iso.org/standard/62085.html"
+          },
+          {
+            "title": "ISO/IEC/IEEE 12207 — Systems and software engineering — Software life cycle processes",
+            "url": "https://www.iso.org/standard/63712.html"
+          },
+          {
+            "title": "COBIT 2019 — BAI02 Manage Requirements Definition",
+            "url": "https://www.isaca.org/resources/cobit"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-020"
+        },
+        "name": {
+          "const": "Requirements Approval for Release"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

@@ -1,10 +1,11 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { IoChevronForwardOutline } from 'react-icons/io5';
 import { NamespaceCounts } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
 import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { CountBadge } from './CountBadge.js';
+import { anchorFlyout, type FlyoutAnchor } from './flyout-anchor.js';
 import { buildNamespaceTree, flattenNamespaceTree, indentFor, isNamespace, type NamespaceTreeNode } from './namespace-tree.js';
 
 interface CollapsedRailProps {
@@ -14,6 +15,10 @@ interface CollapsedRailProps {
 
 function isWithin(container: HTMLElement, target: EventTarget | null): boolean {
     return target instanceof Node && container.contains(target);
+}
+
+function measure(trigger: HTMLElement): FlyoutAnchor {
+    return anchorFlyout(trigger.getBoundingClientRect(), window.innerHeight);
 }
 
 function FlyoutRow({ node, depth, active, onSelect }: { node: NamespaceTreeNode; depth: number; active: boolean; onSelect: () => void }) {
@@ -75,6 +80,34 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
     // a link keeps focus after navigating so the pointer leaving would not close it.
     const pointerInside = useRef(false);
     const focusInside = useRef(false);
+    const [anchor, setAnchor] = useState<FlyoutAnchor | null>(null);
+
+    /**
+     * Measured as the panel opens. Only on the way open: focus moving between rows bubbles
+     * here too, and re-measuring would hand React a new object each time for coordinates
+     * that have not changed.
+     */
+    const open = () => {
+        if (!isOpen && triggerRef.current) setAnchor(measure(triggerRef.current));
+        onOpen();
+    };
+
+    // The panel is fixed, so it does not travel with its trigger. While the keyboard holds it
+    // open there is no pointer to re-enter the trigger and re-measure, so scrolling the rail
+    // would leave the panel beside an unrelated initial. Scroll events do not bubble, hence
+    // the capture phase.
+    useEffect(() => {
+        if (!isOpen) return;
+        const reanchor = () => {
+            if (triggerRef.current) setAnchor(measure(triggerRef.current));
+        };
+        window.addEventListener('scroll', reanchor, true);
+        window.addEventListener('resize', reanchor);
+        return () => {
+            window.removeEventListener('scroll', reanchor, true);
+            window.removeEventListener('resize', reanchor);
+        };
+    }, [isOpen]);
 
     const closeIfLeft = () => {
         if (!pointerInside.current && !focusInside.current) onClose();
@@ -89,11 +122,10 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
 
     return (
         <div
-            className="relative"
             onMouseEnter={() => {
                 pointerInside.current = true;
                 dismissedRef.current = false;
-                onOpen();
+                open();
             }}
             onMouseLeave={() => {
                 pointerInside.current = false;
@@ -101,7 +133,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
             }}
             onFocus={() => {
                 focusInside.current = true;
-                if (!dismissedRef.current) onOpen();
+                if (!dismissedRef.current) open();
             }}
             onBlur={(e) => {
                 if (isWithin(e.currentTarget, e.relatedTarget)) return;
@@ -126,7 +158,7 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 onClick={() => {
                     dismissedRef.current = false;
                     focusInside.current = true;
-                    onOpen();
+                    open();
                 }}
                 className="flex items-center justify-center font-semibold text-[13px] rounded-[7px] border-0 cursor-pointer focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-interaction)]"
                 style={{
@@ -146,12 +178,12 @@ function RootInitial({ root, isActive, isOpen, activeNamespace, onOpen, onClose 
                 // margin on the panel. A margin sits outside the container, so crossing it puts
                 // the pointer over a non-descendant and fires mouseleave before the panel is
                 // reached. As padding it stays part of the hit area.
-                <div className="absolute top-0 left-full pl-1 z-50">
+                <div className="fixed pl-1 z-50" style={{ left: anchor?.left, top: anchor?.top, bottom: anchor?.bottom }}>
                     <div
                         className="flex flex-col gap-0.5 p-1.5 rounded-[12px]"
                         style={{
                             width: 220,
-                            maxHeight: '60vh',
+                            maxHeight: anchor?.maxHeight,
                             overflowY: 'auto',
                             backgroundColor: colors.redesign.surface,
                             border: `1px solid ${colors.redesign.border}`,
@@ -199,7 +231,7 @@ export function CollapsedRail({ namespaceCounts, onExpand }: CollapsedRailProps)
                 </button>
             </div>
 
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1.5 w-full flex-1 min-h-0 overflow-auto pt-1 pb-3">
                 {tree.map((root) => (
                     <RootInitial
                         key={root.path}

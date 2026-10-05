@@ -56,7 +56,7 @@ public class GitHubFlowStore extends AbstractReadOnlyGitHubStore implements Flow
     }
 
     @Override
-    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
+    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace, String version) throws NamespaceNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
@@ -94,6 +94,12 @@ public class GitHubFlowStore extends AbstractReadOnlyGitHubStore implements Flow
 
     @Override
     public void deleteFlow(String namespace, int flowId) throws NamespaceNotFoundException, FlowNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public boolean deleteFlowVersion(String namespace, int flowId, String version)
+            throws NamespaceNotFoundException, FlowNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }

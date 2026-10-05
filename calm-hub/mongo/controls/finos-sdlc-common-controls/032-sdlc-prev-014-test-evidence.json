@@ -1,0 +1,173 @@
+{
+  "controlId": 32,
+  "name": "sdlc-prev-014-test-evidence",
+  "description": "Test evidence retention ensures that automated test results are captured, linked to specific code changes, and preserved for audit, providing verifiable proof that software was tested before deployment.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-014-test-evidence/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-014 Test Evidence Retention",
+      "name": "Test Evidence Retention",
+      "description": "Test evidence retention ensures that automated test results are captured, linked to specific code changes, and preserved for audit, providing verifiable proof that software was tested before deployment.",
+      "control-id": "SDLC-PREV-014",
+      "category": "BUILD",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 14,
+        "control-type": "PREV",
+        "phase": "BUILD",
+        "status": "Draft",
+        "chain": [
+          "testing-assurance"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        },
+        {
+          "id": "SDLC-SEC-008",
+          "name": "Unauthorised Change",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-8_unauthorised-change.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-015",
+          "name": "Testing Requirements",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html"
+        },
+        {
+          "id": "SDLC-PREV-016",
+          "name": "Test Execution and Sign-Off",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html"
+        },
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        },
+        {
+          "id": "SDLC-PREV-005",
+          "name": "Vulnerability Scanning - SAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html"
+        },
+        {
+          "id": "SDLC-PREV-006",
+          "name": "Vulnerability Scanning - DAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-6_vulnerability-scanning-dast.html"
+        }
+      ],
+      "details": [
+        "Test evidence retention addresses the requirement to produce, on demand, machine-generated records that demonstrate testing occurred for any given code change or release. Without retained evidence, an organisation cannot prove to a regulator, auditor, or customer that its test suite operated as intended at the time a change was deployed. The mere existence of a test suite is insufficient — evidence must be tied to specific commits, cover the expected scope, and survive for the full regulatory retention period.",
+        "This control is distinct from test execution (SDLC-PREV-016 (https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html)), which governs whether required testing was performed and any failures appropriately reviewed. Test evidence retention concerns the preservation and retrievability of the artefacts that test execution produces. An organisation may execute testing correctly but still face an evidence failure if the resulting records are not retained in a durable, tamper-evident form linked to the change they attest to.",
+        "In regulated financial services environments, the inability to produce test evidence for a released change is treated by examiners as equivalent to the testing not having occurred. Coverage metrics, test run logs, pass/fail records, and the identity of the system that executed them form part of the SDLC governance trail required to demonstrate that software development risk is managed."
+      ],
+      "requirements": [
+        "Automated test suites MUST be executed as part of the CI/CD pipeline for every pull request targeting a protected branch and every build that produces a deployable artefact",
+        "For Automated test execution results MUST be captured in a structured, machine-readable format (e.g., JUnit XML, CTRF) and stored as persistent artefacts linked to the triggering commit SHA, branch, built artifact, pipeline run identifier, and timestamp or any other references to ensure traceability back to the intented release",
+        "Manual test evidence must be associated with the intented release for traceability, downstream gating and reporting.",
+        "Test evidence artefacts MUST be retained for a minimum period aligned with the organisation's regulatory audit retention policy; this period MUST NOT be less than the longest applicable regulatory retention requirement",
+        "Retained artefacts MUST be immutable after capture; they MUST NOT be modifiable, deletable, or re-runnable outside an approved and auditable exception process",
+        "Each deployment record MUST include a reference to the test evidence artefact that corresponds to the artefact being deployed, enabling end-to-end traceability from deployment back to the test run",
+        "A defined and documented exception process MUST exist for cases where test evidence cannot be produced before deployment; exceptions MUST be approved by an appropriate authority, time-bound, and automatically tracked to closure"
+      ],
+      "examples": [
+        "Artefact Storage: Configure CI pipelines to publish test results and coverage reports as pipeline artefacts. Where the pipeline's native retention is short-lived (e.g., 30 days), archive to long-term storage such as an object store with immutable object policies enabled (e.g., S3 Object Lock). Record the artefact location in the deployment record",
+        "Traceability: Tag artefacts with the commit SHA or release tag so that the evidence can be addressible later by downstream gating or for reporting purposes.",
+        "Immutability: Use object storage features such as write-once-read-many (WORM) policies or versioning with deletion protection to ensure artefacts cannot be altered after the pipeline writes them. Audit access logs periodically to detect any access pattern inconsistent with normal read-only retrieval"
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "au-12",
+            "title": "AU-12 Audit Record Generation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A304%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C122.0%2C0%5D"
+          },
+          {
+            "id": "ca-2",
+            "title": "CA-2 Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#page=111"
+          },
+          {
+            "id": "ca-7",
+            "title": "CA-7 Continuous Monitoring",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#page=117"
+          },
+          {
+            "id": "cm-4",
+            "title": "CM-4 Impact Analyses",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A375%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C509.0%2C0%5D"
+          },
+          {
+            "id": "sa-15",
+            "title": "SA-15 Development Process, Standards, and Tools",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A914%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C624.0%2C0%5D"
+          },
+          {
+            "id": "si-2",
+            "title": "SI-2 Flaw Remediation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1070%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 SA-11: Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 AU-12: Audit Record Generation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 CA-2: Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "OWASP DevSecOps Guideline",
+            "url": "https://owasp.org/www-project-devsecops-guideline/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-014"
+        },
+        "name": {
+          "const": "Test Evidence Retention"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

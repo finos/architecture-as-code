@@ -15,6 +15,8 @@
 #   CALM_HUB_URL            - base URL for readiness checks and seeder (default: http://localhost:8080)
 #   CALM_SCHEMA_BASE_PATH   - path to the calm/ directory with release/ and draft/ (default: /calm)
 #   CALM_CONTROLS_BASE_PATH - path to the controls/ directory (default: /controls)
+#   CALM_STANDARDS_BASE_PATH - path to the standards/ directory (default: /standards)
+#   CALM_PATTERNS_BASE_PATH - path to the patterns/ directory (default: /patterns)
 #   READINESS_TIMEOUT       - seconds to wait for the app to become ready (default: 120)
 #   CALM_HUB_NATIVE_BINARY  - optional path to a native runner binary; when set, the
 #                             native binary is launched instead of 'java -jar' JVM mode
@@ -25,6 +27,8 @@ DATA_DIR="${DATA_DIR:-/data}"
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-/calm}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-/controls}"
+CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-/standards}"
+CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-/patterns}"
 READINESS_TIMEOUT="${READINESS_TIMEOUT:-120}"
 CALM_HUB_NATIVE_BINARY="${CALM_HUB_NATIVE_BINARY:-}"
 
@@ -80,11 +84,13 @@ echo "[seed] Running init-nitrite.sh..."
 CALM_HUB_URL="${CALM_HUB_URL}" \
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH}" \
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH}" \
+CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH}" \
+CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH}" \
     bash "${INIT_NITRITE_SCRIPT}"
 
 # Verify the database was actually populated before baking it into the image.
-# init-nitrite.sh intentionally tolerates per-request failures (it only prints
-# warnings), so an empty database can otherwise pass the build undetected. Query
+# init-nitrite.sh tolerates some per-request failures (it only prints warnings
+# for them), so an empty database can otherwise pass the build undetected. Query
 # the namespaces endpoint and fail loudly if nothing was persisted.
 echo "[seed] Verifying seeded data..."
 NAMESPACE_RESPONSE="$(curl -s "${CALM_HUB_URL}/api/calm/namespaces" || true)"

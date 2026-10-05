@@ -9,6 +9,7 @@ import java.util.List;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.nullValue;
 
 class TestSemanticVersionOrderShould {
 
@@ -113,5 +114,31 @@ class TestSemanticVersionOrderShould {
     @Test
     void treat_two_null_versions_as_equal() {
         assertThat(SemanticVersionOrder.ASCENDING.compare(null, null), is(0));
+    }
+
+    @Test
+    void rank_a_snapshot_below_its_release() {
+        // Standard semver pre-release ordering. Under the shadowing rule the two cannot
+        // coexist, so this is defensive — but leaving it unspecified is how a version ends
+        // up sorting as 0.0.0.
+        List<String> versions = new ArrayList<>(List.of("1.0.0", "1.0.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.0.0-SNAPSHOT", "1.0.0"));
+    }
+
+    @Test
+    void sort_a_snapshot_into_position_rather_than_last() {
+        // Before the Semver fix a snapshot parsed as 0.0.0 and sorted first, so the last
+        // element of a sorted list — the "latest" version — could be stale content.
+        List<String> versions = new ArrayList<>(List.of("2.0.0", "1.0.0", "1.5.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.0.0", "1.5.0-SNAPSHOT", "2.0.0"));
+    }
+
+    @Test
+    void order_two_snapshots_by_their_release_versions() {
+        List<String> versions = new ArrayList<>(List.of("1.10.0-SNAPSHOT", "1.9.0-SNAPSHOT"));
+        versions.sort(SemanticVersionOrder.ASCENDING);
+        assertThat(versions, contains("1.9.0-SNAPSHOT", "1.10.0-SNAPSHOT"));
     }
 }

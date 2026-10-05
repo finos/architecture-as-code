@@ -2,7 +2,7 @@
 
 This is the project's security self-assessment: a threat model and attack surface analysis for the software released from this repository. It satisfies OSPS Baseline controls OSPS-SA-03.01 and OSPS-SA-03.02 and is declared in [`security-insights.yml`](security-insights.yml). It is reviewed when a component gains a new external interface, a new trust boundary, or a new distribution channel, and at least once a year.
 
-Last reviewed: 2026-09-26.
+Last reviewed: 2026-10-03.
 
 ## Scope
 
@@ -13,15 +13,16 @@ Last reviewed: 2026-09-26.
 | `@finos/calm-server` | Local HTTP service (binds `127.0.0.1` by default) | Validates documents sent over HTTP; no authentication |
 | CALM Hub (`calm-hub/`) and Hub UI | Server-side service, Docker image | Multi-tenant store of architectures with per-namespace authorization |
 | VS Code extension | Inside the editor, renders a webview | Processes files in the user's workspace |
-| CALM Studio, CALMGuard, CALM Lab, `experimental/` | Various | Experimental; not covered by this assessment until promoted |
+| CALM Lab (`calm-lab/`) | Static site at lab.calm.finos.org; the engine runs in the visitor's browser | Processes documents the visitor enters; nothing is sent to a server |
+| CALM Studio, CALMGuard, `experimental/` | Various | Experimental; not covered by this assessment until promoted |
 | Build and release pipelines (`.github/workflows` here and in finos/calm-schema) | GitHub Actions | Produce every released asset |
 
 ## Assets to protect
 
-1. **Integrity of released assets**: npm packages, Docker images, the VS Code extension, and the published specification. A tampered CLI or schema would be executed or trusted inside adopters' pipelines.
+1. **Integrity of released assets**: npm packages, Docker images, the VS Code extension, the CALM Lab site, and the published specification. A tampered CLI or schema would be executed or trusted inside adopters' pipelines.
 2. **Confidentiality and integrity of architectures stored in a CALM Hub**: they describe adopters' internal systems, controls and network topology.
 3. **The user's workstation and CI environment** when the CLI processes untrusted input.
-4. **Repository and publishing credentials**: npm, Docker Hub, Maven Central (with the GPG signing key) and VS Code Marketplace credentials, code-signing credentials, cloud credentials for the documentation sites, the Actions tokens, and maintainer accounts.
+4. **Repository and publishing credentials**: npm, Docker Hub, Maven Central (with the GPG signing key) and VS Code Marketplace credentials, code-signing credentials, cloud credentials for the documentation sites and CALM Lab, the Actions tokens, and maintainer accounts.
 
 ## Attack surface and threats
 
@@ -60,13 +61,23 @@ Last reviewed: 2026-09-26.
 |---|---|---|---|
 | Workspace files opened in the editor | Crafted architecture triggers script execution in the preview webview | The webview renders Mermaid produced from the model; VS Code's webview isolation and content-security policy apply | Low |
 
+### CALM Lab
+
+| Entry point | Threat | Mitigation | Residual risk |
+|---|---|---|---|
+| Documents typed or pasted into the editor and terminal | A crafted document causes excessive resource use, or makes the lab fetch from an attacker's host | The engine runs in the visitor's browser with the bundled meta-schemas only. Remote loading is off: a remote `$ref` gives an error and is never fetched. Nothing the visitor enters is sent to a server | Low. Denial of service is limited to the visitor's own tab |
+| Workspace files and lesson progress in `localStorage` | Another site, or another user of the same browser, reads the visitor's work | Data is stored on the lab's own origin, separate from calm.finos.org, and is never uploaded | Low. Anyone with access to the browser profile can read it. Do not enter confidential architectures |
+| `?lesson=` query parameter and rendered content | Cross-site scripting through a crafted link or document | The parameter only selects a bundled lesson by id. Terminal output, lessons and the diagram are rendered through React and ReactFlow, which escape text; the lab renders no raw HTML | Low. The site sends no Content-Security-Policy, so there is no second layer of defence if an escaping defect is introduced |
+| Google Fonts stylesheet | A third party sees visitor IP addresses or serves altered CSS | Fonts are the only third-party resource; no third-party script is loaded | Low |
+| Hosting and deployment (S3 bucket and CloudFront distribution for lab.calm.finos.org) | An attacker with the AWS credentials, with write access to `main`, or on the visitor's network serves modified JavaScript to visitors | `s3-lab-sync.yml` deploys only from `main`, which requires a reviewed pull request, and only when the OSV Scanner run for that commit has passed. A manual run on another branch does not deploy. The AWS credentials are repository secrets and are not exposed to workflows triggered from forks. HTTP requests are redirected to HTTPS | Medium. The site sends no HSTS header, so a first request over HTTP can be intercepted. The AWS credentials are shared with the documentation sites and are available to a workflow on any branch of this repository, so a user with write access can deploy a branch by changing the workflow on it. The bucket and distribution are configured outside this repository |
+
 ### Build, release and supply chain
 
 | Entry point | Threat | Mitigation | Residual risk |
 |---|---|---|---|
 | Pull requests from forks | Malicious workflow changes or code execution with repository secrets | Workflows run with `permissions:` declared per workflow and a read-only default token; repository secrets are not exposed to workflows triggered from forks; `pull_request_target` is used only by the labelling workflow, which never checks out or runs pull-request code | Low |
 | Third-party GitHub Actions | A compromised action exfiltrates tokens | Every action is pinned to a commit SHA and updated by Renovate; `step-security/harden-runner` audits egress | Low |
-| Dependencies (npm, Maven, Cargo) | Known vulnerabilities or malicious packages enter the tree | OSV Scanner blocks pull requests while any dependency tree has a known vulnerability with a CVSS score of 5 or higher, and the CLI and CALM Server releases require a passing scan of the commit being released; Dependency Review blocks pull requests that introduce known-vulnerable or known-malicious packages; Dependabot and Renovate raise update pull requests; a single root lockfile is validated in CI. In finos/calm-schema, whose only dependencies are test tools, Dependency Review and Dependabot apply. See the policy in [SECURITY.md](SECURITY.md) | Low |
+| Dependencies (npm, Maven, Cargo) | Known vulnerabilities or malicious packages enter the tree | OSV Scanner blocks pull requests while any dependency tree has a known vulnerability with a CVSS score of 5 or higher, and the CLI and CALM Server releases and the CALM Lab deploy require a passing scan of the commit being released or deployed; Dependency Review blocks pull requests that introduce known-vulnerable or known-malicious packages; Dependabot and Renovate raise update pull requests; a single root lockfile is validated in CI. In finos/calm-schema, whose only dependencies are test tools, Dependency Review and Dependabot apply. See the policy in [SECURITY.md](SECURITY.md) | Low |
 | Publishing | An attacker with a stolen token publishes a rogue version | `@finos/calm-cli` and `@finos/calm-server` are published only from the release workflows with `--provenance`, so every version carries a SLSA attestation naming this repository and workflow. `calm-models` is published to Maven Central from its release workflow and GPG-signed. The CALM Studio release workflow publishes its npm packages with provenance. Docker images carry provenance and SBOM attestations. `@finos/calm-schema` is published only by finos/calm-schema's `publish.yml` through npm trusted publishing, which uses a short-lived GitHub OIDC token, so no npm token is stored. The workflow runs the schema tests on the release tag first, and each version carries SLSA provenance naming finos/calm-schema. Secret scanning and push protection are enabled | Medium. Token theft from a maintainer's environment remains the main residual risk; tokens are rotated on any suspicion |
 | Repository | Direct pushes or unreviewed merges to `main` | Ruleset requires a pull request, one approving review, code-owner review, dismissal of stale reviews, and passing required status checks; force pushes and deletion are blocked | Low |
 

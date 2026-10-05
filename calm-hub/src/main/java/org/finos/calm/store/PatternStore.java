@@ -32,7 +32,7 @@ public interface PatternStore {
      */
     List<NamespaceResourceSummary> getPatternsForNamespace(String namespace, PageRequest page) throws NamespaceNotFoundException;
 
-    Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException;
+    Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException;
     List<String> getPatternVersions(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException;
     String getPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionNotFoundException;
     Pattern createPatternForVersion(Pattern pattern) throws NamespaceNotFoundException, PatternNotFoundException, PatternVersionExistsException;
@@ -42,4 +42,13 @@ public interface PatternStore {
      * Deletes a pattern and all of its versions.
      */
     void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException;
+
+    /**
+     * Removes one version, leaving the resource and its other versions in place. Used by
+     * promotion to delete a snapshot once its release version is published.
+     *
+     * @return {@code true} if a version was removed.
+     */
+    boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException;
 }

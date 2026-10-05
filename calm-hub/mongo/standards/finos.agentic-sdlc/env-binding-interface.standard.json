@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hub.calm.finos.org/calm/namespaces/finos.agentic-sdlc/standards/env-binding-interface/versions/1.0.0",
+  "title": "Environment binding interface",
+  "description": "An interface that code binds to through one named environment variable. gates/drift-check.mjs reads process.env.<env-binding> in a node's source as a connection to the node that owns the interface.",
+  "allOf": [
+    {
+      "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type"
+    },
+    {
+      "properties": {
+        "env-binding": {
+          "type": "string",
+          "pattern": "^[A-Z][A-Z0-9_]*$",
+          "description": "The environment variable through which code binds to this interface"
+        }
+      },
+      "required": [
+        "env-binding"
+      ]
+    }
+  ]
+}

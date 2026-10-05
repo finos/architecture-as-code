@@ -1,0 +1,170 @@
+{
+  "controlId": 40,
+  "name": "sdlc-prev-022-data-retention",
+  "description": "The organisation must retain the governance and compliance evidence its SDLC controls generate, such as review outcomes, test evidence, scan results, approval records, deployment records, build artefacts, and audit logs, for at least as long as regulatory, contractual, and audit obligations require, and must keep those records immutable for that period so they can be produced on demand and trusted as evidence.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-022-data-retention/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-022 Data Retention and Disposal",
+      "name": "Data Retention and Disposal",
+      "description": "The organisation must retain the governance and compliance evidence its SDLC controls generate, such as review outcomes, test evidence, scan results, approval records, deployment records, build artefacts, and audit logs, for at least as long as regulatory, contractual, and audit obligations require, and must keep those records immutable for that period so they can be produced on demand and trusted as evidence.",
+      "control-id": "SDLC-PREV-022",
+      "category": "META",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-22_data-retention.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 22,
+        "control-type": "PREV",
+        "phase": "META",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-001",
+          "name": "Code Review",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        },
+        {
+          "id": "SDLC-PREV-003",
+          "name": "Software Artifact Provenance",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html"
+        },
+        {
+          "id": "SDLC-PREV-013",
+          "name": "System Inventory",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-13-system-ownership.html"
+        },
+        {
+          "id": "SDLC-PREV-020",
+          "name": "Requirements Approval for Release",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-20_requirements-approval.html"
+        }
+      ],
+      "details": [
+        "SDLC activity generates records and artefacts across the lifecycle. Each is produced by a more specific mitigation elsewhere in this catalogue, for example SDLC-PREV-001 (https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html) for review outcomes and SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html) for test evidence. This mitigation does not replace those record producing controls; it sets how long their output must survive and how it must be protected while it does, so that a control which operated correctly can still be shown to have done so.",
+        "This mitigation exists to address SDLC-RC-005 (https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html) (Audit and Compliance Evidence Failure), which recurs in three forms: a record is deleted or overwritten before the retention window needed to cover an examination period has elapsed, a record survives but its integrity cannot be trusted because it was modifiable after the fact, or a record lives only in third-party or SaaS tooling that the organisation's retention controls were never extended to, so it is lost to the vendor's own default retention or to offboarding. The requirements below address each in turn: a minimum retention period, immutability for that period, and retention that extends to third-party tooling.",
+        "Disposal once a record is no longer required is still necessary, since evidence with no end date becomes its own unmanaged exposure. How disposal is carried out (sanitisation methods, legal holds, decommissioning) sits outside the SDLC: it is the organisation's general data retention and disposal policy applied to this record class, and this control does not redefine it."
+      ],
+      "requirements": [
+        "The organisation MUST classify SDLC-generated governance record and artefact types (such as review outcomes, test evidence, scan results, approval records, deployment records, build artefacts, audit logs, and exception records) and assign each class a minimum retention period",
+        "The minimum retention period for a record class MUST NOT be less than the longest applicable regulatory, contractual, or audit cycle requirement for that class",
+        "Records MUST be immutable and tamper-evident for the duration of their minimum retention period; they MUST NOT be modifiable, deletable, or replaceable outside an approved and auditable exception process",
+        "Retention for the record classes and minimum periods established above MUST cover SDLC records held in third-party or SaaS tooling (such as CI/CD, ticketing, code review, and artefact repositories), through contractual terms, configuration, or export before offboarding",
+        "An exception process MUST exist for disposing of a record class before its minimum retention period has elapsed, or for extending retention beyond policy",
+        "Disposal of a record class once its minimum retention period has elapsed MUST follow the organisation's data retention and disposal policy, unless a legal hold or an approved retention exception applies"
+      ],
+      "examples": [
+        "Immutability in practice: Write once storage, object lock or retention lock settings on artefact repositories, and append only audit log configurations are the common ways to make the immutability requirement concrete rather than a paper policy.",
+        "Third-party flow-down: Where CI/CD, ticketing, or artefact hosting is outsourced to a SaaS vendor, the retention obligation should appear in the vendor contract, including the vendor's obligation to support export before offboarding. The organisation remains accountable for the record even though it does not control the storage."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "au-11",
+            "title": "AU-11 Audit Record Retention",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A304%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C462.0%2C0%5D"
+          },
+          {
+            "id": "si-12",
+            "title": "SI-12 Information Management and Retention",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1124%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C134.0%2C0%5D"
+          },
+          {
+            "id": "sa-4",
+            "title": "SA-4 Acquisition Process",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A827%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "uk-fca": [
+          {
+            "id": "sysc-15a-2",
+            "title": "FCA SYSC 15A.2 — Operational resilience requirements",
+            "url": "https://handbook.fca.org.uk/handbook/SYSC/15A/2.html"
+          },
+          {
+            "id": "pra-ss1-21",
+            "title": "PRA SS1/21 — Operational resilience: impact tolerances",
+            "url": "https://www.bankofengland.co.uk/prudential-regulation/publication/2021/march/operational-resilience-impact-tolerances-for-important-business-services-ss"
+          }
+        ],
+        "ffiec-itbooklets": [
+          {
+            "id": "sec-3",
+            "title": "SEC: III Security Operations",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/information-security/iii-security-operations/"
+          },
+          {
+            "id": "dam-7",
+            "title": "DAM: VII Maintenance",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/vii-maintenance/"
+          }
+        ],
+        "us-nydfs": [
+          {
+            "id": "nydfs-500-13",
+            "title": "NYDFS 23 NYCRR §500.13 — Asset Management and Data Retention Requirements",
+            "url": "https://www.dfs.ny.gov/system/files/documents/2023/03/23NYCRR500_0.pdf"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 AU-11: Audit Record Retention",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 SI-12: Information Management and Retention",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SSDF SP 800-218 PS.3: Archive and Protect Each Software Release",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "NYDFS 23 NYCRR 500.13: Limitations on Data Retention",
+            "url": "https://www.dfs.ny.gov/system/files/documents/2023/03/23NYCRR500_0.pdf"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-022"
+        },
+        "name": {
+          "const": "Data Retention and Disposal"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

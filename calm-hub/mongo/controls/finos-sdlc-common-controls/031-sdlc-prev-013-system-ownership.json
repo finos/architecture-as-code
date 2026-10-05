@@ -1,0 +1,108 @@
+{
+  "controlId": 31,
+  "name": "sdlc-prev-013-system-ownership",
+  "description": "Organizations must maintain a current, accurate inventory of all systems operating in production. Each inventory record must capture system ownership — including designation of a system manager who is an active employee — along with system criticality classification and data classification. The inventory must be linked to the developer toolchain and SDLC systems and it must be reviewed and updated on a defined cadence and upon any material change.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-013-system-ownership/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-013 System Inventory",
+      "name": "System Inventory",
+      "description": "Organizations must maintain a current, accurate inventory of all systems operating in production. Each inventory record must capture system ownership — including designation of a system manager who is an active employee — along with system criticality classification and data classification. The inventory must be linked to the developer toolchain and SDLC systems and it must be reviewed and updated on a defined cadence and upon any material change.",
+      "control-id": "SDLC-PREV-013",
+      "category": "LIFECYCLE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-13-system-ownership.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 13,
+        "control-type": "PREV",
+        "phase": "LIFECYCLE",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-006",
+          "name": "Unauthorised System Access",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-6_unauthorised-system-access.html"
+        }
+      ],
+      "details": [
+        "A well-governed system inventory is foundational to an organization's risk management, compliance, and operational resilience posture. Financial services organizations operate complex, interconnected technology estates spanning on-premises infrastructure, cloud platforms, third-party hosted services, and internally developed applications.",
+        "Without a reliable and current inventory, organizations cannot consistently apply security controls, assess blast radius during incidents, fulfill regulatory obligations, or make informed decisions about system decommissioning and lifecycle transitions.",
+        "This control establishes the minimum requirements for maintaining a system inventory that is accurate, ownership-attributed, and enriched with the metadata necessary to support downstream risk and compliance processes. The inventory serves as a system of record that feeds into change management, access control, vulnerability management, business continuity planning, and regulatory reporting workflows."
+      ],
+      "requirements": [
+        "Inventory Scope The inventory must include all systems operating in production, defined as any system that: Supports a business process, customer-facing service, or internal operational function; Stores, processes, or transmits organizational or customer data; or Integrates with or has a trust relationship to another in-scope system.",
+        "Inventory Attributes Each inventory record must capture a set of attributes such as: System Name, System ID, System Description, System Manager, System Criticality Tier classification, Data Classification, Lifecycle Status (Active / Sunset Planned / Decommissioned)",
+        "Inventory Maintenance The inventory must be reviewed in its entirety no less than annually, with individual records updated within 30 days of any material change (e.g., new system launch, change of System Manager, re-classification, decommission). A new system must be added to the inventory prior to or concurrent with its promotion to production. Systems must not enter production without an assigned System Manager and completed classification attributes. When a System Manager separates from the organization or changes roles, an updated System Manager must be designated and reflected in the inventory within 5 business days.",
+        "System Criticality Classification - for example: Tier 1 - Business Critical, Tier 2 - High Criticality, Tier 3 - Medium Criticality, Tier 4 - Low Criticality.",
+        "Data Classification - for example Restricted, Confidential, Internal, Public",
+        "Linkage to Developer Toolchain and SDLC Systems Each inventory record must be traceable to its corresponding source code repository (e.g., GitLab, GitHub), CI/CD pipeline configuration, and artifact registry, enabling a continuous chain of custody from code commit through production deployment. This linkage ensures that changes to a production system are always attributable to an inventoried, ownership-attributed entity, and that pipeline-enforced controls — such as security scanning, compliance gates, and deployment policies — can be scoped and validated against a known system baseline.",
+        "Tooling and Access The inventory must be maintained in a centralized, access-controlled system of record. Read access should be broadly available to authorized internal stakeholders. Write access must be controlled and auditable. The inventory system must support export and reporting capabilities to facilitate governance reviews and audit requests"
+      ],
+      "examples": [],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "pm-5",
+            "title": "PM-5 System Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A689%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "ithandbook.ffiec.gov",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/information-security/ii-information-security-program-management/iic-risk-mitigation/iic5-inventory-and-classification-of-assets"
+          },
+          {
+            "title": "PM-5",
+            "url": "https://csf.tools/reference/nist-sp-800-53/r5/pm/pm-5/"
+          },
+          {
+            "title": "CM-8",
+            "url": "https://csf.tools/reference/nist-sp-800-53/r5/cm/cm-8/"
+          },
+          {
+            "title": "aicpa-cima.com",
+            "url": "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria"
+          },
+          {
+            "title": "pcisecuritystandards.org",
+            "url": "https://www.pcisecuritystandards.org/document_library/"
+          },
+          {
+            "title": "eur-lex.europa.eu",
+            "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32022R2554"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-013"
+        },
+        "name": {
+          "const": "System Inventory"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

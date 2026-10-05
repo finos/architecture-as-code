@@ -1,0 +1,252 @@
+{
+  "controlId": 19,
+  "name": "sdlc-prev-001-code-review",
+  "description": "Code changes must complete the review required by the organisation's review policy before they can be merged into a protected branch or other controlled software baseline.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-001-code-review/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-001 Code Review",
+      "name": "Code Review",
+      "description": "Code changes must complete the review required by the organisation's review policy before they can be merged into a protected branch or other controlled software baseline.",
+      "control-id": "SDLC-PREV-001",
+      "category": "CODE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 1,
+        "control-type": "PREV",
+        "phase": "CODE",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-008",
+          "name": "Unauthorised Change",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-8_unauthorised-change.html"
+        },
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-008",
+          "name": "Version Control",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-8-version-control.html"
+        },
+        {
+          "id": "SDLC-PREV-005",
+          "name": "Vulnerability Scanning - SAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html"
+        },
+        {
+          "id": "SDLC-PREV-010",
+          "name": "Secret Detection",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-10_secret-detection.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        },
+        {
+          "id": "SDLC-PREV-015",
+          "name": "Testing Requirements",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html"
+        },
+        {
+          "id": "SDLC-PREV-016",
+          "name": "Test Execution and Sign-Off",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html"
+        },
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        }
+      ],
+      "details": [
+        "Code review is a control over the admission of software changes into a controlled baseline. Its primary purpose is to reduce the risk that unauthorised, inappropriate, or insufficiently verified code changes enter the source of record from which software is built, tested, and released. For this control, code changes include configuration, pipeline definitions, prompts, documentation, infrastructure definitions, or other repository artefacts where the organisation's review policy treats them as material to software behaviour, generated output, delivery, or control operation. The reviewable unit is normally a pull request or merge request, but equivalent mechanisms such as patch sets, shelvesets, mainframe change packages, or other attributable change sets can satisfy the same control.",
+        "This control does not require every change to receive the same review treatment. At financial services scale, review requirements must be selected through a deterministic, machine-evaluable policy. The policy may require non-deterministic review (such as manual peer review or approved cognitive review engines under NIST SA-11(4)), require non-deterministic review only when policy triggers are met, or permit deterministic automated review (such as static analysis under NIST SA-11(1)) to satisfy the control where the change class and supporting evidence allow it.",
+        "Code review complements, but does not replace, automated testing, vulnerability scanning, secret detection, and deployment gating. While deterministic tools evaluate specific, static properties of a change, non-deterministic review provides the essential understanding of logical intent, architectural alignment, and integration safety. This context ensures that the software is maintainable, adheres to design standards, and fails in a safe way."
+      ],
+      "requirements": [
+        "The organisation MUST define and maintain a code review policy for reviewable change sets before they are admitted to protected source baselines or equivalent controlled software baselines",
+        "The policy MUST define deterministic, machine-evaluable criteria for selecting the required review mode, including when non-deterministic review is mandatory (such as for critical code under NIST SA-11(4)), when non-deterministic review is required only after policy triggers, and when deterministic automated review (such as static analysis under NIST SA-11(1)) may satisfy the control without non-deterministic involvement",
+        "The policy MUST define which repository artefacts are in scope for review, based on their ability to affect software behaviour, build output, deployment, control operation, or other material SDLC outcomes",
+        "Source control, workflow, or pipeline controls MUST technically block admission to the protected baseline when the required review outcome is absent, expired, revoked, or no longer bound to the current change set",
+        "Review outcomes MUST be bound to an immutable identity for the reviewed content, such as a commit SHA, patch-set hash, shelveset identifier, or equivalent change-set identity",
+        "Review records MUST include the review mode, decision, reviewer identity or approved automated-review tool identity, timestamp, policy inputs sufficient to justify the selected review mode, and links to verification evidence where that evidence is used by the policy",
+        "Where human review is required, the reviewer MUST be eligible under the policy and the author of the change set MUST NOT satisfy the human-review requirement for their own change",
+        "The organisation MUST maintain the approved automated review tools and configurations whose output is permitted to satisfy the review gate",
+        "The policy MUST define when review outcomes are invalidated or require re-evaluation after a material update to the change set",
+        "Emergency bypass of the review gate MUST require named approval, documented justification, retained evidence of the bypass decision, and post-event governance review",
+        "Review records, including automated review outcomes and emergency bypass decisions, MUST be retained in accordance with the organisation's record-retention policy"
+      ],
+      "examples": [
+        "Risk-based review modes: A sensitive change, such as a change to authentication, authorisation, cryptographic handling, regulated data processing, financial transaction logic, entitlement checks, deployment pipeline logic, or control evidence generation, may require non-deterministic review by an eligible human reviewer or approved cognitive review engine. A routine change may proceed through deterministic automated review unless required tests fail, a scan finding is introduced, evidence is missing, or the automated review cannot produce a compliant decision.",
+        "Automated review without non-deterministic involvement: A low-risk change to a low-criticality component may satisfy the review gate through deterministic automated review where all required verification passes, no sensitive areas are touched, no relevant policy exceptions exist, and the outcome is produced by an approved tool and configuration.",
+        "Reviewable artefacts beyond executable code: Documentation, prompts, generated-code instructions, configuration, infrastructure definitions, and policy files may be reviewable where they materially affect software behaviour, generated output, delivery, or control operation. The policy should define these artefacts explicitly rather than assuming only application source files can introduce material change.",
+        "Policy inputs: Size, file count, affected modules, dependency graph impact, escaped defects, rollback frequency, incident history, repeated control failures, and exception history can all inform review mode selection. These inputs are imperfect proxies for risk and should be calibrated against the organisation's risk appetite and operational history.",
+        "Emergency bypass: During a critical production incident, an authorised approver may permit a change set to enter the protected baseline before the normal review gate is satisfied. The bypass record should identify who approved it, why normal review could not complete, which requirement was bypassed, and what follow-up governance review is required.",
+        "Automated review oversight: Where non-deterministic review is automated via approved cognitive review engines, periodic sampling of decisions can help confirm that the approved tools and configurations continue to produce acceptable outcomes. This oversight supports confidence in automated non-deterministic reviews, but does not replace the requirement for deterministic policy and retained review evidence."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "cm-3",
+            "title": "CM-3 Configuration Change Control",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A366%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C205.0%2C0%5D"
+          },
+          {
+            "id": "cm-5",
+            "title": "CM-5 Access Restrictions for Change",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A378%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C611.0%2C0%5D"
+          },
+          {
+            "id": "sa-10",
+            "title": "SA-10 Developer Configuration Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A890%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C211.0%2C0%5D"
+          },
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "au-12",
+            "title": "AU-12 Audit Record Generation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A304%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C122.0%2C0%5D"
+          }
+        ],
+        "eu-dora": [
+          {
+            "id": "rts-art-16-3",
+            "title": "RTS 2024/1774 Art. 16(3) — Source code reviews (static and dynamic)",
+            "url": "https://www.springlex.eu/en/packages/dora/rts-rmf-regulation/article-16/",
+            "note": "Mandates source code reviews covering both static and dynamic testing, with vulnerabilities identified, tracked through an action plan, and monitored to closure. The review gate plus SAST integration required by this mitigation implements the review; the immutable review records provide the evidence."
+          },
+          {
+            "id": "rts-art-17-1",
+            "title": "RTS 2024/1774 Art. 17(1) — ICT change management procedures",
+            "url": "https://www.springlex.eu/en/packages/dora/rts-rmf-regulation/article-17/",
+            "note": "Art. 17(1)(b) requires independence between the functions approving a change and those requesting or implementing it — the regulatory basis for \"the author MUST NOT satisfy the human-review requirement for their own change\". Art. 17(1)(a) and (c) require each change to be verified against ICT security requirements, tested, quality-assured and documented; the review record bound to the change-set identity demonstrates this per change."
+          },
+          {
+            "id": "rts-art-16-7",
+            "title": "RTS 2024/1774 Art. 16(7) — Source code integrity controls",
+            "url": "https://www.springlex.eu/en/packages/dora/rts-rmf-regulation/article-16/",
+            "note": "Requires controls protecting the integrity of source code, whether developed in-house or supplied by third parties. Technically blocking admission to the protected baseline without a valid review outcome is the primary integrity control over the baseline."
+          },
+          {
+            "id": "dora-art-9-4-e",
+            "title": "DORA Art. 9(4)(e) — ICT change management policies",
+            "url": "https://www.springlex.eu/en/packages/dora/dora-regulation/article-9/",
+            "note": "The parent DORA obligation: documented ICT change management policies following a risk-based approach. The deterministic, machine-evaluable review policy this mitigation requires is a direct implementation."
+          }
+        ],
+        "uk-fca": [
+          {
+            "id": "sysc-15a-2",
+            "title": "FCA SYSC 15A.2 — Operational resilience requirements",
+            "url": "https://handbook.fca.org.uk/handbook/SYSC/15A/2.html",
+            "note": "Outcome-based rather than prescriptive: firms must be able to remain within impact tolerances for important business services. Mandatory review of changes reduces the likelihood that defective or unauthorised changes disrupt those services, and retained review records evidence this capability in the firm's operational resilience self-assessment."
+          },
+          {
+            "id": "pra-ss1-21",
+            "title": "PRA SS1/21 — Operational resilience: impact tolerances",
+            "url": "https://www.bankofengland.co.uk/prudential-regulation/publication/2021/march/operational-resilience-impact-tolerances-for-important-business-services-ss",
+            "note": "The PRA's parallel expectations for dual-regulated firms. Same mapping logic as SYSC 15A: this mitigation is evidence of the technology-change leg of the firm's resilience capability."
+          },
+          {
+            "id": "fca-tech-change",
+            "title": "FCA Multi-firm review — Implementing Technology Change (2021)",
+            "url": "https://www.fca.org.uk/publications/multi-firm-reviews/implementing-technology-change",
+            "note": "The FCA's closest statement of SDLC-level expectations. It found failed technology changes cause roughly a quarter of high-severity incidents, and that strong governance, robust pre-deployment assurance and frequent, smaller releases correlate with higher change success rates — directly supporting risk-based review modes and fast review turnaround over batched changes."
+          }
+        ],
+        "ffiec-itbooklets": [
+          {
+            "id": "dam-2",
+            "title": "DAM: II Governance of Development, Acquisition, and Maintenance",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/ii-governance-of-development-acquisition-and-maintenance/",
+            "note": "Section II.B.2 gives code review as the canonical dual-control example: \"during development, code review involves a second individual to review code before it is released to test environments. Segregation of duties and dual control help foster security and resilience.\""
+          },
+          {
+            "id": "dam-3",
+            "title": "DAM: III Risk Management of Development, Acquisition, and Maintenance",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/iii-risk-management-of-development-acquisition-and-maintenance/",
+            "note": "Sections III.A and III.D identify code review as a primary risk identification and mitigation control — detecting errors before code migrates toward production."
+          },
+          {
+            "id": "dam-4",
+            "title": "DAM: IV Common Development, Acquisition, and Maintenance Risk Topics",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/iv-common-development-acquisition-and-maintenance-risk-topics/",
+            "note": "Section IV.D (Secure Development) covers manual and automated code review, source code security analyzers, and expects management to validate that the code review process meets its needs — the basis for maintaining approved automated review tools and configurations."
+          }
+        ],
+        "us-nydfs": [
+          {
+            "id": "nydfs-500-08",
+            "title": "NYDFS 23 NYCRR §500.08 — Application Security",
+            "url": "https://www.dfs.ny.gov/system/files/documents/2023/03/23NYCRR500_0.pdf",
+            "note": "Requires written procedures ensuring secure development practices for in-house developed applications, periodically reviewed by the CISO. A documented, technically enforced review policy with retained records is a central component of those procedures, and supports the covered entity's annual certification."
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST Secure Software Development Framework SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "NIST SP 800-53r5 SA-11: Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "OWASP Code Review Guide",
+            "url": "https://owasp.org/www-project-code-review-guide/"
+          },
+          {
+            "title": "GitHub CODEOWNERS documentation",
+            "url": "https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-001"
+        },
+        "name": {
+          "const": "Code Review"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

@@ -129,8 +129,8 @@ src/main/resources/META-INF/*
 !src/main/resources/META-INF/native-image/
 !src/main/resources/META-INF/native-image/**
 # ...and the hand-authored calm-schemas index files (versions.txt / files.txt) that
-# ClasspathCoreSchemaStore reads alongside the calm/release/*/meta/*.json content the
-# build copies in at compile time (see pom.xml's calm-schemas resource block).
+# ClasspathCoreSchemaStore reads alongside the meta-schemas the build copies from the
+# @finos/calm-schema npm packages (see pom.xml's calm-schemas resource block).
 !src/main/resources/META-INF/calm-schemas/
 !src/main/resources/META-INF/calm-schemas/**
 !src/test/resources/META-INF/

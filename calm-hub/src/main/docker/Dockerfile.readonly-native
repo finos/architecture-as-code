@@ -58,9 +58,11 @@ COPY nitrite/seed-readonly.sh /nitrite/seed-readonly.sh
 COPY nitrite/init-nitrite.sh  /nitrite/init-nitrite.sh
 RUN chmod +x /nitrite/seed-readonly.sh /nitrite/init-nitrite.sh
 
-# CALM schema content and controls staged by the build script into target/readonly-seed/
+# CALM schema content, controls, standards and patterns staged by the build script into target/readonly-seed/
 COPY target/readonly-seed/calm/     /calm/
 COPY target/readonly-seed/controls/ /controls/
+COPY target/readonly-seed/standards/ /standards/
+COPY target/readonly-seed/patterns/ /patterns/
 
 # Boot calm-hub (writable standalone, JVM mode), seed all content, stop gracefully.
 # CALM_HUB_NATIVE_BINARY is intentionally left unset so seed-readonly.sh launches
@@ -73,6 +75,8 @@ COPY target/readonly-seed/controls/ /controls/
 RUN DATA_DIR=/data \
     CALM_SCHEMA_BASE_PATH=/calm \
     CALM_CONTROLS_BASE_PATH=/controls \
+    CALM_STANDARDS_BASE_PATH=/standards \
+    CALM_PATTERNS_BASE_PATH=/patterns \
     bash /nitrite/seed-readonly.sh \
     && chmod 0444 /data/calmSchemas.db
 

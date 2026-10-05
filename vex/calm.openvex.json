@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-01T00:00:00Z",
-  "version": 1,
+  "timestamp": "2026-10-03T00:00:00Z",
+  "version": 3,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -325,7 +325,99 @@
       "status_notes": "Review again by 2026-11-30, when the suppression in osv-scanner.toml expires.",
       "justification": "component_not_present",
       "impact_statement": "The vulnerable copy is bundled inside the npm CLI, which semantic-release uses only at release time. It is a development dependency, it is not part of any published CALM package, and npm overrides cannot reach bundled dependencies. The other copies of brace-expansion are 1.1.21, 2.1.7 and 5.0.12, which are patched."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-vfj7-8cjw-p6xm",
+        "aliases": [
+          "CVE-2026-93687"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/braces@3.0.3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/braces@3.0.3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#docs",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/braces@3.0.3"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-plugins/vscode",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/braces@3.0.3"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "braces 3.0.3 is used only by build and dev tooling: micromatch under semantic-release, vsce, stylelint, eslint-config-next, commitizen and Docusaurus, and chokidar 3 under Docusaurus and webpack-dev-server for file watching. It only expands glob patterns from project or tool config, so an attacker cannot supply the deeply nested patterns that cause the stack overflow. No published CALM package passes user input to braces. No patched braces release exists yet."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-ch52-4w7c-c8xp",
+        "aliases": [
+          "CVE-2026-93748"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/http-cache-semantics@4.2.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/http-cache-semantics@4.2.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/http-cache-semantics@4.2.0"
+            }
+          ]
+        },
+        {
+          "@id": "pkg:github/finos/architecture-as-code#docs",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/http-cache-semantics@4.2.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "http-cache-semantics 4.2.0 is used only as a private client cache: by make-fetch-happen inside the npm CLI that semantic-release uses at release time and under @npmcli/arborist in the license-checker-rseidelsohn dev tool, and by got and cacheable-request under the Docusaurus update-notifier. The attack needs a shared cache that serves cached responses to other users, with attacker-controlled request headers. No CALM component runs a shared HTTP cache, and no published CALM package includes http-cache-semantics at runtime. No patched release exists yet."
     }
   ],
-  "last_updated": "2026-10-01T00:00:00Z"
+  "last_updated": "2026-10-03T00:00:00Z"
 }

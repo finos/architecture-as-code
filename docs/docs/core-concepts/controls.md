@@ -12,8 +12,8 @@ A control has a name and then consists of a description and the requirements of 
 
 Controls are made up of:
 
-* control-requirement-url: This is a schema the specifies how the control should be defined
-* control-config-url: The location of the implementation of control requirement, this defines how the control was fulfilled.
+* requirement-url: The schema that specifies how the control should be defined.
+* config-url: The configuration that shows how the control requirement is met.
 
 ## Example of control applied to a node
 
@@ -31,8 +31,8 @@ Controls are made up of:
                     "description": "Control requirements for delivering patterns",
                     "requirements": [
                         {
-                            "control-requirement-url": "http://calm.finos.org/controls/domains-example/security/schema/permitted-connection.json",
-                            "control-config-url": "http://calm.finos.org/controls/domains-example/security/configuration/permitted-connection.json"
+                            "requirement-url": "https://myorg.example.com/controls/security/permitted-connection.requirement.json",
+                            "config-url": "https://myorg.example.com/controls/security/permitted-connection.config.json"
                         }
                     ]
                 }
@@ -51,12 +51,12 @@ We can see this here with a control for permitted connections that only allow ce
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "http://calm.finos.org/controls/domains-example/security/schema/permitted-connection.json",
+  "$id": "https://myorg.example.com/controls/security/permitted-connection.requirement.json",
   "title": "Permits a connection between two components in the architecture",
   "type": "object",
   "allOf": [
     {
-      "$ref": "http://calm.finos.org/controls/2025-03/meta/control-requirement.json"
+      "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
     }
   ],
   "properties": {
@@ -103,7 +103,7 @@ We can see in this configurtation that it is implementing the control requiremen
 
 ```json
 {
-  "$schema": "http://calm.finos.org/controls/domains-example/security/configuration/permitted-connection.json",
+  "$schema": "https://myorg.example.com/controls/security/permitted-connection.requirement.json",
   "control-id": "security-002",
   "name": "Permitted Connection",
   "description": "Permits a connection using an approved protocol",

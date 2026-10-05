@@ -1,0 +1,209 @@
+{
+  "controlId": 26,
+  "name": "sdlc-prev-008-version-control",
+  "description": "Software and configuration must be stored within an approved version control system.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-008-version-control/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-008 Version Control",
+      "name": "Version Control",
+      "description": "Software and configuration must be stored within an approved version control system.",
+      "control-id": "SDLC-PREV-008",
+      "category": "CODE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-8-version-control.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 8,
+        "control-type": "PREV",
+        "phase": "CODE",
+        "status": "First-Reading-Approved"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-001",
+          "name": "Insider Threat",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-1_insider-threat.html"
+        },
+        {
+          "id": "SDLC-SEC-008",
+          "name": "Unauthorised Change",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-8_unauthorised-change.html"
+        }
+      ],
+      "details": [
+        "Version control is required to maintain a history of all software and configuration changes across all releases. It provides traceability of who made changes and when, establishing the provenance of software over time.",
+        "The control establishes verifiable evidence of the state of source code or configuration at the time a release was created. This is important not only for identifying who made changes, but also for understanding what functionality existed at a given point in time — enabling diagnosis of software behaviour weeks, months, or even years after it was originally built, tested, and deployed.",
+        "Version control is also integral to ensuring that the software being built and tested is the same software being deployed, by tracking the specific commit or version and providing a reference for traceability.",
+        "The integrity of this history is what gives it evidentiary value. The objective is that history cannot be altered or destroyed without detection — not that it can never change. Strict immutability is the simplest way to achieve this, but it is equally acceptable to permit amendment where the system retains a retrievable, attributable record of what changed and why. Unauthorised modification or deletion remains prohibited; only authorised, logged amendment — such as purging a committed secret — is permitted."
+      ],
+      "requirements": [
+        "Tamper-Evident History — The version control system must either preserve history immutably, or provide a retrievable, attributable record of the events and changes that took place, such that the state of the software and configuration at any past point in time can be reconstructed. In either case, history must not be silently or undetectably altered or destroyed.",
+        "Controlled History Amendment — Where history is amended for legitimate reasons — for example, to remove committed secrets or personal data that must not persist — the amendment must be an authorised, logged exception. The fact of the amendment, its justification, and the authorising party must be recorded, and the amendment must not be used to obscure the legitimate change record.",
+        "Release Traceability — It must be possible to retrieve the exact version (commit or revision) of software and configuration that was released to production, for the applicable retention period.",
+        "Verified Committers — The version control system must record the author of each change. Techniques such as commit signing could be employed to demonstrate this.",
+        "Retention — History must be maintained for the lifetime of the software or in alignment with applicable retention requirements.",
+        "Access Control — The version control system must support access control and should be configured appropriately."
+      ],
+      "examples": [
+        "Tamper-Evident History — Every commit is identified by a cryptographic SHA hash derived from its content and its parent commits, making silent tampering detectable. Branch protection rules on the default and release branches block force-pushes and history rewrites, so published history cannot be altered; where a secret must be purged, the rewrite is performed as an authorised, logged exception rather than an everyday operation.",
+        "Verified Committers — Git supports GPG and SSH commit signing natively. Hosting platforms such as GitHub and GitLab can be configured to require signed commits on protected branches.",
+        "Access Control — Enforced at the hosting platform level via branch protection rules, required reviewers, and role-based repository permissions. Subversion (SVN) is a centralised version control system still found in some legacy financial services environments.",
+        "Tamper-Evident History — SVN maintains a sequential, server-side revision history. Once committed, revisions cannot be altered without administrator access to the repository backend, and such backend actions are logged and attributable.",
+        "Verified Committers — SVN records the authenticated username against each commit. Commit signing is not natively supported; identity relies on server authentication (e.g. LDAP, Kerberos).",
+        "Access Control — Controlled server-side via path-based authorisation, allowing fine-grained read/write permissions per directory or branch."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sa-10",
+            "title": "SA-10 Developer Configuration Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A890%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C211.0%2C0%5D",
+            "note": "Core control — requires source code and associated documentation to be placed under configuration management."
+          },
+          {
+            "id": "cm-2",
+            "title": "CM-2 Baseline Configuration",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A363%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D",
+            "note": "Version control is the primary mechanism for establishing and maintaining a documented software baseline."
+          },
+          {
+            "id": "cm-3",
+            "title": "CM-3 Configuration Change Control",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A366%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C205.0%2C0%5D",
+            "note": "Requires changes to be tracked, reviewed, and approved; version control provides the audit trail of what changed, when, and by whom."
+          },
+          {
+            "id": "cm-6",
+            "title": "CM-6 Configuration Settings",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A381%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C443.0%2C0%5D",
+            "note": "Configuration files such as infrastructure-as-code and application settings must be managed under version control alongside source code."
+          },
+          {
+            "id": "cm-9",
+            "title": "CM-9 Configuration Management Plan",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A402%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C322.0%2C0%5D",
+            "note": "Requires a formal configuration management plan; use of version control is a core component of that plan."
+          },
+          {
+            "id": "si-12",
+            "title": "SI-12 Information Management and Retention",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1124%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C134.0%2C0%5D",
+            "note": "Requires retention of information in accordance with applicable policies; maps to preserving version history for the lifetime of the software."
+          },
+          {
+            "id": "au-9",
+            "title": "AU-9 Protection of Audit Information",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A295%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C678.0%2C0%5D",
+            "note": "Commit history constitutes an audit trail; this control requires it to be protected from unauthorised modification or deletion."
+          },
+          {
+            "id": "ac-2",
+            "title": "AC-2 Account Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A130%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D",
+            "note": "Governs provisioning, review, and revocation of committer access to the version control system."
+          },
+          {
+            "id": "ac-3",
+            "title": "AC-3 Access Enforcement",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A142%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C500.0%2C0%5D",
+            "note": "Requires access controls to be consistently enforced; maps to branch protection rules and repository permission models."
+          },
+          {
+            "id": "ia-5",
+            "title": "IA-5 Authenticator Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A485%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C524.0%2C0%5D",
+            "note": "Covers management of credentials used to authenticate to the version control system, including SSH keys and tokens used for commit signing."
+          }
+        ],
+        "ffiec-itbooklets": [
+          {
+            "id": "dam-5",
+            "title": "DAM: V Development",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/v-development/",
+            "note": "The Development section expects source code and software to be managed under version/library control with appropriate change tracking throughout development."
+          },
+          {
+            "id": "dam-7",
+            "title": "DAM: VII Maintenance",
+            "url": "https://ithandbook.ffiec.gov/it-booklets/development-acquisition-and-maintenance/vii-maintenance/",
+            "note": "The Maintenance section expects changes to deployed software to be controlled and traceable, which version control underpins."
+          }
+        ],
+        "nist-ssdf": [
+          {
+            "id": "ps-1",
+            "title": "PS.1 Protect All Forms of Code from Unauthorized Access and Tampering",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+            "note": "Calls for storing all forms of code in repositories with access control and integrity protection — the SSDF practice most directly mandating version control."
+          },
+          {
+            "id": "ps-3",
+            "title": "PS.3 Archive and Protect Each Software Release",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final",
+            "note": "Requires each software release to be archived and protected, supporting retrieval of exactly what was released to production."
+          }
+        ],
+        "iso-iec-27002": [
+          {
+            "id": "8-4",
+            "title": "ISO/IEC 27002:2022 8.4 Access to source code",
+            "url": "https://www.iso.org/standard/75652.html",
+            "note": "Governs managed read/write access to source code, development tools, and software libraries — implemented through version control access controls."
+          },
+          {
+            "id": "8-32",
+            "title": "ISO/IEC 27002:2022 8.32 Change management",
+            "url": "https://www.iso.org/standard/75652.html",
+            "note": "Requires changes to be controlled through a formal change-management process; version control provides the supporting change record."
+          }
+        ],
+        "slsa": [
+          {
+            "id": "source-track",
+            "title": "SLSA Source track — version-controlled source with retained, verifiable history",
+            "url": "https://slsa.dev/spec/v1.0/",
+            "note": "The Source track expects source to be maintained in version control with a retained, verifiable history — aligning with tamper-evident history and release traceability."
+          }
+        ],
+        "links": [
+          {
+            "title": "About commit signature verification — GitHub",
+            "url": "https://docs.github.com/en/authentication/managing-commit-signature-verification/about-commit-signature-verification"
+          },
+          {
+            "title": "Signing commits — GitHub",
+            "url": "https://docs.github.com/en/authentication/managing-commit-signature-verification/signing-commits"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-008"
+        },
+        "name": {
+          "const": "Version Control"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

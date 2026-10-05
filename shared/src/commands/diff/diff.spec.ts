@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { tmpdir } from 'node:os';
 import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
-import { runDiff, formatDiff, hasChanges, detectDocumentType } from './diff.js';
+import { runDiff, formatDiff, hasChanges, detectDocumentType, diffDocuments } from './diff.js';
 import type { NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
 import type { TimelineInput } from '@finos/calm-models/diff';
 
@@ -46,6 +46,19 @@ const archB = {
         },
     ],
 };
+
+const architectureWithLevelFields = (
+    fields: Partial<{
+        adrs: readonly string[];
+        controls: Record<string, { description: string; requirements: readonly object[] }>;
+        metadata: Record<string, unknown> | readonly Record<string, unknown>[];
+    }>,
+) => ({
+    $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+    nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Service' }],
+    relationships: [],
+    ...fields,
+});
 
 const makePattern = (nodeName: string) => ({
     $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
@@ -272,6 +285,28 @@ describe('hasChanges', () => {
         };
         expect(hasChanges(r)).toBe(true);
     });
+
+    it.each([
+        ['ADR added', { adrs: ['adr-001', 'adr-002'] }, ['ADRs:          +1  -0  =1', 'ADRs added:\n  - adr-002']],
+        ['ADR removed', { adrs: [] }, ['ADRs:          +0  -1  =0', 'ADRs removed:\n  - adr-001']],
+        ['control added', { controls: { encryption: { description: 'Enforce TLS', requirements: [] }, audit: { description: 'Record access', requirements: [] } } }, ['Controls:      +1  -0  ~0', 'Controls added:\n  - audit']],
+        ['control removed', { controls: {} }, ['Controls:      +0  -1  ~0', 'Controls removed:\n  - encryption']],
+        ['control modified', { controls: { encryption: { description: 'Enforce TLS 1.3', requirements: [] } } }, ['Controls:      +0  -0  ~1', 'Controls modified:\n  - encryption']],
+        ['metadata added', { metadata: [{ owner: 'team-a' }, { owner: 'team-b' }] }, ['Metadata:      +1  -0  ~0']],
+        ['metadata removed', { metadata: [] }, ['Metadata:      +0  -1  ~0']],
+    ] as const)('returns true for real architecture-level %s changes', (_changeType, patch, summaryLines) => {
+        const baseFields = {
+            adrs: ['adr-001'],
+            controls: { encryption: { description: 'Enforce TLS', requirements: [] } },
+            metadata: [{ owner: 'team-a' }],
+        };
+        const baseline = architectureWithLevelFields(baseFields);
+        const result = diffDocuments(baseline, architectureWithLevelFields({ ...baseFields, ...patch }), { format: 'summary' });
+
+        expect(result.hasChanges).toBe(true);
+        expect(hasChanges(result.diff)).toBe(true);
+        for (const line of summaryLines) expect(result.formatted).toContain(line);
+    });
 });
 
 describe('formatDiff', () => {
@@ -302,6 +337,37 @@ describe('formatDiff', () => {
         };
         const out = formatDiff(r, 'summary');
         expect(out).toContain('Undiffable items: 1 node(s) + 1 relationship(s)');
+    });
+
+    it('surfaces architecture-level ADR, control, and metadata counts in the summary view', () => {
+        const r = {
+            ...emptyResult,
+            adrDiffItems: [
+                { content: 'https://example.com/adr/001', changeType: 'unchanged' },
+                { content: 'https://example.com/adr/002', changeType: 'added' },
+            ],
+            controlItemsAdded: {},
+            controlItemsRemoved: {},
+            controlItemsUnchanged: {},
+            controlItemsModified: {
+                security: {
+                    descriptionDiff: [],
+                    requirementsDiff: [],
+                },
+            },
+            metadataObjectsAdded: [{ owner: 'team-b' }],
+            metadataObjectsRemoved: [],
+            metadataObjectsUnchanged: [],
+            metadataObjectsModified: [],
+        } as unknown as NodesAndRelationshipsDiffResult;
+
+        const out = formatDiff(r, 'summary');
+        expect(out).toContain('ADRs:          +1  -0  =1');
+        expect(out).toContain('Controls:      +0  -0  ~1');
+        expect(out).toContain('Metadata:      +1  -0  ~0');
+        expect(out).toContain('ADRs added:\n  - https://example.com/adr/002');
+        expect(out).toContain('Controls modified:\n  - security');
+        expect(out).not.toContain('ADRs removed:');
     });
 
     it('labels id-less pattern nodes by content instead of undefined', () => {

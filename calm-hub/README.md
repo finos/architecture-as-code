@@ -57,7 +57,7 @@ CalmHub will install and build the frontend every time you run it by default.
 This takes a while and can be rather tedious for backend-only work.
 
 The `server-only` Maven profile skips the whole frontend stage — Node/npm download,
-the monorepo `npm install`, and the calm-hub-ui build:
+the monorepo `npm install`, the CALM meta-schema copy, and the calm-hub-ui build:
 
 ```shell
 ../mvnw -Pserver-only package
@@ -84,6 +84,10 @@ So on a fresh clone, `-Pserver-only` produces a jar/dev server with **no UI at a
 (404 at `/`); on a machine that has built before, it silently keeps serving whatever UI
 was last built. Never use `-Pserver-only` for a release, Docker image, or CI build that
 needs to ship the UI.
+
+`-Pserver-only` and `-Dskip.npm` also skip the copy of the CALM meta-schemas from npm
+into `target/calm-schemas`. After `mvn clean`, the jar has no bundled meta-schemas, and
+GitHub storage mode serves none from `/calm/schemas`.
 
 ### Storage Modes
 

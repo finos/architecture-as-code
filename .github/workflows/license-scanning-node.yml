@@ -8,7 +8,7 @@ on:
         - cron: '0 8,18 * * 1-5'
     push:
         paths:
-            - '**/package-json.lock'
+            - '**/package-lock.json'
             - '**/package.json'
             - '.github/workflows/license-scanning-node.yml'
 
@@ -28,7 +28,7 @@ jobs:
                   node-version: ${{ matrix.node-version }}
             - run: npm install --omit=dev --ignore-scripts
               working-directory: ${{ matrix.module-folder }}
-            - run: npm install -g node-license-validator
+            - run: npm install -g license-checker-rseidelsohn@5.0.1
               working-directory: ${{ matrix.module-folder }}
-            - run: node-license-validator . --allow-licenses Apache-2.0 MIT BSD-2-Clause BSD BSD-3-Clause Unlicense ISC
+            - run: license-checker-rseidelsohn --production --excludePrivatePackages --onlyAllow 'Apache-2.0;MIT;BSD-2-Clause;BSD;BSD-3-Clause;Unlicense;ISC'
               working-directory: ${{ matrix.module-folder }}

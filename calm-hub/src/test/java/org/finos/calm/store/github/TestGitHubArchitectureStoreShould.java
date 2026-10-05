@@ -85,6 +85,12 @@ class TestGitHubArchitectureStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_architecture_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deleteArchitectureVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void throw_unsupported_on_create_architecture() {
         assertThrows(UnsupportedOperationException.class,
                 () -> store.createArchitectureForNamespace(new Architecture.ArchitectureBuilder().build()));

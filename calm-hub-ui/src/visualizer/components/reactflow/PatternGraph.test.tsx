@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import { renderToString } from 'react-dom/server';
 import { useState, type ReactNode } from 'react';
 import type { Node } from 'reactflow';
 import { PatternGraph } from './PatternGraph';
@@ -242,6 +243,62 @@ describe('PatternGraph', () => {
             );
             expect(secondCallback).toHaveBeenCalledTimes(1);
             expect(firstCallback).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('patterns with nothing to draw', () => {
+        const rulesOnlyPattern = {
+            description: 'Every node is governed.',
+            properties: {
+                nodes: { items: { $ref: 'https://hub.calm.finos.org/calm/namespaces/ns/standards/governed-node/versions/1.0.0' } },
+                relationships: { items: { $ref: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship' } },
+                controls: { required: ['code-review'] },
+            },
+        };
+
+        it('explains the rules of a pattern that has no fixed nodes', () => {
+            render(<PatternGraph patternData={rulesOnlyPattern} />);
+
+            expect(screen.getByTestId('pattern-rules-state')).toHaveTextContent('Every node is governed.');
+            expect(screen.getByText('code-review')).toBeInTheDocument();
+            expect(screen.queryByTestId('react-flow')).not.toBeInTheDocument();
+        });
+
+        it('does not wait for a saved layout when there is nothing to lay out', () => {
+            render(<PatternGraph patternData={rulesOnlyPattern} viewportKey="ns/id" defaultLayout={undefined} />);
+
+            expect(screen.getByTestId('pattern-rules-state')).toBeInTheDocument();
+            expect(screen.queryByText('Loading saved layout…')).not.toBeInTheDocument();
+        });
+
+        it('says so when a pattern has neither nodes nor rules', () => {
+            render(<PatternGraph patternData={makePattern([])} />);
+
+            expect(screen.getByText('This pattern defines no nodes or relationships to draw.')).toBeInTheDocument();
+            expect(screen.queryByTestId('pattern-rules-state')).not.toBeInTheDocument();
+        });
+
+        it('reports a pattern that cannot be parsed, even if it has rules', () => {
+            const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const brokenPattern = {
+                ...rulesOnlyPattern,
+                properties: { ...rulesOnlyPattern.properties, nodes: { prefixItems: 'not-an-array' } },
+            };
+
+            render(<PatternGraph patternData={brokenPattern} />);
+
+            expect(screen.getByText('This pattern could not be drawn. See the JSON view for its schema.')).toBeInTheDocument();
+            expect(screen.queryByTestId('pattern-rules-state')).not.toBeInTheDocument();
+            consoleError.mockRestore();
+        });
+
+        it('does not show an empty state on the first render of a pattern that has nodes', () => {
+            // Effects do not run in renderToString, so this is the frame before node state is filled.
+            const html = renderToString(<PatternGraph patternData={mockPatternData} />);
+
+            expect(html).toContain('data-testid="react-flow"');
+            expect(html).not.toContain('could not be drawn');
+            expect(html).not.toContain('defines no nodes');
         });
     });
 });

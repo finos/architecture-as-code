@@ -86,9 +86,15 @@ class TestGitHubPatternStoreShould {
     }
 
     @Test
+    void throw_unsupported_on_delete_pattern_version() {
+        assertThrows(UnsupportedOperationException.class,
+                () -> store.deletePatternVersion("finos", 1, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void throw_unsupported_on_create_pattern() {
         assertThrows(UnsupportedOperationException.class,
-                () -> store.createPatternForNamespace(new CreatePatternRequest(), "finos"));
+                () -> store.createPatternForNamespace(new CreatePatternRequest(), "finos", "1.0.0"));
     }
 
     @Test

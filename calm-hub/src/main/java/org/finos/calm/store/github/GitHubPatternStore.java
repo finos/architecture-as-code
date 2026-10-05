@@ -58,7 +58,7 @@ public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements P
     }
 
     @Override
-    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace) throws NamespaceNotFoundException, JsonParseException {
+    public Pattern createPatternForNamespace(CreatePatternRequest patternRequest, String namespace, String version) throws NamespaceNotFoundException, JsonParseException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 
@@ -96,6 +96,12 @@ public class GitHubPatternStore extends AbstractReadOnlyGitHubStore implements P
 
     @Override
     public void deletePattern(String namespace, int patternId) throws NamespaceNotFoundException, PatternNotFoundException {
+        throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
+    }
+
+    @Override
+    public boolean deletePatternVersion(String namespace, int patternId, String version)
+            throws NamespaceNotFoundException, PatternNotFoundException {
         throw new GitHubWriteNotSupportedException(WRITE_UNSUPPORTED);
     }
 }
