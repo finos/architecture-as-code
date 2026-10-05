@@ -118,10 +118,11 @@ six spellings of one version, from `1.0.0` to `100`, and
 without canonicalising it. `calm generate` then copies that into the
 architecture's `$schema`. Both the stored reference and the incoming request can
 therefore use any spelling, and comparing the strings verbatim misses every pair
-that disagrees. The database expression matches the digits with an optional
-separator between them, which is the shape `VERSION_REGEX` itself describes. The
-in-memory path folds both sides through `CanonicalVersion` instead. The response
-echoes the canonical form.
+that disagrees. The database expression is an alternation of the separator
+spellings that fold back through `CanonicalVersion` to the requested version. An
+optional-separator expression is not equivalent: it matches `1100` for `1.10.0`,
+but `CanonicalVersion` reads `1100` as `11.0.0`. The in-memory path folds both
+sides through `CanonicalVersion`. The response echoes the canonical form.
 
 **Return 404 when the pattern version does not exist.** Resolving the pattern
 name alone is not enough. A request for a version that was never written would
@@ -190,13 +191,13 @@ Both costs grow in proportion to the collection. `CountsService` sets a
 precedent for a short TTL cache over an expensive aggregate read, and this query
 does not take it. At 1.4ms the cache would buy nothing, and it would add a
 staleness window to an answer used for governance. Should a hub grow far enough
-for a full-visibility caller to feel it, the remedy is a cache of that shape, or
-pagination. Neither is worth building before a real hub shows the need.
+for a full-visibility caller to feel it, the remedy is a cache of that shape. It
+is not worth building before a real hub shows the need. Callers can already page.
 
 **Scope the matches to the caller's readable namespaces**, through the same
-`ReadableScope` resolution that `SearchResource` uses. A pattern in an
-unreadable namespace returns 404 rather than 403, so the response does not
-confirm that the pattern exists.
+`ReadableScope` resolution that `SearchResource` uses. A caller who may not read
+the pattern's own namespace gets 403 from `@PermissionsAllowed`, as on the other
+namespace endpoints.
 
 ## Consequences
 
@@ -225,3 +226,13 @@ confirm that the pattern exists.
   fraction is small, the remedy is the write-path warning above and not B. B
   would backfill from the same `$schema` values, so it would find the same
   architectures.
+- **GitHub storage mode has no implementation of this lookup.** The lookup finds
+  architectures whose `$schema` holds a hub pattern address. GitHub mode is
+  read-only, so this hub writes no architecture there. Its files are authored in
+  the repository, and its pattern versions are commit SHAs, which
+  `VERSION_REGEX` rejects on this path. How many GitHub-mode architectures carry
+  such an address anyway has not been measured.
+  A scan of every architecture file per request is not worth building on that
+  unknown. A semver request returns 404, because GitHub mode has no semver
+  version, and a SHA returns 400. The store behind the endpoint returns 501, as
+  GitHub-mode writes do, should a request ever reach it.

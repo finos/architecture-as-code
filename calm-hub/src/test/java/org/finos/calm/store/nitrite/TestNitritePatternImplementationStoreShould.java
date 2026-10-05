@@ -146,6 +146,23 @@ class TestNitritePatternImplementationStoreShould {
     }
 
     @Test
+    void return_matches_in_the_same_order_as_the_mongo_query() {
+        // find() order is undefined, so paging over it could repeat or drop a row between pages.
+        stubCollection(List.of(
+                version("traderx", 2, "1.0.0", REFERENCE),
+                version("finos", 9, "2.0.0", REFERENCE),
+                version("finos", 9, "1.0.0", REFERENCE),
+                version("finos", 7, "1.0.0", REFERENCE)));
+
+        assertEquals(List.of(
+                        new PatternImplementation("finos", 7, "1.0.0", null),
+                        new PatternImplementation("finos", 9, "1.0.0", null),
+                        new PatternImplementation("finos", 9, "2.0.0", null),
+                        new PatternImplementation("traderx", 2, "1.0.0", null)),
+                find(Optional.empty()).getImplementations());
+    }
+
+    @Test
     void apply_a_paging_window_when_one_is_asked_for() {
         stubCollection(List.of(
                 version("finos", 7, "1.0.0", REFERENCE),

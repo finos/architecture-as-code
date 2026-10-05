@@ -119,6 +119,19 @@ class TestMongoPatternImplementationStoreShould {
     }
 
     @Test
+    void skip_an_architecture_whose_id_or_namespace_has_the_wrong_type() {
+        stubFind(List.of(
+                new Document("namespace", "finos").append("architectureId", "8").append("version", "1.0.0"),
+                new Document("namespace", 3).append("architectureId", 9).append("version", "1.0.0"),
+                implementation("finos", 7, "1.2.0")));
+
+        PatternImplementations result =
+                store.findImplementations("finos", "api-gateway", "1.0.0", Optional.empty(), PageRequest.UNPAGED);
+
+        assertEquals(List.of(new PatternImplementation("finos", 7, "1.2.0", null)), result.getImplementations());
+    }
+
+    @Test
     void push_a_requested_paging_window_down_to_the_query() {
         FindIterable<Document> matches = stubFind(List.of());
 

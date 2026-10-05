@@ -78,11 +78,10 @@ public class MongoPatternImplementationStore implements PatternImplementationSto
 
         List<PatternImplementation> implementations = new ArrayList<>();
         for (Document document : matches) {
-            Integer architectureId = document.getInteger(ARCHITECTURE_ID_FIELD);
-            String documentNamespace = document.getString(NAMESPACE_FIELD);
-            if (architectureId == null || documentNamespace == null) {
-                // The query already excludes a missing or null field. This catches the case it
-                // cannot express: a field of the wrong type, which getInteger also reads as null.
+            if (!(document.get(ARCHITECTURE_ID_FIELD) instanceof Integer architectureId)
+                    || !(document.get(NAMESPACE_FIELD) instanceof String documentNamespace)) {
+                // The query already excludes a missing or null field. This skips a field of the
+                // wrong type, which getInteger would throw on.
                 continue;
             }
             implementations.add(new PatternImplementation(

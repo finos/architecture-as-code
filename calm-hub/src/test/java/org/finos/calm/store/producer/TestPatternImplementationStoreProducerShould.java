@@ -4,6 +4,7 @@ import jakarta.enterprise.inject.Instance;
 import org.finos.calm.store.PatternImplementationStore;
 import org.finos.calm.store.mongo.MongoPatternImplementationStore;
 import org.finos.calm.store.nitrite.NitritePatternImplementationStore;
+import org.finos.calm.store.noop.NoOpPatternImplementationStore;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -33,6 +34,12 @@ public class TestPatternImplementationStoreProducerShould {
     @Mock
     Instance<NitritePatternImplementationStore> nitriteStoreInstance;
 
+    @Mock
+    NoOpPatternImplementationStore gitHubStore;
+
+    @Mock
+    Instance<NoOpPatternImplementationStore> gitHubStoreInstance;
+
     private PatternImplementationStoreProducer producer;
 
     @BeforeEach
@@ -42,6 +49,8 @@ public class TestPatternImplementationStoreProducerShould {
         producer.mongoStore = mongoStoreInstance;
         when(nitriteStoreInstance.get()).thenReturn(nitriteStore);
         producer.standaloneStore = nitriteStoreInstance;
+        when(gitHubStoreInstance.get()).thenReturn(gitHubStore);
+        producer.gitHubStore = gitHubStoreInstance;
     }
 
     @Test
@@ -60,6 +69,15 @@ public class TestPatternImplementationStoreProducerShould {
         PatternImplementationStore result = producer.producePatternImplementationStore();
 
         assertThat(result, is(sameInstance(nitriteStore)));
+    }
+
+    @Test
+    void return_noop_store_when_database_mode_is_github() {
+        producer.databaseMode = "github";
+
+        PatternImplementationStore result = producer.producePatternImplementationStore();
+
+        assertThat(result, is(sameInstance(gitHubStore)));
     }
 
     @Test

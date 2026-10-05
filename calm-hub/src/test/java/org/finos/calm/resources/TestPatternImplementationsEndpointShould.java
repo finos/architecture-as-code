@@ -7,7 +7,6 @@ import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
 import org.finos.calm.domain.exception.MappingNotFoundException;
-import org.finos.calm.domain.exception.NamespaceNotFoundException;
 import org.finos.calm.domain.implementations.PatternImplementation;
 import org.finos.calm.domain.implementations.PatternImplementations;
 import org.finos.calm.domain.implementations.PatternReference;
@@ -25,8 +24,12 @@ import java.util.Optional;
 import java.util.Set;
 
 import static io.restassured.RestAssured.given;
+import static org.finos.calm.resources.ResourceValidationConstants.CUSTOM_ID_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.hasSize;
@@ -144,10 +147,10 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
-    void still_answer_when_the_namespace_disappears_while_names_are_being_resolved() throws Exception {
+    void still_answer_when_the_names_cannot_be_resolved() throws Exception {
         stubImplementations(List.of(new PatternImplementation("finos", 7, "1.2.0", null)));
         when(mockMappingStore.listMappingsByNumericIds(eq("finos"), eq(ResourceType.ARCHITECTURE), any()))
-                .thenThrow(new NamespaceNotFoundException());
+                .thenThrow(new RuntimeException("database unavailable"));
 
         // A missing display name is not worth failing an otherwise complete answer.
         given().when().get(PATH).then()
@@ -242,15 +245,6 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
-    void return_404_rather_than_reveal_a_pattern_in_a_namespace_the_caller_cannot_read() {
-        when(mockUserAccessValidator.getReadableNamespaces(any())).thenReturn(Optional.of(Set.of("traderx")));
-
-        given().when().get(PATH).then().statusCode(404);
-
-        verify(mockImplementationStore, never()).findImplementations(anyString(), anyString(), anyString(), any(), any());
-    }
-
-    @Test
     void pass_the_readable_namespaces_through_so_the_store_can_scope_the_matches() {
         Optional<Set<String>> readable = Optional.of(Set.of("finos", "traderx"));
         when(mockUserAccessValidator.getReadableNamespaces(any())).thenReturn(readable);
@@ -262,14 +256,20 @@ class TestPatternImplementationsEndpointShould {
     }
 
     @Test
+    void reject_a_namespace_that_is_not_a_valid_namespace() {
+        given().when().get("/calm/namespaces/fin_os/patterns/api-gateway/versions/1.0.0/implementations")
+                .then().statusCode(400).body(containsString(NAMESPACE_MESSAGE));
+    }
+
+    @Test
     void reject_a_pattern_name_that_is_not_a_valid_identifier() {
         given().when().get("/calm/namespaces/finos/patterns/Not_Valid/versions/1.0.0/implementations")
-                .then().statusCode(400);
+                .then().statusCode(400).body(containsString(CUSTOM_ID_MESSAGE));
     }
 
     @Test
     void reject_a_version_that_is_not_a_valid_version() {
         given().when().get("/calm/namespaces/finos/patterns/api-gateway/versions/not-a-version/implementations")
-                .then().statusCode(400);
+                .then().statusCode(400).body(containsString(VERSION_MESSAGE));
     }
 }

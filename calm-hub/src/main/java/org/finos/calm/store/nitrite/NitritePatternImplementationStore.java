@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -78,6 +79,9 @@ public class NitritePatternImplementationStore implements PatternImplementationS
                     documentNamespace, architectureId, versionDocument.get(VERSION_FIELD, String.class), null));
         }
 
+        implementations.sort(Comparator.comparing(PatternImplementation::getNamespace)
+                .thenComparingInt(PatternImplementation::getArchitectureId)
+                .thenComparing(PatternImplementation::getVersion, Comparator.nullsFirst(Comparator.naturalOrder())));
         return new PatternImplementations(
                 new PatternReference(namespace, patternName, version), page.apply(implementations));
     }

@@ -767,7 +767,8 @@ public class MappingControllerResource {
     )
     @APIResponse(responseCode = "200", description = "Architecture versions naming this pattern version")
     @APIResponse(responseCode = "400", description = "Namespace, pattern name or version is malformed")
-    @APIResponse(responseCode = "404", description = "Pattern or version not found, or the caller may not read its namespace")
+    @APIResponse(responseCode = "403", description = "The caller may not read the pattern's namespace")
+    @APIResponse(responseCode = "404", description = "Pattern or version not found")
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternImplementations(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,

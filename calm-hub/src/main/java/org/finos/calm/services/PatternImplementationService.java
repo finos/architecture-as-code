@@ -54,16 +54,11 @@ public class PatternImplementationService {
 
     /**
      * @param readableNamespaces namespaces the caller may read, or empty for unrestricted access.
-     * @return the implementations, or empty when the pattern does not exist or the caller may not
-     *         read its namespace — the two are deliberately indistinguishable, so that a 404 does
-     *         not tell the caller a pattern exists where they have no access.
+     * @return the implementations, or empty when the pattern version does not exist.
      */
     public Optional<PatternImplementations> findImplementations(String namespace, String patternName, String version,
                                                                 Optional<Set<String>> readableNamespaces,
                                                                 PageRequest page) {
-        if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(namespace)) {
-            return Optional.empty();
-        }
         String canonicalVersion = CanonicalVersion.of(version);
         if (!patternVersionExists(namespace, patternName, canonicalVersion)) {
             return Optional.empty();
@@ -129,8 +124,7 @@ public class PatternImplementationService {
                 names.put(mapping.getNumericId(), mapping.getCustomId());
             }
             return names;
-        } catch (NamespaceNotFoundException e) {
-            // The namespace came from a stored document, so this means it was removed mid-request.
+        } catch (Exception e) {
             // A missing display name is not worth failing an otherwise complete answer.
             logger.warn("Could not resolve architecture names in namespace [{}]",
                     STRICT_SANITIZATION_POLICY.sanitize(namespace), e);
