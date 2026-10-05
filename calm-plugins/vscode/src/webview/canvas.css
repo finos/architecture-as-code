@@ -27,7 +27,7 @@
     box-shadow: none !important;
 }
 
-.react-flow__node.selected > div:not(.react-flow__handle) {
+.react-flow__node.selected > div:not(.react-flow__handle):not(.react-flow__resize-control) {
     border-color: #6366f1 !important;
     box-shadow: 0 0 0 1.5px #6366f1 !important;
 }
