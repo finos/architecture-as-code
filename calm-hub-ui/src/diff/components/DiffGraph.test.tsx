@@ -117,4 +117,31 @@ describe('DiffGraph', () => {
 
         expect(screen.getByText('Service A')).toBeInTheDocument();
     });
+
+    it('offers a pause-animation control on desktop', () => {
+        const architecture = testArchitectures.baseArchitecture;
+        const diffResult: DiffResult = {
+            nodesAdded: [],
+            nodesRemoved: [],
+            nodesModified: [],
+            nodesSame: architecture.nodes,
+            nodesRenamed: [],
+            edgesAdded: [],
+            edgesRemoved: [],
+            edgesModified: [],
+            edgesSame: architecture.relationships,
+            edgesRenamed: [],
+        };
+
+        render(
+            <DiffGraph
+                source={architecture}
+                sourceType="Architectures"
+                diffResult={diffResult}
+                isFirst={true}
+            />
+        );
+
+        expect(screen.getByRole('button', { name: /pause animation/i })).toBeInTheDocument();
+    });
 });
