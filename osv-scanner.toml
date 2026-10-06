@@ -89,8 +89,10 @@ reason = "http-cache-semantics 4.2.0 is used only as a private client cache by t
 # postcss-selector-parser 6.1.4 comes in through the cssnano plugins that Docusaurus uses
 # to minify CSS, and 7.1.4 is bundled inside the npm CLI used by semantic-release. The
 # fix is only in 7.1.6: there is no 6.x fix, and overrides cannot reach bundled
-# dependencies. Both copies parse only the project's own CSS at build time.
+# dependencies. cssnano parses only the project's own CSS at build time. npm uses its
+# copy only to parse dependency selectors for `npm query` and `npm sbom`, and
+# semantic-release runs its bundled npm only to publish.
 [[IgnoredVulns]]
 id = "GHSA-rj75-hqrm-r3gf"
 ignoreUntil = 2026-12-31
-reason = "postcss-selector-parser 6.1.4 (cssnano under Docusaurus) and 7.1.4 (bundled in the npm CLI used by semantic-release) parse only the project's own CSS at build time, so an attacker cannot supply the selectors that cause the slow parse. Not shipped. Remove when cssnano moves to 7.1.6 and npm bundles 7.1.6."
+reason = "postcss-selector-parser 6.1.4 (cssnano under Docusaurus) parses only the project's own CSS at build time, and 7.1.4 (bundled in the npm CLI used by semantic-release) parses only npm query and npm sbom selectors; semantic-release runs that npm only to publish. An attacker cannot supply the selectors that cause the slow parse. Not shipped. Remove when cssnano moves to 7.1.6 and npm bundles 7.1.6."
