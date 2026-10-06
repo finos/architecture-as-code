@@ -84,6 +84,8 @@ export function extractChoicesFromArchitecture(architecture: object): CalmChoice
 
     return relationships
         .filter((rel) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
+        // A decision answered with nothing records no choice.
+        .filter((rel) => rel['relationship-type']['options'].length > 0)
         .map((rel) => rel['relationship-type']['options'][0])
         .map((rel) => ({
             description: rel['description'],
