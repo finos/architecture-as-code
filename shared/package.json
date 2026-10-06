@@ -60,8 +60,6 @@
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
-        "regexparam": "^3.0.0",
-        "string-table": "^0.1.5",
         "ts-node": "10.9.2",
         "winston": "^3.17.0"
     },
