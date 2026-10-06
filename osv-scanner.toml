@@ -85,3 +85,12 @@ reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, 
 id = "GHSA-ch52-4w7c-c8xp"
 ignoreUntil = 2026-12-31
 reason = "http-cache-semantics 4.2.0 is used only as a private client cache by the npm CLI bundled with semantic-release, by license-checker-rseidelsohn and by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
+
+# postcss-selector-parser 6.1.4 comes in through the cssnano plugins that Docusaurus uses
+# to minify CSS, and 7.1.4 is bundled inside the npm CLI used by semantic-release. The
+# fix is only in 7.1.6: there is no 6.x fix, and overrides cannot reach bundled
+# dependencies. Both copies parse only the project's own CSS at build time.
+[[IgnoredVulns]]
+id = "GHSA-rj75-hqrm-r3gf"
+ignoreUntil = 2026-12-31
+reason = "postcss-selector-parser 6.1.4 (cssnano under Docusaurus) and 7.1.4 (bundled in the npm CLI used by semantic-release) parse only the project's own CSS at build time, so an attacker cannot supply the selectors that cause the slow parse. Not shipped. Remove when cssnano moves to 7.1.6 and npm bundles 7.1.6."
