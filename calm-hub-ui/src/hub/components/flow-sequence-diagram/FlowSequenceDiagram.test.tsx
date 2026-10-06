@@ -39,7 +39,6 @@ function mockMotion(motion: UseMotionResult['motion']) {
     vi.mocked(useMotion).mockReturnValue({
         motion,
         toggleMotion: vi.fn(),
-        isFollowingSystem: true,
     });
 }
 

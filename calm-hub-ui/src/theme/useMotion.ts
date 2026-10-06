@@ -14,26 +14,33 @@ export interface MotionStore {
     getSnapshot: () => Motion;
     subscribe: (onChange: () => void) => () => void;
     toggle: () => void;
-    /** True while no explicit choice is stored and the OS setting is in charge. */
-    isFollowingSystem: () => boolean;
 }
 
 function isMotion(value: string | null): value is Motion {
     return value === 'full' || value === 'reduced';
 }
 
-function readStoredMotion(storage: Storage): Motion | null {
+/** Reading the `localStorage` global itself throws when site data is blocked. */
+function defaultStorage(): Storage | undefined {
     try {
-        const stored = storage.getItem(MOTION_STORAGE_KEY);
+        return localStorage;
+    } catch {
+        return undefined;
+    }
+}
+
+function readStoredMotion(storage: Storage | undefined): Motion | null {
+    try {
+        const stored = storage?.getItem(MOTION_STORAGE_KEY);
         return isMotion(stored) ? stored : null;
     } catch {
         return null;
     }
 }
 
-function writeStoredMotion(motion: Motion, storage: Storage): void {
+function writeStoredMotion(motion: Motion, storage: Storage | undefined): void {
     try {
-        storage.setItem(MOTION_STORAGE_KEY, motion);
+        storage?.setItem(MOTION_STORAGE_KEY, motion);
     } catch {
         // A persisted preference is a nicety; losing it must not break the toggle.
     }
@@ -50,7 +57,7 @@ function writeStoredMotion(motion: Motion, storage: Storage): void {
  * @param storage Injected for tests; see the storage note in calm-hub-ui/AGENTS.md.
  */
 export function createMotionStore(
-    storage: Storage = localStorage,
+    storage: Storage | undefined = defaultStorage(),
     matchMedia: MatchMedia = typeof window === 'undefined' ? undefined : window.matchMedia?.bind(window),
 ): MotionStore {
     const reducedQuery = matchMedia?.(REDUCED_MOTION_QUERY);
@@ -82,7 +89,6 @@ export function createMotionStore(
             writeStoredMotion(stored, storage);
             refresh();
         },
-        isFollowingSystem: () => stored === null,
     };
 }
 
@@ -97,10 +103,9 @@ export function getMotionStore(): MotionStore {
 export interface UseMotionResult {
     motion: Motion;
     toggleMotion: () => void;
-    isFollowingSystem: boolean;
 }
 
 export function useMotion(store: MotionStore = getMotionStore()): UseMotionResult {
     const motion = useSyncExternalStore(store.subscribe, store.getSnapshot, () => 'full' as Motion);
-    return { motion, toggleMotion: store.toggle, isFollowingSystem: store.isFollowingSystem() };
+    return { motion, toggleMotion: store.toggle };
 }

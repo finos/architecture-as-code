@@ -47,7 +47,6 @@ describe('createMotionStore', () => {
         const store = createMotionStore(createMemoryStorage(), os.matchMedia);
 
         expect(store.getSnapshot()).toBe('full');
-        expect(store.isFollowingSystem()).toBe(true);
         expect(motionAttr()).toBe('full');
     });
 
@@ -79,7 +78,6 @@ describe('createMotionStore', () => {
         const store = createMotionStore(storage, os.matchMedia);
 
         expect(store.getSnapshot()).toBe('full');
-        expect(store.isFollowingSystem()).toBe(false);
 
         os.flipTo(true);
         expect(store.getSnapshot()).toBe('full');
@@ -92,7 +90,6 @@ describe('createMotionStore', () => {
         const store = createMotionStore(storage, os.matchMedia);
 
         expect(store.getSnapshot()).toBe('full');
-        expect(store.isFollowingSystem()).toBe(true);
     });
 
     it('toggles to the opposite of what is on screen, persists it and updates the attribute', () => {
@@ -104,7 +101,6 @@ describe('createMotionStore', () => {
         expect(store.getSnapshot()).toBe('reduced');
         expect(storage.getItem(MOTION_STORAGE_KEY)).toBe('reduced');
         expect(motionAttr()).toBe('reduced');
-        expect(store.isFollowingSystem()).toBe(false);
 
         store.toggle();
         expect(store.getSnapshot()).toBe('full');
@@ -126,6 +122,25 @@ describe('createMotionStore', () => {
         expect(store.getSnapshot()).toBe('full');
         store.toggle();
         expect(store.getSnapshot()).toBe('reduced');
+    });
+
+    it('survives the localStorage global throwing when site data is blocked', () => {
+        const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'localStorage');
+        Object.defineProperty(globalThis, 'localStorage', {
+            configurable: true,
+            get() {
+                throw new DOMException('denied', 'SecurityError');
+            },
+        });
+        try {
+            const store = createMotionStore(undefined, mockPrefersReducedMotion(false).matchMedia);
+
+            expect(store.getSnapshot()).toBe('full');
+            store.toggle();
+            expect(store.getSnapshot()).toBe('reduced');
+        } finally {
+            if (descriptor) Object.defineProperty(globalThis, 'localStorage', descriptor);
+        }
     });
 
     it('falls back to full motion when matchMedia is unavailable', () => {

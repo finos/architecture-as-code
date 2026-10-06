@@ -53,7 +53,6 @@
     border-color: var(--flow-visited) !important;
 }
 
-
 /* Motion paused: keep the active step highlighted, but stop the per-frame repaints. */
 :root[data-motion='reduced'] .flow-dash-overlay,
 :root[data-motion='reduced'] .flow-node-active > div:first-child {
