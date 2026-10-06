@@ -424,6 +424,14 @@
           ]
         },
         {
+          "@id": "pkg:npm/%40finos/calm-server",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/postcss-selector-parser@7.1.4"
+            }
+          ]
+        },
+        {
           "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
           "subcomponents": [
             {
