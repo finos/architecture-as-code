@@ -75,7 +75,17 @@
           "config-url": "https://config-url"
         }]
       }
-    }
+    },
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      }
+    ]
   },
   "additionArchitecture": {
     "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
@@ -824,6 +834,63 @@
     "adrs": [
       "https://example.com/adr/002-use-load-balancer",
       "https://example.com/adr/001-use-api-gateway"
+    ]
+  },
+  "flowAdditionArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests flow addition",
+      "description": "Adds a new flow to the base architecture to test flow diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." }
+        ]
+      },
+      {
+        "unique-id": "read-flow",
+        "name": "Read flow",
+        "description": "Reads a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Read." }
+        ]
+      }
+    ]
+  },
+  "flowRemovalArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests flow removal",
+      "description": "Removes the flow from the base architecture to test flow diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "flows": []
+  },
+  "flowModificationArchitecture": {
+    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "metadata": {
+      "test-purpose": "Tests flow modification",
+      "description": "Adds a transition to the flow in the base architecture to test flow diffing"
+    },
+    "nodes": [],
+    "relationships": [],
+    "flows": [
+      {
+        "unique-id": "write-flow",
+        "name": "Write flow",
+        "description": "Writes a record.",
+        "transitions": [
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 1, "description": "Write." },
+          { "relationship-unique-id": "gateway-to-payment", "sequence-number": 2, "description": "Confirm." }
+        ]
+      }
     ]
   },
   "controlAdditionArchitecture": {

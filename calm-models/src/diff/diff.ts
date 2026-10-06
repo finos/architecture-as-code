@@ -4,6 +4,7 @@ import type {
     CalmControlDetailSchema,
     CalmControlSchema,
     CalmControlsSchema,
+    CalmFlowSchema,
     CalmMetadataSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
@@ -18,6 +19,8 @@ import type {
     ArchitectureDiffResult,
     ControlDiffResult,
     ControlItemDiffResult,
+    FlowChange,
+    FlowDiffResult,
     ChangeType,
     MetadataDiffResult,
     MetadataItemDiffResult,
@@ -165,14 +168,47 @@ export function diffArchitectures(
 
     const controlsDiff = diffControls(archA.controls ?? {}, archB.controls ?? {});
 
+    const flowsDiff = diffFlows(archA.flows ?? [], archB.flows ?? []);
+
     const metadataDiff = diffMetadata(archA.metadata ?? {}, archB.metadata ?? {});
 
     return {
         ...nodesAndRelationshipsDiff,
         ...adrDiff,
         ...controlsDiff,
+        ...flowsDiff,
         ...metadataDiff
     };
+}
+
+/**
+ * Core diff function for CALM flow arrays. Flows are matched by `unique-id` and classified as added, removed, modified or unchanged.
+ * Flows missing a `unique-id` are surfaced via `flowsInvalid` so they are not silently dropped.
+ */
+export function diffFlows(flowsA: CalmFlowSchema[], flowsB: CalmFlowSchema[]): FlowDiffResult {
+    const flowsInvalid = [
+        ...flowsA.filter((f) => !f['unique-id']),
+        ...flowsB.filter((f) => !f['unique-id']),
+    ];
+    const byIdA = new Map(flowsA.filter((f) => f['unique-id']).map((f) => [f['unique-id'], f]));
+    const byIdB = new Map(flowsB.filter((f) => f['unique-id']).map((f) => [f['unique-id'], f]));
+
+    const flowsAdded = [...byIdB.values()].filter((f) => !byIdA.has(f['unique-id']));
+    const flowsRemoved = [...byIdA.values()].filter((f) => !byIdB.has(f['unique-id']));
+    const flowsModified: FlowChange[] = [];
+    const flowsSame: CalmFlowSchema[] = [];
+
+    for (const [id, flowA] of byIdA) {
+        const flowB = byIdB.get(id);
+        if (!flowB) continue;
+        if (valuesEqual(flowA, flowB)) {
+            flowsSame.push(flowA);
+        } else {
+            flowsModified.push({ original: flowA, updated: flowB });
+        }
+    }
+
+    return { flowsAdded, flowsRemoved, flowsModified, flowsSame, flowsInvalid };
 }
 
 /**

@@ -1,6 +1,7 @@
 import type {
     CalmControlDetailSchema,
     CalmControlsSchema,
+    CalmFlowSchema,
     CalmNodeSchema,
     CalmRelationshipSchema,
 } from '../types/index.js';
@@ -13,6 +14,11 @@ export interface NodeChange {
 export interface RelationshipChange {
     original: CalmRelationshipSchema;
     updated: CalmRelationshipSchema;
+}
+
+export interface FlowChange {
+    original: CalmFlowSchema;
+    updated: CalmFlowSchema;
 }
 
 export interface RenameMapping {
@@ -114,6 +120,17 @@ export interface ControlDiffResult {
 }
 
 /**
+ * Represents the result of diffing two CALM flow arrays. Flows without a `unique-id` cannot be matched, so they are surfaced in `flowsInvalid` rather than dropped.
+ */
+export interface FlowDiffResult {
+    flowsAdded: CalmFlowSchema[];
+    flowsRemoved: CalmFlowSchema[];
+    flowsModified: FlowChange[];
+    flowsSame: CalmFlowSchema[];
+    flowsInvalid: unknown[];
+}
+
+/**
  * Represents the result of diffing two CALM Metadata Schema objects.
  */
 export interface MetadataDiffResult {
@@ -124,6 +141,6 @@ export interface MetadataDiffResult {
 }
 
 /**
- * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, ADRs, controls and metadata. TODO: incorporate flows.
+ * Represents the result of diffing two CALM architecture instances: includes nodes, relationships, flows, ADRs, controls and metadata.
  */
-export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & MetadataDiffResult;
+export type ArchitectureDiffResult = NodesAndRelationshipsDiffResult & AdrDiffResult & ControlDiffResult & FlowDiffResult & MetadataDiffResult;

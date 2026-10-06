@@ -310,6 +310,57 @@ describe('diff', () => {
         });
     });
 
+    describe('diffArchitectures - flow changes', () => {
+        const base = testArchitectures.baseArchitecture;
+
+        it('records an added flow', () => {
+            const result = diffArchitectures(base, testArchitectures.flowAdditionArchitecture);
+            expect(result.flowsAdded.map((f) => f['unique-id'])).toEqual(['read-flow']);
+            expect(result.flowsSame.map((f) => f['unique-id'])).toEqual(['write-flow']);
+            expect(result.flowsRemoved).toEqual([]);
+            expect(result.flowsModified).toEqual([]);
+        });
+
+        it('records a removed flow', () => {
+            const result = diffArchitectures(base, testArchitectures.flowRemovalArchitecture);
+            expect(result.flowsRemoved.map((f) => f['unique-id'])).toEqual(['write-flow']);
+            expect(result.flowsAdded).toEqual([]);
+            expect(result.flowsSame).toEqual([]);
+        });
+
+        it('records a modified flow with its original and updated forms', () => {
+            const result = diffArchitectures(base, testArchitectures.flowModificationArchitecture);
+            expect(result.flowsModified).toHaveLength(1);
+            expect(result.flowsModified[0].original.transitions).toHaveLength(1);
+            expect(result.flowsModified[0].updated.transitions).toHaveLength(2);
+            expect(result.flowsAdded).toEqual([]);
+            expect(result.flowsRemoved).toEqual([]);
+        });
+
+        it('records identical flows as unchanged', () => {
+            const result = diffArchitectures(base, base);
+            expect(result.flowsSame.map((f) => f['unique-id'])).toEqual(['write-flow']);
+            expect(result.flowsModified).toEqual([]);
+        });
+
+        it('treats a missing flows array as empty', () => {
+            const { flows: _flows, ...withoutFlows } = base;
+            void _flows;
+            const result = diffArchitectures(withoutFlows, base);
+            expect(result.flowsAdded.map((f) => f['unique-id'])).toEqual(['write-flow']);
+        });
+
+        it('surfaces flows missing unique-id via flowsInvalid instead of dropping them', () => {
+            const idless = { name: 'No id', description: 'No id', transitions: [] };
+            const archA = { ...base, flows: [idless, { ...idless }] } as unknown as CalmArchitectureSchema;
+            const archB = { ...base, flows: [idless] } as unknown as CalmArchitectureSchema;
+            const result = diffArchitectures(archA, archB);
+            expect(result.flowsInvalid).toHaveLength(3);
+            expect(result.flowsSame).toEqual([]);
+            expect(result.flowsRemoved).toEqual([]);
+        });
+    });
+
     describe('diffArchitectures - ADR changes', () => {
         it('records unchanged and added ADRs when an ADR is added', () => {
             const result = diffArchitectures(testArchitectures.baseArchitecture, testArchitectures.adrAdditionArchitecture);
