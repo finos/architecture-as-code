@@ -110,7 +110,7 @@ function StepItem({step, index, done, current, open, files, onToggle}: StepItemP
                     {done ? '✓' : current ? '●' : '○'}
                 </span>
                 <span className={styles.stepTitle}>{step.title}</span>
-                {done && <span className={styles.srOnly}>(completed)</span>}
+                {done && <>{' '}<span className={styles.srOnly}>(completed)</span></>}
             </button>
             <div className={clsx(styles.stepBodyWrap, open && styles.stepBodyOpen)}>
                 <div className={styles.stepBodyInner}>
