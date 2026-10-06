@@ -48,7 +48,6 @@
   "module": "esnext",
   "type": "module",
   "dependencies": {
-    "@types/diff": "^7.0.2",
     "ajv": "^8.18.0",
     "diff": "^9.0.0"
   },
