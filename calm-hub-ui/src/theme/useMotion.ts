@@ -31,7 +31,7 @@ function defaultStorage(): Storage | undefined {
 
 function readStoredMotion(storage: Storage | undefined): Motion | null {
     try {
-        const stored = storage?.getItem(MOTION_STORAGE_KEY);
+        const stored = storage?.getItem(MOTION_STORAGE_KEY) ?? null;
         return isMotion(stored) ? stored : null;
     } catch {
         return null;
