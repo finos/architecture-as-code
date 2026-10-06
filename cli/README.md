@@ -966,7 +966,7 @@ calm workspace check [--calm-hub-url <url>]
 
 A document is flagged when its on-disk `$id` version still matches a version in CalmHub but its content differs. Brand-new documents (not yet in CalmHub) and already-bumped documents (whose version is ahead of CalmHub) are not flagged.
 
-After checking for unbumped documents, `check` also silently validates every architecture and pattern in the workspace and prints a summary — for example:
+After checking for unbumped documents, `check` also silently validates every architecture and pattern in the workspace and prints a summary. It loads documents with the same `~/.calm.json` settings as `calm validate`, so an architecture whose `$schema` is a CalmHub pattern is validated against that pattern. For example:
 
 ```
 All 3 document(s) passed validation.

@@ -4,15 +4,21 @@ import path from 'path';
 
 // vi.mock is hoisted to the top of the file by vitest, so factories must not reference
 // variables declared in the module scope. We store captured spies via vi.hoisted() instead.
-const { mockValidate, mockLoadSchemas, mockLoadPattern } = vi.hoisted(() => ({
+const { mockValidate, mockLoadSchemas, mockLoadPattern, mockBuildDocumentLoader, mockParseDocumentLoaderConfig } = vi.hoisted(() => ({
     mockValidate: vi.fn(),
     mockLoadSchemas: vi.fn().mockResolvedValue(undefined),
     mockLoadPattern: vi.fn().mockResolvedValue(undefined),
+    mockBuildDocumentLoader: vi.fn().mockReturnValue({}),
+    mockParseDocumentLoaderConfig: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('../../cli', () => ({
+    parseDocumentLoaderConfig: (...args: unknown[]) => mockParseDocumentLoaderConfig(...args),
 }));
 
 vi.mock('@finos/calm-shared', () => ({
     CALM_META_SCHEMA_DIRECTORY: '/mock/schema/dir',
-    buildDocumentLoader: vi.fn().mockReturnValue({}),
+    buildDocumentLoader: (...args: unknown[]) => mockBuildDocumentLoader(...args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     SchemaDirectory: vi.fn().mockImplementation(function(this: any) { this.loadSchemas = mockLoadSchemas; }),
     validate: (...args: unknown[]) => mockValidate(...args),
@@ -41,6 +47,8 @@ describe('runPostBumpValidation', () => {
         vi.clearAllMocks();
         mockLoadSchemas.mockResolvedValue(undefined);
         mockLoadPattern.mockResolvedValue(undefined);
+        mockBuildDocumentLoader.mockReturnValue({});
+        mockParseDocumentLoaderConfig.mockResolvedValue({});
         await mkdir(filesPath, { recursive: true });
     });
 
@@ -50,6 +58,29 @@ describe('runPostBumpValidation', () => {
 
     const write = (name: string, obj: object) =>
         writeFile(path.join(filesPath, name), JSON.stringify(obj), 'utf8');
+
+    it('loads documents with the same user config that calm validate uses', async () => {
+        // Without it a pattern on CalmHub could not be fetched, and every architecture derived
+        // from one was reported as "could not validate" whether or not it conformed.
+        const authPlugin = { getAuthHeaders: vi.fn() };
+        mockParseDocumentLoaderConfig.mockResolvedValue({ calmHubUrl: 'https://hub.example.com', authPlugin });
+
+        await runPostBumpValidation(bundlePath, {});
+
+        expect(mockBuildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
+            calmHubUrl: 'https://hub.example.com',
+            authPlugin,
+            schemaDirectoryPath: '/mock/schema/dir',
+            workspaceBundlePath: bundlePath,
+        }));
+    });
+
+    it('passes the --calm-hub-url override and the bundle path to the config', async () => {
+        await runPostBumpValidation(bundlePath, {}, 'https://override.example.com');
+
+        expect(mockParseDocumentLoaderConfig)
+            .toHaveBeenCalledWith({ calmHubUrl: 'https://override.example.com' }, undefined, bundlePath);
+    });
 
     it('returns passed:true for an architecture that validates without errors', async () => {
         await write('arch.json', { $id: 'test', title: 'Arch' });

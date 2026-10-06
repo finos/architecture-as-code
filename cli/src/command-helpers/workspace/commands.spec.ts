@@ -749,6 +749,12 @@ describe('setupWorkspaceCommands', () => {
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
+        it('passes --calm-hub-url to post-bump validation', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            await program.parseAsync(['node', 'test', 'workspace', 'check', '--calm-hub-url', 'https://hub.example.com']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), 'https://hub.example.com');
+        });
+
         it('runs post-bump validation and reports all passed when workspace is up to date', async () => {
             mocks.detectChangedResources.mockResolvedValueOnce([]);
             mocks.runPostBumpValidation.mockResolvedValueOnce([
@@ -903,6 +909,13 @@ describe('setupWorkspaceCommands', () => {
             mocks.bumpWorkspace.mockRejectedValueOnce(new Error('bump failed'));
             await expect(program.parseAsync(['node', 'test', 'workspace', 'bump'])).rejects.toThrow();
             expect(exitSpy).toHaveBeenCalledWith(1);
+        });
+
+        it('passes --calm-hub-url to post-bump validation', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            await program.parseAsync(['node', 'test', 'workspace', 'bump', '--calm-hub-url', 'https://hub.example.com']);
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), 'https://hub.example.com');
         });
 
         it('runs post-bump validation and completes without error when all documents pass', async () => {

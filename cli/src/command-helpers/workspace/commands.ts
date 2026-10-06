@@ -545,7 +545,7 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest);
+                const validationResults = await runPostBumpValidation(bundlePath, manifest, options.calmHubUrl);
                 let validationFailed = false;
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
@@ -667,7 +667,7 @@ export function setupWorkspaceCommands(program: Command) {
                 // Post-bump validation: silently validate all architectures and patterns, then
                 // print a summary so the user knows whether bumping caused any regressions.
                 const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest);
+                const validationResults = await runPostBumpValidation(bundlePath, manifest, options.calmHubUrl);
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
                     if (failures.length === 0) {
