@@ -167,6 +167,11 @@
       "rangeStrategy": "bump"
     },
     {
+      "description": "Keep the semantic-release preset on v9 until @semantic-release/release-notes-generator supports conventional-changelog-writer 9",
+      "matchPackageNames": ["conventional-changelog-conventionalcommits"],
+      "allowedVersions": "<10"
+    },
+    {
       "description": "Never update the calm-schema-x.y release aliases (matched by depName)",
       "matchManagers": ["npm"],
       "matchDepNames": ["calm-schema-*"],

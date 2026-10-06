@@ -15,6 +15,7 @@ import {
 } from './flow-step.js';
 import { COMMENTARY_PANEL_WIDTH, DIAGRAM_CARD_CLASS, STROKE_WIDTH, TIMING } from './flow-layout.js';
 import './flow-animation.css';
+import { useMotion } from '../../../theme/useMotion.js';
 import type { Architecture } from '@finos/calm-models/model';
 import type { CalmFlowSchema, CalmFlowTransitionSchema } from '@finos/calm-models/types';
 
@@ -138,6 +139,7 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
     const maxStep = data ? data.seqNumbers.length - 1 : 0;
     const playback = useFlowPlayback({ maxStep }, flowJson);
     const zoom = useSvgZoomPan();
+    const motionPaused = useMotion().motion === 'reduced';
     const [minimapHidden, setMinimapHidden] = useState(readMinimapHidden);
 
     const toggleMinimap = () => {
@@ -287,7 +289,7 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                                 strokeDasharray={isReturn && !isCurrent ? RETURN_DASH : undefined}
                                                 markerEnd={isCurrent ? 'url(#arrow-active)' : isReturn ? 'url(#arrow-ret)' : 'url(#arrow-fwd)'}
                                             />
-                                            {isCurrent && (
+                                            {isCurrent && !motionPaused && (
                                                 <circle
                                                     r={PULSE_RADIUS}
                                                     fill="var(--flow-active-light)"

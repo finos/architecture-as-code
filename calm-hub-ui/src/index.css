@@ -116,6 +116,14 @@ code {
     border-radius: 8px;
 }
 
+/* Motion paused (`data-motion` is set by useMotion): animated edges repaint the whole
+ * diagram every frame, which can overload remote desktops. The edges stay dashed
+ * because `stroke-dasharray` comes from the same `.animated` rule; only the
+ * animation is dropped. Scoped under `.react-flow` — see the note below. */
+:root[data-motion='reduced'] .react-flow .react-flow__edge.animated path {
+    animation: none;
+}
+
 /* `reactflow/dist/style.css` defines these same selectors and is bundled after this
  * file, so an unqualified rule here would lose the source-order tie. Scoping under
  * `.react-flow` adds a class and wins on specificity instead. */
