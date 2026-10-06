@@ -11,6 +11,7 @@ import ReactFlow, {
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { MotionToggleButton } from './MotionToggleButton.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
@@ -272,7 +273,9 @@ export function PatternGraph({
                             border: `1px solid ${THEME.colors.border}`,
                             borderRadius: '8px',
                         }}
-                    />
+                    >
+                        <MotionToggleButton />
+                    </Controls>
                 )}
                 {!isMobile && (
                     <MiniMap

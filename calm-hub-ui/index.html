@@ -23,6 +23,23 @@
                             : 'light';
                 }
                 document.documentElement.setAttribute('data-theme', theme);
+
+                // Same for motion: stop animated edges before the first frame is painted.
+                // Kept in sync with src/theme/useMotion.ts.
+                var motion;
+                try {
+                    motion = localStorage.getItem('calm-motion');
+                } catch (e) {
+                    motion = null;
+                }
+                if (motion !== 'full' && motion !== 'reduced') {
+                    motion =
+                        window.matchMedia &&
+                        window.matchMedia('(prefers-reduced-motion: reduce)').matches
+                            ? 'reduced'
+                            : 'full';
+                }
+                document.documentElement.setAttribute('data-motion', motion);
             })();
         </script>
         <link rel="icon" href="/brand/Icon/2025_CALM_Icon.svg" />

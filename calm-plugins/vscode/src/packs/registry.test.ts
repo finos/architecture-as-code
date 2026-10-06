@@ -9,7 +9,7 @@ import {
 	getPacksForTypes,
 	resetRegistry,
 } from './registry.js';
-import { corePack } from './packs/core.js';
+import { corePack } from './definitions/core.js';
 import { initAllPacks } from './index.js';
 import type { PackDefinition } from './types.js';
 
