@@ -44,7 +44,12 @@ export abstract class AbstractOutputStrategy implements OutputStrategy {
     }
 
     protected buildOutputPath(outputDir: string, filename: string): string {
-        return path.join(outputDir, filename);
+        const outputPath = path.join(outputDir, filename);
+        const relative = path.relative(path.resolve(outputDir), path.resolve(outputPath));
+        if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+            throw new Error(`Output path "${filename}" resolves outside the output directory "${outputDir}"`);
+        }
+        return outputPath;
     }
 }
 
