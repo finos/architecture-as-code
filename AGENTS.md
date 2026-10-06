@@ -112,6 +112,40 @@ rm -rf node_modules package-lock.json && npm install
 **Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
 CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
+## CALM Schema Updates
+
+The tools get the CALM schema from the `@finos/calm-schema` npm package. The root `package.json`
+pins the latest release as `@finos/calm-schema`, and each release by a `calm-schema-<major.minor>`
+alias (see [cli/AGENTS.md](cli/AGENTS.md#schema-handling)). Renovate raises `@finos/calm-schema`
+updates in their own PR. That PR must also pin the alias of that release to the same version.
+
+`.github/workflows/calm-schema-compatibility.yml` builds and tests each tool against a new release,
+with the commands of its `build-*.yml` workflow (listed in `scripts/calm-schema-compat.mjs`). It
+stops before the tests if the version is not on npm. If a tool fails, the workflow opens one issue
+for that release (label `calm-schema-compatibility`), or comments on the open issue. The issue asks
+for `Closes #<issue>` in the PR that moves `@finos/calm-schema` to the release, so that the merge
+closes it. A run on the default branch in which all tools pass also closes it. A manual run on
+another branch only comments on the open issue: it never opens or closes one. The workflow does
+not reopen a closed issue: a new failure gets a new issue. `cli-hub-smoke.yml` is not in the
+matrix: it tests the CLI against a CALM Hub image, and the cli and calm-hub jobs already test the
+schema.
+
+| Trigger | Version | Notes |
+|---|---|---|
+| `repository_dispatch` | `client_payload.version` | From the finos/calm-schema publish workflow: `event_type: calm-schema-published`, `client_payload: {"version": "x.y.z"}`. Waits up to about five minutes for the version on npm |
+| Daily schedule | npm `latest` | Skips the pinned version, a version with any issue (open or closed), and a version that passed |
+| Manual run | `version` input, or npm `latest` | Always runs. Run it on a fix branch to test the fix |
+
+calm-hub fails for each new `major.minor` release until its schema index files list the release
+(see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).
+
+To test a tool locally, run `node scripts/calm-schema-compat.mjs use <version>`, then
+`node scripts/calm-schema-compat.mjs test <tool>`. The `use` command changes `package.json` and
+`package-lock.json` as the update PR must, with `npm install --package-lock-only`, then runs
+`npm ci`. It never installs over an existing `node_modules`, because that can prune other
+platforms' packages from the lockfile. If your PR does not update the schema, restore both files
+(`git checkout -- package.json package-lock.json`) and run `npm ci` when you are done.
+
 ## Package-Specific Guides
 
 Read the guide for a package before working on its code, tests, or build.
