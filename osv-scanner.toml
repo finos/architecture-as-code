@@ -76,15 +76,14 @@ id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2026-12-31
 reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, stylelint, eslint-config-next, Docusaurus, webpack-dev-server) and only expands patterns from project config, never user input. Remove when a patched braces release is available."
 
-# http-cache-semantics 4.2.0 comes in through make-fetch-happen (the npm CLI bundled with
-# semantic-release, and @npmcli/arborist under license-checker-rseidelsohn) and through
-# Docusaurus's update-notifier (got, cacheable-request). All use it only as a private
-# client cache. The attack needs a shared cache that serves
+# http-cache-semantics 4.2.0 comes in through make-fetch-happen (inside the npm CLI bundled
+# with semantic-release) and through Docusaurus's update-notifier (got, cacheable-request).
+# All use it only as a private client cache. The attack needs a shared cache that serves
 # responses to other users, which no CALM component runs. No patched release exists yet.
 [[IgnoredVulns]]
 id = "GHSA-ch52-4w7c-c8xp"
 ignoreUntil = 2026-12-31
-reason = "http-cache-semantics 4.2.0 is used only as a private client cache by the npm CLI bundled with semantic-release, by license-checker-rseidelsohn and by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
+reason = "http-cache-semantics 4.2.0 is used only as a private client cache by the npm CLI bundled with semantic-release and by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
 
 # postcss-selector-parser 6.1.4 comes in through the cssnano plugins that Docusaurus uses
 # to minify CSS, and 7.1.4 is bundled inside the npm CLI used by semantic-release. The
