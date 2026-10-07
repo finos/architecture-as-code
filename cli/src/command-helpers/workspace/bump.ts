@@ -7,7 +7,7 @@ import {
     type MappingWorkspaceManifestEntry,
     type NarrativeWorkspaceManifestEntry,
 } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
+import { buildRefRulesFromDiskIds, syncReferences, partitionBySnapshot, isSnapshotRule, RefUpdateResult } from './ref-rewrite';
 import {
     CalmHubClient,
     ResourceChangeType,
@@ -16,7 +16,6 @@ import {
     constructDocumentId,
     computeSemVerBump,
     latestReleaseVersion,
-    sortSemVer,
     canonicalEqual,
     isSnapshotVersion,
     initLogger,
@@ -199,7 +198,7 @@ function prepareChangedNarrativeEntry(
         if (narrativeMarkdownEqual(raw, remote.documentMarkdown)) return undefined;
         return {
             id, filePath, currentVersion: version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
+            latestHubVersion: latestReleaseVersion(versions), kind: 'narrative',
         };
     };
 }
@@ -327,7 +326,12 @@ export async function bumpWorkspace(
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
         const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-        const refUpdates = await syncReferences(bundlePath, manifest, rules);
+        // A release is only relinked to a snapshot by snapshotting it deliberately, never by a cascade.
+        const { snapshots, releases } = await partitionBySnapshot(bundlePath, manifest);
+        const refUpdates = [
+            ...await syncReferences(bundlePath, snapshots, rules),
+            ...await syncReferences(bundlePath, releases, rules.filter(rule => !isSnapshotRule(rule))),
+        ];
         allRefUpdates.push(...refUpdates);
 
         const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));

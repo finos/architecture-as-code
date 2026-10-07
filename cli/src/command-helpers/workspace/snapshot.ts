@@ -1,8 +1,9 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, resolveFilePath, extractAllReferences, WorkspaceManifest } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, findRuleForRef, RefRule } from './ref-rewrite';
+import { buildRefRulesFromDiskIds, syncReferences, findRuleForRef, partitionBySnapshot, RefRule } from './ref-rewrite';
 import { applyVersionToDocument } from './bump';
+import { resolveWorkspaceDocumentType } from './document-kind';
 import {
     CalmHubClient,
     ResourceChangeType,
@@ -39,10 +40,17 @@ type SnapshotContext = {
     versionById: Map<string, string>;
 };
 
+/** Callers such as push report unsupported entries themselves; one must not block a whole scan. */
+function supportedEntries(manifest: WorkspaceManifest): WorkspaceManifest {
+    return Object.fromEntries(
+        Object.entries(manifest).filter(([, entry]) => resolveWorkspaceDocumentType(entry.type) !== undefined)
+    );
+}
+
 /** Loads the manifest, ref rules, and each doc's on-disk version exactly once. */
 async function buildSnapshotContext(bundlePath: string): Promise<SnapshotContext> {
     const manifest = await loadManifest(bundlePath);
-    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+    const rules = await buildRefRulesFromDiskIds(supportedEntries(manifest), bundlePath);
     const versionById = new Map<string, string>();
     for (const [id, entry] of Object.entries(manifest)) {
         const filePath = resolveFilePath(bundlePath, entry.path);
@@ -151,34 +159,18 @@ async function loadTrackedDocument(bundlePath: string, id: string): Promise<{ fi
     return { filePath, raw, metadata };
 }
 
-/** Tracked documents that are themselves at a `-SNAPSHOT` version — safe to auto-relink. */
-async function snapshotOnlyManifest(bundlePath: string, manifest: WorkspaceManifest): Promise<WorkspaceManifest> {
-    const filtered: WorkspaceManifest = {};
-    for (const [id, entry] of Object.entries(manifest)) {
-        const filePath = resolveFilePath(bundlePath, entry.path);
-        if (!existsSync(filePath)) continue;
-        try {
-            const raw = await readFile(filePath, 'utf8');
-            if (isSnapshotVersion(extractDocumentMetadata(raw).version)) {
-                filtered[id] = entry;
-            }
-        } catch {
-            continue;
-        }
-    }
-    return filtered;
-}
-
 async function writeNewVersion(bundlePath: string, filePath: string, raw: string, metadata: DocumentMetadata, toVersion: string): Promise<void> {
+    // Load before the write, so a bad manifest fails with the document still unchanged.
+    const manifest = supportedEntries(await loadManifest(bundlePath));
+
     const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
     await writeFile(filePath, updated, 'utf8');
 
     // Only relink documents that are themselves snapshots: they're mutable, so updating their
     // refs doesn't touch already-published content. A release must be bumped deliberately.
-    const manifest = await loadManifest(bundlePath);
     const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-    const snapshotDocs = await snapshotOnlyManifest(bundlePath, manifest);
-    const refUpdates = await syncReferences(bundlePath, snapshotDocs, rules);
+    const { snapshots } = await partitionBySnapshot(bundlePath, manifest);
+    const refUpdates = await syncReferences(bundlePath, snapshots, rules);
     const refChanges = refUpdates.reduce((sum, r) => sum + r.changeCount, 0);
     if (refChanges > 0) {
         logger.info(`Updated ${refChanges} reference(s) across the workspace to match.`);

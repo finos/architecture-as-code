@@ -763,6 +763,27 @@ describe('bump', () => {
             expect(updatedB.nodes[0].$ref).toBe(idAt('a', '1.1.0'));
         });
 
+        it('does not relink a release document to a snapshot during an unrelated bump', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await write('x.json', { $id: idAt('x', '1.1.0-SNAPSHOT'), title: 'X' });
+            const yDoc = { $id: idAt('y', '1.0.0'), title: 'Y', nodes: [{ $ref: idAt('x', '1.0.0') }] };
+            await write('y.json', yDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'x': { path: 'files/x.json', type: 'architecture' },
+                'y': { path: 'files/y.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], x: ['1.0.0'], y: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' }, 'y@1.0.0': yDoc },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped.map(b => b.id)).toEqual(['a']);
+            expect(await read('y.json')).toEqual(yDoc);
+        });
+
         it('cascades through a three-level chain in one call', async () => {
             // A → B → C: changing A should cascade-bump B and C
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });

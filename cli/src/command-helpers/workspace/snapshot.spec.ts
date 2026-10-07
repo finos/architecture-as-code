@@ -131,6 +131,20 @@ describe('snapshot', () => {
             const updatedB = await read('b.json');
             expect(updatedB.interfaces[0]['$ref']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
         });
+        it('relinks references when the manifest also has an unsupported entry', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.0.0-SNAPSHOT'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.0.0') }] });
+            await writeFile(path.join(bundlePath, 'workspace-manifest.json'), JSON.stringify({
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+                'future': { path: 'files/future.json', type: 'future-document-kind' },
+            }));
+
+            await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0'] }), { increment: 'MINOR' });
+
+            expect((await read('a.json'))['$id']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
+            expect((await read('b.json')).interfaces[0]['$ref']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
+        });
     });
 
     describe('releaseSnapshot', () => {

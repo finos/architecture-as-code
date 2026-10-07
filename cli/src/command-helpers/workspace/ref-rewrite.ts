@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { REFERENCE_PROPERTIES, WorkspaceManifest, resolveFilePath } from './bundle';
-import { initLogger, Logger } from '@finos/calm-shared';
+import { initLogger, isSnapshotVersion, Logger } from '@finos/calm-shared';
 import { getJsonReferenceWorkspaceManifest } from './document-kind';
 
 const logger: Logger = initLogger(false, 'workspace');
@@ -30,6 +30,42 @@ export type RefUpdateResult = {
 export function stripVersionSuffix(ref: string): string | null {
     const m = ref.match(/^(.+?)\/versions\/[^/#]+/);
     return m ? m[1] : null;
+}
+
+function isSnapshotPath(path: string): boolean {
+    const m = path.match(/\/versions\/([^/#]+)$/);
+    return m !== null && isSnapshotVersion(m[1]);
+}
+
+/** Whether `rule` repoints references at a `-SNAPSHOT` version of its document. */
+export function isSnapshotRule(rule: RefRule): boolean {
+    return isSnapshotPath(rule.targetPath);
+}
+
+/**
+ * Splits tracked documents by whether their on-disk `$id` is at a `-SNAPSHOT` version. A document
+ * with no readable versioned `$id` counts as a release, since it cannot be a snapshot.
+ */
+export async function partitionBySnapshot(
+    bundlePath: string,
+    manifest: WorkspaceManifest
+): Promise<{ snapshots: WorkspaceManifest; releases: WorkspaceManifest }> {
+    const snapshots: WorkspaceManifest = {};
+    const releases: WorkspaceManifest = {};
+    for (const [id, entry] of Object.entries(manifest)) {
+        let documentId: unknown;
+        try {
+            documentId = JSON.parse(await readFile(resolveFilePath(bundlePath, entry.path), 'utf8'))?.['$id'];
+        } catch {
+            documentId = undefined;
+        }
+        if (typeof documentId === 'string' && isSnapshotPath(documentId)) {
+            snapshots[id] = entry;
+        } else {
+            releases[id] = entry;
+        }
+    }
+    return { snapshots, releases };
 }
 
 /**
