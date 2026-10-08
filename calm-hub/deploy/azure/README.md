@@ -101,5 +101,6 @@ kubectl apply -k calm-hub/deploy/azure
 
 - `GET /api/calm/auth/config` is anonymous and returns `provider: entra-id`.
 - `GET /api/calm/namespaces` without a bearer token returns 401.
+- `GET /q/openapi` and `GET /q/swagger-ui` without a bearer token return 401. `GET /q/health/ready` stays anonymous for the probes.
 - The same call with the signed-in user's ID token returns 200 after the GLOBAL admin grant exists.
 - Pods must reach `https://login.microsoftonline.com` on port 443 for discovery and JWKS.

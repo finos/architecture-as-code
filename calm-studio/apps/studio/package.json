@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
-    "build": "vite build",
+    "build": "vite build && node ../../scripts/assemble-portable.mjs",
     "preview": "vite preview",
     "tauri": "tauri",
     "test": "vitest run",

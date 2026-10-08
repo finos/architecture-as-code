@@ -27,6 +27,18 @@ describe('parsePackJson', () => {
 			if (!parsed.ok) continue;
 			expect(parsed.pack.schemaUrl).toBeTruthy();
 			expect(parsed.pack.relationships?.length).toBeGreaterThan(0);
+			expect(
+				parsed.pack.nodes.every(
+					(node) => node.icon.startsWith('<svg') && !/script|on\w+\s*=/i.test(node.icon)
+				),
+				name
+			).toBe(true);
+			expect(
+				parsed.pack.nodes.some((node) =>
+					/<(?:path|circle|rect|ellipse|polygon|g)\b/.test(node.icon)
+				),
+				name
+			).toBe(true);
 		}
 	});
 
@@ -105,7 +117,7 @@ describe('parsePackJson', () => {
 				{
 					typeId: 'extra:box',
 					label: 'Box',
-					icon: { href: './box.svg', mediaType: 'image/svg+xml' },
+					icon: '<svg width="16" height="16" viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14"/></svg>',
 					color: { bg: '#ffffff', border: '#000000', stroke: '#000000' },
 					description: 'A box',
 					isContainer: true,
@@ -127,7 +139,9 @@ describe('parsePackJson', () => {
 		expect(parsed.ok).toBe(true);
 		if (!parsed.ok) return;
 		const node = parsed.pack.nodes[0]!;
-		expect(node.icon).toBe('./box.svg');
+		expect(node.icon).toBe(
+			'<svg width="16" height="16" viewBox="0 0 16 16"><rect x="1" y="1" width="14" height="14"/></svg>'
+		);
 		expect(node.isContainer).toBe(true);
 		expect(node.rectangleLayout).toBe(true);
 		expect(node.defaultChildren).toEqual(['extra:child']);
@@ -165,6 +179,57 @@ describe('parsePackJson', () => {
 	it('rejects a non-object document', () => {
 		expect(parsePackJson(null).ok).toBe(false);
 		expect(parsePackJson([]).ok).toBe(false);
+	});
+
+	function packWithIcon(icon: unknown) {
+		return {
+			$schema: 'https://calm.finos.org/schemas/calm-extension-pack.schema.json',
+			id: 'icons',
+			label: 'Icons',
+			version: '1.0.0',
+			standard: { $id: 'https://example.invalid/icons.standard.json' },
+			color: { bg: '#ffffff', border: '#000000', stroke: '#000000' },
+			nodes: [
+				{
+					typeId: 'icons:box',
+					label: 'Box',
+					icon,
+					color: { bg: '#ffffff', border: '#000000', stroke: '#000000' },
+				},
+			],
+			relationships: [{ typeId: 'connects', label: 'Connects' }],
+		};
+	}
+
+	it('keeps a safe inline SVG and drops markup that is not on the allowlist', () => {
+		const safe = parsePackJson(
+			packWithIcon('<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/></svg>')
+		);
+		expect(safe.ok).toBe(true);
+		if (!safe.ok) return;
+		expect(safe.pack.nodes[0]?.icon).toBe(
+			'<svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="2"/></svg>'
+		);
+
+		const payloads = [
+			'<img src=x onerror=alert(1)>',
+			'<svg onload="alert(1)"></svg>',
+			'<svg><script>alert(1)</script></svg>',
+			'<svg><foreignObject><img src=x onerror=alert(1)></foreignObject></svg>',
+			'<svg><desc><img src=x onerror=alert(1)></desc></svg>',
+			'<svg></svg><img src=x onerror=alert(1)>',
+			'<svg><a href="javascript:alert(1)"><rect width="1" height="1"/></a></svg>',
+			'<svg><use href="data:image/svg+xml;base64,PHN2Zy8+"/></svg>',
+			'<svg style="background:url(javascript:alert(1))"></svg>',
+			{ href: './box.svg' },
+			{ href: '<img src=x onerror=alert(1)>' },
+			{ href: '&#60;img src=x onerror=alert(1)&#62;' },
+			{ href: 'javascript:alert(1)' },
+		];
+		for (const icon of payloads) {
+			const parsed = parsePackJson(packWithIcon(icon));
+			expect(parsed.ok, JSON.stringify(icon)).toBe(false);
+		}
 	});
 
 	it('rejects empty arrays and non-object entries', () => {
