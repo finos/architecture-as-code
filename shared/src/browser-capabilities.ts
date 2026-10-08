@@ -38,6 +38,7 @@ export const BROWSER_COMMAND_SUPPORT: readonly BrowserCommandSupport[] = [
             { flags: '--timeline <file>', description: 'Path to the timeline file to validate. May be a file path or a URL.', supported: false },
             { flags: '-s, --schema-directory <path>', description: 'Path to the directory containing the meta schemas to use.', supported: false },
             { flags: '-c, --calm-hub-url <url>', description: 'URL to CALMHub instance', supported: false },
+            { flags: '--assets-path <path>', description: 'Local path to CALM assets directory (resolves CURIEs without a Hub)', supported: false },
             { flags: '-u, --url-to-local-file-mapping <path>', description: 'Path to mapping file which maps URLs to local paths', supported: true },
             { flags: '--strict', description: 'When run in strict mode, the CLI will fail if any warnings are reported.', supported: false },
             { flags: '-f, --format <format>', description: 'The format of the output', supported: true, choices: ['json', 'junit', 'pretty'], defaultValue: 'json' },

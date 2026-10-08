@@ -19,11 +19,12 @@ const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
     getFormattedOutput: vi.fn(),
     exitBasedOffOfValidationOutcome: vi.fn(),
-    initLogger: vi.fn(function () { return { error: vi.fn(), debug: vi.fn() }; }),
+    loggerError: vi.fn(),
+    loggerDebug: vi.fn(),
+    initLogger: vi.fn(function () { return { error: mocks.loggerError, debug: mocks.loggerDebug }; }),
     processExit: vi.fn(),
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
-    readFileSync: vi.fn(),
     parseDocumentLoaderConfig: vi.fn(),
     buildDocumentLoader: vi.fn(function () { return {
         loadMissingDocument: mocks.loadMissingDocument
@@ -50,7 +51,6 @@ vi.mock('mkdirp', () => ({
 vi.mock('fs', () => ({
     ...vi.importActual('fs'),
     writeFileSync: mocks.writeFileSync,
-    readFileSync: mocks.readFileSync,
 }));
 
 vi.mock('../cli', async () => ({
@@ -71,7 +71,6 @@ describe('runValidate', () => {
         process.exit = mocks.processExit as any;
 
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
-        mocks.readFileSync.mockImplementation(function () { throw new Error('file not found'); });
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation(function (filePath: string, _: string) {
             if (filePath === 'arch.json') return Promise.resolve(dummyArch);
@@ -251,9 +250,6 @@ describe('runValidate', () => {
     });
 
     it('should pass CURIE resolver chain when calmHubUrl and assetsPath are provided', async () => {
-        const validJson = JSON.stringify({ nodes: [] });
-        mocks.readFileSync.mockReturnValue(validJson);
-
         const options: ValidateOptions = {
             architecturePath: 'arch.json',
             patternPath: 'pattern.json',
@@ -313,6 +309,50 @@ describe('runValidate', () => {
 
         await runValidate(options);
         expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
+    it('should log nested causes when verbose mode is enabled', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: true,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        const rootCause = new Error('token request failed');
+        const error = new Error('Direct URL authentication failed');
+        error.cause = rootCause;
+        (validate as Mock).mockRejectedValue(error);
+
+        await runValidate(options);
+
+        expect(mocks.loggerError).toHaveBeenCalledWith('An error occurred while validating: Direct URL authentication failed');
+        expect(mocks.loggerError).toHaveBeenCalledWith('Cause: token request failed');
+    });
+
+    it('should not log nested causes when verbose mode is disabled', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        const rootCause = new Error('token request failed');
+        const error = new Error('Direct URL authentication failed');
+        error.cause = rootCause;
+        (validate as Mock).mockRejectedValue(error);
+
+        await runValidate(options);
+
+        expect(mocks.loggerError).toHaveBeenCalledWith('An error occurred while validating: Direct URL authentication failed');
+        expect(mocks.loggerError).not.toHaveBeenCalledWith('Cause: token request failed');
     });
 });
 
