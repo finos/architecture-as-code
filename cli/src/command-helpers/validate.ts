@@ -71,9 +71,34 @@ export async function runValidate(options: ValidateOptions) {
         const message = err instanceof Error ? err.message : String(err);
         const stack = err instanceof Error ? err.stack : undefined;
         logger.error('An error occurred while validating: ' + message);
+        if (options.verbose) {
+            for (const causeMessage of formatErrorCauseChain(err)) {
+                logger.error(causeMessage);
+            }
+        }
         if (stack) logger.debug(stack);
         process.exit(1);
     }
+}
+
+function formatErrorCauseChain(error: unknown): string[] {
+    const messages: string[] = [];
+    let currentCause = getErrorCause(error);
+    let isFirst = true;
+
+    while (currentCause instanceof Error) {
+        messages.push(`${isFirst ? 'Cause' : 'Caused by'}: ${currentCause.message}`);
+        currentCause = getErrorCause(currentCause);
+        isFirst = false;
+    }
+
+    return messages;
+}
+
+function getErrorCause(error: unknown): unknown {
+    return error instanceof Error && 'cause' in error
+        ? error.cause
+        : undefined;
 }
 
 
@@ -87,20 +112,16 @@ export async function runValidate(options: ValidateOptions) {
 function buildCurieResolverChain(options: ValidateOptions): CalmReferenceResolver | undefined {
     const resolvers: CalmReferenceResolver[] = [];
 
-    // SHA cache is always available (offline-first)
     resolvers.push(new ShaCacheReferenceResolver());
 
-    // Local assets path (resolves CURIEs without a Hub)
     if (options.assetsPath) {
         resolvers.push(new LocalCurieReferenceResolver(path.resolve(options.assetsPath)));
     }
 
-    // CalmHub (expand CURIE to Hub URL and fetch)
     if (options.calmHubUrl) {
         resolvers.push(new CurieReferenceResolver(options.calmHubUrl, new HttpReferenceResolver()));
     }
 
-    // HTTP resolver for absolute URLs in requirement-url
     resolvers.push(new HttpReferenceResolver());
 
     return resolvers.length > 0 ? new ChainReferenceResolver(resolvers) : undefined;

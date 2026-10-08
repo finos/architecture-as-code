@@ -46,6 +46,7 @@ export { initLogger, registerNodeLoggerFactory } from './logger.js';
 export type { Logger, LogLevel, NodeLoggerFactory } from './logger.js';
 export { createWinstonLogger } from './logger.node.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
+export { DirectUrlAuthPlugin } from './auth/direct-url-auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
