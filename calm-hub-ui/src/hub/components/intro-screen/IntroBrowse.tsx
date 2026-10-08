@@ -8,18 +8,26 @@ interface BrowseCardProps {
     count: number;
     to: string;
     testId: string;
+    description?: string;
 }
 
-function BrowseCard({ label, count, to, testId }: BrowseCardProps) {
+function BrowseCard({ label, count, to, testId, description }: BrowseCardProps) {
     return (
         <Link
             to={to}
             data-testid={testId}
-            className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 no-underline hover:bg-base-200 transition-colors"
+            className="flex flex-col gap-1 rounded-xl px-4 py-3 no-underline hover:bg-base-200 transition-colors"
             style={{ border: `1px solid ${colors.redesign.border}`, color: colors.redesign.bodyStrong }}
         >
-            <span className="min-w-0 truncate font-medium text-[14px]">{label}</span>
-            <CountBadge count={count} />
+            <span className="flex items-center justify-between gap-3">
+                <span className="min-w-0 truncate font-medium text-[14px]">{label}</span>
+                <CountBadge count={count} />
+            </span>
+            {description && (
+                <span title={description} className="text-[12px] line-clamp-2" style={{ color: colors.redesign.muted }}>
+                    {description}
+                </span>
+            )}
         </Link>
     );
 }
@@ -67,6 +75,7 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
                             count={nc.total}
                             to={`/namespace/${encodeURIComponent(nc.namespace)}`}
                             testId="browse-namespace"
+                            description={nc.description}
                         />
                     ))}
                 </BrowseSection>

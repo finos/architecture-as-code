@@ -48,6 +48,17 @@ describe('IntroBrowse', () => {
         expect(screen.getByTestId('location')).toHaveTextContent('/domain/security');
     });
 
+    it('shows a namespace description in its tile, with the full text on hover', () => {
+        const [finos, traderx] = namespaceCounts;
+        renderBrowse([{ ...finos, description: 'FINOS reference architectures' }, traderx], domainCounts);
+
+        const [finosTile, traderxTile] = screen.getAllByTestId('browse-namespace');
+        expect(screen.getByText('FINOS reference architectures')).toHaveAttribute('title', 'FINOS reference architectures');
+        expect(finosTile).not.toHaveAttribute('title');
+        expect(traderxTile.querySelector('[title]')).toBeNull();
+        expect(screen.getByTestId('browse-domain').querySelector('[title]')).toBeNull();
+    });
+
     it('renders nothing when the catalogue is empty', () => {
         const { container } = renderBrowse([], []);
         expect(container.querySelector('[data-testid="browse-namespace"]')).toBeNull();

@@ -10,14 +10,14 @@ interface NamespacePageHeaderProps {
      * flashing a premature "0 artefacts".
      */
     total?: number;
+    description?: string;
 }
 
 /**
  * Breadcrumb ("Explore / <ns>") + namespace header: rounded icon tile, title,
- * and right-aligned mono "N artefacts" meta. Phase 2 will add the description
- * line and richer meta; Phase 1 keeps it to name + count.
+ * right-aligned mono "N artefacts" meta, and the description under the title.
  */
-export function NamespacePageHeader({ namespace, total }: NamespacePageHeaderProps) {
+export function NamespacePageHeader({ namespace, total, description }: NamespacePageHeaderProps) {
     return (
         <div>
             <nav className="text-[13px] mb-4" aria-label="Breadcrumb">
@@ -49,6 +49,16 @@ export function NamespacePageHeader({ namespace, total }: NamespacePageHeaderPro
                     </span>
                 )}
             </div>
+            {description && (
+                <p
+                    data-testid="namespace-description"
+                    title={description}
+                    className="mt-2 ml-14 text-[14px] line-clamp-2"
+                    style={{ color: colors.redesign.muted }}
+                >
+                    {description}
+                </p>
+            )}
         </div>
     );
 }
