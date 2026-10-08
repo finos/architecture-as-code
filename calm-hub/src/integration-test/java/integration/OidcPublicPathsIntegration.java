@@ -61,6 +61,43 @@ public class OidcPublicPathsIntegration {
     }
 
     @Test
+    void openapi_and_swagger_ui_require_authentication() {
+        // always-include leaves these routes in the production image. They are not JAX-RS
+        // resources, so they stay anonymous unless the oidc profile names them. A 200 here
+        // means a public ingress can read the live API surface with no token.
+        given()
+                .when().get("/q/openapi")
+                .then()
+                .statusCode(401);
+        given()
+                .when().get("/q/openapi?format=json")
+                .then()
+                .statusCode(401);
+        given()
+                .when().get("/q/swagger-ui")
+                .then()
+                .statusCode(401);
+        given()
+                .redirects().follow(false)
+                .when().get("/q/swagger-ui/")
+                .then()
+                .statusCode(401);
+        given()
+                .when().get("/q/swagger-ui/index.html")
+                .then()
+                .statusCode(401);
+    }
+
+    @Test
+    void health_probes_stay_anonymous() {
+        // The OpenAPI rule must not blanket /q/*. AKS probes /q/health/* with no token.
+        given()
+                .when().get("/q/health/ready")
+                .then()
+                .statusCode(not(401));
+    }
+
+    @Test
     void an_unmatched_path_under_api_calm_still_requires_authentication() {
         // Control: every real /api/calm/* resource carries its own @Authenticated or
         // @PermissionsAllowed, so asserting 401 on one of those would prove nothing about

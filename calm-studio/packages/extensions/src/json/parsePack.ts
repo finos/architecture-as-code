@@ -8,6 +8,7 @@ import type {
 	PackDefinition,
 	RelationshipTypeEntry,
 } from '../types.js';
+import { sanitizeInlineSvg } from './sanitizeSvg.js';
 
 export const PACK_SCHEMA_ID = 'https://calm.finos.org/schemas/calm-extension-pack.schema.json';
 
@@ -60,17 +61,20 @@ function parseColor(value: unknown, path: string, errors: string[]): PackColor |
 }
 
 function parseIcon(value: unknown, path: string, errors: string[]): string | undefined {
+	// Returned strings are injected with `{@html}`. Only a re-serialized SVG is safe.
 	if (typeof value === 'string') {
-		if (!value.trim()) {
-			errors.push(`${path} must be a non-empty SVG string`);
+		const svg = sanitizeInlineSvg(value);
+		if (!svg) {
+			errors.push(`${path} must be a safe inline SVG`);
 			return undefined;
 		}
-		return value;
+		return svg;
 	}
-	if (isRecord(value) && typeof value['href'] === 'string' && value['href'].trim()) {
-		return value['href'];
+	if (isRecord(value) && 'href' in value) {
+		errors.push(`${path}.href is not rendered; provide a safe inline SVG`);
+		return undefined;
 	}
-	errors.push(`${path} must be an inline SVG string or { href }`);
+	errors.push(`${path} must be a safe inline SVG`);
 	return undefined;
 }
 

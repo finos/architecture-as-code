@@ -26,7 +26,10 @@ data:
   QUARKUS_HTTP_PROXY_PROXY_ADDRESS_FORWARDING: "true"
   QUARKUS_HTTP_PROXY_ALLOW_X_FORWARDED: "true"
   QUARKUS_HTTP_PROXY_TRUSTED_PROXIES: 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16
-  # Probes must stay anonymous. The oidc profile authenticates /api, /calm, and /mcp only.
+  # Probes stay anonymous. Swagger UI and the OpenAPI document require a bearer token.
+  # The oidc profile sets the same OpenAPI rule. These entries apply it on the pod.
   QUARKUS_HTTP_AUTH_PERMISSION_HEALTH_PATHS: /q/health,/q/health/*
   QUARKUS_HTTP_AUTH_PERMISSION_HEALTH_POLICY: permit
+  QUARKUS_HTTP_AUTH_PERMISSION_OPENAPI_PATHS: /q/swagger-ui,/q/swagger-ui/*,/q/openapi,/q/openapi/*
+  QUARKUS_HTTP_AUTH_PERMISSION_OPENAPI_POLICY: authenticated
   QUARKUS_LOG_CATEGORY__ORG_FINOS_CALM__LEVEL: INFO

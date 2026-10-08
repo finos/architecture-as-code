@@ -18,6 +18,8 @@ Each entry below is a root npm workspace, matched by `calm-studio/packages/*` an
 ## Commands
 `npm run dev --workspace=@calmstudio/studio` | `npm run build --workspace=@calmstudio/studio` | `npm run test --workspace=@calmstudio/studio` | `npm run typecheck --workspace=@calmstudio/studio` (from repo root)
 
+`npm run build --workspace=@calmstudio/studio` also refreshes the gitignored portable packages: `calm-studio/dist/CalmStudio-portable` (Windows, PowerShell) and `calm-studio/dist/CalmStudio-portable-mac` (macOS, Python 3), plus `CalmStudio-portable-win.zip` and `CalmStudio-portable-mac.zip`. Shell scripts live in `scripts/portable/` and `scripts/portable-mac/`.
+
 ## Testing gotcha — `localStorage` under Node 26
 
 `apps/studio/src/lib/stores/theme.svelte.ts` reads `localStorage` in production code.
