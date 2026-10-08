@@ -172,10 +172,10 @@ describe('ExploreRail — namespace hierarchy', () => {
         { namespace: 'traderx', total: 9 },
     ] as NamespaceCounts[];
 
-    it('shows each namespace description as its row tooltip', async () => {
+    it('adds each namespace description to its row tooltip', async () => {
         const [finos, ...rest] = nestedNamespaceCounts;
         renderRail('/', { namespaceCounts: [{ ...finos, description: 'FINOS reference architectures' }, ...rest], storage: createMemoryStorage() });
-        expect(await screen.findByRole('link', { name: 'finos' })).toHaveAttribute('title', 'FINOS reference architectures');
+        expect(await screen.findByRole('link', { name: 'finos' })).toHaveAttribute('title', 'finos\nFINOS reference architectures');
         expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveAttribute('title', 'finos.calm');
     });
 

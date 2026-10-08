@@ -81,10 +81,16 @@ describe('NamespaceRailItem', () => {
         expect(link).toHaveAttribute('href', '/namespace/finos.calm');
     });
 
-    it('uses the namespace description as the tooltip, keeping the full path as the accessible name', () => {
+    it('shows the full path and then the description in the tooltip', () => {
         renderItem({ description: 'Patterns and examples the CALM project maintains.' });
         const link = screen.getByRole('link', { name: 'finos.calm' });
-        expect(link).toHaveAttribute('title', 'Patterns and examples the CALM project maintains.');
+        expect(link).toHaveAttribute('title', 'finos.calm\nPatterns and examples the CALM project maintains.');
+    });
+
+    it('keeps the full path as the tooltip when the description is empty', () => {
+        // GitHub storage mode gives every namespace an empty description.
+        renderItem({ description: '' });
+        expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveAttribute('title', 'finos.calm');
     });
 
     it('renders a synthetic grouping row with no link and no own pill, but a working chevron', () => {
