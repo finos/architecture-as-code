@@ -1,32 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NamespaceDescription } from './NamespaceDescription.js';
+import { mockHeights, mockViewport } from '../../../test-support/layout-mocks.js';
 
 const DESCRIPTION = 'Patterns, standards and sample architectures that the CALM project maintains.';
-
-/** Force `useIsMobile()` to report the given viewport. Returns a restore fn. */
-function mockViewport(isMobile: boolean) {
-    const original = window.matchMedia;
-    window.matchMedia = ((query: string) => ({
-        matches: isMobile,
-        media: query,
-        onchange: null,
-        addListener: vi.fn(),
-        removeListener: vi.fn(),
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-        dispatchEvent: vi.fn(),
-    })) as unknown as typeof window.matchMedia;
-    return () => {
-        window.matchMedia = original;
-    };
-}
-
-/** jsdom has no layout, so give every element the heights a clamped (or unclamped) paragraph has. */
-function mockHeights(scrollHeight: number, clientHeight: number) {
-    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(scrollHeight);
-    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(clientHeight);
-}
 
 describe('NamespaceDescription', () => {
     afterEach(() => {

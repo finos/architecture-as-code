@@ -2,6 +2,9 @@ import { Link } from 'react-router-dom';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
 import { colors } from '../../../theme/colors.js';
 import { CountBadge } from '../explore-rail/CountBadge.js';
+import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useClampToggle } from '../show-more/useClampToggle.js';
+import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
 
 interface BrowseCardProps {
     label: string;
@@ -12,19 +15,49 @@ interface BrowseCardProps {
 }
 
 function BrowseCard({ label, count, to, testId, description }: BrowseCardProps) {
+    const isMobile = useIsMobile();
+    const { ref, expanded, showToggle, toggle } = useClampToggle<HTMLSpanElement>(description ?? '', isMobile);
+    const style = { border: `1px solid ${colors.redesign.border}`, color: colors.redesign.bodyStrong };
+    const heading = (
+        <span className="flex items-center justify-between gap-3">
+            <span className="min-w-0 truncate font-medium text-[14px]">{label}</span>
+            <CountBadge count={count} />
+        </span>
+    );
+
+    // Touch screens have no hover, so mobile expands the description with a toggle. A button
+    // inside a link is invalid, so the toggle sits beside the link, not in it.
+    if (isMobile && description) {
+        return (
+            <div data-testid={testId} className="flex flex-col rounded-xl px-4 py-3" style={style}>
+                <Link to={to} className="flex flex-col gap-1 no-underline" style={{ color: colors.redesign.bodyStrong }}>
+                    {heading}
+                    <span
+                        ref={ref}
+                        className={`text-[12px] ${expanded ? '' : 'line-clamp-2'}`}
+                        style={{ color: colors.redesign.muted }}
+                    >
+                        {description}
+                    </span>
+                </Link>
+                {showToggle && <ShowMoreToggle expanded={expanded} onToggle={toggle} />}
+            </div>
+        );
+    }
+
     return (
         <Link
             to={to}
             data-testid={testId}
-            className="flex flex-col gap-1 rounded-xl px-4 py-3 no-underline hover:bg-base-200 transition-colors"
-            style={{ border: `1px solid ${colors.redesign.border}`, color: colors.redesign.bodyStrong }}
+            className="group flex flex-col gap-1 rounded-xl px-4 py-3 no-underline hover:bg-base-200 transition-colors"
+            style={style}
         >
-            <span className="flex items-center justify-between gap-3">
-                <span className="min-w-0 truncate font-medium text-[14px]">{label}</span>
-                <CountBadge count={count} />
-            </span>
+            {heading}
             {description && (
-                <span title={description} className="text-[12px] line-clamp-2" style={{ color: colors.redesign.muted }}>
+                <span
+                    className="text-[12px] line-clamp-2 group-hover:line-clamp-none group-focus-visible:line-clamp-none"
+                    style={{ color: colors.redesign.muted }}
+                >
                     {description}
                 </span>
             )}
