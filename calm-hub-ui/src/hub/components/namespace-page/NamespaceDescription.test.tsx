@@ -24,22 +24,21 @@ function mockViewport(isMobile: boolean) {
 
 /** jsdom has no layout, so give every element the heights a clamped (or unclamped) paragraph has. */
 function mockHeights(scrollHeight: number, clientHeight: number) {
-    const scroll = vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(scrollHeight);
-    const client = vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(clientHeight);
-    return () => {
-        scroll.mockRestore();
-        client.mockRestore();
-    };
+    vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(scrollHeight);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(clientHeight);
 }
 
 describe('NamespaceDescription', () => {
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     it('shows the full text as a tooltip on desktop, with no toggle', () => {
-        const restoreHeights = mockHeights(80, 40);
+        mockHeights(80, 40);
         render(<NamespaceDescription description={DESCRIPTION} />);
 
         expect(screen.getByTestId('namespace-description')).toHaveAttribute('title', DESCRIPTION);
         expect(screen.queryByRole('button')).not.toBeInTheDocument();
-        restoreHeights();
     });
 
     describe('on mobile', () => {
@@ -52,7 +51,7 @@ describe('NamespaceDescription', () => {
         });
 
         it('toggles between the clamped and the full description when the text is cut off', () => {
-            const restoreHeights = mockHeights(80, 40);
+            mockHeights(80, 40);
             render(<NamespaceDescription description={DESCRIPTION} />);
             const text = screen.getByTestId('namespace-description');
             expect(text).toHaveClass('line-clamp-2');
@@ -64,14 +63,12 @@ describe('NamespaceDescription', () => {
 
             fireEvent.click(screen.getByRole('button', { name: 'Show less' }));
             expect(text).toHaveClass('line-clamp-2');
-            restoreHeights();
         });
 
         it('shows no toggle when the description fits', () => {
-            const restoreHeights = mockHeights(40, 40);
+            mockHeights(40, 40);
             render(<NamespaceDescription description={DESCRIPTION} />);
             expect(screen.queryByRole('button')).not.toBeInTheDocument();
-            restoreHeights();
         });
     });
 });
