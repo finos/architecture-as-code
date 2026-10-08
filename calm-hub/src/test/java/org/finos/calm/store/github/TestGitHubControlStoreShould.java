@@ -202,7 +202,7 @@ class TestGitHubControlStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("org/repo", "main", "controls/security/my-control.json"))
+        when(versionService.getFileVersions("org/repo", "main", Path.of("controls/security/my-control.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         List<String> versions = store.getRequirementVersions(DOMAIN, HASH_ID);
@@ -247,7 +247,7 @@ class TestGitHubControlStoreShould {
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
-        when(versionService.getFileAtVersion("org/repo", "controls/security/my-control.json", "abc1234"))
+        when(versionService.getFileAtVersion("org/repo", Path.of("controls/security/my-control.json").toString(), "abc1234"))
                 .thenReturn("{\"control\":\"old-data\"}");
 
         String content = store.getRequirementForVersion(DOMAIN, HASH_ID, "abc1234");
@@ -315,7 +315,7 @@ class TestGitHubControlStoreShould {
         when(accessFilter.getAccessibleNamespaces()).thenReturn(Set.of("finos"));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("org/repo");
-        when(versionService.getFileAtVersion("org/repo", "controls/security/nonexistent.json", "abc1234"))
+        when(versionService.getFileAtVersion("org/repo", Path.of("controls/security/nonexistent.json").toString(), "abc1234"))
                 .thenReturn(null);
 
         assertThrows(ControlRequirementVersionNotFoundException.class,

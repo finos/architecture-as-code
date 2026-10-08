@@ -164,7 +164,7 @@ class TestGitHubArchitectureStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/architecture-as-code", "main", "architectures/test.json"))
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", Path.of("architectures/test.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);
@@ -210,7 +210,7 @@ class TestGitHubArchitectureStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.ARCHITECTURE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "architectures/test.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("architectures/test.json").toString(), "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
         int hashId = ("test-arch".hashCode() & 0x7FFFFFFF);

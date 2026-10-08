@@ -164,7 +164,7 @@ class TestGitHubFlowStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/architecture-as-code", "main", "flows/payment-flow.json"))
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", Path.of("flows/payment-flow.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);
@@ -210,7 +210,7 @@ class TestGitHubFlowStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.FLOW)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "flows/payment-flow.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("flows/payment-flow.json").toString(), "abc1234"))
                 .thenReturn("{\"steps\":[{\"name\":\"old\"}]}");
 
         int hashId = ("payment-flow".hashCode() & 0x7FFFFFFF);

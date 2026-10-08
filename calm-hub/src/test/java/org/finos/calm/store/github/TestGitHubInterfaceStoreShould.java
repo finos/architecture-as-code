@@ -180,7 +180,7 @@ class TestGitHubInterfaceStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/architecture-as-code", "main", "interfaces/payment-api.json"))
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", Path.of("interfaces/payment-api.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);
@@ -224,7 +224,7 @@ class TestGitHubInterfaceStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.INTERFACE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "interfaces/payment-api.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("interfaces/payment-api.json").toString(), "abc1234"))
                 .thenReturn("{\"operations\":[{\"name\":\"old\"}]}");
 
         int hashId = ("payment-api".hashCode() & 0x7FFFFFFF);

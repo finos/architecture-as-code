@@ -379,6 +379,6 @@ class TestResourceRegistryShould {
         assertThat(secondRebuild, equalTo(firstRebuild));
         // Sorted by path ascending, then indexed in that order - the alphabetically
         // last path ("patterns/b/foo.json") is put into the map last, so it wins.
-        assertThat(firstRebuild.get().filePath().toString(), equalTo("patterns/b/foo.json"));
+        assertThat(firstRebuild.get().filePath().toString(), equalTo(Path.of("patterns", "b", "foo.json").toString()));
     }
 }

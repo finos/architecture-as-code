@@ -80,14 +80,14 @@ describe('file-system-document-loader', () => {
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('missing.json', 'architecture').catch((e) => e);
         expect(thrown).toBeInstanceOf(DocumentLoadError);
         expect(thrown).toMatchObject({ recoverable: false });
-        expect(thrown.message).toMatch(/^ENOENT: no such file or directory, open '\/missing\.json'$/);
+        expect(thrown.message).toBe(`ENOENT: no such file or directory, open '${path.resolve('missing.json')}'`);
     });
 
     it('reports a missing file under the base path with its resolved path', async () => {
         const loader = new FileSystemDocumentLoader(['test_fixtures'], false, '/project');
         const thrown = await loader.loadMissingDocument('standards/missing.json', 'standard').catch((e) => e);
         expect(thrown).toMatchObject({ recoverable: false });
-        expect(thrown.message).toContain('\'/project/standards/missing.json\'');
+        expect(thrown.message).toContain(`'${path.join('/project', 'standards', 'missing.json')}'`);
     });
 
     it('reports invalid JSON in a local file as non-recoverable and names the file', async () => {
@@ -95,7 +95,7 @@ describe('file-system-document-loader', () => {
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('broken.json', 'architecture').catch((e) => e);
         expect(thrown).toBeInstanceOf(DocumentLoadError);
         expect(thrown).toMatchObject({ recoverable: false });
-        expect(thrown.message).toMatch(/^\/broken\.json is not valid JSON: /);
+        expect(thrown.message.startsWith(`${path.resolve('broken.json')} is not valid JSON: `)).toBe(true);
         expect(thrown.cause).toBeInstanceOf(SyntaxError);
     });
 

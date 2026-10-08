@@ -225,7 +225,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "standards/policy.guideline.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("standards/policy.guideline.json").toString(), "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
         int hashId = ("policy".hashCode() & 0x7FFFFFFF);
@@ -251,7 +251,7 @@ class TestGitHubStandardStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/repo", "main", "standards/std.json"))
+        when(versionService.getFileVersions("finos/repo", "main", Path.of("standards/std.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("std-1".hashCode() & 0x7FFFFFFF);
@@ -272,7 +272,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "standards/test.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("standards/test.json").toString(), "abc1234"))
                 .thenReturn("{\"name\":\"Old Standard\"}");
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);
@@ -308,7 +308,7 @@ class TestGitHubStandardStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.STANDARD)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "standards/nonexistent.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("standards/nonexistent.json").toString(), "abc1234"))
                 .thenReturn(null);
 
         int hashId = ("test-std".hashCode() & 0x7FFFFFFF);

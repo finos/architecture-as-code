@@ -171,7 +171,7 @@ class TestGitHubTimelineStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/architecture-as-code", "main", "timelines/release-timeline.json"))
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", Path.of("timelines/release-timeline.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);
@@ -217,7 +217,7 @@ class TestGitHubTimelineStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.TIMELINE)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "timelines/release-timeline.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("timelines/release-timeline.json").toString(), "abc1234"))
                 .thenReturn("{\"milestones\":[{\"name\":\"old\"}]}");
 
         int hashId = ("release-timeline".hashCode() & 0x7FFFFFFF);

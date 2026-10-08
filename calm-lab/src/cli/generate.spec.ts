@@ -10,6 +10,8 @@ const P = '/workspace/patterns/web-app-pattern.json';
 const SELECTED = { text: 'info [calm-generate-options]:     Selected choices (reusable with --option-choices): {}', kind: 'dim' };
 const GENERATING = { text: 'info [calm-generate]:     Generating a CALM architecture...', kind: 'dim' };
 const success = (output: string) => ({ text: `info [calm-generate]:     Successfully generated architecture to [${output}]`, kind: 'dim' });
+/** Raw fixtures keep the checkout's line endings; the generator writes `\n`. */
+const lf = (text: string | null) => text?.replace(/\r\n/g, '\n') ?? null;
 const loadFailure = (reference: string, message: string) => [
     { text: `error [multi-strategy-document-loader]:    Loader FileSystemDocumentLoader failed fatally loading document: ${reference}. Enable debug logging for the full loader report.`, kind: 'err' },
     { text: '', kind: 'err' },
@@ -27,7 +29,7 @@ describe('calm generate', () => {
         const { vfs, ctx, onEvent } = context({ [P]: PATTERN });
         const lines = await runGenerate(['-p', 'patterns/web-app-pattern.json', '-o', 'architectures/generated-webapp.json'], ctx);
         expect(lines).toEqual([SELECTED, GENERATING, success('architectures/generated-webapp.json')]);
-        expect(vfs.read('/workspace/architectures/generated-webapp.json')).toBe(GENERATED);
+        expect(lf(vfs.read('/workspace/architectures/generated-webapp.json'))).toBe(lf(GENERATED));
         expect(onEvent).toHaveBeenCalledWith({ type: 'command', outcome: {
             command: 'generate',
             files: { pattern: P, output: '/workspace/architectures/generated-webapp.json' },
@@ -41,13 +43,13 @@ describe('calm generate', () => {
     it('overwrites an existing file without a warning', async () => {
         const { vfs, ctx } = context({ [P]: PATTERN, '/workspace/out.json': '{"old": true}' });
         expect(await runGenerate(['-p', P, '-o', 'out.json'], ctx)).toEqual([SELECTED, GENERATING, success('out.json')]);
-        expect(vfs.read('/workspace/out.json')).toBe(GENERATED);
+        expect(lf(vfs.read('/workspace/out.json'))).toBe(lf(GENERATED));
     });
 
     it('writes architecture.json when -o is not given, resolving from the cwd', async () => {
         const { vfs, ctx } = context({ [P]: PATTERN }, '/workspace/patterns');
         expect(await runGenerate(['-p', 'web-app-pattern.json'], ctx)).toEqual([SELECTED, GENERATING, success('architecture.json')]);
-        expect(vfs.read('/workspace/patterns/architecture.json')).toBe(GENERATED);
+        expect(lf(vfs.read('/workspace/patterns/architecture.json'))).toBe(lf(GENERATED));
     });
 
     it.each([

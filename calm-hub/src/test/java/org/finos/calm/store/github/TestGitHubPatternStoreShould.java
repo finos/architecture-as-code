@@ -177,7 +177,7 @@ class TestGitHubPatternStoreShould {
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/architecture-as-code");
         when(cloneManager.getBranchForNamespace("finos")).thenReturn("main");
-        when(versionService.getFileVersions("finos/architecture-as-code", "main", "patterns/event-driven.json"))
+        when(versionService.getFileVersions("finos/architecture-as-code", "main", Path.of("patterns/event-driven.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);
@@ -223,7 +223,7 @@ class TestGitHubPatternStoreShould {
         when(registryService.listByType("finos", RegistryResourceType.PATTERN)).thenReturn(List.of(entry));
 
         when(cloneManager.getRepoForNamespace("finos")).thenReturn("finos/repo");
-        when(versionService.getFileAtVersion("finos/repo", "patterns/event-driven.json", "abc1234"))
+        when(versionService.getFileAtVersion("finos/repo", Path.of("patterns/event-driven.json").toString(), "abc1234"))
                 .thenReturn("{\"nodes\":[{\"name\":\"old\"}]}");
 
         int hashId = ("event-driven".hashCode() & 0x7FFFFFFF);

@@ -101,7 +101,7 @@ class TestAbstractReadOnlyGitHubStoreShould {
     void return_versions_from_the_api_when_available() {
         when(cloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("org/repo");
         when(cloneManager.getBranchForNamespace(NAMESPACE)).thenReturn("main");
-        when(versionService.getFileVersions("org/repo", "main", "patterns/my-pattern.json"))
+        when(versionService.getFileVersions("org/repo", "main", Path.of("patterns/my-pattern.json").toString()))
                 .thenReturn(List.of("abc1234", "def5678"));
 
         List<String> versions = store.getVersions(NAMESPACE, ENTRY);
@@ -113,7 +113,7 @@ class TestAbstractReadOnlyGitHubStoreShould {
     void fall_back_to_the_local_head_sha_when_the_api_returns_no_versions() {
         when(cloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("org/repo");
         when(cloneManager.getBranchForNamespace(NAMESPACE)).thenReturn("main");
-        when(versionService.getFileVersions("org/repo", "main", "patterns/my-pattern.json")).thenReturn(List.of());
+        when(versionService.getFileVersions("org/repo", "main", Path.of("patterns/my-pattern.json").toString())).thenReturn(List.of());
         when(cloneManager.headSha(NAMESPACE)).thenReturn("1234567");
 
         List<String> versions = store.getVersions(NAMESPACE, ENTRY);
@@ -160,7 +160,7 @@ class TestAbstractReadOnlyGitHubStoreShould {
     void fetch_from_the_api_when_the_requested_version_is_not_the_current_head() throws Exception {
         when(cloneManager.headSha(NAMESPACE)).thenReturn("1111111");
         when(cloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("org/repo");
-        when(versionService.getFileAtVersion("org/repo", "patterns/my-pattern.json", "2222222"))
+        when(versionService.getFileAtVersion("org/repo", Path.of("patterns/my-pattern.json").toString(), "2222222"))
                 .thenReturn("{\"content\":\"old\"}");
 
         Optional<String> content = store.readAtVersion(NAMESPACE, ENTRY, "2222222");
@@ -182,7 +182,7 @@ class TestAbstractReadOnlyGitHubStoreShould {
     void return_empty_when_the_api_cannot_resolve_the_requested_sha() throws Exception {
         when(cloneManager.headSha(NAMESPACE)).thenReturn("1111111");
         when(cloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("org/repo");
-        when(versionService.getFileAtVersion("org/repo", "patterns/my-pattern.json", "2222222")).thenReturn(null);
+        when(versionService.getFileAtVersion("org/repo", Path.of("patterns/my-pattern.json").toString(), "2222222")).thenReturn(null);
 
         Optional<String> content = store.readAtVersion(NAMESPACE, ENTRY, "2222222");
 
@@ -205,7 +205,7 @@ class TestAbstractReadOnlyGitHubStoreShould {
         Path mdSibling = Path.of("patterns/my-pattern.md");
         when(cloneManager.headSha(NAMESPACE)).thenReturn("1111111");
         when(cloneManager.getRepoForNamespace(NAMESPACE)).thenReturn("org/repo");
-        when(versionService.getFileAtVersion("org/repo", "patterns/my-pattern.json", "2222222"))
+        when(versionService.getFileAtVersion("org/repo", Path.of("patterns/my-pattern.json").toString(), "2222222"))
                 .thenReturn("{\"content\":\"old\"}");
 
         Optional<String> content = store.readAtVersion(NAMESPACE, ENTRY, "2222222", mdSibling);
