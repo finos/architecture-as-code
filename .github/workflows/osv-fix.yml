@@ -30,7 +30,8 @@ jobs:
         name: osv-fix
         runs-on: ubuntu-latest
         # The branch filter matches the head branch of the triggering run, which a pull
-        # request from a fork can also call main, so only push and scheduled runs count.
+        # request from a fork can also call main, so pull request runs are excluded. A failed
+        # push, scheduled or manual scan of main all start the fix.
         if: >-
             github.event_name == 'workflow_dispatch' ||
             (github.event.workflow_run.conclusion == 'failure' &&
@@ -134,8 +135,12 @@ jobs:
               run: |
                   # The scan fails twice a day until the fix merges. Do not force-push the open
                   # branch when it already has this lockfile, or when a maintainer has added to it.
-                  git fetch origin "$FIX_BRANCH" 2>/dev/null || true
+                  # Drop the ref from checkout time so a failed fetch cannot leave a stale one.
+                  git update-ref -d "refs/remotes/origin/$FIX_BRANCH"
+                  git fetch origin "+refs/heads/$FIX_BRANCH:refs/remotes/origin/$FIX_BRANCH" 2>/dev/null || true
+                  EXPECTED=""
                   if git rev-parse --verify -q "origin/$FIX_BRANCH" >/dev/null; then
+                    EXPECTED=$(git rev-parse "origin/$FIX_BRANCH")
                     if git diff --quiet "origin/$FIX_BRANCH" -- package-lock.json; then
                       echo "The open fix branch already has this lockfile. Nothing to push." | tee -a "$GITHUB_STEP_SUMMARY"
                       exit 0
@@ -152,7 +157,8 @@ jobs:
                   git checkout -B "$FIX_BRANCH"
                   git add package-lock.json
                   git commit -m "fix(deps): update vulnerable npm packages in package-lock.json"
-                  git push --force origin "$FIX_BRANCH"
+                  # Fails if the branch moved since the fetch above (empty EXPECTED = must not exist yet).
+                  git push --force-with-lease="$FIX_BRANCH:$EXPECTED" origin "$FIX_BRANCH"
 
                   {
                     echo "## Description"
