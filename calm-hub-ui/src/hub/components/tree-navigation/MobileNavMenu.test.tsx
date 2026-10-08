@@ -125,6 +125,14 @@ describe('MobileNavMenu', () => {
         expect(badgeText).toContain('9');
     });
 
+    it('shows the namespace description under the namespace name', async () => {
+        const [finos, traderx] = namespaceCounts;
+        renderMenu({ namespaceCounts: [finos, { ...traderx, description: 'TraderX sample trading application.' }] });
+        fireEvent.click(screen.getByText('Namespaces'));
+
+        expect(await screen.findByText('TraderX sample trading application.')).toBeInTheDocument();
+    });
+
     it('shows per-type count badges at the resource-type level, dimming zeros', async () => {
         renderMenu();
         fireEvent.click(screen.getByText('Namespaces'));

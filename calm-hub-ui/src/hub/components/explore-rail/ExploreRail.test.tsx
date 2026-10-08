@@ -172,6 +172,13 @@ describe('ExploreRail — namespace hierarchy', () => {
         { namespace: 'traderx', total: 9 },
     ] as NamespaceCounts[];
 
+    it('adds each namespace description to its row tooltip', async () => {
+        const [finos, ...rest] = nestedNamespaceCounts;
+        renderRail('/', { namespaceCounts: [{ ...finos, description: 'FINOS reference architectures' }, ...rest], storage: createMemoryStorage() });
+        expect(await screen.findByRole('link', { name: 'finos' })).toHaveAttribute('title', 'finos\nFINOS reference architectures');
+        expect(screen.getByRole('link', { name: 'finos.calm' })).toHaveAttribute('title', 'finos.calm');
+    });
+
     it('collapsing finos hides its children, shows the +8 ghost count, and leaves traderx visible', async () => {
         const storage = createMemoryStorage();
         renderRail('/', { namespaceCounts: nestedNamespaceCounts, storage });
