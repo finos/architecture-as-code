@@ -34,6 +34,10 @@ public class NamespaceCounts {
         this.interfaces = interfaces;
     }
 
+    public NamespaceCounts withDescription(String description) {
+        return new NamespaceCounts(namespace, description, architectures, patterns, flows, standards, adrs, interfaces);
+    }
+
     public String getNamespace() {
         return namespace;
     }

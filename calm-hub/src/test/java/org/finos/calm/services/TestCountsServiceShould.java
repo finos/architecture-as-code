@@ -287,6 +287,25 @@ class TestCountsServiceShould {
     }
 
     @Test
+    void return_the_current_description_even_when_the_counts_are_cached() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "old")))
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "new")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        service.getNamespaceCounts(ALL_ACCESS);
+        List<NamespaceCounts> second = service.getNamespaceCounts(ALL_ACCESS);
+
+        assertThat(second.get(0).getDescription(), is("new"));
+        verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace(NAMESPACE);
+    }
+
+    @Test
     void cache_domain_control_counts_within_ttl_so_control_store_is_read_once() throws Exception {
         when(mockDomainStore.getDomains()).thenReturn(List.of(DOMAIN));
         when(mockControlStore.getControlsForDomain(DOMAIN))
