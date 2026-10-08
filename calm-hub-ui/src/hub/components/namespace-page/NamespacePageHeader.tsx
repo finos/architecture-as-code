@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { IoFolderOpenOutline } from 'react-icons/io5';
 import { colors } from '../../../theme/colors.js';
+import { NamespaceDescription } from './NamespaceDescription.js';
 
 interface NamespacePageHeaderProps {
     namespace: string;
@@ -49,16 +50,7 @@ export function NamespacePageHeader({ namespace, total, description }: Namespace
                     </span>
                 )}
             </div>
-            {description && (
-                <p
-                    data-testid="namespace-description"
-                    title={description}
-                    className="mt-2 ml-14 text-[14px] line-clamp-2"
-                    style={{ color: colors.redesign.muted }}
-                >
-                    {description}
-                </p>
-            )}
+            {description && <NamespaceDescription key={namespace} description={description} />}
         </div>
     );
 }
