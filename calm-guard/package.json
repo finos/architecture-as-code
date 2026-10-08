@@ -29,7 +29,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:run": "vitest run",
-    "license-check": "license-checker --failOn 'GPL-2.0;GPL-3.0;AGPL-3.0'",
+    "license-check": "npx --yes license-checker-rseidelsohn@5.0.1 --failOn 'GPL-2.0;GPL-3.0;AGPL-3.0'",
     "prepare": "husky",
     "docs:dev": "npm run start --workspace=calmguard-docs",
     "docs:build": "npm run build --workspace=calmguard-docs",
@@ -67,7 +67,7 @@
     "tailwind-merge": "^3.4.1",
     "yaml": "^2.8.2",
     "zod": "^3.24.1",
-    "zustand": "^5.0.3"
+    "zustand": "^5.0.15"
   },
   "lint-staged": {
     "src/**/*.{ts,tsx}": [
@@ -84,13 +84,11 @@
     "eslint-config-next": "^15.5.18",
     "husky": "^9.1.7",
     "jsdom": "^28.1.0",
-    "license-checker": "^25.0.1",
     "lint-staged": "^16.2.7",
     "postcss": "^8.5.12",
     "tailwindcss": "^4.1.0",
     "tsx": "^4.21.0",
     "typescript": "^5.7.2",
-    "vite-tsconfig-paths": "^6.1.1",
     "vitest": "^4.0.18"
   }
 }

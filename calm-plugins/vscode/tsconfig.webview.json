@@ -4,7 +4,7 @@
         "lib": ["ES2020", "DOM", "DOM.Iterable"],
         "types": []
     },
-    "include": ["src/webview/**/*.ts", "src/webview/**/*.tsx", "src/core/**/*.ts", "src/extensions/**/*.ts"],
+    "include": ["src/webview/**/*.ts", "src/webview/**/*.tsx", "src/core/**/*.ts", "src/packs/**/*.ts"],
     "exclude": [
         "node_modules",
         "dist",

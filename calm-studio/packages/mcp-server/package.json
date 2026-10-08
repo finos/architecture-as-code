@@ -1,6 +1,11 @@
 {
   "name": "@calmstudio/mcp",
   "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-studio/packages/mcp-server"
+  },
   "private": false,
   "type": "module",
   "bin": {
@@ -22,7 +27,7 @@
   "dependencies": {
     "@calmstudio/calm-core": "file:../calm-core",
     "@finos/calm-models": "*",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "elkjs": "^0.11.1",
     "elkjs-svg": "latest",
     "zod": "^3.24.0"

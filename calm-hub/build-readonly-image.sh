@@ -4,7 +4,7 @@
 # Encapsulates all three steps required to produce the image so the process is
 # identical locally and in CI:
 #   1. Maven package  — compiles calm-hub and runs unit tests.
-#   2. Stage content  — copies calm/ schemas and controls/ into the Docker build
+#   2. Stage content  — copies calm/ schemas, controls/, standards/ and patterns/ into the Docker build
 #                       context (target/readonly-seed/) which is gitignored.
 #   3. Docker build   — builds the two-stage Dockerfile.readonly-static image.
 #
@@ -55,16 +55,23 @@ done
 if [[ "${RUN_MAVEN}" == true ]]; then
     echo "[build] Building calm-hub with Maven..."
     cd "${SCRIPT_DIR}"
-    "${REPO_ROOT}/mvnw" package -DskipITs -Ddependency-check.skip=true
+    "${REPO_ROOT}/mvnw" package -DskipITs
     cd "${REPO_ROOT}"
 fi
 
 # ── Step 2: Stage seed content into the Docker build context ──────────────────
-echo "[build] Staging calm/ schemas and controls into target/readonly-seed/..."
+echo "[build] Staging calm/ schemas, controls, standards and patterns into target/readonly-seed/..."
+# Start from an empty staging directory: cp -r never removes files a previous run staged, so a
+# document deleted from the repository would otherwise still be seeded into the image.
+rm -rf "${SCRIPT_DIR}/target/readonly-seed"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/controls"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/standards"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/patterns"
 cp -r "${REPO_ROOT}/calm/." "${SCRIPT_DIR}/target/readonly-seed/calm/"
 cp -r "${SCRIPT_DIR}/mongo/controls/." "${SCRIPT_DIR}/target/readonly-seed/controls/"
+cp -r "${SCRIPT_DIR}/mongo/standards/." "${SCRIPT_DIR}/target/readonly-seed/standards/"
+cp -r "${SCRIPT_DIR}/mongo/patterns/." "${SCRIPT_DIR}/target/readonly-seed/patterns/"
 echo "[build] Staged:"
 ls "${SCRIPT_DIR}/target/readonly-seed/"
 

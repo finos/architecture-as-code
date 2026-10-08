@@ -1,0 +1,113 @@
+package org.finos.calm.store.github.sync;
+
+import org.finos.calm.observability.GitHubMetrics;
+import org.finos.calm.store.github.registry.ResourceRegistry;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.nio.file.Path;
+import java.util.Map;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class TestGitHubSyncSchedulerShould {
+
+    @Mock
+    private GitHubCloneManager cloneManager;
+
+    @Mock
+    private ResourceRegistry registryService;
+
+    @Mock
+    private GitHubMetrics metrics;
+
+    private GitHubSyncScheduler schedulerFor(String databaseMode) {
+        return new GitHubSyncScheduler(cloneManager, registryService, metrics, databaseMode);
+    }
+
+    @Test
+    void skip_sync_when_no_namespaces_registered() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(false);
+
+        scheduler.sync();
+
+        verify(cloneManager, never()).pullAll();
+        verify(registryService, never()).rebuild(any());
+    }
+
+    @Test
+    void skip_sync_entirely_when_database_mode_is_not_github() {
+        // @LookupIfProperty only gates @Inject/Instance<T> resolution, not @Scheduled
+        // invocation once the bean exists - this guard is what actually stops sync()
+        // from pulling and rebuilding in, say, mongo mode.
+        GitHubSyncScheduler scheduler = schedulerFor("mongo");
+
+        scheduler.sync();
+
+        verify(cloneManager, never()).pullAll();
+        verify(registryService, never()).rebuild(any());
+    }
+
+    @Test
+    void pull_all_and_rebuild_registry_on_sync() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.READY);
+
+        scheduler.sync();
+
+        verify(cloneManager).pullAll();
+        verify(registryService).rebuild(Map.of("finos", Path.of("/tmp/finos")));
+        verify(metrics).recordSyncSuccess(any());
+        verify(metrics).recordRegistryRebuild(any());
+    }
+
+    @Test
+    void record_failure_metric_when_sync_throws() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        doThrow(new RuntimeException("sync error")).when(cloneManager).pullAll();
+
+        scheduler.sync();
+
+        verify(metrics).recordSyncFailure(any());
+    }
+
+    @Test
+    void record_failure_metric_when_pull_all_leaves_clone_state_failed() {
+        // pullAll() never throws - every per-repo git error is caught internally and
+        // folded into cloneManager's state instead. A sync where every namespace failed
+        // to pull must not report as a healthy success just because nothing threw.
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.FAILED);
+
+        scheduler.sync();
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
+    }
+
+    @Test
+    void record_failure_metric_when_pull_all_leaves_clone_state_degraded() {
+        GitHubSyncScheduler scheduler = schedulerFor("github");
+        when(cloneManager.hasNamespaces()).thenReturn(true);
+        when(cloneManager.getNamespaceClonePaths()).thenReturn(Map.of("finos", Path.of("/tmp/finos")));
+        when(cloneManager.getState()).thenReturn(GitHubCloneManager.State.DEGRADED);
+
+        scheduler.sync();
+
+        verify(metrics).recordSyncFailure(any());
+        verify(metrics, never()).recordSyncSuccess(any());
+    }
+}

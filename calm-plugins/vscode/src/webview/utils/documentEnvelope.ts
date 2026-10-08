@@ -2,7 +2,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-import { getPackForNodeType } from '../../extensions/registry.js';
+import { getPackForNodeType } from '../../packs/registry.js';
 import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
 
 /** Base CALM 1.2 meta-schema URL. */

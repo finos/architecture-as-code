@@ -1,8 +1,14 @@
 {
   "name": "calmstudio",
+  "private": true,
   "publisher": "opsflow",
   "displayName": "CalmStudio",
   "description": "CALM architecture diagram preview and MCP integration",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-studio/packages/vscode-extension"
+  },
   "version": "0.0.1",
   "engines": {
     "vscode": "^1.99.0"

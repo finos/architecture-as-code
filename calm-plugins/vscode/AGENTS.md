@@ -366,34 +366,11 @@ npm run build --workspace calm-widgets
 npm run build --workspace shared
 ```
 
-## Bundled Assets
+## Bundled Schemas
 
-The extension bundles CALM schemas, widgets, and template bundles into `dist/` at build
-time so validation, rendering, and templating work without network access or reaching into
-sibling workspaces at runtime.
-
-### Build Process
-The `postbuild` step does two things:
-
-1. **`copyfiles`** copies CALM schemas from the repo root:
-   - `calm/release/**/meta/*` → `dist/calm/release/...`
-   - `calm/draft/**/meta/*` → `dist/calm/draft/...`
-2. **`scripts/copy-calm-assets.js`** copies the remaining runtime assets:
-   - widgets from `calm-widgets/dist/cli/widgets` (falls back to `calm-widgets/src/widgets`) → `dist/widgets/`
-   - template bundles from `shared/dist/template-bundles` → `dist/template-bundles/`
-
-Schemas are indexed by their `$id` field for lookup when validating documents.
-
-### Schema Registry
-`CalmSchemaRegistry` (`src/core/services/calm-schema-registry.ts`) manages schema discovery:
-- Loads bundled schemas from `dist/calm/`
-- Loads additional schemas from folders configured in `calm.schemas.additionalFolders`
-- Provides `isKnownCalmSchema(url)` to check if a schema URL is available locally
-
-### Adding New Schema Versions
-When new CALM schema versions are released:
-1. Add the schema files to `calm/{release|draft}/{version}/meta/`
-2. Rebuild the extension - schemas are automatically copied and indexed
+`src/core/validation.ts` imports the CALM meta-schemas from the `@finos/calm-schema` npm package,
+and the build inlines them. The root `package.json` sets the version. A new schema release comes in
+through the PR that updates `@finos/calm-schema`.
 
 ## Common Pitfalls
 

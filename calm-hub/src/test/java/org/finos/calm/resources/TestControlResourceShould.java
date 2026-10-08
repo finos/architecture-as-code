@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.DOMAIN_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.*;
@@ -204,7 +205,29 @@ public class TestControlResourceShould {
                 .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_latest_is_requested_as_a_version_on_get_requirement_for_version() {
+        given()
+                .when()
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_get_requirement_for_version() {
+        // Control endpoints keep VERSION_OR_SHA_REGEX -- snapshots are scoped to the five
+        // namespace resource types only, and must stay refused here.
+        given()
+                .when()
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetRequirementTests() {
@@ -384,6 +407,16 @@ public class TestControlResourceShould {
                 .body(containsString(VERSION_MESSAGE));
     }
 
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_get_configuration_for_version() {
+        given()
+                .when()
+                .get("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
     static Stream<Arguments> provideParametersForGetConfigurationForVersionTests() {
         return Stream.of(
                 Arguments.of(INVALID_DOMAIN, new DomainNotFoundException(INVALID_DOMAIN), 404),
@@ -442,6 +475,18 @@ public class TestControlResourceShould {
                 .body(new CreateControlRequirement("n", "d", "{}"))
                 .when()
                 .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0invalid.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_create_requirement_version() {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new CreateControlRequirement("n", "d", "{}"))
+                .when()
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/requirement/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));
@@ -570,6 +615,18 @@ public class TestControlResourceShould {
                 .body(new CreateControlConfiguration("{}"))
                 .when()
                 .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0invalid.1")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_a_400_when_a_snapshot_version_is_provided_on_create_configuration_version() {
+        given()
+                .header("Content-Type", "application/json")
+                .body(new CreateControlConfiguration("{}"))
+                .when()
+                .post("/api/calm/domains/" + VALID_DOMAIN + "/controls/1/configurations/10/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));

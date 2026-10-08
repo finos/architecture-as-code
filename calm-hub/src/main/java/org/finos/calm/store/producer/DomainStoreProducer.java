@@ -1,13 +1,15 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.DomainStore;
+import org.finos.calm.store.github.GitHubDomainStore;
 import org.finos.calm.store.mongo.MongoDomainStore;
 import org.finos.calm.store.nitrite.NitriteDomainStore;
-import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for DomainStore implementations.
@@ -26,6 +28,9 @@ public class DomainStoreProducer {
     @Inject
     Instance<NitriteDomainStore> standaloneDomainStore;
 
+    @Inject
+    Instance<GitHubDomainStore> gitHubDomainStore;
+
     /**
      * Produces the appropriate DomainStore implementation based on the configured database mode.
      *
@@ -34,7 +39,9 @@ public class DomainStoreProducer {
     @Produces
     @ApplicationScoped
     public DomainStore produceDomainStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubDomainStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneDomainStore.get();
         } else {
             return mongoDomainStore.get();

@@ -69,7 +69,11 @@ export default function Editor({fileName, value, dirty, onChange, onSave, chrome
     const highlightRef = useRef<HTMLPreElement | null>(null);
     const textareaRef = useRef<HTMLTextAreaElement | null>(null);
     const lineCount = value.split('\n').length;
-    const tokens = useMemo(() => tokenizeJson(value), [value]);
+    const isJson = fileName.toLowerCase().endsWith('.json');
+    const tokens = useMemo(
+        () => (isJson ? tokenizeJson(value) : [{text: value, type: 'plain' as const}]),
+        [isJson, value],
+    );
 
     const syncScroll = () => {
         const textarea = textareaRef.current;

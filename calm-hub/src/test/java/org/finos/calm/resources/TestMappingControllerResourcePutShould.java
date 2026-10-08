@@ -9,12 +9,15 @@ import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.finos.calm.security.CalmHubPermissionChecker;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -63,6 +66,27 @@ public class TestMappingControllerResourcePutShould {
                 .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
 
         verify(mockPatternStore).updatePatternForVersion(any(Pattern.class));
+    }
+
+    @Test
+    void store_the_document_body_as_content_and_the_title_as_the_name() throws Exception {
+        // The other PUT tests match with any(Pattern.class), which cannot catch the stored
+        // fields being transposed.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
+                .when().put("/calm")
+                .then().statusCode(201);
+
+        ArgumentCaptor<Pattern> captor = ArgumentCaptor.forClass(Pattern.class);
+        verify(mockPatternStore).updatePatternForVersion(captor.capture());
+        Pattern stored = captor.getValue();
+        assertThat(stored.getPatternJson(), containsString("\"title\""));
+        assertThat(stored.getName(), is("test pattern"));
     }
 
     @Test

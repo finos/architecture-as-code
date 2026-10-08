@@ -249,6 +249,13 @@ describe('ArchitectureGraph', () => {
         });
     });
 
+    describe('animation toggle', () => {
+        it('offers a pause-animation control on desktop', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(screen.getByRole('button', { name: /pause animation/i })).toBeInTheDocument();
+        });
+    });
+
     describe('mobile', () => {
         const originalMatchMedia = window.matchMedia;
         function mockMobileViewport() {
@@ -273,6 +280,12 @@ describe('ArchitectureGraph', () => {
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
+        });
+
+        it('has no pause-animation control on mobile, where the OS setting applies', () => {
+            mockMobileViewport();
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(screen.queryByRole('button', { name: /pause animation/i })).not.toBeInTheDocument();
         });
 
         it('renders visible zoom controls on mobile (#11)', () => {

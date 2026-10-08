@@ -440,6 +440,10 @@ Example:
         .description('Create or update the CALM CLI configuration file (~/.calm.json).')
         .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
         .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .option('--auth-plugin-path <path>', 'Path to the CALM Hub authentication plugin')
+        .option('--direct-url-auth-module <path>', 'Optional path to the direct URL authentication plugin module')
+        .option('--direct-url-auth-config-path <path>', 'Optional config path for the direct URL authentication plugin module')
+        .option('--direct-url-auth-authenticated-hosts <hosts>', 'If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module')
         .action(async (options) => {
             const existingConfig = await cliConfig.loadCliConfig() ?? {};
 
@@ -452,6 +456,29 @@ Example:
 
             if (options.calmHubUrl) {
                 existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            if (options.authPluginPath) {
+                existingConfig.authPluginPath = options.authPluginPath;
+            }
+
+            if (options.directUrlAuthModule) {
+                existingConfig.directUrlAuthModule = options.directUrlAuthModule;
+            }
+
+            if (options.directUrlAuthConfigPath) {
+                existingConfig.directUrlAuthConfigPath = options.directUrlAuthConfigPath;
+            }
+
+            if (options.directUrlAuthAuthenticatedHosts) {
+                const newHosts = (options.directUrlAuthAuthenticatedHosts as string).split(',').map((host: string) => host.trim()).filter(Boolean);
+                const existingHosts = existingConfig.directUrlAuthAuthenticatedHosts ?? [];
+                existingConfig.directUrlAuthAuthenticatedHosts = [...new Set([...existingHosts, ...newHosts])];
+            }
+            
+            const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(existingConfig);
+            if (directUrlAuthConfig) {
+                cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
             }
 
             const configPath = cliConfig.getUserConfigLocation();
@@ -918,6 +945,26 @@ export async function parseDocumentLoaderConfig(
             logger.debug('Auth plugin loaded successfully');
         } catch (err) {
             logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
+        }
+    }
+
+    const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(userConfig);
+    if (directUrlAuthConfig) {
+        try {
+            cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
+            const directUrlAuthConfigPath = directUrlAuthConfig.configPath !== undefined
+                ? directUrlAuthConfig.configPath
+                : 'not specified';
+            logger.info('Loading direct URL auth module from config file: ' + directUrlAuthConfig.module);
+            logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
+            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(directUrlAuthConfig, !!options.verbose);
+            docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
+            docLoaderOpts.directUrlAuthAuthenticatedHosts = directUrlAuthConfig.authenticatedHosts;
+            logger.debug('Direct URL auth module loaded successfully');
+        } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            logger.error('Direct URL authentication setup failed: ' + message);
+            throw new Error('Direct URL authentication setup failed: ' + message);
         }
     }
 

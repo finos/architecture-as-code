@@ -14,6 +14,8 @@ on:
             - 'calm-models/**'
             - 'calm-widgets/**'
             - 'calm/**'
+            - 'package.json'
+            - 'docs/src/plugins/remark-section-callouts.js'
             - '.github/workflows/build-calm-lab.yml'
     push:
         branches:
@@ -25,6 +27,8 @@ on:
             - 'calm-models/**'
             - 'calm-widgets/**'
             - 'calm/**'
+            - 'package.json'
+            - 'docs/src/plugins/remark-section-callouts.js'
             - '.github/workflows/build-calm-lab.yml'
 
 jobs:

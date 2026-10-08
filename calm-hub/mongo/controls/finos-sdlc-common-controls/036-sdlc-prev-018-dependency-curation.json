@@ -1,0 +1,118 @@
+{
+  "controlId": 36,
+  "name": "sdlc-prev-018-dependency-curation",
+  "description": "Dependency curation protects the organisation from open-source supply chain risk by enforcing automated, policy-driven governance on every open-source package before it enters development, build, or production use across the SDLC, much like a firewall.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-018-dependency-curation/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-018 Dependency Curation",
+      "name": "Dependency Curation",
+      "description": "Dependency curation protects the organisation from open-source supply chain risk by enforcing automated, policy-driven governance on every open-source package before it enters development, build, or production use across the SDLC, much like a firewall.",
+      "control-id": "SDLC-PREV-018",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-18-dependency-curation.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 18,
+        "control-type": "PREV",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-010",
+          "name": "Dependency and Transitive Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-10_dependency-and-transitive-supply-chain-compromise.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-009",
+          "name": "Component Inventory",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html"
+        },
+        {
+          "id": "SDLC-PREV-007",
+          "name": "Vulnerability Scanning - Dependencies",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-7_vulnerability-scanning-dependencies.html"
+        },
+        {
+          "id": "SDLC-PREV-012",
+          "name": "Deployment Gating",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html"
+        }
+      ],
+      "details": [
+        "Open-source and third-party packages are fetched continuously during development and CI — from public registries (npm, PyPI, Maven Central, RubyGems, NuGet, crates.io, and others), private feeds, and cached remote repositories. Without curationcontrolling at the point of acquisition, malicious, tampered, vulnerable, or non-compliant packages can enter the estate before later controls (SBOM generation, vulnerability scanning, deployment gates) ever run.",
+        "Dependency curation is the practice of controlling which package versions may be downloaded or resolved, evaluated against security and compliance policies at fetch time, and blocked or substituted before they are used in the SDLC. It operates as pre-download OSS governance: the first line of defense in the software supply chain timeline, distinct from post-build scanning or runtime detection.",
+        "A curation process SHOULD cover all paths by which open-source dependencies enter the organisation, including developer workstations and IDEs, CI/CD dependency resolution, and organisation-managed binary and package repositories. Policies SHOULD be expressed in terms that security and legal teams can own (severity thresholds, license deny lists, allowlists, malicious-package blocks, immaturity or deprecation rules) while remaining enforceable automatically for developers.",
+        "Curation complements Component Inventory (https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html) (what is actually shipped) and Vulnerability Scanning - Dependencies (https://finos.github.io/sdlc-common-controls/mitigations/mi-7_vulnerability-scanning-dependencies.html) (known CVEs in code already in the pipeline). Curation reduces the chance that compromised or policy-violating packages enter the graph in the first place and help reduce fix effort that increase as release process progresses; inventory and scanning remain necessary for transitive visibility, drift, and newly disclosed vulnerabilities."
+      ],
+      "requirements": [
+        "The organisation MUST define and maintain curation policies for open-source packages used in the SDLC, covering at minimum: known malicious or compromised packages, severity-based vulnerability thresholds, license compliance, and criteria for unapproved or restricted packages.",
+        "Curation policies MUST be enforced automatically at package acquisition for all supported ecosystems and entry points used by the organisation (developer pulls, CI resolution, and organisation-managed package repositories), not solely by periodic manual review.",
+        "Package repositories that proxy public or third-party registries MUST be connected to the curation control plane so that policy evaluation occurs before packages are cached or consumed downstream.",
+        "Curation decisions MUST be logged and retained in accordance with the organisation's audit and record-retention requirements."
+      ],
+      "examples": [
+        "Pre-download vs post-build: Blocking a typosquatted or malicious npm package at the remote repository prevents every developer and pipeline from caching it; relying only on a weekly SCA scan on main leaves a window where the package is already in lock files and build caches.",
+        "License governance: A policy that blocks copyleft or unknown-license packages at download prevents legal review debt and last-minute release blocks; pair with component inventory SBOMs for attestation of what shipped.",
+        "Developer experience: Integrate curation signals into CLI and IDE workflows so developers see policy outcomes at resolution time rather than only at failed pipeline stages.",
+        "Relationship to deployment gating: Curation at acquisition does not replace Deployment Gating (https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html) or provenance controls; it narrows what can enter the supply chain graph that those later controls must trust."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sr-3",
+            "title": "SR-3 Supply Chain Controls and Processes",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1166%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C440.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 SR-3: Supply Chain Controls and Processes",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 SR-11: Component Authenticity",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "OWASP SCVS",
+            "url": "https://scvs.owasp.org/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-018"
+        },
+        "name": {
+          "const": "Dependency Curation"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

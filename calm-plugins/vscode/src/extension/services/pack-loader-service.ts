@@ -1,10 +1,10 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import type { PackDefinition } from '../../extensions/types';
+import type { PackDefinition } from '../../packs/types';
 import {
     loadPacksFromDirectories,
     orderedPackDirectories,
-} from '../../extensions/json/loadPacksFromFs';
+} from '../../packs/json/loadPacksFromFs';
 
 export class PackLoaderService implements vscode.Disposable {
     private watchers: vscode.FileSystemWatcher[] = [];

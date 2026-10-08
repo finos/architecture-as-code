@@ -12,14 +12,81 @@ const integrationTestPrefix = 'calm-consumer-test';
 let cli: CliInstall;
 let tempDir: string;
 const repoRoot = path.resolve(__dirname);
-const GETTING_STARTED_DIR = path.resolve(
-    __dirname,
-    '../../calm/getting-started'
-);
 const GETTING_STARTED_TEST_FIXTURES_DIR = path.resolve(
     __dirname,
     '../test_fixtures/getting-started'
 );
+
+function mustMatch(text: string, pattern: RegExp, what: string): RegExpMatchArray {
+    const match = text.match(pattern);
+    if (!match) throw new Error(`${what} not found. Update this test if the tutorial changed.`);
+    return match;
+}
+
+function lastTutorialBlock(text: string, pattern: RegExp, what: string): RegExpMatchArray {
+    const matches = [...text.matchAll(pattern)];
+    const match = matches[matches.length - 1];
+    if (!match) throw new Error(`${what} not found. Update this test if the tutorial changed.`);
+    return match;
+}
+
+function tutorialElement<T extends Array<{ 'unique-id': string }>>(elements: T, id: string, what: string): T[number] {
+    const element = elements.find(element => element['unique-id'] === id);
+    if (!element) throw new Error(`${what}: '${id}' not found. Update this test if the tutorial changed.`);
+    return element;
+}
+
+function tutorialControl(prompt: string, what: string) {
+    const requirements = [...prompt.matchAll(/requirement-url: "([^"\n]+)"\s+config(?: \(inline\))?(-url)?: (.*)/g)];
+    if (!requirements.length) throw new Error(`${what} requirements not found. Update this test if the tutorial changed.`);
+    return {
+        description: mustMatch(prompt, /description: "([^"\n]+)"/, `${what} description`)[1],
+        requirements: requirements.map(([, url, external, config]) => ({
+            'requirement-url': url,
+            [external ? 'config-url' : 'config']: JSON.parse(config),
+        })),
+    };
+}
+
+const tutorials = path.resolve(__dirname, '../../docs/docs/tutorials');
+function tutorialArchitecture() {
+    const beginner = fs.readFileSync(path.join(tutorials, 'beginner/07-complete-architecture.md'), 'utf8');
+    return JSON.parse(lastTutorialBlock(beginner, /```json\n([\s\S]*?)\n```/g,
+        'Tutorial 07 final architecture JSON block')[1]);
+}
+
+function tutorialCommand(tutorial: string, what: string) {
+    return lastTutorialBlock(tutorial, /```bash\ncalm (validate[^\n]+)\n```/g,
+        `${what} final validation command`)[1].split(' ');
+}
+
+const validTutorialOutput = {
+    hasErrors: false,
+    hasWarnings: false,
+    jsonSchemaValidationOutputs: [],
+    spectralSchemaValidationOutputs: [],
+};
+
+describe('Tutorial extraction guards', () => {
+    test('keeps first lookup and final block lookup distinct', () => {
+        const text = 'block:first block:last';
+        expect(mustMatch(text, /block:(\w+)/, 'Tutorial 08 description')[1]).toBe('first');
+        expect(lastTutorialBlock(text, /block:(\w+)/g, 'Tutorial 07 final architecture')[1]).toBe('last');
+    });
+
+    test('names missing tutorial fields, blocks, commands, and reference nodes', () => {
+        expect(() => mustMatch('', /description: "([^"]+)"/, 'Tutorial 08 security description'))
+            .toThrow('Tutorial 08 security description not found. Update this test if the tutorial changed.');
+        expect(() => lastTutorialBlock('', /```json\n([\s\S]*?)\n```/g, 'Tutorial 07 final architecture JSON block'))
+            .toThrow('Tutorial 07 final architecture JSON block not found. Update this test if the tutorial changed.');
+        expect(() => tutorialCommand('', 'Tutorial 09'))
+            .toThrow('Tutorial 09 final validation command not found. Update this test if the tutorial changed.');
+        expect(() => tutorialElement([], 'payment-service', 'Tutorial 08 reference node'))
+            .toThrow('Tutorial 08 reference node: \'payment-service\' not found. Update this test if the tutorial changed.');
+        expect(() => tutorialControl('description: "Audit"', 'Tutorial 09 audit control'))
+            .toThrow('Tutorial 09 audit control requirements not found. Update this test if the tutorial changed.');
+    });
+});
 
 describe('CLI Integration Tests', () => {
     vi.setConfig({ testTimeout: 30 * millisPerSecond });
@@ -206,6 +273,149 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expected);
     });
 
+    test('validates the controls tutorial with the documented command', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/08-controls.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        const tutorialDir = path.join(tempDir, 'controls-tutorial');
+        fs.mkdirSync(path.join(tutorialDir, 'architectures'), { recursive: true });
+
+        const [, filename, content] = mustMatch(tutorial, /```json title="(controls\/tls-config\.json)"\n([\s\S]*?)\n```/,
+            'Tutorial 08 TLS configuration JSON block');
+        const target = path.join(tutorialDir, filename);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, content);
+
+        // Read the prompt values, so this also exercises the examples readers copy.
+        const prompts = [...tutorial.matchAll(/```text\n([\s\S]*?)\n```/g)];
+        expect(prompts, 'Tutorial 08 control prompt blocks').toHaveLength(4);
+        const controls = prompts.map(([, prompt], index) => tutorialControl(prompt, `Tutorial 08 control ${index + 1}`));
+        expect(controls.map(control => control.requirements.length)).toEqual([2, 2, 1, 2]);
+        architecture.controls = { security: controls[0], performance: controls[1] };
+        tutorialElement(architecture.nodes, 'payment-service', 'Tutorial 08 reference node').controls = {
+            compliance: controls[2],
+        };
+        tutorialElement(architecture.nodes, 'api-gateway', 'Tutorial 08 reference node').controls = {
+            performance: controls[3],
+        };
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 08');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(stdout)).toMatchObject({
+            hasErrors: false,
+            hasWarnings: false,
+            jsonSchemaValidationOutputs: [],
+            spectralSchemaValidationOutputs: [],
+        });
+
+        const comparison = JSON.parse(lastTutorialBlock(tutorial, /```json\n([\s\S]*?)\n```/g,
+            'Tutorial 08 inline/external comparison JSON block')[1]);
+        expect(comparison.requirements).toEqual(architecture.controls.security.requirements);
+
+        const requirement = architecture.controls.security.requirements[0];
+        const controlId = requirement.config['control-id'];
+        delete requirement.config['control-id'];
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'control-id\''),
+        });
+
+        // Restore the inline config before checking the external config independently.
+        requirement.config['control-id'] = controlId;
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const configPath = path.join(tutorialDir, architecture.controls.security.requirements[1]['config-url']);
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        delete config.name;
+        fs.writeFileSync(configPath, JSON.stringify(config));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'name\''),
+        });
+    });
+
+    test('validates tutorial 09 flow controls and rejects malformed configuration', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/09-business-flows.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        const flowExample = mustMatch(tutorial, /```json\n([\s\S]*?)\n```/,
+            'Tutorial 09 flow structure JSON block');
+        architecture.flows = JSON.parse(flowExample[1]).flows;
+        const flow = tutorialElement(architecture.flows, 'order-processing-flow', 'Tutorial 09 reference flow');
+        for (const transition of flow.transitions) {
+            tutorialElement(architecture.relationships, transition['relationship-unique-id'], 'Tutorial 09 reference relationship');
+        }
+        const prompt = mustMatch(tutorial, /```text\n(Add a controls section[\s\S]*?)\n```/,
+            'Tutorial 09 flow control prompt')[1];
+        flow.controls = { audit: tutorialControl(prompt, 'Tutorial 09 audit control') };
+        expect(flow.controls.audit.requirements).toHaveLength(1);
+        const tutorialDir = path.join(tempDir, 'flows-tutorial');
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.mkdirSync(path.dirname(architecturePath), { recursive: true });
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 09');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(String(stdout))).toMatchObject(validTutorialOutput);
+
+        delete flow.controls.audit.requirements[0].config.description;
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+            exitCode: 1,
+            stdout: expect.stringContaining('must have required property \'description\''),
+        });
+    });
+
+    test('validates tutorial 14 architecture and node controls and rejects malformed configurations', async () => {
+        const tutorial = fs.readFileSync(path.join(tutorials, 'intermediate/14-ai-advisor.md'), 'utf8');
+        const architecture = tutorialArchitecture();
+        // Supply the cluster from step 4; the AI-generated topology is outside this controls regression.
+        architecture.nodes.push({
+            'unique-id': 'order-database-cluster',
+            'node-type': 'system',
+            name: 'Order database cluster',
+            description: 'Primary and replica order databases',
+        });
+        architecture.relationships.push({
+            'unique-id': 'order-database-composition',
+            description: 'Order database cluster composition',
+            'relationship-type': {
+                'composed-of': { container: 'order-database-cluster', nodes: ['order-database'] },
+            },
+        });
+        const prompts = [...tutorial.matchAll(/```text\n(Add (?:an architecture-level|a "failover"|a "circuit-breaker")[\s\S]*?)\n```/g)];
+        expect(prompts, 'Tutorial 14 resilience control prompt blocks').toHaveLength(3);
+        const controls = prompts.map(([, prompt], index) => tutorialControl(prompt, `Tutorial 14 control ${index + 1}`));
+        expect(controls.map(control => control.requirements.length)).toEqual([1, 1, 1]);
+        architecture.controls = { 'high-availability': controls[0] };
+        tutorialElement(architecture.nodes, 'order-database-cluster', 'Tutorial 14 reference node').controls = {
+            failover: controls[1],
+        };
+        tutorialElement(architecture.nodes, 'order-service', 'Tutorial 14 reference node').controls = {
+            'circuit-breaker': controls[2],
+        };
+        const comparison = JSON.parse(lastTutorialBlock(tutorial, /```json\n([\s\S]*?)\n```/g,
+            'Tutorial 14 resilience controls JSON block')[1]);
+        expect(comparison.controls).toEqual(architecture.controls);
+        const tutorialDir = path.join(tempDir, 'advisor-tutorial');
+        const architecturePath = path.join(tutorialDir, 'architectures/ecommerce-platform.json');
+        fs.mkdirSync(path.dirname(architecturePath), { recursive: true });
+        fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+        const command = tutorialCommand(tutorial, 'Tutorial 14');
+        const { stdout } = await cli.run(command, { cwd: tutorialDir });
+        expect(JSON.parse(String(stdout))).toMatchObject(validTutorialOutput);
+
+        for (const control of controls) {
+            const config = control.requirements[0].config;
+            const controlId = config['control-id'];
+            delete config['control-id'];
+            fs.writeFileSync(architecturePath, JSON.stringify(architecture));
+            await expect(cli.run(command, { cwd: tutorialDir })).rejects.toMatchObject({
+                exitCode: 1,
+                stdout: expect.stringContaining('must have required property \'control-id\''),
+            });
+            config['control-id'] = controlId;
+        }
+    });
+
     test('validate command outputs JSON to file', async () => {
         const apiGatewayPath = path.join(
             __dirname,
@@ -341,6 +551,18 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command reports timeline issues at their line in the timeline file', async () => {
+        const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
+        const targetOutputFile = path.join(tempDir, 'validate-timeline-positions.json');
+
+        await expect(cli.run(['validate', '--timeline', apiGatewayTimelinePath, '-o', targetOutputFile]))
+            .rejects.toHaveProperty('exitCode', 1);
+        const parsedOutput = JSON.parse(fs.readFileSync(targetOutputFile, 'utf-8'));
+
+        expect(parsedOutput.jsonSchemaValidationOutputs[0]).toMatchObject({ path: '/moments/api-gateway-v2/valid-from', line_start: 19 });
+        expect(parsedOutput.spectralSchemaValidationOutputs[0]).toMatchObject({ path: '/current-moment', line_start: 3 });
+    });
+
     test('validate command rejects a timeline with no schema', async () => {
         const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/timeline/timeline-no-schema.json');
         const targetOutputFile = path.join(tempDir, 'validate-timeline-output3.json');
@@ -406,7 +628,7 @@ describe('CLI Integration Tests', () => {
             __dirname,
             '../test_fixtures/api-gateway/api-gateway.json'
         );
-        const s = path.join(__dirname, '../../calm/release');
+        const s = path.join(__dirname, '../dist/calm/release');
         const out = path.join(tempDir, 'generate-output.json');
         await cli.run(['generate', '-p', p, '-o', out, '-s', s]);
         const actual = JSON.parse(fs.readFileSync(out, 'utf8'));
@@ -649,8 +871,7 @@ describe('CLI Integration Tests', () => {
 
 
     test('Getting Started Verification - CLI Steps', async () => {
-        // This flow mirrors the public Getting Started guide to ensure the
-        // documentation actually works when the CLI resolves URLs locally.
+        // Runs generate and docify end to end, with URLs resolved to local fixtures.
         const actualOutputDir = path.resolve(GETTING_STARTED_TEST_FIXTURES_DIR, 'actual-output');
 
         if (fs.existsSync(actualOutputDir)) {
@@ -660,7 +881,7 @@ describe('CLI Integration Tests', () => {
 
         //STEP 1: Generate Architecture From Pattern
         const inputPattern = path.resolve(
-            GETTING_STARTED_DIR,
+            GETTING_STARTED_TEST_FIXTURES_DIR,
             'conference-signup.pattern.json'
         );
         const outputArchitecture = path.resolve(

@@ -1,4 +1,5 @@
 import type { AuthPlugin } from '../auth/auth-plugin.js';
+import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
 export type { DocumentLoader } from './types.js';
@@ -8,6 +9,8 @@ import { DocumentLoadError } from './types.js';
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
     authPlugin?: AuthPlugin;
+    directUrlAuthPlugin?: DirectUrlAuthPlugin;
+    directUrlAuthAuthenticatedHosts?: string[];
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;

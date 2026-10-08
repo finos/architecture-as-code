@@ -1,0 +1,143 @@
+{
+  "controlId": 21,
+  "name": "sdlc-prev-003-software-artifact-provenance",
+  "description": "Internally built software artifacts have known and verifiable provenance, establishing a documented chain of custody from source code commit through build and into deployment.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-003-software-artifact-provenance/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-003 Software Artifact Provenance",
+      "name": "Software Artifact Provenance",
+      "description": "Internally built software artifacts have known and verifiable provenance, establishing a documented chain of custody from source code commit through build and into deployment.",
+      "control-id": "SDLC-PREV-003",
+      "category": "BUILD",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 3,
+        "control-type": "PREV",
+        "phase": "BUILD",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-001",
+          "name": "Insider Threat",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-1_insider-threat.html"
+        },
+        {
+          "id": "SDLC-SEC-009",
+          "name": "Environment Breach",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-9_environment-breach.html"
+        },
+        {
+          "id": "SDLC-SEC-010",
+          "name": "Dependency and Transitive Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-10_dependency-and-transitive-supply-chain-compromise.html"
+        },
+        {
+          "id": "SDLC-SEC-011",
+          "name": "Build Toolchain and Service Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-11_build-toolchain-and-service-supply-chain-compromise.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-002",
+          "name": "Content Addressable Identities",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-2_content-addressable-identities.html"
+        },
+        {
+          "id": "SDLC-PREV-001",
+          "name": "Code Review",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html"
+        }
+      ],
+      "details": [
+        "Software artifact provenance answers the question \"where did this artifact come from?\" for any artifact at any time. Provenance records are created at build time and capture the source commit, repository state, build environment details, build log references, and the resulting artifact identity. These records are immutable once written and stored in a tamper-evident system that prevents retroactive modification.",
+        "By linking the cryptographic identity of an artifact (from content addressable identities) to its source and build metadata, software artifact provenance ensures that only artifacts built from known source code through an authorised build process."
+      ],
+      "requirements": [
+        "Each artifact MUST be traceable back to a specific source code commit, build process, and build environment",
+        "Provenance records MUST be created at build time and be immutable once written",
+        {
+          "text": "Provenance records MUST include:",
+          "items": [
+            "Cryptographic hash of the output artifact",
+            "Source commit reference",
+            "Sufficient build environment context to support traceability, for example:",
+            "Build system URL",
+            "Build log reference",
+            "Builder identity",
+            "Build tool versions",
+            "Timestamp"
+          ]
+        }
+      ],
+      "examples": [
+        "No artifact should be deployed to production without a corresponding provenance record",
+        "Use a dedicated provenance store or attestation service to maintain build records independently of the CI/CD system",
+        "Implement deployment gates that verify an artifact has a valid provenance record before allowing promotion to production environments",
+        "Periodically audit provenance records against running deployments to confirm that all production artifacts have known origins",
+        "Distinguish between human-friendly identifiers (semantic versioning, commit references) for navigation and cryptographic hashes for security and compliance purposes",
+        "Where human-readable identifiers are used, they should ideally be mapped to their corresponding cryptographic identities in an immutable way, such that the mapping itself cannot be altered or reassigned after the fact"
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "sa-10",
+            "title": "SA-10 Developer Configuration Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A890%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C211.0%2C0%5D"
+          },
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "cm-3",
+            "title": "CM-3 Configuration Change Control",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A366%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C205.0%2C0%5D"
+          },
+          {
+            "id": "si-7",
+            "title": "SI-7 Software, Firmware, and Information Integrity",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1106%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C536.0%2C0%5D"
+          },
+          {
+            "id": "au-10",
+            "title": "AU-10 Non-repudiation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A301%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-003"
+        },
+        "name": {
+          "const": "Software Artifact Provenance"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

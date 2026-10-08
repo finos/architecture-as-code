@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from 'vitest';
-import { initAllPacks } from '../../extensions/index.js';
-import { resetRegistry } from '../../extensions/registry.js';
+import { initAllPacks } from '../../packs/index.js';
+import { resetRegistry } from '../../packs/registry.js';
 import {
 	CALM_12_BASE_SCHEMA,
 	buildSchemaForNodeType,

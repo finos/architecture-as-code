@@ -11,6 +11,8 @@ on:
             - 'calm-hub/**'
             - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
+            - 'package.json'
+            - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-native.yml'
     # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
@@ -144,6 +146,8 @@ jobs:
                   file: calm-hub/src/main/docker/Dockerfile.native
                   platforms: ${{ matrix.platform }}
                   outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/calm-hub,push-by-digest=true,name-canonical=true,push=true
+                  sbom: true
+                  provenance: mode=max
                   labels: ${{ steps.meta-labels.outputs.labels }}
                   cache-from: type=gha,scope=native-${{ matrix.arch }}
                   cache-to: type=gha,mode=max,scope=native-${{ matrix.arch }}

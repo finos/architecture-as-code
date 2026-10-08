@@ -15,6 +15,9 @@ Note that if they're set on the command line, e.g. `--calm-hub-url`, this will o
 | `allowedRemoteHosts` | `CALM_ALLOWED_REMOTE_HOSTS` | List of allowed hosts to use when loading files directly from raw URLs. Note that in env variable form this should be a comma-separated list. | 
 | `authPluginPath`     | `CALM_AUTH_PLUGIN_PATH`     | Path to authentication plugin (should be a JS file.) See [Authentication Plugins](#authentication-plugins). |
 | `calmHubUrl`         | `CALM_HUB_URL`              | CalmHub instance to use. Note that setting this property will automatically configure CalmHub as a loading mechanism for commands such as validate. |
+| `directUrlAuthModule` | `CALM_DIRECT_URL_AUTH_MODULE` | Path to the direct-URL authentication module for protected remote document fetches. See [Direct URL authentication modules](#direct-url-authentication-modules). |
+| `directUrlAuthConfigPath` | `CALM_DIRECT_URL_AUTH_CONFIG_PATH` | Optional path passed to the direct-URL authentication module constructor. |
+| `directUrlAuthAuthenticatedHosts` | `CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS` | Required hostnames for direct-URL authentication. In environment-variable form, use a comma-separated list. |
 
 Rather than hand-editing this file, use [`calm init-config`](#managing-the-config-file-with-init-config) to create or update it.
 
@@ -614,14 +617,28 @@ Usage: calm init-config [options]
 Create or update the CALM CLI configuration file (~/.calm.json).
 
 Options:
-  --allowed-remote-hosts <hosts>  Comma-separated list of trusted remote hosts to allow for direct URL loading
-  --calm-hub-url <url>            URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
-  -h, --help                      display help for command
+  --allowed-remote-hosts <hosts>                 Comma-separated list of trusted remote hosts to allow for direct URL loading
+  --calm-hub-url <url>                           URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents
+  --auth-plugin-path <path>                      Path to the CALM Hub authentication plugin
+  --direct-url-auth-module <path>                Optional path to the direct URL authentication plugin module
+  --direct-url-auth-config-path <path>           Optional config path for the direct URL authentication plugin module
+  --direct-url-auth-authenticated-hosts <hosts>  If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module
+  -h, --help                                     display help for command
 ```
 
 ```shell
-% calm init-config --calm-hub-url https://calmhub.example.com --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org
+calm init-config \
+  --calm-hub-url https://calmhub.example.com \
+  --allowed-remote-hosts raw.githubusercontent.com,calm.finos.org \
+  --auth-plugin-path /full/path/to/plugins/auth-plugin.js \
+  --direct-url-auth-module /full/path/to/plugins/direct-url-auth.js \
+  --direct-url-auth-config-path ~/plugins/direct-url-auth.config.json \
+  --direct-url-auth-authenticated-hosts protected.example.com,secure.example.com
 ```
+
+ `--direct-url-auth-module` and `--direct-url-auth-authenticated-hosts` must be set together. You can add `--direct-url-auth-config-path` and additional hosts the next time you run `calm init-config`.
+
+The two host-list options trim whitespace, remove empty entries, and merge new hosts with the existing values without duplicates. Scalar options replace their existing values when supplied. Plugin and module paths are stored as provided and validated at use time by the CLI. Fully qualified paths are recommended to avoid unpredictable behavior caused by relative path resolution.
 
 ## Authentication plugins
 
@@ -645,6 +662,28 @@ To configure your CLI to use an auth plugin, use `~/.calm.json` in the same fash
   "authPluginPath": "~/plugins/auth-plugin.js"
 }
 ```
+
+## Direct URL authentication modules
+
+Direct URL authentication is configured separately from CalmHub authentication. Use this when the CLI needs to fetch a protected `http(s)` document through `DirectUrlDocumentLoader`. The required `authenticatedHosts` list identifies the hosts that use this module and automatically adds them to the direct URL allowlist.
+
+Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.  See [Direct URL Document Loader - Custom Authentication Plugin](#direct-url-document-loader---custom-authentication-plugin) for details.
+
+The CLI instantiates the module once per process as `new DefaultExport(configPath)` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
+
+Example `~/.calm.json`:
+
+```json
+{
+  "directUrlAuthModule": "~/plugins/direct-url-auth.js",
+  "directUrlAuthConfigPath": "~/plugins/direct-url-auth.config.json",
+  "directUrlAuthAuthenticatedHosts": ["protected.example.com"]
+}
+```
+
+The entries must be exact hostnames (case-insensitive); URLs, ports, paths, and wildcards are not supported. Other allowlisted hosts continue through the unauthenticated direct URL path.
+
+This flow does not replace `authPluginPath`: `authPluginPath` still applies only to CalmHub requests, and direct-URL authentication applies only to configured direct `http(s)` hosts.
 
 ## CALM Hub
 
@@ -803,25 +842,31 @@ calm workspace init my-system
 
 #### `calm workspace add <file>`
 
-Register a CALM document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
+Register a CALM JSON document or narrative Markdown document with the active workspace. By default the file is referenced at its current location on disk (no copying). Prompts interactively for document type and (manifest) name if they cannot be determined automatically.
 
 ```
-calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy]
+calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] [--copy] [--calm-hub-document-id <id> --ver <version> [--calm-hub-url <url>]]
 ```
 
 | Option | Description |
 |--------|-------------|
 | `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
-| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`. |
-| `--namespace <namespace>` | CalmHub namespace to record in the manifest. If omitted, it is derived from the document `$id`. |
+| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`, `knowledge`, `sad`. |
+| `--namespace <namespace>` | CalmHub namespace to record in the manifest. It is required for narrative Markdown and otherwise derived from the document `$id` when omitted. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
+| `--calm-hub-document-id <id>` and `--ver <version>` | Recover an existing narrative document. Both options are required together. |
+| `--calm-hub-url <url>` | Optional CalmHub URL used only for narrative recovery. It otherwise uses the configured URL. |
 
-**Document `$id` handling.** `add` inspects the file's CalmHub `$id`:
+**Narrative Markdown documents.** Use `--type knowledge` or `sad`. `add` reads YAML frontmatter. A non-empty `title` becomes the manifest name unless you supply `--id`. `--namespace` is required. The initial manifest version is `1.0.0`. Markdown has no CALM `$id` and is never rewritten.
+
+To restore a removed narrative document without creating a new CalmHub document, supply its verified Hub id and version. The local Markdown must exactly match the stored Hub version.
+
+**JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
 - **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `flow`, `adr`, `timeline`).
 
-**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file, else an interactive prompt.
+**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file or Markdown frontmatter, else an interactive prompt.
 
 ```shell
 # Interactive — prompts for type, builds the $id if needed, then the manifest name
@@ -829,6 +874,12 @@ calm workspace add ./architectures/payment-service.json
 
 # Reference an already-conformant document without copying
 calm workspace add ./architectures/payment-service.json --type architecture
+
+# Register a narrative Markdown document; the frontmatter title becomes its manifest name
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos
+
+# Restore an existing narrative document
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos --calm-hub-document-id 42 --ver 1.2.0
 ```
 
 #### `calm workspace new [type] [name] [template]`
@@ -863,7 +914,14 @@ where `$TYPE` is one of `patterns`, `architectures`, `standards`, `interfaces`.
 
 #### `calm workspace push`
 
-Push every document in the workspace manifest to a CalmHub instance. Each document's identity — namespace, type, mapping id and **version** — comes from its `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
+Push every document in the workspace manifest to a CalmHub instance. JSON mapping documents derive their identity — namespace, type, mapping id and **version** — from `$id` (of the form `$BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION`). Push **does not auto-bump**: it creates exactly the version each document declares. Documents without a well-formed mapping `$id` (or whose type has no CalmHub resource type) are skipped with a warning.
+
+Narrative Markdown documents use `--type knowledge` or `--type sad`. They require YAML frontmatter with a `title` and `--namespace`. The first push stores the Hub numeric document id, location, and version (`1.0.0`) in `workspace-manifest.json`. Later changes require `workspace bump`; the command updates the manifest version without rewriting the Markdown.
+
+If a create request has an uncertain outcome, the entry stays pending and another push requires explicit reconciliation. The document might exist in CalmHub, or the request might not have reached the server. Check CalmHub before choosing a recovery path:
+
+- If the document exists, confirm its numeric document ID and run `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace> --calm-hub-document-id <document-id> --ver <version>`. Use the pending entry's workspace ID, type, namespace, and version. The local Markdown must match the Hub version; differences in line-ending style (LF vs CRLF) are ignored. Add `--calm-hub-url <url>` if it is not configured.
+- If you confirm that no document was created, run `calm workspace rm <workspace-id>`, then `calm workspace add <file> --id <workspace-id> --type <type> --namespace <namespace>`. Removal clears the pending entry and keeps the file. Re-adding starts at version `1.0.0`. Correct the Hub URL or connection problem before pushing again.
 
 ```
 calm workspace push [--calm-hub-url <url>] [--fail-if-modified]
@@ -885,6 +943,17 @@ For each tracked document, push looks up the existing versions in CalmHub:
 calm workspace push                              # URL from ~/.calm.json
 calm workspace push --calm-hub-url https://calmhub.example.com
 calm workspace push --fail-if-modified           # strict merge-time mode
+```
+
+```shell
+# First-class document POC: add, publish, inspect, edit, bump, and publish again
+calm workspace add ./docs/payments-sad.md --type sad --namespace finos
+calm workspace push --calm-hub-url http://localhost:8080
+calm workspace show                              # shows the published Hub location
+calm workspace check --calm-hub-url http://localhost:8080
+# Edit ./docs/payments-sad.md, then bump and publish the new version
+calm workspace bump --minor --calm-hub-url http://localhost:8080
+calm workspace push --calm-hub-url http://localhost:8080
 ```
 
 #### `calm workspace check`
@@ -1091,3 +1160,59 @@ To avoid passing `--calm-hub-url` every time, add the URL to `~/.calm.json`:
 ```
 
 For `push` to work, each document must have a namespace recorded in the manifest. This is set automatically by `new`. For files added with `add`, pass `--namespace <ns>` at add time. Any file without a namespace is skipped during push with a message explaining how to fix it.
+
+## Direct URL Document Loader - Custom Authentication Plugin
+
+Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer <token>). The token can be used to authenticate the request and/or determine authorization.
+
+`directUrlAuthModule` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+
+```ts
+new DefaultExport(configPath?)
+```
+
+So the class interface is effectively:
+
+```ts
+interface DirectUrlAuthPlugin {
+  getAuthHeaders(url: string, requestBody: unknown): Promise<Record<string, string>>;
+}
+```
+
+What each part means:
+
+- `getAuthHeaders(url, requestBody)` is required.
+  It’s called for each protected direct URL fetch and must return the HTTP headers to attach to the request.
+- The constructor may accept an optional `configPath: string | undefined`.
+  If the user sets `directUrlAuthConfigPath` in `~/.calm.json`, the CLI passes that value into the class constructor.
+- `directUrlAuthAuthenticatedHosts` is required. The CLI calls the module only for URLs whose hostname is in this list, and adds those hosts to the effective direct URL allowlist.
+- TLS trust is not configurable through the module.
+  Use standard Node runtime settings such as `NODE_EXTRA_CA_CERTS` or `NODE_TLS_REJECT_UNAUTHORIZED` if the process needs non-default trust behavior.
+
+A minimal example:
+
+```js
+const AUTHORIZED_URL = 'https://<repo-with-authentication>/';
+
+export default class MyDirectUrlAuth {
+  constructor(configPath) {
+    this.configPath = configPath;
+  }
+
+  async getAuthHeaders(url, requestBody) {
+    if (!url.startsWith(AUTHORIZED_URL)) {
+        return {};
+    }
+
+    // code to generate Bearer token
+
+    return {
+      Authorization: "Bearer my-token"
+    };
+  }
+}
+```
+
+IMPORTANT NOTES: 
+- If the end user organization writes the plugin in TypeScript,it must be complied to JavaScript because the plugin module must be a `.js` file, not TypeScript source directly, because the CLI loads it with dynamic import at runtime.
+- If there is a mix of authenticated and unauthenticated repositories, the plugin in should return the `Authorization` header only for the repositories requiring authentication.  For all other repositories, return an empty object.

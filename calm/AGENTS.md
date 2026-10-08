@@ -4,7 +4,7 @@
 
 The `calm/` directory holds the **CALM JSON Meta Schema** — the authoritative definition of
 the Common Architecture Language Model. Everything here is specification, not application code:
-JSON Schema documents under `meta/`, reference components (`controls/`, `interfaces/`), worked
+JSON Schema documents under `meta/`, reference interfaces (`interfaces/`), worked
 examples, and the governance process that controls how the schema evolves.
 
 Also include all rules from [the root level AGENTS.md](../AGENTS.md).
@@ -23,10 +23,8 @@ calm/
 ├── release/<version>/         # Published, IMMUTABLE releases (1.0, 1.1, 1.2, …)
 │   └── meta/                  #   the published schema documents
 ├── release/<version>-rcN/      # Release candidates (e.g. 1.0-rc1) — siblings of the release, during testing
-├── controls/                  # Golden-source standardised control definitions
 ├── interfaces/                # Golden-source standardised interface definitions
-├── architecture/              # Reference architectures (e.g. calm-1.json, calm-2.json)
-└── getting-started/           # Tutorial material
+└── architecture/              # Reference architectures (e.g. calm-1.json, calm-2.json)
 ```
 
 ## Critical Rules for Schema Changes

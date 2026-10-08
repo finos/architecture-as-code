@@ -49,8 +49,8 @@ import {
     ensureSchemaOnFirstElement,
     hasDocumentSchema,
 } from './utils/documentEnvelope';
-import { registerPack, resetRegistry, resolvePackNode } from '../extensions/registry.js';
-import type { PackDefinition } from '../extensions/types.js';
+import { registerPack, resetRegistry, resolvePackNode } from '../packs/registry.js';
+import type { PackDefinition } from '../packs/types.js';
 import { NodePalette } from './panels/NodePalette';
 import { EdgeProperties } from './panels/EdgeProperties';
 import { InterfaceList } from './panels/InterfaceList';

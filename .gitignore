@@ -44,11 +44,8 @@ node_modules
 **/.vscode-test/
 **/out/
 *.vsix
-**/dependency-check-report/
 
 **/tsconfig.tsbuildinfo
-
-!/.mvn/wrapper/maven-wrapper.jar
 
 # Stray Java compiler output (e.g. from running `javac` outside Maven)
 *.class

@@ -24,6 +24,7 @@ import java.util.stream.Stream;
 import static io.restassured.RestAssured.given;
 import static org.finos.calm.resources.ResourceValidationConstants.NAMESPACE_MESSAGE;
 import static org.finos.calm.resources.ResourceValidationConstants.VERSION_MESSAGE;
+import static org.finos.calm.resources.ResourceValidationConstants.VERSION_OR_SHA_MESSAGE;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.ArgumentMatchers.any;
@@ -206,7 +207,29 @@ public class TestTimelineResourceShould {
                 .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.invalid0")
                 .then()
                 .statusCode(400)
-                .body(containsString(VERSION_MESSAGE));
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_latest_is_requested_as_a_version_when_getting_timeline_version() {
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/timelines/12/versions/latest")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_get_timeline_version() {
+        // Timeline endpoints keep VERSION_OR_SHA_REGEX -- snapshots are scoped to the five
+        // namespace resource types only, and must stay refused here.
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/timelines/12/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_OR_SHA_MESSAGE));
     }
 
     static Stream<Arguments> provideParametersForGetTimelineTests() {
@@ -261,6 +284,34 @@ public class TestTimelineResourceShould {
                 .body(envelopeBody)
                 .when()
                 .post("/api/calm/namespaces/test/timelines/20/versions/1.0.invalid0")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_create_new_timeline_version() {
+        String envelopeBody = "{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(envelopeBody)
+                .when()
+                .post("/api/calm/namespaces/test/timelines/20/versions/1.0.0-SNAPSHOT")
+                .then()
+                .statusCode(400)
+                .body(containsString(VERSION_MESSAGE));
+    }
+
+    @Test
+    void return_400_when_a_snapshot_version_is_provided_on_put_timeline_version() {
+        // Bean validation on the {version} path param runs before allow.put.operations is
+        // checked, so this still 400s even with PUT disabled by default.
+        given()
+                .header("Content-Type", "application/json")
+                .body("{\"name\":\"n\",\"description\":\"d\",\"timelineJson\":\"{ \\\"moments\\\": [] }\"}")
+                .when()
+                .put("/api/calm/namespaces/test/timelines/20/versions/1.0.0-SNAPSHOT")
                 .then()
                 .statusCode(400)
                 .body(containsString(VERSION_MESSAGE));

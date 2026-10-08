@@ -53,12 +53,14 @@ export { initLogger, registerNodeLoggerFactory } from './logger.js';
 export type { Logger, LogLevel, NodeLoggerFactory } from './logger.js';
 export { createWinstonLogger } from './logger.node.js';
 export { AuthPlugin } from './auth/auth-plugin.js';
+export { DirectUrlAuthPlugin } from './auth/direct-url-auth-plugin.js';
 export { NoAuthPlugin } from './auth/no-auth-plugin.js';
 export { TemplateProcessor, TemplateProcessingMode } from './template/template-processor.js';
 export * from './template/types.js';
 export {
     parseFrontMatter,
     parseFrontMatterFromContent,
+    parseYamlFrontMatterMapping,
     hasArchitectureFrontMatter,
     replaceVariables,
     injectFrontMatter,
@@ -75,6 +77,10 @@ export { DocumentLoader, DocumentLoaderOptions, DocumentLoadError, assertJsonObj
 export { buildDocumentLoader } from './document-loader/node-document-loader.js';
 export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader.js';
 export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader.js';
+export {
+    classifyWorkspaceDocumentType,
+    type WorkspaceDocumentKind,
+} from './document-loader/workspace-document-kind.js';
 export * from './document-loader/loading-helpers.js';
 export {
     hasArchitectureExtension,
@@ -92,6 +98,8 @@ export {
     type HubDomainSummary,
     type HubControlSummary,
     type CalmHubOptions,
+    type NarrativeDocumentRequest,
+    type NarrativeDocumentVersion,
     type ResourceType,
     type ResourceChangeType,
     isValidResourceType
@@ -120,4 +128,4 @@ export {
 export { InMemoryDocumentLoader } from './document-loader/in-memory-document-loader.js';
 export { buildBrowserDocumentLoader, type BrowserDocumentLoaderOptions } from './document-loader/browser-document-loader.js';
 export { diffDocuments, diffTimeline, tryDetectDocumentType, type DiffDocumentsOptions } from './commands/diff/diff-core.js';
-export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport } from './browser-capabilities.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';

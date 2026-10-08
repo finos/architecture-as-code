@@ -4,7 +4,7 @@ import { readFileSync } from 'fs';
 import path from 'path';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
 import { SchemaDirectory } from '../../schema-directory.js';
-import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, setCalmSchema } from '../../test/test-utils';
+import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
 
 const inputArchPath = path.join(
     __dirname,
@@ -23,10 +23,6 @@ const validationPath = path.join(
     '../../../test_fixtures/command/validate/'
 );
 
-const schemaDir_10 = path.join(__dirname, '../../../../calm/release/1.0/meta/');
-const schemaDir_11 = path.join(__dirname, '../../../../calm/release/1.1/meta/');
-const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
-
 const invalidArchMissingRelationshipTypePath = path.join(
     __dirname,
     '../../../test_fixtures/command/validate/invalid-architecture-missing-relationship-type.json'
@@ -37,7 +33,7 @@ describe('validate E2E', () => {
     let schemaDirectory: SchemaDirectory;
 
     beforeEach(async () => {
-        documentLoader = new FileSystemDocumentLoader([schemaDir_10, schemaDir_11, schemaDir_12], true);
+        documentLoader = new FileSystemDocumentLoader(TEST_ALL_SCHEMA.map(([release]) => calmSchemaDir(release)), true);
         schemaDirectory = new SchemaDirectory(documentLoader);
         await schemaDirectory.loadSchemas();
     });
@@ -163,6 +159,47 @@ describe('validate E2E', () => {
 
             const newPattern = applyArchitectureOptionsToPattern(architecture, pattern, false);
             expect(newPattern).toStrictEqual(expectedResult);
+        });
+
+        it('keeps the items catalogue, so validation still constrains what an architecture adds', () => {
+            const node = (id: string) => ({ properties: { 'unique-id': { const: id } } });
+            const pattern = {
+                properties: {
+                    nodes: { prefixItems: [node('gateway')], items: { oneOf: [node('cache'), node('queue')] } },
+                    relationships: {
+                        prefixItems: [{
+                            properties: {
+                                'unique-id': { const: 'db-choice' },
+                                'relationship-type': {
+                                    properties: {
+                                        options: {
+                                            prefixItems: [{
+                                                oneOf: [{
+                                                    properties: {
+                                                        description: { const: 'Use postgres' },
+                                                        nodes: { const: ['postgres'] },
+                                                        relationships: { const: [] }
+                                                    }
+                                                }]
+                                            }]
+                                        }
+                                    }
+                                }
+                            }
+                        }]
+                    }
+                }
+            };
+            const architecture = {
+                nodes: [],
+                relationships: [{
+                    'unique-id': 'db-choice',
+                    'relationship-type': { options: [{ description: 'Use postgres', nodes: ['postgres'], relationships: [] }] }
+                }]
+            };
+
+            const resolved = applyArchitectureOptionsToPattern(architecture, pattern, false) as typeof pattern;
+            expect(resolved.properties.nodes.items).toBeDefined();
         });
     });
 

@@ -33,6 +33,8 @@ describe('CLI Commands', () => {
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
         documentLoaderModule = await import('../../shared/src/document-loader/node-document-loader');
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -1605,6 +1607,114 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('init-config command', () => {
+        it('saves all supported authentication options', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--calm-hub-url', 'https://calmhub.example.com',
+                '--allowed-remote-hosts', 'schemas.example.com, calm.finos.org',
+                '--auth-plugin-path', '~/plugins/auth-plugin.js',
+                '--direct-url-auth-module', '~/plugins/direct-url-auth.js',
+                '--direct-url-auth-config-path', '~/plugins/direct-url-auth.config.json',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com, secure.example.com',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://calmhub.example.com',
+                allowedRemoteHosts: ['schemas.example.com', 'calm.finos.org'],
+                authPluginPath: '~/plugins/auth-plugin.js',
+                directUrlAuthModule: '~/plugins/direct-url-auth.js',
+                directUrlAuthConfigPath: '~/plugins/direct-url-auth.config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('saves a relative direct URL auth module path unchanged', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-module', './dist/direct-url-auth.js',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                directUrlAuthModule: './dist/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+        });
+
+        it('preserves existing values and deduplicates authenticated hosts', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', ' protected.example.com, secure.example.com, ',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('replaces scalar values when they are supplied', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                authPluginPath: '/old/auth-plugin.js',
+                directUrlAuthModule: '/old/direct-url-auth.js',
+                directUrlAuthConfigPath: '/old/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--auth-plugin-path', '/new/auth-plugin.js',
+                '--direct-url-auth-module', '/new/direct-url-auth.js',
+                '--direct-url-auth-config-path', '/new/config.json',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                authPluginPath: '/new/auth-plugin.js',
+                directUrlAuthModule: '/new/direct-url-auth.js',
+                directUrlAuthConfigPath: '/new/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+        });
+
+        it('fails when --direct-url-auth-module is set without --direct-url-authenticated-hosts', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-module', './dist/direct-url-auth.js',
+            ])).rejects.toThrow(/directUrlAuth\.authenticatedHosts must be a non-empty array/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
+
+        it('fails when --direct-url-auth-authenticated-hosts is set without --direct-url-auth-module', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
+            ])).rejects.toThrow(/directUrlAuth\.module must be a non-empty string/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
+    });
+
 });
 
 describe('parseDocumentLoaderConfig', () => {
@@ -1617,6 +1727,18 @@ describe('parseDocumentLoaderConfig', () => {
         const cliModule = await import('./cli');
         return cliModule.parseDocumentLoaderConfig(options);
     };
+
+    const createMockLogger = () => ({
+        info: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
+        warn: vi.fn(),
+    });
+
+    beforeEach(async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
+    });
 
     it('should parse calmhub url when provided', async () => {
         const options = await parseDocLoaderConfigForTest({
@@ -1695,6 +1817,24 @@ describe('parseDocumentLoaderConfig', () => {
         expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
     });
 
+    it('keeps supported repositories when CLI allowedRemoteHosts override the config list', async () => {
+        cliConfigModule = await import('./cli-config');
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            allowedRemoteHosts: ['config.example.com'],
+            directUrlAuthModule: '/fake/direct-url-auth.js',
+            directUrlAuthAuthenticatedHosts: ['protected.example.com']
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({
+            allowedRemoteHosts: ['cli.example.com']
+        });
+
+        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['protected.example.com']);
+    });
+
     it('should set debug to true when verbose passed along', async () => {
         const options = await parseDocLoaderConfigForTest({
             verbose: true
@@ -1728,5 +1868,83 @@ describe('parseDocumentLoaderConfig', () => {
         const options = await parseDocLoaderConfigForTest({});
 
         expect(options.authPlugin).toBeUndefined();
+    });
+
+    it('loads direct URL auth module from flattened config when configured', async () => {
+        cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuthModule: '/fake/direct-url-auth.js',
+            directUrlAuthConfigPath: '/configs/direct-url-auth.json',
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
+            module: '/fake/direct-url-auth.js',
+            configPath: '/configs/direct-url-auth.json',
+            authenticatedHosts: ['schemas.example.com']
+        }, false);
+        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(options.directUrlAuthAuthenticatedHosts).toEqual(['schemas.example.com']);
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: /configs/direct-url-auth.json'
+        );
+    });
+
+    it('logs "not specified" when direct URL auth configPath is omitted', async () => {
+        cliConfigModule = await import('./cli-config');
+        const calmShared = await import('@finos/calm-shared');
+        const mockLogger = createMockLogger();
+        const fakePlugin = { getAuthHeaders: vi.fn() };
+        vi.spyOn(calmShared, 'initLogger').mockReturnValue(mockLogger as never);
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuthModule: '/fake/direct-url-auth.js',
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({});
+
+        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            1,
+            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+        );
+        expect(mockLogger.info).toHaveBeenNthCalledWith(
+            2,
+            'Direct URL auth configPath: not specified'
+        );
+    });
+
+    it('fails when a flattened direct URL auth configuration is incomplete', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuthConfigPath: '/configs/direct-url-auth.json'
+        });
+
+        await expect(parseDocLoaderConfigForTest({}))
+            .rejects.toThrow(/Direct URL authentication setup failed: directUrlAuth\.module must be a non-empty string/);
+    });
+
+    it('fails when direct URL auth module loading throws', async () => {
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuthModule: '/bad/direct-url-auth.js',
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockRejectedValue(new Error('module not found'));
+
+        await expect(parseDocLoaderConfigForTest({})).rejects.toThrow(/Direct URL authentication setup failed: module not found/);
     });
 });

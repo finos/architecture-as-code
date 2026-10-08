@@ -186,14 +186,14 @@ public class TestMongoFlowStoreShould {
         when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
 
         assertThrows(NamespaceNotFoundException.class,
-                () -> store.createFlowForNamespace(createRequest(), NAMESPACE));
+                () -> store.createFlowForNamespace(createRequest(), NAMESPACE, "1.0.0"));
     }
 
     @Test
     void reject_invalid_json_before_drawing_an_id_or_writing_anything() {
         CreateFlowRequest invalid = new CreateFlowRequest("n", "d", "{invalid json}");
 
-        assertThrows(JsonParseException.class, () -> store.createFlowForNamespace(invalid, NAMESPACE));
+        assertThrows(JsonParseException.class, () -> store.createFlowForNamespace(invalid, NAMESPACE, "1.0.0"));
 
         verify(counterStore, never()).getNextFlowSequenceValue();
         verify(headerCollection, never()).insertOne(any(Document.class));
@@ -205,7 +205,7 @@ public class TestMongoFlowStoreShould {
         when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
                 .thenReturn(UpdateResult.acknowledged(1, 1L, null));
 
-        Flow created = store.createFlowForNamespace(createRequest(), NAMESPACE);
+        Flow created = store.createFlowForNamespace(createRequest(), NAMESPACE, "1.0.0");
 
         assertThat(created.getId(), is(99));
         // Dot-separated on both backends now; Nitrite used to return "1-0-0" here.
@@ -222,6 +222,22 @@ public class TestMongoFlowStoreShould {
     }
 
     @Test
+    void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(counterStore.getNextFlowSequenceValue()).thenReturn(99);
+        when(headerCollection.updateOne(any(Bson.class), any(Bson.class)))
+                .thenReturn(UpdateResult.acknowledged(1, 1L, null));
+
+        Flow created = store.createFlowForNamespace(createRequest(), NAMESPACE, "1.0.0-SNAPSHOT");
+
+        assertThat(created.getDotVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insertOne(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().getString("version"), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     void remove_the_header_again_when_the_first_version_write_fails() {
         when(counterStore.getNextFlowSequenceValue()).thenReturn(99);
         doAnswer(invocation -> {
@@ -229,7 +245,7 @@ public class TestMongoFlowStoreShould {
         }).when(versionCollection).insertOne(any(Document.class));
 
         assertThrows(StorageWriteException.class,
-                () -> store.createFlowForNamespace(createRequest(), NAMESPACE));
+                () -> store.createFlowForNamespace(createRequest(), NAMESPACE, "1.0.0"));
 
         verify(headerCollection).deleteOne(any(Bson.class));
     }
@@ -438,5 +454,44 @@ public class TestMongoFlowStoreShould {
         when(headerCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
 
         assertThrows(FlowNotFoundException.class, () -> store.deleteFlow(NAMESPACE, FLOW_ID));
+    }
+
+    // --- deleteFlowVersion ---
+
+    @Test
+    void throw_a_namespace_exception_when_deleting_a_version_in_a_missing_namespace() {
+        when(namespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void throw_a_flow_exception_when_deleting_a_version_of_a_missing_flow() {
+        flowDoesNotExist();
+
+        assertThrows(FlowNotFoundException.class,
+                () -> store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    void delete_the_version_document_when_the_snapshot_exists() throws Exception {
+        flowExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(1));
+
+        boolean deleted = store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(true));
+        verify(versionCollection).deleteOne(any(Bson.class));
+    }
+
+    @Test
+    void return_false_when_the_version_to_delete_does_not_exist() throws Exception {
+        flowExists();
+        when(versionCollection.deleteOne(any(Bson.class))).thenReturn(DeleteResult.acknowledged(0));
+
+        boolean deleted = store.deleteFlowVersion(NAMESPACE, FLOW_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(false));
     }
 }

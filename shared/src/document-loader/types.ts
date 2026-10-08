@@ -11,7 +11,7 @@ export interface DocumentLoader {
     resolvePath(reference: string): string | undefined;
 }
 
-type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
+type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN' | 'AUTHENTICATION_FAILED';
 
 export class DocumentLoadError extends Error {
     name: ErrorName;
