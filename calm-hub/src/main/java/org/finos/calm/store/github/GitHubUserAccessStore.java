@@ -1,5 +1,6 @@
 package org.finos.calm.store.github;
 
+import org.finos.calm.domain.exception.GitHubOperationNotSupportedException;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 
 import io.quarkus.security.identity.SecurityIdentity;
@@ -105,22 +106,22 @@ public class GitHubUserAccessStore implements UserAccessStore {
 
     @Override
     public List<UserAccess> getUserAccessForNamespace(String namespace) throws NamespaceNotFoundException {
-        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
+        throw new GitHubOperationNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public UserAccess getUserAccessForNamespaceAndId(String namespace, Integer userAccessId) throws NamespaceNotFoundException, UserAccessNotFoundException {
-        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
+        throw new GitHubOperationNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public List<UserAccess> getUserAccessForDomain(String domain) {
-        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
+        throw new GitHubOperationNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override
     public UserAccess getUserAccessForDomainAndId(String domain, Integer userAccessId) throws UserAccessNotFoundException {
-        throw new GitHubWriteNotSupportedException(ADMIN_UNSUPPORTED);
+        throw new GitHubOperationNotSupportedException(ADMIN_UNSUPPORTED);
     }
 
     @Override

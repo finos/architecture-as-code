@@ -4,15 +4,15 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.ExceptionMapper;
 import jakarta.ws.rs.ext.Provider;
-import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
+import org.finos.calm.domain.exception.GitHubOperationNotSupportedException;
 
 import java.util.Map;
 
 @Provider
-public class UnsupportedOperationExceptionMapper implements ExceptionMapper<GitHubWriteNotSupportedException> {
+public class UnsupportedOperationExceptionMapper implements ExceptionMapper<GitHubOperationNotSupportedException> {
 
     @Override
-    public Response toResponse(GitHubWriteNotSupportedException e) {
+    public Response toResponse(GitHubOperationNotSupportedException e) {
         return Response.status(501)
                 .entity(Map.of("error", e.getMessage()))
                 .type(MediaType.APPLICATION_JSON)
