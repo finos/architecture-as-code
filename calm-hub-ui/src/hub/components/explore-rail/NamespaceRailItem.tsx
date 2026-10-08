@@ -9,6 +9,8 @@ import { INDENT_STEP, isNamespace, splitOnMatch, type NamespaceTreeNode } from '
 
 interface NamespaceRailItemProps {
     node: NamespaceTreeNode;
+    /** Shown as the row's tooltip. Without one, the tooltip is the full path. */
+    description?: string;
     depth: number;
     hasChildren: boolean;
     collapsed: boolean;
@@ -44,6 +46,7 @@ function highlight(label: string, needle: string): ReactNode {
  */
 export function NamespaceRailItem({
     node,
+    description,
     depth,
     hasChildren,
     collapsed,
@@ -102,7 +105,7 @@ export function NamespaceRailItem({
                     to={`/namespace/${encodeURIComponent(node.path)}`}
                     aria-current={active ? 'page' : undefined}
                     aria-label={node.path}
-                    title={node.path}
+                    title={description ?? node.path}
                     className="min-w-0 flex-1 truncate no-underline hover:bg-base-200 rounded-[7px] px-1"
                     style={labelStyle}
                 >

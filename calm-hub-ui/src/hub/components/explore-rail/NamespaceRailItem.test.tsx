@@ -81,6 +81,12 @@ describe('NamespaceRailItem', () => {
         expect(link).toHaveAttribute('href', '/namespace/finos.calm');
     });
 
+    it('uses the namespace description as the tooltip, keeping the full path as the accessible name', () => {
+        renderItem({ description: 'Patterns and examples the CALM project maintains.' });
+        const link = screen.getByRole('link', { name: 'finos.calm' });
+        expect(link).toHaveAttribute('title', 'Patterns and examples the CALM project maintains.');
+    });
+
     it('renders a synthetic grouping row with no link and no own pill, but a working chevron', () => {
         const tree = buildNamespaceTree([nc('finos.calm', 5)]);
         const finos = tree[0]; // 'finos' is group-only here
