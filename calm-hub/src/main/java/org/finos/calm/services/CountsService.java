@@ -96,8 +96,7 @@ public class CountsService {
         // query remains a future optimisation. The read-filter is applied first, so unreadable
         // namespaces are never fetched or cached.
         return namespaceStore.getNamespaces().stream()
-                .map(NamespaceInfo::getName)
-                .filter(namespace -> readableNamespaces.map(set -> set.contains(namespace)).orElse(true))
+                .filter(info -> readableNamespaces.map(set -> set.contains(info.getName())).orElse(true))
                 .map(this::cachedCountsForNamespace)
                 .collect(Collectors.toList());
     }
@@ -118,17 +117,18 @@ public class CountsService {
                 .collect(Collectors.toList());
     }
 
-    private NamespaceCounts cachedCountsForNamespace(String namespace) {
-        return cached(namespaceCountsCache, namespace, this::countsForNamespace);
+    private NamespaceCounts cachedCountsForNamespace(NamespaceInfo info) {
+        return cached(namespaceCountsCache, info.getName(), name -> countsForNamespace(name, info.getDescription()));
     }
 
     private int cachedControlCount(String domain) {
         return cached(domainControlCountCache, domain, this::controlCount);
     }
 
-    private NamespaceCounts countsForNamespace(String namespace) {
+    private NamespaceCounts countsForNamespace(String namespace, String description) {
         return new NamespaceCounts(
                 namespace,
+                description,
                 sizeOrZero(() -> architectureStore.getArchitecturesForNamespace(namespace)),
                 sizeOrZero(() -> patternStore.getPatternsForNamespace(namespace)),
                 sizeOrZero(() -> flowStore.getFlowsForNamespace(namespace)),

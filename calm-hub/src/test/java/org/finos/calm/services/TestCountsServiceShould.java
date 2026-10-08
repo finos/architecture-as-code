@@ -110,6 +110,7 @@ class TestCountsServiceShould {
         assertThat(result, hasSize(1));
         NamespaceCounts counts = result.get(0);
         assertThat(counts.getNamespace(), is(NAMESPACE));
+        assertThat(counts.getDescription(), is("FINOS namespace"));
         assertThat(counts.getArchitectures(), is(2));
         assertThat(counts.getPatterns(), is(1));
         assertThat(counts.getFlows(), is(3));
