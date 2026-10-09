@@ -966,7 +966,7 @@ calm workspace check [--calm-hub-url <url>]
 
 A document is flagged when its on-disk `$id` version still matches a version in CalmHub but its content differs. Brand-new documents (not yet in CalmHub) and already-bumped documents (whose version is ahead of CalmHub) are not flagged.
 
-After checking for unbumped documents, `check` also silently validates every architecture and pattern in the workspace and prints a summary. It loads documents with the same `~/.calm.json` settings as `calm validate`, so an architecture whose `$schema` is a CalmHub pattern is validated against that pattern. For example:
+After checking for unbumped documents, `check` also validates every architecture and pattern in the workspace and prints a summary. It loads documents with the same `~/.calm.json` settings as `calm validate`, so an architecture whose `$schema` is a CalmHub pattern is validated against that pattern. It can print some of the same configuration lines as `calm validate`, for example `Configuring CALMHub document loader with base URL`. The summary looks like this:
 
 ```
 All 3 document(s) passed validation.
@@ -979,7 +979,7 @@ or, if a document fails:
   my-arch (2 error(s)) — run `calm validate -a .calm-workspace/files/my-arch.json` to see full output
 ```
 
-The command exits non-zero if any documents need bumping **or** if any document fails validation.
+The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run, for example because the direct-URL authentication settings in `~/.calm.json` are not valid.
 
 #### `calm workspace bump`
 
@@ -1010,7 +1010,7 @@ The default increment when no flag is given is **MINOR** (overridable via `bump.
 
 Bump is **idempotent**: editing → bumping → editing again → bumping again only moves the version by a single increment, because once a document's on-disk version is ahead of CalmHub it is left alone until that version is pushed.
 
-After bumping, `bump` silently validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only** — it never changes the exit code.
+After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only** — it never changes the exit code. If validation cannot run, `bump` prints a warning instead of the summary.
 
 #### Workspace config — `.calm-workspace/config.json`
 

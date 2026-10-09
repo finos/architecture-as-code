@@ -8,7 +8,7 @@ import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
-import { runPostBumpValidation } from './post-bump-validate';
+import { runPostBumpValidation, PostBumpValidationResult } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
@@ -545,7 +545,7 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest, options.calmHubUrl);
+                const validationResults = await runPostBumpValidation(bundlePath, manifest, calmHubOptions);
                 let validationFailed = false;
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
@@ -666,8 +666,14 @@ export function setupWorkspaceCommands(program: Command) {
 
                 // Post-bump validation: silently validate all architectures and patterns, then
                 // print a summary so the user knows whether bumping caused any regressions.
-                const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest, options.calmHubUrl);
+                // The bump has already been written, so a validation that cannot run must not fail the command.
+                let validationResults: PostBumpValidationResult[] = [];
+                try {
+                    const manifest = await loadManifest(bundlePath);
+                    validationResults = await runPostBumpValidation(bundlePath, manifest, calmHubOptions);
+                } catch (err) {
+                    logger.warn('Post-bump validation did not run: ' + (err instanceof Error ? err.message : String(err)));
+                }
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
                     if (failures.length === 0) {

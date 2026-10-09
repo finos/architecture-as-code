@@ -53,9 +53,12 @@ vi.mock('fs', () => ({
     writeFileSync: mocks.writeFileSync,
 }));
 
+vi.mock('../document-loader-config', () => ({
+    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
+}));
+
 vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
-    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
     buildSchemaDirectory: vi.fn(function () { return {
         loadSchemas: mocks.loadSchemas,
         getSchema: mocks.getSchema

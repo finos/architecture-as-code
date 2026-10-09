@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
         pushWorkspaceToHub: vi.fn(async () => { }),
         detectChangedResources: vi.fn(async () => []),
         loggerError: vi.fn(),
+        loggerWarn: vi.fn(),
         bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
         runPostBumpValidation: vi.fn(async () => []),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
@@ -121,7 +122,7 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
     namespaceFromDocumentId: mocks.namespaceFromDocumentId,
     initLogger: () => ({
         info: vi.fn(),
-        warn: vi.fn(),
+        warn: mocks.loggerWarn,
         error: mocks.loggerError,
         debug: vi.fn(),
     }),
@@ -749,10 +750,26 @@ describe('setupWorkspaceCommands', () => {
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
-        it('passes --calm-hub-url to post-bump validation', async () => {
+        it('passes the resolved CalmHub options, with the loaded auth plugin, to post-bump validation', async () => {
+            const authPlugin = { getAuthHeaders: vi.fn(async () => ({})) };
+            mocks.loadCliConfig.mockResolvedValueOnce({ calmHubUrl: 'https://calmhub.example.com', authPluginPath: '/fake/plugin.js' } as never);
+            mocks.loadAuthPlugin.mockResolvedValueOnce(authPlugin);
             mocks.detectChangedResources.mockResolvedValueOnce([]);
             await program.parseAsync(['node', 'test', 'workspace', 'check', '--calm-hub-url', 'https://hub.example.com']);
-            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), 'https://hub.example.com');
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.anything(),
+                expect.objectContaining({ calmHubUrl: 'https://hub.example.com', authPlugin })
+            );
+            expect(mocks.loadAuthPlugin).toHaveBeenCalledTimes(1);
+        });
+
+        it('fails when validation cannot run, because check is a CI gate', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce([]);
+            mocks.runPostBumpValidation.mockRejectedValueOnce(new Error('Direct URL authentication setup failed: bad config'));
+            await expect(program.parseAsync(['node', 'test', 'workspace', 'check'])).rejects.toThrow();
+            expect(mocks.loggerError).toHaveBeenCalledWith('Failed to check workspace: Direct URL authentication setup failed: bad config');
+            expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
         it('runs post-bump validation and reports all passed when workspace is up to date', async () => {
@@ -911,11 +928,25 @@ describe('setupWorkspaceCommands', () => {
             expect(exitSpy).toHaveBeenCalledWith(1);
         });
 
-        it('passes --calm-hub-url to post-bump validation', async () => {
+        it('passes the resolved CalmHub options to post-bump validation', async () => {
             mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
             mocks.select.mockResolvedValueOnce('MINOR');
             await program.parseAsync(['node', 'test', 'workspace', 'bump', '--calm-hub-url', 'https://hub.example.com']);
-            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(expect.any(String), expect.anything(), 'https://hub.example.com');
+            expect(mocks.runPostBumpValidation).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.anything(),
+                expect.objectContaining({ calmHubUrl: 'https://hub.example.com' })
+            );
+        });
+
+        it('keeps a completed bump successful when post-bump validation cannot run', async () => {
+            mocks.detectChangedResources.mockResolvedValueOnce(fakeChanged as never);
+            mocks.select.mockResolvedValueOnce('MINOR');
+            mocks.runPostBumpValidation.mockRejectedValueOnce(new Error('Direct URL authentication setup failed: bad config'));
+            await program.parseAsync(['node', 'test', 'workspace', 'bump']);
+            expect(mocks.bumpWorkspace).toHaveBeenCalled();
+            expect(mocks.loggerWarn).toHaveBeenCalledWith('Post-bump validation did not run: Direct URL authentication setup failed: bad config');
+            expect(exitSpy).not.toHaveBeenCalled();
         });
 
         it('runs post-bump validation and completes without error when all documents pass', async () => {
