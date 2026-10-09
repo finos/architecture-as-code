@@ -1,5 +1,6 @@
 import { readFile } from 'fs/promises';
-import { validate, CALM_META_SCHEMA_DIRECTORY, buildDocumentLoader, SchemaDirectory, loadPatternFromDocumentIfPresent, initLogger } from '@finos/calm-shared';
+import { validate, CALM_META_SCHEMA_DIRECTORY, buildDocumentLoader, SchemaDirectory, loadPatternFromDocumentIfPresent, initLogger, CalmHubOptions } from '@finos/calm-shared';
+import { parseDocumentLoaderConfig } from '../../document-loader-config';
 import { resolveFilePath } from './bundle';
 
 const logger = initLogger(false, 'workspace-post-bump-validate');
@@ -20,9 +21,19 @@ export interface PostBumpValidationResult {
  */
 export async function runPostBumpValidation(
     bundlePath: string,
-    manifest: Record<string, { path: string; type: string }>
+    manifest: Record<string, { path: string; type: string }>,
+    calmHubOptions?: CalmHubOptions
 ): Promise<PostBumpValidationResult[]> {
+    const entries = Object.entries(manifest).filter(([, entry]) => entry.type === 'architecture' || entry.type === 'pattern');
+    if (entries.length === 0) return [];
+
+    // The same user config as `calm validate`, so a `$schema` on CalmHub loads with its auth.
     const docLoader = buildDocumentLoader({
+        ...await parseDocumentLoaderConfig({
+            calmHubUrl: calmHubOptions?.calmHubUrl,
+            authPlugin: calmHubOptions?.authPlugin,
+            workspaceBundlePath: bundlePath,
+        }),
         schemaDirectoryPath: CALM_META_SCHEMA_DIRECTORY,
         workspaceBundlePath: bundlePath,
         basePath: bundlePath,
@@ -33,8 +44,7 @@ export async function runPostBumpValidation(
 
     const results: PostBumpValidationResult[] = [];
 
-    for (const [id, entry] of Object.entries(manifest)) {
-        if (entry.type !== 'architecture' && entry.type !== 'pattern') continue;
+    for (const [id, entry] of entries) {
         const type = entry.type as 'architecture' | 'pattern';
         const filePath = resolveFilePath(bundlePath, entry.path);
 

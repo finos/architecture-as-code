@@ -3,7 +3,8 @@ import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
-import { buildSchemaDirectory, parseDocumentLoaderConfig } from '../cli';
+import { buildSchemaDirectory } from '../cli';
+import { parseDocumentLoaderConfig } from '../document-loader-config';
 import { parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
