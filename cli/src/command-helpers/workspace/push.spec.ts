@@ -814,7 +814,42 @@ describe('pushWorkspaceToHub', () => {
                 expect.objectContaining({ version: '1.1.0-SNAPSHOT' }),
                 JSON.stringify(snapshotDoc)
             );
-            expect(client.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('skips a snapshot version whose content is unchanged on CalmHub, without saving the manifest', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockResolvedValue({ ...snapshotDoc }),
+            });
+            const saveSpy = vi.spyOn(bundle, 'saveManifest');
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.getMappedResourceByVersion).toHaveBeenCalledWith(
+                'com.example', 'doc-a', '1.1.0-SNAPSHOT', 'architectures'
+            );
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+            expect(saveSpy).not.toHaveBeenCalled();
+        });
+
+        it('reports a failure when the existing snapshot cannot be fetched to compare', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockRejectedValue(new Error('boom')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/doc-a: boom/);
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
         });
 
         it('--fail-if-modified has no effect on a snapshot version — it still overwrites instead of conflicting', async () => {
@@ -853,7 +888,10 @@ describe('pushWorkspaceToHub', () => {
                 createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
             });
 
-            await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/doc-b depends on snapshot/);
+            const result = pushWorkspaceToHub(bundlePath, client);
+            await expect(result).rejects.toThrow(/doc-b depends on snapshot/);
+            await expect(result).rejects.toThrow(/calm workspace release/);
+            await expect(result).rejects.not.toThrow(/calm workspace bump/);
 
             expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
                 expect.objectContaining({ mapping: 'doc-a' }),

@@ -217,6 +217,74 @@ describe('hub-commands', () => {
             );
         });
 
+        describe('snapshot documents', () => {
+            const snapshotId = 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0-SNAPSHOT';
+            const snapshotDoc = (extra: object = {}) => JSON.stringify({ $id: snapshotId, title: 'my-arch', nodes: [], ...extra });
+
+            beforeEach(() => {
+                vi.mocked(fs.readFile).mockResolvedValue(snapshotDoc() as unknown as Uint8Array);
+            });
+
+            it('pushes a new snapshot at its own version, without bumping', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    changeType: 'MAJOR',
+                    file: 'arch.json'
+                });
+
+                expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+                expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                    expect.objectContaining({ version: '1.1.0-SNAPSHOT' }),
+                    expect.any(String)
+                );
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'created', version: '1.1.0-SNAPSHOT' })
+                );
+            });
+
+            it('overwrites an existing snapshot that has changed, even with --fail-if-modified', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(
+                    JSON.parse(snapshotDoc({ description: '', nodes: [{ 'unique-id': 'old' }] }))
+                );
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json',
+                    failIfModified: true
+                });
+
+                expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-arch', '1.1.0-SNAPSHOT', 'architectures');
+                expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                    expect.objectContaining({ version: '1.1.0-SNAPSHOT' }),
+                    expect.any(String)
+                );
+            });
+
+            it('skips an existing snapshot whose content is unchanged', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.1.0-SNAPSHOT']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(
+                    JSON.parse(snapshotDoc({ description: '' }))
+                );
+
+                await runPushArchitecture({
+                    calmHubOptions: { calmHubUrl: 'http://hub' },
+                    file: 'arch.json'
+                });
+
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.1.0-SNAPSHOT' })
+                );
+            });
+        });
+
         it('writes the updated document id back to disk after pushing', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(

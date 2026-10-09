@@ -707,7 +707,7 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 
 ### `calm hub push`
 
-Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
+Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published release (or creates the mapping at `1.0.0` if it doesn't exist yet). A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version and overwrites the snapshot in CalmHub, or is skipped if unchanged. `--change-type` and `--fail-if-modified` do not apply to it.
 
 ```
 calm hub push <architecture|pattern|standard|interface|control-requirement|control-configuration> <file> [options]
@@ -939,7 +939,7 @@ For each tracked document, push looks up the existing versions in CalmHub:
   - `false` — logs and skips.
   - `true` — reports the conflict and fails the push (strict; good for merge-time CI). Run `bump` first to create a new version.
 
-A `-SNAPSHOT` version is always overwritten regardless of `--fail-if-modified` — CalmHub treats it as mutable. Push also refuses to publish a non-snapshot document that references a tracked document still at a `-SNAPSHOT` version; release that dependency first.
+A changed `-SNAPSHOT` version is overwritten regardless of `--fail-if-modified` — CalmHub treats it as mutable. An unchanged snapshot is skipped. Push also refuses to publish a non-snapshot document that references a tracked document still at a `-SNAPSHOT` version; run `workspace release` on that dependency first.
 
 ```shell
 calm workspace push                              # URL from ~/.calm.json
@@ -1024,7 +1024,7 @@ Mark a tracked document as a mutable `-SNAPSHOT` version, so it can be pushed an
 calm workspace snapshot [id] [--calm-hub-url <url>] [--major | --minor | --patch]
 ```
 
-If `id` is omitted, you're prompted to pick from tracked documents. If the on-disk version is already published in CalmHub, it's bumped first (from the highest published release, not the on-disk version) using the given increment (or `bump.defaultIncrement`), then `-SNAPSHOT` is appended. Only `pattern`, `architecture`, `standard` and `interface` documents support this — it mirrors CalmHub's own `-SNAPSHOT` support.
+If `id` is omitted, you're prompted to pick from tracked documents. If the on-disk version is already published in CalmHub, it's bumped first (from the highest published release, not the on-disk version) using the given increment (or `bump.defaultIncrement`), then `-SNAPSHOT` is appended. If that snapshot version already exists in CalmHub (for example, a colleague's), a warning is shown: the next push overwrites it. Only `pattern`, `architecture`, `standard` and `interface` documents support this — it mirrors CalmHub's own `-SNAPSHOT` support.
 
 #### `calm workspace release`
 
