@@ -18,15 +18,21 @@ export class ChainReferenceResolver implements CalmReferenceResolver {
     }
 
     async resolve(ref: string): Promise<unknown> {
+        let lastError: unknown;
         for (const resolver of this.resolvers) {
             if (resolver.canResolve(ref)) {
                 try {
                     return await resolver.resolve(ref);
-                } catch {
-                    // Try next resolver in chain
+                } catch (error) {
+                    lastError = error;
                 }
             }
         }
-        throw new Error(`No resolver in chain could resolve: ${ref}`);
+        const reason = lastError instanceof Error ? `: ${lastError.message}` : '';
+        const error = new Error(`No resolver in chain could resolve: ${ref}${reason}`);
+        if (lastError) {
+            (error as unknown as Record<string, unknown>).cause = lastError;
+        }
+        throw error;
     }
 }

@@ -17,9 +17,9 @@ describe('CurieReferenceResolver', () => {
             const delegate = createMockDelegate(true);
             const resolver = new CurieReferenceResolver(hubBaseUrl, delegate);
 
-            expect(resolver.canResolve('fae-calm:building-blocks:my-block@a1b2c3d')).toBe(true);
+            expect(resolver.canResolve('fae-calm:patterns:my-block@a1b2c3d')).toBe(true);
             expect(delegate.canResolve).toHaveBeenCalledWith(
-                'http://hub.example.com/calm/namespaces/fae-calm/building-blocks/my-block/versions/a1b2c3d'
+                'http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d'
             );
         });
 
@@ -35,9 +35,9 @@ describe('CurieReferenceResolver', () => {
             const delegate = createMockDelegate(false);
             const resolver = new CurieReferenceResolver(hubBaseUrl, delegate);
 
-            expect(resolver.canResolve('fae-calm:building-blocks:my-block@a1b2c3d')).toBe(false);
+            expect(resolver.canResolve('fae-calm:patterns:my-block@a1b2c3d')).toBe(false);
             expect(delegate.canResolve).toHaveBeenCalledWith(
-                'http://hub.example.com/calm/namespaces/fae-calm/building-blocks/my-block/versions/a1b2c3d'
+                'http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d'
             );
         });
     });
@@ -48,25 +48,20 @@ describe('CurieReferenceResolver', () => {
             const delegate = createMockDelegate(true, expectedData);
             const resolver = new CurieReferenceResolver(hubBaseUrl, delegate);
 
-            const result = await resolver.resolve('fae-calm:building-blocks:my-block@a1b2c3d');
+            const result = await resolver.resolve('fae-calm:patterns:my-block@a1b2c3d');
 
             expect(result).toEqual(expectedData);
             expect(delegate.resolve).toHaveBeenCalledWith(
-                'http://hub.example.com/calm/namespaces/fae-calm/building-blocks/my-block/versions/a1b2c3d'
+                'http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d'
             );
         });
 
-        it('expands CURIE without version correctly', async () => {
-            const expectedData = { name: 'latest' };
-            const delegate = createMockDelegate(true, expectedData);
+        it('throws for CURIE without version', async () => {
+            const delegate = createMockDelegate(true);
             const resolver = new CurieReferenceResolver(hubBaseUrl, delegate);
 
-            const result = await resolver.resolve('fae-calm:patterns:api-gateway');
-
-            expect(result).toEqual(expectedData);
-            expect(delegate.resolve).toHaveBeenCalledWith(
-                'http://hub.example.com/calm/namespaces/fae-calm/patterns/api-gateway'
-            );
+            await expect(resolver.resolve('fae-calm:patterns:api-gateway'))
+                .rejects.toThrow('requires a version for Hub resolution');
         });
     });
 });

@@ -5,7 +5,7 @@ export function mergeControls(
     const merged = { ...existing };
     for (const [key, value] of Object.entries(incoming)) {
         if (!(key in merged)) {
-            merged[key] = JSON.parse(JSON.stringify(value));
+            merged[key] = structuredClone(value);
         }
     }
     return merged;
