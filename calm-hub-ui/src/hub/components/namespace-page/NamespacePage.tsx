@@ -70,7 +70,7 @@ export function NamespacePage({ namespace, counts }: NamespacePageProps) {
 
     return (
         <div className="h-full overflow-auto bg-base-100" style={{ padding: '32px 40px' }}>
-            <NamespacePageHeader namespace={namespace} total={counts?.total} />
+            <NamespacePageHeader namespace={namespace} total={counts?.total} description={counts?.description} />
 
             <div className="mt-6">
                 <SegmentedTypeTabs types={tabs} active={active} onSelect={select} />
