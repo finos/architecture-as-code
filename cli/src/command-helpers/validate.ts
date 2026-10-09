@@ -1,4 +1,5 @@
 import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, HttpReferenceResolver } from '@finos/calm-shared';
+
 import path from 'path';
 import { mkdirp } from 'mkdirp';
 import { readFileSync, writeFileSync } from 'fs';
@@ -105,14 +106,11 @@ function getErrorCause(error: unknown): unknown {
 
 
 /**
- * Build the CURIE resolution chain based on CLI options.
- * Order: SHA cache → local path → Hub → HTTP (absolute URLs)
- * Returns undefined if no CURIE resolution is configured.
+ * CURIE resolution chain: SHA cache → local assets → Hub.
+ * Other references fall through to the schema directory's document loader.
  */
-function buildCurieResolverChain(options: ValidateOptions): CalmReferenceResolver | undefined {
-    const resolvers: CalmReferenceResolver[] = [];
-
-    resolvers.push(new ShaCacheReferenceResolver());
+function buildCurieResolverChain(options: ValidateOptions): CalmReferenceResolver {
+    const resolvers: CalmReferenceResolver[] = [new ShaCacheReferenceResolver()];
 
     if (options.assetsPath) {
         resolvers.push(new LocalCurieReferenceResolver(path.resolve(options.assetsPath)));
@@ -122,9 +120,7 @@ function buildCurieResolverChain(options: ValidateOptions): CalmReferenceResolve
         resolvers.push(new CurieReferenceResolver(options.calmHubUrl, new HttpReferenceResolver()));
     }
 
-    resolvers.push(new HttpReferenceResolver());
-
-    return resolvers.length > 0 ? new ChainReferenceResolver(resolvers) : undefined;
+    return new ChainReferenceResolver(resolvers);
 }
 
 export function writeOutputFile(output: string, validationsOutput: string) {

@@ -9,8 +9,12 @@ export class CurieReferenceResolver implements CalmReferenceResolver {
 
     canResolve(ref: string): boolean {
         if (!isCurie(ref)) return false;
-        const expanded = expandCurie(ref, this.hubBaseUrl);
-        return this.delegate.canResolve(expanded);
+        try {
+            const expanded = expandCurie(ref, this.hubBaseUrl);
+            return this.delegate.canResolve(expanded);
+        } catch {
+            return false;
+        }
     }
 
     async resolve(ref: string): Promise<unknown> {

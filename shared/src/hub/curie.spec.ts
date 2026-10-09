@@ -3,11 +3,11 @@ import { isCurie, parseCurie, expandCurie, CurieComponents } from './curie.js';
 
 describe('isCurie', () => {
     it('returns true for a valid CURIE with version', () => {
-        expect(isCurie('fae-calm:building-blocks:my-block@a1b2c3d')).toBe(true);
+        expect(isCurie('fae-calm:patterns:my-block@a1b2c3d')).toBe(true);
     });
 
     it('returns true for a valid CURIE without version', () => {
-        expect(isCurie('fae-calm:building-blocks:my-block')).toBe(true);
+        expect(isCurie('fae-calm:patterns:my-block')).toBe(true);
     });
 
     it('returns true for simple namespaces', () => {
@@ -38,27 +38,36 @@ describe('isCurie', () => {
         expect(isCurie('foo:bar:baz:qux')).toBe(false);
     });
 
-    it('returns false when namespace contains a dot (e.g. domain-like)', () => {
-        expect(isCurie('example.com:type:slug')).toBe(false);
+    it('returns true when namespace contains dots (Hub allows dotted namespaces)', () => {
+        expect(isCurie('example.com:type:Slug')).toBe(true);
+    });
+
+    it('returns false when slug starts with a digit', () => {
+        expect(isCurie('ns:type:1bad')).toBe(false);
+    });
+
+    it('returns false when segments contain path traversal', () => {
+        expect(isCurie('ns:../../x:Slug')).toBe(false);
+        expect(isCurie('ns:type:Slug@../../../x')).toBe(false);
     });
 });
 
 describe('parseCurie', () => {
     it('extracts components correctly with version', () => {
-        const result = parseCurie('fae-calm:building-blocks:my-block@a1b2c3d');
+        const result = parseCurie('fae-calm:patterns:my-block@a1b2c3d');
         expect(result).toEqual({
             namespace: 'fae-calm',
-            type: 'building-blocks',
+            type: 'patterns',
             slug: 'my-block',
             version: 'a1b2c3d',
         } satisfies CurieComponents);
     });
 
     it('extracts components correctly without version', () => {
-        const result = parseCurie('fae-calm:building-blocks:my-block');
+        const result = parseCurie('fae-calm:patterns:my-block');
         expect(result).toEqual({
             namespace: 'fae-calm',
-            type: 'building-blocks',
+            type: 'patterns',
             slug: 'my-block',
         } satisfies CurieComponents);
     });
@@ -90,13 +99,13 @@ describe('expandCurie', () => {
     const hubBaseUrl = 'http://hub.example.com';
 
     it('produces correct Hub URL with version', () => {
-        const result = expandCurie('fae-calm:building-blocks:my-block@a1b2c3d', hubBaseUrl);
-        expect(result).toBe('http://hub.example.com/calm/namespaces/fae-calm/building-blocks/my-block/versions/a1b2c3d');
+        const result = expandCurie('fae-calm:patterns:my-block@a1b2c3d', hubBaseUrl);
+        expect(result).toBe('http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d');
     });
 
-    it('produces correct Hub URL without version (no /versions/ suffix)', () => {
-        const result = expandCurie('fae-calm:building-blocks:my-block', hubBaseUrl);
-        expect(result).toBe('http://hub.example.com/calm/namespaces/fae-calm/building-blocks/my-block');
+    it('throws when CURIE has no version', () => {
+        expect(() => expandCurie('fae-calm:patterns:my-block', hubBaseUrl))
+            .toThrow('requires a version for Hub resolution');
     });
 
     it('returns input unchanged if not a CURIE', () => {
@@ -109,8 +118,8 @@ describe('expandCurie', () => {
         expect(expandCurie(path, hubBaseUrl)).toBe(path);
     });
 
-    it('handles trailing slash in hubBaseUrl gracefully', () => {
-        const result = expandCurie('ns:type:slug@v1', 'http://hub.example.com/');
-        expect(result).toBe('http://hub.example.com//calm/namespaces/ns/type/slug/versions/v1');
+    it('strips trailing slash from hubBaseUrl', () => {
+        const result = expandCurie('ns:type:Slug@v1', 'http://hub.example.com/');
+        expect(result).toBe('http://hub.example.com/calm/namespaces/ns/type/Slug/versions/v1');
     });
 });

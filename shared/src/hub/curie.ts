@@ -5,13 +5,11 @@ export interface CurieComponents {
     version?: string;
 }
 
+// namespace:type:slug[@version], using the segment rules that CALM Hub enforces
+const CURIE_PATTERN = /^[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*:[A-Za-z0-9-]+:[A-Za-z][A-Za-z0-9]*(-[A-Za-z0-9]+)*(@[A-Za-z0-9.-]+)?$/;
+
 export function isCurie(ref: string): boolean {
-    // A CURIE has exactly 2 colons separating 3 segments, no slashes before the first colon
-    // Pattern: word:word:word (optionally word:word:word@sha)
-    const parts = ref.split(':');
-    if (parts.length !== 3) return false;
-    // First segment (namespace) must not contain slashes or dots (distinguishes from URLs)
-    return !parts[0].includes('/') && !parts[0].includes('.');
+    return CURIE_PATTERN.test(ref);
 }
 
 export function parseCurie(curie: string): CurieComponents | null {
@@ -31,10 +29,10 @@ export function parseCurie(curie: string): CurieComponents | null {
 
 export function expandCurie(curie: string, hubBaseUrl: string): string {
     const components = parseCurie(curie);
-    if (!components) return curie; // Not a CURIE, return as-is
-    const base = `${hubBaseUrl}/calm/namespaces/${components.namespace}/${components.type}/${components.slug}`;
-    if (components.version) {
-        return `${base}/versions/${components.version}`;
+    if (!components) return curie;
+    const base = hubBaseUrl.replace(/\/+$/, '');
+    if (!components.version) {
+        throw new Error(`CURIE '${curie}' requires a version for Hub resolution (e.g. ${curie}@1.0.0)`);
     }
-    return base;
+    return `${base}/calm/namespaces/${components.namespace}/${components.type}/${components.slug}/versions/${components.version}`;
 }

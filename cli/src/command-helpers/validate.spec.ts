@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest, ChainReferenceResolver } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -264,9 +264,9 @@ describe('runValidate', () => {
 
         await runValidate(options);
 
-        expect(validate).toHaveBeenCalledWith(
-            dummyArch, dummyPattern, undefined, expect.anything(), false, expect.anything()
-        );
+        const resolverArg = (validate as Mock).mock.calls[0][5];
+        expect(resolverArg).toBeInstanceOf(ChainReferenceResolver);
+        expect(resolverArg.canResolve('https://example.com/doc.json')).toBe(false);
     });
 
     it('should exit 1 when neither architecture, pattern, nor timeline is resolved', async () => {

@@ -46,7 +46,14 @@ describe('ChainReferenceResolver', () => {
         const r1 = mockResolver(false);
         const chain = new ChainReferenceResolver([r1]);
 
-        await expect(chain.resolve('unknown:ref')).rejects.toThrow('No resolver in chain could resolve');
+        await expect(chain.resolve('unknown:ref')).rejects.toThrow('No resolver in chain could resolve: unknown:ref');
+    });
+
+    it('includes the last error message when all resolvers fail', async () => {
+        const r1 = mockResolver(true, undefined, true);
+        const chain = new ChainReferenceResolver([r1]);
+
+        await expect(chain.resolve('some:ref')).rejects.toThrow('No resolver in chain could resolve: some:ref: resolver failed');
     });
 
     it('canResolve returns true if any resolver can handle it', () => {
