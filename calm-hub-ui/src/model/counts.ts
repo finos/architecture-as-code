@@ -6,9 +6,10 @@
  * - `GET /api/calm/domains/counts`    → `{ values: DomainControlCount[] }`
  */
 
-/** Per-namespace, per-resource-type counts. `total` is the sum of the six types. */
+/** Per-namespace description and per-resource-type counts. `total` is the sum of the six types. */
 export interface NamespaceCounts {
     namespace: string;
+    description?: string;
     architectures: number;
     patterns: number;
     flows: number;

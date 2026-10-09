@@ -7,6 +7,7 @@ import { indentFor, isNamespace, type NamespaceRow } from '../explore-rail/names
 
 interface MobileNamespaceRowProps {
     row: NamespaceRow;
+    description?: string;
     active: boolean;
     onToggleCollapsed: (path: string) => void;
     onOpen: (namespace: string) => void;
@@ -18,7 +19,7 @@ interface MobileNamespaceRowProps {
  * types) are separate 44px-tall tap targets, split by a hairline divider —
  * a `<button>` inside a `<button>` is invalid, and the two do different things.
  */
-export function MobileNamespaceRow({ row, active, onToggleCollapsed, onOpen }: MobileNamespaceRowProps) {
+export function MobileNamespaceRow({ row, description, active, onToggleCollapsed, onOpen }: MobileNamespaceRowProps) {
     const { node, hasChildren, collapsed, depth, descendantTotal } = row;
     const namespaceRow = isNamespace(node);
 
@@ -58,11 +59,18 @@ export function MobileNamespaceRow({ row, active, onToggleCollapsed, onOpen }: M
                     }}
                     onClick={() => onOpen(node.path)}
                 >
-                    <span
-                        className={`flex-1 min-w-0 truncate ${active ? 'font-semibold' : ''}`}
-                        style={active ? { color: colors.redesign.activeText } : undefined}
-                    >
-                        {node.segment}
+                    <span className="flex-1 min-w-0 flex flex-col">
+                        <span
+                            className={`truncate ${active ? 'font-semibold' : ''}`}
+                            style={active ? { color: colors.redesign.activeText } : undefined}
+                        >
+                            {node.segment}
+                        </span>
+                        {description && (
+                            <span className="truncate text-[12px]" style={{ color: colors.redesign.muted }}>
+                                {description}
+                            </span>
+                        )}
                     </span>
                     {collapsed && hasChildren && <NestedCountBadge count={descendantTotal} />}
                     {node.total !== null && <CountBadge count={node.total} active={active} />}
