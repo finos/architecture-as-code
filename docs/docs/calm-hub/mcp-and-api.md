@@ -57,6 +57,36 @@ GET  /calm/namespaces/{namespace}/architectures
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
+### Finding the architectures that implement a pattern
+
+```
+GET /calm/namespaces/{namespace}/patterns/{name}/versions/{version}/implementations
+```
+
+Use this before you change a pattern. It shows which architectures depend on the version you are about to change.
+
+```jsonc
+{
+  "pattern": { "namespace": "finos", "name": "api-gateway", "version": "1.0.0" },
+  "implementations": [
+    { "namespace": "finos", "architectureId": 7, "version": "1.2.0", "customId": "trade-capture" }
+  ]
+}
+```
+
+An architecture names its pattern in its own `$schema`, which `calm generate` sets to the pattern's `$id`. So the endpoint finds an architecture only when someone generated it from a pattern **fetched from this hub**. Generated from a pattern file on disk, written by hand, or posted to `/api/calm/...`, the `$schema` names something else and the architecture does not appear. CalmHub does not check the field on write.
+
+An empty list therefore has two readings, and the endpoint does not separate them: either nothing implements the pattern, or the architectures that do were never recorded in a way the hub can resolve.
+
+| | |
+|---|---|
+| Version | Any spelling works — `1.0.0`, `1-0-0` and `100` mean the same version. The response echoes the canonical form. A version that does not exist returns `404`, not an empty list. |
+| Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
+| Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. |
+| `customId` | The name on the name-based API. Omitted for an architecture created through the numeric-id API, which never had one; use `architectureId` for those. |
+
+The hub answers on demand and caches nothing, reading the architectures you are allowed to see. See [ADR 0008](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0008-pattern-implementations-read-the-architecture-schema.md) for why the link is resolved at request time rather than stored.
+
 ### Snapshot Versions
 
 A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, and interfaces only.

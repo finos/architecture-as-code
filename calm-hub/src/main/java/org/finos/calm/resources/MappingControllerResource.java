@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.audit.AuditAction;
@@ -22,6 +23,12 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.MappingControllerService;
+import org.finos.calm.services.PatternImplementationService;
+import org.finos.calm.domain.implementations.PatternImplementations;
+import org.finos.calm.security.UserAccessValidator;
+import jakarta.enterprise.inject.Instance;
+import java.util.Optional;
+import java.util.Set;
 import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +73,8 @@ public class MappingControllerResource {
     private final MappingControllerService service;
     private final CalmDocumentParser documentParser;
     private final CalmHubPermissionChecker permissionChecker;
+    private final PatternImplementationService patternImplementationService;
+    private final Instance<UserAccessValidator> userAccessValidatorInstance;
 
     @Inject
     SecurityIdentity identity;
@@ -74,12 +83,20 @@ public class MappingControllerResource {
     Boolean allowPutOperations;
 
     @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
+
+    @Inject
     public MappingControllerResource(MappingControllerService service,
                                      CalmDocumentParser documentParser,
-                                     CalmHubPermissionChecker permissionChecker) {
+                                     CalmHubPermissionChecker permissionChecker,
+                                     PatternImplementationService patternImplementationService,
+                                     Instance<UserAccessValidator> userAccessValidatorInstance) {
         this.service = service;
         this.documentParser = documentParser;
         this.permissionChecker = permissionChecker;
+        this.patternImplementationService = patternImplementationService;
+        this.userAccessValidatorInstance = userAccessValidatorInstance;
     }
 
     // =========================================================================
@@ -738,5 +755,43 @@ public class MappingControllerResource {
     private Response invalidJsonResponse(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Invalid JSON: " + message).build();
+    }
+
+    // =========================================================================
+    // GET /calm/namespaces/{ns}/patterns/{name}/versions/{v}/implementations
+    // =========================================================================
+
+    @GET
+    @Path("namespaces/{namespace}/patterns/{name}/versions/{version}/implementations")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Architectures implementing a pattern version",
+            description = "Returns the architecture versions whose $schema names this pattern version, for assessing "
+                    + "the blast radius of a pattern change. Matching reads the path of the $schema and never the "
+                    + "host, so a reference survives the hub moving, and it is pinned to one pattern version. An "
+                    + "architecture records its pattern only when it was generated from one fetched from this hub, "
+                    + "so an empty list does not distinguish a pattern nothing implements from a set of "
+                    + "architectures that record no pattern at all. Supports optional limit and offset; "
+                    + "the default returns every match, because a truncated blast radius reads as a safe one."
+    )
+    @APIResponse(responseCode = "200", description = "Architecture versions naming this pattern version")
+    @APIResponse(responseCode = "400", description = "Namespace, pattern name or version is malformed")
+    @APIResponse(responseCode = "403", description = "The caller may not read the pattern's namespace")
+    @APIResponse(responseCode = "404", description = "Pattern or version not found")
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getPatternImplementations(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
+            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            @Valid @BeanParam PaginationQueryParams page
+    ) {
+        Optional<Set<String>> readableNamespaces = ReadableScope.resolve(
+                authEnabled, userAccessValidatorInstance, identity, UserAccessValidator::getReadableNamespaces);
+
+        return patternImplementationService
+                .findImplementations(namespace, name, version, readableNamespaces, page.toPageRequest())
+                .map(implementations -> Response.ok(implementations).build())
+                .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
+                        .entity("{\"error\":\"Pattern version not found\"}").build());
     }
 }
