@@ -217,7 +217,31 @@ It still passes with no warnings ✅ — the candidates are optional.
 Now add a cache:
 
 1. Copy `architectures/generated-webapp.json` to `architectures/cached-webapp.json`
-2. Add an `app-cache` node, and an `api-to-cache` relationship from `api-service` to it
+2. Add this node to `nodes`. The pattern requires its `unique-id`, `node-type` and `name`, and the CALM node schema requires a `description`:
+
+```json
+{
+  "unique-id": "app-cache",
+  "node-type": "database",
+  "name": "Application Cache",
+  "description": "Caches API responses"
+}
+```
+
+3. Add this relationship to `relationships`:
+
+```json
+{
+  "unique-id": "api-to-cache",
+  "description": "API Service reads from and writes to the cache",
+  "relationship-type": {
+    "connects": {
+      "source": { "node": "api-service" },
+      "destination": { "node": "app-cache" }
+    }
+  }
+}
+```
 
 ```bash
 calm validate -p patterns/web-app-pattern.json -a architectures/cached-webapp.json
@@ -234,7 +258,7 @@ Last, add a node that the pattern does not list:
 calm validate -p patterns/web-app-pattern.json -a architectures/unlisted-webapp.json
 ```
 
-Should fail ❌ — the error `must be equal to constant (expected "app-cache")` shows that every added node must match a candidate.
+Should fail ❌ — among the errors, `must be equal to constant` shows that every added node must match a candidate.
 
 `calm generate` does not add the candidates. To offer them as a choice, see [The `options` relationship](../../core-concepts/patterns.md#the-options-relationship).
 
@@ -260,7 +284,7 @@ Generated architectures use placeholders as signals:
 
 ### Pattern vs Architecture
 
-A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra nodes, relationships, interfaces, and metadata — Patterns only constrain what they explicitly specify. A Pattern that declares `items` does constrain those extras: each one must match a candidate it lists.
+A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra elements, unless `maxItems` or `items` limits them — Patterns only constrain what they explicitly specify. `maxItems` limits how many elements an array holds. With `items`, each extra element must match a candidate the Pattern lists.
 
 ## Resources
 

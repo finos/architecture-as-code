@@ -218,7 +218,7 @@ A pattern can express "optional" in three ways:
 | Optional extras, zero or more | `items` holding `anyOf` or `oneOf` | The cache and the message queue above |
 | A decision that `calm generate` asks about | An `options` relationship | See below |
 
-A `prefixItems` entry is one position. It holds exactly one element, which must match one of its alternatives. An architecture can omit an entry only when it is the last one. If it omits an earlier entry, each element after it takes the position before, and no longer matches. For elements that are truly optional, use `items`.
+A `prefixItems` entry is one position. It holds exactly one element, which must match one of its alternatives. An architecture can omit an entry only when it is the last one and `minItems` does not count it. If it omits an earlier entry, each element after it takes the position before, and no longer matches. For elements that are truly optional, use `items`.
 
 ### The `options` relationship
 

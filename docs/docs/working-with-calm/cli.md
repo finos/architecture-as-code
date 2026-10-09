@@ -133,7 +133,7 @@ For each options relationship in the pattern, the CLI will ask you to select a c
 - **`oneOf`** options present a single-select prompt — you must pick exactly one.
 - **`anyOf`** options present a multi-select prompt — you can pick any number, including none.
 
-A choice of none is valid only if the pattern can hold it. Declare the candidates in `items`, or in the last `prefixItems` position. A `prefixItems` position before a required node cannot be left empty.
+A choice of none is valid only if the pattern can hold it. Declare the candidates in `items`, or in the last `prefixItems` position. A `prefixItems` position before a required node cannot be left empty. For the last position, `minItems` must not count it: a choice of none removes the whole position, and `calm validate` then reports too few items.
 
 #### Pre-defining choices non-interactively
 

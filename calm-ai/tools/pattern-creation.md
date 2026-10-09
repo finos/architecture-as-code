@@ -741,7 +741,7 @@ The CLI will prompt for choices when encountering `anyOf`/`oneOf` options, or yo
 6. A node or relationship declared under `items` must sit inside `oneOf` or `anyOf`
 7. `maxItems` must leave room for an `items` member beyond the `prefixItems` entries
 8. Declare a decision in `relationships.prefixItems`, never under `items`
-9. Declare `oneOf` or `anyOf` beside an element, never both
+9. Declare `oneOf` or `anyOf` in a `prefixItems` entry or an `items` block, never both
 10. All constraint properties must be valid JSON schema constructs
 11. Pattern should be testable with `calm validate -p <pattern-file>`
 
