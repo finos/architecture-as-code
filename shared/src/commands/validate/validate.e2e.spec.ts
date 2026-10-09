@@ -62,6 +62,18 @@ describe('validate E2E', () => {
         expect(response.hasErrors).toBeFalsy();
     });
 
+    it('reports a decision with no answer against the pattern instead of throwing', async () => {
+        const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
+        const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));
+        inputArch.relationships[0]['relationship-type'].options = [];
+
+        const response = await validate(inputArch, inputPattern, undefined, schemaDirectory, true);
+
+        // This pattern's decision is a oneOf that requires an answer.
+        expect(response.jsonSchemaValidationOutputs.map(o => o.path))
+            .toEqual(['/relationships/0/relationship-type/options']);
+    });
+
     it('validates architecture against pattern with options', async () => {
         const inputPattern = JSON.parse(readFileSync(inputPatternPath, 'utf-8'));
         const inputArch = JSON.parse(readFileSync(inputArchPath, 'utf-8'));

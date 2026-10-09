@@ -409,6 +409,25 @@ describe('validation support functions', () => {
             const choices = extractChoicesFromArchitecture(architecture);
             expect(choices).toHaveLength(2);
         });
+
+        it('records no choice for a decision with no answer', async () => {
+            // An anyOf decision may be answered with nothing, and calm generate writes that as [].
+            const architecture = {
+                relationships: [
+                    { 'unique-id': 'rel-1', 'relationship-type': { options: [] } },
+                    {
+                        'unique-id': 'rel-2',
+                        'relationship-type': {
+                            options: [
+                                { 'description': 'Option A', 'nodes': ['node-4'], 'relationships': [] }
+                            ]
+                        }
+                    }
+                ]
+            };
+            const choices = extractChoicesFromArchitecture(architecture);
+            expect(choices.map(choice => choice.description)).toEqual(['Option A']);
+        });
     });
 });
 
