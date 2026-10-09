@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.exception.GitHubOperationNotSupportedException;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.junit.jupiter.api.Test;
 
@@ -32,5 +33,17 @@ class TestUnsupportedOperationExceptionMapperShould {
         Response response = mapper.toResponse(ex);
 
         assertThat(response.getMediaType().toString(), equalTo("application/json"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void return_501_for_a_non_write_github_operation() {
+        GitHubOperationNotSupportedException ex = new GitHubOperationNotSupportedException("Not meaningful in GitHub mode");
+
+        Response response = mapper.toResponse(ex);
+
+        assertThat(response.getStatus(), equalTo(501));
+        Map<String, String> body = (Map<String, String>) response.getEntity();
+        assertThat(body.get("error"), equalTo("Not meaningful in GitHub mode"));
     }
 }
