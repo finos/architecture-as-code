@@ -7,7 +7,7 @@ import {
     type MappingWorkspaceManifestEntry,
     type NarrativeWorkspaceManifestEntry,
 } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
+import { buildRefRulesFromDiskIds, syncReferences, partitionBySnapshot, isSnapshotRule, RefUpdateResult } from './ref-rewrite';
 import {
     CalmHubClient,
     ResourceChangeType,
@@ -15,8 +15,9 @@ import {
     extractDocumentMetadata,
     constructDocumentId,
     computeSemVerBump,
-    sortSemVer,
+    latestReleaseVersion,
     canonicalEqual,
+    isSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -42,8 +43,11 @@ const logger: Logger = initLogger(false, 'workspace');
  *
  * Unlike `updateDocumentMetadata` this parses/stringifies the document exactly once and only
  * touches `description` when it was already present, leaving description-less documents untouched.
+ *
+ * Exported for reuse by `snapshot.ts`, which applies the same `$id`/`title`/`description` rewrite
+ * when marking a document as a snapshot or releasing one.
  */
-function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
+export function applyVersionToDocument(raw: string, metadata: DocumentMetadata): string {
     const json = JSON.parse(raw);
     json['$id'] = constructDocumentId(metadata);
     json['title'] = metadata.name;
@@ -108,6 +112,8 @@ export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeTy
  *
  * Per document (identity comes from the `$id`):
  *  - unmappable `$id` → warn and skip
+ *  - on-disk version is a `-SNAPSHOT` → skip; it's mutable, `workspace push` overwrites it in
+ *    place and no bump is ever required
  *  - no versions in CalmHub (brand-new resource) → skip (push will create it; nothing to bump)
  *  - on-disk version not present in CalmHub → skip — it is already ahead (bumped, not yet pushed);
  *    this is the idempotency guard that prevents a second bump from incrementing again
@@ -192,7 +198,7 @@ function prepareChangedNarrativeEntry(
         if (narrativeMarkdownEqual(raw, remote.documentMarkdown)) return undefined;
         return {
             id, filePath, currentVersion: version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1], kind: 'narrative',
+            latestHubVersion: latestReleaseVersion(versions), kind: 'narrative',
         };
     };
 }
@@ -214,6 +220,7 @@ function prepareChangedMappingEntry(
         logger.warn(`Skipping '${id}': document $id has no namespace.`);
         return undefined;
     }
+    if (isSnapshotVersion(metadata.version)) return undefined; // mutable; push overwrites, no bump needed
 
     return async () => {
         let versions: string[];
@@ -242,7 +249,7 @@ function prepareChangedMappingEntry(
             filePath,
             metadata,
             currentVersion: metadata.version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1],
+            latestHubVersion: latestReleaseVersion(versions),
             kind: 'mapping',
         };
     };
@@ -298,7 +305,7 @@ export async function bumpWorkspace(
             continue;
         }
         const raw = await readFile(c.filePath, 'utf8');
-        const updated = bumpDocumentContent(raw, { ...c.metadata, version: toVersion });
+        const updated = applyVersionToDocument(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
         bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
         appliedIncrements.set(c.id, docIncrement);
@@ -319,7 +326,12 @@ export async function bumpWorkspace(
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
         const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-        const refUpdates = await syncReferences(bundlePath, manifest, rules);
+        // A release is only relinked to a snapshot by snapshotting it deliberately, never by a cascade.
+        const { snapshots, releases } = await partitionBySnapshot(bundlePath, manifest);
+        const refUpdates = [
+            ...await syncReferences(bundlePath, snapshots, rules),
+            ...await syncReferences(bundlePath, releases, rules.filter(rule => !isSnapshotRule(rule))),
+        ];
         allRefUpdates.push(...refUpdates);
 
         const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));
@@ -353,12 +365,18 @@ export async function bumpWorkspace(
                 continue;
             }
 
+            if (isSnapshotVersion(metadata.version)) {
+                // Already mutable; bumping would strip the suffix and promote it to a release.
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
             const cascadeIncrement = options.getCascadeIncrement
                 ? await options.getCascadeIncrement(candidate.docId, triggerLabel, cascadeDefault)
                 : cascadeDefault;
 
             const toVersion = computeSemVerBump(metadata.version, cascadeIncrement);
-            const updated = bumpDocumentContent(raw, { ...metadata, version: toVersion });
+            const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
             await writeFile(filePath, updated, 'utf8');
             bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion, triggeredBy: triggerLabel, increment: cascadeIncrement });
             appliedIncrements.set(candidate.docId, cascadeIncrement);

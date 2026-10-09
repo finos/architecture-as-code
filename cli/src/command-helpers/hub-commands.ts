@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -234,10 +234,12 @@ export async function pushDocument(
         name,
         description
     };
+    if (isSnapshotVersion(metadata.version)) {
+        return pushSnapshot(client, namespace, mappedResourceVersions, newDocumentMetadata, fileContent, options);
+    }
+
     if (mappingExists) {
-        // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
-        const sortedVersions = sortSemVer(mappedResourceVersions);
-        const latestVersion = sortedVersions[sortedVersions.length - 1];
+        const latestVersion = latestReleaseVersion(mappedResourceVersions);
 
         if (options.failIfModified) {
             // Strict mode: don't auto-bump. Compare the local document to the latest published
@@ -270,6 +272,31 @@ export async function pushDocument(
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return { action: 'created', metadata: newDocumentMetadata };
+}
+
+/**
+ * A snapshot is mutable, so it is pushed at its own version and never bumped. CalmHub overwrites
+ * an existing snapshot in place; an unchanged one is skipped, as each POST is an audit update.
+ * `--fail-if-modified` does not apply.
+ */
+async function pushSnapshot(
+    client: CalmHubClient,
+    namespace: string,
+    existingVersions: string[],
+    metadata: DocumentMetadata,
+    fileContent: string,
+    options: PushOptions): Promise<PushDocumentResult> {
+
+    const normalised = updateDocumentMetadata(fileContent, metadata);
+    if (existingVersions.includes(metadata.version)) {
+        const published = await client.getMappedResourceByVersion(namespace, metadata.mapping, metadata.version, metadata.type);
+        const requestLabel = `push ${metadata.type} ${options.file}`;
+        if (isUnchangedFromPublished(normalised, published, metadata.mapping, requestLabel)) {
+            return { action: 'skipped', metadata };
+        }
+    }
+    await client.createMappedResourceVersion(metadata, normalised);
+    return { action: 'created', metadata };
 }
 
 /**

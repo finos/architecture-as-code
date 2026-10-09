@@ -8,6 +8,7 @@ import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
+import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations } from './snapshot';
 import { runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
@@ -562,7 +563,15 @@ export function setupWorkspaceCommands(program: Command) {
                     }
                 }
 
-                if (needsBump || validationFailed) {
+                // A document that is not itself a snapshot must not reference a tracked document
+                // that is still a snapshot — that would bake a reference to mutable content into
+                // what's meant to be an immutable release.
+                const snapshotViolations = await findSnapshotDependencyViolations(bundlePath);
+                for (const v of snapshotViolations) {
+                    logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first.`);
+                }
+
+                if (needsBump || validationFailed || snapshotViolations.length > 0) {
                     process.exit(1);
                 }
             } catch (err) {
@@ -587,17 +596,16 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                if ([options.major, options.minor, options.patch].filter(Boolean).length > 1) {
-                    logger.error('Cannot use --major, --minor and --patch together.');
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
+                let defaultIncrement: ResourceChangeType;
+                try {
+                    defaultIncrement = resolveIncrement(options, workspaceConfig.bump.defaultIncrement);
+                } catch (err) {
+                    logger.error(err instanceof Error ? err.message : String(err));
                     process.exit(1);
                 }
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
-
-                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
-                const defaultIncrement: ResourceChangeType =
-                    options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : workspaceConfig.bump.defaultIncrement;
-
                 const client = new CalmHubClient(calmHubOptions);
 
                 // Detect changed resources up-front so interactive prompts can be shown before
@@ -686,6 +694,89 @@ export function setupWorkspaceCommands(program: Command) {
                 process.exit(1);
             }
         });
+
+    workspaceCmd
+        .command('snapshot')
+        .description('Mark a tracked document as a mutable -SNAPSHOT version. Bumps it first if the current version is already published on CalmHub.')
+        .argument('[id]', 'The ID of the document to snapshot (prompted for if omitted)')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .option('--major', 'Bump major before snapshotting, if the current version is already published')
+        .option('--minor', 'Bump minor before snapshotting, if the current version is already published')
+        .option('--patch', 'Bump patch before snapshotting, if the current version is already published')
+        .action(async (id: string | undefined, options: { calmHubUrl?: string; major?: boolean; minor?: boolean; patch?: boolean }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const workspaceConfig = await loadWorkspaceConfig(findProjectRoot(process.cwd()));
+                let increment: ResourceChangeType;
+                try {
+                    increment = resolveIncrement(options, workspaceConfig.bump.defaultIncrement);
+                } catch (err) {
+                    logger.error(err instanceof Error ? err.message : String(err));
+                    process.exit(1);
+                }
+
+                const manifest = await loadManifest(bundlePath);
+                const docIds = Object.keys(manifest);
+                if (docIds.length === 0) {
+                    logger.info('No documents currently tracked in workspace bundle.');
+                    return;
+                }
+                id = await enforceOptionPresenceByPrompt(id, 'Select a document to snapshot:', docIds);
+
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
+                const result = await markAsSnapshot(bundlePath, id, client, { increment });
+                logger.info(`'${result.id}': ${result.fromVersion} -> ${result.toVersion}`);
+            } catch (err) {
+                logger.error('Failed to snapshot document: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+
+    workspaceCmd
+        .command('release')
+        .description('Strip the -SNAPSHOT suffix from a tracked document, turning it back into an immutable release version.')
+        .argument('[id]', 'The ID of the document to release (prompted for if omitted)')
+        .option('--calm-hub-url <url>', 'CalmHub base URL (overrides ~/.calm.json)')
+        .action(async (id: string | undefined, options: { calmHubUrl?: string }) => {
+            try {
+                const bundlePath = findWorkspaceManifestPath(process.cwd());
+                if (!bundlePath) {
+                    logger.error('No CALM workspace bundle found. Create one with `calm workspace init <name>`');
+                    process.exit(1);
+                }
+
+                const manifest = await loadManifest(bundlePath);
+                const docIds = Object.keys(manifest);
+                if (docIds.length === 0) {
+                    logger.info('No documents currently tracked in workspace bundle.');
+                    return;
+                }
+                id = await enforceOptionPresenceByPrompt(id, 'Select a document to release:', docIds);
+
+                const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const client = new CalmHubClient(calmHubOptions);
+                const result = await releaseSnapshot(bundlePath, id, client);
+                logger.info(`'${result.id}': ${result.fromVersion} -> ${result.toVersion}`);
+            } catch (err) {
+                logger.error('Failed to release document: ' + (err instanceof Error ? err.message : String(err)));
+                process.exit(1);
+            }
+        });
+}
+
+type IncrementFlags = { major?: boolean; minor?: boolean; patch?: boolean };
+
+function resolveIncrement(options: IncrementFlags, defaultIncrement: ResourceChangeType): ResourceChangeType {
+    if ([options.major, options.minor, options.patch].filter(Boolean).length > 1) {
+        throw new Error('Cannot use --major, --minor and --patch together.');
+    }
+    return options.major ? 'MAJOR' : options.minor ? 'MINOR' : options.patch ? 'PATCH' : defaultIncrement;
 }
 
 async function enforceOptionPresenceByPrompt(cliInput: string | undefined, prompt: string, choices?: readonly string[]): Promise<string> {
