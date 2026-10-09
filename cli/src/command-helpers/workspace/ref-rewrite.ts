@@ -32,9 +32,20 @@ export function stripVersionSuffix(ref: string): string | null {
     return m ? m[1] : null;
 }
 
+function stripFragment(ref: string): string {
+    const fragmentIdx = ref.indexOf('#');
+    return fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
+}
+
+/** The version segment at the end of a ref, ignoring any fragment, or null if it has none. */
+export function extractRefVersion(ref: string): string | null {
+    const m = stripFragment(ref).match(/\/versions\/([^/#]+)$/);
+    return m ? m[1] : null;
+}
+
 function isSnapshotPath(path: string): boolean {
-    const m = path.match(/\/versions\/([^/#]+)$/);
-    return m !== null && isSnapshotVersion(m[1]);
+    const version = extractRefVersion(path);
+    return version !== null && isSnapshotVersion(version);
 }
 
 /** Whether `rule` repoints references at a `-SNAPSHOT` version of its document. */
@@ -103,8 +114,7 @@ function matchesRuleBasePath(baseRef: string, rule: RefRule): boolean {
  * fragments.
  */
 export function findRuleForRef(ref: string, rules: RefRule[]): RefRule | null {
-    const fragmentIdx = ref.indexOf('#');
-    const baseRef = fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
+    const baseRef = stripFragment(ref);
 
     for (const rule of rules) {
         if (baseRef === rule.bareId || baseRef === rule.targetPath) return rule;

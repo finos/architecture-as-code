@@ -5,9 +5,11 @@ import { CalmHubClient } from '@finos/calm-shared';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
 
+const logger = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }));
+
 vi.mock('@finos/calm-shared', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@finos/calm-shared')>()),
-    initLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+    initLogger: () => logger,
 }));
 
 const BASE = 'https://hub.example.com';
@@ -27,6 +29,7 @@ describe('snapshot', () => {
     beforeEach(async () => {
         await rm(bundlePath, { recursive: true, force: true });
         await mkdir(filesPath, { recursive: true });
+        vi.clearAllMocks();
     });
 
     const write = (name: string, obj: object) =>
@@ -64,6 +67,25 @@ describe('snapshot', () => {
             const result = await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0', '1.1.0'] }), { increment: 'MINOR' });
 
             expect(result.toVersion).toBe('1.2.0-SNAPSHOT');
+        });
+
+        it('warns when the snapshot version already exists in CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+
+            const result = await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0', '1.1.0-SNAPSHOT'] }), { increment: 'MINOR' });
+
+            expect(result.toVersion).toBe('1.1.0-SNAPSHOT');
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringMatching(/1\.1\.0-SNAPSHOT .*already exists/));
+        });
+
+        it('does not warn when the snapshot version is new to CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+
+            await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0'] }), { increment: 'MINOR' });
+
+            expect(logger.warn).not.toHaveBeenCalled();
         });
 
         it('respects the requested increment when bumping', async () => {

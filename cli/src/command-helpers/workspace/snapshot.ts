@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, resolveFilePath, extractAllReferences, WorkspaceManifest } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, findRuleForRef, partitionBySnapshot, RefRule } from './ref-rewrite';
+import { buildRefRulesFromDiskIds, extractRefVersion, syncReferences, findRuleForRef, partitionBySnapshot, RefRule } from './ref-rewrite';
 import { applyVersionToDocument } from './bump';
 import { resolveWorkspaceDocumentType } from './document-kind';
 import {
@@ -24,14 +24,6 @@ export interface SnapshotResult {
     id: string;
     fromVersion: string;
     toVersion: string;
-}
-
-/** The version segment embedded in a ref, or null for a bare-id ref with no version. */
-function extractRefVersion(ref: string): string | null {
-    const fragmentIdx = ref.indexOf('#');
-    const baseRef = fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
-    const m = baseRef.match(/\/versions\/([^/#]+)$/);
-    return m ? m[1] : null;
 }
 
 type SnapshotContext = {
@@ -197,14 +189,18 @@ export async function markAsSnapshot(
     }
 
     let baseVersion = metadata.version;
+    let existingVersions: string[] = [];
     if (metadata.namespace) {
-        const existingVersions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
+        existingVersions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
         if (existingVersions.includes(metadata.version)) {
             baseVersion = computeSemVerBump(latestReleaseVersion(existingVersions), options.increment);
         }
     }
 
     const toVersion = toSnapshotVersion(baseVersion);
+    if (existingVersions.includes(toVersion)) {
+        logger.warn(`${toVersion} of '${id}' already exists in CalmHub. The next push overwrites it.`);
+    }
     await writeNewVersion(bundlePath, filePath, raw, metadata, toVersion);
 
     logger.info(`Snapshotted '${id}' ${metadata.version} -> ${toVersion}`);
