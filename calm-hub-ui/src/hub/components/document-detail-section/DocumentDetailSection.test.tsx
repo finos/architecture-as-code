@@ -362,6 +362,41 @@ describe('DocumentDetailSection', () => {
         expect(screen.getByText('All services must use TLS 1.2+.')).toBeInTheDocument();
     });
 
+    // jsdom cannot compute the stylesheet, so assert the scoping class and the elements it styles.
+    it('renders markdown elements inside the scoped markdown container', () => {
+        const data: Data = {
+            id: 'std-elements',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: [
+                '# Heading 1',
+                '## Heading 2',
+                '### Heading 3',
+                '#### Heading 4',
+                'A paragraph with `inline code` and a [link](https://calm.finos.org).',
+                '- item\n  - nested item',
+                '1. first\n2. second',
+                '> A quote',
+                '```\nconst x = 1;\n```',
+                '---',
+            ].join('\n\n'),
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        const markdown = container.querySelector('.calm-markdown');
+        expect(markdown).not.toBeNull();
+        expect(markdown).not.toHaveClass('prose');
+        for (const selector of ['h1', 'h2', 'h3', 'h4', 'p', 'ul ul li', 'ol li', 'p code', 'pre code', 'blockquote', 'a', 'hr']) {
+            expect(markdown!.querySelector(selector), selector).not.toBeNull();
+        }
+    });
+
     it('shows display name from markdown heading in breadcrumb', () => {
         const data: Data = {
             id: '12345',
@@ -413,7 +448,7 @@ describe('DocumentDetailSection', () => {
             </MemoryRouter>
         );
 
-        expect(container.querySelector('.prose')).toBeNull();
+        expect(container.querySelector('.calm-markdown')).toBeNull();
     });
 
     it('falls back to the document id in the breadcrumb when markdown has no heading', () => {
@@ -431,7 +466,7 @@ describe('DocumentDetailSection', () => {
             </MemoryRouter>
         );
 
-        expect(container.querySelector('.prose')).not.toBeNull();
+        expect(container.querySelector('.calm-markdown')).not.toBeNull();
         expect(container.textContent).toContain('std-no-heading');
     });
 });

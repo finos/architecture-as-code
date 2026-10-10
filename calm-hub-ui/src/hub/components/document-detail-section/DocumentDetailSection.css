@@ -1,0 +1,122 @@
+/* Markdown typography for rendered documents. Tailwind preflight removes the browser
+ * defaults and the typography plugin is not loaded (#3271), so this restores them.
+ * Unlayered rules beat preflight in @layer base. Colours come from daisyUI tokens. */
+.calm-markdown {
+    line-height: 1.65;
+    overflow-wrap: break-word;
+}
+
+.calm-markdown > :first-child {
+    margin-top: 0;
+}
+
+.calm-markdown > :last-child {
+    margin-bottom: 0;
+}
+
+.calm-markdown :is(h1, h2, h3, h4) {
+    margin: 1.5em 0 0.5em;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.calm-markdown h1 {
+    font-size: 1.75em;
+    font-weight: 700;
+}
+
+.calm-markdown h2 {
+    padding-bottom: 0.25em;
+    border-bottom: 1px solid var(--color-base-300);
+    font-size: 1.375em;
+}
+
+.calm-markdown h3 {
+    font-size: 1.125em;
+}
+
+.calm-markdown h4 {
+    font-size: 1em;
+}
+
+.calm-markdown :is(p, ul, ol, pre, blockquote) {
+    margin: 0 0 1em;
+}
+
+.calm-markdown :is(ul, ol) {
+    padding-left: 1.5em;
+}
+
+.calm-markdown ul {
+    list-style-type: disc;
+}
+
+.calm-markdown ol {
+    list-style-type: decimal;
+}
+
+.calm-markdown ul ul {
+    list-style-type: circle;
+}
+
+.calm-markdown ol ol {
+    list-style-type: lower-alpha;
+}
+
+.calm-markdown li + li,
+.calm-markdown li > :is(ul, ol) {
+    margin-top: 0.25em;
+}
+
+.calm-markdown li > :is(ul, ol) {
+    margin-bottom: 0;
+}
+
+.calm-markdown li::marker {
+    color: color-mix(in oklab, var(--color-base-content) 70%, transparent);
+}
+
+.calm-markdown a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+.calm-markdown a:hover {
+    text-decoration-thickness: 2px;
+}
+
+.calm-markdown code {
+    padding: 0.125em 0.375em;
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-field);
+    background-color: var(--color-base-200);
+    font-size: 0.875em;
+}
+
+.calm-markdown pre {
+    overflow-x: auto;
+    padding: 0.75em 1em;
+    border: 1px solid var(--color-base-300);
+    border-radius: var(--radius-box);
+    background-color: var(--color-base-200);
+    line-height: 1.5;
+}
+
+.calm-markdown pre code {
+    padding: 0;
+    border: 0;
+    background: none;
+}
+
+.calm-markdown blockquote {
+    padding-left: 1em;
+    border-left: 4px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
+    color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+}
+
+.calm-markdown hr {
+    margin: 1.5em 0;
+    border: 0;
+    border-top: 1px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
+}

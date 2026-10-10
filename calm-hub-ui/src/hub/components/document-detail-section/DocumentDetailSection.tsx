@@ -14,6 +14,7 @@ import { TimelineBar } from '../diagram-section/timeline/TimelineBar.js';
 import { momentsFromVersions } from '../diagram-section/timeline/timelineMoments.js';
 import { FlowSequenceDiagram } from '../flow-sequence-diagram/FlowSequenceDiagram.js';
 import { FlowArchitectureDiagram } from '../flow-sequence-diagram/FlowArchitectureDiagram.js';
+import './DocumentDetailSection.css';
 
 type FlowViewMode = 'sequence' | 'architecture' | 'raw';
 
@@ -227,7 +228,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                                 ? <FlowArchitectureDiagram flowJson={data.data ?? {}} architectureJson={architectureData} architecture={architecture} />
                                 : <div className="flex items-center justify-center h-full text-base-content/50">{architectureViewState.message}</div>
                     ) : isMarkdown ? (
-                        <div className="prose prose-sm max-w-none p-6 bg-base-100">
+                        <div className="calm-markdown p-6 bg-base-100">
                             <Markdown>{data.data as string}</Markdown>
                         </div>
                     ) : (
