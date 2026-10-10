@@ -14,18 +14,18 @@ This documentation is generated from the **CALM Architecture-as-Code** model.
 
 ## Nodes
 {{#each nodes}}
-- [{{name}}](nodes/{{unique-id}})
+- [{{name}}](nodes/{{unique-id}}.md)
 {{/each}}
 
 ## Relationships
 {{#each relationships}}
-- [{{kebabToTitleCase unique-id}}](relationships/{{unique-id}})
+- [{{kebabToTitleCase unique-id}}](relationships/{{unique-id}}.md)
 {{/each}}
 
 ## Flows
 {{#if (notEmpty flows)}}
 {{#each flows}}
-- [{{name}}](flows/{{unique-id}})
+- [{{name}}](flows/{{unique-id}}.md)
 {{/each}}
 {{else}}
 _No flows defined._
