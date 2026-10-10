@@ -70,6 +70,12 @@ public class TestMappingControllerResourceShould {
                 + "\"title\":\"Test Resource\"}";
     }
 
+    // A CALM flow has a name and no title.
+    private static String flowDoc(String name, String version) {
+        return "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/flows/" + name + "/versions/" + version + "\","
+                + "\"unique-id\":\"" + name + "\",\"name\":\"My Flow\",\"description\":\"A flow\",\"transitions\":[]}";
+    }
+
     // --- POST create new ---
 
     @Test
@@ -489,6 +495,43 @@ public class TestMappingControllerResourceShould {
     }
 
     @Test
+    void store_the_name_of_a_new_flow_that_has_no_title() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("my-flow"), eq(ResourceType.FLOW), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("my-flow")
+                        .setResourceType(ResourceType.FLOW).setNumericId(0).build());
+        Flow flow = new Flow.FlowBuilder()
+                .setNamespace("finos").setId(5).setVersion("1.0.0").setFlow("{}").build();
+        when(mockFlowStore.createFlowForNamespace(any(CreateFlowRequest.class), eq("finos"), eq("1.0.0"))).thenReturn(flow);
+
+        given().header("Content-Type", "application/json").body(flowDoc("my-flow", "1.0.0")).when()
+                .post("/calm")
+                .then().statusCode(201);
+
+        ArgumentCaptor<CreateFlowRequest> captor = ArgumentCaptor.forClass(CreateFlowRequest.class);
+        verify(mockFlowStore).createFlowForNamespace(captor.capture(), eq("finos"), eq("1.0.0"));
+        assertThat(captor.getValue().getName(), is("My Flow"));
+    }
+
+    @Test
+    void store_the_name_of_a_flow_version_that_has_no_title() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-flow")
+                .setResourceType(ResourceType.FLOW).setNumericId(5).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(existing);
+        when(mockFlowStore.getFlowVersions(any(Flow.class))).thenReturn(List.of("1.0.0"));
+
+        given().header("Content-Type", "application/json").body(flowDoc("my-flow", "2.0.0")).when()
+                .post("/calm")
+                .then().statusCode(201);
+
+        ArgumentCaptor<Flow> captor = ArgumentCaptor.forClass(Flow.class);
+        verify(mockFlowStore).createFlowForVersion(captor.capture());
+        assertThat(captor.getValue().getName(), is("My Flow"));
+    }
+
+    @Test
     void return_201_when_adding_explicit_version_to_existing_standard() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-standard")
@@ -701,7 +744,7 @@ public class TestMappingControllerResourceShould {
 
         given().header("Content-Type", "application/json").body(body).when()
                 .post("/calm")
-                .then().statusCode(400).body(containsString("title"));
+                .then().statusCode(400).body(containsString("'title' or 'name' is required"));
     }
 
     // --- GET list versions ---
