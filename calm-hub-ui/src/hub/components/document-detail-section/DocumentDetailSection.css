@@ -49,7 +49,7 @@
     font-size: 0.875em;
 }
 
-.calm-markdown :is(p, ul, ol, pre, blockquote) {
+.calm-markdown :is(p, ul, ol, pre, blockquote, .calm-markdown-table) {
     margin: 0 0 1em;
 }
 
@@ -80,6 +80,16 @@
 
 .calm-markdown li > :is(ul, ol) {
     margin-bottom: 0;
+}
+
+/* GFM task lists: the checkbox takes the bullet's place. */
+.calm-markdown .task-list-item {
+    list-style-type: none;
+}
+
+.calm-markdown .task-list-item input {
+    margin: 0 0.4em 0 -1.4em;
+    vertical-align: middle;
 }
 
 .calm-markdown li::marker {
@@ -123,6 +133,40 @@
     padding-left: 1em;
     border-left: 4px solid color-mix(in oklab, var(--color-base-content) 20%, transparent);
     color: color-mix(in oklab, var(--color-base-content) 75%, transparent);
+}
+
+/* GitHub Flavored Markdown tables. A wide table scrolls in its wrapper, so the document
+ * pane does not scroll sideways. Column alignment arrives as an inline text-align. */
+.calm-markdown .calm-markdown-table {
+    overflow-x: auto;
+}
+
+.calm-markdown .calm-markdown-table:focus-visible {
+    outline: 2px solid var(--color-interaction);
+    outline-offset: 2px;
+}
+
+.calm-markdown table {
+    border-collapse: collapse;
+}
+
+.calm-markdown :is(th, td) {
+    padding: 0.375em 0.75em;
+    border: 1px solid var(--color-base-300);
+}
+
+.calm-markdown th {
+    background-color: var(--color-base-200);
+    font-weight: 600;
+    text-align: start;
+}
+
+/* GFM footnotes. Their "Footnotes" heading is sr-only. */
+.calm-markdown .footnotes {
+    margin-top: 2em;
+    padding-top: 1em;
+    border-top: 1px solid var(--color-base-300);
+    font-size: 0.875em;
 }
 
 .calm-markdown hr {

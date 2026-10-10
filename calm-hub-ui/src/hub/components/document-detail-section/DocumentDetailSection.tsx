@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoGridOutline, IoGitNetworkOutline, IoPlayOutline, IoCodeOutline, IoCubeOutline } from 'react-icons/io5';
-import Markdown from 'react-markdown';
+import Markdown, { type Components, type ExtraProps } from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { CalmCore } from '@finos/calm-models/model';
 import type { Architecture } from '@finos/calm-models/model';
 import type { CalmCoreSchema } from '@finos/calm-models/types';
@@ -25,6 +26,44 @@ type ArchitectureViewState =
     | { status: 'error'; message: string };
 
 const DEFAULT_ARCHITECTURE_VERSION = '1.0.0';
+
+const remarkPlugins = [remarkGfm];
+
+// react-markdown passes its syntax-tree `node` to every override; it must not reach the DOM.
+function withoutNode<T extends ExtraProps>(props: T): Omit<T, 'node'> {
+    const domProps = { ...props };
+    delete domProps.node;
+    return domProps;
+}
+
+const markdownComponents: Components = {
+    // The app uses a HashRouter, so a click on an in-page "#id" link (such as a GFM footnote)
+    // would change the route and blank the page. Scroll to the target instead.
+    a(props) {
+        const { href, ...anchorProps } = withoutNode(props);
+        if (!href?.startsWith('#')) {
+            return <a href={href} {...anchorProps} />;
+        }
+        return (
+            <a
+                href={href}
+                {...anchorProps}
+                onClick={(event) => {
+                    event.preventDefault();
+                    document.getElementById(decodeURIComponent(href.slice(1)))?.scrollIntoView();
+                }}
+            />
+        );
+    },
+    // A wide table scrolls inside this region; tabIndex lets keyboard users scroll it.
+    table(props) {
+        return (
+            <div className="calm-markdown-table" role="region" tabIndex={0} aria-label="Table">
+                <table {...withoutNode(props)} />
+            </div>
+        );
+    },
+};
 
 interface DocumentDetailSectionProps {
     data?: Data;
@@ -229,7 +268,7 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                                 : <div className="flex items-center justify-center h-full text-base-content/50">{architectureViewState.message}</div>
                     ) : isMarkdown ? (
                         <div className="calm-markdown p-6 bg-base-100">
-                            <Markdown>{data.data as string}</Markdown>
+                            <Markdown remarkPlugins={remarkPlugins} components={markdownComponents}>{data.data as string}</Markdown>
                         </div>
                     ) : (
                         <JsonRenderer json={data} />

@@ -4,6 +4,9 @@
     themes: light --default, dark;
 }
 
+/* remark-gfm gives the footnotes heading this class, and Tailwind does not scan node_modules. */
+@source inline('sr-only');
+
 /* Fonts for the timeline / diff UI, exposed via --font-* so Tailwind v4
  * generates `font-inter` and `font-mono-jb` utility classes without overriding
  * the global default sans. */

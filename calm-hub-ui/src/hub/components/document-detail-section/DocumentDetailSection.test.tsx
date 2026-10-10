@@ -399,6 +399,96 @@ describe('DocumentDetailSection', () => {
         }
     });
 
+    it('renders GitHub Flavored Markdown tables, strikethrough and task lists', () => {
+        const data: Data = {
+            id: 'std-gfm',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: [
+                '| Control | Owner |',
+                '| ------- | ----- |',
+                '| TLS 1.2 | Platform |',
+                '',
+                'The ~~old~~ rule. See https://calm.finos.org.',
+                '',
+                '- [x] done',
+            ].join('\n'),
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        const markdown = container.querySelector('.calm-markdown');
+        const region = screen.getByRole('region', { name: 'Table' });
+        expect(region).toHaveAttribute('tabindex', '0');
+        expect(region.querySelector('table thead th')).toHaveTextContent('Control');
+        expect(region.querySelector('table tbody td')).toHaveTextContent('TLS 1.2');
+        expect(markdown!.querySelector('del')).toHaveTextContent('old');
+        expect(screen.getByRole('link', { name: 'https://calm.finos.org' })).toHaveAttribute('href', 'https://calm.finos.org');
+        const checkbox = markdown!.querySelector('li.task-list-item input[type="checkbox"]');
+        expect(checkbox).toBeChecked();
+        expect(checkbox).toBeDisabled();
+    });
+
+    // The app uses a HashRouter, so following "#user-content-fn-1" would change the route.
+    it('scrolls to a footnote instead of following its in-page link', () => {
+        const scrollIntoView = vi.fn();
+        Element.prototype.scrollIntoView = scrollIntoView;
+        const data: Data = {
+            id: 'std-footnote',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: 'A claim.[^1]\n\n[^1]: The source.',
+        };
+
+        const { container } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        const reference = container.querySelector<HTMLAnchorElement>('a[data-footnote-ref]')!;
+        expect(reference).toHaveAttribute('href', '#user-content-fn-1');
+        const followed = fireEvent.click(reference);
+
+        expect(followed).toBe(false);
+        expect(scrollIntoView).toHaveBeenCalledTimes(1);
+        expect(scrollIntoView.mock.contexts[0]).toBe(container.querySelector('#user-content-fn-1'));
+    });
+
+    it('leaves external markdown links to the browser', () => {
+        const data: Data = {
+            id: 'std-link',
+            version: 'latest',
+            name: 'test-ns',
+            calmType: 'Standards',
+            data: 'See the [guide](https://calm.finos.org).',
+        };
+
+        render(
+            <MemoryRouter>
+                <DocumentDetailSection data={data} />
+            </MemoryRouter>
+        );
+
+        // Runs after React's handler; it stops jsdom, which cannot navigate.
+        let prevented: boolean | undefined;
+        const afterReact = (event: Event) => {
+            prevented = event.defaultPrevented;
+            event.preventDefault();
+        };
+        document.addEventListener('click', afterReact);
+        fireEvent.click(screen.getByRole('link', { name: 'guide' }));
+        document.removeEventListener('click', afterReact);
+
+        expect(prevented).toBe(false);
+    });
+
     it('shows display name from markdown heading in breadcrumb', () => {
         const data: Data = {
             id: '12345',
