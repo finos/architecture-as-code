@@ -374,6 +374,8 @@ describe('DocumentDetailSection', () => {
                 '## Heading 2',
                 '### Heading 3',
                 '#### Heading 4',
+                '##### Heading 5',
+                '###### Heading 6',
                 'A paragraph with `inline code` and a [link](https://calm.finos.org).',
                 '- item\n  - nested item',
                 '1. first\n2. second',
@@ -392,7 +394,7 @@ describe('DocumentDetailSection', () => {
         const markdown = container.querySelector('.calm-markdown');
         expect(markdown).not.toBeNull();
         expect(markdown).not.toHaveClass('prose');
-        for (const selector of ['h1', 'h2', 'h3', 'h4', 'p', 'ul ul li', 'ol li', 'p code', 'pre code', 'blockquote', 'a', 'hr']) {
+        for (const selector of ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'ul ul li', 'ol li', 'p code', 'pre code', 'blockquote', 'a', 'hr']) {
             expect(markdown!.querySelector(selector), selector).not.toBeNull();
         }
     });
