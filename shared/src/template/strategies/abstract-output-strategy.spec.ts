@@ -208,6 +208,31 @@ describe('AbstractOutputStrategy', () => {
             const result = strategy.testBuildOutputPath('/base/output', 'docs/file.md');
             expect(result).toBe(path.join('/base/output', 'docs/file.md'));
         });
+
+        it('allows a path that goes up but stays inside the output directory', () => {
+            const result = strategy.testBuildOutputPath('/base/output', 'docs/../file.md');
+            expect(result).toBe(path.join('/base/output', 'file.md'));
+        });
+
+        it('allows a filename that starts with two dots', () => {
+            const result = strategy.testBuildOutputPath('/base/output', '..notes.md');
+            expect(result).toBe(path.join('/base/output', '..notes.md'));
+        });
+
+        it('throws when the filename escapes the output directory', () => {
+            expect(() => strategy.testBuildOutputPath('/base/output', '../outside.md'))
+                .toThrow('resolves outside the output directory');
+        });
+
+        it('throws when a nested filename escapes the output directory', () => {
+            expect(() => strategy.testBuildOutputPath('/base/output', 'docs/../../outside.md'))
+                .toThrow('resolves outside the output directory');
+        });
+
+        it('throws when the filename escapes a relative output directory', () => {
+            expect(() => strategy.testBuildOutputPath('out', '../outside.md'))
+                .toThrow('resolves outside the output directory');
+        });
     });
 });
 

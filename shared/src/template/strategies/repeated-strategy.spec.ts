@@ -41,6 +41,33 @@ describe('RepeatedStrategy', () => {
         vi.clearAllMocks();
     });
 
+    describe('output path containment', () => {
+        it('throws and writes nothing when an item id escapes the output directory', () => {
+            const entry: TemplateEntry = {
+                template: 'node.md.hbs',
+                from: 'document.nodes',
+                output: 'nodes/{{unique-id}}.md',
+                'output-type': 'repeated'
+            };
+
+            const context: OutputContext = {
+                data: {
+                    document: {
+                        nodes: [{ 'unique-id': '../../outside' }]
+                    }
+                },
+                outputDir: '/test/output',
+                scaffoldOnly: false
+            };
+
+            vi.mocked(mockEngine.getCompiledTemplate).mockReturnValue(() => 'content');
+
+            expect(() => strategy.process(entry, context, mockLogger))
+                .toThrow('resolves outside the output directory');
+            expect(fs.writeFileSync).not.toHaveBeenCalled();
+        });
+    });
+
     describe('scaffold mode', () => {
         it('creates one file per item in array', () => {
             const entry: TemplateEntry = {
