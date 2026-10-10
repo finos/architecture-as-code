@@ -503,18 +503,39 @@ describe('pushWorkspaceToHub', () => {
         expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
     });
 
-    it('skips documents whose $id type has no ResourceType (e.g. flows)', async () => {
+    it('skips documents whose $id type has no ResourceType (e.g. adrs)', async () => {
         await writeFile(
-            path.join(filesPath, 'flow.json'),
-            JSON.stringify({ $id: mappingId('my-flow', '1.0.0', 'flows'), title: 'My Flow' })
+            path.join(filesPath, 'adr.json'),
+            JSON.stringify({ $id: mappingId('my-adr', '1.0.0', 'adrs'), title: 'My ADR' })
         );
         await saveManifest(bundlePath, {
-            'flow': { path: 'files/flow.json', type: 'flow', namespace: 'com.example' }
+            'adr': { path: 'files/adr.json', type: 'adr', namespace: 'com.example' }
         });
         const client = makeClient();
         await pushWorkspaceToHub(bundlePath, client);
         expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
         expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+    });
+
+    it('pushes a flow to its CalmHub flows mapping', async () => {
+        const flow = { $id: mappingId('my-flow', '1.0.0', 'flows'), title: 'My Flow' };
+        await writeFile(path.join(filesPath, 'flow.json'), JSON.stringify(flow));
+        await saveManifest(bundlePath, {
+            'flow': { path: 'files/flow.json', type: 'flow', namespace: 'com.example' }
+        });
+        const locationUrl = mappingId('my-flow', '1.0.0', 'flows');
+        const client = makeClient({
+            createMappedResourceVersion: vi.fn().mockResolvedValue(locationUrl),
+        });
+
+        await pushWorkspaceToHub(bundlePath, client);
+
+        expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'my-flow', 'flows');
+        expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+            expect.objectContaining({ namespace: 'com.example', mapping: 'my-flow', type: 'flows', version: '1.0.0' }),
+            JSON.stringify(flow)
+        );
+        expect((await loadManifest(bundlePath))['flow'].calmHubId).toBe(locationUrl);
     });
 
     it('creates a new version when the resource does not exist yet and saves the Location to the manifest', async () => {

@@ -864,7 +864,7 @@ To restore a removed narrative document without creating a new CalmHub document,
 **JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
 - **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
-- **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `flow`, `adr`, `timeline`).
+- **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `adr`, `timeline`).
 
 **Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file or Markdown frontmatter, else an interactive prompt.
 
@@ -910,7 +910,7 @@ control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirem
 control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
 ```
 
-where `$TYPE` is one of `patterns`, `architectures`, `standards`, `interfaces`.
+where `$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces`.
 
 #### `calm workspace push`
 

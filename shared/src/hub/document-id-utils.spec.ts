@@ -94,6 +94,17 @@ describe('Document ID Utils', () => {
             expect(() => extractDocumentMetadata(document)).toThrow(/Invalid document ID format/);
         });
 
+        it.each(['patterns', 'architectures', 'flows', 'standards', 'interfaces'])(
+            'accepts the CALM Hub resource type %s',
+            (type) => {
+                const document = JSON.stringify({
+                    $id: `https://example.com/calm/namespaces/finos/${type}/my-doc/versions/1.0.0`,
+                    title: 'My Doc'
+                });
+                expect(extractDocumentMetadata(document)).toMatchObject({ namespace: 'finos', type, mapping: 'my-doc' });
+            }
+        );
+
         it('throws when the $id contains an unknown resource type', () => {
             const document = JSON.stringify({
                 $id: 'https://example.com/calm/namespaces/finos/widgets/my-arch/versions/1.0.0',
@@ -325,6 +336,7 @@ describe('Document ID Utils', () => {
         it.each([
             ['https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'],
             ['https://example.com/calm/namespaces/finos/patterns/p/versions/2.3.4'],
+            ['https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0'],
             ['https://example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0'],
             ['https://example.com/calm/domains/security/controls/access-control/configurations/prod/versions/1.0.0'],
         ])('returns true for the conformant id %s', (id) => {
@@ -346,6 +358,10 @@ describe('Document ID Utils', () => {
     describe('namespaceFromDocumentId', () => {
         it('returns the namespace for a namespace-resource id', () => {
             expect(namespaceFromDocumentId('https://example.com/calm/namespaces/finos/architectures/a/versions/1.0.0')).toBe('finos');
+        });
+
+        it('returns the namespace for a flow id', () => {
+            expect(namespaceFromDocumentId('https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0')).toBe('finos');
         });
 
         it('returns undefined for a control document id', () => {
