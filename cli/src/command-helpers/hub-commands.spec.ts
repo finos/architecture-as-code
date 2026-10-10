@@ -9,7 +9,8 @@ import { runCreateNamespace, runListArchitectures, runListNamespaces,
     runPushControlRequirement, runPullControlRequirement, runPushControlConfiguration, runPullControlConfiguration,
     printIdCreateResult,
     runListControlConfigurations,
-    runPushInterface, runPullInterface, runListInterfaces } from './hub-commands';
+    runPushInterface, runPullInterface, runListInterfaces,
+    runPushFlow, runPullFlow, runListFlows } from './hub-commands';
 
 // We stub the @finos/calm-shared HTTP client so no real HTTP is made, but keep the
 // real (pure) document-id-utils helpers that orchestratePush relies on.
@@ -311,6 +312,26 @@ describe('hub-commands', () => {
             expect(hubOutput.printError).toHaveBeenCalledWith(
                 0, expect.stringContaining('namespace and mapping'), expect.any(String), 'json'
             );
+        });
+
+        it('exits without calling the Hub when the $id is for another resource type', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (vi.mocked(shared.extractDocumentMetadata) as any).mockReturnValueOnce({
+                rawDocumentId: 'test', baseUrl: 'http://hub',
+                namespace: 'finos', mapping: 'my-pattern',
+                type: 'patterns', version: '1.0.0', name: 'my-pattern'
+            });
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'Document $id is for patterns, but this command pushes architectures: arch.json', expect.any(String), 'json'
+            );
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
         });
 
         describe('--fail-if-modified', () => {
@@ -1215,6 +1236,257 @@ describe('hub-commands', () => {
 
         it('exits when no hub URL is available', async () => {
             await expect(runListInterfaces({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+    });
+
+    // ── runPushFlow ────────────────────────────────────────────────────────
+
+    describe('runPushFlow', () => {
+        const FLOW_ID = 'http://hub/calm/namespaces/finos/flows/my-flow/versions';
+
+        // A schema-valid CALM flow: `name`, no `title` (the flow schema forbids extra fields).
+        function flowDoc(version = '1.0.0', description = 'Payment flow'): string {
+            return JSON.stringify({
+                $id: `${FLOW_ID}/${version}`,
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description,
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }]
+            });
+        }
+
+        function pushedDocument(mockClient: { createMappedResourceVersion: unknown }): Record<string, unknown> {
+            const [, content] = vi.mocked(mockClient.createMappedResourceVersion as (...args: unknown[]) => unknown).mock.calls[0];
+            return JSON.parse(content as string);
+        }
+
+        it('creates 1.0.0 for a new flow and keeps it name-only', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(flowDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(`${FLOW_ID}/1.0.0`);
+
+            await runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json' });
+
+            expect(mockClient.getMappedResourceVersions).toHaveBeenCalledWith('finos', 'my-flow', 'flows');
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    namespace: 'finos', mapping: 'my-flow', type: 'flows', version: '1.0.0', name: 'My Flow', description: 'Payment flow'
+                }),
+                expect.any(String)
+            );
+            const pushed = pushedDocument(mockClient);
+            expect(pushed.name).toBe('My Flow');
+            expect(pushed).not.toHaveProperty('title');
+            const written = JSON.parse(vi.mocked(fs.writeFile).mock.calls[0][1] as string);
+            expect(written.$id).toBe(`${FLOW_ID}/1.0.0`);
+            expect(written).not.toHaveProperty('title');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                expect.objectContaining({ status: 'created', mapping: 'my-flow', namespace: 'finos', version: '1.0.0' })
+            );
+        });
+
+        it('writes --name to the flow\'s name field, not to title', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(flowDoc() as unknown as Uint8Array);
+
+            await runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, name: 'Renamed Flow', file: 'flow.json' });
+
+            const pushed = pushedDocument(mockClient);
+            expect(pushed.name).toBe('Renamed Flow');
+            expect(pushed).not.toHaveProperty('title');
+        });
+
+        it('creates a bumped flow version when versions already exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(flowDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0']);
+
+            await runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, changeType: 'MINOR', file: 'flow.json' });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'flows', version: '1.2.0', name: 'My Flow' }),
+                expect.any(String)
+            );
+            expect(pushedDocument(mockClient).$id).toBe(`${FLOW_ID}/1.2.0`);
+        });
+
+        it('exits when the flow has neither a name nor a title', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
+                $id: `${FLOW_ID}/1.0.0`, 'unique-id': 'my-flow', transitions: []
+            }) as unknown as Uint8Array);
+
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json' }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('Failed to extract document metadata'), 'push flows flow.json', 'json'
+            );
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits when the flow file is not valid JSON', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue('not valid json content' as unknown as Uint8Array);
+
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json' }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'File is not valid JSON: flow.json', 'push flows flow.json', 'json'
+            );
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits when file cannot be read', async () => {
+            vi.mocked(fs.readFile).mockRejectedValue(new Error('ENOENT'));
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'missing.json' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalled();
+        });
+
+        it('exits without calling the Hub when the $id is not a flow id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
+                $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+                title: 'My Arch'
+            }) as unknown as Uint8Array);
+
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json' }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'Document $id is for architectures, but this command pushes flows: arch.json', 'push flows arch.json', 'json'
+            );
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(flowDoc() as unknown as Uint8Array);
+            vi.mocked(mockClient.createMappedResourceVersion).mockRejectedValue(
+                new shared.HubClientError(400, '\'title\' or \'name\' is required in the document body', `POST ${FLOW_ID}/1.0.0`)
+            );
+
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                400, '\'title\' or \'name\' is required in the document body', expect.any(String), 'json'
+            );
+        });
+
+        describe('--fail-if-modified', () => {
+            it('skips an unchanged name-only flow without creating a version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(flowDoc() as unknown as Uint8Array);
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0']);
+                // Hub stores the flow as pushed: still no `title`. Normalising the local file must
+                // not add one, or this compare would report a change.
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(flowDoc('1.1.0')));
+
+                await runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json', failIfModified: true });
+
+                expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-flow', '1.1.0', 'flows');
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(
+                    expect.objectContaining({ status: 'skipped', version: '1.1.0' })
+                );
+            });
+
+            it('fails a flow that changed relative to the latest published version', async () => {
+                const { mockClient } = await getSharedMocks();
+                vi.mocked(fs.readFile).mockResolvedValue(flowDoc('1.0.0', 'Edited locally') as unknown as Uint8Array);
+                vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+                vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue(JSON.parse(flowDoc('1.0.0')));
+
+                await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'flow.json', failIfModified: true }))
+                    .rejects.toThrow('process.exit');
+
+                expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+                expect(fs.writeFile).not.toHaveBeenCalled();
+                expect(hubOutput.printError).toHaveBeenCalledWith(
+                    0, expect.stringContaining('has changed relative to the latest published version'), expect.any(String), 'json'
+                );
+            });
+        });
+    });
+
+    // ── runPullFlow ────────────────────────────────────────────────────────
+
+    describe('runPullFlow', () => {
+        it('pulls a specific version by mapping and prints JSON to stdout', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ 'unique-id': 'my-flow', name: 'My Flow' });
+            const consoleSpy = vi.spyOn(console, 'log').mockImplementation(function () { return undefined; });
+
+            await runPullFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-flow', version: '1.0.0' });
+
+            expect(mockClient.getMappedResourceByVersion).toHaveBeenCalledWith('finos', 'my-flow', '1.0.0', 'flows');
+            expect(consoleSpy).toHaveBeenCalledWith(expect.stringContaining('"name": "My Flow"'));
+            consoleSpy.mockRestore();
+        });
+
+        it('pulls the latest version when no version is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceLatestVersion).mockResolvedValue({ name: 'My Flow' });
+
+            await runPullFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-flow' });
+
+            expect(mockClient.getMappedResourceLatestVersion).toHaveBeenCalledWith('finos', 'my-flow', 'flows');
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+        });
+
+        it('writes to file when --output is provided', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockResolvedValue({ name: 'My Flow' });
+
+            await runPullFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-flow', version: '1.0.0', output: 'out.json' });
+
+            expect(fs.writeFile).toHaveBeenCalledWith('out.json', expect.stringContaining('"name": "My Flow"'), 'utf-8');
+        });
+
+        it('exits on HubClientError', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceByVersion).mockRejectedValue(
+                new shared.HubClientError(404, 'Flow not found', 'GET /calm/namespaces/finos/flows/my-flow/versions/1.0.0')
+            );
+
+            await expect(runPullFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', mapping: 'my-flow', version: '1.0.0' }))
+                .rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(404, 'Flow not found', expect.any(String), 'json');
+        });
+    });
+
+    // ── runListFlows ───────────────────────────────────────────────────────
+
+    describe('runListFlows', () => {
+        it('prints JSON array of flow ids', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['flow-a', 'flow-b']);
+
+            await runListFlows({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos' });
+
+            expect(mockClient.getNamespaceMappings).toHaveBeenCalledWith('finos', 'flows');
+            expect(hubOutput.printJsonSuccess).toHaveBeenCalledWith(['flow-a', 'flow-b']);
+        });
+
+        it('renders a single ID column when format is pretty', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getNamespaceMappings).mockResolvedValue(['flow-a']);
+
+            await runListFlows({ calmHubOptions: { calmHubUrl: 'http://hub' }, namespace: 'finos', format: 'pretty' });
+
+            expect(hubOutput.printTableSuccess).toHaveBeenCalledWith(
+                [{ MAPPING: 'flow-a' }],
+                [{ key: 'MAPPING', header: 'MAPPING' }]
+            );
+        });
+
+        it('exits when no hub URL is available', async () => {
+            await expect(runListFlows({ calmHubOptions: {}, namespace: 'finos' })).rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
         });
     });

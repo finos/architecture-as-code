@@ -1606,6 +1606,122 @@ describe('CLI Commands', () => {
         });
     });
 
+    describe('push flow command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushFlow').mockResolvedValue(undefined);
+        });
+
+        it('calls runPushFlow with file, name, description and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--name', 'Payment Processing',
+                '--description', 'End-to-end payment flow',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                file: 'flow.json',
+                name: 'Payment Processing',
+                description: 'End-to-end payment flow',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes the change type and --fail-if-modified through', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--change-type', 'minor',
+                '--fail-if-modified',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'MINOR',
+                failIfModified: true,
+            }));
+        });
+
+        it('defaults the change type to PATCH when not provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'PATCH',
+            }));
+        });
+    });
+
+    describe('pull flow command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullFlow').mockResolvedValue(undefined);
+        });
+
+        it('calls runPullFlow with namespace, mapping, version and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'flow',
+                '--namespace', 'finos',
+                '--mapping', 'my-flow',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullFlow).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                mapping: 'my-flow',
+                version: '1.0.0',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --output when provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'flow',
+                '--namespace', 'finos',
+                '--mapping', 'my-flow',
+                '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullFlow).toHaveBeenCalledWith(expect.objectContaining({
+                output: 'out.json',
+            }));
+        });
+    });
+
+    describe('list flows command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListFlows').mockResolvedValue(undefined);
+        });
+
+        it('calls runListFlows with namespace and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'flows',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListFlows).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('defaults namespace to "default"', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'flows',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListFlows).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'default',
+            }));
+        });
+    });
+
     describe('init-config command', () => {
         it('saves all supported authentication options', async () => {
             const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
