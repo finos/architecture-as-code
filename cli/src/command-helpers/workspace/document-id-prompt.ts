@@ -61,7 +61,7 @@ export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {})
     const scope = await select<Scope>({
         message: 'What kind of CalmHub resource is this?',
         choices: [
-            { name: 'Namespace resource (pattern, architecture, standard, interface)', value: 'namespace' },
+            { name: 'Namespace resource (pattern, architecture, flow, standard, interface)', value: 'namespace' },
             { name: 'Control requirement', value: 'requirement' },
             { name: 'Control configuration', value: 'configuration' },
         ],

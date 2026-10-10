@@ -461,6 +461,19 @@ describe('bump', () => {
             expect(changed[0]).toMatchObject({ id: 'a', currentVersion: '1.0.0', latestHubVersion: '1.0.0' });
         });
 
+        it('detects a flow changed on disk relative to CalmHub', async () => {
+            await write('f.json', { $id: idAt('f', '1.0.0', 'flows'), title: 'F', extra: 'edited' });
+            await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
+            const client = makeClient({
+                versions: { f: ['1.0.0'] },
+                remote: { 'f@1.0.0': { $id: idAt('f', '1.0.0', 'flows'), title: 'F' } },
+            });
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'f', 'flows');
+            expect(changed).toHaveLength(1);
+            expect(changed[0]).toMatchObject({ id: 'f', currentVersion: '1.0.0', latestHubVersion: '1.0.0' });
+        });
+
         it('warns and skips a doc with an unmappable $id', async () => {
             await write('a.json', { $id: 'bare-id', title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
@@ -631,6 +644,22 @@ describe('bump', () => {
                 expect.objectContaining({ id: 'a', fromVersion: '1.0.0', toVersion: '1.1.0' }),
             ]);
             expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('bumps a changed flow and keeps its flows $id', async () => {
+            await write('f.json', { $id: idAt('f', '1.0.0', 'flows'), title: 'F', extra: 'edited' });
+            await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
+            const client = makeClient({
+                versions: { f: ['1.0.0'] },
+                remote: { 'f@1.0.0': { $id: idAt('f', '1.0.0', 'flows'), title: 'F' } },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped).toEqual([
+                expect.objectContaining({ id: 'f', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+            ]);
+            expect((await read('f.json')).$id).toBe(idAt('f', '1.1.0', 'flows'));
         });
 
         it('does not inject an empty description into a document that never had one', async () => {

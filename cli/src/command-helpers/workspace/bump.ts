@@ -347,7 +347,7 @@ export async function bumpWorkspace(
             try {
                 metadata = extractDocumentMetadata(raw);
             } catch {
-                // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
+                // Non-CalmHub $id (adr, timeline, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
                 bumpedIds.add(candidate.docId);
                 continue;

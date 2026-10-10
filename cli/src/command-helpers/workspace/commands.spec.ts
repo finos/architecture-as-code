@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => {
         pushWorkspaceToHub: vi.fn(async () => { }),
         detectChangedResources: vi.fn(async () => []),
         loggerError: vi.fn(),
+        loggerWarn: vi.fn(),
         bumpWorkspace: vi.fn(async () => ({ bumped: [], refUpdates: [] })),
         runPostBumpValidation: vi.fn(async () => []),
         loadWorkspaceConfig: vi.fn(async () => ({ push: { failIfModified: false }, bump: { defaultIncrement: 'MINOR' } })),
@@ -121,7 +122,7 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
     namespaceFromDocumentId: mocks.namespaceFromDocumentId,
     initLogger: () => ({
         info: vi.fn(),
-        warn: vi.fn(),
+        warn: mocks.loggerWarn,
         error: mocks.loggerError,
         debug: vi.fn(),
     }),
@@ -207,7 +208,28 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.promptForDocumentId).not.toHaveBeenCalled();
             expect(mocks.writeFile).not.toHaveBeenCalled();
             expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.stringContaining('is not a conformant CalmHub id'));
             expect(mocks.addFileToBundle).toHaveBeenCalled();
+        });
+
+        it('treats a flow $id as conformant and derives its namespace', async () => {
+            const actual = await vi.importActual<typeof import('@finos/calm-shared')>('@finos/calm-shared');
+            mocks.isConformantDocumentId.mockImplementationOnce(actual.isConformantDocumentId);
+            mocks.namespaceFromDocumentId.mockImplementationOnce(actual.namespaceFromDocumentId);
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                title: 'My Flow',
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--type', 'flow', '--id', 'my-flow']);
+
+            expect(mocks.loggerWarn).not.toHaveBeenCalled();
+            expect(mocks.writeFile).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'my-flow', type: 'flow', namespace: 'finos' })
+            );
         });
 
         it('should prompt for a manifest name when the file has no title field', async () => {

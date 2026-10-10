@@ -70,6 +70,23 @@ describe('promptForDocumentId', () => {
         expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/standards/sec/versions/1.0.0');
     });
 
+    it('offers flows as a resource type and builds a flow $id', async () => {
+        queueAnswers(
+            ['namespace', 'flows'],
+            ['https://hub.example.com', '1.0.0', 'finos', 'my-flow']
+        );
+
+        const result = await promptForDocumentId();
+
+        const typeCall = mocks.select.mock.calls.find(([cfg]) => cfg.message === 'Resource type:');
+        expect(typeCall![0].choices).toContainEqual({ name: 'flows', value: 'flows' });
+        expect(result).toEqual({
+            id: 'https://hub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+            namespace: 'finos',
+            slug: 'my-flow',
+        });
+    });
+
     it('builds a control requirement $id', async () => {
         // selects: scope. inputs: baseUrl, version, domain, controlName
         queueAnswers(
