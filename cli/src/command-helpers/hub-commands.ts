@@ -297,6 +297,12 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
         printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
+    // The version lookup uses `resourceType` but the POST URL comes from the `$id`, so a
+    // mismatch would publish the document under its `$id` type.
+    if (metadata.type !== resourceType) {
+        printError(0, `Document $id is for ${metadata.type}, but this command pushes ${resourceType}: ${options.file}`, requestedCommand, format);
+        process.exit(1);
+    }
     const namespace = metadata.namespace;
     const mapping = metadata.mapping;
 

@@ -314,6 +314,26 @@ describe('hub-commands', () => {
             );
         });
 
+        it('exits without calling the Hub when the $id is for another resource type', async () => {
+            const { mockClient, shared } = await getSharedMocks();
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (vi.mocked(shared.extractDocumentMetadata) as any).mockReturnValueOnce({
+                rawDocumentId: 'test', baseUrl: 'http://hub',
+                namespace: 'finos', mapping: 'my-pattern',
+                type: 'patterns', version: '1.0.0', name: 'my-pattern'
+            });
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'Document $id is for patterns, but this command pushes architectures: arch.json', expect.any(String), 'json'
+            );
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
         describe('--fail-if-modified', () => {
             it('creates 1.0.0 for a brand-new mapping even with the flag set', async () => {
                 const { mockClient } = await getSharedMocks();
@@ -1324,6 +1344,23 @@ describe('hub-commands', () => {
             await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'missing.json' }))
                 .rejects.toThrow('process.exit');
             expect(hubOutput.printError).toHaveBeenCalled();
+        });
+
+        it('exits without calling the Hub when the $id is not a flow id', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({
+                $id: 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+                title: 'My Arch'
+            }) as unknown as Uint8Array);
+
+            await expect(runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, file: 'arch.json' }))
+                .rejects.toThrow('process.exit');
+
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, 'Document $id is for architectures, but this command pushes flows: arch.json', 'push flows arch.json', 'json'
+            );
+            expect(mockClient.getMappedResourceVersions).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
         });
 
         it('exits on HubClientError', async () => {
