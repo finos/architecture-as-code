@@ -48,10 +48,10 @@ To run the Hub in standalone mode without an external database dependency, run:
 
 ```bash
 cd calm-hub
-../mvnw quarkus:dev -Dquarkus.profile=standalone
+../mvnw quarkus:dev -Pstandalone
 ```
 
-This automatically sets the storage mode to `standalone` (NitriteDB) and suppresses MongoDB health checks and dev services.
+This sets the storage mode to `standalone` (NitriteDB), suppresses MongoDB health checks and turns off dev services, so it needs no Docker. Use the Maven profile (`-Pstandalone`): dev mode does not apply `-Dquarkus.profile=standalone`.
 
 #### Accessing the UI & API Docs
 
