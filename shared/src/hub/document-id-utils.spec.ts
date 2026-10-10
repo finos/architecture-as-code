@@ -4,6 +4,7 @@ import {
     DocumentMetadata,
     extractDocumentMetadata,
     updateDocumentMetadata,
+    documentNameField,
     validateDocumentId,
     DocumentMetadataValidationError,
     ControlDocumentMetadata,
@@ -113,9 +114,36 @@ describe('Document ID Utils', () => {
             expect(() => extractDocumentMetadata(document)).toThrow(/Invalid resource type: widgets/);
         });
 
-        it('throws when the title is missing', () => {
+        it('throws when both the title and the name are missing', () => {
             const document = JSON.stringify({ $id: DOCUMENT_ID });
-            expect(() => extractDocumentMetadata(document)).toThrow(/Missing name field in parsed document/);
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' or 'name' field/);
+        });
+
+        it('takes the name of a flow, which has no title', () => {
+            const document = JSON.stringify({
+                $id: 'https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'A flow',
+                transitions: []
+            });
+            expect(extractDocumentMetadata(document)).toMatchObject({ type: 'flows', mapping: 'my-flow', name: 'My Flow', description: 'A flow' });
+        });
+
+        it('prefers the title when a document has both a title and a name', () => {
+            const document = JSON.stringify({ $id: DOCUMENT_ID, title: 'My Title', name: 'My Name' });
+            expect(extractDocumentMetadata(document).name).toBe('My Title');
+        });
+    });
+
+    describe('documentNameField', () => {
+        it.each([
+            [{ title: 'T' }, 'title'],
+            [{ name: 'N' }, 'name'],
+            [{ title: 'T', name: 'N' }, 'title'],
+            [{}, 'title']
+        ])('returns the name field of %j', (json, field) => {
+            expect(documentNameField(json)).toBe(field);
         });
     });
 
@@ -134,6 +162,13 @@ describe('Document ID Utils', () => {
                 description: 'New description',
                 nodes: [{ 'unique-id': 'node-a' }]
             });
+        });
+
+        it('writes the name of a flow to its name field and does not add a title', () => {
+            const flowId = (version: string) => `https://example.com/calm/namespaces/finos/flows/my-flow/versions/${version}`;
+            const original = JSON.stringify({ $id: flowId('1.0.0'), 'unique-id': 'my-flow', name: 'My Flow', description: 'A flow', transitions: [] });
+            const updated = JSON.parse(updateDocumentMetadata(original, { ...extractDocumentMetadata(original), version: '1.1.0' }));
+            expect(updated).toEqual({ $id: flowId('1.1.0'), 'unique-id': 'my-flow', name: 'My Flow', description: 'A flow', transitions: [] });
         });
 
         it('defaults the description to an empty string when the metadata has none', () => {

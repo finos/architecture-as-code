@@ -22,6 +22,14 @@ vi.mock('./bundle', async (importOriginal) => {
 const BASE = 'https://hub.example.com';
 const idAt = (resource: string, version: string, type = 'architectures', ns = 'com.example') =>
     `${BASE}/calm/namespaces/${ns}/${type}/${resource}/versions/${version}`;
+// A CALM flow has a name and no title.
+const flowAt = (version: string) => ({
+    $id: idAt('f', version, 'flows'),
+    'unique-id': 'f',
+    name: 'F',
+    description: 'A flow',
+    transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }],
+});
 
 interface ClientOpts {
     versions?: Record<string, string[]>;
@@ -462,11 +470,11 @@ describe('bump', () => {
         });
 
         it('detects a flow changed on disk relative to CalmHub', async () => {
-            await write('f.json', { $id: idAt('f', '1.0.0', 'flows'), title: 'F', extra: 'edited' });
+            await write('f.json', { ...flowAt('1.0.0'), description: 'edited' });
             await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
             const client = makeClient({
                 versions: { f: ['1.0.0'] },
-                remote: { 'f@1.0.0': { $id: idAt('f', '1.0.0', 'flows'), title: 'F' } },
+                remote: { 'f@1.0.0': flowAt('1.0.0') },
             });
             const changed = await detectChangedResources(bundlePath, client);
             expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'f', 'flows');
@@ -646,12 +654,12 @@ describe('bump', () => {
             expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
         });
 
-        it('bumps a changed flow and keeps its flows $id', async () => {
-            await write('f.json', { $id: idAt('f', '1.0.0', 'flows'), title: 'F', extra: 'edited' });
+        it('bumps a changed flow, keeps its name and does not add a title', async () => {
+            await write('f.json', { ...flowAt('1.0.0'), description: 'edited' });
             await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
             const client = makeClient({
                 versions: { f: ['1.0.0'] },
-                remote: { 'f@1.0.0': { $id: idAt('f', '1.0.0', 'flows'), title: 'F' } },
+                remote: { 'f@1.0.0': flowAt('1.0.0') },
             });
 
             const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
@@ -659,7 +667,7 @@ describe('bump', () => {
             expect(result.bumped).toEqual([
                 expect.objectContaining({ id: 'f', fromVersion: '1.0.0', toVersion: '1.1.0' }),
             ]);
-            expect((await read('f.json')).$id).toBe(idAt('f', '1.1.0', 'flows'));
+            expect(await read('f.json')).toEqual({ ...flowAt('1.1.0'), description: 'edited' });
         });
 
         it('does not inject an empty description into a document that never had one', async () => {

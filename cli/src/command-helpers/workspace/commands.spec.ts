@@ -218,7 +218,10 @@ describe('setupWorkspaceCommands', () => {
             mocks.namespaceFromDocumentId.mockImplementationOnce(actual.namespaceFromDocumentId);
             mocks.readFile.mockResolvedValueOnce(JSON.stringify({
                 $id: 'https://calmhub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
-                title: 'My Flow',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'A flow',
+                transitions: [],
             }));
 
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--type', 'flow', '--id', 'my-flow']);
