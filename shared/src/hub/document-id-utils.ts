@@ -9,7 +9,7 @@ import { isValidResourceType, ResourceType } from './resource-types.js';
 
 const NAMESPACE_RESOURCE_ID_PATTERN = /^(.*)\/calm\/namespaces\/([^/]+)\/([^/]+)\/([^/]+)\/versions\/([^/]+)$/;
 export interface DocumentMetadata extends DocumentIdMetadata {
-    name: string; // pulled from 'title'. Required.
+    name: string; // pulled from 'title', or from 'name' for a flow. Required.
     description?: string; // pulled from 'description' if present. When writing back description is set to '' if absent.
 }
 
@@ -99,6 +99,15 @@ export function constructDocumentId(metadata: DocumentMetadata): string {
     return `${metadata.baseUrl}/calm/namespaces/${metadata.namespace}/${metadata.type}/${metadata.mapping}/versions/${metadata.version}`;
 }
 
+/**
+ * The field to write a document's display name to. A CALM flow has `name` and no `title`, and
+ * the flow schema forbids extra fields, so a write must not add `title` to it.
+ */
+export function documentNameField(json: Record<string, unknown>): 'title' | 'name' {
+    const has = (key: string) => Object.prototype.hasOwnProperty.call(json, key);
+    return !has('title') && has('name') ? 'name' : 'title';
+}
+
 export function extractDocumentMetadata(document: string): DocumentMetadata {
     try {
         const json = JSON.parse(document);
@@ -107,9 +116,9 @@ export function extractDocumentMetadata(document: string): DocumentMetadata {
             throw new Error('Document does not contain a valid \'$id\' field');
         }
         const idMetadata = parseDocumentId(documentId);
-        const name = json['title'];
+        const name = json['title'] || json['name'];
         if (!name) {
-            throw new Error('Missing name field in parsed document.');
+            throw new Error('Missing \'title\' or \'name\' field in parsed document.');
         }
         const description = json['description'];
         return {
@@ -127,7 +136,7 @@ export function updateDocumentMetadata(document: string, newDocumentMetadata: Do
         const newDocumentId = constructDocumentId(newDocumentMetadata);
         const json = JSON.parse(document);
         json['$id'] = newDocumentId;
-        json['title'] = newDocumentMetadata.name;
+        json[documentNameField(json)] = newDocumentMetadata.name;
         json['description'] = newDocumentMetadata.description ?? '';
         return JSON.stringify(json, null, 2);
     } catch (error) {

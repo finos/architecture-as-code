@@ -60,6 +60,7 @@ export {
     constructDocumentId,
     isConformantDocumentId,
     namespaceFromDocumentId,
+    documentNameField,
     extractDocumentMetadata,
     updateDocumentMetadata,
     type DocumentMetadata,

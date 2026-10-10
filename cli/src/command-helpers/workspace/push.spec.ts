@@ -518,7 +518,13 @@ describe('pushWorkspaceToHub', () => {
     });
 
     it('pushes a flow to its CalmHub flows mapping', async () => {
-        const flow = { $id: mappingId('my-flow', '1.0.0', 'flows'), title: 'My Flow' };
+        const flow = {
+            $id: mappingId('my-flow', '1.0.0', 'flows'),
+            'unique-id': 'my-flow',
+            name: 'My Flow',
+            description: 'A flow',
+            transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }]
+        };
         await writeFile(path.join(filesPath, 'flow.json'), JSON.stringify(flow));
         await saveManifest(bundlePath, {
             'flow': { path: 'files/flow.json', type: 'flow', namespace: 'com.example' }
@@ -532,7 +538,7 @@ describe('pushWorkspaceToHub', () => {
 
         expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'my-flow', 'flows');
         expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
-            expect.objectContaining({ namespace: 'com.example', mapping: 'my-flow', type: 'flows', version: '1.0.0' }),
+            expect.objectContaining({ namespace: 'com.example', mapping: 'my-flow', type: 'flows', version: '1.0.0', name: 'My Flow' }),
             JSON.stringify(flow)
         );
         expect((await loadManifest(bundlePath))['flow'].calmHubId).toBe(locationUrl);
