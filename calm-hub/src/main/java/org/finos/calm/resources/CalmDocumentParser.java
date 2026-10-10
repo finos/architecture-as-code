@@ -160,6 +160,15 @@ public class CalmDocumentParser {
         return "";
     }
 
+    /**
+     * Extracts a document's display name: its {@code title}, or its {@code name} when it has no
+     * title, as a CALM flow does. Returns an empty string if neither is present.
+     */
+    public String extractTitle(String json) {
+        String title = extractStringField(json, "title");
+        return title.isBlank() ? extractStringField(json, "name") : title;
+    }
+
     // -------------------------------------------------------------------------
     // $id parsing / validation
     // -------------------------------------------------------------------------

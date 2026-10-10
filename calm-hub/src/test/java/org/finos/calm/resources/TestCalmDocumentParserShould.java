@@ -275,6 +275,26 @@ class TestCalmDocumentParserShould {
         assertEquals("", parser.extractStringField("{\"title\":\"\"}", "title"));
     }
 
+    @Test
+    void extractTitle_returns_title_when_present() {
+        assertEquals("My Pattern", parser.extractTitle("{\"title\":\"My Pattern\",\"name\":\"Other\"}"));
+    }
+
+    @Test
+    void extractTitle_returns_name_of_a_flow_without_title() {
+        assertEquals("My Flow", parser.extractTitle("{\"unique-id\":\"my-flow\",\"name\":\"My Flow\"}"));
+    }
+
+    @Test
+    void extractTitle_returns_name_when_title_blank() {
+        assertEquals("My Flow", parser.extractTitle("{\"title\":\" \",\"name\":\"My Flow\"}"));
+    }
+
+    @Test
+    void extractTitle_returns_empty_string_when_title_and_name_absent() {
+        assertEquals("", parser.extractTitle("{\"$id\":\"x\"}"));
+    }
+
     // -------------------------------------------------------------------------
     // parseTypePlural
     // -------------------------------------------------------------------------

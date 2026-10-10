@@ -444,10 +444,10 @@ public class MappingControllerService {
                             + STRICT_SANITIZATION_POLICY.sanitize(finalVersion) + " was requested")
                     .build();
         }
-        String title = documentParser.extractStringField(json, "title");
+        String title = documentParser.extractTitle(json);
         if (title.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("'title' is required in the document body").build();
+                    .entity("'title' or 'name' is required in the document body").build();
         }
         String description = documentParser.extractStringField(json, "description");
         try {
@@ -522,10 +522,10 @@ public class MappingControllerService {
                         newVersion, mapping.getResourceType(), name, namespace);
             }
 
-            String title = documentParser.extractStringField(json, "title");
+            String title = documentParser.extractTitle(json);
             if (title.isBlank()) {
                 return Response.status(Response.Status.BAD_REQUEST)
-                        .entity("'title' is required in the document body").build();
+                        .entity("'title' or 'name' is required in the document body").build();
             }
             String description = documentParser.extractStringField(json, "description");
 
