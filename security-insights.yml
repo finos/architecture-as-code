@@ -216,6 +216,7 @@ repository:
           adhoc: true
           ci: true
           release: false
+        results: {}
       - name: CodeQL
         type: SAST
         comment: .github/workflows/codeql.yml (advanced setup); runs on every pull request, including pull requests from forks, and weekly against main.
@@ -225,6 +226,7 @@ repository:
           adhoc: false
           ci: true
           release: false
+        results: {}
       - name: Semgrep
         type: SAST
         comment: Runs on every pull request via .github/workflows/semgrep-ci.yml; the semgrep/ci check is required on main.
@@ -234,6 +236,7 @@ repository:
           adhoc: false
           ci: true
           release: false
+        results: {}
       - name: OSV Scanner
         type: SCA
         comment: |
@@ -248,6 +251,7 @@ repository:
           adhoc: false
           ci: true
           release: true
+        results: {}
       - name: Dependency Review
         type: SCA
         comment: actions/dependency-review-action on every pull request; blocks known-vulnerable and known-malicious dependencies.
@@ -257,6 +261,7 @@ repository:
           adhoc: false
           ci: true
           release: false
+        results: {}
       - name: Dependabot
         type: SCA
         comment: Security updates and alerts for npm, Maven, Cargo and GitHub Actions.
@@ -266,3 +271,4 @@ repository:
           adhoc: false
           ci: true
           release: false
+        results: {}
