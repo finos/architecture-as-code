@@ -12,7 +12,9 @@ import {
     extractControlMetadata,
     updateControlDocumentMetadata,
     isConformantDocumentId,
-    namespaceFromDocumentId
+    namespaceFromDocumentId,
+    resourceTypeFromDocumentId,
+    isControlDocumentId
 } from './document-id-utils';
 
 const DOCUMENT_ID = 'https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0';
@@ -405,6 +407,35 @@ describe('Document ID Utils', () => {
 
         it('returns undefined for a non-conformant id', () => {
             expect(namespaceFromDocumentId('my-arch')).toBeUndefined();
+        });
+    });
+
+    describe('resourceTypeFromDocumentId', () => {
+        it.each([
+            ['architectures'], ['patterns'], ['flows'], ['standards'], ['interfaces'],
+        ])('returns %s for a namespace-resource id of that type', (type) => {
+            expect(resourceTypeFromDocumentId(`https://example.com/calm/namespaces/finos/${type}/a/versions/1.0.0`)).toBe(type);
+        });
+
+        it('returns undefined for a control document id', () => {
+            expect(resourceTypeFromDocumentId('https://example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0')).toBeUndefined();
+        });
+
+        it('returns undefined for an unknown resource type or a non-conformant id', () => {
+            expect(resourceTypeFromDocumentId('https://example.com/calm/namespaces/finos/adrs/a/versions/1.0.0')).toBeUndefined();
+            expect(resourceTypeFromDocumentId('my-arch')).toBeUndefined();
+        });
+    });
+
+    describe('isControlDocumentId', () => {
+        it('returns true for control requirement and configuration ids', () => {
+            expect(isControlDocumentId('https://example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0')).toBe(true);
+            expect(isControlDocumentId('https://example.com/calm/domains/security/controls/ac/configurations/prod/versions/1.0.0')).toBe(true);
+        });
+
+        it('returns false for a namespace-resource id or a non-conformant id', () => {
+            expect(isControlDocumentId(DOCUMENT_ID)).toBe(false);
+            expect(isControlDocumentId('my-arch')).toBe(false);
         });
     });
 });
