@@ -74,14 +74,16 @@ vi.mock('./compare/CompareView.js', () => ({
 vi.mock('./timeline/TimelineBar.js', () => ({
     TimelineBar: ({
         currentVersion,
+        moments,
         onNavigate,
         onCompare,
     }: {
         currentVersion: string;
+        moments: unknown[];
         onNavigate: (v: string) => void;
         onCompare: (from: string, to: string) => void;
     }) => (
-        <div data-testid="timeline-bar" data-current={currentVersion}>
+        <div data-testid="timeline-bar" data-current={currentVersion} data-moments={moments.length}>
             <button onClick={() => onNavigate('2.0.0')}>nav-2.0.0</button>
             <button onClick={() => onCompare('1.0.0', '2.0.0')}>compare</button>
         </div>
@@ -359,7 +361,7 @@ describe('DiagramSection', () => {
 
             await user.click(screen.getByText('nav-2.0.0'));
 
-            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0', expect.objectContaining({ state: null }));
+            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0', expect.objectContaining({ state: { timelineSelection: true } }));
         });
 
         it('keeps the timeline bar visible across tabs', async () => {
@@ -373,6 +375,89 @@ describe('DiagramSection', () => {
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
             await user.click(screen.getByRole('tab', { name: /json/i }));
             expect(screen.getByTestId('timeline-bar')).toBeInTheDocument();
+        });
+    });
+
+    describe('explicit timeline current-moment redirect', () => {
+        const momentFor = (key: string, version: string, validFrom: string) => ({
+            'unique-id': key,
+            'node-type': 'moment',
+            name: key,
+            'valid-from': validFrom,
+            details: {
+                'detailed-architecture': `/calm/namespaces/arch-namespace/architectures/test-arch/versions/${version}`,
+            },
+        });
+        const latestArchitectureData = { ...architectureData, version: '2.0.0' };
+        const crumb: BreadcrumbItem = { namespace: 'finos', type: 'patterns', id: 'api-gateway-pattern', version: '1.0.0' };
+
+        beforeEach(() => {
+            calmServiceMock.fetchArchitectureTimeline.mockResolvedValue({
+                'current-moment': 'before',
+                moments: [momentFor('before', '1.0.0', '2024-01-01'), momentFor('after', '2.0.0', '2025-01-01')],
+            });
+        });
+
+        const renderAt = (data: Data & { calmType: 'Architectures' }, state: unknown) =>
+            render(
+                <MemoryRouter initialEntries={[{ pathname: '/', state }]}>
+                    <DiagramSection data={data} breadcrumbs={[crumb]} />
+                </MemoryRouter>
+            );
+
+        it('redirects a landing on the latest version to the current moment once', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            renderAt(latestArchitectureData, null);
+
+            await waitFor(() => {
+                expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/1.0.0', {
+                    replace: true,
+                    state: null,
+                });
+            });
+            expect(navigate).toHaveBeenCalledTimes(1);
+        });
+
+        it('marks a timeline selection in navigation state and keeps the existing state', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+
+            renderAt(architectureData, { breadcrumbs: [crumb] });
+            await user.click(screen.getByText('nav-2.0.0'));
+
+            expect(navigate).toHaveBeenCalledWith('/arch-namespace/architectures/test-arch/2.0.0', {
+                state: { breadcrumbs: [crumb], timelineSelection: true },
+            });
+        });
+
+        it('stays on the latest version when the timeline selected it', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+
+            // The instance that mounts after a timeline selection (Hub remounts
+            // DiagramSection on every version change).
+            renderAt(latestArchitectureData, { breadcrumbs: [crumb], timelineSelection: true });
+
+            await waitFor(() => {
+                expect(screen.getByTestId('timeline-bar')).toHaveAttribute('data-moments', '2');
+            });
+            expect(navigate).not.toHaveBeenCalled();
+        });
+
+        it('does not carry the timeline flag into breadcrumb navigation', async () => {
+            const navigate = vi.fn();
+            vi.mocked(useNavigate).mockReturnValue(navigate);
+            const user = userEvent.setup();
+
+            renderAt(latestArchitectureData, { breadcrumbs: [crumb], timelineSelection: true });
+            await user.click(screen.getByRole('button', { name: 'api-gateway-pattern' }));
+
+            expect(navigate).toHaveBeenCalledWith('/finos/patterns/api-gateway-pattern/1.0.0', {
+                state: { breadcrumbs: [] },
+            });
         });
     });
 
