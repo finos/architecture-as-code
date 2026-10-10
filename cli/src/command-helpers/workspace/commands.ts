@@ -6,6 +6,7 @@ import { addFileToBundle, loadManifest, printBundleTree } from './bundle';
 import { removeDocumentFromManifest } from './rm';
 import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
+import { documentTypeForContent, documentTypeForDocumentId } from './document-id-type';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
 import { runPostBumpValidation } from './post-bump-validate';
@@ -52,6 +53,8 @@ interface AddDocumentContext {
     file: string;
     options: WorkspaceAddOptions;
     srcPath: string;
+    /** The file's content, when it was already read to infer the document type. */
+    content?: string;
 }
 
 async function registerNarrativeDocument(
@@ -127,7 +130,7 @@ async function addMappingDocument(
     // Parse the file once; we manage its $id only when it is valid JSON.
     let fileJson: Record<string, unknown> | undefined;
     try {
-        fileJson = JSON.parse(await readFile(srcPath, 'utf8'));
+        fileJson = JSON.parse(context.content ?? await readFile(srcPath, 'utf8'));
     } catch (_) {
         fileJson = undefined;
     }
@@ -140,7 +143,7 @@ async function addMappingDocument(
     if (fileJson) {
         if (!existingId) {
             // No $id present: build one interactively and write it into the file.
-            const built = await promptForDocumentId({ baseUrlDefault });
+            const built = await promptForDocumentId({ baseUrlDefault, documentType: type });
             fileJson['$id'] = built.id;
             await writeFile(srcPath, JSON.stringify(fileJson, null, 2), 'utf8');
             logger.info(`Set document $id to ${built.id}`);
@@ -150,6 +153,13 @@ async function addMappingDocument(
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
             // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
+        } else {
+            // push and bump take the type from the $id, but check validates by the manifest type,
+            // so a mismatch would skip validation.
+            const idType = documentTypeForDocumentId(existingId);
+            if (idType && idType !== type) {
+                throw new Error(`Document type '${type}' does not match the $id '${existingId}', which needs document type '${idType}'. Use --type ${idType}, or change the $id.`);
+            }
         }
     }
 
@@ -286,7 +296,16 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const documentTypes = [...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST];
-                const type = await enforceOptionPresenceByPrompt(options.type, 'Select a document type:', documentTypes);
+                let content: string | undefined;
+                let type = options.type;
+                if (!type) {
+                    content = await readFile(srcPath, 'utf8').catch(() => undefined);
+                    type = documentTypeForContent(content);
+                    if (type) {
+                        logger.info(`Using document type '${type}' from the document $id.`);
+                    }
+                }
+                type = await enforceOptionPresenceByPrompt(type, 'Select a document type:', documentTypes);
                 const resolvedType = resolveWorkspaceDocumentType(type);
                 if (!resolvedType) {
                     logger.error(`Invalid document type '${type}'. Must be one of: ${CALM_DOCUMENT_TYPES_LIST.join(', ')}`);
@@ -295,7 +314,7 @@ export function setupWorkspaceCommands(program: Command) {
                 await dispatchWorkspaceDocumentType(
                     resolvedType,
                     ADD_DOCUMENT_OPERATIONS,
-                    { bundlePath, file, options, srcPath }
+                    { bundlePath, file, options, srcPath, content }
                 );
             } catch (err) {
                 logger.error('Failed to add file to workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
@@ -472,7 +491,7 @@ export function setupWorkspaceCommands(program: Command) {
                 const templates = await getTemplatesForType(type);
 
                 const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
-                const documentId = await promptForDocumentId({ baseUrlDefault });
+                const documentId = await promptForDocumentId({ baseUrlDefault, documentType: type });
 
                 name = await enforceOptionPresenceByPrompt(name, `Enter the title for your new ${type} document:`);
                 if (!template) {

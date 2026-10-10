@@ -101,6 +101,8 @@ export {
     constructDocumentId,
     isConformantDocumentId,
     namespaceFromDocumentId,
+    resourceTypeFromDocumentId,
+    isControlDocumentId,
     documentNameField,
     extractDocumentMetadata,
     updateDocumentMetadata,
