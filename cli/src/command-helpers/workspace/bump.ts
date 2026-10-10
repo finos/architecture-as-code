@@ -14,6 +14,7 @@ import {
     DocumentMetadata,
     extractDocumentMetadata,
     constructDocumentId,
+    documentNameField,
     computeSemVerBump,
     sortSemVer,
     canonicalEqual,
@@ -34,7 +35,7 @@ export { canonicalEqual };
 const logger: Logger = initLogger(false, 'workspace');
 
 /**
- * Rewrites `$id`/`title` for a version bump without the empty-description default that
+ * Rewrites `$id` and the name field for a version bump without the empty-description default that
  * `updateDocumentMetadata` applies for CalmHub push normalisation (see hub-commands.ts, where it
  * mirrors how CalmHub stores a description-less document). Workspace documents are pushed raw
  * (see push.ts) and validated locally, so injecting `description: ''` into a document that never
@@ -46,7 +47,7 @@ const logger: Logger = initLogger(false, 'workspace');
 function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
     const json = JSON.parse(raw);
     json['$id'] = constructDocumentId(metadata);
-    json['title'] = metadata.name;
+    json[documentNameField(json)] = metadata.name;
     if (Object.prototype.hasOwnProperty.call(json, 'description')) {
         json['description'] = metadata.description ?? '';
     }
@@ -347,7 +348,7 @@ export async function bumpWorkspace(
             try {
                 metadata = extractDocumentMetadata(raw);
             } catch {
-                // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
+                // Non-CalmHub $id (adr, timeline, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
                 bumpedIds.add(candidate.docId);
                 continue;

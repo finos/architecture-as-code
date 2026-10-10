@@ -148,7 +148,7 @@ async function addMappingDocument(
             effectiveId = built.id;
         } else if (!isConformantDocumentId(existingId)) {
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
-            // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+            // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
         }
     }
