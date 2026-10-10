@@ -26,6 +26,9 @@ import {
     runPushStandard,
     runPushInterface,
     runListInterfaces,
+    runPushFlow,
+    runPullFlow,
+    runListFlows,
     CreateDomainOptions,
     ListDomainsOptions,
     PushControlOptions,
@@ -592,6 +595,28 @@ Example:
         });
 
     hubPushCmd
+        .command('flow <flow-file>')
+        .description('Push a CALM flow file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the flow in CALM Hub; overrides `name` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the flow; overrides `description` field if set.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
+        .action(async (flowFile, options) => {
+            const pushFlowOptions: PushOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                file: flowFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
+            };
+            await runPushFlow(pushFlowOptions);
+        });
+
+    hubPushCmd
         .command('control-requirement <requirement-file>')
         .description('Push a control requirement version to CALM Hub. $id of document must contain a full control requirement document ID including domain, control name and version.')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
@@ -704,6 +729,25 @@ Example:
                 output: options.output
             };
             await runPullInterface(pullInterfaceOptions);
+        });
+
+    hubPullCmd
+        .command('flow')
+        .description('Pull a specific version of a CALM flow from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the flow to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullFlowOptions: PullOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                mapping: options.mapping,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullFlow(pullFlowOptions);
         });
 
     hubPullCmd
@@ -820,6 +864,21 @@ Example:
                 format: options.format
             };
             await runListInterfaces(listInterfacesOptions);
+        });
+
+    hubListCmd
+        .command('flows')
+        .description('List flows in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listFlowsOptions: ListOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListFlows(listFlowsOptions);
         });
 
     hubListCmd

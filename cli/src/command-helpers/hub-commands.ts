@@ -605,6 +605,36 @@ export async function runListInterfaces(options: ListOptions): Promise<void> {
     return runListMappedResources(options, 'interfaces');
 }
 
+// ── push flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a new flow or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushFlow(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'flows');
+}
+
+// ── pull flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pulls a flow version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullFlow(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'flows');
+}
+
+// ── list flows ────────────────────────────────────────────────────────────────
+
+/**
+ * Lists flows in a namespace.
+ * @param options Command options.
+ */
+export async function runListFlows(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'flows');
+}
+
 // ── create domain ───────────────────────────────────────────────────────────
 
 export interface CreateDomainOptions {
