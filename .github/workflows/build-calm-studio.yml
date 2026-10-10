@@ -76,6 +76,23 @@ jobs:
                   npm run test --if-present --workspace=@calmstudio/diagram
                   npm run test --if-present --workspace=@finos/calm-docusaurus-plugin
 
+            # GitHub runs the committed dist/index.js, so it must match a fresh build.
+            - name: Check the GitHub Action bundle is up to date
+              id: check-dist
+              run: |
+                  if [ -n "$(git status --porcelain -- calm-studio/packages/github-action/dist)" ]; then
+                      git status --short -- calm-studio/packages/github-action/dist
+                      echo "::error::calm-studio/packages/github-action/dist is out of date. Run 'npm run build --workspace=@calmstudio/github-action' and commit the result, or commit the github-action-dist artifact from this run."
+                      exit 1
+                  fi
+
+            - name: Upload the rebuilt GitHub Action bundle
+              if: failure() && steps.check-dist.outcome == 'failure'
+              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              with:
+                  name: github-action-dist
+                  path: calm-studio/packages/github-action/dist/
+
     e2e-tests:
         name: E2E Tests
         runs-on: ubuntu-latest
