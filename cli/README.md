@@ -707,7 +707,7 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 
 ### `calm hub push`
 
-Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
+Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). The type in the `$id` must match the subcommand, or the push fails before it contacts CalmHub. By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
 
 ```
 calm hub push <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> <file> [options]
