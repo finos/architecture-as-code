@@ -49,7 +49,6 @@
         "ajv": "^8.18.0",
         "ajv-formats": "^2.1.1",
         "axios": "^1.20.0",
-        "copyfiles": "^2.4.1",
         "handlebars": "^4.7.9",
         "js-yaml": "^4.3.2",
         "json-pointer": "^0.6.2",
@@ -61,8 +60,6 @@
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
-        "regexparam": "^3.0.0",
-        "string-table": "^0.1.5",
         "ts-node": "10.9.2",
         "winston": "^3.17.0"
     },

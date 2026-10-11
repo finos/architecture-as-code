@@ -78,6 +78,11 @@ describe('PatternGraph', () => {
         vi.clearAllMocks();
     });
 
+    it('offers a pause-animation control on desktop', () => {
+        render(<PatternGraph patternData={mockPatternData} />);
+        expect(screen.getByRole('button', { name: /pause animation/i })).toBeInTheDocument();
+    });
+
     describe('default layout precedence', () => {
         const key = 'ns/id';
 

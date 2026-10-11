@@ -170,6 +170,7 @@ its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`).
 
 ### Modifying Schema Handling
 - `scripts/copy-calm-schemas.mjs` copies every `@finos/calm-schema` devDependency in the root `package.json`. The latest version must also have a `calm-schema-<major.minor>` alias, so a schema bump PR must add the new alias; the build fails until it does
+- `.github/workflows/calm-schema-compatibility.yml` tests every tool against each new `@finos/calm-schema` release (see the root [AGENTS.md](../AGENTS.md#calm-schema-updates))
 - Update copy script in `package.json` if schema structure changes
 - Test with `npm run build` to ensure schemas copy correctly
 

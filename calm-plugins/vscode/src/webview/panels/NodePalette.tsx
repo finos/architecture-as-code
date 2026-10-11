@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '../../extensions/index.js';
+import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '../../packs/index.js';
 
 initAllPacks();
 

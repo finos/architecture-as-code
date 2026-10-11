@@ -2,30 +2,15 @@
 # Fails when osv-scanner JSON output has a finding at or above the CVSS threshold.
 # A finding without a CVSS score counts as at the threshold when its GitHub advisory
 # severity is MODERATE or higher. Unscored advisories (e.g. RUSTSEC "unmaintained")
-# are reported but do not fail.
+# are reported but do not fail. The blocking rule lives in osv-findings.jq.
 # Usage: osv-threshold.sh <osv-results.json> <cvss-threshold>
 set -euo pipefail
 
 RESULTS="$1"
 THRESHOLD="$2"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-FINDINGS=$(jq --argjson threshold "$THRESHOLD" --arg root "$PWD/" '
-  [ .results[]? as $r
-    | $r.packages[]? as $p
-    | $p.groups[]? as $g
-    | ([$p.vulnerabilities[]? | select(.id as $id | $g.ids | index($id)) | .database_specific.severity // empty]) as $ghsa
-    | {
-        source: ($r.source.path | ltrimstr($root)),
-        package: "\($p.package.name)@\($p.package.version)",
-        ids: ($g.ids | join(", ")),
-        cvss: ($g.max_severity // ""),
-        ghsa: ($ghsa | unique | join(","))
-      }
-    | .blocking = (
-        if .cvss != "" then (.cvss | tonumber) >= $threshold
-        else (.ghsa | test("MODERATE|HIGH|CRITICAL")) end
-      )
-  ]' "$RESULTS")
+FINDINGS=$(jq --argjson threshold "$THRESHOLD" --arg root "$PWD/" -f "$SCRIPT_DIR/osv-findings.jq" "$RESULTS")
 
 TOTAL=$(jq 'length' <<<"$FINDINGS")
 BLOCKING=$(jq '[.[] | select(.blocking)] | length' <<<"$FINDINGS")

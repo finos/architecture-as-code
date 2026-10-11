@@ -81,6 +81,19 @@ describe('NamespacePage', () => {
         await screen.findByText('Arch One');
     });
 
+    it('renders the namespace description under the heading', async () => {
+        renderPage(['/namespace/traderx'], { ...counts, description: 'TraderX sample trading application.' });
+        const description = screen.getByText('TraderX sample trading application.');
+        expect(description).toHaveAttribute('title', 'TraderX sample trading application.');
+        await screen.findByText('Arch One');
+    });
+
+    it('renders no description line when the namespace has none', async () => {
+        const { container } = renderPage();
+        expect(container.querySelector('[data-testid="namespace-description"]')).toBeNull();
+        await screen.findByText('Arch One');
+    });
+
     it('renders all six type tabs with their counts (zero-count tabs included)', () => {
         renderPage();
         // Zero-count tabs are present, not hidden.

@@ -90,7 +90,7 @@ public class NamespaceResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Namespace Resource Counts",
-            description = "Per-namespace counts of each resource type plus a total, for the browse rail and namespace page"
+            description = "Per-namespace description, counts of each resource type and a total, for the browse rail and namespace page"
     )
     // @Authenticated (not per-namespace @PermissionsAllowed) because @PermissionsAllowed
     // cannot target a specific namespace for an endpoint that returns all of them. The
