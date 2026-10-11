@@ -76,15 +76,14 @@ id = "GHSA-vfj7-8cjw-p6xm"
 ignoreUntil = 2026-12-31
 reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, stylelint, eslint-config-next, Docusaurus, webpack-dev-server) and only expands patterns from project config, never user input. Remove when a patched braces release is available."
 
-# http-cache-semantics 4.2.0 comes in through make-fetch-happen (the npm CLI bundled with
-# semantic-release, and @npmcli/arborist under license-checker-rseidelsohn) and through
-# Docusaurus's update-notifier (got, cacheable-request). All use it only as a private
-# client cache. The attack needs a shared cache that serves
+# http-cache-semantics 4.2.0 comes in through make-fetch-happen (inside the npm CLI bundled
+# with semantic-release) and through Docusaurus's update-notifier (got, cacheable-request).
+# All use it only as a private client cache. The attack needs a shared cache that serves
 # responses to other users, which no CALM component runs. No patched release exists yet.
 [[IgnoredVulns]]
 id = "GHSA-ch52-4w7c-c8xp"
 ignoreUntil = 2026-12-31
-reason = "http-cache-semantics 4.2.0 is used only as a private client cache by the npm CLI bundled with semantic-release, by license-checker-rseidelsohn and by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
+reason = "http-cache-semantics 4.2.0 is used only as a private client cache by the npm CLI bundled with semantic-release and by Docusaurus's update-notifier; no CALM component runs a shared cache. Remove when a patched release is available."
 
 # postcss-selector-parser 6.1.4 comes in through the cssnano plugins that Docusaurus uses
 # to minify CSS, and 7.1.4 is bundled inside the npm CLI used by semantic-release. The
@@ -96,3 +95,14 @@ reason = "http-cache-semantics 4.2.0 is used only as a private client cache by t
 id = "GHSA-rj75-hqrm-r3gf"
 ignoreUntil = 2026-12-31
 reason = "postcss-selector-parser 6.1.4 (cssnano under Docusaurus) parses only the project's own CSS at build time, and 7.1.4 (bundled in the npm CLI used by semantic-release) parses only npm query and npm sbom selectors; semantic-release runs that npm only to publish. An attacker cannot supply the selectors that cause the slow parse. Not shipped. Remove when cssnano moves to 7.1.6 and npm bundles 7.1.6."
+
+# katex 0.16.47 comes in only through mermaid, which pins ^0.16.45 (still the pin at
+# mermaid 12.1.0). The fix is in 0.18.2, outside that range. The only place katex code
+# runs is the CLI `--export-diagrams` renderer, which serves mermaid's self-contained
+# ESM bundle with its own inlined katex copy, so an npm override cannot reach the code
+# that executes. mermaid loads katex only for math blocks, and the advisory needs an
+# already-polluted Object.prototype plus attacker-controlled math input.
+[[IgnoredVulns]]
+id = "GHSA-238p-pmpm-9mq7"
+ignoreUntil = 2026-12-31
+reason = "katex is reachable only through mermaid's inlined copy in the CLI diagram renderer, and only when a mermaid diagram contains math. The read-side gadget needs an already-polluted Object.prototype, which no CALM component provides. Remove when mermaid moves to katex >= 0.18.2."

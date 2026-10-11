@@ -6,10 +6,13 @@ import { initAuthService, isAuthServiceEnabled } from './authService.js';
 import App from './App.js';
 import { AuthErrorModal } from './AuthModalError.js';
 import { MigrationErrorModal } from './MigrationModalError.js';
+import { getMotionStore } from './theme/useMotion.js';
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 
 async function bootstrap() {
+    // Start tracking the OS reduce-motion setting for the whole session.
+    getMotionStore();
     await initAuthService();
 
     const isAuthenticationEnabled = isAuthServiceEnabled();

@@ -12,6 +12,7 @@
   ],
   "timezone": "UTC",
   "schedule": ["before 7am on monday"],
+  "osvVulnerabilityAlerts": true,
   "prConcurrentLimit": 10,
   "prHourlyLimit": 2,
   "postUpdateOptions": ["npmDedupe"],

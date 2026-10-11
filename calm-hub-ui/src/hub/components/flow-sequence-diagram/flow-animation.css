@@ -53,3 +53,12 @@
     border-color: var(--flow-visited) !important;
 }
 
+/* Motion paused: keep the active step highlighted, but stop the per-frame repaints. */
+:root[data-motion='reduced'] .flow-dash-overlay,
+:root[data-motion='reduced'] .flow-node-active > div:first-child {
+    animation: none;
+}
+
+:root[data-motion='reduced'] .react-flow .flow-edge-active path.react-flow__edge-path {
+    filter: none;
+}

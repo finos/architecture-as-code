@@ -16,6 +16,7 @@ import { CustomNode } from '../../visualizer/components/reactflow/CustomNode.js'
 import { SystemGroupNode } from '../../visualizer/components/reactflow/SystemGroupNode.js';
 import { DecisionGroupNode } from '../../visualizer/components/reactflow/DecisionGroupNode.js';
 import { THEME } from '../../visualizer/components/reactflow/theme.js';
+import { MotionToggleButton } from '../../visualizer/components/reactflow/MotionToggleButton.js';
 import { parseCALMDataWithDiff } from './utils/diffTransformer.js';
 import { parsePatternDataWithDiff } from './utils/patternDiffTransformer.js';
 import { useIsMobile } from '../../hooks/useMediaQuery.js';
@@ -96,7 +97,9 @@ function DiffGraphInner({ source, sourceType, diffResult, isFirst }: DiffGraphPr
                         border: `1px solid ${THEME.colors.border}`,
                         borderRadius: '8px',
                     }}
-                />
+                >
+                    <MotionToggleButton />
+                </Controls>
             )}
             {!isMobile && (
                 <MiniMap

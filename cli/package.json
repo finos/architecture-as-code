@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.60.1",
+    "version": "1.61.0",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -56,7 +56,6 @@
         "@semantic-release/git": "^10.0.1",
         "@semantic-release/github": "^12.0.0",
         "@types/xml2js": "^0.4.14",
-        "axios": "^1.20.0",
         "chokidar": "^4.0.3",
         "native-copyfiles": "^2.0.0",
         "semantic-release": "^25.0.0",

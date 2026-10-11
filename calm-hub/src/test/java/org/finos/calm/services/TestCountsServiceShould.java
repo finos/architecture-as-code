@@ -110,6 +110,7 @@ class TestCountsServiceShould {
         assertThat(result, hasSize(1));
         NamespaceCounts counts = result.get(0);
         assertThat(counts.getNamespace(), is(NAMESPACE));
+        assertThat(counts.getDescription(), is("FINOS namespace"));
         assertThat(counts.getArchitectures(), is(2));
         assertThat(counts.getPatterns(), is(1));
         assertThat(counts.getFlows(), is(3));
@@ -282,6 +283,25 @@ class TestCountsServiceShould {
 
         assertThat(second.get(0).getArchitectures(), is(1));
         // The second call within the TTL is served from the per-namespace cache.
+        verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace(NAMESPACE);
+    }
+
+    @Test
+    void return_the_current_description_even_when_the_counts_are_cached() throws Exception {
+        when(mockNamespaceStore.getNamespaces())
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "old")))
+                .thenReturn(List.of(new NamespaceInfo(NAMESPACE, "new")));
+        when(mockArchitectureStore.getArchitecturesForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockPatternStore.getPatternsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockFlowStore.getFlowsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockStandardStore.getStandardsForNamespace(NAMESPACE)).thenReturn(List.of());
+        when(mockAdrStore.countAdrsForNamespace(NAMESPACE)).thenReturn(0);
+        when(mockInterfaceStore.getInterfacesForNamespace(NAMESPACE)).thenReturn(List.of());
+
+        service.getNamespaceCounts(ALL_ACCESS);
+        List<NamespaceCounts> second = service.getNamespaceCounts(ALL_ACCESS);
+
+        assertThat(second.get(0).getDescription(), is("new"));
         verify(mockArchitectureStore, times(1)).getArchitecturesForNamespace(NAMESPACE);
     }
 
