@@ -25,9 +25,11 @@ The project's threat model and attack surface analysis is maintained in [THREAT_
 
 This section is the project's policy for findings from software composition analysis (SCA) and static application security testing (SAST).
 
-Every pull request must pass two SCA checks, and merging is blocked until each violation is addressed. The `osv-scanner` check scans every dependency tree in the repository (the root npm lockfile, the Maven projects `calm-hub` and `calm-models`, and the CALM Studio desktop Cargo lockfile) against the OSV database and fails on any finding with a CVSS score of 5 or higher. The `dependency-review` SCA check must pass on every pull request and blocks the merge of any change that adds known vulnerabilities of moderate severity or higher or malicious dependencies. OSV Scanner also runs on `main` on every push and twice each working day. Dependabot raises alerts and security update pull requests for npm, Maven, Cargo and GitHub Actions, and Renovate raises update pull requests for outdated dependencies.
+Every pull request must pass two SCA checks, and merging is blocked until each violation is addressed. The `osv-scanner` check scans every dependency tree in the repository (the root npm lockfile, the Maven projects `calm-hub` and `calm-models`, and the CALM Studio desktop Cargo lockfile) against the OSV database and fails on any finding with a CVSS score of 5 or higher. The `dependency-review` SCA check must pass on every pull request and blocks the merge of any change that adds known vulnerabilities of moderate severity or higher or malicious dependencies. OSV Scanner also runs on `main` on every push and twice each working day. Dependabot raises alerts and security update pull requests for npm, Maven, Cargo and GitHub Actions, and Renovate raises update pull requests for outdated dependencies and fix pull requests for direct dependencies with a known vulnerability in the OSV database. Renovate cannot resolve the locked version of a workspace dependency that npm hoists to the root `node_modules` ([renovate#45331](https://github.com/renovatebot/renovate/discussions/45331)), so those are not covered, and a maintainer still triages each OSV Scanner failure.
 
 Critical and high severity vulnerabilities in a runtime dependency must be fixed within 7 days of being reported. Medium severity vulnerabilities must be fixed within 30 days. Low severity vulnerabilities must be fixed in the next scheduled release. A dependency whose license is incompatible with Apache-2.0, or is otherwise disallowed by the license scanning workflows, must be removed or replaced before the change is merged, so that only dependencies with an approved permissive license ship in a release.
+
+When an OSV Scanner run on `main` fails, the `OSV Fix` workflow (`.github/workflows/osv-fix.yml`) runs `npm update --package-lock-only` for each blocking npm finding and opens a pull request with the lockfile change for review. It never changes a manifest or adds a suppression. A finding it cannot fix in this way needs a maintainer.
 
 All SCA findings above these thresholds must be addressed before any release of the affected component, and the release is blocked until each finding is fixed or declared non-exploitable as described below. The CLI and CALM Server release workflows enforce this automatically: they publish only when the OSV Scanner run for the commit being released has passed. For every other component, the releasing maintainer must confirm that the latest OSV Scanner run on `main` passed before the release. CALM Lab has no release step: it is deployed from `main` when a change to it or to its dependencies merges, and `s3-lab-sync.yml` deploys only when the OSV Scanner run for that commit has passed. A finding disclosed after deployment must be fixed within the time limits above.
 
@@ -69,5 +71,18 @@ The provenance names the GitHub Actions workflow and commit that produced the im
 **CALM Lab** is a static site that `s3-lab-sync.yml` builds from `main` and deploys to https://lab.calm.finos.org. Users do not install it, so there is no artifact to verify. Requests over HTTP are redirected to HTTPS.
 
 **Experimental components.** CALM Studio (its npm packages and desktop builds), CALMGuard and `experimental/` are experimental, as stated in [SUPPORT.md](SUPPORT.md). The release controls in this section apply to them once they are promoted out of experimental status.
+
+## CRA Escalation (For Maintainers)
+
+CRA stewardship: This project is supported under the Linux Foundation CRA stewardship framework. Security vulnerabilities should be reported through the mechanisms described in this file, which we will coordinate with our CRA steward. For actively exploited vulnerabilities and severe incidents that may require CRA escalation, please use the project's emergency security reporting mechanisms as appropriate. Read more at https://www.linuxfoundation.org/security .
+
+**Project maintainers MUST escalate** the issue to the LF steward at [steward@linuxfoundation.org](mailto:steward@linuxfoundation.org) if the project experiences either of the following:
+
+- **Actively exploited vulnerabilities:** a security vulnerability where the project has reliable evidence that a malicious actor has exploited it.
+- **Severe incident:** a security compromise of the project’s own IT infrastructure.
+
+Ordinary vulnerabilities with no evidence of exploitation are not CRA escalation events. Escalate those that are actively exploited.
+
+---
 
 Thank you for helping keep FINOS projects and their users secure.

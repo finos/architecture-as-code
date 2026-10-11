@@ -131,6 +131,10 @@ export function MobileNavMenu({
         },
         [namespaceCounts]
     );
+    const descriptions = useMemo(
+        () => new Map(namespaceCounts.map((nc) => [nc.namespace, nc.description])),
+        [namespaceCounts]
+    );
 
     const openType = useCallback(
         (namespace: string, type: TypeInUI) => {
@@ -362,6 +366,7 @@ export function MobileNavMenu({
                             <li key={nr.node.path}>
                                 <MobileNamespaceRow
                                     row={nr}
+                                    description={descriptions.get(nr.node.path)}
                                     active={nr.node.path === params.ns || nr.node.path === params.namespace}
                                     onToggleCollapsed={toggleCollapsed}
                                     onOpen={(namespace) => setView({ level: 'types', namespace })}

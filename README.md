@@ -1,4 +1,4 @@
-[![FINOS - Incubating](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-incubating.svg)](https://finosfoundation.atlassian.net/wiki/display/FINOS/Incubating)
+[![FINOS - Graduated](https://cdn.jsdelivr.net/gh/finos/contrib-toolbox@master/images/badge-graduated.svg)](https://community.finos.org/docs/governance/lifecycle-stages/graduated)
 [![LFX Active Contributors](https://insights.linuxfoundation.org/api/badge/active-contributors?project=calm&repos=https://github.com/finos/architecture-as-code)](https://insights.linuxfoundation.org/project/calm/repository/finos_architecture-as-code)
 [![OpenSSF Best Practices](https://www.bestpractices.dev/projects/8821/badge)](https://www.bestpractices.dev/projects/8821)
 [![OpenSSF Baseline](https://www.bestpractices.dev/projects/8821/baseline)](https://www.bestpractices.dev/projects/8821)
