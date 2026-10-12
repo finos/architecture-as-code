@@ -28,7 +28,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 # Development Mode (Hot Reload)
 # NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
 ../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
-../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit
+../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit, no Docker needed
 ../mvnw quarkus:dev -Pstandalone,server-only         # Standalone + no frontend build — profiles compose
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
@@ -663,9 +663,13 @@ CALM Hub is largely independent - it's a standalone REST API server.
 1. **TestContainers Errors**: Ensure Docker is running before integration tests
 2. **Port Conflicts**: Check if port 8080 is free (or change `quarkus.http.port`)
 3. **MongoDB Connection**: Start MongoDB before dev mode (unless using `-Pstandalone` for NitriteDB)
-   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. The Maven plugin
-     forks a separate JVM and the `-D` flag does not reliably propagate; the Maven profile injects
-     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration.
+   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. Dev mode
+     does not apply a `quarkus.profile` set with `-D` on the Maven command line; the Maven profile injects
+     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration. Other `-D`
+     flags reach the app.
+   - Standalone turns off all dev services, so it needs no Docker. To start the Grafana LGTM
+     observability dev service, add `-Dquarkus.devservices.enabled=true` (needs Docker).
+     OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
 6. **Reflected XSS in error bodies/logs**: Concatenating a raw `@PathParam`/`@QueryParam`/request
