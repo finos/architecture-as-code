@@ -83,7 +83,7 @@ run `build:shared` before the extension command. Watch mode builds the extension
 host; rebuild the webview after changes to React components.
 
 `esbuild.mjs` bundles `src/extension/extension.ts` into `dist/extension.js`.
-`vite.webview.config.ts` bundles `src/webview/main.tsx` into `dist/webview/`.
+`vite.webview.config.mts` bundles `src/webview/main.tsx` into `dist/webview/`.
 Tests use `vitest.config.ts`, discover `*.test.ts` and `*.test.tsx`, and mock
 the VS Code API. Add focused tests beside the affected source file.
 
