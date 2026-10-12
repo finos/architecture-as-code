@@ -131,16 +131,14 @@ Some CALM patterns contain `options` relationships that present a choice of whic
 For each options relationship in the pattern, the CLI will ask you to select a choice:
 
 - **`oneOf`** options present a single-select prompt — you must pick exactly one.
-- **`anyOf`** options present a multi-select prompt — you can pick any number, including none.
-
-A choice of none is valid only if the pattern can hold it. Declare the candidates in `items`, or in the last `prefixItems` position. A `prefixItems` position before a required node cannot be left empty. For the last position, `minItems` must not count it: a choice of none removes the whole position, and `calm validate` then reports too few items.
+- **`anyOf`** options present a multi-select prompt — you can pick zero or more.
 
 #### Pre-defining choices non-interactively
 
 You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
 
 - For **`oneOf`** options, supply a **string** (exactly one choice).
-- For **`anyOf`** options, supply a **string** or an **array of strings**. An empty array chooses none.
+- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
 
 ```shell
 # oneOf option — single string

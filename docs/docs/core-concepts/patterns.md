@@ -270,7 +270,7 @@ For example, to offer the cache and the message queue, add this relationship to 
 }
 ```
 
-`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. A choice of none builds neither. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../working-with-calm/cli.md#pattern-options) to give the choices on the command line.
+`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../working-with-calm/cli.md#pattern-options) to give the choices on the command line.
 
 **The architecture keeps the decision.** The generated architecture contains the `optional-components` relationship too, with the selected choices in its `options` list. After "Add a cache":
 
@@ -290,7 +290,7 @@ For example, to offer the cache and the message queue, add this relationship to 
 }
 ```
 
-`calm validate` uses this record when it checks the architecture against the pattern. A choice of none leaves the list empty.
+`calm validate` uses this record when it checks the architecture against the pattern.
 
 A choice names the alternatives of a `prefixItems` entry in the same way. Take an entry with a `oneOf` of `postgres` and `mysql`, and a `oneOf` decision with a choice for each. "Use MySQL" builds `mysql`, and does not build `postgres`.
 
