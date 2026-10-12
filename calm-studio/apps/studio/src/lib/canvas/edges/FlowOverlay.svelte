@@ -9,14 +9,14 @@
     1. A hidden <path> element as the motion path reference for animateMotion.
     2. An animated blue dot that travels along the edge path in the correct direction.
     3. A sequence number badge at the edge midpoint.
-    4. A tooltip (foreignObject) showing the transition summary text on badge hover.
+    4. A tooltip (foreignObject) showing the transition description text on badge hover.
 
   Usage:
     <FlowOverlay
       edgePath={svgPathString}
       edgeId={uniqueEdgeId}
       sequenceNumber={1}
-      summary="User sends request"
+      description="User sends request"
       direction="source-to-destination"
       labelX={midpointX}
       labelY={midpointY}
@@ -27,7 +27,7 @@
 		edgePath,
 		edgeId,
 		sequenceNumber,
-		summary,
+		description,
 		direction = 'source-to-destination',
 		labelX,
 		labelY,
@@ -35,7 +35,7 @@
 		edgePath: string;
 		edgeId: string;
 		sequenceNumber: number;
-		summary: string;
+		description: string;
 		direction?: 'source-to-destination' | 'destination-to-source';
 		labelX: number;
 		labelY: number;
@@ -98,10 +98,10 @@
 	</g>
 
 	<!-- Tooltip: shown on badge hover via foreignObject -->
-	{#if showTooltip && summary}
+	{#if showTooltip && description}
 		<foreignObject x={tooltipX} y={tooltipY} width="180" height="60">
 			<div class="flow-tooltip">
-				{summary}
+				{description}
 			</div>
 		</foreignObject>
 	{/if}

@@ -38,13 +38,13 @@ const testArch: CalmArchitecture = {
 				{
 					'relationship-unique-id': 'rel-1',
 					'sequence-number': 1,
-					summary: 'A sends request to B',
+					description: 'A sends request to B',
 					direction: 'source-to-destination',
 				},
 				{
 					'relationship-unique-id': 'rel-2',
 					'sequence-number': 2,
-					summary: 'B queries database',
+					description: 'B queries database',
 					direction: 'source-to-destination',
 				},
 			],
@@ -94,7 +94,7 @@ describe('flowState store', () => {
 		const t = getFlowTransitionForEdge(testArch, 'rel-1');
 		expect(t).not.toBeNull();
 		expect(t!['sequence-number']).toBe(1);
-		expect(t!.summary).toBe('A sends request to B');
+		expect(t!.description).toBe('A sends request to B');
 	});
 
 	it('Test 6b: getFlowTransitionForEdge() returns null for edge NOT in active flow', () => {

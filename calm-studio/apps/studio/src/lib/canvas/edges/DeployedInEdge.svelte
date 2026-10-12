@@ -55,7 +55,7 @@
 		edgePath={edgePath}
 		edgeId={id}
 		sequenceNumber={flowTransition['sequence-number']}
-		summary={flowTransition.summary}
+		description={flowTransition.description}
 		direction={flowTransition.direction ?? 'source-to-destination'}
 		labelX={labelX}
 		labelY={labelY}
