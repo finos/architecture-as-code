@@ -174,7 +174,7 @@ Coverage reports are uploaded as CI artifacts on every build. E2E tests run auto
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
+We welcome contributions! Please read our [Contributing Guide](../CONTRIBUTING.md) for details on:
 
 - Fork and pull request workflow
 - Contributor License Agreement (CLA) requirements

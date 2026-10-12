@@ -419,7 +419,7 @@ Full documentation is available in [`docs/`](docs/). Run locally with `npm run d
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for:
+We welcome contributions! See [CONTRIBUTING.md](docs/docs/contributing.md) for:
 
 - Development setup and workflow
 - Branch naming and commit conventions (Conventional Commits)
