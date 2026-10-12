@@ -454,7 +454,7 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Add a new document based on a template and track it in the current workspace. The CalmHub $id is built interactively.')
         .addArgument(new Argument('[type]', 'The type of document to create.')
             .choices([...CALM_DOCUMENT_TYPES_LIST]))
-        .argument('[name]', 'The title for your new document')
+        .argument('[name]', 'The name for your new document')
         .argument('[template]', 'The template for your new document')
         .action(async (type, name, template) => {
             try {
@@ -474,7 +474,7 @@ export function setupWorkspaceCommands(program: Command) {
                 const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
                 const documentId = await promptForDocumentId({ baseUrlDefault });
 
-                name = await enforceOptionPresenceByPrompt(name, `Enter the title for your new ${type} document:`);
+                name = await enforceOptionPresenceByPrompt(name, `Enter the name for your new ${type} document:`);
                 if (!template) {
                     template = templates.length > 1
                         ? await enforceOptionPresenceByPrompt(undefined, 'Select a template:', templates)

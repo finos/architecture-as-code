@@ -13,13 +13,13 @@
         "shared",
         "cli",
         "calm-server",
-        "docs",
         "calm-hub-ui",
         "calm-lab",
         "calm-plugins/vscode",
         "calm-guard",
         "calm-guard/docs",
         "calm-studio/packages/*",
+        "docs",
         "calm-studio/apps/*"
     ],
     "scripts": {

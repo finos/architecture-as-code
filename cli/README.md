@@ -890,7 +890,7 @@ Create a new stub CALM document in the current directory, then register it with 
 calm workspace new [type] [name] [template]
 ```
 
-The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
+The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. A flow is a CALM flow instead: the name goes in `name`, the slug becomes its `unique-id`, and it has one empty transition to fill in. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
 
 ```shell
 # Fully interactive
