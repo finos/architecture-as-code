@@ -174,6 +174,10 @@ info: Selected choices (reusable with --option-choices): {"connection-options":"
 ```
 :::
 
+#### What a choice can name
+
+A choice names nodes and relationships that the pattern declares. They can be the alternatives of a `prefixItems` entry, or the candidates in an `items` catalogue. `calm generate` builds the ones that a selected choice names. Without a choice that names them, `calm generate` builds no `items` candidate, but an architecture can still add one by hand. See [The `options` relationship](../core-concepts/patterns.md#the-options-relationship).
+
 ### URL to Local File Mapping
 
 When developing patterns locally, you may want to reference Standards or other schemas via canonical URLs (e.g., `https://example.com/standards/node-standard.json`) while the actual files exist on your local filesystem. The `-u, --url-to-local-file-mapping` option allows you to map these URLs to local paths.
