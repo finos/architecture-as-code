@@ -65,7 +65,7 @@ Rules:
   - `enrichWithDocumentPositions()` - Adds precise line/character positions to validation output using `@stoplight/json`
   - `parseDocumentWithPositions()` - Parses JSON/YAML with position tracking for error location
 - **Schema Directory** (`schema-directory.ts`): Registry of bundled CALM schemas, used for lookup by schema URL (`getSchema`).
-- **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `ants`, `docusaurus`).
+- **Docify** (`docify/`): Documentation generator (`docifier`) with C4/relationship graphing (`docify/graphing`) and template bundles (`docify/template-bundles`, e.g. `docusaurus`).
 - **Resolver** (`resolver/`): CALM reference resolver plus the network-addressable extractor and validator.
 - **Hub Client** (`hub/`): `calm-hub-client` for talking to CALM Hub.
 - **View Model** (`view-model/`): ADR (Architecture Decision Record) view-model logic.
