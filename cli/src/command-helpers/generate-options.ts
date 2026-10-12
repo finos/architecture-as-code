@@ -49,6 +49,12 @@ export function loadChoicesFromInput(optionChoicesInput: string, pattern: object
         }
     }
 
+    const unanswered = patternOptions.find(option =>
+        option.optionType === 'oneOf' && !Object.prototype.hasOwnProperty.call(choiceMap, option.optionId));
+    if (unanswered) {
+        throw new Error(`The option [${unanswered.optionId}] is a oneOf option and needs exactly one choice.`);
+    }
+
     return resolved;
 }
 

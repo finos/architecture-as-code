@@ -4,7 +4,7 @@ import { DiagnosticSeverity } from '@stoplight/types';
 import { ValidationOutput } from './validation.output.js';
 import { SpectralResult } from './spectral.result.js';
 import { SchemaDirectory } from '../../schema-directory.js';
-import { selectChoices, CalmChoice } from '../generate/components/options.js';
+import { selectChoices, extractOptions, CalmChoice } from '../generate/components/options.js';
 import { initLogger, Logger } from '../../logger.js';
 
 /**
@@ -61,29 +61,67 @@ export async function runSpectralValidations(
 }
 
 /**
- * If a pattern contains options, apply the chosen options recorded in the architecture to the
- * pattern to produce a JSON schema pattern that can be used for validation.
+ * Apply the answers recorded in the architecture to the pattern, as `calm generate` does, so the
+ * architecture is checked against the pattern it was built from. An empty answer counts too: it
+ * drops the slot of its alternatives.
  */
 export function applyArchitectureOptionsToPattern(architecture: object, pattern: object, debug: boolean): object {
-    const choices: CalmChoice[] = extractChoicesFromArchitecture(architecture);
-    if (choices.length === 0) {
+    if (!relationshipsOf(architecture).some(isDecision)) {
         return pattern;
     }
-    return selectChoices(pattern, choices, debug);
+    const narrowed = selectChoices(pattern, extractChoicesFromArchitecture(architecture), debug);
+    dropEmptyPrefixItems(narrowed);
+    return narrowed;
+}
+
+// Narrowing can leave `prefixItems: []`, which JSON Schema forbids. No `prefixItems` means the same.
+function dropEmptyPrefixItems(schema: unknown): void {
+    if (!schema || typeof schema !== 'object') {
+        return;
+    }
+    const node = schema as Record<string, unknown>;
+    if (Array.isArray(node['prefixItems']) && node['prefixItems'].length === 0) {
+        delete node['prefixItems'];
+    }
+    Object.values(node).forEach(dropEmptyPrefixItems);
+}
+
+/**
+ * A `oneOf` decision needs exactly one answer. An empty answer drops its slot like any other, so
+ * without this check the architecture would pass with no answer.
+ */
+export function unansweredOneOfDecisions(architecture: object, pattern: object): ValidationOutput[] {
+    const unanswered = relationshipsOf(architecture)
+        .map((rel, index) => ({ rel, index }))
+        .filter(({ rel }) => isDecision(rel) && rel['relationship-type']['options'].length === 0);
+    if (unanswered.length === 0) {
+        return [];
+    }
+    const oneOfIds = new Set(extractOptions(pattern).filter(o => o.optionType === 'oneOf').map(o => o.optionId));
+    return unanswered
+        .filter(({ rel }) => oneOfIds.has(rel['unique-id']))
+        .map(({ rel, index }) => ValidationOutput.error('json-schema',
+            `The decision [${rel['unique-id']}] is a oneOf and needs exactly one answer.`,
+            `/relationships/${index}/relationship-type/options`, { source: 'architecture' }));
+}
+
+// architecture is unvalidated CALM JSON traversed via nested property access,
+// so a permissive index type is used here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type JsonObject = Record<string, any>;
+
+function relationshipsOf(architecture: object): JsonObject[] {
+    const relationships = (architecture as JsonObject | undefined)?.['relationships'];
+    return Array.isArray(relationships) ? relationships : [];
+}
+
+function isDecision(rel: JsonObject): boolean {
+    return Array.isArray(rel?.['relationship-type']?.['options']);
 }
 
 export function extractChoicesFromArchitecture(architecture: object): CalmChoice[] {
-    if (!architecture || !Object.prototype.hasOwnProperty.call(architecture, 'relationships')) {
-        return [];
-    }
-
-    // architecture is unvalidated CALM JSON traversed via nested property access,
-    // so a permissive index type is used here.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const relationships = (architecture as Record<string, any>)['relationships'] as Record<string, any>[];
-
-    return relationships
-        .filter((rel) => rel['relationship-type'] && Object.prototype.hasOwnProperty.call(rel['relationship-type'], 'options'))
+    return relationshipsOf(architecture)
+        .filter(isDecision)
         // A decision answered with nothing records no choice.
         .filter((rel) => rel['relationship-type']['options'].length > 0)
         .map((rel) => rel['relationship-type']['options'][0])

@@ -5,6 +5,8 @@ import path from 'path';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
 import { SchemaDirectory } from '../../schema-directory.js';
 import { TEST_1_1_SCHEMA_AND_ABOVE, TEST_ALL_SCHEMA, calmSchemaDir, setCalmSchema } from '../../test/test-utils';
+import { generate } from '../generate/generate-core.js';
+import { CalmChoice } from '../generate/components/options.js';
 
 const inputArchPath = path.join(
     __dirname,
@@ -72,6 +74,83 @@ describe('validate E2E', () => {
         // This pattern's decision is a oneOf that requires an answer.
         expect(response.jsonSchemaValidationOutputs.map(o => o.path))
             .toEqual(['/relationships/0/relationship-type/options']);
+    });
+
+    describe('a decision answered with nothing', () => {
+        const NODE = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node';
+        const RELATIONSHIP = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/relationship';
+        const DECISION = 'https://calm.finos.org/release/1.1/meta/core.json#/defs/decision';
+        type Keyword = 'anyOf' | 'oneOf';
+
+        const node = (id: string) => ({
+            $ref: NODE, type: 'object',
+            properties: { 'unique-id': { const: id }, name: { const: id }, 'node-type': { const: 'service' } }
+        });
+        const answer = (description: string, nodeId: string): CalmChoice => ({ description, nodes: [nodeId], relationships: [] });
+        const decision = (id: string, keyword: Keyword, answers: CalmChoice[]) => ({
+            $ref: RELATIONSHIP, type: 'object',
+            properties: {
+                'unique-id': { const: id },
+                description: { const: id },
+                'relationship-type': {
+                    type: 'object',
+                    properties: {
+                        options: {
+                            type: 'array',
+                            prefixItems: [{
+                                [keyword]: answers.map(a => ({
+                                    $ref: DECISION, type: 'object',
+                                    properties: { description: { const: a.description }, nodes: { const: a.nodes }, relationships: { const: [] } }
+                                }))
+                            }]
+                        }
+                    }
+                }
+            }
+        });
+
+        const cache = answer('Cache', 'cache');
+        const queue = answer('Queue', 'queue');
+
+        // The optional cache sits before the required db, so dropping its slot moves db up.
+        const patternWith = (keyword: Keyword) => ({
+            $schema: 'https://json-schema.org/draft/2020-12/schema',
+            $id: 'https://calm.finos.org/test/decision-with-no-answer.json',
+            type: 'object',
+            properties: {
+                nodes: { type: 'array', prefixItems: [node('api'), { [keyword]: [node('cache')] }, node('db'), { anyOf: [node('queue')] }] },
+                relationships: { type: 'array', prefixItems: [decision('add-cache', keyword, [cache]), decision('add-queue', 'anyOf', [queue])] }
+            },
+            required: ['nodes', 'relationships']
+        });
+
+        async function generateThenValidate(keyword: Keyword, chosen: CalmChoice[]) {
+            const architecture = await generate(patternWith(keyword), schemaDirectory, { chosenChoices: chosen }) as { nodes: { 'unique-id': string }[] };
+            const response = await validate(architecture, patternWith(keyword), undefined, schemaDirectory, false);
+            return { nodes: architecture.nodes.map(n => n['unique-id']), response };
+        }
+
+        it('accepts what calm generate builds when an anyOf decision is answered with nothing', async () => {
+            const { nodes, response } = await generateThenValidate('anyOf', []);
+
+            expect(nodes).toEqual(['api', 'db']);
+            expect(response.jsonSchemaValidationOutputs).toEqual([]);
+        });
+
+        it('reads an empty answer the same way when another decision has an answer', async () => {
+            const { nodes, response } = await generateThenValidate('anyOf', [queue]);
+
+            expect(nodes).toEqual(['api', 'db', 'queue']);
+            expect(response.jsonSchemaValidationOutputs).toEqual([]);
+        });
+
+        it('reports a oneOf decision answered with nothing', async () => {
+            const { response } = await generateThenValidate('oneOf', []);
+
+            expect(response.jsonSchemaValidationOutputs.map(o => `${o.path} ${o.message}`)).toEqual([
+                '/relationships/0/relationship-type/options The decision [add-cache] is a oneOf and needs exactly one answer.'
+            ]);
+        });
     });
 
     it('validates architecture against pattern with options', async () => {
@@ -158,6 +237,13 @@ describe('validate E2E', () => {
     });
 
     describe('applyArchitectureOptionsToPattern', () => {
+        it('leaves the pattern unchanged when the architecture records no decision', () => {
+            const pattern = JSON.parse(readFileSync(inputPatternPath, 'utf8'));
+            const architecture = { nodes: [], relationships: [] };
+
+            expect(applyArchitectureOptionsToPattern(architecture, pattern, false)).toBe(pattern);
+        });
+
         it('works with one options relationship', async () => {
             const architecture = JSON.parse(
                 readFileSync(inputArchPath, 'utf8')
