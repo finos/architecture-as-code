@@ -8,7 +8,7 @@ import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
-import { runPostBumpValidation, PostBumpValidationResult } from './post-bump-validate';
+import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
 import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
@@ -530,6 +530,8 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const manifest = await loadManifest(bundlePath);
+                const validationOptions = await loadPostBumpValidationOptions(bundlePath, manifest, calmHubOptions);
                 const client = new CalmHubClient(calmHubOptions);
                 const changed = await detectChangedResources(bundlePath, client);
 
@@ -544,8 +546,7 @@ export function setupWorkspaceCommands(program: Command) {
                     }
                 }
 
-                const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest, calmHubOptions);
+                const validationResults = validationOptions ? await runPostBumpValidation(bundlePath, manifest, validationOptions) : [];
                 let validationFailed = false;
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
@@ -609,6 +610,8 @@ export function setupWorkspaceCommands(program: Command) {
                     return;
                 }
 
+                const validationOptions = await loadPostBumpValidationOptions(bundlePath, await loadManifest(bundlePath), calmHubOptions);
+
                 // When --major, --minor or --patch is given, skip all prompts and apply a fixed increment.
                 const interactive = !options.major && !options.minor && !options.patch;
 
@@ -666,14 +669,8 @@ export function setupWorkspaceCommands(program: Command) {
 
                 // Post-bump validation: silently validate all architectures and patterns, then
                 // print a summary so the user knows whether bumping caused any regressions.
-                // The bump has already been written, so a validation that cannot run must not fail the command.
-                let validationResults: PostBumpValidationResult[] = [];
-                try {
-                    const manifest = await loadManifest(bundlePath);
-                    validationResults = await runPostBumpValidation(bundlePath, manifest, calmHubOptions);
-                } catch (err) {
-                    logger.warn('Post-bump validation did not run: ' + (err instanceof Error ? err.message : String(err)));
-                }
+                const manifest = await loadManifest(bundlePath);
+                const validationResults = validationOptions ? await runPostBumpValidation(bundlePath, manifest, validationOptions) : [];
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
                     if (failures.length === 0) {
