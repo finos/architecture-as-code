@@ -137,8 +137,8 @@ For each options relationship in the pattern, the CLI will ask you to select a c
 
 You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
 
-- For **`oneOf`** options, supply a **string** (exactly one choice).
-- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
+- For **`oneOf`** options, supply a **string** (exactly one choice). Every `oneOf` option needs one.
+- For **`anyOf`** options, supply a **string** or an **array of strings**. An empty array, or leaving the option out, chooses none. That drops the `prefixItems` position of its alternatives, so the nodes after it move up one position.
 
 ```shell
 # oneOf option — single string

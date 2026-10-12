@@ -99,8 +99,8 @@ info: Selected choices (reusable with --option-choices): {"connection-options":"
 
 To skip the interactive prompts, pass your choices via `--option-choices` as an inline JSON string or a path to a JSON file.
 
-- For a **`oneOf`** option (pick exactly one), supply a string value.
-- For an **`anyOf`** option (pick one or more), supply a string or an array of strings.
+- For a **`oneOf`** option (pick exactly one), supply a string value. Every `oneOf` option needs one.
+- For an **`anyOf`** option (pick zero or more), supply a string or an array of strings. An empty array, or leaving the option out, chooses none.
 
 ```shell
 # Inline JSON — single oneOf choice
