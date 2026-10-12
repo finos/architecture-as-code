@@ -4,15 +4,21 @@ import path from 'path';
 
 // vi.mock is hoisted to the top of the file by vitest, so factories must not reference
 // variables declared in the module scope. We store captured spies via vi.hoisted() instead.
-const { mockValidate, mockLoadSchemas, mockLoadPattern } = vi.hoisted(() => ({
+const { mockValidate, mockLoadSchemas, mockLoadPattern, mockBuildDocumentLoader, mockParseDocumentLoaderConfig } = vi.hoisted(() => ({
     mockValidate: vi.fn(),
     mockLoadSchemas: vi.fn().mockResolvedValue(undefined),
     mockLoadPattern: vi.fn().mockResolvedValue(undefined),
+    mockBuildDocumentLoader: vi.fn().mockReturnValue({}),
+    mockParseDocumentLoaderConfig: vi.fn().mockResolvedValue({}),
+}));
+
+vi.mock('../../document-loader-config', () => ({
+    parseDocumentLoaderConfig: (...args: unknown[]) => mockParseDocumentLoaderConfig(...args),
 }));
 
 vi.mock('@finos/calm-shared', () => ({
     CALM_META_SCHEMA_DIRECTORY: '/mock/schema/dir',
-    buildDocumentLoader: vi.fn().mockReturnValue({}),
+    buildDocumentLoader: (...args: unknown[]) => mockBuildDocumentLoader(...args),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     SchemaDirectory: vi.fn().mockImplementation(function(this: any) { this.loadSchemas = mockLoadSchemas; }),
     validate: (...args: unknown[]) => mockValidate(...args),
@@ -20,7 +26,7 @@ vi.mock('@finos/calm-shared', () => ({
     initLogger: vi.fn().mockReturnValue({ debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }),
 }));
 
-import { runPostBumpValidation } from './post-bump-validate';
+import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 
 // Build a minimal ValidationOutcome-like object for the mocked validate function.
 const makeOutcome = (errors: number) => ({
@@ -41,6 +47,8 @@ describe('runPostBumpValidation', () => {
         vi.clearAllMocks();
         mockLoadSchemas.mockResolvedValue(undefined);
         mockLoadPattern.mockResolvedValue(undefined);
+        mockBuildDocumentLoader.mockReturnValue({});
+        mockParseDocumentLoaderConfig.mockResolvedValue({});
         await mkdir(filesPath, { recursive: true });
     });
 
@@ -51,13 +59,39 @@ describe('runPostBumpValidation', () => {
     const write = (name: string, obj: object) =>
         writeFile(path.join(filesPath, name), JSON.stringify(obj), 'utf8');
 
+    const archManifest = { 'my-arch': { path: 'files/arch.json', type: 'architecture' } };
+
+    it('builds the loader from the options it is given, with the workspace values', async () => {
+        const authPlugin = { getAuthHeaders: vi.fn() };
+
+        await runPostBumpValidation(bundlePath, archManifest, { calmHubUrl: 'https://hub.example.com', authPlugin });
+
+        expect(mockParseDocumentLoaderConfig).not.toHaveBeenCalled();
+        expect(mockBuildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
+            calmHubUrl: 'https://hub.example.com',
+            authPlugin,
+            schemaDirectoryPath: '/mock/schema/dir',
+            workspaceBundlePath: bundlePath,
+        }));
+    });
+
+    it('keeps the bundle as base path and debug off, whatever the options say', async () => {
+        await runPostBumpValidation(bundlePath, archManifest, { basePath: '/elsewhere', debug: true, workspaceBundlePath: '/other' });
+
+        expect(mockBuildDocumentLoader).toHaveBeenCalledWith(expect.objectContaining({
+            basePath: bundlePath,
+            debug: false,
+            workspaceBundlePath: bundlePath,
+        }));
+    });
+
     it('returns passed:true for an architecture that validates without errors', async () => {
         await write('arch.json', { $id: 'test', title: 'Arch' });
         mockValidate.mockResolvedValue(makeOutcome(0));
 
         const results = await runPostBumpValidation(bundlePath, {
             'my-arch': { path: 'files/arch.json', type: 'architecture' },
-        });
+        }, {});
 
         expect(results).toHaveLength(1);
         expect(results[0]).toMatchObject({ id: 'my-arch', type: 'architecture', passed: true, errorCount: 0 });
@@ -69,7 +103,7 @@ describe('runPostBumpValidation', () => {
 
         const results = await runPostBumpValidation(bundlePath, {
             'my-arch': { path: 'files/arch.json', type: 'architecture' },
-        });
+        }, {});
 
         expect(results[0]).toMatchObject({ passed: false, errorCount: 3 });
     });
@@ -80,7 +114,7 @@ describe('runPostBumpValidation', () => {
 
         await runPostBumpValidation(bundlePath, {
             'my-pattern': { path: 'files/pat.json', type: 'pattern' },
-        });
+        }, {});
 
         // validate(undefined, patternContent, undefined, schemaDir, false) — pattern is 2nd arg
         expect(mockValidate).toHaveBeenCalledWith(
@@ -103,7 +137,7 @@ describe('runPostBumpValidation', () => {
 
         await runPostBumpValidation(bundlePath, {
             'my-arch': { path: 'files/arch.json', type: 'architecture' },
-        });
+        }, {});
 
         // The pattern resolved from $schema is passed as the 2nd validate() argument.
         expect(mockLoadPattern).toHaveBeenCalledWith(
@@ -129,7 +163,7 @@ describe('runPostBumpValidation', () => {
 
         await runPostBumpValidation(bundlePath, {
             'my-arch': { path: 'files/arch.json', type: 'architecture' },
-        });
+        }, {});
 
         // Falls back to architecture-only (pattern arg undefined) when there is no pattern to load.
         expect(mockValidate).toHaveBeenCalledWith(
@@ -148,7 +182,7 @@ describe('runPostBumpValidation', () => {
             'my-flow': { path: 'files/flow.json', type: 'flow' },
             'my-adr': { path: 'files/adr.json', type: 'adr' },
             'my-timeline': { path: 'files/tl.json', type: 'timeline' },
-        });
+        }, {});
 
         expect(results).toHaveLength(0);
         expect(mockValidate).not.toHaveBeenCalled();
@@ -157,7 +191,7 @@ describe('runPostBumpValidation', () => {
     it('returns passed:false with errorCount:-1 when a file cannot be read', async () => {
         const results = await runPostBumpValidation(bundlePath, {
             'missing': { path: 'files/does-not-exist.json', type: 'architecture' },
-        });
+        }, {});
 
         expect(results).toHaveLength(1);
         expect(results[0]).toMatchObject({ id: 'missing', passed: false, errorCount: -1 });
@@ -170,7 +204,7 @@ describe('runPostBumpValidation', () => {
 
         const results = await runPostBumpValidation(bundlePath, {
             'my-arch': { path: 'files/arch.json', type: 'architecture' },
-        });
+        }, {});
 
         expect(results[0]).toMatchObject({ passed: false, errorCount: -1 });
     });
@@ -185,10 +219,53 @@ describe('runPostBumpValidation', () => {
         const results = await runPostBumpValidation(bundlePath, {
             'a': { path: 'files/a.json', type: 'architecture' },
             'b': { path: 'files/b.json', type: 'pattern' },
-        });
+        }, {});
 
         expect(results).toHaveLength(2);
         expect(results.find(r => r.id === 'a')).toMatchObject({ passed: true });
         expect(results.find(r => r.id === 'b')).toMatchObject({ passed: false, errorCount: 2 });
+    });
+});
+
+describe('loadPostBumpValidationOptions', () => {
+    const bundlePath = '/fake/bundle';
+    const archManifest = { 'my-arch': { path: 'files/arch.json', type: 'architecture' } };
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        mockParseDocumentLoaderConfig.mockResolvedValue({});
+    });
+
+    it('reads the user config with the CalmHub options and the bundle path', async () => {
+        // Without it a pattern on CalmHub could not be fetched, and every architecture derived
+        // from one was reported as "could not validate" whether or not it conformed.
+        const authPlugin = { getAuthHeaders: vi.fn() };
+        const loaderOptions = { calmHubUrl: 'https://hub.example.com', authPlugin };
+        mockParseDocumentLoaderConfig.mockResolvedValue(loaderOptions);
+
+        const result = await loadPostBumpValidationOptions(bundlePath, archManifest, { calmHubUrl: 'https://hub.example.com', authPlugin });
+
+        expect(result).toBe(loaderOptions);
+        expect(mockParseDocumentLoaderConfig).toHaveBeenCalledWith({
+            calmHubUrl: 'https://hub.example.com',
+            authPlugin,
+            workspaceBundlePath: bundlePath,
+        });
+    });
+
+    it('reads no config when no architecture or pattern is tracked', async () => {
+        const result = await loadPostBumpValidationOptions(bundlePath, {
+            'my-standard': { path: 'files/std.json', type: 'standard' },
+        }, { calmHubUrl: 'https://hub.example.com' });
+
+        expect(result).toBeUndefined();
+        expect(mockParseDocumentLoaderConfig).not.toHaveBeenCalled();
+    });
+
+    it('passes on a config error, so the command stops before it changes anything', async () => {
+        mockParseDocumentLoaderConfig.mockRejectedValue(new Error('Direct URL authentication setup failed: bad config'));
+
+        await expect(loadPostBumpValidationOptions(bundlePath, archManifest, { calmHubUrl: 'https://hub.example.com' }))
+            .rejects.toThrow('Direct URL authentication setup failed: bad config');
     });
 });
