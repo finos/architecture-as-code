@@ -121,7 +121,7 @@
   },
   "devDependencies": {
     "@finos/calm-schema": "*",
-    "vite": "^6.3.0",
+    "vite": "^6.4.4",
     "@vitejs/plugin-react": "^4.0.0",
     "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
