@@ -98,9 +98,9 @@
     }
   },
   "scripts": {
-    "build": "node esbuild.mjs && npx vite build --config vite.webview.config.ts",
+    "build": "node esbuild.mjs && npx vite build --config vite.webview.config.mts",
     "build:extension": "node esbuild.mjs",
-    "build:webview": "npx vite build --config vite.webview.config.ts",
+    "build:webview": "npx vite build --config vite.webview.config.mts",
     "watch": "node esbuild.mjs --watch",
     "package": "npm run build && npx @vscode/vsce package --no-dependencies",
     "vscode:prepublish": "npm run build",
@@ -121,8 +121,8 @@
   },
   "devDependencies": {
     "@finos/calm-schema": "*",
-    "vite": "^6.4.4",
-    "@vitejs/plugin-react": "^4.0.0",
+    "vite": "^8.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
     "esbuild": "^0.25.0",
