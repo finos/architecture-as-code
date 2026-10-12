@@ -426,7 +426,7 @@ We welcome contributions! See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for:
 - CI pipeline requirements
 - Code standards (TypeScript strict, Zod schemas, dark theme)
 
-All commits must include a **DCO sign-off** (`git commit -s`).
+All pull requests need a signed FINOS **Contributor License Agreement (CLA)**. The EasyCLA bot comments on your first pull request with a link to sign it.
 
 ## Roadmap — Path to Enterprise
 

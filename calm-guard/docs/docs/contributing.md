@@ -97,8 +97,9 @@ Tests use Vitest with jsdom for component testing.
    npm run test:run --workspace=calmguard
    npm run build --workspace=calmguard
    ```
-5. Commit with DCO sign-off: `git commit -s -m "feat: add my feature"`
+5. Commit: `git commit -m "feat: add my feature"`
 6. Push and open a Pull Request
+7. Sign the Contributor License Agreement (CLA) if the EasyCLA bot asks you to
 
 ### Commit Message Format
 
@@ -118,15 +119,11 @@ fix(risk-scorer): handle empty findings array
 docs(api): update response schema examples
 ```
 
-### DCO Sign-Off
+### Contributor License Agreement
 
-All commits must include a Developer Certificate of Origin (DCO) sign-off:
-
-```bash
-git commit -s -m "your message"
-```
-
-This adds `Signed-off-by: Your Name <email@example.com>` to the commit.
+All pull requests need a signed FINOS Contributor License Agreement (CLA). The
+[EasyCLA](https://community.finos.org/docs/governance/Software-Projects/easycla) bot comments on
+your first pull request with a link to sign it.
 
 ## License
 
