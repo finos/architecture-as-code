@@ -216,7 +216,6 @@ Validation requires:
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
-        .addOption(new Option('--ants').default(false).hideHelp())
         .addOption(new Option('--export-diagrams <format>',
             'Render mermaid diagrams to image files using a local Chromium-based browser ' +
             '(adds roughly 10-40s depending on diagram count)').choices(['svg', 'png']))
@@ -237,11 +236,6 @@ Validation requires:
 
             if (flagsUsed.length > 1) {
                 console.error('❌ Please specify only one of --template or --template-dir');
-                process.exit(1);
-            }
-
-            if (options.ants && flagsUsed.length > 0) {
-                console.error('❌ --ants cannot be combined with --template or --template-dir');
                 process.exit(1);
             }
 
@@ -273,9 +267,7 @@ Validation requires:
             let templateProcessingMode: TemplateProcessingMode = 'bundle';
             let templatePath: string | undefined = undefined;
 
-            if (options.ants) {
-                docifyMode = 'ANTS';
-            } else if (options.template) {
+            if (options.template) {
                 docifyMode = 'USER_PROVIDED';
                 templateProcessingMode = 'template';
                 templatePath = options.template;
