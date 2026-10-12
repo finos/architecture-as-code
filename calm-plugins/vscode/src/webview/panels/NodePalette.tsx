@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { initAllPacks, getAllPacks, type PackDefinition, type NodeTypeEntry } from '../../packs/index.js';
+import { theme, tint } from '../canvas/theme-colors';
 
 initAllPacks();
 
@@ -215,7 +216,7 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
 function Section({ title, collapsed, onToggle, badge, borderColor, children }: { title: string; collapsed: boolean; onToggle: () => void; badge?: string; borderColor?: string; children: React.ReactNode }) {
     const sectionStyle: React.CSSProperties = {
         marginBottom: '4px',
-        ...(badge ? { borderLeft: '2px solid #2e7d32', marginLeft: '4px', background: 'rgba(46,125,50,0.04)' } : {}),
+        ...(badge ? { borderLeft: `2px solid ${theme.green}`, marginLeft: '4px', background: tint(theme.green, 12) } : {}),
         ...(borderColor && !badge ? { borderLeft: `2px solid ${borderColor}`, marginLeft: '4px' } : {}),
     };
     return (
@@ -247,6 +248,6 @@ const headerStyle: React.CSSProperties = { display: 'flex', alignItems: 'center'
 const searchInputStyle: React.CSSProperties = { width: '100%', height: '28px', padding: '0 24px 0 8px', fontSize: '11px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '4px', outline: 'none' };
 const clearBtnStyle: React.CSSProperties = { position: 'absolute', right: '14px', top: '4px', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '14px' };
 const groupNameStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.3px', color: 'var(--calm-fg-muted)', background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' };
-const wsBadgeStyle: React.CSSProperties = { fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '3px', background: '#2e7d32', color: '#fff', letterSpacing: '0.5px' };
+const wsBadgeStyle: React.CSSProperties = { fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '3px', background: theme.green, color: theme.bg, letterSpacing: '0.5px' };
 const subgroupStyle: React.CSSProperties = { padding: '3px 12px 3px 20px', fontSize: '9px', fontWeight: 600, color: 'var(--calm-fg-muted)', textTransform: 'capitalize' };
 const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', cursor: 'grab', borderRadius: '4px', margin: '1px 6px' };
