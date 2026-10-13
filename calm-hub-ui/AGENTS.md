@@ -160,6 +160,14 @@ Instead, place `HeaderSection` and `BodySection` in their own files and import t
 - Use `useCallback` for functions referenced in `useEffect` dependency arrays
 - **Never suppress** `react-hooks/exhaustive-deps` — fix the dependency array properly
 
+### Operator UI config
+
+`UiConfigProvider` (`components/ui-config/`) loads `GET /api/calm/ui/config` one time.
+`useUiConfig()` returns only the sections the operator configured, or `{}` if the request
+fails. The `EnvironmentPill` shows in the `Navbar` and on the `IntroScreen`, which has no navbar.
+Identity and items show at the bottom of the navbar drawer (`MenuInfo`). The drawer identity is
+the server's principal, not the OIDC token profile that `UserMenu` shows.
+
 ## Theming (light + dark)
 
 The app ships a light and a dark theme. `<html data-theme>` is the **single source of

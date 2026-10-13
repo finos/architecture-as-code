@@ -8,6 +8,9 @@ import { useTheme } from '../../theme/useTheme.js';
 import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
 import { UserMenu } from '../user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../authService.js';
+import { useUiConfig } from '../ui-config/UiConfigContext.js';
+import { EnvironmentPill } from './EnvironmentPill.js';
+import { MenuInfo } from './MenuInfo.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -33,6 +36,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
     const showAdminLink = !loading && (isGlobalAdmin || grants.some((g) => g.permission === 'admin'));
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, toggleTheme } = useTheme(storage);
+    const { environment, identity, items } = useUiConfig();
 
     const closeMenu = () => setIsMenuOpen(false);
 
@@ -40,12 +44,14 @@ export function Navbar({ storage }: NavbarProps = {}) {
         <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
             <div className="navbar-start flex items-center gap-1 min-w-0">
                 <button
-                    className="btn btn-ghost gap-2 text-primary shrink-0"
+                    // Narrower on mobile with a pill, which must fit beside the centred logo.
+                    className={`btn btn-ghost gap-2 text-primary shrink-0${environment ? ' px-2 lg:px-4' : ''}`}
                     onClick={() => setIsMenuOpen((v) => !v)}
                     aria-label={isMenuOpen ? 'Close menu' : 'Open menu'}
                 >
                     <IoMenuOutline className="h-5 w-5" />
                 </button>
+                {environment && <EnvironmentPill environment={environment} />}
             </div>
             <div className="navbar-center absolute left-1/2 -translate-x-1/2">
                 <Link to="/" className="btn btn-ghost min-w-0 px-1" aria-label="CALM Hub home">
@@ -92,6 +98,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
                         </li>
                     )}
                 </ul>
+                <MenuInfo identity={identity} items={items} />
             </div>
         </div>
     );
