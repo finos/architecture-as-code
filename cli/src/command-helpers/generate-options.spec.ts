@@ -58,10 +58,16 @@ describe('loadChoicesFromInput', () => {
         expect(result).toEqual([choice2]);
     });
 
-    it('should return empty object when given empty object', () => {
+    it('should throw when a oneOf option has no choice', () => {
         mocks.existsSync.mockReturnValue(false);
-        const result = loadChoicesFromInput('{}', pattern);
-        expect(result).toEqual([]);
+        expect(() => loadChoicesFromInput('{"option-a": ["Option A"]}', pattern))
+            .toThrow('The option [option-1] is a oneOf option and needs exactly one choice.');
+    });
+
+    it('should choose none for an anyOf option that is left out', () => {
+        mocks.existsSync.mockReturnValue(false);
+        const result = loadChoicesFromInput('{"option-1": "Option 1"}', pattern);
+        expect(result).toEqual([choice1]);
     });
 
     it('should throw when the option id is not in the pattern', () => {
@@ -90,14 +96,14 @@ describe('loadChoicesFromInput', () => {
 
     it('should resolve multiple choices for an anyOf option when given a string array', () => {
         mocks.existsSync.mockReturnValue(false);
-        const result = loadChoicesFromInput('{"option-a": ["Option A", "Option B"]}', pattern);
-        expect(result).toEqual([choiceA, choiceB]);
+        const result = loadChoicesFromInput('{"option-1": "Option 1", "option-a": ["Option A", "Option B"]}', pattern);
+        expect(result).toEqual([choice1, choiceA, choiceB]);
     });
 
     it('should resolve a single-element string array for an anyOf option', () => {
         mocks.existsSync.mockReturnValue(false);
-        const result = loadChoicesFromInput('{"option-a": ["Option A"]}', pattern);
-        expect(result).toEqual([choiceA]);
+        const result = loadChoicesFromInput('{"option-1": "Option 1", "option-a": ["Option A"]}', pattern);
+        expect(result).toEqual([choice1, choiceA]);
     });
 
     it('should resolve mixed string and string array values', () => {

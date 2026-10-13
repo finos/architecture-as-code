@@ -137,8 +137,8 @@ For each options relationship in the pattern, the CLI will ask you to select a c
 
 You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
 
-- For **`oneOf`** options, supply a **string** (exactly one choice).
-- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
+- For **`oneOf`** options, supply a **string** (exactly one choice). Every `oneOf` option needs one.
+- For **`anyOf`** options, supply a **string** or an **array of strings**. An empty array, or leaving the option out, chooses none. That drops the `prefixItems` position of its alternatives, so the nodes after it move up one position.
 
 ```shell
 # oneOf option — single string
@@ -173,6 +173,10 @@ After running `calm generate` interactively, the CLI prints your selections in t
 info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
 ```
 :::
+
+#### What a choice can name
+
+A choice names nodes and relationships that the pattern declares. They can be the alternatives of a `prefixItems` entry, or the candidates in an `items` catalogue. `calm generate` builds the ones that a selected choice names. Without a choice that names them, `calm generate` builds no `items` candidate, but an architecture can still add one by hand. See [The `options` relationship](../core-concepts/patterns.md#the-options-relationship).
 
 ### URL to Local File Mapping
 

@@ -7,7 +7,8 @@ import {
     applyArchitectureOptionsToPattern,
     convertJsonSchemaIssuesToValidationOutputs,
     findLatestCalmCoreSchemaUrl,
-    prettifyJson
+    prettifyJson,
+    unansweredOneOfDecisions
 } from '../validation-helpers.js';
 import { emptyRuleResult, RuleResult, ValidationContext, ValidationPhase, ValidationRule } from '../validation-rule.js';
 
@@ -68,11 +69,14 @@ export class JsonSchemaValidationRule implements ValidationRule {
         const schemaErrors = jsonSchemaValidator.validate(architecture);
         if (schemaErrors.length > 0) {
             logger.debug(`JSON Schema validation raw output: ${prettifyJson(schemaErrors)}`);
-            return {
-                ...emptyRuleResult(),
-                jsonSchemaOutputs: convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture'),
-                hasErrors: true
-            };
+        }
+        const schemaOutputs = convertJsonSchemaIssuesToValidationOutputs(schemaErrors, 'architecture');
+        // The pattern may already reject an empty answer, with `minItems` on its options list.
+        const unanswered = unansweredOneOfDecisions(architecture, context.pattern!)
+            .filter(output => !schemaOutputs.some(existing => existing.path === output.path));
+        const outputs = [...schemaOutputs, ...unanswered];
+        if (outputs.length > 0) {
+            return { ...emptyRuleResult(), jsonSchemaOutputs: outputs, hasErrors: true };
         }
         return emptyRuleResult();
     }

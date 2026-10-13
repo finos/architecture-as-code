@@ -6,7 +6,7 @@ Thank you for your interest in contributing to the Architecture as Code project!
 > The Architecture as Code project (also known as CALM) spans several repositories. Its
 > [governance policies](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md),
 > [contribution guidelines](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md)
-> (DCO sign-off, raising issues, pull request etiquette, and the responsible use of AI coding
+> (raising issues, pull request etiquette, and the responsible use of AI coding
 > assistants), [Code of Conduct](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md)
 > and [Maintainer roster](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md)
 > apply to every repository in the project and are maintained there. This document covers what is
@@ -15,6 +15,13 @@ Thank you for your interest in contributing to the Architecture as Code project!
 Maintainers working in this repository should also read
 [MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md) for repository-specific review, triage,
 merge, release, and onboarding guidance.
+
+## ✍️ Contributor License Agreement
+
+All pull requests need a signed FINOS Contributor License Agreement (CLA). The
+[EasyCLA](https://community.finos.org/docs/governance/Software-Projects/easycla) bot comments on
+your first pull request with a link to sign it, as an individual or through your employer's
+corporate CLA.
 
 ## 🚀 Why We Use Semantic Release
 

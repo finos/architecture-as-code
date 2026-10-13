@@ -196,7 +196,6 @@ OPENAI_API_KEY=                 # OpenAI (optional)
 
 ## Git Workflow
 
-- Always commit with `git commit -s` (signs off with user's identity via DCO)
 - Claude should commit on the user's behalf — do not defer commits to the user
 
 ## Learnings

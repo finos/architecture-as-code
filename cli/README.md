@@ -99,8 +99,8 @@ info: Selected choices (reusable with --option-choices): {"connection-options":"
 
 To skip the interactive prompts, pass your choices via `--option-choices` as an inline JSON string or a path to a JSON file.
 
-- For a **`oneOf`** option (pick exactly one), supply a string value.
-- For an **`anyOf`** option (pick one or more), supply a string or an array of strings.
+- For a **`oneOf`** option (pick exactly one), supply a string value. Every `oneOf` option needs one.
+- For an **`anyOf`** option (pick zero or more), supply a string or an array of strings. An empty array, or leaving the option out, chooses none.
 
 ```shell
 # Inline JSON — single oneOf choice
@@ -890,7 +890,7 @@ Create a new stub CALM document in the current directory, then register it with 
 calm workspace new [type] [name] [template]
 ```
 
-The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
+The created file is named `<slug>.<type>.json` (where `<slug>` is the mapping id, or the control/config name) and contains a minimal document whose `$id` is the one you built and whose `title` is the name you provide. A flow is a CALM flow instead: the name goes in `name`, the slug becomes its `unique-id`, and it has one empty transition to fill in. The namespace (for namespace resources) is stored in the manifest so the document can be pushed to CalmHub without extra flags.
 
 ```shell
 # Fully interactive
@@ -966,7 +966,7 @@ calm workspace check [--calm-hub-url <url>]
 
 A document is flagged when its on-disk `$id` version still matches a version in CalmHub but its content differs. Brand-new documents (not yet in CalmHub) and already-bumped documents (whose version is ahead of CalmHub) are not flagged.
 
-After checking for unbumped documents, `check` also silently validates every architecture and pattern in the workspace and prints a summary — for example:
+After checking for unbumped documents, `check` also validates every architecture and pattern in the workspace and prints a summary. It loads documents with the same `~/.calm.json` settings as `calm validate`, so an architecture whose `$schema` is a CalmHub pattern is validated against that pattern. It can print some of the same configuration lines as `calm validate`, for example `Configuring CALMHub document loader with base URL`. The summary looks like this:
 
 ```
 All 3 document(s) passed validation.
@@ -979,7 +979,7 @@ or, if a document fails:
   my-arch (2 error(s)) — run `calm validate -a .calm-workspace/files/my-arch.json` to see full output
 ```
 
-The command exits non-zero if any documents need bumping **or** if any document fails validation.
+The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication module that cannot load, also stops `check` before it compares the workspace with CalmHub.
 
 #### `calm workspace bump`
 
@@ -1010,7 +1010,7 @@ The default increment when no flag is given is **MINOR** (overridable via `bump.
 
 Bump is **idempotent**: editing → bumping → editing again → bumping again only moves the version by a single increment, because once a document's on-disk version is ahead of CalmHub it is left alone until that version is pushed.
 
-After bumping, `bump` silently validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only** — it never changes the exit code.
+After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate` also stops `bump`, before it changes any file.
 
 #### Workspace config — `.calm-workspace/config.json`
 

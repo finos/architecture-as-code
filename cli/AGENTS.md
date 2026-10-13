@@ -72,6 +72,7 @@ npm run copy-workspace-templates # Copy `workspace new` templates from src/comma
 src/
 ├── cli.ts                    # setupCLI: registers all commands, options, and actions
 ├── cli-config.ts             # Configuration helpers (~/.calm.json loading/saving)
+├── document-loader-config.ts # Document loader options from CLI options and ~/.calm.json
 ├── index.ts                  # Thin bin bootstrap (calls setupCLI + parseAsync)
 ├── command-helpers/          # Action logic for commands (see below)
 └── test_helpers/             # Test utilities

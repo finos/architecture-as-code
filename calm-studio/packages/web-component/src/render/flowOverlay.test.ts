@@ -53,13 +53,13 @@ const sampleFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Client sends order request',
+      description: 'Client sends order request',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-2',
       'sequence-number': 2,
-      summary: 'Service processes order',
+      description: 'Service processes order',
       direction: 'source-to-destination',
     },
   ],
@@ -73,7 +73,7 @@ const reverseFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Response sent back',
+      description: 'Response sent back',
       direction: 'destination-to-source',
     },
   ],
@@ -87,19 +87,19 @@ const multiEdgeFlow: CalmFlow = {
     {
       'relationship-unique-id': 'rel-1',
       'sequence-number': 1,
-      summary: 'Step one',
+      description: 'Step one',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-2',
       'sequence-number': 2,
-      summary: 'Step two',
+      description: 'Step two',
       direction: 'source-to-destination',
     },
     {
       'relationship-unique-id': 'rel-3',
       'sequence-number': 3,
-      summary: 'Step three',
+      description: 'Step three',
       direction: 'source-to-destination',
     },
   ],
@@ -193,7 +193,7 @@ describe('renderFlowOverlay', () => {
         {
           'relationship-unique-id': 'rel-fan',
           'sequence-number': 1,
-          summary: 'Actor interacts with both services',
+          description: 'Actor interacts with both services',
           direction: 'source-to-destination',
         },
       ],
@@ -213,6 +213,34 @@ describe('renderFlowOverlay', () => {
     const animCount = (svg.match(/animateMotion/g) ?? []).length;
     expect(animCount).toBeGreaterThanOrEqual(3);
     expect(svg).toContain('>3<');
+  });
+
+  it('labels the badge with the transition description of a CALM 1.2 flow', () => {
+    const flow: CalmFlow = {
+      'unique-id': 'f',
+      name: 'F',
+      description: 'F',
+      transitions: [{ 'relationship-unique-id': 'rel-1', 'sequence-number': 1, description: 'A calls B' }],
+    };
+    const svg = renderFlowOverlay(flow, twoEdgeLayouts);
+    expect(svg).toContain('data-description="A calls B"');
+    expect(svg).toContain('<title>A calls B</title>');
+  });
+
+  it('escapes a non-numeric sequence-number from a parsed document', () => {
+    const flow: CalmFlow = {
+      'unique-id': 'f',
+      name: 'F',
+      description: 'F',
+      transitions: [{
+        'relationship-unique-id': 'rel-1',
+        'sequence-number': '<script>' as unknown as number,
+        description: 'd',
+      }],
+    };
+    const svg = renderFlowOverlay(flow, twoEdgeLayouts);
+    expect(svg).not.toContain('<script>');
+    expect(svg).toContain('&lt;script&gt;');
   });
 });
 

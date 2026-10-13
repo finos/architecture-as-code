@@ -1,128 +1,62 @@
-# CALM Visual Studio Code Extension
+# CALM Canvas for Visual Studio Code
 
-Live-visualize CALM architecture models while you edit them. Features an interactive preview, tree navigation, intelligent validation, and documentation generation.
+CALM Canvas is a visual editor for CALM architecture models. Edit nodes and
+relationships on a ReactFlow canvas alongside the JSON document.
+
+## Open a model
+
+Use VS Code 1.88 or newer and the
+[FINOS CALM extension](https://marketplace.visualstudio.com/items?itemName=FINOS.calm-vscode-plugin).
+
+1. Open a file ending in `.calm.json`, `.architecture.json`, `.template.json`,
+   `.solution.json`, `.standard.json`, or `.guideline.json`.
+2. Run **CALM: View in CALM Canvas** from the Command Palette, or use the editor
+   title, editor context, or Explorer context menu.
+3. You can also use **Ctrl+Shift+K** on Windows/Linux or **Cmd+Shift+K** on macOS,
+   or the **View in CALM Canvas** CodeLens in a model document.
+
+The canvas opens beside the JSON editor. Canvas changes update the editor
+document; save it in VS Code to persist those changes to disk. Saved file changes
+are sent back to the canvas.
 
 ## Features
 
-### 🎯 Interactive Preview Panel
-- **Live Architecture Visualization**: Real-time diagram generation as you edit
-- **Smart Layout**: Automatic positioning with multiple layout options
-- **Interactive Elements**: Click to inspect, navigate between components
-
-### 🌳 Tree View Navigation
-- **Structured Overview**: Browse Nodes, Relationships, and Flows
-- **Quick Navigation**: Jump between editor and preview
-- **Search & Filter**: Find elements across large models
-
-### 📅 Timeline Navigation
-- **Architecture Evolution**: View milestones in your architecture timeline
-- **One-Click Navigation**: Click any milestone to open its detailed architecture
-- **Current Moment Indicator**: Star marker shows the current architecture state
-- **Relative Path Support**: Navigate to architecture files using relative paths
-
-### ✅ Real-Time Validation
-- **Automatic Validation**: Documents are validated on open, save, and when switching editors
-- **Problems Panel Integration**: Errors and warnings appear in the VS Code Problems panel
-- **Click-to-Navigate**: Click any issue to jump directly to the problematic line in your document
-- **Bundled Schemas**: CALM schemas are bundled with the extension - no network access required
-- **Schema Detection**: Documents are identified as CALM files by their `$schema` reference
-
-### ✨ Smart Editor Features
-- **Hover Information**: Rich tooltips for model elements
-- **Auto-Refresh**: Preview updates automatically on save
-- **Diagnostics Integration**: Validation errors in Problems panel
-
-
-![CALM VS Code Extension](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/CalmVSExtension.png)
-*Interactive preview with tree navigation, editor integration, and live visualization*
-
-
-### 📋 Template & Documentation Mode
-- **Documentation Generation**: Create docs from CALM models
-- **Live Mode**: Auto-refresh as you edit
-- **Multiple Formats**: HTML and Markdown output
-- **Custom Templates**: Use built-in or custom templates
-
-![Live Docify Mode](https://raw.githubusercontent.com/finos/architecture-as-code/main/calm-plugins/vscode/docs/LiveDocifyMode.png)
-*Live templating mode with real-time documentation generation*
-
-### 🖼️ Diagram Export
-Export any rendered Mermaid diagram directly from the Docify preview panel to a local file — no need to run the CLI separately.
-
-- **Export as SVG**: Click the **Export ▾** dropdown in the diagram toolbar and select *Export as SVG*. A vector image is saved with the viewBox and font-family preserved so it renders correctly in any browser or document editor.
-- **Export as PNG**: Select *Export as PNG* for a rasterised image at 2× pixel ratio, suitable for presentations and sharing with people who don't have the extension installed.
-- **Native save dialog**: VSCode's save dialog opens pre-filled with `<architecture-name>-diagram-<n>.<ext>` in the same directory as the open CALM file.
+- **Visual editing:** add nodes from the palette, connect them, and edit node
+  and relationship properties.
+- **Navigation:** pan, zoom, inspect selected elements, and drill into referenced
+  building blocks with breadcrumb navigation.
+- **Layout:** choose top-to-bottom or left-to-right automatic layout from the
+  canvas toolbar.
+- **Validation:** click **Validate** to check the model against the bundled CALM
+  schema and semantic rules. Review the results in the canvas validation panel.
+- **Reusable assets:** load building blocks, patterns, templates, standards,
+  and guidelines from the workspace or an external assets folder.
+- **SVG export:** click **Export SVG** in the canvas toolbar and choose a file
+  in the VS Code save dialog.
 
 ## Configuration
-    
-The extension can be configured via VS Code settings (`.vscode/settings.json` or User Settings).
 
-### Multi-Document Navigation
-Navigate between related CALM files using `detailed-architecture` references.
+These settings are declared in the extension manifest and can be set in
+workspace or user settings:
 
-1.  Create a mapping file (e.g., `calm-mapping.json`) in your workspace:
-    ```json
-    {
-      "https://specs.internal/payment-service": "./services/payment-service.json",
-      "https://specs.internal/inventory": "./services/inventory.json"
-    }
-    ```
-2.  Configure the extension to use this mapping:
-    ```json
-    "calm.urlMapping": "calm-mapping.json"
-    ```
+| Setting | Purpose | Default |
+| --- | --- | --- |
+| `calm.externalAssetsPath` | Absolute path to an additional shared assets folder. | `""` |
+| `calm.packs.enabled` | Palette pack IDs to show; an empty list shows all packs. | `[]` |
+| `calm.packs.excludeNodes` | Node IDs to hide, in `packId:nodeType` format. | `[]` |
 
-### Schema Development
-For schema developers working on custom CALM schemas, you can configure additional local folders to load schemas from:
+For example:
 
 ```json
-"calm.schemas.additionalFolders": ["./my-schemas", "./custom-calm-schemas"]
+{
+  "calm.packs.enabled": ["core", "aws"],
+  "calm.packs.excludeNodes": ["core:ldap"]
+}
 ```
 
-Schemas in these folders are indexed by their `$id` field and can be referenced in your CALM documents.
+## Development and contributions
 
-### File Discovery
-Customize how the extension finds your CALM models and templates.
+See [AGENTS.md](./AGENTS.md) for the current source layout and workspace commands,
+and the [contribution guide](../../CONTRIBUTING.md) before opening a PR.
 
--   `calm.files.globs`: Patterns for CALM model files (Default: `["calm/**/*.json", "calm/**/*.y?(a)ml"]`)
--   `calm.template.globs`: Patterns for template files (Default: `["**/*.md", "**/*.hbs", ...]`)
--   `calm.schemas.additionalFolders`: Additional folders containing CALM schemas for validation (Default: `[]`)
-
-### Visualisation Themes
-
-Four themes are supported for the live preview diagrams:
-
-- `calm.docify.theme` - set to `light`, `dark`, `high-contrast-light` or `high-contrast-dark`, or `auto` to automatically align to your VSCode theme.
-
-### Layout Engine
-
-Choose the diagram layout engine for architecture visualizations:
-
-- `calm.preview.layout` - set to `elk` (default) or `dagre`
-  - **ELK** (Eclipse Layout Kernel): Provides better automatic layout for complex diagrams with improved edge routing and hierarchy handling. Recommended for most use cases.
-  - **Dagre**: Classic Mermaid layout engine. Use if you prefer the traditional Mermaid layout behavior.
-
-This setting applies workspace-wide to all block-architecture diagrams. Individual templates can override this setting using widget frontmatter:
-
-```yaml
----
-widget-options:
-  block-architecture:
-    layout-engine: dagre
----
-```
-
-Or inline in the template:
-```handlebars
-{{block-architecture this layout-engine="dagre"}}
-```
-
-## Getting Involved
-
-Architecture as Code was developed as part of the [DevOps Automation Special Interest Group](https://devops.finos.org/) before graduating as a top level project in it's own right. Our community Zoom meetups take place on the fourth Tuesday of every month, see [here](https://github.com/finos/architecture-as-code/issues?q=label%3Ameeting) for upcoming and previous meetings. For active contributors we have Office Hours every Thursday, see the [FINOS Event Calendar](http://calendar.finos.org) for meeting details.
-
-Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture-as-code/issues/new/choose) in this repository.
-
----
-
-**Contributing**: Issues and PRs welcome!
+Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture-as-code/issues/new/choose).

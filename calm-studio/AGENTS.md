@@ -65,7 +65,7 @@ Docs: `docs/AIGF_CATALOGUE.json`, `docs/CALM_1.2_CONTROLS_SCHEMA.md`, `docs/REQ_
 
 ## Conventions
 - TS strict, no `any`. Svelte 5 runes only. kebab-case files, PascalCase components/types.
-- `git commit -s` (DCO). Conventional commits.
+- Conventional commits.
 
 ## Refs
 - CALM: https://calm.finos.org/release/1.2/ | https://github.com/finos/architecture-as-code

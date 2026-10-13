@@ -16,11 +16,12 @@ Learn how CALM Patterns enable you to define reusable architecture templates tha
 
 By the end of this tutorial, you will:
 - Understand the dual superpower of Patterns: generation and validation
-- Know how Patterns use JSON Schema keywords (`const`, `prefixItems`, `minItems`/`maxItems`, `$ref`)
+- Know how Patterns use JSON Schema keywords (`const`, `prefixItems`, `items`, `minItems`/`maxItems`, `$ref`)
 - Create a Pattern for a 3-tier web application
 - Generate a new architecture from your Pattern
 - Validate both a passing and a failing architecture against the Pattern
 - Understand placeholder warnings in generated architectures
+- Allow optional nodes with `items`
 
 ## Prerequisites
 
@@ -60,6 +61,7 @@ Patterns use JSON Schema keywords to define requirements:
 |---------|---------|---------|
 | `const` | Requires an exact value | `"unique-id": { "const": "api-gateway" }` |
 | `prefixItems` | Defines exact ordered items in an array | First node must be X, second must be Y |
+| `items` | Constrains every position after those items | A cache or a queue may be added, or neither |
 | `minItems` / `maxItems` | Enforces array length | Exactly 3 nodes |
 | `$ref` | References other schemas | Point to a node or Standards definition |
 
@@ -188,6 +190,78 @@ calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp
 
 No warnings ✅ — adding extra properties doesn't break pattern compliance.
 
+### 11. Allow Optional Nodes
+
+A pattern can also offer nodes that an architecture may add. Use `items` for them.
+
+**Prompt:**
+```text
+Update patterns/web-app-pattern.json so that an architecture may also add a cache, a message queue, both or neither:
+1. Add "items" to nodes, with an "anyOf" of two candidates:
+   - "app-cache" (node-type: database, name: "Application Cache")
+   - "message-queue" (node-type: service, name: "Message Queue")
+2. Add "items" to relationships, with an "anyOf" of two candidates:
+   - "api-to-cache": connects api-service to app-cache
+   - "api-to-queue": connects api-service to message-queue
+3. Raise maxItems to 5 for nodes and 4 for relationships. Keep minItems as it is.
+```
+
+Validate the architecture from step 10 again:
+
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/generated-webapp.json
+```
+
+It still passes with no warnings ✅ — the candidates are optional.
+
+Now add a cache:
+
+1. Copy `architectures/generated-webapp.json` to `architectures/cached-webapp.json`
+2. Add this node to `nodes`. The pattern requires its `unique-id`, `node-type` and `name`, and the CALM node schema requires a `description`:
+
+```json
+{
+  "unique-id": "app-cache",
+  "node-type": "database",
+  "name": "Application Cache",
+  "description": "Caches API responses"
+}
+```
+
+3. Add this relationship to `relationships`:
+
+```json
+{
+  "unique-id": "api-to-cache",
+  "description": "API Service reads from and writes to the cache",
+  "relationship-type": {
+    "connects": {
+      "source": { "node": "api-service" },
+      "destination": { "node": "app-cache" }
+    }
+  }
+}
+```
+
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/cached-webapp.json
+```
+
+Should pass with no warnings ✅
+
+Last, add a node that the pattern does not list:
+
+1. Copy `architectures/generated-webapp.json` to `architectures/unlisted-webapp.json`
+2. Add a node with `unique-id` `"audit-log"`
+
+```bash
+calm validate -p patterns/web-app-pattern.json -a architectures/unlisted-webapp.json
+```
+
+Should fail ❌ — among the errors, `must be equal to constant` shows that every added node must match a candidate.
+
+`calm generate` does not add the candidates. To offer them as a choice, see [The `options` relationship](../../core-concepts/patterns.md#the-options-relationship).
+
 Before moving on, use git to capture the state of your work. A descriptive commit message will help future-you understand what changed and why.
 
 ## Key Concepts
@@ -198,6 +272,7 @@ Before moving on, use git to capture the state of your work. A descriptive commi
 |---------|----------|--------|
 | `const` | Exact value | Nothing else |
 | `prefixItems` | Specific ordered items | Additional items after them |
+| `items` | Every later position matches one of its alternatives | Any number of them, or none |
 | `minItems` + `maxItems` (equal) | Exact array length | — |
 | `$ref` | Schema from another file | Properties defined there |
 
@@ -209,7 +284,7 @@ Generated architectures use placeholders as signals:
 
 ### Pattern vs Architecture
 
-A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra nodes, relationships, interfaces, and metadata — Patterns only constrain what they explicitly specify.
+A Pattern defines the **shape** any matching architecture must have. An architecture that satisfies the Pattern is free to add extra elements, unless `maxItems` or `items` limits them — Patterns only constrain what they explicitly specify. `maxItems` limits how many elements an array holds. With `items`, each extra element must match a candidate the Pattern lists.
 
 ## Resources
 

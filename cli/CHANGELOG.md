@@ -5,6 +5,75 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.62.0] - 2026-10-12
+
+## [1.62.0](https://github.com/finos/architecture-as-code/compare/cli-v1.61.0...cli-v1.62.0) (2026-10-12)
+
+* Merge branch 'main' into codex/fix-contributor-docs ([](https://github.com/finos/architecture-as-code/commit/1078df313195aad8ca89bc321eaf4a256185a268))
+* Merge branch 'main' into feat/3283-namespace-descriptions ([](https://github.com/finos/architecture-as-code/commit/2178952eda6776877c2eac489ffb485ba09d8f40))
+* Merge branch 'main' into feat/3283-namespace-descriptions ([](https://github.com/finos/architecture-as-code/commit/a9bf797898146137a3c4031bd15e2a8275f5a1bb))
+* Merge branch 'main' into feat/3283-namespace-descriptions ([](https://github.com/finos/architecture-as-code/commit/9a78fdcbc0c07ebcd061b968e980513baefd5a42))
+* Merge branch 'main' into feat/osv-fix-workflow ([](https://github.com/finos/architecture-as-code/commit/0a7bf8b667f01f1605bd3b8ee25244308573ae0d))
+* Merge remote-tracking branch 'origin/feat/3283-namespace-descriptions' into feat/3283-namespace-descriptions ([](https://github.com/finos/architecture-as-code/commit/6aec706918352da887511b87de1f88ccc13580a4))
+
+### build
+
+* **docs:** build the docs workspace after its Docusaurus plugin ([](https://github.com/finos/architecture-as-code/commit/1abd0478ca55b06643bf195c9fc4beb044ee078f))
+* **docs:** build the docs workspace after its Docusaurus plugin ([](https://github.com/finos/architecture-as-code/commit/de2493fee62b49962794a1d4d52de0ee900fe38e)), closes [#3300](https://github.com/finos/architecture-as-code/issues/3300)
+
+### chore
+
+* **ci:** address Copilot review feedback on the OSV Fix workflow ([](https://github.com/finos/architecture-as-code/commit/e5058ede1bfc947712b0e64455aa6005b7818015))
+* **deps:** update actions/upload-artifact digest to cf430e0 ([](https://github.com/finos/architecture-as-code/commit/73ac287220416c6d9ab8858d06b9f58e3ee55be9))
+* **deps:** update actions/upload-artifact digest to cf430e0 ([](https://github.com/finos/architecture-as-code/commit/21dd223a1003d300a55e8e2bc80895d81263d438))
+* **deps:** update dependency node-forge to ^1.4.0 [security] (#3289) ([](https://github.com/finos/architecture-as-code/commit/29d20c696bdb917bdec8e4d6c6108c909f4e44b5)), closes [#3289](https://github.com/finos/architecture-as-code/issues/3289)
+* **deps:** update dtolnay/rust-toolchain digest to 686976e ([](https://github.com/finos/architecture-as-code/commit/427d2eee6fa1cc72d47e4820a415d6920b9bcc61))
+* **deps:** update dtolnay/rust-toolchain digest to 686976e ([](https://github.com/finos/architecture-as-code/commit/93f55a727f6e32b0c920811ed52e126af189aa06))
+* **deps:** update security updates to v2.12.2 (#3329) ([](https://github.com/finos/architecture-as-code/commit/8eb545d8e6bd262ccb61cdc94a5d0147d6b3bada)), closes [#3329](https://github.com/finos/architecture-as-code/issues/3329)
+* **deps:** update semgrep/semgrep docker digest to 93963d9 ([](https://github.com/finos/architecture-as-code/commit/20ae76291189fdf534718320ed1ecf56378ee705))
+* **deps:** update semgrep/semgrep docker digest to 93963d9 ([](https://github.com/finos/architecture-as-code/commit/634fa45f4d114bf7d12eed9aa79b89596d22dbb2))
+* **deps:** update step-security/harden-runner digest to ccd8616 ([](https://github.com/finos/architecture-as-code/commit/dd59a6c6100aceda25c1abb6d45b09a71a0321b1))
+* **deps:** update step-security/harden-runner digest to ccd8616 ([](https://github.com/finos/architecture-as-code/commit/c68e8868d1ba4a1ad15a3201e7b80ef6321c1617))
+* suppress the katex finding that mermaid pins and inlines ([](https://github.com/finos/architecture-as-code/commit/cbc964980195c046cd9cf9453ff14ebf1beb8a7c))
+* suppress the katex finding that mermaid pins and inlines ([](https://github.com/finos/architecture-as-code/commit/fcdf80598e24561c58e2f82082e3ac6b34dea528))
+
+### ci
+
+* open a lockfile fix PR when the OSV Scanner run on main fails ([](https://github.com/finos/architecture-as-code/commit/8068b5b848022a0e51922101307e68155713f791))
+* open a lockfile fix PR when the OSV Scanner run on main fails ([](https://github.com/finos/architecture-as-code/commit/fdc2ceaba7c4e8a095c6083cdf267513f53f6c13))
+
+### docs
+
+* **vscode:** point the AGENTS.md tree at src/packs ([](https://github.com/finos/architecture-as-code/commit/f3788f291074ead1a2d18f9a571d990140ccbf94))
+* **vscode:** update CALM Canvas contributor and user guides ([](https://github.com/finos/architecture-as-code/commit/c2e120366a06a73c25c24ae12fdc315bc09329c0))
+* **vscode:** update CALM Canvas contributor and user guides ([](https://github.com/finos/architecture-as-code/commit/53b3a03619e190198adf0b9df7d4665b6d6d0775))
+
+### feat
+
+* **calm-hub-ui:** expand a tile description on hover, and with a toggle on mobile ([](https://github.com/finos/architecture-as-code/commit/07d5cc57cd0ca026f813c2632d7166fae438e03f))
+* **calm-hub-ui:** let mobile users expand the namespace description ([](https://github.com/finos/architecture-as-code/commit/25da991db19b234b70c5d9fc6a22f913c157dd7a))
+* **calm-hub-ui:** show namespace descriptions while exploring ([](https://github.com/finos/architecture-as-code/commit/74b077cb4a2fe998222181fc13070612e85696d3))
+* **calm-hub-ui:** show namespace descriptions while exploring ([](https://github.com/finos/architecture-as-code/commit/539bf8d9a2a7a32abd22779920f598dd35dec923)), closes [#3283](https://github.com/finos/architecture-as-code/issues/3283)
+* **calm-hub-ui:** show the namespace description as the sidebar row tooltip ([](https://github.com/finos/architecture-as-code/commit/1662f28e4e7f420fb53acc853e8fd55b01de591d))
+* **calm-hub:** include the namespace description in the counts response ([](https://github.com/finos/architecture-as-code/commit/eb222df8610309665a4b7e751992b064c4fb6cc2))
+
+### fix
+
+* **calm-hub-ui:** measure the description clamp again on resize and font load ([](https://github.com/finos/architecture-as-code/commit/116ad41b0d00008fcbfdbeb2f159fc8430c7c38b))
+* **calm-hub-ui:** show the path and description in the sidebar tooltip ([](https://github.com/finos/architecture-as-code/commit/050f4903237f6381b91a6629651a7330e532a506))
+* **calm-hub:** return the current description while the counts are cached ([](https://github.com/finos/architecture-as-code/commit/c0d93e17d9e7f9dadb9927d64cd2e45dccdf5299))
+* **calm-hub:** start the standalone dev loop without Docker ([](https://github.com/finos/architecture-as-code/commit/2ca4888b5d3c2435247aefb3a7c991dd18698b8f))
+* **calm-hub:** start the standalone dev loop without Docker ([](https://github.com/finos/architecture-as-code/commit/84041b75dfd16a827dc46863f8621dcb54689b90)), closes [#3298](https://github.com/finos/architecture-as-code/issues/3298)
+* **deps:** update next to 15.5.27 and let Renovate raise OSV fix PRs (#3285) ([](https://github.com/finos/architecture-as-code/commit/36bc2c2e2a69f3667df6586e54cb2fcb4bc3c09a)), closes [#3285](https://github.com/finos/architecture-as-code/issues/3285)
+* **deps:** update vulnerable npm packages in package-lock.json ([](https://github.com/finos/architecture-as-code/commit/4ba2f1b17c3809d37cb601a1264f337037036610))
+* **deps:** update vulnerable npm packages in package-lock.json ([](https://github.com/finos/architecture-as-code/commit/0390dcfbe3281849050026e518bbf5490bc92340))
+* **shared:** link docify index pages to their .md files ([](https://github.com/finos/architecture-as-code/commit/bea84086c8f56dcec492d510e4d40ae0cb493e9d))
+* **shared:** link docify index pages to their .md files ([](https://github.com/finos/architecture-as-code/commit/8b68f4927288a6cb0ae314362db935afe429c28c)), closes [#2955](https://github.com/finos/architecture-as-code/issues/2955)
+
+### test
+
+* **calm-hub-ui:** restore the height mocks after each test ([](https://github.com/finos/architecture-as-code/commit/bc94996921742d8220f97791d17b12e54b2dc495))
+
 ## [1.61.0] - 2026-10-07
 
 ## [1.61.0](https://github.com/finos/architecture-as-code/compare/cli-v1.60.1...cli-v1.61.0) (2026-10-07)
