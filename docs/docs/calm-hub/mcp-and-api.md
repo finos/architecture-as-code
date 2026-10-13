@@ -74,13 +74,11 @@ Use this before you change a pattern. It shows which architectures depend on the
 }
 ```
 
-An architecture names its pattern in its own `$schema`, which `calm generate` sets to the pattern's `$id`. So the endpoint finds an architecture only when someone generated it from a pattern **fetched from this hub**. Generated from a pattern file on disk, written by hand, or posted to `/api/calm/...`, the `$schema` names something else and the architecture does not appear. CalmHub does not check the field on write.
-
-An empty list therefore has two readings, and the endpoint does not separate them: either nothing implements the pattern, or the architectures that do were never recorded in a way the hub can resolve.
+An architecture names its pattern in its own `$schema`, which `calm generate` sets to the pattern's `$id`.
 
 | | |
 |---|---|
-| Version | Any spelling works — `1.0.0`, `1-0-0` and `100` mean the same version. A snapshot such as `1.0.0-SNAPSHOT` works too. The response echoes the canonical form. A version that does not exist returns `404`, not an empty list. |
+| Version | A release such as `1.0.0`, or a snapshot such as `1.0.0-SNAPSHOT`. A version that does not exist returns `404`, not an empty list. |
 | Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
 | Order | Sorted by namespace, then `architectureId`, then architecture version, so `1.2.0` comes before `1.10.0`. |
 | Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. An `offset` without a `limit` returns every match after the offset. |

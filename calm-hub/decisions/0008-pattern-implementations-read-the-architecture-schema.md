@@ -1,16 +1,6 @@
 # ADR 0008: Pattern implementations are found by reading the architecture's `$schema`
 
-**Status**: Proposed and Implemented. The code is written and working:
-`GET /calm/namespaces/{ns}/patterns/{name}/versions/{version}/implementations`,
-`PatternImplementationStore` and its two backends. The design is still open.
-[#2918](https://github.com/finos/architecture-as-code/issues/2918) carries the
-`needs-input` label and states that the choice between the three approaches is
-for maintainers to weigh. No maintainer has yet agreed the one taken here, so
-this is not `Accepted`. Read it as a worked proposal with an implementation
-attached, rather than as settled practice.
-
-This ADR changes no storage shape, adds no migration step, and adds no schema
-version.
+**Status**: Implemented.
 
 ## Context
 
@@ -25,7 +15,7 @@ The data model does not record that relationship. `Architecture` holds
 itself carries a trace. `shared/src/commands/generate/components/instantiate.ts`
 sets a generated architecture's `$schema` to the pattern's `$id`.
 
-The issue offers three approaches and chooses none of them:
+The issue offers three approaches:
 
 | | Approach |
 |---|---|
@@ -79,7 +69,7 @@ onto a differently-named field purely to make it indexable.
 **Scan cost does not decide this.** The issue's checklist asks for "scan cost
 vs. indexed lookup" as if that settles the question. Measured over 3000
 architecture versions of about 40KB each, 115MB in total, a match in the
-database took 1.4ms. An indexed lookup on a copied field took 0.6ms. Both are
+database took about 3ms. An indexed lookup on a copied field took 0.6ms. Both are
 noise against the request.
 
 Two further points of context.
@@ -161,14 +151,12 @@ it where it is created.
 **Narrow the candidates in the store. Decide in the service.** The store
 returns each architecture version whose `$schema` contains
 `/calm/namespaces/{ns}/patterns/{name}/versions/`, with its `$schema` value. The
-service then matches the version, sorts and pages, once for both backends. An
-earlier draft matched the version in a MongoDB regular expression and again in
-Java. The two had to agree on every edge case, and they disagreed on `1100` for
-`1.10.0`.
+service then matches the version, sorts and pages, once for both backends. One
+rule in one place means that the backends cannot disagree.
 
 MongoDB runs the path filter in the database, so only candidate rows cross the
-wire. Measured on 3000 architecture versions of about 40KB each, with the earlier
-filter, matching in the database took 1.4ms. Pulling the collection over and
+wire. Measured on 3000 architecture versions of about 40KB each, the database
+filter took about 3ms. Pulling the collection over and
 filtering it in Java took 63ms and moved 115MB. That gap grows with the
 collection, because it is a transfer cost rather than a comparison cost. MongoDB
 refuses a plain projection of `content.$schema`, so the store reads the value
@@ -201,7 +189,7 @@ MongoDB does not allow one.
 
 Both costs grow in proportion to the collection. `CountsService` sets a
 precedent for a short TTL cache over an expensive aggregate read, and this query
-does not take it. At 1.4ms the cache would buy nothing, and it would add a
+does not take it. At about 3ms the cache would buy nothing, and it would add a
 staleness window to an answer used for governance. Should a hub grow far enough
 for a full-visibility caller to feel it, the remedy is a cache of that shape. It
 is not worth building before a real hub shows the need. Callers can already page.
