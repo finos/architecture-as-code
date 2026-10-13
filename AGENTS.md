@@ -253,7 +253,7 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 
 Run `npm run commit` for an interactive prompt. Stage your changes first.
 
-Type and scope drive the automated release, so neither is cosmetic: `cli/.releaserc.json` releases
+Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
 also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. Check that file before assuming a
 commit is release-neutral.
