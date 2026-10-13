@@ -49,14 +49,26 @@ const presetConfig = {
 
 const presetTransform = createPreset(presetConfig).writer.transform;
 
+const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 });
+
 // Each PR reaches main as one merge or squash commit. The PR's own commits would repeat it.
-const mainline = new Set(
-    execFileSync('git', ['rev-list', '--first-parent', 'HEAD'], { encoding: 'utf8' }).split('\n')
-);
+const mainline = new Set(git('rev-list', '--first-parent', 'HEAD').split('\n'));
+
+// PR titles are not linted, so use the branch commits of a PR whose title is not a conventional commit.
+const conventionalHeader = /^\w+(\([^)]*\))?!?: /;
+const listed = new Set(mainline);
+for (const merge of git('log', '--first-parent', '--merges', '--format=%H %P%x00%B%x01', 'HEAD').split('\x01')) {
+    const [refs, message = ''] = merge.trim().split('\x00');
+    const [, mainParent, branchParent] = refs.split(' ');
+    const title = message.split('\n').filter(Boolean)[1] ?? '';
+    if (branchParent && !conventionalHeader.test(title)) {
+        git('rev-list', `${mainParent}..${branchParent}`).split('\n').forEach(branchCommit => listed.add(branchCommit));
+    }
+}
 
 function transform(commit, context) {
     if (commit.notes.length === 0) {
-        if (!mainline.has(commit.hash)) {
+        if (!listed.has(commit.hash)) {
             return undefined;
         }
         // List only the unscoped changes that trigger a release, so repo-wide docs stay out.
@@ -72,6 +84,22 @@ function transform(commit, context) {
     }, context);
 }
 
+// A PR's branch can hold the same change twice, e.g. a commit and the squash of a nested PR.
+function finalizeContext(context) {
+    const prLink = / \(\[#\d+\]\([^)]*\)\)$/;
+    for (const group of context.commitGroups) {
+        const kept = new Map();
+        for (const commit of group.commits) {
+            const key = `${commit.scope}:${commit.subject?.replace(prLink, '')}`;
+            if (!kept.has(key) || (!prLink.test(kept.get(key).subject) && prLink.test(commit.subject))) {
+                kept.set(key, commit);
+            }
+        }
+        group.commits = group.commits.filter(commit => [...kept.values()].includes(commit));
+    }
+    return context;
+}
+
 export default {
     branches: ['main'],
     repositoryUrl: 'https://github.com/finos/architecture-as-code',
@@ -83,7 +111,7 @@ export default {
             preset: 'conventionalcommits',
             presetConfig,
             parserOpts,
-            writerOpts: { transform },
+            writerOpts: { transform, finalizeContext },
         }],
         ['@semantic-release/changelog', {
             changelogFile: 'CHANGELOG.md',
