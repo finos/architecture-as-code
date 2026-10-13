@@ -1,6 +1,6 @@
 import { Option } from '../../../model/adr/option.js';
 import { Link } from '../../../model/adr/link.js';
-import Markdown from 'react-markdown';
+import { AdrMarkdown } from '../../components/adr-renderer/AdrMarkdown.js';
 import { Decision } from '../../../model/adr/decision.js';
 import { AdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 
@@ -77,7 +77,7 @@ export function DisplayConsideredOptions(props: { consideredOptions: Option[] })
 
                     <div className="collapse-content border-t border-base-300">
                         <div className=" pt-1 pe-2 markdownParagraphSpacing">
-                            <Markdown>{consideredOption.description}</Markdown>
+                            <AdrMarkdown>{consideredOption.description}</AdrMarkdown>
                         </div>
                         <br></br>
                         <p className="font-bold"> Positive Consequences:</p>
@@ -104,7 +104,7 @@ export function DisplayChosenOption(props: { decisionOutcome: Decision }) {
             <p className="font-bold pb-1">{chosenOption.name}</p>
 
             <div className=" pt-1 pb-1 pe-2 markdownParagraphSpacing">
-                <Markdown>{chosenOption.description}</Markdown>
+                <AdrMarkdown>{chosenOption.description}</AdrMarkdown>
             </div>
 
             <p className="font-bold"> Positive Consequences:</p>
@@ -115,7 +115,7 @@ export function DisplayChosenOption(props: { decisionOutcome: Decision }) {
 
             <p className="font-bold mt-4"> Decision Rational:</p>
             <div className="pe-1">
-                <Markdown>{props.decisionOutcome.rationale}</Markdown>
+                <AdrMarkdown>{props.decisionOutcome.rationale}</AdrMarkdown>
             </div>
         </div>
     );

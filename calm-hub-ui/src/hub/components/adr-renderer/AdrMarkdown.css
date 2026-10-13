@@ -1,0 +1,40 @@
+/* SPDX-License-Identifier: Apache-2.0
+ * Copyright 2026 Russlan Ramdowar
+ */
+.adr-markdown-table {
+    max-width: 100%;
+    overflow-x: auto;
+    margin-block: 1rem;
+}
+
+.adr-markdown-table table {
+    display: table;
+    width: max-content;
+    min-width: 100%;
+    border-collapse: collapse;
+}
+
+.adr-markdown-table th,
+.adr-markdown-table td {
+    padding: 0.5rem;
+    border: 1px solid var(--calm-border-default);
+}
+
+.adr-markdown .contains-task-list {
+    padding-inline-start: 1.5rem;
+    list-style: none;
+}
+
+.adr-markdown .task-list-item > input {
+    margin-inline-end: 0.5rem;
+}
+
+.adr-markdown .footnotes {
+    margin-block-start: 1rem;
+    font-size: 0.875rem;
+}
+
+.adr-markdown .footnotes ol {
+    padding-inline-start: 1.5rem;
+    list-style: decimal;
+}
