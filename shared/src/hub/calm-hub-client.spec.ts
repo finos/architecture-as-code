@@ -715,19 +715,32 @@ describe('CalmHubClient', () => {
     // ── getMappedResourceLatestVersion ────────────────────────────────────────
 
     describe('getMappedResourceLatestVersion', () => {
-        it('returns the latest version document', async () => {
-            mock.onGet('/calm/namespaces/finos/architectures/my-arch').reply(200, { nodes: [] });
+        it('returns the document for the last version that CALM Hub lists', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions').reply(200, {
+                values: ['1.0.0', '1.1.0', '2.0.0']
+            });
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions/2.0.0').reply(200, { nodes: [] });
+
+            const result = await client.getMappedResourceLatestVersion('finos', 'my-arch', 'architectures');
+            expect(result).toEqual({ nodes: [] });
+        });
+
+        it('returns the newest commit when CALM Hub lists commit SHAs (GitHub storage mode)', async () => {
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions').reply(200, {
+                values: ['a1b2c3d', 'e4f5a6b']
+            });
+            mock.onGet('/calm/namespaces/finos/architectures/my-arch/versions/e4f5a6b').reply(200, { nodes: [] });
 
             const result = await client.getMappedResourceLatestVersion('finos', 'my-arch', 'architectures');
             expect(result).toEqual({ nodes: [] });
         });
 
         it('throws HubClientError(404) when the mapping does not exist', async () => {
-            mock.onGet('/calm/namespaces/finos/architectures/missing').reply(404, 'Not found');
+            mock.onGet('/calm/namespaces/finos/architectures/missing/versions').reply(404, 'Not found');
 
             await expect(client.getMappedResourceLatestVersion('finos', 'missing', 'architectures')).rejects.toMatchObject({
                 status: 404,
-                request: 'GET /calm/namespaces/finos/architectures/missing'
+                request: 'GET /calm/namespaces/finos/architectures/missing/versions'
             });
         });
     });

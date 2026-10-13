@@ -463,16 +463,25 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Return the latest version of a resource.
+     * CALM Hub has no latest-version endpoint, so this reads the last entry of the version list.
+     * CALM Hub returns that list in ascending order. It is not sorted again as semver here,
+     * because in GitHub storage mode the versions are commit SHAs.
+     * @param namespace The namespace to query
+     * @param mappingId The mapping ID of the resource
+     * @param resourceType The resource type that this mapping ID belongs to
+     * @returns The latest version of the resource
+     */
     async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<object> {
         this.logger.debug(`Getting latest version for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
-        const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}`;
-        try {
-            const response = await this.ax.get(endpoint);
-            this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, `GET ${endpoint}`);
+        const versions = await this.getMappedResourceVersions(namespace, mappingId, resourceType);
+        const latestVersion = versions[versions.length - 1];
+        if (latestVersion === undefined) {
+            throw new HubClientError(404, `No versions found for ${resourceType} '${mappingId}' in namespace '${namespace}'`,
+                `GET /calm/namespaces/${namespace}/${resourceType}/${mappingId}/versions`);
         }
+        return this.getMappedResourceByVersion(namespace, mappingId, latestVersion, resourceType);
     }
 
     async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<object> {
