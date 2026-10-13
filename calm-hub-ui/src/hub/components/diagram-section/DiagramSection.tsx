@@ -180,7 +180,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         if (version === data.version) return;
         // Preserve the active tab and breadcrumb state when switching version.
         const query = activeTab !== 'diagram' ? `?tab=${activeTab}` : '';
-        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`, { state: location.state });
+        navigate(`/${data.name}/${urlType}/${data.id}/${version}${query}`, {
+            state: { ...(location.state as object | null), timelineSelection: true },
+        });
     };
 
     const handleBreadcrumbClick = useCallback((crumb: BreadcrumbItem, index: number) => {
@@ -345,12 +347,15 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // version (the tree's implicit default) one-shot redirects to the
     // timeline's current-moment instead — once per resource visit, so the
     // user can still navigate freely to other versions afterwards.
+    // Hub remounts DiagramSection on every version change, which resets the
+    // ref, so a timeline selection is also marked in navigation state.
     const explicitRedirectedFor = useRef<string | null>(null);
     useEffect(() => {
         explicitRedirectedFor.current = null;
     }, [data.name, data.id]);
     useEffect(() => {
         if (!isArchitecture) return;
+        if ((location.state as { timelineSelection?: boolean } | null)?.timelineSelection) return;
         if (!timelineIsExplicit || !timelineCurrentMomentId) return;
         if (versions.length === 0 || moments.length === 0) return;
         const resourceKey = `${data.name}/${data.id}`;
