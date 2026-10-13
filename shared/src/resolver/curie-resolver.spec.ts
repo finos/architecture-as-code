@@ -40,6 +40,13 @@ describe('CurieReferenceResolver', () => {
                 'http://hub.example.com/calm/namespaces/fae-calm/patterns/my-block/versions/a1b2c3d'
             );
         });
+
+        it('returns true for versionless CURIE so resolve can surface the error', () => {
+            const delegate = createMockDelegate(true);
+            const resolver = new CurieReferenceResolver(hubBaseUrl, delegate);
+
+            expect(resolver.canResolve('fae-calm:patterns:api-gateway')).toBe(true);
+        });
     });
 
     describe('resolve', () => {

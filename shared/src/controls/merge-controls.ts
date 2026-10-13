@@ -4,7 +4,7 @@ export function mergeControls(
 ): Record<string, unknown> {
     const merged = { ...existing };
     for (const [key, value] of Object.entries(incoming)) {
-        if (!(key in merged)) {
+        if (!Object.prototype.hasOwnProperty.call(merged, key)) {
             merged[key] = structuredClone(value);
         }
     }

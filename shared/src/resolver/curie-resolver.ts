@@ -13,7 +13,9 @@ export class CurieReferenceResolver implements CalmReferenceResolver {
             const expanded = expandCurie(ref, this.hubBaseUrl);
             return this.delegate.canResolve(expanded);
         } catch {
-            return false;
+            // Return true so resolve() is called and throws the descriptive error
+            // (e.g. "CURIE requires a version").
+            return true;
         }
     }
 

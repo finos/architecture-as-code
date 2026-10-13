@@ -31,6 +31,13 @@ describe('mergeControls', () => {
         expect(result).toEqual({ security: { level: 'high' } });
     });
 
+    it('adds incoming key that matches an inherited prototype property', () => {
+        const existing = {};
+        const incoming = { constructor: { id: 'ctrl-constructor' } };
+        const result = mergeControls(existing, incoming);
+        expect(result.constructor).toEqual({ id: 'ctrl-constructor' });
+    });
+
     it('deep copies incoming values (modifying source does not affect merged result)', () => {
         const existing = {};
         const incomingValue = { nested: { deep: 'original' } };

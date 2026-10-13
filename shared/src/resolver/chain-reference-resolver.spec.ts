@@ -2,11 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { ChainReferenceResolver } from './chain-reference-resolver';
 import { CalmReferenceResolver } from './calm-reference-resolver';
 
-function mockResolver(canResolve: boolean, result?: unknown, shouldThrow = false): CalmReferenceResolver {
+function mockResolver(canResolve: boolean, result?: unknown, errorMessage?: string): CalmReferenceResolver {
     return {
         canResolve: vi.fn().mockReturnValue(canResolve),
         resolve: vi.fn().mockImplementation(async () => {
-            if (shouldThrow) throw new Error('resolver failed');
+            if (errorMessage) throw new Error(errorMessage);
             return result;
         }),
     };
@@ -34,7 +34,7 @@ describe('ChainReferenceResolver', () => {
     });
 
     it('falls through to next resolver on error', async () => {
-        const r1 = mockResolver(true, undefined, true);
+        const r1 = mockResolver(true, undefined, 'resolver failed');
         const r2 = mockResolver(true, { fallback: true });
         const chain = new ChainReferenceResolver([r1, r2]);
 
@@ -49,11 +49,26 @@ describe('ChainReferenceResolver', () => {
         await expect(chain.resolve('unknown:ref')).rejects.toThrow('No resolver in chain could resolve: unknown:ref');
     });
 
-    it('includes the last error message when all resolvers fail', async () => {
-        const r1 = mockResolver(true, undefined, true);
-        const chain = new ChainReferenceResolver([r1]);
+    it('includes all error messages when multiple resolvers fail', async () => {
+        const r1 = mockResolver(true, undefined, 'Hub returned 401');
+        const r2 = mockResolver(true, undefined, 'unknown protocol');
+        const chain = new ChainReferenceResolver([r1, r2]);
 
-        await expect(chain.resolve('some:ref')).rejects.toThrow('No resolver in chain could resolve: some:ref: resolver failed');
+        await expect(chain.resolve('some:ref')).rejects.toThrow(
+            'No resolver in chain could resolve: some:ref: Hub returned 401; unknown protocol'
+        );
+    });
+
+    it('sets cause to the first error', async () => {
+        const r1 = mockResolver(true, undefined, 'Hub returned 401');
+        const r2 = mockResolver(true, undefined, 'unknown protocol');
+        const chain = new ChainReferenceResolver([r1, r2]);
+
+        try {
+            await chain.resolve('some:ref');
+        } catch (e) {
+            expect((e as Error & { cause: Error }).cause.message).toBe('Hub returned 401');
+        }
     });
 
     it('canResolve returns true if any resolver can handle it', () => {
