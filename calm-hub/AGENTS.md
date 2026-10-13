@@ -395,6 +395,14 @@ All four workflows:
   method returns a disabled error, though the `/mcp` HTTP endpoint stays reachable
 - Enable with `-Dcalm.mcp.enabled=true` or `CALM_MCP_ENABLED=true`
 
+### UI Customization
+- `config/UiConfig` (`@ConfigMapping(prefix = "calm.ui")`) holds the operator values that
+  `GET /api/calm/ui/config` (`UiConfigResource`) returns to CALM Hub UI
+- `UiConfigValidator` fails startup on a bad colour, URL or item, so do not relax its checks:
+  they stop CSS injection and `javascript:` links in the UI
+- The response leaves out a section that is not configured or not enabled. The server does not
+  read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
+
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
