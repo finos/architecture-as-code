@@ -46,15 +46,6 @@
             "separateMinorPatch": false
         },
         {
-            "description": "Keep Quarkus BOM and JaCoCo plugin in sync",
-            "matchManagers": ["maven"],
-            "matchPackageNames": [
-                "io.quarkus.platform:quarkus-bom",
-                "org.jacoco:jacoco-maven-plugin"
-            ],
-            "groupName": "quarkus+jacoco"
-        },
-        {
             "description": "Pin Netty to 4.1.x until Quarkus 4.x lands; Quarkus 3.x is incompatible with Netty 4.2 on Java 21",
             "matchManagers": ["maven"],
             "matchPackageNames": ["io.netty:netty-bom"],
@@ -185,6 +176,23 @@
       "schedule": ["at any time"],
       "automerge": false,
       "groupName": "calm-schema"
+    },
+    {
+      "description": "Raise Quarkus and JaCoCo updates in their own PR, without automerge. Must stay after the patch/minor/major group rules",
+      "matchManagers": ["maven"],
+      "matchPackageNames": [
+        "io.quarkus:*",
+        "io.quarkus.platform:*",
+        "org.jacoco:jacoco-maven-plugin"
+      ],
+      "groupName": "quarkus+jacoco",
+      "automerge": false
+    },
+    {
+      "description": "Quarkus LTS releases only (3.40, then 4.3). Add each new LTS line here",
+      "matchManagers": ["maven"],
+      "matchPackageNames": ["io.quarkus:*", "io.quarkus.platform:*"],
+      "allowedVersions": "/^(3\\.40|4\\.3)\\./"
     }
   ]
 }
