@@ -2,7 +2,7 @@
 
 This is the project's security self-assessment: a threat model and attack surface analysis for the software released from this repository. It satisfies OSPS Baseline controls OSPS-SA-03.01 and OSPS-SA-03.02 and is declared in [`security-insights.yml`](security-insights.yml). It is reviewed when a component gains a new external interface, a new trust boundary, or a new distribution channel, and at least once a year.
 
-Last reviewed: 2026-10-03.
+Last reviewed: 2026-10-13.
 
 ## Scope
 
