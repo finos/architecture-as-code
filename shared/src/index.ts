@@ -123,6 +123,7 @@ export { LocalCurieReferenceResolver } from './resolver/local-curie-resolver.js'
 export { ShaCacheReferenceResolver } from './resolver/sha-cache-resolver.js';
 export { ChainReferenceResolver } from './resolver/chain-reference-resolver.js';
 export { type CalmReferenceResolver, HttpReferenceResolver } from './resolver/calm-reference-resolver.js';
+export { SchemaDirectoryReferenceResolver } from './resolver/schema-directory-reference-resolver.js';
 export { mergeControls } from './controls/merge-controls.js';
 export {
     enrichWithDocumentPositions,
