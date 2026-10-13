@@ -18,9 +18,9 @@ class TestPageRequestShould {
     private static final List<String> ITEMS = List.of("a", "b", "c", "d", "e");
 
     @Test
-    void report_unpaged_when_limit_is_null() {
+    void report_paged_when_a_limit_or_an_offset_is_set() {
         assertFalse(PageRequest.UNPAGED.isPaged());
-        assertFalse(new PageRequest(null, 3).isPaged());
+        assertTrue(new PageRequest(null, 3).isPaged());
         assertTrue(new PageRequest(2, null).isPaged());
     }
 
@@ -34,7 +34,12 @@ class TestPageRequestShould {
     @Test
     void return_the_same_list_unchanged_when_unpaged() {
         assertThat(PageRequest.UNPAGED.apply(ITEMS), is(sameInstance(ITEMS)));
-        assertThat(new PageRequest(null, 2).apply(ITEMS), is(sameInstance(ITEMS)));
+    }
+
+    @Test
+    void return_every_item_after_an_offset_when_there_is_no_limit() {
+        assertThat(new PageRequest(null, 2).apply(ITEMS), contains("c", "d", "e"));
+        assertThat(new PageRequest(null, 99).apply(ITEMS), is(empty()));
     }
 
     @Test
