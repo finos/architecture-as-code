@@ -80,10 +80,12 @@ An empty list therefore has two readings, and the endpoint does not separate the
 
 | | |
 |---|---|
-| Version | Any spelling works — `1.0.0`, `1-0-0` and `100` mean the same version. The response echoes the canonical form. A version that does not exist returns `404`, not an empty list. |
+| Version | Any spelling works — `1.0.0`, `1-0-0` and `100` mean the same version. A snapshot such as `1.0.0-SNAPSHOT` works too. The response echoes the canonical form. A version that does not exist returns `404`, not an empty list. |
 | Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
-| Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. |
+| Order | Sorted by namespace, then `architectureId`, then architecture version, so `1.2.0` comes before `1.10.0`. |
+| Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. An `offset` without a `limit` returns every match after the offset. |
 | `customId` | The name on the name-based API. Omitted for an architecture created through the numeric-id API, which never had one; use `architectureId` for those. |
+| GitHub mode | Not available. The endpoint returns `501`. |
 
 The hub answers on demand and caches nothing, reading the architectures you are allowed to see. See [ADR 0008](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0008-pattern-implementations-read-the-architecture-schema.md) for why the link is resolved at request time rather than stored.
 

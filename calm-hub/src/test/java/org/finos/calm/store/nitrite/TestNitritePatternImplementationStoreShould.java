@@ -4,9 +4,7 @@ import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
-import org.finos.calm.domain.implementations.PatternImplementation;
-import org.finos.calm.domain.implementations.PatternImplementations;
-import org.finos.calm.store.PageRequest;
+import org.finos.calm.store.ArchitectureSchema;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,8 +25,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class TestNitritePatternImplementationStoreShould {
 
-    private static final String REFERENCE =
-            "https://hub.corp.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0";
+    private static final String PATH = "/calm/namespaces/finos/patterns/api-gateway/versions/";
+    private static final String REFERENCE = "https://hub.corp.com" + PATH + "1.0.0";
 
     @Mock
     private Nitrite db;
@@ -61,26 +59,19 @@ class TestNitritePatternImplementationStoreShould {
         when(cursor.iterator()).thenReturn(documents.iterator());
     }
 
-    private PatternImplementations find(Optional<Set<String>> readableNamespaces) {
-        return store.findImplementations("finos", "api-gateway", "1.0.0", readableNamespaces, PageRequest.UNPAGED);
+    private List<ArchitectureSchema> find(Optional<Set<String>> readableNamespaces) {
+        return store.findSchemasContaining(PATH, readableNamespaces);
     }
 
     @Test
-    void return_the_architecture_versions_that_name_the_pattern() {
-        stubCollection(List.of(
-                version("finos", 7, "1.2.0", REFERENCE),
-                version("finos", 8, "1.0.0", "https://other.host/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0")));
+    void return_every_version_whose_schema_contains_the_path_with_that_schema() {
+        String otherVersion = "https://other.host" + PATH + "2.0.0";
+        stubCollection(List.of(version("finos", 7, "1.2.0", REFERENCE), version("finos", 8, "1.0.0", otherVersion)));
 
-        assertEquals(List.of(new PatternImplementation("finos", 7, "1.2.0", null)),
-                find(Optional.empty()).getImplementations());
-    }
-
-    @Test
-    void match_the_same_reference_written_under_a_different_host() {
-        stubCollection(List.of(version("finos", 7, "1.2.0",
-                "http://localhost:8080/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0")));
-
-        assertEquals(1, find(Optional.empty()).getImplementations().size());
+        assertEquals(List.of(
+                        new ArchitectureSchema("finos", 7, "1.2.0", REFERENCE),
+                        new ArchitectureSchema("finos", 8, "1.0.0", otherVersion)),
+                find(Optional.empty()));
     }
 
     @Test
@@ -91,28 +82,36 @@ class TestNitritePatternImplementationStoreShould {
                 version("finos", 9, "1.0.0", null),
                 version("finos", 10, "1.0.0", "https://calm.finos.org/getting-started/conference-signup.pattern.json")));
 
-        assertEquals(1, find(Optional.empty()).getImplementations().size());
+        assertEquals(1, find(Optional.empty()).size());
+    }
+
+    @Test
+    void ignore_an_architecture_that_holds_the_path_outside_its_schema() {
+        stubCollection(List.of(Document.createDocument("namespace", "finos").put("architectureId", 8)
+                .put("version", "1.0.0")
+                .put("content", "{\"$schema\":\"https://calm.finos.org/release/1.2/meta/calm.json\",\"note\":\"" + REFERENCE + "\"}")));
+
+        assertEquals(List.of(), find(Optional.empty()));
     }
 
     @Test
     void skip_content_that_will_not_parse_rather_than_failing_the_request() {
         stubCollection(List.of(
                 Document.createDocument("namespace", "finos").put("architectureId", 8)
-                        .put("version", "1.0.0").put("content", "{ this is not json"),
+                        .put("version", "1.0.0").put("content", "{ not json " + REFERENCE),
                 version("finos", 7, "1.2.0", REFERENCE)));
 
-        assertEquals(1, find(Optional.empty()).getImplementations().size());
+        assertEquals(1, find(Optional.empty()).size());
     }
 
     @Test
     void exclude_namespaces_the_caller_cannot_read() {
         stubCollection(List.of(
                 version("finos", 7, "1.2.0", REFERENCE),
-                version("secret", 8, "1.0.0", REFERENCE),
-                version("secret", 9, "1.0.0", "https://calm.finos.org/release/1.2/meta/calm.json")));
+                version("secret", 8, "1.0.0", REFERENCE)));
 
-        assertEquals(List.of(new PatternImplementation("finos", 7, "1.2.0", null)),
-                find(Optional.of(Set.of("finos"))).getImplementations());
+        assertEquals(List.of(new ArchitectureSchema("finos", 7, "1.2.0", REFERENCE)),
+                find(Optional.of(Set.of("finos"))));
     }
 
     @Test
@@ -122,8 +121,7 @@ class TestNitritePatternImplementationStoreShould {
                         .put("content", "{\"$schema\":\"" + REFERENCE + "\"}"),
                 version("finos", 7, "1.2.0", REFERENCE)));
 
-        assertEquals(List.of(new PatternImplementation("finos", 7, "1.2.0", null)),
-                find(Optional.empty()).getImplementations());
+        assertEquals(List.of(new ArchitectureSchema("finos", 7, "1.2.0", REFERENCE)), find(Optional.empty()));
     }
 
     @Test
@@ -133,45 +131,7 @@ class TestNitritePatternImplementationStoreShould {
                         .put("content", "{\"$schema\":\"" + REFERENCE + "\"}"),
                 version("finos", 7, "1.2.0", REFERENCE)));
 
-        assertEquals(List.of(new PatternImplementation("finos", 7, "1.2.0", null)),
-                find(Optional.of(Set.of("finos"))).getImplementations());
-    }
-
-    @Test
-    void match_a_stored_reference_whose_version_is_spelled_differently() {
-        stubCollection(List.of(version("finos", 7, "1.2.0",
-                "https://h/calm/namespaces/finos/patterns/api-gateway/versions/1-0-0")));
-
-        assertEquals(1, find(Optional.empty()).getImplementations().size());
-    }
-
-    @Test
-    void return_matches_in_the_same_order_as_the_mongo_query() {
-        // find() order is undefined, so paging over it could repeat or drop a row between pages.
-        stubCollection(List.of(
-                version("traderx", 2, "1.0.0", REFERENCE),
-                version("finos", 9, "2.0.0", REFERENCE),
-                version("finos", 9, "1.0.0", REFERENCE),
-                version("finos", 7, "1.0.0", REFERENCE)));
-
-        assertEquals(List.of(
-                        new PatternImplementation("finos", 7, "1.0.0", null),
-                        new PatternImplementation("finos", 9, "1.0.0", null),
-                        new PatternImplementation("finos", 9, "2.0.0", null),
-                        new PatternImplementation("traderx", 2, "1.0.0", null)),
-                find(Optional.empty()).getImplementations());
-    }
-
-    @Test
-    void apply_a_paging_window_when_one_is_asked_for() {
-        stubCollection(List.of(
-                version("finos", 7, "1.0.0", REFERENCE),
-                version("finos", 8, "1.0.0", REFERENCE),
-                version("finos", 9, "1.0.0", REFERENCE)));
-
-        PatternImplementations page = store.findImplementations("finos", "api-gateway", "1.0.0",
-                Optional.empty(), new PageRequest(1, 1));
-
-        assertEquals(List.of(new PatternImplementation("finos", 8, "1.0.0", null)), page.getImplementations());
+        assertEquals(List.of(new ArchitectureSchema("finos", 7, "1.2.0", REFERENCE)),
+                find(Optional.of(Set.of("finos"))));
     }
 }

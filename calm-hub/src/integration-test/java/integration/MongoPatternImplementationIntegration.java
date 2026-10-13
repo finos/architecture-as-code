@@ -20,9 +20,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 
 /**
- * Sends the {@code content.$schema} regex through the Java driver to a real MongoDB. A mocked
- * collection cannot show that the driver accepts a filter on a {@code $}-prefixed field, or that
- * the server matches the version spellings the expression lists.
+ * Sends the {@code content.$schema} filter and the {@code $objectToArray} projection through the
+ * Java driver to a real MongoDB. A mocked collection cannot show that the server accepts a
+ * {@code $}-prefixed field in either, or that it returns the {@code $schema} value.
  */
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
@@ -87,6 +87,15 @@ public class MongoPatternImplementationIntegration {
 
     @Test
     @Order(4)
+    void return_every_match_after_an_offset_when_there_is_no_limit() {
+        given().queryParam("offset", 1)
+                .when().get(IMPLEMENTATIONS)
+                .then().statusCode(200)
+                .body("implementations.customId", contains("impl-second"));
+    }
+
+    @Test
+    @Order(5)
     void return_404_for_a_pattern_version_that_does_not_exist() {
         given().when().get(PATTERN_PATH + "3.0.0/implementations")
                 .then().statusCode(404)

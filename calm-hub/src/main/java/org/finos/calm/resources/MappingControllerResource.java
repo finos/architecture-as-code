@@ -778,11 +778,12 @@ public class MappingControllerResource {
     @APIResponse(responseCode = "400", description = "Namespace, pattern name or version is malformed")
     @APIResponse(responseCode = "403", description = "The caller may not read the pattern's namespace")
     @APIResponse(responseCode = "404", description = "Pattern or version not found")
+    @APIResponse(responseCode = "501", description = "Not available in GitHub storage mode")
     @PermissionsAllowed(CalmHubScopes.READ)
     public Response getPatternImplementations(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             @Valid @BeanParam PaginationQueryParams page
     ) {
         Optional<Set<String>> readableNamespaces = ReadableScope.resolve(

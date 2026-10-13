@@ -1,7 +1,6 @@
 package org.finos.calm.store.noop;
 
-import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
-import org.finos.calm.store.PageRequest;
+import org.finos.calm.domain.exception.GitHubModeNotSupportedException;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -14,9 +13,9 @@ class TestNoOpPatternImplementationStoreShould {
 
     @Test
     void refuse_rather_than_report_that_nothing_implements_the_pattern() {
-        GitHubWriteNotSupportedException ex = assertThrows(GitHubWriteNotSupportedException.class,
-                () -> new NoOpPatternImplementationStore().findImplementations(
-                        "finos", "api-gateway", "1.0.0", Optional.empty(), PageRequest.UNPAGED));
+        GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
+                () -> new NoOpPatternImplementationStore().findSchemasContaining(
+                        "/calm/namespaces/finos/patterns/api-gateway/versions/", Optional.empty()));
         assertThat(ex.getMessage(), containsString("GitHub storage mode"));
     }
 }

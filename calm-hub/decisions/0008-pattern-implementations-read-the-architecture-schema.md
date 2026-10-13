@@ -71,9 +71,10 @@ createIndex({"content.$schema": 1})
 
 A wildcard index on `content.$**` is created without complaint, and gives no
 usable plan. `explain()` on that path is itself rejected with
-`FieldPath field names may not start with '$'`. Projection fails for the same
-reason. Only a query on the field works. B would therefore have to copy the
-value onto a differently-named field purely to make it indexable.
+`FieldPath field names may not start with '$'`. A plain projection fails for the
+same reason. A computed projection through `$objectToArray` can read the value,
+but it cannot make the field indexable. B would therefore have to copy the value
+onto a differently-named field purely to make it indexable.
 
 **Scan cost does not decide this.** The issue's checklist asks for "scan cost
 vs. indexed lookup" as if that settles the question. Measured over 3000
@@ -118,11 +119,9 @@ six spellings of one version, from `1.0.0` to `100`, and
 without canonicalising it. `calm generate` then copies that into the
 architecture's `$schema`. Both the stored reference and the incoming request can
 therefore use any spelling, and comparing the strings verbatim misses every pair
-that disagrees. The database expression is an alternation of the separator
-spellings that fold back through `CanonicalVersion` to the requested version. An
-optional-separator expression is not equivalent: it matches `1100` for `1.10.0`,
-but `CanonicalVersion` reads `1100` as `11.0.0`. The in-memory path folds both
-sides through `CanonicalVersion`. The response echoes the canonical form.
+that disagrees. The service folds both sides through `CanonicalVersion`, which
+also folds snapshot spellings such as `1-0-0-SNAPSHOT`. The response echoes the
+canonical form.
 
 **Return 404 when the pattern version does not exist.** Resolving the pattern
 name alone is not enough. A request for a version that was never written would
@@ -135,7 +134,11 @@ read.
 
 **Page only when the caller asks.** The endpoint accepts `limit` and `offset`
 through the shared `PaginationQueryParams`, and defaults to
-`PageRequest.UNPAGED`. A fixed cap is deliberately not applied.
+`PageRequest.UNPAGED`. An `offset` without a `limit` returns every match after
+the offset. The service sorts the matches by namespace, architecture id and
+semantic version, and then takes the page. Every filter runs before the page, so
+a page is never short, and both backends return the same page. A fixed cap is
+deliberately not applied.
 `SearchStore.MAX_RESULTS_PER_TYPE` caps search at 50 because search returns top
 matches and nobody expects completeness. This answers a blast-radius question,
 where returning the first 50 of 500 would report a change as safe when it is
@@ -155,21 +158,30 @@ the database work for an answer the caller already holds. Documentation states
 the limitation instead, and the write-path warning under Consequences surfaces
 it where it is created.
 
-**Match in the database on MongoDB. Match in memory on Nitrite.** MongoDB cannot
-project `content.$schema` any more than it can index it, so filtering in the
-application means streaming every architecture body across the wire. Measured on
-3000 architecture versions of about 40KB each, matching in the database took
-1.4ms. Pulling the collection over and filtering it in Java took 63ms and moved
-115MB. That gap grows with the collection, because it is a transfer cost rather
-than a comparison cost. Nitrite has no such option. It stores content as an
-opaque JSON string, and CalmHub creates no Nitrite indexes at all, so it reads
-and parses each version. That is this backend's standing cost, not a choice made
-here.
+**Narrow the candidates in the store. Decide in the service.** The store
+returns each architecture version whose `$schema` contains
+`/calm/namespaces/{ns}/patterns/{name}/versions/`, with its `$schema` value. The
+service then matches the version, sorts and pages, once for both backends. An
+earlier draft matched the version in a MongoDB regular expression and again in
+Java. The two had to agree on every edge case, and they disagreed on `1100` for
+`1.10.0`.
 
-**Run the query on demand, and cache nothing.** A request costs four reads
-before the scan: the pattern name to its numeric id, that pattern's version
-list, the match itself, and one bulk name lookup per namespace in the results.
-Only the match scans. Every other read is an indexed point lookup. The scan's
+MongoDB runs the path filter in the database, so only candidate rows cross the
+wire. Measured on 3000 architecture versions of about 40KB each, with the earlier
+filter, matching in the database took 1.4ms. Pulling the collection over and
+filtering it in Java took 63ms and moved 115MB. That gap grows with the
+collection, because it is a transfer cost rather than a comparison cost. MongoDB
+refuses a plain projection of `content.$schema`, so the store reads the value
+through `$objectToArray`. This was verified on 4.4.3 and 8.0.32. MongoDB 4.4 has
+no `$getField`. Nitrite stores content as an opaque JSON string, and CalmHub
+creates no Nitrite indexes at all, so it reads each version. It parses only a
+version whose raw content contains the path. That is this backend's standing
+cost, not a choice made here.
+
+**Run the query on demand, and cache nothing.** A request costs four reads: the
+candidate read, the pattern name to its numeric id, that pattern's version list,
+and one bulk name lookup per namespace in the results. Only the candidate read
+scans. Every other read is an indexed point lookup. The scan's
 work is proportional to what the caller may see. On MongoDB the namespace filter
 that enforces permissions is also the prefix of the existing unique index on
 `architectureVersions`. The index therefore selects the caller's namespaces,
@@ -229,10 +241,9 @@ namespace endpoints.
 - **GitHub storage mode has no implementation of this lookup.** The lookup finds
   architectures whose `$schema` holds a hub pattern address. GitHub mode is
   read-only, so this hub writes no architecture there. Its files are authored in
-  the repository, and its pattern versions are commit SHAs, which
-  `VERSION_REGEX` rejects on this path. How many GitHub-mode architectures carry
-  such an address anyway has not been measured.
-  A scan of every architecture file per request is not worth building on that
-  unknown. A semver request returns 404, because GitHub mode has no semver
-  version, and a SHA returns 400. The store behind the endpoint returns 501, as
-  GitHub-mode writes do, should a request ever reach it.
+  the repository, and its pattern versions are commit SHAs. How many GitHub-mode
+  architectures carry such an address anyway has not been measured. A scan of
+  every architecture file per request is not worth building on that unknown. The
+  service asks the store before it checks the version, so a request in GitHub
+  mode returns 501, as GitHub-mode writes do. The path takes a version, not a
+  SHA.
