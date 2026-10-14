@@ -90,13 +90,13 @@
 
 /* Connection line styling while dragging */
 .react-flow__connection-path {
-    stroke: #60a5fa;
+    stroke: var(--calm-link);
     stroke-width: 2;
 }
 
 /* Edge hover highlight via CSS (backup for non-custom edges) */
 .react-flow__edge:hover .react-flow__edge-path {
-    stroke: #60a5fa;
+    stroke: var(--calm-link);
     stroke-width: 2.5;
 }
 
