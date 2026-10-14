@@ -104,6 +104,16 @@ export function resourceTypeFromDocumentId(id: string): ResourceType | undefined
     }
 }
 
+/** Returns true if the given string is a control requirement or configuration `$id`. */
+export function isControlDocumentId(id: string): boolean {
+    try {
+        parseControlDocumentId(id);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export function constructDocumentId(metadata: DocumentMetadata): string {
     if (!metadata.namespace || !metadata.mapping) {
         throw new Error('Invalid document $id format. Document ID must be of the form $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION');
