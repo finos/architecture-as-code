@@ -13,6 +13,12 @@ describe('SchemaDirectoryReferenceResolver', () => {
         expect(resolver.canResolve('any')).toBe(false);
     });
 
+    it('canResolve is false for CURIEs even with a schema directory', () => {
+        const dir = { loadDocument: vi.fn() } as unknown as SchemaDirectory;
+        const resolver = new SchemaDirectoryReferenceResolver(dir);
+        expect(resolver.canResolve('finos:architectures:my-app@1.0.0')).toBe(false);
+    });
+
     it('resolves by loading the document as an architecture by default', async () => {
         const loadDocument = vi.fn().mockResolvedValue({ doc: true });
         const dir = { loadDocument } as unknown as SchemaDirectory;

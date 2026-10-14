@@ -56,7 +56,14 @@ vi.mock('../resolver/calm-reference-resolver', async () => {
             mappedResolverSpy(map);
             return {}; // stub implementation
         }),
-        CompositeReferenceResolver: vi.fn()
+        FileReferenceResolver: vi.fn(),
+        HttpReferenceResolver: vi.fn()
+    };
+});
+
+vi.mock('../resolver/chain-reference-resolver', async () => {
+    return {
+        ChainReferenceResolver: vi.fn()
     };
 });
 

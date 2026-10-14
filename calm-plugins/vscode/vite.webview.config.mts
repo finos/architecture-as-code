@@ -16,7 +16,7 @@ export default defineConfig({
         target: 'esnext',
         outDir: 'dist/webview',
         rollupOptions: {
-            input: resolve(__dirname, 'src/webview/main.tsx'),
+            input: resolve(import.meta.dirname, 'src/webview/main.tsx'),
             output: {
                 entryFileNames: 'index.js',
                 assetFileNames: 'index.[ext]',

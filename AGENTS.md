@@ -71,7 +71,7 @@ from inside these folders.
   tested with vitest, managed as npm workspaces off a single root lockfile
   (see [Lockfile Regeneration](#lockfile-regeneration)).
 - **Java/Maven** — the root `pom.xml` is a reactor over six modules. Two carry Java code: `calm-hub`
-  (Quarkus 3.34+, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
+  (Quarkus LTS releases only, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
   `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
   — it is an npm workspace *and* a Maven module.
 - **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
@@ -200,6 +200,10 @@ Always build dependencies before dependent packages. The Maven reactor works thi
 
 `calm-lab` consumes the compiled `@finos/calm-shared/browser` entry, so `shared` must be built
 first — `npm run build:calm-lab` chains the whole order for you.
+
+The root `npm run build` builds the workspaces in the order of the `workspaces` list in
+`package.json`, not in dependency order. `docs` must stay after `calm-studio/packages/*`, because
+it loads the built `@finos/calm-docusaurus-plugin`, which loads the built `@calmstudio/diagram`.
 
 ## Testing
 

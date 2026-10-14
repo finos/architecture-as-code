@@ -1,6 +1,6 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest } from '@finos/calm-shared';
+import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest, ChainReferenceResolver, CalmReferenceResolver } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
@@ -48,17 +48,21 @@ vi.mock('mkdirp', () => ({
     mkdirp: { sync: mocks.mkdirpSync },
 }));
 
-vi.mock('fs', () => ({
-    ...vi.importActual('fs'),
+vi.mock('fs', async () => ({
+    ...(await vi.importActual('fs')),
     writeFileSync: mocks.writeFileSync,
+}));
+
+vi.mock('../document-loader-config', () => ({
+    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
 }));
 
 vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
-    parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
     buildSchemaDirectory: vi.fn(function () { return {
         loadSchemas: mocks.loadSchemas,
-        getSchema: mocks.getSchema
+        getSchema: mocks.getSchema,
+        loadDocument: mocks.loadMissingDocument
     }; }),
 }));
 
@@ -109,7 +113,7 @@ describe('runValidate', () => {
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -133,7 +137,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch.json', 'architecture');
-        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -161,7 +165,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedPatternPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-pattern.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
-        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -189,7 +193,7 @@ describe('runValidate', () => {
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('arch-of-calm.json', 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
-        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -213,7 +217,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadSchemas).toHaveBeenCalled();
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('pattern.json', 'pattern');
-        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
@@ -241,12 +245,86 @@ describe('runValidate', () => {
         const resolvedSchemaPath = path.resolve(process.cwd(), 'calm-timeline-schema.json');
         expect(mocks.getSchema).toHaveBeenCalledWith(resolvedSchemaPath);
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith('timeline.json', 'timeline');
-        expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true);
+        expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
         expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
+    });
+
+    it('should pass CURIE resolver chain when calmHubUrl and assetsPath are provided', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            calmHubUrl: 'https://hub.example.com',
+            assetsPath: '/tmp/assets',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        await runValidate(options);
+
+        const resolverArg = (validate as Mock).mock.calls[0][5];
+        expect(resolverArg).toBeInstanceOf(ChainReferenceResolver);
+        expect(resolverArg.canResolve('https://example.com/doc.json')).toBe(false);
+    });
+
+    it('should pass undefined CURIE resolver when neither calmHubUrl nor assetsPath is set', async () => {
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        await runValidate(options);
+
+        const resolverArg = (validate as Mock).mock.calls[0][5];
+        expect(resolverArg).toBeUndefined();
+    });
+
+    it('should use SchemaDirectoryReferenceResolver as Hub delegate for CURIE resolution', async () => {
+        const hubDocument = { id: 'from-hub' };
+        mocks.loadMissingDocument.mockImplementation(function (id: string, _: string) {
+            if (id === 'arch.json') return Promise.resolve(dummyArch);
+            if (id === 'pattern.json') return Promise.resolve(dummyPattern);
+            if (id.endsWith('pattern.json')) return Promise.resolve(dummyPattern);
+            return Promise.resolve(hubDocument);
+        });
+
+        let resolvedValue: unknown;
+        (validate as Mock).mockImplementation(async function (_a: unknown, _p: unknown, _t: unknown, _sd: unknown, _v: boolean, resolver?: CalmReferenceResolver) {
+            if (resolver) {
+                resolvedValue = await resolver.resolve('finos:architectures:my-arch@1.0.0');
+            }
+            return fakeOutcome;
+        });
+
+        const options: ValidateOptions = {
+            architecturePath: 'arch.json',
+            patternPath: 'pattern.json',
+            metaSchemaPath: 'schemas',
+            calmHubUrl: 'https://hub.example.com',
+            verbose: false,
+            outputFormat: 'json',
+            outputPath: 'out.json',
+            strict: false,
+        };
+
+        await runValidate(options);
+
+        expect(resolvedValue).toEqual(hubDocument);
+        expect(mocks.loadMissingDocument).toHaveBeenCalledWith(
+            'https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0',
+            'architecture'
+        );
     });
 
     it('should exit 1 when neither architecture, pattern, nor timeline is resolved', async () => {

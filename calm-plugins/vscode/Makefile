@@ -13,7 +13,7 @@ version:
 
 build:
 	node esbuild.mjs
-	npx vite build --config vite.webview.config.ts
+	npx vite build --config vite.webview.config.mts
 
 package: bump-patch build
 	npx @vscode/vsce package --no-dependencies

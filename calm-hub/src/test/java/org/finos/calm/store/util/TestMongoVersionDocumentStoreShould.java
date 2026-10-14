@@ -658,6 +658,16 @@ class TestMongoVersionDocumentStoreShould {
     }
 
     @Test
+    void skip_without_a_limit_when_only_an_offset_is_given() {
+        FindIterable<Document> iterable = stubFind(headerCollection, List.of(header(3, "Third", "d", 1)));
+
+        store.listSummariesPaged(NAMESPACE, new PageRequest(null, 2));
+
+        verify(iterable).skip(2);
+        verify(iterable, never()).limit(anyInt());
+    }
+
+    @Test
     void not_apply_a_paging_window_when_unpaged() {
         FindIterable<Document> iterable = stubFind(headerCollection, List.of(header(1, "First", "d", 1)));
 

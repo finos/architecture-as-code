@@ -1,6 +1,6 @@
 import 'react-json-view-lite/dist/index.css';
 import { Adr } from '../../../model/calm.js';
-import Markdown from 'react-markdown';
+import { AdrMarkdown } from './AdrMarkdown.js';
 import {
     DisplayChosenOption,
     DisplayConsideredOptions,
@@ -31,7 +31,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 <StyleTitle title="Context and Problem" />
 
                 <div className="collapse-content ps-0 markdownParagraphSpacing">
-                    <Markdown>{adr!.contextAndProblemStatement}</Markdown>
+                    <AdrMarkdown label="Context and problem">{adr!.contextAndProblemStatement}</AdrMarkdown>
                 </div>
             </div>
 

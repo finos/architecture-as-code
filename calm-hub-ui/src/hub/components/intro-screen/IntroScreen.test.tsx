@@ -5,6 +5,8 @@ import { IntroScreen } from './IntroScreen.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { THEME_STORAGE_KEY } from '../../../theme/useTheme.js';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
+import { UiConfigContext } from '../../../components/ui-config/UiConfigContext.js';
+import { UiConfig } from '../../../model/ui-config.js';
 
 const namespaceCounts: NamespaceCounts[] = [
     { namespace: 'finos', architectures: 2, patterns: 1, flows: 0, standards: 0, adrs: 0, interfaces: 0, total: 3 },
@@ -14,11 +16,13 @@ const domainCounts: DomainControlCount[] = [{ domain: 'security', controlCount: 
 const LIGHT_LOGO = '/brand/Horizontal/2025_CALM_Horizontal.svg';
 const DARK_LOGO = '/brand/Horizontal/2025_CALM_Horizontal_WHT.svg';
 
-function renderIntro(storage: Storage) {
+function renderIntro(storage: Storage, uiConfig: UiConfig = {}) {
     return render(
-        <MemoryRouter>
-            <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} storage={storage} />
-        </MemoryRouter>
+        <UiConfigContext.Provider value={uiConfig}>
+            <MemoryRouter>
+                <IntroScreen namespaceCounts={namespaceCounts} domainCounts={domainCounts} storage={storage} />
+            </MemoryRouter>
+        </UiConfigContext.Provider>
     );
 }
 
@@ -91,5 +95,17 @@ describe('IntroScreen', () => {
         } finally {
             window.matchMedia = original;
         }
+    });
+});
+
+describe('IntroScreen environment pill', () => {
+    it('shows no pill when no environment is configured', () => {
+        renderIntro(createMemoryStorage());
+        expect(screen.queryByTestId('environment-pill')).not.toBeInTheDocument();
+    });
+
+    it('shows the pill when an environment is configured', () => {
+        renderIntro(createMemoryStorage(), { environment: { name: 'PROD', colour: 'error' } });
+        expect(screen.getByTestId('environment-pill')).toHaveTextContent('PROD');
     });
 });

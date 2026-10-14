@@ -214,7 +214,7 @@ describe('renderELKDiagram with nested relationship-type (integration)', () => {
             {
               'relationship-unique-id': 'user-uses',
               'sequence-number': 1,
-              summary: 'User calls both services',
+              description: 'User calls both services',
               direction: 'source-to-destination',
             },
           ],

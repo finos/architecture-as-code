@@ -36,6 +36,29 @@ describe('SingleStrategy', () => {
         vi.clearAllMocks();
     });
 
+    describe('output path containment', () => {
+        it('throws and writes nothing when output escapes the output directory', () => {
+            const entry: TemplateEntry = {
+                template: 'index.md.hbs',
+                from: 'document',
+                output: '../outside.md',
+                'output-type': 'single'
+            };
+
+            const context: OutputContext = {
+                data: { document: {} },
+                outputDir: '/test/output',
+                scaffoldOnly: false
+            };
+
+            vi.mocked(mockEngine.getCompiledTemplate).mockReturnValue(() => 'content');
+
+            expect(() => strategy.process(entry, context, mockLogger))
+                .toThrow('resolves outside the output directory');
+            expect(fs.writeFileSync).not.toHaveBeenCalled();
+        });
+    });
+
     describe('scaffold mode', () => {
         it('copies raw template with front-matter for .md files', () => {
             const entry: TemplateEntry = {

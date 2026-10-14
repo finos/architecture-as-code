@@ -80,6 +80,14 @@ describe('Flow 1: hub push/pull/list', () => {
         expect((bumped.nodes as { description: string }[])[0].description).toBe('changed');
     });
 
+    test('pull architecture without --ver writes the latest version', async () => {
+        const out = path.join(cli.tempDir, 'pulled-latest.json');
+        await cli.run(['hub', 'pull', 'architecture', '--namespace', NS, '-m', MAPPING, '-o', out, '-c', SMOKE_HUB_URL]);
+        const pulled = readJson(out);
+        const stored = await api.getDocument(NS, TYPE, MAPPING, '1.0.1');
+        expect(canonicalEqual(pulled, stored)).toBe(true);
+    });
+
     test('--fail-if-modified skips an unchanged doc without creating a version', async () => {
         // archFile currently equals the latest published version (1.0.1).
         // Point its $id at the latest so it is byte-compatible, then strict push.

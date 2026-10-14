@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { IoCompassOutline, IoChevronBackOutline } from 'react-icons/io5';
 import { NamespaceCounts, DomainControlCount } from '../../../model/counts.js';
@@ -72,6 +72,10 @@ export function ExploreRail({
 
     const needle = filter.trim().toLowerCase();
     const { rows, filtering, toggleCollapsed } = useNamespaceTree({ namespaceCounts, needle, activeNamespace, storage });
+    const descriptions = useMemo(
+        () => new Map(namespaceCounts.map((nc) => [nc.namespace, nc.description])),
+        [namespaceCounts]
+    );
 
     return (
         <div
@@ -128,6 +132,7 @@ export function ExploreRail({
                             <NamespaceRailItem
                                 key={row.node.path}
                                 node={row.node}
+                                description={descriptions.get(row.node.path)}
                                 depth={row.depth}
                                 hasChildren={row.hasChildren}
                                 collapsed={row.collapsed}

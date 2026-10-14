@@ -49,6 +49,33 @@ describe('ADR Renderer', () => {
         return render(<AdrRenderer adrDetails={adr} />);
     }
 
+    it.each(['context', 'considered option', 'chosen option', 'rationale'])('renders GitHub Flavored Markdown in the %s', (field) => {
+        const markdown = '| Choice | Cost |\n| --- | --- |\n| Queue | 2 |\n\n~~removed~~\n\n- [x] reviewed';
+        const details = structuredClone(adrDetails);
+        switch (field) {
+            case 'context':
+                details.contextAndProblemStatement = markdown;
+                break;
+            case 'considered option':
+                details.consideredOptions[0].description = markdown;
+                break;
+            case 'chosen option':
+                details.decisionOutcome.chosenOption.description = markdown;
+                break;
+            case 'rationale':
+                details.decisionOutcome.rationale = markdown;
+                break;
+        }
+        render(<AdrRenderer adrDetails={{ ...adr, adr: details }} />);
+
+        expect(screen.getByRole('table')).toBeInTheDocument();
+        expect(screen.getByRole('cell', { name: 'Queue' })).toBeInTheDocument();
+        expect(screen.getByText('removed').tagName).toBe('DEL');
+        const task = screen.getAllByRole('checkbox').find((input) => input.hasAttribute('disabled'));
+        expect(task).toBeChecked();
+        expect(task).toBeDisabled();
+    });
+
     it('should render the ADR view when ADR is selected', () => {
         renderAdr();
         expect(screen.getByText('Context and Problem')).toBeInTheDocument();

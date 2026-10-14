@@ -20,9 +20,8 @@ on:
     workflow_dispatch:
 
 env:
-    OSV_SCANNER_VERSION: v2.6.0
-    OSV_SCANNER_SHA256: ca69b3d3cd08f889a49dc0a383122f71cc528b83803671df5fd874d97485b108
     # Findings with a CVSS score at or above this value fail the check.
+    # Keep in step with CVSS_THRESHOLD in osv-fix.yml.
     CVSS_THRESHOLD: '5'
 
 jobs:
@@ -31,7 +30,7 @@ jobs:
         runs-on: ubuntu-latest
         steps:
             - name: Harden Runner
-              uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2
+              uses: step-security/harden-runner@ccd8616d44fd3846e67624a50d5aad6d37bf2d25 # v2
               with:
                   egress-policy: audit
 
@@ -39,11 +38,7 @@ jobs:
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
             - name: Install osv-scanner
-              run: |
-                  curl -fsSL -o osv-scanner \
-                    "https://github.com/google/osv-scanner/releases/download/${OSV_SCANNER_VERSION}/osv-scanner_linux_amd64"
-                  echo "${OSV_SCANNER_SHA256}  osv-scanner" | sha256sum --check
-                  chmod +x osv-scanner
+              run: bash scripts/osv-install.sh
 
             - name: Scan dependencies
               run: |
@@ -69,7 +64,7 @@ jobs:
 
             - name: Upload results
               if: ${{ always() }}
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
               with:
                   name: osv-scanner-results
                   path: osv-results.json

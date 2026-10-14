@@ -66,7 +66,7 @@ import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
 import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
-import { mergeControls } from './utils/controls';
+import { mergeControls } from '@finos/calm-shared/browser';
 import { validateArchitecture } from './utils/validation';
 
 const SUPPRESS_ECHO_MS = 1200;

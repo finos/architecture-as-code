@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-06T00:00:00Z",
-  "version": 6,
+  "timestamp": "2026-10-09T00:00:00Z",
+  "version": 7,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -452,7 +452,26 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
       "impact_statement": "postcss-selector-parser is used only by build and dev tooling: 6.1.4 by the cssnano plugins that Docusaurus uses to minify CSS, and 7.1.4 bundled inside the npm CLI that semantic-release uses at release time. cssnano parses only the project's own CSS at build time. npm uses its copy only to parse dependency selectors for npm query and npm sbom, and semantic-release runs its bundled npm only to publish. An attacker cannot supply the selectors that cause the slow parse. No published CALM package includes postcss-selector-parser at runtime. The fix is only in 7.1.6: there is no 6.x fix, and npm overrides cannot reach bundled dependencies."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-238p-pmpm-9mq7"
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/katex@0.16.47"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "katex is pulled in only by mermaid, which pins ^0.16.45 (still the pin at mermaid 12.1.0); the fix is in 0.18.2, outside that range. The only place katex code runs is the CLI --export-diagrams renderer, which serves mermaid's self-contained ESM bundle with its own inlined katex copy, so an npm override cannot reach the code that executes. mermaid loads katex only when a diagram contains a math block. The advisory describes a read-side prototype pollution gadget: it needs an already-polluted Object.prototype plus attacker-controlled math input, and no CALM component pollutes the prototype or renders untrusted math."
     }
   ],
-  "last_updated": "2026-10-06T00:00:00Z"
+  "last_updated": "2026-10-09T00:00:00Z"
 }

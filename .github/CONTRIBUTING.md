@@ -1,6 +1,6 @@
 # Contributing to architecture-as-code
 
-architecture-as-code is [Apache 2.0 licensed](../LICENSE) and accepts contributions via git pull requests.
+architecture-as-code is [Apache 2.0 licensed](../LICENSE) and accepts contributions via git pull requests. All pull requests need a signed FINOS Contributor License Agreement (CLA): the [EasyCLA](https://community.finos.org/docs/governance/Software-Projects/easycla) bot comments on your first pull request with a link to sign it.
 
 Contribution guidance lives in two places:
 
@@ -10,7 +10,7 @@ The FINOS Architecture as Code project (also known as CALM) spans several reposi
 
 | Document | Covers |
 |---|---|
-| [CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md) | DCO sign-off, raising issues, pull request etiquette, commit and PR message style, and the responsible use of AI coding assistants |
+| [CONTRIBUTING.md](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md) | Raising issues, pull request etiquette, commit and PR message style, and the responsible use of AI coding assistants |
 | [GOVERNANCE.md](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md) | Roles, contribution rules, Maintainer voting, and how Maintainers are added and removed |
 | [MAINTAINERS.md](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md) | The project-wide Maintainer roster and the Lead Maintainer |
 | [CODE_OF_CONDUCT.md](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md) | The Code of Conduct all participants are subject to |

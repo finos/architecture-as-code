@@ -200,10 +200,10 @@ Coverage reports are uploaded as CI artifacts on every build. E2E tests run auto
 
 ## Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) for details on:
+We welcome contributions! Please read our [Contributing Guide](../CONTRIBUTING.md) for details on:
 
 - Fork and pull request workflow
-- DCO sign-off requirements (required on every commit)
+- Contributor License Agreement (CLA) requirements
 - Conventional commit format
 - Local development setup
 
@@ -226,11 +226,9 @@ fix(mcp-server): use .json extension for compatibility
 docs(calm-core): update type documentation
 ```
 
-All commits require a DCO sign-off:
-
-```
-Signed-off-by: Your Name <your.email@example.com>
-```
+All pull requests need a signed FINOS Contributor License Agreement (CLA). The
+[EasyCLA](https://community.finos.org/docs/governance/Software-Projects/easycla) bot comments on
+your first pull request with a link to sign it.
 
 ## Community
 

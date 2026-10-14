@@ -109,7 +109,7 @@ public class TestNamespaceResourceShould {
     @Test
     void return_namespace_counts_with_total() {
         when(mockCountsService.getNamespaceCounts(any())).thenReturn(Arrays.asList(
-                new NamespaceCounts("finos", 2, 1, 3, 1, 2, 1)
+                new NamespaceCounts("finos", "FINOS namespace", 2, 1, 3, 1, 2, 1)
         ));
 
         given()
@@ -118,6 +118,7 @@ public class TestNamespaceResourceShould {
                 .then()
                 .statusCode(200)
                 .body("values[0].namespace", equalTo("finos"))
+                .body("values[0].description", equalTo("FINOS namespace"))
                 .body("values[0].architectures", equalTo(2))
                 .body("values[0].patterns", equalTo(1))
                 .body("values[0].flows", equalTo(3))

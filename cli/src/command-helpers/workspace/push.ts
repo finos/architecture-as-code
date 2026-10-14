@@ -240,7 +240,7 @@ async function pushMappingEntry(
     const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw } = context;
     // The mapping API addresses resources by (namespace, type, mappingId, version),
     // all encoded in the document's $id. Documents without a well-formed mapping $id
-    // (or whose type has no ResourceType, e.g. flow/adr) cannot be pushed and are skipped.
+    // (or whose type has no ResourceType, e.g. adr/timeline) cannot be pushed and are skipped.
     let metadata: DocumentMetadata;
     try {
         metadata = extractDocumentMetadata(raw);

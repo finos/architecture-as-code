@@ -8,10 +8,10 @@ import { createNewDocument, getTemplatesForType } from './new';
 import { promptForDocumentId } from './document-id-prompt';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
-import { runPostBumpValidation } from './post-bump-validate';
+import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
-import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
+import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
 import {
     CALM_DOCUMENT_TYPES_LIST,
@@ -148,7 +148,7 @@ async function addMappingDocument(
             effectiveId = built.id;
         } else if (!isConformantDocumentId(existingId)) {
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
-            // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+            // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
         }
     }
@@ -158,8 +158,9 @@ async function addMappingDocument(
         ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
 
     let id = options.id;
-    if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
-        id = (fileJson['title'] as string).trim();
+    if (!id && fileJson) {
+        // The same rule as extractDocumentMetadata: a flow has a name and no title.
+        id = documentName(fileJson, effectiveId ? resourceTypeFromDocumentId(effectiveId) : undefined)?.trim();
     }
     if (!id) {
         id = await input({ message: 'Enter a name for this document:' });
@@ -454,7 +455,7 @@ export function setupWorkspaceCommands(program: Command) {
         .description('Add a new document based on a template and track it in the current workspace. The CalmHub $id is built interactively.')
         .addArgument(new Argument('[type]', 'The type of document to create.')
             .choices([...CALM_DOCUMENT_TYPES_LIST]))
-        .argument('[name]', 'The title for your new document')
+        .argument('[name]', 'The name for your new document')
         .argument('[template]', 'The template for your new document')
         .action(async (type, name, template) => {
             try {
@@ -474,7 +475,7 @@ export function setupWorkspaceCommands(program: Command) {
                 const baseUrlDefault = (await loadCliConfig())?.calmHubUrl;
                 const documentId = await promptForDocumentId({ baseUrlDefault });
 
-                name = await enforceOptionPresenceByPrompt(name, `Enter the title for your new ${type} document:`);
+                name = await enforceOptionPresenceByPrompt(name, `Enter the name for your new ${type} document:`);
                 if (!template) {
                     template = templates.length > 1
                         ? await enforceOptionPresenceByPrompt(undefined, 'Select a template:', templates)
@@ -530,6 +531,8 @@ export function setupWorkspaceCommands(program: Command) {
                 }
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
+                const manifest = await loadManifest(bundlePath);
+                const validationOptions = await loadPostBumpValidationOptions(bundlePath, manifest, calmHubOptions);
                 const client = new CalmHubClient(calmHubOptions);
                 const changed = await detectChangedResources(bundlePath, client);
 
@@ -544,8 +547,7 @@ export function setupWorkspaceCommands(program: Command) {
                     }
                 }
 
-                const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest);
+                const validationResults = validationOptions ? await runPostBumpValidation(bundlePath, manifest, validationOptions) : [];
                 let validationFailed = false;
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
@@ -609,6 +611,8 @@ export function setupWorkspaceCommands(program: Command) {
                     return;
                 }
 
+                const validationOptions = await loadPostBumpValidationOptions(bundlePath, await loadManifest(bundlePath), calmHubOptions);
+
                 // When --major, --minor or --patch is given, skip all prompts and apply a fixed increment.
                 const interactive = !options.major && !options.minor && !options.patch;
 
@@ -667,7 +671,7 @@ export function setupWorkspaceCommands(program: Command) {
                 // Post-bump validation: silently validate all architectures and patterns, then
                 // print a summary so the user knows whether bumping caused any regressions.
                 const manifest = await loadManifest(bundlePath);
-                const validationResults = await runPostBumpValidation(bundlePath, manifest);
+                const validationResults = validationOptions ? await runPostBumpValidation(bundlePath, manifest, validationOptions) : [];
                 if (validationResults.length > 0) {
                     const failures = validationResults.filter(r => !r.passed);
                     if (failures.length === 0) {
