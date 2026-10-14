@@ -508,6 +508,45 @@ describe('CLI Integration Tests', () => {
         expect(stdout).toContain('Numerical placeholder (-1) detected in architecture.');
     });
 
+    describe('with a direct URL auth module that cannot load', () => {
+        const env = () => ({
+            CALM_DIRECT_URL_AUTH_MODULE: path.join(tempDir, 'missing-direct-url-auth.js'),
+            CALM_DIRECT_URL_AUTH_AUTHENTICATED_HOSTS: 'protected.example.com',
+        });
+
+        test('validate does not load it when no document is on an authenticated host', async () => {
+            const p = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway.json');
+            const a = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-architecture.json');
+
+            const { stdout } = await cli.run(['validate', '-p', p, '-a', a], { env: env() });
+
+            expect(JSON.parse(stdout)).toHaveProperty('hasErrors', false);
+        });
+
+        test('validate fails a document on an authenticated host, and says why', async () => {
+            const architecture = path.join(tempDir, 'direct-url-auth-protected.arch.json');
+            fs.writeFileSync(architecture, JSON.stringify({
+                $schema: 'https://protected.example.com/patterns/protected.pattern.json',
+                nodes: [],
+                relationships: [],
+            }));
+
+            const error = await cli.run(['validate', '-a', architecture], { env: env() }).catch(e => e);
+
+            expect(error.exitCode).toBe(1);
+            expect(`${error.stdout}${error.stderr}`).toContain('direct URL auth module file not found');
+        });
+
+        test('generate does not load it when no document is on an authenticated host', async () => {
+            const pattern = path.join(GETTING_STARTED_TEST_FIXTURES_DIR, 'conference-signup.pattern.json');
+            const output = path.join(tempDir, 'direct-url-auth-generate.arch.json');
+
+            await cli.run(['generate', '-p', pattern, '-o', output], { env: env() });
+
+            expect(fs.existsSync(output)).toBe(true);
+        });
+    });
+
     test('validate command fails when neither architecture nor pattern is provided', async () => {
         await expect(cli.run(['validate'])).rejects.toMatchObject({
             stderr: expect.stringContaining(
