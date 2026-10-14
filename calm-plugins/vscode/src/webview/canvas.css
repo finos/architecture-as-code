@@ -19,6 +19,14 @@
     --calm-badge-bg: var(--vscode-badge-background, #0e639c);
     --calm-badge-fg: var(--vscode-badge-foreground, #ffffff);
     --calm-hover: var(--vscode-toolbar-hoverBackground, #3c3c3c);
+    --calm-bg-widget: var(--vscode-editorWidget-background, #252526);
+    --calm-shadow: var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36));
+    --calm-error-fg: var(--vscode-editorError-foreground, #f14c4c);
+    --calm-error-bg: var(--vscode-inputValidation-errorBackground, #5a1d1d);
+    --calm-warning-fg: var(--vscode-editorWarning-foreground, #cca700);
+    --calm-warning-bg: var(--vscode-inputValidation-warningBackground, #352a05);
+    --calm-green: var(--vscode-charts-green, #89d185);
+    --calm-blue: var(--vscode-charts-blue, #3794ff);
     --calm-overlay: rgba(0, 0, 0, 0.6);
 }
 
@@ -148,7 +156,7 @@
 }
 
 .fid-toolbar-btn--validate {
-    color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 60%, var(--calm-text));
+    color: color-mix(in srgb, var(--calm-green) 60%, var(--calm-text));
 }
 
 .fid-toolbar-btn--apply {
