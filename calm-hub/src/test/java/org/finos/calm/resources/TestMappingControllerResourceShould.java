@@ -744,6 +744,28 @@ public class TestMappingControllerResourceShould {
 
         given().header("Content-Type", "application/json").body(body).when()
                 .post("/calm")
+                .then().statusCode(400).body(containsString("'title' is required"));
+    }
+
+    @Test
+    void return_400_when_a_pattern_has_a_name_and_no_title() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "named")).thenThrow(new MappingNotFoundException());
+        // Only a flow may use name in place of title.
+        String body = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/named/versions/1.0.0\",\"name\":\"Named\"}";
+
+        given().header("Content-Type", "application/json").body(body).when()
+                .post("/calm")
+                .then().statusCode(400).body(containsString("'title' is required"));
+        verify(mockPatternStore, never()).createPatternForNamespace(any(CreatePatternRequest.class), anyString(), anyString());
+    }
+
+    @Test
+    void return_400_when_a_flow_has_no_title_or_name() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "no-name")).thenThrow(new MappingNotFoundException());
+        String body = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/flows/no-name/versions/1.0.0\",\"unique-id\":\"no-name\"}";
+
+        given().header("Content-Type", "application/json").body(body).when()
+                .post("/calm")
                 .then().statusCode(400).body(containsString("'title' or 'name' is required"));
     }
 

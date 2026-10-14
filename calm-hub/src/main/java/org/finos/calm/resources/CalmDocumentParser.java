@@ -147,26 +147,45 @@ public class CalmDocumentParser {
      */
     public String extractStringField(String json, String fieldName) {
         try {
-            JsonNode tree = OBJECT_MAPPER.readTree(json);
-            if (tree.isObject()) {
-                JsonNode node = tree.get(fieldName);
-                if (node != null && !node.isNull() && node.isTextual()) {
-                    return node.asText();
-                }
-            }
+            return textField(OBJECT_MAPPER.readTree(json), fieldName);
         } catch (JsonProcessingException ignored) {
-            // fall through
+            return "";
         }
-        return "";
     }
 
     /**
-     * Extracts a document's display name: its {@code title}, or its {@code name} when it has no
-     * title, as a CALM flow does. Returns an empty string if neither is present.
+     * Extracts a document's display name: its {@code title}, or for a flow its {@code name} when
+     * it has no title, as the CALM flow schema has {@code name} and no {@code title}. Returns an
+     * empty string if the document has no display name or cannot be parsed.
      */
-    public String extractTitle(String json) {
-        String title = extractStringField(json, "title");
-        return title.isBlank() ? extractStringField(json, "name") : title;
+    public String extractTitle(String json, ResourceType resourceType) {
+        try {
+            JsonNode tree = OBJECT_MAPPER.readTree(json);
+            String title = textField(tree, "title");
+            if (!title.isBlank()) {
+                return title;
+            }
+            return resourceType == ResourceType.FLOW ? textField(tree, "name") : "";
+        } catch (JsonProcessingException ignored) {
+            return "";
+        }
+    }
+
+    /** The error message for a document that {@link #extractTitle} finds no display name in. */
+    public static String missingTitleMessage(ResourceType resourceType) {
+        return resourceType == ResourceType.FLOW
+                ? "'title' or 'name' is required in the document body"
+                : "'title' is required in the document body";
+    }
+
+    private static String textField(JsonNode tree, String fieldName) {
+        if (tree.isObject()) {
+            JsonNode node = tree.get(fieldName);
+            if (node != null && !node.isNull() && node.isTextual()) {
+                return node.asText();
+            }
+        }
+        return "";
     }
 
     // -------------------------------------------------------------------------
