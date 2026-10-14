@@ -3,6 +3,8 @@ import { useTheme } from '../../../theme/useTheme.js';
 import { ThemeToggle } from '../../../components/navbar/ThemeToggle.js';
 import { UserMenu } from '../../../components/user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../../authService.js';
+import { EnvironmentPill } from '../../../components/navbar/EnvironmentPill.js';
+import { useUiConfig } from '../../../components/ui-config/UiConfigContext.js';
 import { IntroSearchBar } from './IntroSearchBar.js';
 import { IntroBrowse } from './IntroBrowse.js';
 
@@ -26,9 +28,15 @@ interface IntroScreenProps {
  */
 export function IntroScreen({ namespaceCounts, domainCounts, storage }: IntroScreenProps) {
     const { theme, toggleTheme } = useTheme(storage);
+    const { environment } = useUiConfig();
 
     return (
         <div data-testid="intro-screen" className="relative h-screen overflow-auto bg-base-100">
+            {environment && (
+                <div className="absolute top-4 left-4 z-10 flex items-center h-8">
+                    <EnvironmentPill environment={environment} />
+                </div>
+            )}
             <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
                 <ThemeToggle theme={theme} onToggle={toggleTheme} />
                 {isAuthServiceEnabled() && <UserMenu />}

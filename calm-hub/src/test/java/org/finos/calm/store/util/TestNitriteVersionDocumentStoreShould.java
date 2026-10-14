@@ -570,6 +570,18 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
+    void return_every_summary_after_an_offset_when_there_is_no_limit() {
+        stubFind(headerCollection, List.of(
+                header(1, "First", "d", 1),
+                header(2, "Second", "d", 1),
+                header(3, "Third", "d", 1)));
+
+        assertThat(store.listSummariesPaged(NAMESPACE, new PageRequest(null, 1)), contains(
+                new NamespaceResourceSummary("Second", "d", 2, 1),
+                new NamespaceResourceSummary("Third", "d", 3, 1)));
+    }
+
+    @Test
     void fall_back_to_a_generated_name_and_blank_description_when_a_header_has_neither() {
         // Headers migrated from the old shape can lack both, which must not produce nulls.
         stubFind(headerCollection, List.of(header(7, null, null, null)));
