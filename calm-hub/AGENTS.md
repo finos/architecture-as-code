@@ -33,7 +33,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
 # Docker
-docker-compose up                         # From deploy/ - production-like
+docker-compose up                         # From deploy/ - jvm profile also serves Studio at /studio/
 cd local-dev && docker-compose up        # MongoDB for development
 
 # Packaging

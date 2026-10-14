@@ -54,16 +54,38 @@ RUN npm pkg delete scripts.prepare \
  && npm install --no-save --no-audit --no-fund json-pointer loglevel \
  && npm explore esbuild -- node install.js
 
+# Empty serves the SPA at /. The Hub compose file passes /studio.
+ARG BASE_PATH=
+ENV BASE_PATH=${BASE_PATH}
+
+# vite build only. `npm run build` also packs the portable app, and that script
+# is not in the image context.
 RUN npm run build --workspace=calm-models \
  && npm run build --workspace=@calmstudio/calm-core \
- && npm run build --workspace=@calmstudio/studio
+ && npm exec --workspace=@calmstudio/studio -- vite build
 
 # ---- runtime ----
 FROM nginx:1.27-alpine
 
+ARG BASE_PATH=
+ENV BASE_PATH=${BASE_PATH}
+
 COPY calm-studio/nginx.conf /etc/nginx/conf.d/default.conf
-COPY --from=build /src/calm-studio/apps/studio/build /usr/share/nginx/html
+COPY --from=build /src/calm-studio/apps/studio/build /tmp/studio-build
+# Root install stays at /. A base path such as /studio is copied under that prefix
+# so asset URLs baked by SvelteKit resolve on the Hub gateway.
+RUN set -eu; \
+    if [ -n "$BASE_PATH" ] && [ "$BASE_PATH" != "/" ]; then \
+      prefix="$BASE_PATH"; \
+      case "$prefix" in */) prefix="${prefix%/}";; esac; \
+      mkdir -p "/usr/share/nginx/html${prefix}"; \
+      cp -a /tmp/studio-build/. "/usr/share/nginx/html${prefix}/"; \
+    else \
+      cp -a /tmp/studio-build/. /usr/share/nginx/html/; \
+    fi; \
+    rm -rf /tmp/studio-build
 
 EXPOSE 80
+# /studio/ is the Hub gateway layout. / is the standalone image.
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -qO- http://127.0.0.1/ >/dev/null || exit 1
+  CMD sh -c "wget -qO- http://127.0.0.1/studio/ >/dev/null || wget -qO- http://127.0.0.1/ >/dev/null"

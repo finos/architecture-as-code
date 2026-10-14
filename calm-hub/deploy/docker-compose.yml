@@ -13,7 +13,9 @@
 #   docker compose --profile readonly-static up
 #   docker compose --profile readonly-native up
 #
-# All services bind 8080:8080 on the host; pick one profile at a time.
+# The native and read-only profiles bind 8080:8080 on the Hub container.
+# The jvm profile publishes 8080 on the gateway instead: Hub at /,
+# Calm Studio at /studio/. Pick one profile at a time.
 #
 # The jvm and native profiles also start a MongoDB sidecar.  The readonly
 # variants are self-contained (NitriteDB baked into the image).
@@ -41,8 +43,7 @@ services:
     image: finos/calm-hub:latest
     container_name: calm-hub
     profiles: [jvm]
-    ports:
-      - "8080:8080"
+    # The gateway publishes 8080. This service is only on the compose network.
     environment:
       # no-auth is used here for the local quick-start only — DO NOT use in production.
       # For a production deployment select an appropriate auth profile (secure, proxy-auth).
@@ -83,6 +84,35 @@ services:
     ports:
       - "8080:8080"
     # Self-contained: NitriteDB baked into the image, mutating verbs return 405.
+    networks:
+      - calm-net
+
+  # Built from this repo. First start compiles the SPA; later starts reuse the image.
+  calm-studio:
+    image: calm-studio:hub
+    pull_policy: never
+    profiles: [jvm]
+    build:
+      context: ../..
+      dockerfile: calm-studio/Dockerfile
+      args:
+        BASE_PATH: /studio
+    networks:
+      - calm-net
+
+  gateway:
+    image: nginx:1.27-alpine
+    container_name: calm-gateway
+    profiles: [jvm]
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      calmhub:
+        condition: service_started
+      calm-studio:
+        condition: service_healthy
     networks:
       - calm-net
 

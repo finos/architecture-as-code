@@ -8,6 +8,7 @@ import { useTheme } from '../../theme/useTheme.js';
 import { UserAccessContext } from '../../admin/context/UserAccessContext.js';
 import { UserMenu } from '../user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../authService.js';
+import { CalmStudioLink } from '../calm-studio-link/CalmStudioLink.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -19,8 +20,10 @@ const LOGO_SRC = {
     dark: '/brand/Horizontal/2025_CALM_Horizontal_Navbar_Logo_WHT.svg',
 } as const;
 
+const menuItemClass = 'w-full flex items-center px-4 py-3 text-left hover:bg-base-200 active:bg-base-200';
+
 function menuNavClass({ isActive }: { isActive: boolean }) {
-    return `w-full flex items-center px-4 py-3 text-left hover:bg-base-200 active:bg-base-200${isActive ? ' bg-base-200 font-semibold' : ''}`;
+    return `${menuItemClass}${isActive ? ' bg-base-200 font-semibold' : ''}`;
 }
 
 interface NavbarProps {
@@ -56,6 +59,10 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
+                <CalmStudioLink
+                    label="Studio"
+                    className="btn btn-ghost btn-sm text-primary shrink-0"
+                />
                 <ThemeToggle theme={theme} onToggle={toggleTheme} />
                 <div className="hidden lg:flex items-center">
                     <GlobalSearchBar />
@@ -83,6 +90,9 @@ export function Navbar({ storage }: NavbarProps = {}) {
                         <NavLink to="/" className={menuNavClass} onClick={closeMenu} end>
                             Hub
                         </NavLink>
+                    </li>
+                    <li>
+                        <CalmStudioLink className={menuItemClass} onClick={closeMenu} />
                     </li>
                     {showAdminLink && (
                         <li>

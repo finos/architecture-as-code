@@ -50,6 +50,19 @@ describe('Navbar menu button', () => {
         expect(screen.queryByRole('link', { name: /^visualizer$/i })).not.toBeInTheDocument();
     });
 
+    it('opens Calm Studio in a new tab from the right side and from the menu', async () => {
+        renderNavbar(makeState({}));
+        const barLink = screen.getByRole('link', { name: /^studio\b/i });
+        expect(barLink).toHaveAttribute('href', '/studio/');
+        expect(barLink).toHaveAttribute('target', '_blank');
+        expect(barLink).toHaveAttribute('rel', expect.stringContaining('noopener'));
+
+        await userEvent.click(screen.getByRole('button', { name: /open menu/i }));
+        const menuLink = screen.getByRole('link', { name: /^calm studio\b/i });
+        expect(menuLink).toHaveAttribute('href', '/studio/');
+        expect(menuLink).toHaveAttribute('target', '_blank');
+    });
+
     it('closes the overlay when the hamburger is clicked again', async () => {
         renderNavbar(makeState({}));
         await userEvent.click(screen.getByRole('button', { name: /open menu/i }));

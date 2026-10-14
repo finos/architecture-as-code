@@ -48,6 +48,10 @@ describe('IntroScreen', () => {
         expect(screen.getByLabelText('Search the architecture catalogue')).toBeInTheDocument();
         // The browse grid renders a tile per namespace.
         expect(screen.getByText('finos')).toBeInTheDocument();
+        const studio = screen.getByRole('link', { name: /calm studio/i });
+        expect(studio).toHaveAttribute('href', '/studio/');
+        expect(studio).toHaveAttribute('target', '_blank');
+        expect(studio).toHaveAttribute('rel', expect.stringContaining('noopener'));
     });
 
     it('shows the white logo on the dark theme', () => {
