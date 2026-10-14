@@ -1,5 +1,6 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from 'reactflow';
+import { theme } from '../theme-colors';
 
 export type EdgeDirection = 'source-to-target' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
@@ -56,8 +57,9 @@ export function TooltipEdge({
                 markerStart={markerStart}
                 style={{
                     ...(style as React.CSSProperties),
+                    stroke: hovered ? theme.link : theme.fgMuted,
                     ...(dashArray ? { strokeDasharray: dashArray } : {}),
-                    ...(hovered ? { stroke: '#60a5fa', strokeWidth: 2.5 } : {}),
+                    ...(hovered ? { strokeWidth: 2.5 } : {}),
                 }}
             />
 
@@ -82,11 +84,11 @@ export function TooltipEdge({
                             pointerEvents: 'none',
                             fontSize: '9px',
                             fontWeight: 500,
-                            color: '#64748b',
-                            background: 'rgba(248,250,252,0.9)',
+                            color: theme.fgMuted,
+                            background: theme.bgWidget,
                             padding: '1px 5px',
                             borderRadius: '3px',
-                            border: '1px solid rgba(148,163,184,0.3)',
+                            border: `1px solid ${theme.border}`,
                         }}
                     >
                         {label}
@@ -115,7 +117,7 @@ export function TooltipEdge({
                             {protocol && (
                                 <div style={tooltipRow}>
                                     <span style={tooltipLabel}>Protocol</span>
-                                    <span style={{ ...tooltipValue, color: '#60a5fa' }}>{protocol}</span>
+                                    <span style={{ ...tooltipValue, color: theme.link }}>{protocol}</span>
                                 </div>
                             )}
                             {description && (
@@ -137,7 +139,7 @@ const tooltipStyle: React.CSSProperties = {
     border: '1px solid var(--calm-border-input)',
     borderRadius: '6px',
     padding: '8px 10px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.6)',
+    boxShadow: `0 4px 12px ${theme.shadow}`,
     minWidth: '150px',
     maxWidth: '300px',
 };

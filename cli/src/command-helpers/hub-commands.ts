@@ -297,6 +297,12 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
         printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
+    // The version lookup uses `resourceType` but the POST URL comes from the `$id`, so a
+    // mismatch would publish the document under its `$id` type.
+    if (metadata.type !== resourceType) {
+        printError(0, `Document $id is for ${metadata.type}, but this command pushes ${resourceType}: ${options.file}`, requestedCommand, format);
+        process.exit(1);
+    }
     const namespace = metadata.namespace;
     const mapping = metadata.mapping;
 
@@ -603,6 +609,36 @@ export async function runPullInterface(options: PullOptions): Promise<void> {
  */
 export async function runListInterfaces(options: ListOptions): Promise<void> {
     return runListMappedResources(options, 'interfaces');
+}
+
+// ── push flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a new flow or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushFlow(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'flows');
+}
+
+// ── pull flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pulls a flow version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullFlow(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'flows');
+}
+
+// ── list flows ────────────────────────────────────────────────────────────────
+
+/**
+ * Lists flows in a namespace.
+ * @param options Command options.
+ */
+export async function runListFlows(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'flows');
 }
 
 // ── create domain ───────────────────────────────────────────────────────────

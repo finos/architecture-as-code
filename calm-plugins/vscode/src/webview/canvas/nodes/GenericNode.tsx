@@ -1,6 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
-import { isBuildingBlock, getNodeStyleOverride, CUSTOM_TEXT, CUSTOM_BG, CUSTOM_BORDER } from '../../utils/building-block-style';
+import { isBuildingBlock, getNodeStyleOverride } from '../../utils/building-block-style';
+import { theme } from '../theme-colors';
 import { ValidationBadge } from './ValidationBadge';
 
 export function GenericNode({ id, data, selected }: NodeProps) {
@@ -16,7 +17,7 @@ export function GenericNode({ id, data, selected }: NodeProps) {
             <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
             <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
 
-            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: '#6366f1' }} />
+            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <div style={{
                 ...baseStyle,
                 ...(isBlock ? buildingBlockStyle : {}),
@@ -25,7 +26,7 @@ export function GenericNode({ id, data, selected }: NodeProps) {
             }}>
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <div style={iconStyle}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={override.text ?? (isBlock ? CUSTOM_TEXT : '#64748b')} strokeWidth="1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={override.text ?? (isBlock ? theme.badgeFg : theme.fgMuted)} strokeWidth="1.5">
                         <rect x="3" y="3" width="18" height="18" rx="3" />
                     </svg>
                 </div>
@@ -40,19 +41,19 @@ export function GenericNode({ id, data, selected }: NodeProps) {
 const baseStyle: React.CSSProperties = {
     position: 'relative', display: 'flex', alignItems: 'center', gap: '7px',
     width: '100%', height: '100%', padding: '8px 10px', boxSizing: 'border-box',
-    background: '#f8fafc', border: '1.5px solid #cbd5e1', borderRadius: '10px',
+    background: theme.bgWidget, border: `1.5px solid ${theme.borderWidget}`, borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
 };
 const buildingBlockStyle: React.CSSProperties = {
-    background: CUSTOM_BG, borderColor: CUSTOM_BORDER, borderWidth: '2px', borderRadius: '6px',
+    background: theme.badgeBg, borderColor: theme.badgeBg, borderWidth: '2px', borderRadius: '6px',
 };
 const selectedStyle: React.CSSProperties = {
-    borderColor: '#6366f1', boxShadow: '0 0 0 1.5px #6366f1',
+    borderColor: theme.focus, boxShadow: `0 0 0 1.5px ${theme.focus}`,
 };
 const iconStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', flexShrink: 0 };
 const labelStyle: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 600, color: '#1e293b',
+    fontSize: '10px', fontWeight: 600, color: theme.fg,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 };
-const labelBlockStyle: React.CSSProperties = { color: '#ffffff' };
-const handleStyle: React.CSSProperties = { width: '8px', height: '8px', background: '#94a3b8', border: '1px solid #64748b' };
+const labelBlockStyle: React.CSSProperties = { color: theme.badgeFg };
+const handleStyle: React.CSSProperties = { width: '8px', height: '8px', background: theme.fgMuted, border: `1px solid ${theme.borderWidget}` };

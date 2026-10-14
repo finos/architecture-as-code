@@ -1,4 +1,5 @@
 import React from 'react';
+import { theme } from '../theme-colors';
 
 interface ValidationBadgeProps {
     errorCount: number;
@@ -12,12 +13,12 @@ export function ValidationBadge({ errorCount, warnCount, nodeId }: ValidationBad
     return (
         <div style={badgeContainer}>
             {errorCount > 0 && (
-                <span style={{ ...badge, background: '#fecaca', color: '#dc2626' }} title={`${errorCount} error(s) on ${nodeId}`}>
+                <span style={{ ...badge, background: theme.errorBg, color: theme.errorFg }} title={`${errorCount} error(s) on ${nodeId}`}>
                     {errorCount}
                 </span>
             )}
             {warnCount > 0 && (
-                <span style={{ ...badge, background: '#fef08a', color: '#a16207' }} title={`${warnCount} warning(s) on ${nodeId}`}>
+                <span style={{ ...badge, background: theme.warningBg, color: theme.warningFg }} title={`${warnCount} warning(s) on ${nodeId}`}>
                     {warnCount}
                 </span>
             )}

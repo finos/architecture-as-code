@@ -708,16 +708,16 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 
 ### `calm hub push`
 
-Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
+Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). The type in the `$id` must match the subcommand, or the push fails before it contacts CalmHub. By default, `push` **auto-bumps**: it computes a new version off the latest published version (or creates the mapping at `1.0.0` if it doesn't exist yet).
 
 ```
-calm hub push <architecture|pattern|standard|interface|control-requirement|control-configuration> <file> [options]
+calm hub push <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> <file> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--name <name>` | `architecture`, `pattern`, `standard`, `interface` | Overrides the document's `title` field in CalmHub. |
-| `--description <description>` | `architecture`, `pattern`, `standard`, `interface` | Overrides the document's `description` field. |
+| `--name <name>` | `architecture`, `pattern`, `standard`, `interface`, `flow` | Overrides the document's `title` field in CalmHub (a flow's `name` field). |
+| `--description <description>` | `architecture`, `pattern`, `standard`, `interface`, `flow` | Overrides the document's `description` field. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance to push to. |
 | `-f, --format <format>` | all | Output format: `json` (default) or `pretty`. |
 | `-t, --change-type <type>` | all | Version bump type when auto-bumping: `patch` (default), `minor`, or `major`. |
@@ -731,6 +731,7 @@ calm hub push architecture ./architectures/payment-service.json
 calm hub push pattern ./patterns/microservice-pattern.json --fail-if-modified
 
 calm hub push interface ./interfaces/payment-api.interface.json
+calm hub push flow ./flows/payment-processing.flow.json
 
 # Control documents don't take --name/--description
 calm hub push control-requirement ./controls/encryption-at-rest.requirement.json
@@ -744,13 +745,13 @@ The local document is normalised the same way CalmHub stores it before comparing
 Pulls a specific (or latest) version of a resource from CalmHub.
 
 ```
-calm hub pull <architecture|pattern|standard|interface|control-requirement|control-configuration> [options]
+calm hub pull <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architecture`, `pattern`, `standard`, `interface` (required) | Source namespace. |
-| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard`, `interface` (required) | Mapping slug of the document to pull. |
+| `--namespace <namespace>` | `architecture`, `pattern`, `standard`, `interface`, `flow` (required) | Source namespace. |
+| `-m, --mapping <mapping>` | `architecture`, `pattern`, `standard`, `interface`, `flow` (required) | Mapping slug of the document to pull. |
 | `--domain <domain>` | `control-requirement`, `control-configuration` (required) | Source domain. |
 | `--control-name <controlName>` | `control-requirement`, `control-configuration` (required) | Control name. |
 | `--config-name <configName>` | `control-configuration` (required) | Configuration name. |
@@ -761,6 +762,7 @@ calm hub pull <architecture|pattern|standard|interface|control-requirement|contr
 ```shell
 calm hub pull architecture --namespace com.example --mapping payment-service --ver 2.1.0 -o ./payment-service.json
 calm hub pull interface --namespace com.example --mapping payment-api
+calm hub pull flow --namespace com.example --mapping payment-processing --ver 1.0.0
 calm hub pull control-configuration --domain security --control-name encryption-at-rest --config-name default
 ```
 
@@ -769,12 +771,12 @@ calm hub pull control-configuration --domain security --control-name encryption-
 Lists resources of a given kind.
 
 ```
-calm hub list <architectures|patterns|standards|interfaces|namespaces|domains|controls|control-configurations> [options]
+calm hub list <architectures|patterns|standards|interfaces|flows|namespaces|domains|controls|control-configurations> [options]
 ```
 
 | Option | Applies to | Description |
 |--------|------------|-------------|
-| `--namespace <namespace>` | `architectures`, `patterns`, `standards`, `interfaces` | Target namespace (default: `"default"`). |
+| `--namespace <namespace>` | `architectures`, `patterns`, `standards`, `interfaces`, `flows` | Target namespace (default: `"default"`). |
 | `--domain <domain>` | `controls` (required), `control-configurations` (required) | Target domain. |
 | `--control-name <controlName>` | `control-configurations` (required) | Control name. |
 | `-c, --calm-hub-url <url>` | all | CalmHub instance. |
@@ -783,6 +785,7 @@ calm hub list <architectures|patterns|standards|interfaces|namespaces|domains|co
 ```shell
 calm hub list architectures --namespace com.example
 calm hub list interfaces --namespace com.example
+calm hub list flows --namespace com.example
 calm hub list namespaces
 calm hub list control-configurations --domain security --control-name encryption-at-rest
 ```
@@ -852,7 +855,7 @@ calm workspace add <file> [--id <id>] [--type <type>] [--namespace <namespace>] 
 | Option | Description |
 |--------|-------------|
 | `--id <id>` | Explicit manifest registration id. Overrides automatic resolution. |
-| `--type <type>` | Document type. If omitted, an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`, `knowledge`, `sad`. |
+| `--type <type>` | Document type. If omitted, it comes from a conformant CalmHub `$id`, or else an interactive dropdown is shown. One of: `pattern`, `architecture`, `interface`, `flow`, `control`, `schema`, `timeline`, `adr`, `knowledge`, `sad`. |
 | `--namespace <namespace>` | CalmHub namespace to record in the manifest. It is required for narrative Markdown and otherwise derived from the document `$id` when omitted. |
 | `--copy` | Copy the file into the bundle's `files/` directory instead of referencing it in place. |
 | `--calm-hub-document-id <id>` and `--ver <version>` | Recover an existing narrative document. Both options are required together. |
@@ -864,7 +867,7 @@ To restore a removed narrative document without creating a new CalmHub document,
 
 **JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
-- **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
+- **Conformant `$id`** → left untouched; the manifest namespace is derived from it. The document type must agree with the `$id`, or `add` fails and adds nothing: for a namespace resource, `push` and `bump` use the type in the `$id`, but `check` validates by the manifest type. The `$id` types map to `pattern`, `architecture`, `flow`, `schema` (standards), `interface` and `control` (requirements and configurations). A `timeline` or `adr` has no `$id` type of its own, so it is added with a warning that `push` and `bump` use the type in its `$id`.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `adr`, `timeline`).
 
 **Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file (`name` for a flow with no `title`) or Markdown frontmatter, else an interactive prompt.
@@ -911,7 +914,7 @@ control requirement:   $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/requirem
 control configuration: $BASE_URL/calm/domains/$DOMAIN/controls/$CONTROL/configurations/$CONFIG/versions/$VERSION
 ```
 
-where `$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces`.
+where `$TYPE` is one of `patterns`, `architectures`, `flows`, `standards`, `interfaces`. When the document type fixes the resource type (for example `flow` gives `flows`), the scope and resource type are not asked. A `control` document is asked only whether it is a requirement or a configuration.
 
 #### `calm workspace push`
 

@@ -1,8 +1,16 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { NodeStyleOverride } from '../utils/building-block-style';
+import { THEME_BG_FALLBACK, THEME_BG_VAR, THEME_TEXT_FALLBACK, THEME_TEXT_VAR, cssColorToHex } from '../canvas/theme-colors';
 
-const DEFAULT_BG = '#f8fafc';
-const DEFAULT_TEXT = '#1e293b';
+function useThemeHex(variable: string, fallback: string): string {
+    const [hex, setHex] = useState(fallback);
+    useEffect(() => {
+        if (typeof document === 'undefined') return;
+        const raw = getComputedStyle(document.documentElement).getPropertyValue(variable);
+        setHex(cssColorToHex(raw, fallback));
+    }, [variable, fallback]);
+    return hex;
+}
 
 interface NodeAppearanceProps {
     /** Current overrides from the node's `metadata['building-block-style']` (undefined = defaults). */
@@ -25,6 +33,8 @@ export function NodeAppearance({
 }: NodeAppearanceProps) {
     const [bg, setBg] = useState(style?.background ?? '');
     const [text, setText] = useState(style?.text ?? '');
+    const defaultBg = useThemeHex(THEME_BG_VAR, THEME_BG_FALLBACK);
+    const defaultText = useThemeHex(THEME_TEXT_VAR, THEME_TEXT_FALLBACK);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const push = (nextBg: string, nextText: string) => {
@@ -64,7 +74,7 @@ export function NodeAppearance({
                     <input
                         type="color"
                         disabled={readonly}
-                        value={bg || DEFAULT_BG}
+                        value={bg || defaultBg}
                         onChange={(e) => onBg(e.target.value)}
                         style={colorSwatch}
                         title="Background colour"
@@ -86,7 +96,7 @@ export function NodeAppearance({
                     <input
                         type="color"
                         disabled={readonly}
-                        value={text || DEFAULT_TEXT}
+                        value={text || defaultText}
                         onChange={(e) => onText(e.target.value)}
                         style={colorSwatch}
                         title="Text colour"

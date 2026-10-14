@@ -182,7 +182,7 @@ describe('setupWorkspaceCommands', () => {
         it('builds a $id when the file has none, writes it back, and adds with the derived namespace', async () => {
             // readFile mock returns JSON with title 'My Architecture' and no $id.
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
-            expect(mocks.promptForDocumentId).toHaveBeenCalled();
+            expect(mocks.promptForDocumentId).toHaveBeenCalledWith(expect.objectContaining({ documentType: 'architecture' }));
             expect(mocks.writeFile).toHaveBeenCalled();
             expect(mocks.addFileToBundle).toHaveBeenCalledWith(
                 '/fake/bundle',
@@ -263,6 +263,142 @@ describe('setupWorkspaceCommands', () => {
                 '/fake/bundle',
                 expect.stringContaining('test.json'),
                 expect.objectContaining({ id: 'prompted-name', type: 'architecture' })
+            );
+        });
+
+        it('takes the document type from a conformant $id when --type is omitted', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/ns/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'A flow',
+                transitions: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--id', 'my-flow']);
+
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.readFile).toHaveBeenCalledTimes(1);
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'my-flow', type: 'flow' })
+            );
+        });
+
+        it('takes the control type from a control requirement $id when --type is omitted', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0',
+                title: 'Access Control',
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'ac.json']);
+
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('ac.json'),
+                expect.objectContaining({ id: 'Access Control', type: 'control' })
+            );
+        });
+
+        it('rejects a --type that does not match the $id, without adding the file', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'arch.json', '--type', 'flow', '--id', 'my-arch'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'flow' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('rejects a --type that does not match a control requirement $id', async () => {
+            const requirementId = 'https://calmhub.example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0';
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: requirementId, title: 'Access Control' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'ac.json', '--type', 'schema'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'schema' does not match the $id '${requirementId}', which needs document type 'control'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('rejects --type control for a namespace resource $id', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'arch.json', '--type', 'control'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'control' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('adds a timeline with a conformant $id of another resource type, with a warning', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Timeline' }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'timeline.json', '--type', 'timeline']);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.stringContaining(
+                'Document type \'timeline\' has no CalmHub resource type, so push and bump use the type in the $id'
+            ));
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('timeline.json'),
+                expect.objectContaining({ id: 'My Timeline', type: 'timeline' })
+            );
+        });
+
+        it('fails before prompting for a type when the file cannot be read', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('EACCES: permission denied'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'locked.json'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('EACCES: permission denied'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('fails when the file cannot be read, even with --type', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('ENOENT: no such file'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'missing.json', '--type', 'architecture', '--id', 'x'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('ENOENT: no such file'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('accepts --type control for a control configuration $id', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/domains/security/controls/ac/configurations/prod/versions/1.0.0',
+                title: 'Access Control (prod)',
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'ac-prod.json', '--type', 'control']);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('ac-prod.json'),
+                expect.objectContaining({ type: 'control' })
             );
         });
 
@@ -661,6 +797,11 @@ describe('setupWorkspaceCommands', () => {
                 '/fake/repo/com.example-architecture-my-arch.json',
                 { id: 'my-arch', type: 'architecture', namespace: 'ns' }
             );
+        });
+
+        it('passes the document type to the $id prompt, so a new flow gets a flows $id', async () => {
+            await program.parseAsync(['node', 'test', 'workspace', 'new', 'flow', 'My Flow']);
+            expect(mocks.promptForDocumentId).toHaveBeenCalledWith(expect.objectContaining({ documentType: 'flow' }));
         });
 
         it('exits when no workspace bundle is found, before prompting', async () => {
