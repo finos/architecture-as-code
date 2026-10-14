@@ -5,6 +5,7 @@ import { UserMenu } from '../../../components/user-menu/UserMenu.js';
 import { isAuthServiceEnabled } from '../../../authService.js';
 import { IntroSearchBar } from './IntroSearchBar.js';
 import { IntroBrowse } from './IntroBrowse.js';
+import { CalmStudioLink } from '../../../components/calm-studio-link/CalmStudioLink.js';
 
 /** The navy lockup is unreadable on a dark base, so dark gets the white variant. */
 const LOGO_SRC = {
@@ -46,6 +47,10 @@ export function IntroScreen({ namespaceCounts, domainCounts, storage }: IntroScr
 
                 <div className="w-full flex justify-center mt-10 sm:mt-12">
                     <IntroSearchBar />
+                </div>
+
+                <div className="w-full flex justify-center mt-6">
+                    <CalmStudioLink className="link link-primary text-sm font-medium" />
                 </div>
 
                 <div className="w-full flex justify-center mt-14 sm:mt-16">

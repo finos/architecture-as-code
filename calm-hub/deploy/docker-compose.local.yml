@@ -3,6 +3,9 @@
 # From this directory, after `../mvnw package`:
 #   docker compose --profile jvm -f docker-compose.yml -f docker-compose.local.yml up -d --build
 #
+# Port 8080 is the gateway from docker-compose.yml. Hub is only on the
+# compose network. Calm Studio is http://localhost:8080/studio/ .
+#
 # Mongo also mounts ../mongo/controls so init-mongo.js can seed controls
 # (the published compose does not, and the seed script then exits the container).
 
