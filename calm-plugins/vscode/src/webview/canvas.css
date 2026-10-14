@@ -27,11 +27,6 @@
     box-shadow: none !important;
 }
 
-.react-flow__node.selected > div:not(.react-flow__handle):not(.react-flow__resize-control) {
-    border-color: #6366f1 !important;
-    box-shadow: 0 0 0 1.5px #6366f1 !important;
-}
-
 /* Hide ReactFlow attribution */
 .react-flow__attribution {
     display: none !important;
@@ -88,8 +83,8 @@
     width: 10px !important;
     height: 10px !important;
     border-radius: 50% !important;
-    background: #94a3b8 !important;
-    border: 1.5px solid #cbd5e1 !important;
+    background: var(--calm-fg-muted) !important;
+    border: 1.5px solid var(--calm-bg) !important;
     opacity: 0.85;
     transition: opacity 0.15s, transform 0.15s;
 }
@@ -111,8 +106,8 @@
 .react-flow__handle:hover,
 .react-flow__handle.connectingfrom,
 .react-flow__handle.connectingto {
-    background: #60a5fa !important;
-    border-color: #3b82f6 !important;
+    background: var(--calm-link) !important;
+    border-color: var(--calm-bg) !important;
     opacity: 1;
     transform: scale(1.5);
 }
@@ -173,8 +168,8 @@
 .react-flow__resize-control.handle {
     width: 10px !important;
     height: 10px !important;
-    background: #6366f1 !important;
-    border: 2px solid #fff !important;
+    background: var(--calm-focus) !important;
+    border: 2px solid var(--calm-bg) !important;
     border-radius: 2px !important;
     z-index: 10 !important;
 }
@@ -193,10 +188,6 @@
 
 .react-flow__resize-control.handle.bottom.right {
     transform: translate(-50%, -50%) !important;
-}
-
-.react-flow__resize-control.line {
-    border-color: #6366f1 !important;
 }
 
 /* Properties panel resize grip — visible and highlights on hover */

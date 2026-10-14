@@ -11,6 +11,8 @@ export const THEME_TEXT_FALLBACK = '#cccccc';
 export const theme = {
     fg: `var(${THEME_TEXT_VAR}, ${THEME_TEXT_FALLBACK})`,
     fgMuted: 'var(--vscode-descriptionForeground, #888888)',
+    /** Text on the canvas. Some themes set a much lighter `foreground` for the UI. */
+    text: 'var(--vscode-editor-foreground, #d4d4d4)',
     bg: 'var(--vscode-editor-background, #1e1e1e)',
     bgWidget: `var(${THEME_BG_VAR}, ${THEME_BG_FALLBACK})`,
     border: 'var(--vscode-panel-border, #2d2d2d)',
@@ -70,4 +72,33 @@ export function cssColorToHex(raw: string, fallback: string): string {
         channels.push(Math.round(n).toString(16).padStart(2, '0'));
     }
     return `#${channels.join('')}`;
+}
+
+/** A building-block outline. The fill is `badgeBg`, so mix in the foreground to set it apart. */
+export const blockBorder = `color-mix(in srgb, ${theme.badgeBg} 60%, ${theme.fg})`;
+
+const DARK_TEXT = '#1e293b';
+const LIGHT_TEXT = '#ffffff';
+
+function relativeLuminance(hex: string): number {
+    const [r, g, b] = [1, 3, 5].map((i) => {
+        const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+        return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+    });
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Dark or light text for a background the user chose, whichever has more contrast. The theme
+ * text colour is not safe there: a pale override in a dark theme gets pale text. Undefined when
+ * the colour cannot be read, so the caller keeps its theme default.
+ */
+export function readableTextOn(background: string | undefined): string | undefined {
+    if (!background) return undefined;
+    const hex = cssColorToHex(background, '');
+    if (!hex) return undefined;
+    const bg = relativeLuminance(hex);
+    const onDark = (relativeLuminance(LIGHT_TEXT) + 0.05) / (bg + 0.05);
+    const onLight = (bg + 0.05) / (relativeLuminance(DARK_TEXT) + 0.05);
+    return onLight >= onDark ? DARK_TEXT : LIGHT_TEXT;
 }

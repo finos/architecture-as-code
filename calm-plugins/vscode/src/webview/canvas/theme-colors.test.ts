@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
     THEME_BG_FALLBACK,
+    blockBorder,
     cssColorToHex,
+    readableTextOn,
     onSurface,
     theme,
     tint,
@@ -49,5 +51,30 @@ describe('cssColorToHex', () => {
         expect(cssColorToHex('#12345', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
         expect(cssColorToHex('rgb(999, 0, 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
         expect(cssColorToHex('rgb(-1, 0, 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
+    });
+});
+
+describe('blockBorder', () => {
+    it('mixes the badge colour with the foreground, so it differs from the fill', () => {
+        expect(blockBorder).toContain('--vscode-badge-background');
+        expect(blockBorder).toContain('--vscode-foreground');
+    });
+});
+
+describe('readableTextOn', () => {
+    it('gives dark text on a pale background', () => {
+        expect(readableTextOn('#f8fafc')).toBe('#1e293b');
+        expect(readableTextOn('rgb(255, 240, 200)')).toBe('#1e293b');
+    });
+
+    it('gives light text on a dark background', () => {
+        expect(readableTextOn('#1e1e1e')).toBe('#ffffff');
+        expect(readableTextOn('#0e639c')).toBe('#ffffff');
+    });
+
+    it('returns undefined when there is no background or it cannot be read', () => {
+        expect(readableTextOn(undefined)).toBeUndefined();
+        expect(readableTextOn('')).toBeUndefined();
+        expect(readableTextOn('var(--vscode-foreground)')).toBeUndefined();
     });
 });

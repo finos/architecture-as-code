@@ -15,10 +15,10 @@ export function ContainerNode({ id, data, selected }: NodeProps) {
                 minHeight={120}
                 lineStyle={{ borderColor: theme.focus }}
             />
-            <Handle type="target" position={Position.Top} style={handleStyle} />
-            <Handle type="source" position={Position.Bottom} style={handleStyle} />
-            <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
-            <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
+            <Handle type="target" position={Position.Top} />
+            <Handle type="source" position={Position.Bottom} />
+            <Handle type="target" position={Position.Left} id="left-target" />
+            <Handle type="source" position={Position.Right} id="right-source" />
 
             <div style={{ ...containerStyle, ...containerRoleStyle(role), ...(selected ? { borderColor: theme.focus, borderStyle: 'solid' } : {}), ...(override.background ? { background: override.background } : {}) }}>
                 <div style={{ ...headerStyle, ...headerRoleStyle(role) }}>
@@ -84,11 +84,10 @@ function dotRoleStyle(role: string): React.CSSProperties {
 }
 
 const labelBaseStyle: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 600, color: theme.fg,
+    fontSize: '10px', fontWeight: 600, color: theme.text,
     maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
 };
 
 const tagStyle: React.CSSProperties = {
     fontSize: '8px', fontWeight: 700, letterSpacing: '0.5px', padding: '1px 5px', borderRadius: '3px', flexShrink: 0,
 };
-const handleStyle: React.CSSProperties = { width: '6px', height: '6px', background: theme.fgMuted, border: `1px solid ${theme.borderWidget}` };
