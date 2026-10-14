@@ -72,3 +72,4 @@ export {
 export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
 export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';
+export { mergeControls } from './controls/merge-controls.js';
