@@ -275,6 +275,50 @@ class TestCalmDocumentParserShould {
         assertEquals("", parser.extractStringField("{\"title\":\"\"}", "title"));
     }
 
+    @Test
+    void extractTitle_returns_title_when_present() {
+        assertEquals("My Pattern", parser.extractTitle("{\"title\":\"My Pattern\",\"name\":\"Other\"}", ResourceType.PATTERN));
+        assertEquals("My Flow", parser.extractTitle("{\"title\":\"My Flow\",\"name\":\"Other\"}", ResourceType.FLOW));
+    }
+
+    @Test
+    void extractTitle_returns_name_of_a_flow_without_title() {
+        assertEquals("My Flow", parser.extractTitle("{\"unique-id\":\"my-flow\",\"name\":\"My Flow\"}", ResourceType.FLOW));
+    }
+
+    @Test
+    void extractTitle_returns_name_of_a_flow_when_title_blank_or_not_text() {
+        assertEquals("My Flow", parser.extractTitle("{\"title\":\" \",\"name\":\"My Flow\"}", ResourceType.FLOW));
+        assertEquals("My Flow", parser.extractTitle("{\"title\":123,\"name\":\"My Flow\"}", ResourceType.FLOW));
+    }
+
+    @Test
+    void extractTitle_ignores_name_of_a_resource_that_is_not_a_flow() {
+        assertEquals("", parser.extractTitle("{\"name\":\"My Pattern\"}", ResourceType.PATTERN));
+        assertEquals("", parser.extractTitle("{\"title\":\" \",\"name\":\"My Standard\"}", ResourceType.STANDARD));
+    }
+
+    @Test
+    void extractTitle_returns_empty_string_when_flow_name_is_not_text() {
+        assertEquals("", parser.extractTitle("{\"name\":42}", ResourceType.FLOW));
+    }
+
+    @Test
+    void extractTitle_returns_empty_string_when_title_and_name_absent() {
+        assertEquals("", parser.extractTitle("{\"$id\":\"x\"}", ResourceType.FLOW));
+    }
+
+    @Test
+    void extractTitle_returns_empty_string_when_json_invalid() {
+        assertEquals("", parser.extractTitle("not json", ResourceType.FLOW));
+    }
+
+    @Test
+    void missingTitleMessage_names_the_fields_the_type_accepts() {
+        assertEquals("'title' or 'name' is required in the document body", CalmDocumentParser.missingTitleMessage(ResourceType.FLOW));
+        assertEquals("'title' is required in the document body", CalmDocumentParser.missingTitleMessage(ResourceType.PATTERN));
+    }
+
     // -------------------------------------------------------------------------
     // parseTypePlural
     // -------------------------------------------------------------------------

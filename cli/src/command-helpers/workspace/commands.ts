@@ -11,7 +11,7 @@ import { detectChangedResources, bumpWorkspace } from './bump';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
-import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId } from '@finos/calm-shared';
+import { initLogger, Logger, CalmHubClient, ResourceChangeType, isConformantDocumentId, namespaceFromDocumentId, resourceTypeFromDocumentId, documentName } from '@finos/calm-shared';
 import { select, input } from '@inquirer/prompts';
 import {
     CALM_DOCUMENT_TYPES_LIST,
@@ -148,7 +148,7 @@ async function addMappingDocument(
             effectiveId = built.id;
         } else if (!isConformantDocumentId(existingId)) {
             // Non-conformant $id: warn but still add — push will skip non-pushable types anyway.
-            // Silently rewriting would be data loss for types that don't use CalmHub URLs (flow, adr, timeline, etc.).
+            // Silently rewriting would be data loss for types that don't use CalmHub URLs (adr, timeline, etc.).
             logger.warn(`Document $id '${existingId}' is not a conformant CalmHub id. The document will be tracked but cannot be pushed to CalmHub.`);
         }
     }
@@ -158,8 +158,9 @@ async function addMappingDocument(
         ?? (effectiveId ? namespaceFromDocumentId(effectiveId) : undefined);
 
     let id = options.id;
-    if (!id && fileJson && typeof fileJson['title'] === 'string' && (fileJson['title'] as string).trim()) {
-        id = (fileJson['title'] as string).trim();
+    if (!id && fileJson) {
+        // The same rule as extractDocumentMetadata: a flow has a name and no title.
+        id = documentName(fileJson, effectiveId ? resourceTypeFromDocumentId(effectiveId) : undefined)?.trim();
     }
     if (!id) {
         id = await input({ message: 'Enter a name for this document:' });

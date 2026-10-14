@@ -239,10 +239,10 @@ public class MappingControllerResource {
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
         String storedBody = documentParser.stripId(requestBody);
-        String title = documentParser.extractStringField(requestBody, "title");
+        String title = documentParser.extractTitle(requestBody, canonical.resourceType());
         if (title.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("'title' is required in the document body").build();
+                    .entity(CalmDocumentParser.missingTitleMessage(canonical.resourceType())).build();
         }
         String description = documentParser.extractStringField(requestBody, "description");
         return service.updateVersionedResource(canonical.resourceType(), canonical.namespace(),
