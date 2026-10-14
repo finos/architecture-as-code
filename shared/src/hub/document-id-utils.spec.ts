@@ -5,6 +5,8 @@ import {
     extractDocumentMetadata,
     updateDocumentMetadata,
     documentNameField,
+    documentName,
+    resourceTypeFromDocumentId,
     validateDocumentId,
     DocumentMetadataValidationError,
     ControlDocumentMetadata,
@@ -14,8 +16,10 @@ import {
     isConformantDocumentId,
     namespaceFromDocumentId
 } from './document-id-utils';
+import { ResourceType } from './resource-types';
 
 const DOCUMENT_ID = 'https://example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0';
+const FLOW_ID = 'https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0';
 
 function fullMetadata(overrides: Partial<DocumentMetadata> = {}): DocumentMetadata {
     return {
@@ -114,14 +118,27 @@ describe('Document ID Utils', () => {
             expect(() => extractDocumentMetadata(document)).toThrow(/Invalid resource type: widgets/);
         });
 
-        it('throws when both the title and the name are missing', () => {
+        it('throws when the title is missing', () => {
             const document = JSON.stringify({ $id: DOCUMENT_ID });
-            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' or 'name' field/);
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' field/);
+        });
+
+        it.each([
+            ['blank', '   '],
+            ['not a string', 123]
+        ])('throws when the title is %s', (_, title) => {
+            const document = JSON.stringify({ $id: DOCUMENT_ID, title });
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' field/);
+        });
+
+        it('does not take the name of an architecture that has no title', () => {
+            const document = JSON.stringify({ $id: DOCUMENT_ID, name: 'My Name' });
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'title' field/);
         });
 
         it('takes the name of a flow, which has no title', () => {
             const document = JSON.stringify({
-                $id: 'https://example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                $id: FLOW_ID,
                 'unique-id': 'my-flow',
                 name: 'My Flow',
                 description: 'A flow',
@@ -130,20 +147,58 @@ describe('Document ID Utils', () => {
             expect(extractDocumentMetadata(document)).toMatchObject({ type: 'flows', mapping: 'my-flow', name: 'My Flow', description: 'A flow' });
         });
 
+        it('takes the name of a flow whose title is blank, as CALM Hub does', () => {
+            const document = JSON.stringify({ $id: FLOW_ID, title: '  ', name: 'My Flow' });
+            expect(extractDocumentMetadata(document).name).toBe('My Flow');
+        });
+
+        it('keeps the surrounding whitespace of a name', () => {
+            const document = JSON.stringify({ $id: FLOW_ID, name: ' My Flow ' });
+            expect(extractDocumentMetadata(document).name).toBe(' My Flow ');
+        });
+
+        it.each([
+            ['missing', {}],
+            ['blank', { name: '' }],
+            ['not a string', { name: 42 }]
+        ])('throws when a flow has no title and its name is %s', (_, fields) => {
+            const document = JSON.stringify({ $id: FLOW_ID, ...fields });
+            expect(() => extractDocumentMetadata(document)).toThrow(/Missing 'name' field/);
+        });
+
         it('prefers the title when a document has both a title and a name', () => {
-            const document = JSON.stringify({ $id: DOCUMENT_ID, title: 'My Title', name: 'My Name' });
-            expect(extractDocumentMetadata(document).name).toBe('My Title');
+            expect(extractDocumentMetadata(JSON.stringify({ $id: DOCUMENT_ID, title: 'My Title', name: 'My Name' })).name).toBe('My Title');
+            expect(extractDocumentMetadata(JSON.stringify({ $id: FLOW_ID, title: 'My Title', name: 'My Name' })).name).toBe('My Title');
         });
     });
 
     describe('documentNameField', () => {
         it.each([
-            [{ title: 'T' }, 'title'],
-            [{ name: 'N' }, 'name'],
-            [{ title: 'T', name: 'N' }, 'title'],
-            [{}, 'title']
-        ])('returns the name field of %j', (json, field) => {
-            expect(documentNameField(json)).toBe(field);
+            [{ title: 'T' }, 'architectures', 'title'],
+            [{ name: 'N' }, 'architectures', 'title'],
+            [{ title: 'T', name: 'N' }, 'flows', 'title'],
+            [{ name: 'N' }, 'flows', 'name'],
+            [{ title: '', name: 'N' }, 'flows', 'name'],
+            [{ title: '  ', name: 'N' }, 'flows', 'name'],
+            [{ title: 7, name: 'N' }, 'flows', 'name'],
+            [{}, 'flows', 'name'],
+            [{ name: 'N' }, undefined, 'title']
+        ])('returns the name field of %j for type %s', (json, type, field) => {
+            expect(documentNameField(json, type as ResourceType | undefined)).toBe(field);
+        });
+    });
+
+    describe('documentName', () => {
+        it('reads the field documentNameField selects', () => {
+            expect(documentName({ title: 'T', name: 'N' }, 'flows')).toBe('T');
+            expect(documentName({ title: '', name: 'N' }, 'flows')).toBe('N');
+            expect(documentName({ name: 'N' }, 'patterns')).toBeUndefined();
+            expect(documentName({ name: 'N' })).toBeUndefined();
+        });
+
+        it('returns undefined for a blank or non-string value', () => {
+            expect(documentName({ title: ' ' }, 'patterns')).toBeUndefined();
+            expect(documentName({ title: ['T'] }, 'patterns')).toBeUndefined();
         });
     });
 
@@ -169,6 +224,20 @@ describe('Document ID Utils', () => {
             const original = JSON.stringify({ $id: flowId('1.0.0'), 'unique-id': 'my-flow', name: 'My Flow', description: 'A flow', transitions: [] });
             const updated = JSON.parse(updateDocumentMetadata(original, { ...extractDocumentMetadata(original), version: '1.1.0' }));
             expect(updated).toEqual({ $id: flowId('1.1.0'), 'unique-id': 'my-flow', name: 'My Flow', description: 'A flow', transitions: [] });
+        });
+
+        it('writes to the name field of a flow whose title is blank, as the read does', () => {
+            const original = JSON.stringify({ $id: FLOW_ID, title: '', name: 'Flow A' });
+            const metadata = extractDocumentMetadata(original);
+            expect(metadata.name).toBe('Flow A');
+            const updated = JSON.parse(updateDocumentMetadata(original, { ...metadata, name: 'Flow B' }));
+            expect(updated).toMatchObject({ title: '', name: 'Flow B' });
+        });
+
+        it('writes the title of an architecture and leaves its name field alone', () => {
+            const original = JSON.stringify({ $id: DOCUMENT_ID, title: 'Old', name: 'Not a flow' });
+            const updated = JSON.parse(updateDocumentMetadata(original, fullMetadata({ name: 'New' })));
+            expect(updated).toMatchObject({ title: 'New', name: 'Not a flow' });
         });
 
         it('defaults the description to an empty string when the metadata has none', () => {
@@ -387,6 +456,18 @@ describe('Document ID Utils', () => {
             ['https://example.com/calm/namespaces/finos/notatype/my-arch/versions/1.0.0'],
         ])('returns false for the non-conformant id %s', (id) => {
             expect(isConformantDocumentId(id)).toBe(false);
+        });
+    });
+
+    describe('resourceTypeFromDocumentId', () => {
+        it('returns the resource type of a namespace-resource id', () => {
+            expect(resourceTypeFromDocumentId(DOCUMENT_ID)).toBe('architectures');
+            expect(resourceTypeFromDocumentId(FLOW_ID)).toBe('flows');
+        });
+
+        it('returns undefined for a control document id or a non-conformant id', () => {
+            expect(resourceTypeFromDocumentId('https://example.com/calm/domains/security/controls/ac/requirement/versions/1.0.0')).toBeUndefined();
+            expect(resourceTypeFromDocumentId('not-an-id')).toBeUndefined();
         });
     });
 

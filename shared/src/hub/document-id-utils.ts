@@ -92,6 +92,18 @@ export function namespaceFromDocumentId(id: string): string | undefined {
     }
 }
 
+/**
+ * Returns the resource type of a namespace-resource document `$id`, or undefined if the id is a
+ * control document or is not conformant.
+ */
+export function resourceTypeFromDocumentId(id: string): ResourceType | undefined {
+    try {
+        return parseDocumentId(id).type;
+    } catch {
+        return undefined;
+    }
+}
+
 export function constructDocumentId(metadata: DocumentMetadata): string {
     if (!metadata.namespace || !metadata.mapping) {
         throw new Error('Invalid document $id format. Document ID must be of the form $BASE_URL/calm/namespaces/$NAMESPACE/$TYPE/$MAPPING_ID/versions/$VERSION');
@@ -99,13 +111,25 @@ export function constructDocumentId(metadata: DocumentMetadata): string {
     return `${metadata.baseUrl}/calm/namespaces/${metadata.namespace}/${metadata.type}/${metadata.mapping}/versions/${metadata.version}`;
 }
 
+/** A string field that is not blank, as CALM Hub reads it (textual and not blank). The value is not trimmed. */
+function textField(json: Record<string, unknown>, key: string): string | undefined {
+    const value = json[key];
+    return typeof value === 'string' && value.trim() !== '' ? value : undefined;
+}
+
 /**
- * The field to write a document's display name to. A CALM flow has `name` and no `title`, and
- * the flow schema forbids extra fields, so a write must not add `title` to it.
+ * The field that holds a document's display name, for a read and for a write. It is `title`,
+ * except for a flow with no title: a CALM flow has `name`, and the flow schema forbids extra
+ * fields, so a write must not add `title` to it. CALM Hub applies the same rule. A document
+ * with no resource type is not a CALM Hub mapping resource and only has a `title`.
  */
-export function documentNameField(json: Record<string, unknown>): 'title' | 'name' {
-    const has = (key: string) => Object.prototype.hasOwnProperty.call(json, key);
-    return !has('title') && has('name') ? 'name' : 'title';
+export function documentNameField(json: Record<string, unknown>, type?: ResourceType): 'title' | 'name' {
+    return type === 'flows' && textField(json, 'title') === undefined ? 'name' : 'title';
+}
+
+/** The display name of a document, or undefined if it has none. */
+export function documentName(json: Record<string, unknown>, type?: ResourceType): string | undefined {
+    return textField(json, documentNameField(json, type));
 }
 
 export function extractDocumentMetadata(document: string): DocumentMetadata {
@@ -116,9 +140,9 @@ export function extractDocumentMetadata(document: string): DocumentMetadata {
             throw new Error('Document does not contain a valid \'$id\' field');
         }
         const idMetadata = parseDocumentId(documentId);
-        const name = json['title'] || json['name'];
-        if (!name) {
-            throw new Error('Missing \'title\' or \'name\' field in parsed document.');
+        const name = documentName(json, idMetadata.type);
+        if (name === undefined) {
+            throw new Error(`Missing '${documentNameField(json, idMetadata.type)}' field in parsed document.`);
         }
         const description = json['description'];
         return {
@@ -136,7 +160,7 @@ export function updateDocumentMetadata(document: string, newDocumentMetadata: Do
         const newDocumentId = constructDocumentId(newDocumentMetadata);
         const json = JSON.parse(document);
         json['$id'] = newDocumentId;
-        json[documentNameField(json)] = newDocumentMetadata.name;
+        json[documentNameField(json, newDocumentMetadata.type)] = newDocumentMetadata.name;
         json['description'] = newDocumentMetadata.description ?? '';
         return JSON.stringify(json, null, 2);
     } catch (error) {
