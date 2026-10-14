@@ -256,6 +256,24 @@
 		background: rgba(15, 23, 42, 0.05);
 	}
 
+	.markdown :global(table) {
+		border-collapse: collapse;
+		margin: 8px 0 12px;
+		max-width: 100%;
+	}
+
+	.markdown :global(th),
+	.markdown :global(td) {
+		border: 1px solid rgba(15, 23, 42, 0.18);
+		padding: 4px 8px;
+		vertical-align: top;
+	}
+
+	.markdown :global(th) {
+		background: rgba(15, 23, 42, 0.05);
+		font-weight: 700;
+	}
+
 	ul {
 		margin: 4px 0 8px;
 		padding-left: 18px;

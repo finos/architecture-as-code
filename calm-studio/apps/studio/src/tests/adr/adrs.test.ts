@@ -78,6 +78,19 @@ describe('adr preview', () => {
 		expect(html).toContain('&lt;script&gt;');
 	});
 
+	it('renders a markdown table and keeps cell html escaped', () => {
+		const html = renderSafeMarkdown(
+			'| Name | Status |\n| --- | ---: |\n| **Store** | accepted |\n| <b>Hub</b> | draft |'
+		);
+		expect(html).toContain('<table>');
+		expect(html).toContain('<th>Name</th>');
+		expect(html).toContain('<th style="text-align:right">Status</th>');
+		expect(html).toContain('<strong>Store</strong>');
+		expect(html).toContain('>accepted</td>');
+		expect(html).toContain('&lt;b&gt;Hub&lt;/b&gt;');
+		expect(html).not.toContain('<b>Hub</b>');
+	});
+
 	it('reads the Hub ADR envelope the same way Hub does', async () => {
 		const hub = previewFromHub('http://hub/adrs/1', {
 			namespace: 'onebank',
