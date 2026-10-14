@@ -98,4 +98,9 @@ describe('file move destination', () => {
 	test('adds a missing json suffix', () => {
 		expect(fileMoveDestination('notes', 'org')).toBe('org/notes.json');
 	});
+
+	test('keeps a markdown extension', () => {
+		expect(fileMoveDestination('docs/adr/one.md', 'archive')).toBe('archive/one.md');
+		expect(fileMoveDestination('docs/adr/one.md', '')).toBe('docs/adr/one.md');
+	});
 });

@@ -275,6 +275,11 @@ export function updateEdgeProperty(edgeId: string, key: string, value: unknown):
 	};
 }
 
+/** Replace the architecture-root `adrs` array (R87). */
+export function setDocumentAdrs(adrs: string[]): void {
+	model = { ...model, adrs };
+}
+
 // ─── Interface CRUD ───────────────────────────────────────────────────────────
 
 /**

@@ -51,6 +51,7 @@ export function createDefaultProjectConfig(name = 'project'): CalmProjectConfig 
 		},
 		ui: {
 			demo: false,
+			maxOpenEditors: 10,
 		},
 	};
 }
@@ -102,6 +103,7 @@ export function isCalmProjectConfig(value: unknown): value is CalmProjectConfig 
 		if (!v['ui'] || typeof v['ui'] !== 'object' || Array.isArray(v['ui'])) return false;
 		const ui = v['ui'] as Record<string, unknown>;
 		if (ui['demo'] !== undefined && typeof ui['demo'] !== 'boolean') return false;
+		if (ui['maxOpenEditors'] !== undefined && typeof ui['maxOpenEditors'] !== 'number') return false;
 	}
 	return true;
 }

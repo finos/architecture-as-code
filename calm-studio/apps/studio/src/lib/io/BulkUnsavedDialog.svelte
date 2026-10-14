@@ -11,10 +11,6 @@
 
 	let { filenames, onsaveall, ondiscard, oncancel }: Props = $props();
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') oncancel();
 	}
@@ -22,8 +18,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="bulk-unsaved-title">
 		<h2 id="bulk-unsaved-title" class="title">Unsaved changes</h2>
 		<p class="message">Do you want to save changes to the following diagrams before closing?</p>

@@ -4,6 +4,7 @@
 <script lang="ts">
 	import type { NeighborHit } from './findNeighbors';
 	import { filterNeighborHits } from './findNeighbors';
+	import ColumnGrid from '$lib/ui/ColumnGrid.svelte';
 
 	interface Props {
 		hits: NeighborHit[];
@@ -26,6 +27,16 @@
 	let selectedIds = $state<Set<string>>(new Set());
 	let nodeTypeFilter = $state('');
 	let relTypeFilter = $state('');
+	let dialogWidth = $state(640);
+	let dialogHeight = $state(480);
+
+	const columns = [
+		{ id: 'select', label: 'Select', width: 72 },
+		{ id: 'name', label: 'Name', width: 160 },
+		{ id: 'type', label: 'Type', width: 110 },
+		{ id: 'relationship', label: 'Relationship', width: 140 },
+		{ id: 'path', label: 'Path', width: 180 },
+	];
 
 	const nodeTypes = $derived([...new Set(hits.map((h) => h.neighborNodeType))].sort());
 	const relTypes = $derived([...new Set(hits.map((h) => h.relationshipType))].sort());
@@ -62,10 +73,6 @@
 		onconfirm(selected);
 	}
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -78,13 +85,30 @@
 		if (d === 'out') return '→';
 		return '↔';
 	}
+
+	function startDialogResize(event: PointerEvent) {
+		event.preventDefault();
+		const startX = event.clientX;
+		const startY = event.clientY;
+		const startW = dialogWidth;
+		const startH = dialogHeight;
+		const move = (e: PointerEvent) => {
+			dialogWidth = Math.max(420, startW + (e.clientX - startX));
+			dialogHeight = Math.max(280, startH + (e.clientY - startY));
+		};
+		const stop = () => {
+			window.removeEventListener('pointermove', move);
+			window.removeEventListener('pointerup', stop);
+		};
+		window.addEventListener('pointermove', move);
+		window.addEventListener('pointerup', stop);
+	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
-	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="neighbors-title">
+<div class="backdrop" role="presentation">
+	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="neighbors-title" style:width="{dialogWidth}px" style:height="{dialogHeight}px">
 		<h2 id="neighbors-title" class="title">Find neighbors</h2>
 		{#if searchRoots.length > 0}
 			<p class="scope">Search roots: {searchRoots.join(', ')}</p>
@@ -122,23 +146,9 @@
 					<button type="button" class="linkish" onclick={clearSelection}>Clear</button>
 				</div>
 			</div>
-			<ul class="list" role="listbox" aria-multiselectable="true">
-				{#each filtered as hit (hit.rowId)}
-					<li>
-						<label class="row">
-							<input
-								type="checkbox"
-								checked={selectedIds.has(hit.rowId)}
-								onchange={() => toggle(hit.rowId)}
-							/>
-							<span class="name">{hit.neighborName}</span>
-							<span class="meta">{hit.neighborNodeType}</span>
-							<span class="meta">{directionLabel(hit.direction)} {hit.relationshipType}</span>
-							<span class="path" title={hit.sourceRelativePath}>{hit.sourceRelativePath}</span>
-						</label>
-					</li>
-				{/each}
-			</ul>
+			<div class="table-scroll">
+				<ColumnGrid columns={columns} rowIds={filtered.map((hit) => hit.rowId)} cell={neighborCell} />
+			</div>
 		{/if}
 		<div class="actions">
 			<button type="button" class="btn" onclick={oncancel}>Cancel</button>
@@ -151,8 +161,26 @@
 				Add selected{selectedCount > 0 ? ` (${selectedCount})` : ''}
 			</button>
 		</div>
+		<button type="button" class="resize" aria-label="Resize dialog" onpointerdown={startDialogResize}></button>
 	</div>
 </div>
+
+{#snippet neighborCell(rowId: string, columnId: string)}
+	{@const hit = filtered.find((item) => item.rowId === rowId)}
+	{#if hit}
+		{#if columnId === 'select'}
+			<input type="checkbox" checked={selectedIds.has(hit.rowId)} onchange={() => toggle(hit.rowId)} title={selectedIds.has(hit.rowId) ? 'Selected' : 'Not selected'} />
+		{:else if columnId === 'name'}
+			<span title={hit.neighborName}>{hit.neighborName}</span>
+		{:else if columnId === 'type'}
+			<span title={hit.neighborNodeType}>{hit.neighborNodeType}</span>
+		{:else if columnId === 'relationship'}
+			<span title={`${directionLabel(hit.direction)} ${hit.relationshipType}`}>{directionLabel(hit.direction)} {hit.relationshipType}</span>
+		{:else}
+			<span title={hit.sourceRelativePath}>{hit.sourceRelativePath}</span>
+		{/if}
+	{/if}
+{/snippet}
 
 <style>
 	.backdrop {
@@ -166,8 +194,10 @@
 		backdrop-filter: blur(2px);
 	}
 	.dialog {
+		position: relative;
 		width: min(640px, calc(100vw - 32px));
-		max-height: min(80vh, 720px);
+		max-width: calc(100vw - 32px);
+		max-height: calc(100vh - 32px);
 		display: flex;
 		flex-direction: column;
 		padding: 20px 22px;
@@ -231,15 +261,30 @@
 		cursor: pointer;
 		padding: 4px;
 	}
-	.list {
-		list-style: none;
+	.table-scroll {
 		margin: 0 0 14px;
-		padding: 0;
 		overflow: auto;
 		flex: 1;
 		border: 1px solid var(--color-border, #e2e8f0);
 		border-radius: 8px;
 		min-height: 120px;
+	}
+	.table-scroll :global(.cell span) {
+		display: block;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.resize {
+		position: absolute;
+		right: 4px;
+		bottom: 4px;
+		width: 14px;
+		height: 14px;
+		padding: 0;
+		border: none;
+		background: linear-gradient(135deg, transparent 50%, #94a3b8 50%);
+		cursor: nwse-resize;
 	}
 	.row {
 		display: grid;

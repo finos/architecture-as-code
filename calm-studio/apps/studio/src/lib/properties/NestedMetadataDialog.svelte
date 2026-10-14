@@ -70,8 +70,7 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && oncancel()}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="nested-meta-title">
 		<h2 id="nested-meta-title" class="title">{title}</h2>
 		{#if fields?.length}

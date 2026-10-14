@@ -15,10 +15,6 @@
 
 	let variant = $state<ContainmentVariant>('composed-of');
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -32,8 +28,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="contain-title">
 		<h2 id="contain-title" class="title">Containment type</h2>
 		<p class="hint">Nest “{childLabel}” in “{parentLabel}”?</p>

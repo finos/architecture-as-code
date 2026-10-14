@@ -10,7 +10,7 @@
 	} = $props();
 </script>
 
-<div class="infobox-backdrop" role="presentation" onclick={onclose}></div>
+<div class="infobox-backdrop" role="presentation"></div>
 <div class="infobox" role="dialog" aria-labelledby="outside-project-title">
 	<h3 id="outside-project-title">Link vede mimo projekt</h3>
 	<p>Tento odkaz ukazuje na soubor nebo URL mimo kořen otevřené složky.</p>

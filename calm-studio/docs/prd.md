@@ -5,22 +5,22 @@
 | ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Owner / DRI**        | TBD                                                                                                                                                                                                                                                                                    |
 | **Status**             | Draft                                                                                                                                                                                                                                                                                  |
-| **Version**            | 0.34                                                                                                                                                                                                                                                                                   |
-| **Last updated**       | 2026-10-01                                                                                                                                                                                                                                                                             |
+| **Version**            | 0.35                                                                                                                                                                                                                                                                                   |
+| **Last updated**       | 2026-10-13                                                                                                                                                                                                                                                                             |
 | **Target release**     | TBD                                                                                                                                                                                                                                                                                    |
 | **Reviewers**          | eng lead, design                                                                                                                                                                                                                                                                       |
 | **Supported browsers** | **Chrome**, **Safari** (current + previous major versions)                                                                                                                                                                                                                             |
 | **Links**              | [BBR.MD](./BBR.MD) · [AGENTS.md](../AGENTS.md) · [CALM 1.2](https://calm.finos.org/release/1.2/) · [Pack schema](../../extensions/calm-extension-pack.schema.json) · [VS Code pack PRD](../../calm-plugins/vscode/docs/prd.md) · [IDEA V4](./ideas/IDEA-calmrj-project-and-extract.md) |
 
 
-> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders. **V13** hides the toolbar **Demos** button and the built-in **FluxNova** / **OpenGRIS** template tabs unless project `.calmrj` has `ui.demo: true` (default `false`). **V14** replaces the stub **calmscript** export and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** export (`.mmd` and `.md`) plus a **read-only Mermaid** preview tab. **V15** fixes properties editing so **array** values are edited **one element at a time** (primitives and objects), and nested JSON previews / dialogs show **pretty-printed** multi-line text instead of one line.
+> **TL;DR** — We will extend CALM Studio with a folder browser panel for CALM files and drag-and-drop references via `detailed-architecture`, **multiple diagrams in tabs** with a JSON editor bound to the active tab, and **visual navigation to referenced diagrams** (glasses icon). We will add **structured** `metadata` **editing** in the properties panel, including field scaffolding per extension schema, and a **read-only mode** for reference nodes with `details.detailed-architecture`. **V3** polishes the file panel (reveal active file, refresh node list on save), adds **Ctrl+drag node duplication** with an optional relationship copy dialog, **focuses the referenced node** after drill-down navigation, and delivers **full diagram layout** — no overlapping boxes plus **obstacle-aware edge routing** on auto-layout, manual placement, and label resize (#16 in R23). **V4** adds a **project file** (`*.calmrj`) for Spectral ruleset selection, directory/naming conventions, and **extract node → separate diagram** (parent becomes a `detailed-architecture` stub). **V5** adds **Find neighbors** (project-wide 1-hop links → add as references + relationships with preserved `unique-id`), **session diagram filter/fog** (focus neighbors or single metadata value), **Save all** dirty tabs, and **VS Code–style tab close** (left / right / all, one summary dirty dialog). **V6** adds **Radial** to the layout menu, **project-folder templates** from `.calmrj`, a **working Docker deploy**, **hidden containment edges** with a container-header shortcut into relationship properties, a **node-type fog mode**, and **Find usage** (reference stubs + relationship endpoints in other files → open diagram). **V7** merges `composed-of` / `deployed-in` to **one relationship per type per container** (`nodes[]` in properties), uses **Alt+drop / Alt+extract** for containment, adds **file/directory pickers** in project settings, and offers **CALM CLI patterns** in the template picker via the existing `@finos/calm-shared` generate pipeline (not a new generator). **V9** moves extension packs out of TypeScript into **one JSON file per pack** (schema + Standard `$id`), loadable from disk and reusable with the VS Code plugin. **V8** unifies canvas persistence with CALM Hub and the VS Code plugin (`metadata._layout` + `building-block-style`), packs container children into a **near-square grid**, removes the container visual max-size clip, draws visible relationships as **bezier**, validates against CLI patterns, and lets Project settings edit `naming` and `patterns`. **V8.1** loads Hub patterns (namespaces as picker tabs) and lets users browse/reference Hub architectures. **V8.2** visualizes and graphically edits CLI patterns (Hub PatternGraph parity), adds generic metadata editing for nodes and relationships, and fixes the Ctrl+duplicate editor freeze. **V10** lets users **create folders, create named files, and move folders** from a **right-click menu on the Files-tree row** (**New file** asks for the name immediately), defaults **Save As** to the selected folder plus a naming-pattern filename, overlays **user-home config** under the project file, splits settings into **tabs**, upgrades metadata to **enum dropdowns** and a **nested JSON dialog**, adds **Shift / marquee multi-select** with a **Select / Pan left-button toggle** and a **canvas mini-map** (click pans the current viewport), alignment tools, **arranges containers into a table**, lets teams **disable bundled packs**, and **opens Hub `detailed-architecture` URLs** in read-only editors (JSON locked; no Hub insert onto those tabs), and **resolves canonical `$id` URLs** through a project `url-mapping.json` (path in `.calmrj`). We will fix critical JSON editor, export, and container sizing bugs. Earlier iterations add automatic `$schema` in the JSON header (CALM 1.2 + extension Standard), required fields when creating elements, and direction reversal for all relationship types. **V11** drops the Select/Pan toggle: empty-canvas drag pans, drag on a node moves it, and **Shift** toggles selection (click or marquee). A **Hub** tab (lazy tree down to nodes) replaces the Hub dialog. Users can **move one file** in the Files tree with the same relative-link rewrite as a folder move. A relationship does **not** route around a container that holds one of its ends. JSON apply keeps `_layout` and colors unless the user edited those keys. **Ctrl+Z** undoes diagram edits made outside the JSON editor. **V12** writes `detailed-architecture` to the file that **defines** the node (follow the chain; stop on `http(s)`), and adds a **folder tree** to the Move dialog for files and folders. **V13** hides the toolbar **Demos** button and the built-in **FluxNova** / **OpenGRIS** template tabs unless project `.calmrj` has `ui.demo: true` (default `false`). **V14** replaces the stub **calmscript** export and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** export (`.mmd` and `.md`) plus a **read-only Mermaid** preview tab. **V15** fixes properties editing so **array** values are edited **one element at a time** (primitives and objects), and nested JSON previews / dialogs show **pretty-printed** multi-line text instead of one line. **V16** lists document `adrs` in properties when nothing is selected (add from Hub or a relative local path; remove, edit, reorder), opens a **read-only preview tab** (rendered `.md`, or Hub ADR fields), moves the open-editor cap into `.calmrj` `ui.maxOpenEditors` (default 10), and asks to save **only when a tab or the window closes**. It also adds full-name tooltips and a horizontal scrollbar on Files and Hub, fixes the reversed pane splitters, gives every column list a header plus adjacent-column resize and a full-value cell tooltip, and makes **Find neighbors** resizable.
 
 ## Contents
 
 - [1. Problem and context](#1-problem-and-context)
 - [2. Goals, non-goals, and success metrics](#2-goals-non-goals-and-success-metrics)
 - [3. Target users and use cases](#3-target-users-and-use-cases)
-- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15)
+- [4. Proposed solution](#4-proposed-solution) — includes [§4.31 JSON extension packs (V9)](#431-json-extension-packs-p1--bbr-v9), [§4.32 Hub-compatible layout (V8)](#432-hub-compatible-layout-and-container-grid-p1--bbr-v8), [§4.33 Hub patterns and browse (V8.1)](#433-hub-patterns-and-document-browse-p1--bbr-v81), [§4.34 Pattern canvas and generic metadata (V8.2)](#434-pattern-canvas-generic-metadata-and-ctrl-copy-freeze-p1p0--bbr-v82), [§4.35 Project folders, config overlay, and Hub read-only (V10)](#435-project-folders-config-overlay-multi-select-and-hub-read-only-p1--bbr-v10), [§4.36 Pointer, Hub tree, file move, edges, layout (V11)](#436-pointer-hub-tree-file-move-edges-and-layout-p1--bbr-v11), [§4.37 Defining file and Move tree (V12)](#437-defining-file-and-move-tree-p1--bbr-v12), [§4.38 Demo UI gate (V13)](#438-demo-ui-gate-p1--v13), [§4.39 Mermaid export (V14)](#439-mermaid-export-p1--v14), [§4.40 Array properties and pretty nested JSON (V15)](#440-array-properties-and-pretty-nested-json-p1--v15), [§4.41 ADR, editor limit, and chrome (V16)](#441-adr-links-editor-limit-and-layout-chrome-p1--v16)
 - [5. Requirements](#5-requirements)
 - [6. UX and design](#6-ux-and-design)
 - [7. Technical aspects](#7-technical-aspects)
@@ -30,7 +30,7 @@
 
 ## 1. Problem and context
 
-CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. **In V9**, palette packs live only as TypeScript (`packages/extensions/src/packs/*.ts`). The VS Code plugin duplicates that tree and already diverges (no ArchiMate, no Standard URI). A team cannot add a node type without a code change, and there is no file contract that Hub or CLI can load. **In V8**, container children pack along one axis (ELK `rectpacking` with extreme `aspectRatio`), so nested diagrams look like a strip instead of a table; the XYFlow resize handle can be larger than the painted container; node positions and colors do not round-trip through Hub or the VS Code plugin; visible edges are not bezier; pattern **validation** is missing (V7 only generates); Project settings show `naming` as read-only. **In V8.1**, patterns come only from the local `patterns.dir`; there is no Hub URL in `.calmrj` / `~/.calm.json` and no way to browse Hub architectures as references. **In V8.2**, a CLI pattern is an opaque generate card — Studio cannot show or edit it as a graph the way Hub `PatternGraph` does; relationship `metadata` has no generic editor; **Ctrl+duplicate sometimes freezes the editor**. **In V10**, the Files tree cannot create or move folders, nor create a **named** CALM file in the folder under the pointer (today: File → New Untitled then Save As); Save As ignores the selected tree folder and naming patterns; project settings is a single long form with no user-home overlay; nested `metadata` is inline and enums are not always dropdowns; multi-select is Meta-click rather than Shift + marquee, with no alignment toolbar, and left-drag cannot switch between pan and select; there is **no canvas mini-map** of the current viewport; containers have no “arrange to table” command; bundled packs cannot be turned off; Hub `detailed-architecture` URLs still mix with R16 outside-project infoboxes; Hub tabs do not lock the JSON editor, and Hub catalog items can still be dropped onto a read-only diagram; canonical `$id` / `$schema` / `$ref` URLs (Standards, Patterns) have no project `url-mapping.json` equivalent to `calm validate -u`, so Studio cannot find the local artifact from the URL. **In V11**, choosing nodes still depends on a Select/Pan toggle that fights pan; Hub browse is a modal of namespaces, architectures, and versions, not a tree you drag from; the Files tree moves folders but not a single file; edges detour around a container even when one end of the relationship sits inside it; applying JSON can drop `metadata._layout` and node colors; and Ctrl+Z undoes JSON text only, not a move or a property edit on the canvas. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
+CALM Studio today lets users model architecture in a single file with a palette of node types, but it lacks multi-file project workflows and cross-document node referencing. **The editor supports only one open diagram at a time** — switching between files replaces the window content instead of working in tabs, which complicates navigation in multi-file projects and tracking references. Nodes with `details.detailed-architecture` lack a clear visual indicator and quick navigation to the target diagram. **In V3**, even with the Files panel and tabs, users still lose orientation in large trees (no reveal for the active file), see stale node previews after save, cannot duplicate in-diagram nodes with optional relationship copy, land on a detail diagram without the referenced node in view, and suffer overlapping boxes or edges drawn through nodes after label resize or auto-layout. **In V4**, there is still no project-level config: teams cannot attach folder-scoped Spectral rules on top of core CALM validation, nor encode directory/naming conventions for new diagram files. Splitting a growing node into its own diagram requires manual file creation, path math, and stub wiring. **In V5**, architects cannot discover project-wide neighbors of a selected node and pull them onto the current diagram as references; cannot temporarily fog the canvas to highlight focus neighbors or metadata; lack **Save all** for many dirty tabs; and lack VS Code–style bulk tab close (left / right / all). **In V6**, auto-layout has only layered directions (no Radial); templates are bundled only (FluxNova/OpenGRIS), not loaded from the project; Docker files exist but the documented compose path is not a reliable one-command deploy; containment relationships (`composed-of` / `deployed-in`) are drawn as edges **and** as nested containers, so the canvas is noisy and relationship properties are hard to reach; fog filter has no node-type mode; there is no reverse lookup of where a node is referenced. **In V7**, saving a container with several children writes **one CALM relationship per child** instead of one `composed-of`/`deployed-in` with `nodes[]`; nesting is created by plain drag-into with no type choice; project settings paths are typed by hand; CALM CLI **patterns** cannot be used as Studio templates. **In V9**, palette packs live only as TypeScript (`packages/extensions/src/packs/*.ts`). The VS Code plugin duplicates that tree and already diverges (no ArchiMate, no Standard URI). A team cannot add a node type without a code change, and there is no file contract that Hub or CLI can load. **In V8**, container children pack along one axis (ELK `rectpacking` with extreme `aspectRatio`), so nested diagrams look like a strip instead of a table; the XYFlow resize handle can be larger than the painted container; node positions and colors do not round-trip through Hub or the VS Code plugin; visible edges are not bezier; pattern **validation** is missing (V7 only generates); Project settings show `naming` as read-only. **In V8.1**, patterns come only from the local `patterns.dir`; there is no Hub URL in `.calmrj` / `~/.calm.json` and no way to browse Hub architectures as references. **In V8.2**, a CLI pattern is an opaque generate card — Studio cannot show or edit it as a graph the way Hub `PatternGraph` does; relationship `metadata` has no generic editor; **Ctrl+duplicate sometimes freezes the editor**. **In V10**, the Files tree cannot create or move folders, nor create a **named** CALM file in the folder under the pointer (today: File → New Untitled then Save As); Save As ignores the selected tree folder and naming patterns; project settings is a single long form with no user-home overlay; nested `metadata` is inline and enums are not always dropdowns; multi-select is Meta-click rather than Shift + marquee, with no alignment toolbar, and left-drag cannot switch between pan and select; there is **no canvas mini-map** of the current viewport; containers have no “arrange to table” command; bundled packs cannot be turned off; Hub `detailed-architecture` URLs still mix with R16 outside-project infoboxes; Hub tabs do not lock the JSON editor, and Hub catalog items can still be dropped onto a read-only diagram; canonical `$id` / `$schema` / `$ref` URLs (Standards, Patterns) have no project `url-mapping.json` equivalent to `calm validate -u`, so Studio cannot find the local artifact from the URL. **In V11**, choosing nodes still depends on a Select/Pan toggle that fights pan; Hub browse is a modal of namespaces, architectures, and versions, not a tree you drag from; the Files tree moves folders but not a single file; edges detour around a container even when one end of the relationship sits inside it; applying JSON can drop `metadata._layout` and node colors; and Ctrl+Z undoes JSON text only, not a move or a property edit on the canvas. **In V16**, the architecture `adrs` array has no properties UI, so decisions cannot be attached or previewed; New and Open still ask to save even though the dirty diagram stays in its tab; the open-tab cap is hard-coded at 10; tree labels truncate with no full-name tooltip; Files and Hub cannot scroll sideways; the horizontal splitters resize the wrong pane; column lists have no header, no full-cell tooltip, and no adjacent-column resize; and Find neighbors has a fixed size. At the same time, the editor suffers from regressions in the JSON panel (repeated selection, jumping cursor), export omits relationships when nodes are visually nested in containers, and when the type changes to a container the element size no longer matches its visualization.
 
 **Why now:** Users work with real CALM projects (multiple JSON files, cross-file references, enterprise naming like CEngineering), but must switch manually outside the studio and maintain project conventions by hand. Palette packs cannot be reused across Studio and VS Code without duplicating TypeScript. Layouts authored in Studio are lost in Hub and the VS Code plugin, so the three tools cannot share a diagram. Hub documents must not be edited in Studio (JSON still writable today). Editor and export bugs undermine trust in the tool as the source of truth for CALM 1.2 documents.
 
@@ -110,6 +110,15 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Insert a referenced node     | `detailed-architecture` points at the file you dragged from, even when that file only references the node |
 | Move dialog target           | Typed path only. No folder picker from the project tree                                                  |
 | Demo toolbar + template tabs | Toolbar **Demos** always visible; Template picker always shows FluxNova and OpenGRIS                     |
+| Document `adrs`              | CALM 1.2 `adrs: string[]` exists; properties has no document view when nothing is selected               |
+| ADR preview                  | Missing — no read-only tab for a local `.md` or a Hub ADR                                                 |
+| Open-editor limit            | Hard-coded `MAX_DIAGRAM_TABS = 10`                                                                        |
+| Unsaved prompt               | Tab switch is silent (R15). **New** and **Open** still call the unsaved dialog                            |
+| Tree name tooltip            | Row `title` is an action hint. A truncated `name` has no full-name tooltip                                |
+| Files / Hub horizontal scroll| Tree wider than the pane is clipped                                                                       |
+| Horizontal splitters         | The handle between editor and properties changes the **left** pane, and the reverse                       |
+| Column lists                 | Find neighbors, Find usage, validation rows: no shared header, cell tooltip, or adjacent-column resize    |
+| Find neighbors dialog        | Fixed width `min(640px, …)` and max-height; not user-resizable                                            |
 
 
 ## 2. Goals, non-goals, and success metrics
@@ -117,7 +126,7 @@ CALM Studio today lets users model architecture in a single file with a palette 
 **Goals**
 
 - Enable browsing a project folder and quickly switching between CALM files in the browser.
-- Support **working with multiple diagrams in tabs simultaneously** (max. 10), including safe closing with a save prompt.
+- Support **working with multiple diagrams in tabs simultaneously** (project limit, default 10), including a save prompt when a tab or the window closes.
 - Support adding references to nodes from other files via standard CALM `detailed-architecture` and **quick navigation to the referenced diagram**.
 - Remove blocking JSON editor, export, and container bugs.
 - **V3:** Speed up orientation in large projects (reveal file, fresh node list), support safe in-file node duplication, and make reference drill-down and auto-layout trustworthy on real diagrams.
@@ -135,6 +144,7 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **V13:** After a project loads, hide the toolbar **Demos** control and the Studio-bundled **FluxNova** / **OpenGRIS** template tabs unless `.calmrj` has `ui.demo: true`. Default is `ui.demo: false`. Without an open project, those UI pieces stay visible. Project settings has a **Demo** checkbox.
 - **V14:** Replace the stub **calmscript** Export item and the disabled Code-panel **calmscript** tab with **Mermaid flowchart** downloads (`.mmd` and `.md`) and a **read-only Mermaid** preview tab. Leave `packages/calmscript` in the monorepo unused.
 - **V15:** Edit **array** properties as a list of individual values (including object items). Show nested JSON as **pretty-printed** multi-line text in the panel preview and in edit dialogs.
+- **V16:** When nothing is selected, properties shows the document `adrs` list (view, add from Hub or a relative local file, remove, edit the string, reorder). **View** opens a read-only editor tab: rendered Markdown for a local `.md`, labeled Hub ADR fields for a Hub URL. The open-editor cap is `.calmrj` `ui.maxOpenEditors` (default 10) and includes those preview tabs. Save is asked only on tab close and window close. Files and Hub show the full `name` on hover and scroll horizontally. The left splitter resizes the left pane and the editor; the right splitter resizes the editor and properties. Every column list has a header, a full-value cell tooltip, and adjacent-column resize. Find neighbors is resizable.
 
 **Non-goals**
 
@@ -201,6 +211,14 @@ CALM Studio today lets users model architecture in a single file with a palette 
 - **Deleting `packages/calmscript` from the workspace** — out of scope for V14; leave the package (R85).
 - **Editing an array as a single comma-joined or JSON-string text field** — V15 replaces that with per-element editors (R86).
 - **A separate full-screen JSON IDE for properties** — V15 keeps inline lists + existing nested dialog; no new IDE (R86).
+- **Authoring an ADR body** — V16 stores a link and previews it. It does not create or edit Markdown or Hub ADR JSON (R87–R88).
+- **Pinning a Hub ADR revision** — the stored URL has no `/revisions/{n}`. View loads the latest revision (R87).
+- **ADR entries in user-home config, or `ui.maxOpenEditors` there** — both live on the project `.calmrj` only (R87, R89).
+- **Closing tabs when the user lowers `ui.maxOpenEditors`** — already open editors stay. A new open is refused while the count is **above** the new limit (R89).
+- **An unsaved dialog on New, Open, or tab switch** — the dirty diagram stays in its tab. The dialog is for tab close and window close only (R90).
+- **A path in the tree tooltip** — hover shows the full `name` only (R91).
+- **Persisting column widths or the Find neighbors dialog size** — they last while that dialog or panel is open, then reset (R94, R95).
+- **Growing the whole table when a column edge is dragged** — only the two columns that share that edge change (R94).
 - **Mini-map hide/show, zoom-from-minimap, or editing nodes from the mini-map** — V10 mini-map is always visible; click (or drag the viewport mask) only **pans**. Zoom stays wheel / existing controls (R74).
 - **In-app editor for `url-mapping.json` entries** — V10 only **picks the mapping file** in project config (R75). Teams edit the JSON in the repo (same file as `calm validate -u`).
 - **Mapping Hub instance URLs** (`/calm/namespaces/…/architectures/…`) — those stay Hub (R69). Mapping is for canonical `$id` / `$schema` / `$ref` artifacts (Standards, Patterns, schemas).
@@ -280,6 +298,10 @@ CALM Studio today lets users model architecture in a single file with a palette 
 | Export / preview as Mermaid                    | calmscript stub only     | Flowchart `.mmd` + `.md`; read-only Mermaid tab                 | v14  |
 | Edit array properties element-by-element       | One text field for whole array | Inline list +/−; objects as mini-rows / nested fields    | v15  |
 | Nested JSON readable in properties             | One-line `JSON.stringify` | Pretty-printed multi-line preview and dialog                   | v15  |
+| Attach an ADR to the open diagram              | No document properties    | Empty selection lists `adrs`; Hub URL or relative path stored  | v16  |
+| Preview a linked ADR                           | Not available             | Read-only tab: rendered `.md`, or Hub ADR fields               | v16  |
+| Save prompt on New / tab switch                | New and Open prompt       | Prompt only on tab close and window close                      | v16  |
+| Splitter moves the pane the user is dragging   | Handles are reversed      | Left handle: left + editor. Right handle: editor + properties  | v16  |
 
 
 ## 3. Target users and use cases
@@ -357,6 +379,14 @@ CALM Studio today lets users model architecture in a single file with a palette 
 67. **UC-67 — Preview Mermaid:** User opens the Code panel tab **Mermaid** (next to **CALM JSON**). The text is read-only and matches the export body. The old disabled **calmscript** tab is gone.
 68. **UC-68 — Edit array property:** User selects a node or relationship with an array metadata (or other properties) field. The panel shows one row per element with Add / Remove. Primitive items use an input or enum select; object items show fields for that item (or Expand / Edit for deep objects). An empty array still shows the list chrome and **Add**.
 69. **UC-69 — Read nested JSON:** User looks at a nested metadata object in the panel. The preview is indented multi-line JSON, not a single line. Opening **Edit…** keeps pretty formatting in the dialog.
+70. **UC-70 — Document ADRs:** User clicks empty canvas. Properties shows the architecture `adrs` list. User adds a Hub ADR from a dialog, or a local file (stored as a path relative to this file). User can remove a row, edit the string, and move a row up or down. Selecting a node or a relationship hides this list.
+71. **UC-71 — Preview an ADR:** User chooses **View**. A local `.md` opens as rendered Markdown in a read-only editor tab. A Hub URL opens a read-only tab of the latest ADR fields. The same target again only activates that tab. The tab counts toward the open-editor limit and does not ask to save on close.
+72. **UC-72 — Editor limit in the project:** User sets **Max open editors** in Project settings. Create and a missing key use 10. Lowering the number does not close tabs. Opening another editor while already **above** that number is refused. Opening while the count **equals** the limit still closes the oldest tab, with the save dialog if that tab is dirty.
+73. **UC-73 — Save only on close:** User switches tabs, or uses New / Open, with a dirty diagram. No save dialog. The dirty tab keeps its dot. Closing that tab asks Save / Don't save / Cancel. Closing the browser window warns when any diagram tab is dirty.
+74. **UC-74 — Tree name and sideways scroll:** User hovers a Files or Hub row, including a node under a file. The tooltip is the full name. A long row can be scrolled horizontally in Files and in Hub.
+75. **UC-75 — Splitters:** User drags the bar between the left pane and the editor. The left pane and the editor change width. Properties does not. User drags the bar between the editor and properties. Those two change. The left pane does not.
+76. **UC-76 — Column lists:** In Find neighbors, Find usage, the ADR list, and the validation list, each column has a header. Hovering a cell shows the full value. Dragging the edge between two headers widens one column and narrows the other. The table does not grow. Widths reset when the dialog or panel closes.
+77. **UC-77 — Resize Find neighbors:** User drags the dialog edge. The dialog grows or shrinks. Filters and actions stay usable. The size is not saved in `.calmrj`.
 
 **Not for:** Users outside officially supported browsers (**Chrome**, **Safari**). Firefox, Edge, and older versions without File System Access API — file panel unavailable, rest of studio may work with limitations.
 
@@ -408,8 +438,8 @@ Newly opened diagrams (from file panel, toolbar Open, drag-drop, reference navig
 - Each tab = one diagram (own model, canvas state, dirty flag, file handle / relative path).
 - **No duplicates:** the same file (`relativePath` or `fileHandle`) may have **only one tab** in TabBar. Reopening (double-click in tree, Open, drop, glasses, recent files) **does not create a new tab** — only activates the existing one.
 - **Active tab** drives canvas, properties panel, and **JSON editor** — Code panel always shows JSON for the active diagram.
-- **Close tab** (× on tab): if the diagram has unsaved changes, show **Save / Don't Save / Cancel** dialog (same pattern as when switching files).
-- **Limit of 10 tabs:** when opening an 11th **new** diagram, automatically close the **oldest open** tab (**FIFO** by `openedAt` — open order, not last access); closing it uses the same unsaved guard as manual close.
+- **Close tab** (× on tab, active or not): if the diagram has unsaved changes, show **Save / Don't Save / Cancel**. New, Open, and tab switch do **not** ask (V16, R90). Closing the browser window still warns when any diagram tab is dirty.
+- **Open-editor limit:** `.calmrj` `ui.maxOpenEditors`, default **10** (V16, R89). When the open count **equals** the limit, opening another editor closes the **oldest** tab (FIFO by `openedAt`) with the same unsaved guard. When the count is already **above** the limit, the new open is refused and nothing closes.
 - Tab switch **does not require** a dialog (context change only); dirty state remains per tab.
 - **Undo/redo** (Ctrl+Z / Ctrl+Y): applies **only to the active tab** — each tab has its own history stack; switching tabs restores its undo/redo context.
 - Tab label = file name; unsaved diagram shows `•` (dirty) indicator.
@@ -425,7 +455,7 @@ stateDiagram-v2
   ClosePrompt --> TabActive: Cancel
   ClosePrompt --> [*]: Don't Save
   ClosePrompt --> TabActive: Save OK
-  TabActive --> EvictOldest: 11th tab
+  TabActive --> EvictOldest: open at limit
   EvictOldest --> ClosePrompt: oldest has changes
 ```
 
@@ -1533,6 +1563,111 @@ Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `a
 
 **Out of scope for V15:** a full tree JSON editor product; YAML; importing Excel lists; changing CALM schema shapes; editing `metadata._layout` via this list UI.
 
+### 4.41 ADR links, editor limit, and layout chrome (P1 — V16)
+
+**Problem.** CALM 1.2 already has document-level `adrs` (an array of strings). Studio never shows it, so a diagram cannot point at a decision. Opening another file still asks to save, even though the dirty diagram remains a tab. The tab cap is a constant. Long names in Files and Hub are clipped, the horizontal splitters move the wrong pane, column lists cannot be read or resized, and Find neighbors cannot grow.
+
+**Document ADR list (R87)** — amends the empty properties state.
+
+Shown only when **no node and no relationship** is selected. A selection hides the list and shows node or edge properties as today.
+
+| Action | Result |
+| --- | --- |
+| View | Opens or activates the preview tab (R88) |
+| Add from Hub | Dialog: namespace, then ADR. Stores the Hub URL **without** a revision |
+| Add local file | File picker. Stores a path **relative to the current architecture file** |
+| Remove | Deletes that string from `adrs` |
+| Edit | Replaces that string. Empty is rejected |
+| Move up / Move down | Reorders `adrs`. The file order is the list order |
+
+- The model field is CALM `adrs: string[]` on the architecture root. Do not invent another property.
+- Hub URL shape matches the existing Hub client: `{hubUrl}/calm/namespaces/{namespace}/adrs/{id}`. No `/revisions/{n}`.
+- A duplicate string is not added twice.
+- Local add is disabled when the diagram has no file path (untitled). Hub add still works.
+- A file outside the project is rejected.
+- A read-only tab (Hub architecture, R70) shows the list. Add, remove, edit, and reorder are disabled. View stays enabled.
+- File and folder move rewrite **relative** `adrs` entries the same way as relative `detailed-architecture` (R60, R77). `http(s)` ADR URLs stay unchanged.
+- Add, remove, edit, and reorder mark the diagram dirty.
+
+```json
+{
+  "adrs": [
+    "../decisions/0001-use-kafka.md",
+    "https://hub.example/calm/namespaces/onebank/adrs/12"
+  ]
+}
+```
+
+**Preview tab (R88)**
+
+- A normal editor tab. It counts toward `ui.maxOpenEditors` (R89).
+- The same target (same relative path or same Hub URL) activates the existing tab.
+- Read-only. It is never dirty. Close does not ask to save.
+- The editor area shows the preview. Canvas tools and JSON editing are not available on this tab.
+- Local path ending in `.md` (any case): rendered CommonMark. Do not execute scripts.
+- Hub URL: GET the stored URL (latest revision) and show labeled fields: title, status, creation and update time, context and problem, decision drivers, considered options, decision outcome, links. A missing field is omitted. A failed fetch shows an error in the tab.
+- Any other local file: the tab shows the stored path and the text “No preview for this file type.”
+- A missing local file opens the tab with an error. Studio does not crash.
+- Label: Hub `title` when known, otherwise the file name or the last URL segment.
+
+**Open-editor limit (R89)** — amends the hard-coded 10 in R15.
+
+```json
+{ "ui": { "demo": false, "maxOpenEditors": 10 } }
+```
+
+- Project `.calmrj` only. Ignore this key in user-home config (same rule as `ui.demo`).
+- Missing, or not a positive integer → **10**. Create project writes `10`.
+- Project settings, UI section: number field **Max open editors**. Minimum 1.
+- Lowering the number does **not** close tabs.
+- Open count **equals** the limit → opening another editor FIFO-evicts the oldest (`openedAt`). A dirty diagram tab uses the close dialog (R90). A preview tab closes without a dialog.
+- Open count **already above** the limit → refuse the new open. Tell the user to close an editor. Do not evict.
+
+**Save prompt (R90)** — amends R15.
+
+| Action | Prompt |
+| --- | --- |
+| Switch tab, New, Open, activate an existing file | No. The dirty diagram stays dirty in its tab |
+| Close one tab (active or not), bulk close, FIFO eviction | Save / Don't save / Cancel when that diagram tab is dirty |
+| Close the browser window | `beforeunload` when any diagram tab is dirty |
+
+Preview tabs never count as dirty.
+
+**Files and Hub chrome (R91, R92)**
+
+- Hover on a Files or Hub row, including a node under a file and a folder, shows the full **name** in a tooltip. Do not add the path or the Hub id.
+- The Files pane and the Hub pane scroll horizontally when a row is wider than the pane. Vertical scroll stays.
+
+**Splitters (R93)**
+
+Three horizontal panes: left (Palette / Files / Hub), center (editor), right (properties).
+
+| Handle | Changes | Does not change |
+| --- | --- | --- |
+| Between left and editor | Left pane and editor | Properties |
+| Between editor and properties | Editor and properties | Left pane |
+
+The bottom code panel (vertical split) is unchanged.
+
+**Column lists (R94)**
+
+Applies to every multi-column list, including Find neighbors, Find usage, the ADR list, the validation list, and any later list of the same kind. It does not apply to the Files/Hub tree or to property form fields.
+
+- A header row names each column.
+- Hovering a cell shows the full cell value.
+- Dragging the edge between two headers changes **only those two** columns, by equal and opposite amounts. Other columns stay. The table width stays.
+- A column cannot shrink to zero.
+- Widths last while that dialog or panel is open. Closing it restores the defaults. Do not write them to `localStorage` or `.calmrj`.
+
+**Find neighbors dialog (R95)**
+
+- The user can resize the dialog on both axes.
+- A minimum size keeps the title, filters, and actions visible.
+- The list inside follows R94.
+- The size is not stored in `.calmrj`.
+
+**Out of scope for V16:** creating or editing an ADR body; Hub PUT/POST of an ADR; choosing a Hub revision; an ADR browser inside the Hub tree (add stays a dialog); persisting column widths or dialog size; a save prompt on New, Open, or tab switch; auto-close when the limit is lowered.
+
 ## 5. Requirements
 
 ### Iteration 1 — P0
@@ -1556,7 +1691,7 @@ Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `a
 
 | ID  | User story                                                                                            | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Status |
 | --- | ----------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
-| R15 | As an architect I want to open diagrams in tabs so I can work with multiple files at once.            | P1       | - [ ] New **not yet open** diagram opens in tab (file panel, Open, drop, demo, reference navigation) - [ ] **Same file again:** no new tab — only activate existing (match `relativePath` or `fileHandle`) - [ ] Active tab drives canvas, properties, and JSON editor - [ ] Tab switch without dialog; dirty state per tab - [ ] **Undo/redo only within active tab** (per-tab history stack) - [ ] Close tab: Save / Don't Save / Cancel dialog on unsaved changes - [ ] Max. **10** tabs; on 11th new file evict **FIFO** (oldest `openedAt`, not LRU) + unsaved guard - [ ] Label = file name + dirty indicator `•` | Open   |
+| R15 | As an architect I want to open diagrams in tabs so I can work with multiple files at once.            | P1       | - [ ] New **not yet open** diagram opens in tab (file panel, Open, drop, demo, reference navigation) - [ ] **Same file again:** no new tab — only activate existing (match `relativePath` or `fileHandle`) - [ ] Active tab drives canvas, properties, and JSON editor - [ ] Tab switch without dialog; dirty state per tab - [ ] **Undo/redo only within active tab** (per-tab history stack) - [ ] Close tab: Save / Don't Save / Cancel dialog on unsaved changes - [ ] Open-editor cap is `ui.maxOpenEditors` (R89), not a hard-coded 10 - [ ] New and Open do not ask to save (R90) - [ ] Label = file name + dirty indicator `•` | Open   |
 | R16 | As an architect I want to see glasses on reference node and open target diagram.                      | P1       | - [ ] Node with `details.detailed-architecture` shows glasses icon on canvas - [ ] Tooltip explains it is a reference - [ ] Double-click on glasses (not whole node) - [ ] Target **inside project:** editor tab (new or existing, no duplicate) - [ ] Target **outside project:** infobox "Link leads outside project" + clickable link; click → new **browser** tab (not editor) - [ ] Resolve relative path against current file / project root - [ ] Error when file missing inside project without editor crash                                                                                                    | Open   |
 | R10 | As an architect I want `$schema` written to JSON on first element.                                    | P1       | - [ ] First node from palette adds document header - [ ] Base: `https://calm.finos.org/release/1.2/meta/calm.json` - [ ] Extension URL from pack `standard.$id` (`schemaUrl` alias) - [ ] Round-trip: import → edit → export preserves header                                                                                                                                                                                                                                                                                                                                                                           | Open   |
 | R11 | As an architect I want new elements to have required fields per schema.                               | P1       | - [ ] New node: `unique-id`, `node-type`, `name`, `description` (default text) - [ ] New relation: `unique-id`, `relationship-type` in correct CALM 1.2 nested shape - [ ] Extension pack: scaffold required fields in `metadata` per pack schema (see R17) - [ ] Validation passes without missing required fields                                                                                                                                                                                                                                                                                                     | Open   |
@@ -1738,7 +1873,23 @@ Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `a
 | R86 | As an architect I want to edit array properties one value at a time and read nested JSON as formatted text. | P1       | - [x] Array fields in properties (metadata schema/extra, customMetadata when JSON array, controls/interfaces lists as applicable) use an **inline** row-per-element UI with Add/Remove - [x] Primitive and **object** items are editable per element (object = mini-form or per-item pretty JSON; never the whole array as one string) - [x] Empty array shows list + Add - [x] Nested object/array **preview** is pretty-printed multi-line - [x] Nested **Edit** dialog keeps pretty JSON - [x] Model stores a JSON array - [x] Read-only tabs do not mutate - [x] `_layout` / `building-block-style` unchanged | Done   |
 
 
-### Iteration 18 — P2
+### Iteration 18 — P1 (V16 — ADR, editor limit, chrome)
+
+
+| ID  | User story                                                                                         | Priority | Acceptance criteria                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Status |
+| --- | -------------------------------------------------------------------------------------------------- | -------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| R87 | As an architect I want the open diagram’s ADR links in properties when nothing is selected.       | P1       | - [ ] No node and no edge selected → properties lists architecture `adrs` - [ ] A selection hides that list and shows node or edge properties - [ ] Add from Hub dialog stores `{hubUrl}/calm/namespaces/{ns}/adrs/{id}` with no revision - [ ] Add local file stores a path relative to the current file; outside the project is rejected; untitled disables local add - [ ] Duplicate string is not added - [ ] Remove, edit (empty rejected), and move up/down change `adrs` order and mark dirty - [ ] Read-only tab: list visible, mutations disabled, View enabled - [ ] File or folder move rewrites relative `adrs` the same way as relative `detailed-architecture`; `http(s)` stays | Open   |
+| R88 | As an architect I want to view a linked ADR in a read-only tab.                                    | P1       | - [ ] View opens an editor tab; the same path or Hub URL activates the existing tab - [ ] The tab counts toward `ui.maxOpenEditors` - [ ] Local `.md` is rendered CommonMark and does not run scripts - [ ] Hub URL loads the latest ADR and shows its fields; a failed fetch shows an error in the tab - [ ] Other local types show the path and “No preview for this file type.” - [ ] Missing file shows an error and does not crash - [ ] Tab is never dirty; close does not ask to save; canvas tools and JSON edit are unavailable | Open   |
+| R89 | As an architect I want the maximum number of open editors in the project file.                     | P1       | - [ ] `.calmrj` `ui.maxOpenEditors`; missing or invalid → 10; Create writes 10; minimum 1 in Project settings UI - [ ] User-home config does not supply this key - [ ] Preview tabs (R88) count - [ ] Lowering the number does not close tabs - [ ] Open count equals the limit → FIFO-evict the oldest, with R90 if that diagram tab is dirty - [ ] Open count already above the limit → refuse the new open; nothing closes | Open   |
+| R90 | As an architect I want a save prompt only when I close a tab or the window.                        | P1       | - [ ] Tab switch, New, and Open do not ask; the dirty diagram stays dirty in its tab - [ ] Close of a dirty diagram tab (active, inactive, bulk, or FIFO) asks Save / Don't save / Cancel - [ ] Window close warns when any diagram tab is dirty - [ ] An ADR preview tab never triggers the prompt | Open   |
+| R91 | As an architect I want the full name when I hover a tree row.                                      | P1       | - [ ] Files and Hub rows, including folders and nodes under a file, show the full name as a tooltip - [ ] The tooltip does not include the path or a Hub id | Open   |
+| R92 | As an architect I want to scroll Files and Hub sideways.                                           | P1       | - [ ] Files pane and Hub pane show a horizontal scrollbar when a row is wider than the pane - [ ] Vertical scroll still works | Open   |
+| R93 | As an architect I want each splitter to resize the two panes it sits between.                       | P1       | - [ ] Drag between left pane and editor changes those two widths; properties width stays - [ ] Drag between editor and properties changes those two widths; left pane width stays - [ ] The bottom code-panel split is unchanged | Open   |
+| R94 | As an architect I want column lists to show the full cell and let me resize adjacent columns.      | P1       | - [ ] Find neighbors, Find usage, the ADR list, and the validation list have a header per column - [ ] Hovering a cell shows the full cell value - [ ] Dragging a header edge changes only the two adjacent columns, in opposite directions; table width stays; a column cannot shrink to zero - [ ] Widths reset when that dialog or panel closes - [ ] Widths are not written to `localStorage` or `.calmrj` | Open   |
+| R95 | As an architect I want to resize the Find neighbors dialog.                                        | P1       | - [ ] The dialog resizes on both axes - [ ] A minimum size keeps the title, filters, and actions visible - [ ] The list follows R94 - [ ] The size is not stored in `.calmrj` | Open   |
+
+
+### Iteration 19 — P2
 
 
 | ID  | User story                                             | Priority | Acceptance criteria                                   | Status |
@@ -1759,6 +1910,8 @@ Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `a
 - CALM 1.2 `composed-of` / `deployed-in` already use `container` + `nodes[]`; Studio’s 1:1 canvas edges are a projection, not the persisted shape (#35).
 - Browser Studio cannot spawn `calm` CLI or call `runGenerate` (Node `fs.writeFileSync`); generation wraps `instantiate` in memory with bundled SchemaDirectory / CALM meta schemas (#42).
 - Last-used containment type is session memory only; a new browser session with both variants on a container shows the type picker again (#36).
+- CALM `adrs` stays a string array on the architecture root. Studio does not add an ADR object schema (R87).
+- `ui.maxOpenEditors` follows `ui.demo`: project `.calmrj` only; a missing key means 10 (R89).
 - Bundled pack JSON in monorepo-root `extensions/` is the source of truth; hosts **load it from the filesystem**. TypeScript `src/packs/*.ts` is a generator only after V9. SPA/VSIX may embed a copy only for when no folder is open.
 - A pack file is not a CALM Standard. `standard.$id` is the Standard’s JSON Schema `$id` (CALM definition of Standard).
 - Architecture `metadata._layout` is the Hub/VS Code `LayoutMap` (unique-id → `{ x, y, w, h }`). Studio does not own a second layout schema (#50).
@@ -1844,6 +1997,42 @@ Default download name: active file stem + extension (e.g. `api-gateway.mmd` / `a
 - Matching nodes/edges full opacity; others fogged (including edges).
 - Session-only; not persisted.
 - **Type** mode is independent of Focus neighbors / Metadata (R36).
+
+### Document ADR list (V16, R87)
+
+```
+┌─ Properties (nothing selected) ───────────────────────┐
+│ ADRs                                                  │
+│  ../decisions/0001-use-kafka.md   [View] [↑] [↓] [×]  │
+│  …/namespaces/onebank/adrs/12     [View] [↑] [↓] [×]  │
+│  [Add from Hub…]  [Add local file…]                  │
+└───────────────────────────────────────────────────────┘
+```
+
+- Visible only with no node and no edge selected.
+- Each row’s string is editable. Empty edit is rejected.
+
+### ADR preview tab (V16, R88)
+
+- Editor tab, read-only, never dirty.
+- `.md`: rendered Markdown. Hub URL: labeled ADR fields from the latest revision. Other files: path plus “No preview for this file type.”
+
+### Project settings — max open editors (V16, R89)
+
+- UI section, next to **Demo**: number **Max open editors**. Writes `ui.maxOpenEditors`.
+
+### Column list (V16, R94)
+
+```
+┌─ Name        │ Type     │ Path ─────────┐
+│ Auth Service │ service  │ auth.json     │  ← hover shows the full cell
+└──────────────┴──────────┴───────────────┘
+         ↑ drag this edge: Name and Type change; table width does not
+```
+
+### Find neighbors dialog size (V16, R95)
+
+- Same dialog as V5, with a resize handle. The list uses the column rules above.
 
 ### Find usage dialog (V6, R37)
 
@@ -2331,11 +2520,15 @@ TBD — Figma link after review.
 | **Demo UI gate (V13)**         | Toolbar, TemplatePicker, ProjectSettings, `.calmrj` `ui.demo`                                              | Hide Demos + bundled FluxNova/OpenGRIS tabs unless `ui.demo: true` (R84)                        |
 | **Mermaid export (V14)**       | `export.ts`, Mermaid serializer, `Toolbar.svelte`, `CodePanel.svelte`                                      | Replace calmscript stub with flowchart `.mmd` / `.md` + read-only Mermaid tab (R85)             |
 | **Array + pretty nested (V15)**| `MetadataForm`, `NestedMetadataDialog`, `metadataForm.ts`, CustomMetadata / Controls as needed           | Per-element array editors; pretty nested preview/dialog (R86)                                   |
+| **ADR list + preview (V16)**   | `PropertiesPanel`, Hub ADR client, preview tab, move rewrite                                           | Document `adrs` when nothing is selected; read-only `.md` / Hub field tab (R87–R88)             |
+| **Editor limit + save prompt (V16)** | `tabManager.ts`, Project settings, `+page.svelte` close/open                                      | `ui.maxOpenEditors`; prompt only on tab close and window close (R89–R90)                        |
+| **Tree chrome + splitters (V16)** | `FileExplorerPanel`, `HubTreePanel`, `+page.svelte` pane group                                      | Full-name tooltip; horizontal scroll; adjacent panes only (R91–R93)                             |
+| **Column lists + dialog size (V16)** | Find neighbors, Find usage, validation list, ADR list, shared column behavior                    | Header, cell tooltip, adjacent-column resize; resizable neighbors dialog (R94–R95)             |
 | **Canvas mini-map (V10)**      | `CalmCanvas.svelte` MiniMap                                                                                | Overview + viewport mask; click pans (zoom unchanged) (R74)                                     |
 | **Container table (V10)**      | layout / container command                                                                                 | Arrange to table; resize container (R67)                                                        |
 | **Disable bundled packs (V10)**| pack loader, `.calmrj` `extensions.disabled`                                                               | Hide listed bundled ids from palette (R68)                                                      |
 | **Hub URL + JSON lock (V10)**  | glasses / Hub tab, `CodePanel`                                                                             | Hub `detailed-architecture` opens RO; JSON locked; no Hub insert (R69–R70)                      |
-| **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                                                | TabBar, per-tab model/canvas state, FIFO limit 10, close/evict guards                           |
+| **Tab manager (new)**          | `apps/studio/src/lib/tabs/`                                                                                | TabBar, per-tab model/canvas state, `ui.maxOpenEditors` (default 10), close/evict guards (R89–R90) |
 | Layout                         | `apps/studio/src/routes/+page.svelte`                                                                      | Palette/Files toggle, TabBar, active tab → canvas + JSON                                        |
 | JSON sync                      | `apps/studio/src/lib/editor/CodePanel.svelte`, `useJsonSync.ts`                                            | Fix selection + cursor; bind to active tab; **Mermaid** read-only tab (R85)                    |
 | **Reference UI**               | `apps/studio/src/lib/canvas/nodes/*.svelte`, `projection.ts`                                               | Glasses icon, `isReference`, navigation to `detailed-architecture`                              |
@@ -2769,6 +2962,18 @@ Extend / add:
 - [ ] Manual smoke: read-only Hub tab — array list visible, no Add/Remove
 - [x] `npm run test --workspace=@calmstudio/studio` passes
 
+### Definition of Done — iteration 18 (P1, V16)
+
+- [ ] Acceptance criteria R87–R95 met
+- [ ] Unit tests: `adrs` add/remove/edit/reorder; Hub URL has no revision; local path is relative to the current file; duplicate rejected; untitled blocks local add; move rewrites relative `adrs` and leaves `http(s)`; `.md` preview is sanitized; Hub field mapping; missing `ui.maxOpenEditors` → 10; count above the limit refuses; count equal to the limit evicts oldest; New/Open do not prompt; preview tab is not dirty; column resize changes only the two adjacent columns
+- [ ] Manual smoke: click empty canvas → ADR list; add a Hub ADR and a local `.md`; View opens a read-only tab; select a node → list hides
+- [ ] Manual smoke: New and tab switch with a dirty diagram do not ask; closing that tab asks Save / Don't save / Cancel
+- [ ] Manual smoke: set max open editors to 2 with 4 tabs open → nothing closes; opening another is refused. With exactly 2 open, opening a third closes the oldest
+- [ ] Manual smoke: hover a long Files and Hub name → tooltip is the name only; horizontal scrollbar appears
+- [ ] Manual smoke: drag the left splitter → properties width stays; drag the right splitter → left pane width stays
+- [ ] Manual smoke: Find neighbors — resize the dialog; drag a column edge → the table does not grow; hover a long cell → full value
+- [ ] `npm run test --workspace=@calmstudio/studio` passes
+
 ### Definition of Done — iteration 11 (P1/P0, BBR V8.2)
 
 - [ ] All acceptance criteria R55–R58 met
@@ -2987,6 +3192,15 @@ Extend / add:
 | 92  | Array UI placement                                                                               | —        | PM     | **Resolved** — inline list in the panel with Add/Remove (R86). |
 | 93  | Nested JSON formatting                                                                           | —        | PM     | **Resolved** — pretty preview and pretty dialog (R86). |
 | 94  | Empty array                                                                                      | —        | PM     | **Resolved** — show list chrome + Add (R86). |
+| 95  | Where an ADR preview opens                                                                       | —        | PM     | **Resolved** — editor tab. Local `.md` is rendered Markdown. Hub ADR is a read-only field view (R88). |
+| 96  | When the ADR list is visible                                                                     | —        | PM     | **Resolved** — only when no node and no relationship is selected (R87). |
+| 97  | ADR list actions beyond View and Add                                                             | —        | PM     | **Resolved** — remove, edit the string, reorder. Order is the `adrs` array (R87). |
+| 98  | Hub ADR string stored in `adrs`                                                                  | —        | PM     | **Resolved** — Hub URL with no revision. View loads the latest (R87). |
+| 99  | Where the open-editor cap lives, and lowering it                                                 | —        | PM     | **Resolved** — project `.calmrj` `ui.maxOpenEditors`, default 10. Lowering does not close tabs. A new open is refused while the count is already above the limit (R89). |
+| 100 | Do ADR preview tabs count toward the cap                                                         | —        | PM     | **Resolved** — yes (R88, R89). |
+| 101 | When to ask to save                                                                              | —        | PM     | **Resolved** — tab close and window close only. New, Open, and tab switch do not ask (R90). |
+| 102 | Which lists get column headers, tooltips, and resize                                             | —        | PM     | **Resolved** — every multi-column list (neighbors, usage, ADR, validation, and later lists of the same kind). Widths reset on close (R94). |
+| 103 | Tree hover text                                                                                  | —        | PM     | **Resolved** — full name only, on Files and Hub including nodes under a file (R91). |
 | 66  | Canvas overview: none vs mini-map click-to-pan                                                   | —        | PM     | **Resolved** — always-visible mini-map (bottom-right); click pans viewport to that point (centered); zoom unchanged; no hide/zoom-from-minimap (#66). |
 | 67  | How Studio finds a local file for a canonical `$id` URL                                          | —        | PM     | **Resolved** — `.calmrj` `urlMapping.path` → `url-mapping.json` (CALM CLI `-u` / CEngineering-App shape); values relative to the mapping file; Hub instance URLs skip the map; no network fetch (#67). |
 
@@ -3002,7 +3216,7 @@ Extend / add:
 | `detailed-architecture`  | CALM link to detailed architecture in another file                                                     |
 | Containment              | Visual nesting of node in container on canvas                                                          |
 | Tab                      | One open diagram instance in TabBar (max. 1 per file)                                                  |
-| FIFO eviction            | On 11th new file close tab with smallest `openedAt`                                                    |
+| FIFO eviction            | When the open count **equals** `ui.maxOpenEditors`, close the tab with the smallest `openedAt`. If the count is already above the limit, refuse the open (R89) |
 | Undo/redo                | Per tab — not shared across TabBar                                                                     |
 | Document envelope        | CALM JSON header (`$schema`, metadata)                                                                 |
 | CALM `metadata`          | Structured node/relationship object validated by extension schema                                      |
@@ -3057,6 +3271,10 @@ Extend / add:
 | Mermaid flowchart export | CALM → Mermaid `flowchart` (`.mmd` / `.md`); read-only Code-panel tab; replaces calmscript stub (R85) |
 | Array property editor    | Inline row-per-element Add/Remove for JSON arrays in properties; object items supported (R86)         |
 | Pretty nested preview    | Multi-line indented JSON for nested metadata preview and dialog (R86)                                 |
+| `adrs`                   | CALM architecture-root `string[]` of decision links (relative path or Hub URL) (R87)                   |
+| ADR preview tab          | Read-only editor tab: rendered `.md`, Hub ADR fields, or a no-preview notice (R88)                     |
+| `ui.maxOpenEditors`      | Project `.calmrj` cap on open editor tabs, including ADR previews. Default 10 (R89)                    |
+| Adjacent-column resize   | Dragging a header edge changes only the two columns that share it. Table width stays (R94)             |
 
 
 ### Implementation order
@@ -3111,7 +3329,8 @@ Extend / add:
 48. **V13 demo UI gate** (R84) — `ui.demo`; hide Demos + FluxNova/OpenGRIS tabs
 49. **V14 Mermaid export** (R85) — replace calmscript stub with flowchart `.mmd` / `.md` + Mermaid tab
 50. **V15 array properties + pretty nested** (R86)
-51. **P2 desktop / watch** (R13, R14)
+51. **V16 ADR, limit, chrome** (R87–R95) — document `adrs`, preview tab, `ui.maxOpenEditors`, save-on-close, tree tooltip, horizontal scroll, splitters, column lists, resizable Find neighbors
+52. **P2 desktop / watch** (R13, R14)
 
 ### Constraints for AI coding agent
 
@@ -3165,7 +3384,14 @@ Extend / add:
 - **R66 / R67:** group tools on nodes; container arrange-to-table resizes the container (R47).
 - **R68:** `extensions.disabled` is bundled pack ids only — do not use it to hide `extensions.dir` packs.
 - **R69 / R70:** Hub URLs open in the editor; Hub-sourced tabs lock JSON; no Hub insert onto those tabs; no Hub PUT/POST (#54).
-- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–17.
+- **R87:** `adrs` is the CALM string array on the architecture root. Show it only when nothing is selected. Hub URL has no revision. Local path is relative to the current file. Do **not** author ADR bodies. Do **not** PUT/POST an ADR to Hub. Rewrite relative `adrs` on file and folder move; leave `http(s)` unchanged.
+- **R88:** preview is an editor tab. Render `.md` as CommonMark and do **not** execute scripts. Hub view loads the latest revision. The tab is never dirty and counts toward the cap.
+- **R89:** `ui.maxOpenEditors` is project `.calmrj` only (default 10). Do **not** read it from user-home config. Do **not** close tabs when the number is lowered. Refuse a new open only when the count is already above the limit.
+- **R90:** do **not** prompt on New, Open, or tab switch. Prompt on dirty diagram-tab close and on window close.
+- **R91 / R92:** tree tooltip is the full name only. Do **not** append the path. Files and Hub scroll horizontally.
+- **R93:** the left handle resizes the left pane and the editor. The right handle resizes the editor and properties. Do **not** change the opposite outer pane. Do **not** change the bottom code-panel split.
+- **R94 / R95:** column drag changes only the two adjacent columns. Do **not** persist widths or the Find neighbors size. Do **not** grow the table.
+- **R13 / R14:** still P2 — do not implement Tauri/watch in Iterations 8–18.
 
 ### Change log
 
@@ -3206,6 +3432,7 @@ Extend / add:
 | 2026-09-30 | 0.32    | stakeholder      | **V13:** R84. Hide toolbar Demos and bundled FluxNova/OpenGRIS template tabs unless `.calmrj` `ui.demo: true` (default false). R13–R14 → Iteration 16 |
 | 2026-09-30 | 0.33    | stakeholder      | **V14:** R85. Replace calmscript stub with Mermaid flowchart export (`.mmd` + `.md`) and read-only Code-panel Mermaid tab; leave `packages/calmscript`. R13–R14 → Iteration 17 |
 | 2026-10-01 | 0.34    | stakeholder      | **V15:** R86. Array properties edited per element (inline list; objects included); nested JSON pretty in preview and dialog. R13–R14 → Iteration 18 |
+| 2026-10-13 | 0.35    | stakeholder      | **V16:** R87–R95. Document `adrs` (Hub URL without revision, relative local path, remove/edit/reorder); read-only preview tab; `ui.maxOpenEditors` (default 10); save prompt only on tab close and window close; tree name tooltip; Files/Hub horizontal scroll; splitter direction; column headers, cell tooltip, adjacent-column resize; resizable Find neighbors. R13–R14 → Iteration 19 |
 
 
 ### Session decisions (2026-06-28)
@@ -3476,5 +3703,26 @@ Extend / add:
 | Empty array                  | Show list + Add (#94, R86).                                                                                                     |
 | V15                          | **In scope** (R86).                                                                                                             |
 | Iteration priority           | V15 = Iteration 17; Tauri/watch R13–R14 = Iteration 18                                                                          |
+
+
+### Session decisions (2026-10-13, V16 ADR and chrome)
+
+
+| Decision                     | Choice                                                                                                                          |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| ADR preview                  | Editor tab. Local `.md` = rendered Markdown. Hub ADR = read-only fields. Other files = path and no-preview notice (#95, R88). |
+| ADR list visibility          | Only when no node and no relationship is selected (#96, R87).                                                                   |
+| ADR actions                  | View, add Hub, add local file, remove, edit string, reorder (#97, R87).                                                         |
+| Hub string                   | `{hubUrl}/calm/namespaces/{ns}/adrs/{id}` with no revision. View loads latest (#98, R87).                                       |
+| Local string                 | Path relative to the current architecture file. Untitled cannot add a local file (R87).                                         |
+| Open-editor cap              | Project `ui.maxOpenEditors`, default 10. Lowering does not close tabs. Above the limit, refuse. At the limit, FIFO (#99, R89). |
+| Preview tabs and the cap     | They count (#100, R88).                                                                                                         |
+| Save prompt                  | Tab close and window close only (#101, R90).                                                                                    |
+| Column lists                 | All multi-column lists. Header, full-cell tooltip, adjacent-column resize. Widths reset on close (#102, R94).                  |
+| Tree tooltip                 | Full name only (#103, R91).                                                                                                     |
+| Splitters                    | Left handle: left + editor. Right handle: editor + properties (R93).                                                            |
+| Find neighbors               | Dialog is resizable. Size is not stored (R95).                                                                                  |
+| V16                          | **In scope** (R87–R95). Namespace URL mapping (BBR Vxx) is not.                                                                 |
+| Iteration priority           | V16 = Iteration 18; Tauri/watch R13–R14 = Iteration 19                                                                          |
 
 

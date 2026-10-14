@@ -142,7 +142,7 @@ export async function pickProjectFile(
 	try {
 		const [handle] = await picker({
 			multiple: false,
-			types,
+			...(types.length > 0 ? { types } : {}),
 		});
 		if (!handle) return { cancelled: true };
 		const rel = await relativePathOfFile(root, handle);

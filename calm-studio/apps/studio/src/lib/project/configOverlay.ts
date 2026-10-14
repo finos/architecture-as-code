@@ -8,12 +8,19 @@ import type { CalmProjectConfig } from './types';
  * Load user defaults first, then overlay the project file. Project wins.
  * Objects deep-merge; arrays replace when the project key is present (R62 / #60).
  */
+/** `ui.maxOpenEditors` is project-only. Drop it from user defaults before merge (R89). */
+function withoutUserEditorLimit(user: CalmProjectConfig): CalmProjectConfig {
+	if (user.ui?.maxOpenEditors === undefined) return user;
+	const { maxOpenEditors: _omit, ...ui } = user.ui;
+	return { ...user, ui };
+}
+
 export function overlayProjectConfig(
 	user: CalmProjectConfig | null | undefined,
 	project: CalmProjectConfig
 ): CalmProjectConfig {
 	if (!user) return project;
-	return deepMerge(user, project) as CalmProjectConfig;
+	return deepMerge(withoutUserEditorLimit(user), project) as CalmProjectConfig;
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {

@@ -8,8 +8,16 @@ function joinPath(parent: string, name: string): string {
 	return parent ? `${parent}/${name}` : name;
 }
 
+/** Files the explorer lists beside folders: CALM JSON and Markdown. */
+export function explorerListedFileKind(name: string): 'json' | 'markdown' | null {
+	const lower = name.toLowerCase();
+	if (lower.endsWith('.json')) return 'json';
+	if (lower.endsWith('.md')) return 'markdown';
+	return null;
+}
+
 /**
- * Recursively scan a directory handle and build a tree of folders and .json files.
+ * Recursively scan a directory handle and build a tree of folders, .json files, and .md files.
  * CALM node previews are loaded lazily via {@link loadCalmNodesForFile}.
  */
 export async function scanDirectoryTree(
@@ -35,14 +43,16 @@ export async function scanDirectoryTree(
 			continue;
 		}
 
-		if (handle.kind === 'file' && name.toLowerCase().endsWith('.json')) {
+		const listed = handle.kind === 'file' ? explorerListedFileKind(name) : null;
+		if (listed) {
 			entries.push({
 				kind: 'file',
 				name,
 				relativePath: joinPath(basePath, name),
 				handle: handle as FileSystemFileHandle,
 				isCalm: false,
-				nodesLoaded: false,
+				isMarkdown: listed === 'markdown',
+				nodesLoaded: listed === 'markdown',
 			});
 		}
 	}
@@ -58,7 +68,7 @@ function compareEntries(a: ExplorerTreeEntry, b: ExplorerTreeEntry): number {
 }
 
 export async function loadCalmNodesForFile(file: ExplorerFileEntry): Promise<ExplorerFileEntry> {
-	if (file.nodesLoaded) return file;
+	if (file.nodesLoaded || file.isMarkdown) return file;
 
 	try {
 		const f = await file.handle.getFile();
@@ -143,11 +153,16 @@ export function findDirectoryInTree(
 	return null;
 }
 
-export function listJsonFilesInTree(entries: ExplorerTreeEntry[]): ExplorerFileEntry[] {
+export function listExplorerFiles(entries: ExplorerTreeEntry[]): ExplorerFileEntry[] {
 	const files: ExplorerFileEntry[] = [];
 	for (const entry of entries) {
 		if (entry.kind === 'file') files.push(entry);
-		else files.push(...listJsonFilesInTree(entry.children));
+		else files.push(...listExplorerFiles(entry.children));
 	}
 	return files;
+}
+
+/** JSON files only. Markdown is listed in the tree but is not rewritten as CALM JSON. */
+export function listJsonFilesInTree(entries: ExplorerTreeEntry[]): ExplorerFileEntry[] {
+	return listExplorerFiles(entries).filter((file) => !file.isMarkdown && file.name.toLowerCase().endsWith('.json'));
 }

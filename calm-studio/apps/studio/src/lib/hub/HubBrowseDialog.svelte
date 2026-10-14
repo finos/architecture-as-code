@@ -128,8 +128,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && oncancel()}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="hub-browse-title">
 		<h2 id="hub-browse-title" class="title">CALM Hub</h2>
 		<p class="meta">{hubUrl ?? 'No Hub URL configured'}</p>

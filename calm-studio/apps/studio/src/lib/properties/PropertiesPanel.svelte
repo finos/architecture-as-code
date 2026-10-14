@@ -17,6 +17,7 @@
 	import NodeProperties from './NodeProperties.svelte';
 	import EdgeProperties from './EdgeProperties.svelte';
 	import GovernancePanel from '$lib/governance/GovernancePanel.svelte';
+	import DocumentAdrList from '$lib/adr/DocumentAdrList.svelte';
 	import { isAINode } from '@calmstudio/calm-core';
 
 	let {
@@ -32,6 +33,13 @@
 		onfindneighbors,
 		onfindusage,
 		oncontainmentmembers,
+		documentAdrs = [],
+		showAdrList = false,
+		canAddLocalAdr = false,
+		onviewadr,
+		onaddhubadr,
+		onaddlocaladr,
+		onadrschange,
 	}: {
 		selectedNode?: Node | null;
 		selectedEdge?: Edge | null;
@@ -55,6 +63,13 @@
 		onfindusage?: (nodeId: string) => void;
 		/** Update composed-of / deployed-in members (R38). */
 		oncontainmentmembers?: (nextNodeIds: string[]) => void;
+		documentAdrs?: string[];
+		showAdrList?: boolean;
+		canAddLocalAdr?: boolean;
+		onviewadr?: (ref: string) => void;
+		onaddhubadr?: () => void;
+		onaddlocaladr?: () => void;
+		onadrschange?: (next: string[]) => void;
 	} = $props();
 
 	/** Prefer node when both are somehow selected. */
@@ -95,7 +110,7 @@
 	const showGovernanceTab = $derived(activeNode !== null);
 </script>
 
-<aside class="properties-panel" class:collapsed={!hasSelection} aria-label="Properties panel">
+<aside class="properties-panel" class:collapsed={!hasSelection && !showAdrList} aria-label="Properties panel">
 	{#if hasSelection}
 		<!-- Tab bar (only shown when a node is selected — edges don't have governance) -->
 		{#if showGovernanceTab}
@@ -165,6 +180,16 @@
 				/>
 			{/if}
 		</div>
+	{:else if showAdrList}
+		<DocumentAdrList
+			adrs={documentAdrs}
+			readonly={readonly}
+			canAddLocal={canAddLocalAdr}
+			onview={(ref) => onviewadr?.(ref)}
+			onaddhub={() => onaddhubadr?.()}
+			onaddlocal={() => onaddlocaladr?.()}
+			onchange={(next) => onadrschange?.(next)}
+		/>
 	{:else}
 		<!-- Collapsed strip — thin panel with rotated "Properties" label -->
 		<div class="collapsed-strip" aria-label="Properties panel — nothing selected">
@@ -189,6 +214,7 @@
 		display: flex;
 		flex-direction: column;
 		height: 100%;
+		min-height: 0;
 		background: var(--color-surface, #fff);
 		border-left: 1px solid var(--color-border, #e2e8f0);
 		font-family: var(--font-sans, inherit);

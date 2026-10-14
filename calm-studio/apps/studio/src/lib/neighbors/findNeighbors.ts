@@ -74,6 +74,7 @@ export function listJsonFiles(entries: ExplorerTreeEntry[]): Array<{ relativePat
 	const out: Array<{ relativePath: string; handle: FileSystemFileHandle }> = [];
 	for (const entry of entries) {
 		if (entry.kind === 'file') {
+			if (entry.isMarkdown || !entry.relativePath.toLowerCase().endsWith('.json')) continue;
 			out.push({ relativePath: entry.relativePath, handle: entry.handle });
 		} else {
 			out.push(...listJsonFiles(entry.children));

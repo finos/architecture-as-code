@@ -20,10 +20,6 @@
 		nameInput?.select();
 	});
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -45,8 +41,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="create-prj-title">
 		<h2 id="create-prj-title" class="title">Create project</h2>
 		<p class="hint">No <code>.calmrj</code> file found. Create one to store validation rules and naming conventions.</p>

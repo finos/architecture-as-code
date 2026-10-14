@@ -52,7 +52,7 @@
 	} from '$lib/c4/c4Filter';
 	import type { C4Level } from '$lib/c4/c4Filter';
 	import { toggleTheme, isDark } from '$lib/stores/theme.svelte';
-	import { getModelJson, getExportJson, applyFromJson, applyFromCanvas, getModel, resetModel, updateEdgeProperty, didMergeContainmentOnLastApply } from '$lib/stores/calmModel.svelte';
+	import { getModelJson, getExportJson, applyFromJson, applyFromCanvas, getModel, resetModel, updateEdgeProperty, didMergeContainmentOnLastApply, setDocumentAdrs } from '$lib/stores/calmModel.svelte';
 	import { calmToFlow } from '$lib/stores/projection';
 	import { applyContainmentFromEdges, applyContainmentVisibility, setContainmentMembers } from '$lib/canvas/containment';
 	import { pushSnapshot, resetHistory, undo, redo, exportHistoryState, loadHistoryState, createEmptyHistoryState } from '$lib/stores/history.svelte';
@@ -68,7 +68,21 @@
 	import type { ArchitectureWithMetadata } from '$lib/stores/documentEnvelope';
 	import { patternSchemaToArchitecture, architectureToPatternSchema } from '$lib/templates/patternSchemaGraph';
 	import { hubUrlFromProject, isHubArchitectureUrl } from '$lib/hub/hubUrl';
-	import { fetchHubArchitecture, resolveHubPatternDocument } from '$lib/hub/hubClient';
+	import { fetchHubArchitecture, fetchHubAdr, resolveHubPatternDocument } from '$lib/hub/hubClient';
+	import {
+		addAdr,
+		adrRelativeToFile,
+		adrTabKey,
+		loadAdrPreview,
+		previewUnavailable,
+		readAdrs,
+		type AdrPreviewModel,
+	} from '$lib/adr/adrs';
+	import AdrPreview from '$lib/adr/AdrPreview.svelte';
+	import HubAdrDialog from '$lib/adr/HubAdrDialog.svelte';
+	import { openCapacity, resolveMaxOpenEditors } from '$lib/editor/editorLimit';
+	import { pickProjectFile } from '$lib/project/pathPickers';
+	import { readProjectRelativeText } from '$lib/project/projectFs';
 	import { openFile, saveFile, saveFileAs } from '$lib/io/fileSystem';
 	import { saveAsDefaults, primaryNodeFromCanvas } from '$lib/project/saveAsDefaults';
 	import {
@@ -85,13 +99,13 @@
 		resetFileState,
 		setCleanSnapshot,
 		setFileRelativePath,
+		getCleanSnapshot,
 	} from '$lib/io/fileState.svelte';
 	import UnsavedChangesDialog from '$lib/io/UnsavedChangesDialog.svelte';
 	import BulkUnsavedDialog from '$lib/io/BulkUnsavedDialog.svelte';
 	import DiagramTabBar from '$lib/tabs/DiagramTabBar.svelte';
 	import type { DiagramTabState } from '$lib/tabs/tabManager';
 	import {
-		MAX_DIAGRAM_TABS,
 		closeTab,
 		findTabByFile,
 		openOrActivateTab,
@@ -483,14 +497,20 @@
 		options: CalmOption[];
 	} | null>(null);
 	let documentReadonly = $state(false);
-	let activeKind = $state<'architecture' | 'pattern' | 'hub'>('architecture');
+	let activeKind = $state<'architecture' | 'pattern' | 'hub' | 'adr'>('architecture');
 	let patternEdit = $state<{ base: object; fromHub: boolean } | null>(null);
+	let adrPreview = $state<AdrPreviewModel | null>(null);
+	let hubAdrDialogOpen = $state(false);
+	let editorLimitMessage = $state<string | null>(null);
+	let leftPaneWidth = $state(260);
+	let propsPaneWidth = $state(300);
 
 	// ─── Unsaved changes dialog (Save / Don't save / Cancel) ─────────────────
 
 	type UnsavedChoice = 'save' | 'discard' | 'cancel';
 
 	let showUnsavedDialog = $state(false);
+	let unsavedDialogFilename = $state<string | null>(null);
 	let unsavedDialogResolver: ((choice: UnsavedChoice) => void) | null = null;
 
 	type BulkUnsavedChoice = 'save' | 'discard' | 'cancel';
@@ -513,8 +533,9 @@
 	let diagramFilter = $state<DiagramFilterState>({ ...DEFAULT_DIAGRAM_FILTER });
 	let tabFilters = $state<Record<string, DiagramFilterState>>({});
 
-	function promptUnsavedChanges(): Promise<UnsavedChoice> {
+	function promptUnsavedChanges(filename?: string): Promise<UnsavedChoice> {
 		return new Promise((resolve) => {
+			unsavedDialogFilename = filename ?? getFileName();
 			unsavedDialogResolver = resolve;
 			showUnsavedDialog = true;
 		});
@@ -549,25 +570,22 @@
 		setCleanSnapshot(getModelJson());
 	}
 
-	async function ensureCanProceedWithUnsavedChanges(): Promise<boolean> {
-		if (!hasUnsavedChanges(getModelJson())) return true;
-
-		const choice = await promptUnsavedChanges();
-		if (choice === 'cancel') return false;
-		if (choice === 'save') {
-			await handleSave();
-			if (hasUnsavedChanges(getModelJson())) return false;
-		}
-		return true;
-	}
-
 	// ─── Diagram tabs (P1 R15) ───────────────────────────────────────────────
 
 	function isTabDirty(tab: DiagramTabState): boolean {
-		if (tab.id === activeTabId) {
+		if (tab.kind === 'adr') return false;
+		if (tab.id === activeTabId && activeKind !== 'adr') {
 			return hasUnsavedChanges(getModelJson());
 		}
 		return tab.modelJson !== tab.cleanSnapshot;
+	}
+
+	function editorLimit(): number {
+		return resolveMaxOpenEditors(getProjectFileConfig());
+	}
+
+	function anyDiagramDirty(): boolean {
+		return diagramTabs.some((tab) => isTabDirty(tab));
 	}
 
 	function confirmDirtyFolderMove(movedPaths: string[]): boolean {
@@ -624,6 +642,17 @@
 			const oldPath = tab.relativePath;
 			if (!oldPath) return tab;
 			const newPath = mapping[oldPath] ?? oldPath;
+			if (tab.kind === 'adr') {
+				const file = findFileInTree(tree, newPath);
+				const oldName = oldPath.split('/').pop();
+				const newName = newPath.split('/').pop() ?? tab.label;
+				return {
+					...tab,
+					relativePath: newPath,
+					label: tab.label === oldName ? newName : tab.label,
+					fileHandle: file?.handle ?? tab.fileHandle,
+				};
+			}
 			let modelJson = tab.modelJson;
 			let jsonChanged = false;
 			try {
@@ -658,6 +687,7 @@
 		const active = diagramTabs.find((tab) => tab.id === activeTabId);
 		if (!active?.relativePath) return;
 		setFileRelativePath(active.relativePath);
+		if (active.kind === 'adr') return;
 		if (oldActivePath) {
 			nodes = rewriteCanvasDetails(
 				nodes,
@@ -716,7 +746,7 @@
 	}
 
 	function persistActiveTab(): void {
-		if (!activeTabId) return;
+		if (!activeTabId || activeKind === 'adr') return;
 		applyFromCanvas(nodes, edges);
 		const json = getModelJson();
 		diagramTabs = patchTabState(diagramTabs, activeTabId, {
@@ -739,6 +769,24 @@
 		clearTimeout(codeChangeTimer);
 		codeParseError = null;
 
+		if (tab.kind === 'adr') {
+			selectedNodeId = null;
+			selectedEdgeId = null;
+			activeKind = 'adr';
+			documentReadonly = true;
+			patternEdit = null;
+			try {
+				adrPreview = JSON.parse(tab.modelJson) as AdrPreviewModel;
+			} catch {
+				adrPreview = previewUnavailable(tab.label, 'Could not read this ADR preview.');
+			}
+			markClean(tab.label, tab.fileHandle, tab.relativePath);
+			setCleanSnapshot(tab.modelJson);
+			tabRenderKey += 1;
+			return;
+		}
+
+		adrPreview = null;
 		const arch = JSON.parse(tab.modelJson) as CalmArchitecture;
 		loadHistoryState(tab.history);
 		applyFromJson(arch);
@@ -763,26 +811,30 @@
 		canvas?.fitViewport();
 	}
 
-	async function evictOldestTabIfNeeded(): Promise<boolean> {
-		if (diagramTabs.length < MAX_DIAGRAM_TABS) return true;
-		const victim = pickFifoEvictionCandidate(
-			diagramTabs.filter((t) => t.id !== activeTabId)
-		);
-		if (!victim) return true;
-		if (isTabDirty(victim)) {
-			const confirmed = window.confirm(
-				`Zavřít nejstarší záložku „${victim.label}" s neuloženými změnami?`
-			);
-			if (!confirmed) return false;
+	async function prepareEditorSlot(): Promise<boolean> {
+		const limit = editorLimit();
+		const decision = openCapacity(diagramTabs.length, limit);
+		if (decision === 'ok') {
+			editorLimitMessage = null;
+			return true;
 		}
-		diagramTabs = diagramTabs.filter((t) => t.id !== victim.id);
-		if (activeTabId === victim.id) {
-			activeTabId = diagramTabs[0]?.id ?? null;
-			if (activeTabId) {
-				const next = diagramTabs.find((t) => t.id === activeTabId);
-				if (next) await restoreTabState(next);
+		if (decision === 'refuse') {
+			editorLimitMessage = `Close an editor before opening another (${diagramTabs.length} open, limit ${limit}).`;
+			return false;
+		}
+		const others = diagramTabs.filter((tab) => tab.id !== activeTabId);
+		const victim = pickFifoEvictionCandidate(others.length > 0 ? others : diagramTabs);
+		if (!victim) return false;
+		if (isTabDirty(victim)) {
+			const choice = await promptUnsavedChanges(victim.label);
+			if (choice === 'cancel') return false;
+			if (choice === 'save') {
+				const ok = await saveTabsSubset([victim.id]);
+				if (!ok) return false;
 			}
 		}
+		await closeTabImmediate(victim.id);
+		editorLimitMessage = null;
 		return true;
 	}
 
@@ -804,7 +856,14 @@
 			cleanSnapshot: json,
 			selectedNodeId,
 			selectedEdgeId,
-		});
+			// A file from disk is an editable architecture. Do not copy the ADR preview lock.
+			kind: 'architecture',
+			readonly: false,
+		}, Date.now(), editorLimit());
+		if (result.refused) {
+			editorLimitMessage = `Close an editor before opening another (${diagramTabs.length} open, limit ${editorLimit()}).`;
+			return;
+		}
 		diagramTabs = result.tabs;
 		activeTabId = result.activeTabId;
 	}
@@ -828,13 +887,13 @@
 		const tab = diagramTabs.find((t) => t.id === tabId);
 		if (!tab) return;
 
-		if (tabId === activeTabId) {
-			if (!(await ensureCanProceedWithUnsavedChanges())) return;
-		} else if (isTabDirty(tab)) {
-			const confirmed = window.confirm(
-				`Zavřít záložku „${tab.label}" s neuloženými změnami?`
-			);
-			if (!confirmed) return;
+		if (tab.kind !== 'adr' && isTabDirty(tab)) {
+			const choice = await promptUnsavedChanges(tab.label);
+			if (choice === 'cancel') return;
+			if (choice === 'save') {
+				const ok = await saveTabsSubset([tabId]);
+				if (!ok) return;
+			}
 		}
 
 		await closeTabImmediate(tabId);
@@ -1044,9 +1103,146 @@
 		refreshDiagramFog();
 	}
 
+	function startPaneDrag(which: 'left' | 'props', event: PointerEvent) {
+		event.preventDefault();
+		const startX = event.clientX;
+		const startLeft = leftPaneWidth;
+		const startProps = propsPaneWidth;
+		const move = (e: PointerEvent) => {
+			const dx = e.clientX - startX;
+			if (which === 'left') {
+				leftPaneWidth = Math.min(560, Math.max(160, startLeft + dx));
+			} else {
+				propsPaneWidth = Math.min(640, Math.max(200, startProps - dx));
+			}
+		};
+		const stop = () => {
+			window.removeEventListener('pointermove', move);
+			window.removeEventListener('pointerup', stop);
+		};
+		window.addEventListener('pointermove', move);
+		window.addEventListener('pointerup', stop);
+	}
+
+	/** The first diagram is edited before it has a tab. Keep it when another editor opens (R90). */
+	function ensureCurrentDocumentTab(): void {
+		if (activeTabId && diagramTabs.some((tab) => tab.id === activeTabId)) return;
+		const json = getModelJson();
+		const tabId = crypto.randomUUID();
+		diagramTabs = [
+			...diagramTabs,
+			{
+				id: tabId,
+				label: getFileName() || 'Untitled',
+				fileHandle: getFileHandle(),
+				relativePath: getFileRelativePath(),
+				openedAt: Date.now(),
+				nodes: cloneFlowState(nodes),
+				edges: cloneFlowState(edges),
+				history: exportHistoryState(),
+				modelJson: json,
+				cleanSnapshot: getCleanSnapshot(),
+				selectedNodeId,
+				selectedEdgeId,
+				kind: activeKind === 'adr' ? 'architecture' : activeKind,
+				readonly: documentReadonly,
+				patternBase: patternEdit?.base,
+			},
+		];
+		activeTabId = tabId;
+	}
+
+	async function openAdrPreview(ref: string, options?: { projectRelative?: boolean }): Promise<void> {
+		const fromFile = options?.projectRelative ? null : getFileRelativePath();
+		const key = adrTabKey(ref, fromFile);
+		const existing = findTabByFile(diagramTabs, key, key);
+		if (existing) {
+			await handleActivateTab(existing.id);
+			return;
+		}
+		if (!(await prepareEditorSlot())) return;
+		ensureCurrentDocumentTab();
+		if (activeKind !== 'adr') persistActiveTab();
+		const root = getProjectRootHandle();
+		const preview = await loadAdrPreview(ref, fromFile, {
+			readText: async (path) => {
+				if (!root) throw new Error('Open a project folder to read a local ADR.');
+				return readProjectRelativeText(root, path);
+			},
+			fetchHub: (url) => fetchHubAdr(url),
+		});
+		const json = JSON.stringify(preview);
+		const tabId = crypto.randomUUID();
+		const result = openOrActivateTab(
+			diagramTabs,
+			activeTabId,
+			tabId,
+			{
+				label: preview.title,
+				fileHandle: key,
+				relativePath: key,
+				nodes: [],
+				edges: [],
+				history: createEmptyHistoryState(),
+				modelJson: json,
+				cleanSnapshot: json,
+				kind: 'adr',
+				readonly: true,
+			},
+			Date.now(),
+			editorLimit()
+		);
+		if (result.refused) {
+			editorLimitMessage = `Close an editor before opening another (${diagramTabs.length} open, limit ${editorLimit()}).`;
+			return;
+		}
+		diagramTabs = result.tabs;
+		activeTabId = result.activeTabId;
+		const opened = diagramTabs.find((tab) => tab.id === result.activeTabId);
+		if (opened) await restoreTabState(opened);
+	}
+
+	function commitDocumentAdrs(next: string[]): void {
+		if (documentReadonly || activeKind === 'adr') return;
+		handleBeforeFirstEdit();
+		setDocumentAdrs(next);
+		markDirty();
+	}
+
+	async function addLocalAdr(): Promise<void> {
+		const root = getProjectRootHandle();
+		const fromFile = getFileRelativePath();
+		if (!root || !fromFile || documentReadonly) return;
+		const picked = await pickProjectFile(root, []);
+		if ('cancelled' in picked) return;
+		if ('error' in picked) {
+			editorLimitMessage = picked.error;
+			return;
+		}
+		const relative = adrRelativeToFile(fromFile, picked.path);
+		const result = addAdr(readAdrs(getModel()), relative);
+		if (result.duplicate) {
+			editorLimitMessage = 'That ADR is already on this diagram.';
+			return;
+		}
+		editorLimitMessage = null;
+		commitDocumentAdrs(result.adrs);
+	}
+
+	function addHubAdr(url: string): void {
+		hubAdrDialogOpen = false;
+		const result = addAdr(readAdrs(getModel()), url);
+		if (result.duplicate) {
+			editorLimitMessage = 'That ADR is already on this diagram.';
+			return;
+		}
+		editorLimitMessage = null;
+		commitDocumentAdrs(result.adrs);
+	}
+
 	async function handleNewTab(): Promise<void> {
-		if (!(await ensureCanProceedWithUnsavedChanges())) return;
-		if (!(await evictOldestTabIfNeeded())) return;
+		if (!(await prepareEditorSlot())) return;
+		ensureCurrentDocumentTab();
 		persistActiveTab();
 
 		resetModel();
@@ -1058,6 +1254,7 @@
 		selectedNodeId = null;
 		selectedEdgeId = null;
 		activeKind = 'architecture';
+		adrPreview = null;
 		documentReadonly = false;
 		patternEdit = null;
 		const json = getModelJson();
@@ -1217,8 +1414,9 @@
 			markDirty?: boolean;
 		} = {}
 	): Promise<void> {
+		ensureCurrentDocumentTab();
 		persistActiveTab();
-		if (!(await evictOldestTabIfNeeded())) return;
+		if (!(await prepareEditorSlot())) return;
 
 		resetModel();
 		resetHistory();
@@ -1229,6 +1427,7 @@
 		selectedNodeId = null;
 		selectedEdgeId = null;
 		activeKind = options.kind ?? 'architecture';
+		adrPreview = null;
 		documentReadonly = options.readonly === true;
 		patternEdit = options.patternBase
 			? { base: options.patternBase, fromHub: options.kind === 'pattern' && !options.fileHandle }
@@ -1705,16 +1904,18 @@
 			return true;
 		}
 
-		if (!options?.skipUnsavedPrompt && !(await ensureCanProceedWithUnsavedChanges())) {
-			return false;
-		}
-		if (!(await evictOldestTabIfNeeded())) {
+		if (!(await prepareEditorSlot())) {
 			return false;
 		}
 
+		ensureCurrentDocumentTab();
 		persistActiveTab();
 		resetHistory();
 		await importCalmFile(content, name);
+		if (importError) return false;
+		activeKind = 'architecture';
+		adrPreview = null;
+		documentReadonly = false;
 		markDocumentClean(name, handle, relativePath);
 		registerCurrentDocumentAsTab(name, handle, relativePath);
 		// Canvas must sync after activeTabId is set (import alone updates JSON before the tab switch).
@@ -1797,6 +1998,10 @@
 		relativePath: string,
 		handle: FileSystemFileHandle
 	) {
+		if (name.toLowerCase().endsWith('.md') || relativePath.toLowerCase().endsWith('.md')) {
+			await openAdrPreview(relativePath, { projectRelative: true });
+			return;
+		}
 		await openCalmFileAfterConfirm(content, name, handle, relativePath);
 	}
 
@@ -2285,16 +2490,17 @@
 
 	$effect(() => {
 		const filename = getFileName();
-		const dirty = isDocumentModified;
+		const activeTab = diagramTabs.find((tab) => tab.id === activeTabId);
+		const titleDirty = activeKind === 'adr' ? false : activeTab ? isTabDirty(activeTab) : isDocumentModified;
+		const windowDirty = diagramTabs.length === 0 ? isDocumentModified : anyDiagramDirty();
 
 		if (filename) {
-			document.title = dirty ? `${filename} \u2022 CalmStudio` : `${filename} - CalmStudio`;
+			document.title = titleDirty ? `${filename} \u2022 CalmStudio` : `${filename} - CalmStudio`;
 		} else {
-			document.title = dirty ? 'CalmStudio \u2022 Unsaved' : 'CalmStudio';
+			document.title = titleDirty ? 'CalmStudio \u2022 Unsaved' : 'CalmStudio';
 		}
 
-		// Reactively set/clear onbeforeunload based on dirty state
-		if (dirty) {
+		if (windowDirty) {
 			window.onbeforeunload = (e: BeforeUnloadEvent) => {
 				e.preventDefault();
 				e.returnValue = '';
@@ -2362,6 +2568,22 @@
 		/>
 
 		<!-- Error banner: below toolbar, above canvas panes -->
+		{#if editorLimitMessage}
+			<div class="error-banner" role="status">
+				<span class="error-message">{editorLimitMessage}</span>
+				<button
+					type="button"
+					class="error-dismiss"
+					onclick={() => (editorLimitMessage = null)}
+					aria-label="Dismiss notice"
+				>
+					<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+						<line x1="18" y1="6" x2="6" y2="18" />
+						<line x1="6" y1="6" x2="18" y2="18" />
+					</svg>
+				</button>
+			</div>
+		{/if}
 		{#if importError}
 			<div class="error-banner" role="alert">
 				<span class="error-message">{importError}</span>
@@ -2417,10 +2639,9 @@
 		<PaneGroup direction="vertical" class="main-pane-group">
 			<!-- Top: Three-column layout (palette | canvas | properties) -->
 			<Pane defaultSize={60} minSize={30}>
-				<PaneGroup direction="horizontal" style="height: 100%;">
-					<!-- Left: Node Palette (hidden in C4 mode) -->
+				<div class="editor-row">
 					{#if !isC4Mode()}
-						<Pane defaultSize={15} minSize={8}>
+						<div class="side-pane" style:width="{leftPaneWidth}px">
 							<LeftSidebar
 								bind:this={leftSidebar}
 								onplacenode={handlePalettePlace}
@@ -2431,13 +2652,11 @@
 								onbeforefoldermove={confirmDirtyFolderMove}
 								onfoldermove={handleFolderMove}
 							/>
-						</Pane>
-
-						<PaneResizer class="resizer resizer-vertical" />
+						</div>
+						<button type="button" class="pane-split" aria-label="Resize files pane" onpointerdown={(event) => startPaneDrag('left', event)}></button>
 					{/if}
 
-					<!-- Center: Canvas area -->
-					<Pane defaultSize={70}>
+					<div class="editor-pane">
 						<div
 							class="canvas-pane"
 							class:c4-context={getC4Level() === 'context'}
@@ -2456,6 +2675,7 @@
 							{/if}
 
 							<!-- Floating toolbar (layout controls + dark mode toggle) -->
+							{#if activeKind !== 'adr'}
 							<div class="canvas-toolbar">
 								<!-- Auto-layout controls -->
 								<div class="layout-group" role="group" aria-label="Auto-layout controls">
@@ -2510,8 +2730,12 @@
 									{/if}
 								</button>
 							</div>
+							{/if}
 
 							{#key tabRenderKey}
+							{#if activeKind === 'adr'}
+								<AdrPreview preview={adrPreview} />
+							{:else}
 							<SvelteFlowProvider>
 								{#if isC4Mode() && c4DisplayNodes.length === 0}
 									<!-- Empty C4 view -->
@@ -2566,14 +2790,14 @@
 									</div>
 								{/if}
 							</SvelteFlowProvider>
+							{/if}
 							{/key}
 						</div>
-					</Pane>
+					</div>
 
-					<PaneResizer class="resizer resizer-vertical" />
+					<button type="button" class="pane-split" aria-label="Resize properties pane" onpointerdown={(event) => startPaneDrag('props', event)}></button>
 
-					<!-- Right: Properties panel -->
-					<Pane defaultSize={15} minSize={5}>
+					<div class="side-pane" style:width="{propsPaneWidth}px">
 						<PropertiesPanel
 							{selectedNode}
 							{selectedEdge}
@@ -2586,10 +2810,17 @@
 							onfindneighbors={(id) => void openFindNeighbors(id)}
 							onfindusage={(id) => void openFindUsage(id)}
 							oncontainmentmembers={handleContainmentMembers}
-							readonly={isC4Mode() || documentReadonly}
+							readonly={isC4Mode() || documentReadonly || activeKind === 'adr'}
+							documentAdrs={readAdrs(getModel())}
+							showAdrList={activeKind !== 'adr' && !selectedNode && !selectedEdge}
+							canAddLocalAdr={!!getFileRelativePath()}
+							onviewadr={(ref) => void openAdrPreview(ref)}
+							onaddhubadr={() => (hubAdrDialogOpen = true)}
+							onaddlocaladr={() => void addLocalAdr()}
+							onadrschange={commitDocumentAdrs}
 						/>
-					</Pane>
-				</PaneGroup>
+					</div>
+				</div>
 			</Pane>
 
 			<PaneResizer class="resizer resizer-horizontal" />
@@ -2598,13 +2829,13 @@
 			<Pane defaultSize={25} minSize={10}>
 				{#key tabRenderKey}
 				<CodePanel
-					value={calmJson}
-					mermaid={mermaidSource}
+					value={activeKind === 'adr' ? JSON.stringify(adrPreview, null, 2) : calmJson}
+					mermaid={activeKind === 'adr' ? '' : mermaidSource}
 					onchange={handleCodeChange}
 					parseError={codeParseError}
 					selectedNodeId={selectedNodeId}
 					selectedEdgeId={selectedEdgeId}
-					readonly={documentReadonly}
+					readonly={documentReadonly || activeKind === 'adr'}
 				/>
 				{/key}
 			</Pane>
@@ -2651,9 +2882,17 @@
 			/>
 		{/if}
 
+		{#if hubAdrDialogOpen}
+			<HubAdrDialog
+				hubUrl={hubUrlFromProject(getProjectConfig())}
+				onconfirm={addHubAdr}
+				oncancel={() => (hubAdrDialogOpen = false)}
+			/>
+		{/if}
+
 		{#if showUnsavedDialog}
 			<UnsavedChangesDialog
-				filename={getFileName()}
+				filename={unsavedDialogFilename ?? getFileName()}
 				onsave={() => resolveUnsavedDialog('save')}
 				ondiscard={() => resolveUnsavedDialog('discard')}
 				oncancel={() => resolveUnsavedDialog('cancel')}
@@ -2828,6 +3067,43 @@
 
 	:global(.dark) .report-link {
 		color: #818cf8;
+	}
+
+	.editor-row {
+		display: flex;
+		height: 100%;
+		min-height: 0;
+		min-width: 0;
+	}
+
+	.side-pane {
+		flex: 0 0 auto;
+		min-width: 0;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+	}
+
+	.editor-pane {
+		flex: 1 1 auto;
+		min-width: 80px;
+		min-height: 0;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.pane-split {
+		flex: 0 0 5px;
+		padding: 0;
+		border: none;
+		cursor: col-resize;
+		background: var(--color-border, #e2e8f0);
+	}
+
+	.pane-split:hover {
+		background: var(--color-accent, #6366f1);
 	}
 
 	/* PaneGroup fills remaining height below toolbar (and error banner) */

@@ -43,6 +43,21 @@ describe('user config overlay', () => {
 		const merged = overlayProjectConfig(user, project);
 		expect(merged.urlMapping?.path).toBe('url-mapping.json');
 	});
+
+	it('does not take max open editors from user defaults', () => {
+		const user = createDefaultProjectConfig('user');
+		user.ui = { demo: true, maxOpenEditors: 3 };
+		const project = createDefaultProjectConfig('proj');
+		project.ui = { demo: false, maxOpenEditors: 12 };
+		const merged = overlayProjectConfig(user, project);
+		expect(merged.ui?.maxOpenEditors).toBe(12);
+		expect(merged.ui?.demo).toBe(false);
+
+		const projectWithoutLimit = createDefaultProjectConfig('proj');
+		projectWithoutLimit.ui = { demo: false };
+		const stripped = overlayProjectConfig(user, projectWithoutLimit);
+		expect(stripped.ui?.maxOpenEditors).toBeUndefined();
+	});
 });
 
 describe('save as defaults', () => {

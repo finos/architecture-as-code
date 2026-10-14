@@ -14,6 +14,7 @@
 <script lang="ts">
 	// Import from validation store to avoid direct @calmstudio/calm-core tsconfig resolution issues
 	import type { ValidationIssue } from '$lib/stores/validation.svelte';
+	import ColumnGrid from '$lib/ui/ColumnGrid.svelte';
 
 	// ─── Props ────────────────────────────────────────────────────────────────
 
@@ -52,6 +53,19 @@
 	const errorCount = $derived(issues.filter((i) => i.severity === 'error').length);
 	const warningCount = $derived(issues.filter((i) => i.severity === 'warning').length);
 	const infoCount = $derived(issues.filter((i) => i.severity === 'info').length);
+
+	const issueRows = $derived(
+		sortedIssues.map((issue, index) => ({
+			id: `${index}:${issue.severity}:${issue.nodeId ?? issue.relationshipId ?? ''}:${issue.message}`,
+			issue,
+		}))
+	);
+
+	const columns = [
+		{ id: 'severity', label: 'Severity', width: 88 },
+		{ id: 'message', label: 'Message', width: 360 },
+		{ id: 'id', label: 'Id', width: 140 },
+	];
 
 	const summaryText = $derived(() => {
 		const parts: string[] = [];
@@ -113,53 +127,31 @@
 				<span>No validation issues</span>
 			</div>
 		{:else}
-			{#each sortedIssues as issue (issue.severity + ':' + (issue.nodeId ?? issue.relationshipId ?? '') + ':' + issue.message)}
-				<!-- svelte-ignore a11y_click_events_have_key_events -->
-				<!-- svelte-ignore a11y_no_static_element_interactions -->
-				<div
-					class="vp-row vp-row--{issue.severity}"
-					data-element-id={issue.nodeId ?? issue.relationshipId ?? ''}
-					onclick={() => handleRowClick(issue)}
-					title={issue.message}
-				>
-					<!-- Severity icon -->
-					<span class="vp-icon vp-icon--{issue.severity}" aria-label={issue.severity}>
-						{#if issue.severity === 'error'}
-							<!-- Red circle with X -->
-							<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-								<circle cx="8" cy="8" r="7" fill="#dc2626" />
-								<line x1="5.5" y1="5.5" x2="10.5" y2="10.5" stroke="white" stroke-width="1.8" stroke-linecap="round" />
-								<line x1="10.5" y1="5.5" x2="5.5" y2="10.5" stroke="white" stroke-width="1.8" stroke-linecap="round" />
-							</svg>
-						{:else if issue.severity === 'warning'}
-							<!-- Amber triangle -->
-							<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-								<path d="M8 1.5L14.5 13.5H1.5L8 1.5Z" fill="#d97706" />
-								<line x1="8" y1="6" x2="8" y2="10" stroke="white" stroke-width="1.8" stroke-linecap="round" />
-								<circle cx="8" cy="12" r="0.8" fill="white" />
-							</svg>
-						{:else}
-							<!-- Blue info "i" -->
-							<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-								<circle cx="8" cy="8" r="7" fill="#3b82f6" />
-								<circle cx="8" cy="5" r="0.9" fill="white" />
-								<line x1="8" y1="7.5" x2="8" y2="11.5" stroke="white" stroke-width="1.8" stroke-linecap="round" />
-							</svg>
-						{/if}
-					</span>
-
-					<!-- Message text -->
-					<span class="vp-message">{issue.message}</span>
-
-					<!-- Element ID badge -->
-					{#if issue.nodeId ?? issue.relationshipId}
-						<span class="vp-id-badge">{issue.nodeId ?? issue.relationshipId}</span>
-					{/if}
-				</div>
-			{/each}
+			<ColumnGrid columns={columns} rowIds={issueRows.map((row) => row.id)} cell={issueCell} />
 		{/if}
 	</div>
 </div>
+
+{#snippet issueCell(rowId: string, columnId: string)}
+	{@const row = issueRows.find((item) => item.id === rowId)}
+	{#if row}
+		{#if columnId === 'severity'}
+			<span class="vp-icon vp-icon--{row.issue.severity}" title={row.issue.severity}>{row.issue.severity}</span>
+		{:else if columnId === 'message'}
+			<button
+				type="button"
+				class="vp-message-btn"
+				data-element-id={row.issue.nodeId ?? row.issue.relationshipId ?? ''}
+				title={row.issue.message}
+				onclick={() => handleRowClick(row.issue)}
+			>
+				{row.issue.message}
+			</button>
+		{:else}
+			<span class="vp-id-badge" title={row.issue.nodeId ?? row.issue.relationshipId ?? ''}>{row.issue.nodeId ?? row.issue.relationshipId ?? ''}</span>
+		{/if}
+	{/if}
+{/snippet}
 
 <style>
 	.validation-panel {
@@ -308,14 +300,17 @@
 
 	/* ─── Message text ────────────────────────────────────────────── */
 
-	.vp-message {
-		flex: 1;
-		font-size: 12px;
-		color: var(--color-text-primary, #1e293b);
+	.vp-message-btn {
+		width: 100%;
+		text-align: left;
+		border: none;
+		background: transparent;
+		font: inherit;
+		color: inherit;
+		cursor: pointer;
 		overflow: hidden;
 		text-overflow: ellipsis;
 		white-space: nowrap;
-		line-height: 1.4;
 	}
 
 	:global(.dark) .vp-message {

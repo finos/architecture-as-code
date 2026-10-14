@@ -10,7 +10,7 @@
   - Body: responsive grid of template cards (2-3 columns desktop, 1 mobile)
   - Each card: colored dot, template name, description, tag pills, node count badge
   - Clicking a card fires onselect(templateId)
-  - Cancel / Escape / backdrop click fire oncancel()
+  - Cancel / Escape fire oncancel()
 
   Props (Svelte 5 $props):
     onselect: (id: string) => void   — template card was clicked
@@ -137,22 +137,11 @@
 			oncancel();
 		}
 	}
-
-	// ─── Backdrop click ───────────────────────────────────────────────────────
-
-	function handleBackdropClick(e: MouseEvent) {
-		// Only close if clicked directly on the backdrop (not on modal content)
-		if ((e.target as HTMLElement).classList.contains('modal-backdrop')) {
-			oncancel();
-		}
-	}
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
-<div class="modal-backdrop" onclick={handleBackdropClick} role="dialog" aria-modal="true" aria-label="Template picker">
+<div class="modal-backdrop" role="dialog" aria-modal="true" aria-label="Template picker">
 	<div class="modal-content">
 		<!-- Header -->
 		<div class="modal-header">
