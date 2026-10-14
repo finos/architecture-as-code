@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline } from 'react-icons/io5';
+import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline, IoGitNetworkOutline } from 'react-icons/io5';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data } from '../../../model/calm.js';
 import { sortVersionsDescending } from '../../../model/version.js';
@@ -32,6 +32,10 @@ import { useDefaultLayout } from '../../hooks/useDefaultLayout.js';
 import { loadStoredNodePositions, type StoredNodePosition } from '../../../visualizer/services/node-position-service.js';
 import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
 import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
+import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
+import { usePatternImplementations } from './used-by/usePatternImplementations.js';
+import { UsedByVariants } from './used-by/variants/UsedByVariants.js';
+import { USED_BY_LABEL, USED_BY_TOOLTIP } from './used-by/usedBy.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -52,7 +56,7 @@ const iconMap = {
     Patterns: IoGridOutline,
 } as const;
 
-type DiagramTabType = 'diagram' | 'json' | 'deployments';
+type DiagramTabType = 'diagram' | 'json' | 'deployments' | 'used-by';
 
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -128,6 +132,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     /** True for stored / authored (explicit) timelines, false for implied projections. */
     const [timelineIsExplicit, setTimelineIsExplicit] = useState<boolean>(false);
     const [displayName, setDisplayName] = useState<string | undefined>(undefined);
+    // The pattern's name on the name-based API, which the implementations lookup needs.
+    const [patternName, setPatternName] = useState<string | undefined>(undefined);
     /** Compare-mode data shared by CompareView (graphs) and TimelineBar (summary). */
     const [compareSourceA, setCompareSourceA] = useState<DiffSource | null>(null);
     const [compareSourceB, setCompareSourceB] = useState<DiffSource | null>(null);
@@ -141,6 +147,11 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const isArchitecture = data.calmType === 'Architectures';
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
+
+    const implementationService = useMemo(() => new PatternImplementationService(), []);
+    const showUsedBy = !isArchitecture && patternName !== undefined;
+    const usedByOpen = showUsedBy && activeTab === 'used-by' && (compareFrom === null || compareTo === null);
+    const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
 
     // Save/reset the shared default layout — supported for both architectures
     // and patterns (backed by separate resources/collections server-side, see
@@ -261,6 +272,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     useEffect(() => {
         let cancelled = false;
         setDisplayName(undefined);
+        setPatternName(undefined);
         const summaries = isArchitecture
             ? calmService.fetchArchitectureSummaries(data.name)
             : calmService.fetchPatternSummaries(data.name);
@@ -269,6 +281,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                 if (cancelled) return;
                 const match = list.find((s) => String(s.id) === data.id || s.customId === data.id);
                 setDisplayName(match?.name);
+                setPatternName(isArchitecture ? undefined : match?.customId);
                 onDisplayNameChange?.(match?.name);
             })
             .catch(() => {
@@ -423,6 +436,18 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                     <span className="hidden sm:inline">Deployments</span>
                 </button>
             )}
+            {showUsedBy && (
+                <button
+                    role="tab"
+                    aria-label={USED_BY_LABEL}
+                    title={USED_BY_TOOLTIP}
+                    className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'used-by' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
+                    onClick={() => setActiveTab('used-by')}
+                >
+                    <IoGitNetworkOutline />
+                    <span className="hidden sm:inline">{USED_BY_LABEL}</span>
+                </button>
+            )}
         </div>
     );
 
@@ -543,11 +568,20 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
             {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
             {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
+            {showUsedBy && viewModeRow('used-by', <IoGitNetworkOutline size={18} />, USED_BY_LABEL, onSelect)}
         </div>
     );
 
     const activeViewIcon =
-        activeTab === 'json' ? <IoCodeOutline size={20} /> : activeTab === 'deployments' ? <IoRocketOutline size={20} /> : <IoEyeOutline size={20} />;
+        activeTab === 'json' ? (
+            <IoCodeOutline size={20} />
+        ) : activeTab === 'deployments' ? (
+            <IoRocketOutline size={20} />
+        ) : activeTab === 'used-by' ? (
+            <IoGitNetworkOutline size={20} />
+        ) : (
+            <IoEyeOutline size={20} />
+        );
 
     const viewMenu = (
         <>
@@ -678,6 +712,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         <div className="h-full bg-base-200 overflow-auto p-4">
             <DeploymentPanel decorators={decorators} />
         </div>
+    ) : activeTab === 'used-by' && !isArchitecture ? (
+        <UsedByVariants state={usedBy} variant={searchParams.get('variant')} />
     ) : (
         <div className="h-full bg-base-200 overflow-auto">
             <JsonRenderer json={data} />
