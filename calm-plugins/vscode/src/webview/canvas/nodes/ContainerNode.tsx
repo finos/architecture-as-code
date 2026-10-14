@@ -1,11 +1,13 @@
 import React from 'react';
-import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
+import { Handle, Position, NodeResizer, useStore, type NodeProps } from 'reactflow';
 import { getNodeStyleOverride } from '../../utils/building-block-style';
 import { theme, tint } from '../theme-colors';
 
 export function ContainerNode({ id, data, selected }: NodeProps) {
     const role = ((data as any).containerRole as string) || 'default';
     const override = getNodeStyleOverride(data as Record<string, unknown>);
+    const zoom = useStore((s) => s.transform[2]);
+    const borderWidth = containerBorderWidth(ROLE_BORDER_WIDTH[role] ?? DEFAULT_BORDER_WIDTH, zoom);
 
     return (
         <>
@@ -20,7 +22,7 @@ export function ContainerNode({ id, data, selected }: NodeProps) {
             <Handle type="target" position={Position.Left} id="left-target" />
             <Handle type="source" position={Position.Right} id="right-source" />
 
-            <div style={{ ...containerStyle, ...containerRoleStyle(role), ...(selected ? { borderColor: theme.focus, borderStyle: 'solid' } : {}), ...(override.background ? { background: override.background } : {}) }}>
+            <div style={{ ...containerStyle, ...containerRoleStyle(role), borderWidth, ...(selected ? { borderColor: theme.focus, borderStyle: 'solid' } : {}), ...(override.background ? { background: override.background } : {}) }}>
                 <div style={{ ...headerStyle, ...headerRoleStyle(role) }}>
                     <div style={{ ...dotStyle, ...dotRoleStyle(role) }} />
                     <span style={{ ...labelBaseStyle, ...(role === 'solution' ? { color: theme.green, fontWeight: 700 } : {}), ...(override.text ? { color: override.text } : {}) }}>
@@ -37,20 +39,33 @@ export function ContainerNode({ id, data, selected }: NodeProps) {
     );
 }
 
+const DEFAULT_BORDER_WIDTH = 1.5;
+const ROLE_BORDER_WIDTH: Record<string, number> = { 'region-primary': 2, 'region-secondary': 2, solution: 3 };
+
+/**
+ * The canvas scales borders with the zoom, so a thin border fades to a faint line when zoomed out
+ * and the container looks like an edge label. Keep at least one screen pixel.
+ */
+export function containerBorderWidth(base: number, zoom: number): string {
+    return `${zoom > 0 ? Math.max(base, 1 / zoom) : base}px`;
+}
+
 const containerStyle: React.CSSProperties = {
     width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-    border: `1.5px dashed ${theme.fgMuted}`, borderRadius: '8px',
+    borderRadius: '8px',
     minWidth: '180px', minHeight: '120px', overflow: 'hidden', cursor: 'default', userSelect: 'none',
 };
 
-function containerRoleStyle(role: string): React.CSSProperties {
+// Always set the border longhands. With a `border` shorthand, React clears `borderStyle` when the
+// selected style is removed, and the border disappears.
+export function containerRoleStyle(role: string): React.CSSProperties {
     switch (role) {
-        case 'region-primary': return { borderColor: theme.blue, borderStyle: 'solid', borderWidth: '2px', background: tint(theme.blue, 12) };
-        case 'region-secondary': return { borderColor: theme.blue, borderStyle: 'dashed', borderWidth: '2px', background: tint(theme.blue, 8) };
-        case 'cluster': return { borderColor: theme.blue, borderStyle: 'dashed', borderWidth: '1.5px', background: tint(theme.blue, 12) };
-        case 'az': return { borderColor: theme.fgMuted, borderStyle: 'dotted', borderWidth: '1.5px', background: tint(theme.fgMuted, 10) };
-        case 'solution': return { borderColor: theme.green, borderStyle: 'solid', borderWidth: '3px', borderRadius: '12px', background: tint(theme.green, 14) };
-        default: return {};
+        case 'region-primary': return { borderColor: theme.blue, borderStyle: 'solid', background: tint(theme.blue, 12) };
+        case 'region-secondary': return { borderColor: theme.blue, borderStyle: 'dashed', background: tint(theme.blue, 8) };
+        case 'cluster': return { borderColor: theme.blue, borderStyle: 'dashed', background: tint(theme.blue, 12) };
+        case 'az': return { borderColor: theme.fgMuted, borderStyle: 'dotted', background: tint(theme.fgMuted, 10) };
+        case 'solution': return { borderColor: theme.green, borderStyle: 'solid', borderRadius: '12px', background: tint(theme.green, 14) };
+        default: return { borderColor: `color-mix(in srgb, ${theme.text} 60%, ${theme.bg})`, borderStyle: 'dashed' };
     }
 }
 
