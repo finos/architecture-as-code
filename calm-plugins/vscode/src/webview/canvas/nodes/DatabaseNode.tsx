@@ -1,12 +1,13 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
 import { getNodeStyleOverride } from '../../utils/building-block-style';
-import { onSurface, theme } from '../theme-colors';
+import { theme } from '../theme-colors';
+import { DATABASE_FILL } from '../node-colours';
 import { ValidationBadge } from './ValidationBadge';
 
 export function DatabaseNode({ id, data, selected }: NodeProps) {
     const override = getNodeStyleOverride(data as Record<string, unknown>);
-    const fill = override.background ?? onSurface(theme.green, 28);
+    const fill = override.background ?? DATABASE_FILL;
     const stroke = selected ? theme.focus : theme.green;
     const errorCount = (data as any).validationErrors ?? 0;
     const warnCount = (data as any).validationWarnings ?? 0;

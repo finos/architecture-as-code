@@ -8,6 +8,7 @@
     --calm-bg-input: var(--vscode-input-background, #3c3c3c);
     --calm-fg: var(--vscode-foreground, #cccccc);
     --calm-fg-muted: var(--vscode-descriptionForeground, #888888);
+    --calm-text: var(--vscode-editor-foreground, #d4d4d4);
     --calm-border: var(--vscode-panel-border, #2d2d2d);
     --calm-border-input: var(--vscode-input-border, #555555);
     --calm-border-heavy: var(--vscode-widget-border, #444444);
@@ -124,7 +125,8 @@
     stroke-width: 2.5;
 }
 
-/* Toolbar: simple colored-text actions (matches the classic viewer toolbar) */
+/* Toolbar: simple colored-text actions (matches the classic viewer toolbar). Chart colours alone
+   are too pale for text in light themes, so they are mixed with the editor text colour. */
 .fid-toolbar-btn {
     display: inline-flex;
     align-items: center;
@@ -146,15 +148,15 @@
 }
 
 .fid-toolbar-btn--validate {
-    color: #4ec9b0;
+    color: color-mix(in srgb, var(--vscode-charts-green, #89d185) 60%, var(--calm-text));
 }
 
 .fid-toolbar-btn--apply {
-    color: #dcdcaa;
+    color: color-mix(in srgb, var(--vscode-charts-yellow, #cca700) 60%, var(--calm-text));
 }
 
 .fid-toolbar-btn--spec {
-    color: #c586c0;
+    color: color-mix(in srgb, var(--vscode-charts-purple, #b180d7) 60%, var(--calm-text));
 }
 
 .fid-toolbar-sep {
@@ -200,7 +202,7 @@
 }
 
 .fid-resize-handle:hover {
-    background: #6366f1;
+    background: var(--calm-focus);
 }
 
 /* Overflow (⋮) dropdown menu items */

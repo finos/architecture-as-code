@@ -39,6 +39,8 @@ describe('cssColorToHex', () => {
         expect(cssColorToHex('rgba(255, 128, 0, 0.2)', THEME_BG_FALLBACK)).toBe('#ff8000');
         expect(cssColorToHex('rgb(30 41 59 / 0.5)', THEME_BG_FALLBACK)).toBe('#1e293b');
         expect(cssColorToHex('rgb(30.2, 41.6, 59.4)', THEME_BG_FALLBACK)).toBe('#1e2a3b');
+        expect(cssColorToHex('color(srgb 0.117647 0.160784 0.231373)', THEME_BG_FALLBACK)).toBe('#1e293b');
+        expect(cssColorToHex('color(srgb 1 0.5 0 / 0.4)', THEME_BG_FALLBACK)).toBe('#ff8000');
     });
 
     it('returns the fallback when the value is not a usable colour', () => {
@@ -51,6 +53,8 @@ describe('cssColorToHex', () => {
         expect(cssColorToHex('#12345', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
         expect(cssColorToHex('rgb(999, 0, 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
         expect(cssColorToHex('rgb(-1, 0, 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
+        expect(cssColorToHex('color(srgb 1.5 0 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
+        expect(cssColorToHex('color(display-p3 1 0 0)', THEME_BG_FALLBACK)).toBe(THEME_BG_FALLBACK);
     });
 });
 

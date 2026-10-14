@@ -62,6 +62,14 @@ export function cssColorToHex(raw: string, fallback: string): string {
         return fallback;
     }
 
+    // Chromium reports a computed color-mix() in this form, with channels from 0 to 1.
+    const srgb = /^color\(\s*srgb\s+([0-9.]+)\s+([0-9.]+)\s+([0-9.]+)/i.exec(value);
+    if (srgb) {
+        const channels = [srgb[1], srgb[2], srgb[3]].map(Number);
+        if (channels.some((n) => !Number.isFinite(n) || n < 0 || n > 1)) return fallback;
+        return `#${channels.map((n) => Math.round(n * 255).toString(16).padStart(2, '0')).join('')}`;
+    }
+
     const rgb = /^rgba?\(\s*([0-9.]+)[,\s]+([0-9.]+)[,\s]+([0-9.]+)/i.exec(value);
     if (!rgb) return fallback;
 
