@@ -47,7 +47,7 @@ const logger: Logger = initLogger(false, 'workspace');
 function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
     const json = JSON.parse(raw);
     json['$id'] = constructDocumentId(metadata);
-    json[documentNameField(json)] = metadata.name;
+    json[documentNameField(json, metadata.type)] = metadata.name;
     if (Object.prototype.hasOwnProperty.call(json, 'description')) {
         json['description'] = metadata.description ?? '';
     }

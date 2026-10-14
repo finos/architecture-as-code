@@ -237,6 +237,35 @@ describe('setupWorkspaceCommands', () => {
             );
         });
 
+        it('uses the name of a flow with no title as the manifest name', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({
+                $id: 'https://calmhub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                transitions: [],
+            }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'my-flow.json', '--type', 'flow']);
+
+            expect(mocks.input).not.toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('my-flow.json'),
+                expect.objectContaining({ id: 'My Flow', type: 'flow' })
+            );
+        });
+
+        it('prompts for a manifest name when an architecture has a name and no title', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, name: 'Named' }));
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);
+            expect(mocks.input).toHaveBeenCalled();
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('test.json'),
+                expect.objectContaining({ id: 'prompted-name', type: 'architecture' })
+            );
+        });
+
         it('should prompt for a manifest name when the file has no title field', async () => {
             mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID }));
             await program.parseAsync(['node', 'test', 'workspace', 'add', 'test.json']);

@@ -866,7 +866,7 @@ To restore a removed narrative document without creating a new CalmHub document,
 - **Conformant `$id`** → left untouched; the manifest namespace is derived from it.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `adr`, `timeline`).
 
-**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file or Markdown frontmatter, else an interactive prompt.
+**Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file (`name` for a flow with no `title`) or Markdown frontmatter, else an interactive prompt.
 
 ```shell
 # Interactive — prompts for type, builds the $id if needed, then the manifest name
