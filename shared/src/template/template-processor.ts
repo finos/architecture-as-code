@@ -11,8 +11,9 @@ import {
 } from './template-bundle-file-loader.js';
 import { initLogger, Logger } from '../logger.js';
 import { getErrorMessage } from '../error-utils.js';
-import { CompositeReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
+import { FileReferenceResolver, HttpReferenceResolver, MappedReferenceResolver } from '../resolver/calm-reference-resolver.js';
 import { CachingTrackingResolver } from '../resolver/caching-tracking-resolver.js';
+import { ChainReferenceResolver } from '../resolver/chain-reference-resolver.js';
 import { pathToFileURL } from 'node:url';
 import TemplateDefaultTransformer from './template-default-transformer';
 import { CalmCore } from '@finos/calm-models/model';
@@ -107,7 +108,7 @@ export class TemplateProcessor {
             this.validateConfig(config);
 
 
-            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new CompositeReferenceResolver());
+            const mappedResolver = new MappedReferenceResolver(this.urlToLocalPathMapping, new ChainReferenceResolver([new FileReferenceResolver(), new HttpReferenceResolver()]));
             const cachingResolver = new CachingTrackingResolver(mappedResolver);
             const transformer = await this.loadTransformer(config.transformer, resolvedBundlePath);
             const coreModel = CalmCore.fromSchema(JSON.parse(calmJson));

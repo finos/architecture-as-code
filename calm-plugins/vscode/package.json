@@ -109,6 +109,7 @@
   },
   "dependencies": {
     "@finos/calm-models": "file:../../calm-models",
+    "@finos/calm-shared": "file:../../shared",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reactflow": "^11.11.4",

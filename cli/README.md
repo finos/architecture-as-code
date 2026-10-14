@@ -136,6 +136,7 @@ Options:
   --timeline <file>             Path to the timeline file to validate. May be a file path or a URL.
   -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: "../calm/release")
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
+  --assets-path <path>          Local path to CALM assets directory for resolving detailed-architecture CURIEs without a Hub
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths
   --strict                  When run in strict mode, the CLI will fail if any warnings are reported. (default: false)
   -f, --format <format>         The format of the output (choices: "json", "junit", "pretty", default: "json")
