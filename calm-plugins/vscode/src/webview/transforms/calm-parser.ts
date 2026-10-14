@@ -175,7 +175,7 @@ export function parseCALMData(
                         },
                         type: 'tooltip',
                         markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                        style: { strokeWidth: 1.5 },
                     });
                 }
             }
@@ -213,7 +213,7 @@ export function parseCALMData(
                     },
                     type: 'tooltip',
                     markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                    style: { strokeWidth: 1.5 },
                 });
             }
         }
@@ -254,7 +254,7 @@ export function parseCALMData(
             type: 'tooltip',
             markerEnd,
             markerStart,
-            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+            style: { strokeWidth: 1.5 },
         });
     }
 

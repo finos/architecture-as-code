@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from 'reactflow';
 import { theme } from '../theme-colors';
+import { ArrowMarker, arrowMarkerId } from './ArrowMarker';
 
 export type EdgeDirection = 'source-to-target' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
@@ -12,6 +13,11 @@ function strokeDasharray(lineStyle: EdgeLineStyle | undefined): string | undefin
         case 'dotted': return '2 4';
         default: return undefined;
     }
+}
+
+/** The colour of the edge line and its arrowheads. */
+export function edgeStroke(hovered: boolean, style?: React.CSSProperties): string {
+    return hovered ? theme.link : (style?.stroke ?? theme.fgMuted);
 }
 
 export function TooltipEdge({
@@ -47,20 +53,31 @@ export function TooltipEdge({
 
     const hasTooltipContent = !!(description || protocol);
     const dashArray = strokeDasharray(lineStyle);
+    const edgeStyle = style as React.CSSProperties | undefined;
+    const stroke = edgeStroke(hovered, edgeStyle);
+    const endMarkerId = markerEnd ? arrowMarkerId(id, 'end') : undefined;
+    const startMarkerId = markerStart ? arrowMarkerId(id, 'start') : undefined;
+    const endMarkerUrl = endMarkerId && `url(#${endMarkerId})`;
+    const startMarkerUrl = startMarkerId && `url(#${startMarkerId})`;
+    const pathStyle: React.CSSProperties = {
+        ...edgeStyle,
+        stroke,
+        ...(dashArray ? { strokeDasharray: dashArray } : {}),
+        ...(hovered ? { strokeWidth: 2.5 } : {}),
+    };
 
     return (
         <>
+            <defs>
+                {endMarkerId && <ArrowMarker id={endMarkerId} color={stroke} />}
+                {startMarkerId && <ArrowMarker id={startMarkerId} color={stroke} />}
+            </defs>
             <BaseEdge
                 id={id}
                 path={edgePath}
-                markerEnd={markerEnd}
-                markerStart={markerStart}
-                style={{
-                    ...(style as React.CSSProperties),
-                    stroke: hovered ? theme.link : theme.fgMuted,
-                    ...(dashArray ? { strokeDasharray: dashArray } : {}),
-                    ...(hovered ? { strokeWidth: 2.5 } : {}),
-                }}
+                markerEnd={endMarkerUrl}
+                markerStart={startMarkerUrl}
+                style={pathStyle}
             />
 
             {/* Transparent overlay for hover detection */}
@@ -75,11 +92,26 @@ export function TooltipEdge({
             />
 
             <EdgeLabelRenderer>
+                {/* SVG paints edges in DOM order, so other edges can cover the hovered one where
+                    they meet. The label layer is above all edges, so draw the hovered edge again here. */}
+                {hovered && (
+                    <svg style={hoverLayerStyle}>
+                        <path
+                            d={edgePath}
+                            fill="none"
+                            markerEnd={endMarkerUrl}
+                            markerStart={startMarkerUrl}
+                            style={pathStyle}
+                        />
+                    </svg>
+                )}
+
                 {/* Always-visible label (protocol) */}
                 {label && (
                     <div
                         style={{
                             position: 'absolute',
+                            zIndex: 1,
                             transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
                             pointerEvents: 'none',
                             fontSize: '9px',
@@ -133,6 +165,16 @@ export function TooltipEdge({
         </>
     );
 }
+
+const hoverLayerStyle: React.CSSProperties = {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    width: 1,
+    height: 1,
+    overflow: 'visible',
+    pointerEvents: 'none',
+};
 
 const tooltipStyle: React.CSSProperties = {
     background: 'var(--calm-bg)',

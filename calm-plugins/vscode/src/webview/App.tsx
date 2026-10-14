@@ -278,7 +278,7 @@ function CanvasApp() {
             type: 'tooltip',
             label: '',
             markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+            style: { strokeWidth: 1.5 },
             data: { calmRelId: id, calmVariant: 'connects', protocol: '', description: '', direction: 'source-to-target', lineStyle: 'solid' },
         }, eds));
         setTimeout(() => emitChange(true), 0);
@@ -505,7 +505,7 @@ function CanvasApp() {
                                 type: 'tooltip',
                                 label: 'adheres to',
                                 markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                                style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                                style: { strokeWidth: 1.5 },
                                 data: {
                                     calmRelId: edgeId,
                                     calmVariant: 'connects',
