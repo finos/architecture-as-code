@@ -1,6 +1,7 @@
 package org.finos.calm.resources;
 
 import jakarta.ws.rs.core.Response;
+import org.finos.calm.domain.exception.GitHubModeNotSupportedException;
 import org.finos.calm.domain.exception.GitHubWriteNotSupportedException;
 import org.junit.jupiter.api.Test;
 
@@ -32,5 +33,14 @@ class TestUnsupportedOperationExceptionMapperShould {
         Response response = mapper.toResponse(ex);
 
         assertThat(response.getMediaType().toString(), equalTo("application/json"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void return_501_for_a_read_that_github_mode_does_not_support() {
+        Response response = mapper.toResponse(new GitHubModeNotSupportedException("Not available in GitHub mode"));
+
+        assertThat(response.getStatus(), equalTo(501));
+        assertThat(((Map<String, String>) response.getEntity()).get("error"), equalTo("Not available in GitHub mode"));
     }
 }

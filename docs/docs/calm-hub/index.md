@@ -109,6 +109,34 @@ The resulting image carries the seeded database as a read-only filesystem layer.
 
 ---
 
+## UI Customization
+
+An operator can add deployment-specific information to CALM Hub UI with configuration only. Each `calm.ui.*` property can also be set as an environment variable.
+
+| Item | Where it shows | Properties |
+|:-----|:---------------|:-----------|
+| Environment pill | Header, on every page | `calm.ui.environment.name`, `calm.ui.environment.colour` |
+| Signed-in identity | Hamburger menu | `calm.ui.identity.enabled`, `calm.ui.identity.show-roles` |
+| Values and links | Hamburger menu | `calm.ui.items[n].label`, `.value`, `.url` |
+
+```bash
+CALM_UI_ENVIRONMENT_NAME=UAT
+CALM_UI_ENVIRONMENT_COLOUR=warning        # info | success | warning | error | neutral | #rrggbb
+CALM_UI_IDENTITY_ENABLED=true             # shows the principal name that CALM Hub sees
+CALM_UI_ITEMS_0__LABEL=Support
+CALM_UI_ITEMS_0__URL=https://support.example.com
+CALM_UI_ITEMS_1__LABEL=Build
+CALM_UI_ITEMS_1__VALUE=2026.10.1
+```
+
+- Each item needs a `label` and a `value`, a `url`, or both. With both, the `value` is the link text.
+- Use a short environment name, for example `DEV`, `QA` or `PROD`. On narrow screens the UI truncates long names.
+- CALM Hub does not start if a colour or URL is not valid. URLs must be absolute `http` or `https` URLs.
+- Identity and roles are off by default. Turn on `show-roles` only if your role names are safe to show to users.
+- The UI gets these values from `GET /api/calm/ui/config`, which requires authentication.
+
+---
+
 ## Docker Hub Images
 
 All images are published to Docker Hub at [finos/calm-hub](https://hub.docker.com/r/finos/calm-hub/tags).

@@ -181,6 +181,11 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 | `calm.standalone.data-directory` | `CALM_STANDALONE_DATA_DIRECTORY` | `~/.calm-hub/data` | NitriteDB file location |
 | `calm.standalone.database-name` | `CALM_STANDALONE_DATABASE_NAME` | `calmSchemas` | NitriteDB database filename |
 | `calm.mcp.enabled` | `CALM_MCP_ENABLED` | `false` | Enable MCP tool invocations |
+| `calm.ui.environment.name` | `CALM_UI_ENVIRONMENT_NAME` | (none) | Environment pill text in the UI header. No pill if not set |
+| `calm.ui.environment.colour` | `CALM_UI_ENVIRONMENT_COLOUR` | `warning` | `info`, `success`, `warning`, `error`, `neutral` or `#rrggbb` |
+| `calm.ui.identity.enabled` | `CALM_UI_IDENTITY_ENABLED` | `false` | Show the signed-in principal name in the UI menu |
+| `calm.ui.identity.show-roles` | `CALM_UI_IDENTITY_SHOW_ROLES` | `false` | Also show the principal's roles |
+| `calm.ui.items[n].label` / `.value` / `.url` | `CALM_UI_ITEMS_n__LABEL` / `__VALUE` / `__URL` | (none) | Values and `http`/`https` links in the UI menu |
 | `quarkus.mongodb.connection-string` | `QUARKUS_MONGODB_CONNECTION_STRING` | `mongodb://localhost:27017` | MongoDB connection |
 
 ---

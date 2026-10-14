@@ -526,8 +526,11 @@ public class MongoVersionDocumentStore {
     public List<NamespaceResourceSummary> listSummariesPaged(String namespace, PageRequest page) {
         FindIterable<Document> headers = headerCollection.find(namespaceFilter(namespace))
                 .sort(Sorts.ascending(idField));
-        if (page.isPaged()) {
-            headers = headers.skip(page.normalizedOffset()).limit(page.limit());
+        if (page.offset() != null) {
+            headers = headers.skip(page.normalizedOffset());
+        }
+        if (page.limit() != null) {
+            headers = headers.limit(page.limit());
         }
         List<NamespaceResourceSummary> summaries = new ArrayList<>();
         headers.forEach(header -> summaries.add(toSummary(header)));
