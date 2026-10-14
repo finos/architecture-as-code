@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { documentTypeForContent, documentTypeForDocumentId, resourceTypeForDocumentType } from './document-id-type';
+import { documentTypeForContent, documentTypeForDocumentId, documentTypeHasIdType, resourceTypeForDocumentType } from './document-id-type';
 
 const namespaceId = (type: string) => `https://hub.example.com/calm/namespaces/finos/${type}/my-doc/versions/1.0.0`;
 
@@ -38,13 +38,22 @@ describe('document-id-type', () => {
         });
     });
 
+    describe('documentTypeHasIdType', () => {
+        it.each(['pattern', 'architecture', 'flow', 'schema', 'interface', 'control'] as const)('is true for %s', (type) => {
+            expect(documentTypeHasIdType(type)).toBe(true);
+        });
+
+        it.each(['timeline', 'adr'] as const)('is false for %s, which has no $id form', (type) => {
+            expect(documentTypeHasIdType(type)).toBe(false);
+        });
+    });
+
     describe('documentTypeForContent', () => {
         it('reads the type from the $id of a JSON document', () => {
             expect(documentTypeForContent(JSON.stringify({ $id: namespaceId('flows'), name: 'My Flow' }))).toBe('flow');
         });
 
-        it('returns undefined for missing content, invalid JSON, or a document with no $id', () => {
-            expect(documentTypeForContent(undefined)).toBeUndefined();
+        it('returns undefined for invalid JSON or a document with no $id', () => {
             expect(documentTypeForContent('---\ntitle: Payments SAD\n---\n')).toBeUndefined();
             expect(documentTypeForContent(JSON.stringify({ title: 'No id' }))).toBeUndefined();
             expect(documentTypeForContent('null')).toBeUndefined();

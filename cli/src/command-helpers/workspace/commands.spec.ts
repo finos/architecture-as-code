@@ -331,6 +331,61 @@ describe('setupWorkspaceCommands', () => {
             expect(mocks.addFileToBundle).not.toHaveBeenCalled();
         });
 
+        it('rejects --type control for a namespace resource $id', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Architecture' }));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'arch.json', '--type', 'control'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining(
+                `Document type 'control' does not match the $id '${CONFORMANT_ID}', which needs document type 'architecture'`
+            ));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('adds a timeline with a conformant $id of another resource type, with a warning', async () => {
+            mocks.readFile.mockResolvedValueOnce(JSON.stringify({ $id: CONFORMANT_ID, title: 'My Timeline' }));
+
+            await program.parseAsync(['node', 'test', 'workspace', 'add', 'timeline.json', '--type', 'timeline']);
+
+            expect(exitSpy).not.toHaveBeenCalled();
+            expect(mocks.loggerWarn).toHaveBeenCalledWith(expect.stringContaining(
+                'Document type \'timeline\' has no CalmHub resource type, so push and bump use the type in the $id'
+            ));
+            expect(mocks.addFileToBundle).toHaveBeenCalledWith(
+                '/fake/bundle',
+                expect.stringContaining('timeline.json'),
+                expect.objectContaining({ id: 'My Timeline', type: 'timeline' })
+            );
+        });
+
+        it('fails before prompting for a type when the file cannot be read', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('EACCES: permission denied'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'locked.json'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.select).not.toHaveBeenCalled();
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('EACCES: permission denied'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
+        it('fails when the file cannot be read, even with --type', async () => {
+            mocks.readFile.mockRejectedValueOnce(new Error('ENOENT: no such file'));
+
+            await expect(
+                program.parseAsync(['node', 'test', 'workspace', 'add', 'missing.json', '--type', 'architecture', '--id', 'x'])
+            ).rejects.toThrow();
+
+            expect(exitSpy).toHaveBeenCalledWith(1);
+            expect(mocks.loggerError).toHaveBeenCalledWith(expect.stringContaining('ENOENT: no such file'));
+            expect(mocks.addFileToBundle).not.toHaveBeenCalled();
+        });
+
         it('accepts --type control for a control configuration $id', async () => {
             mocks.readFile.mockResolvedValueOnce(JSON.stringify({
                 $id: 'https://calmhub.example.com/calm/domains/security/controls/ac/configurations/prod/versions/1.0.0',

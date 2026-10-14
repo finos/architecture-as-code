@@ -864,7 +864,7 @@ To restore a removed narrative document without creating a new CalmHub document,
 
 **JSON document `$id` handling.** For JSON mapping documents, `add` inspects the file's CalmHub `$id`:
 - **No `$id`** → you are prompted interactively to build one from its components (see below); the `$id` is written into the file and the document is added.
-- **Conformant `$id`** → left untouched; the manifest namespace is derived from it. The document type must agree with the `$id`, or `add` fails and adds nothing: for a namespace resource, `push` and `bump` use the type in the `$id`, but `check` validates by the manifest type. The `$id` types map to `pattern`, `architecture`, `flow`, `schema` (standards), `interface` and `control` (requirements and configurations).
+- **Conformant `$id`** → left untouched; the manifest namespace is derived from it. The document type must agree with the `$id`, or `add` fails and adds nothing: for a namespace resource, `push` and `bump` use the type in the `$id`, but `check` validates by the manifest type. The `$id` types map to `pattern`, `architecture`, `flow`, `schema` (standards), `interface` and `control` (requirements and configurations). A `timeline` or `adr` has no `$id` type of its own, so it is added with a warning that `push` and `bump` use the type in its `$id`.
 - **Non-conformant `$id`** → left as-is; a warning is printed and the document is still tracked, but it cannot be pushed to CalmHub until the `$id` is fixed (silently rewriting it would lose data for types that don't use CalmHub URLs, e.g. `adr`, `timeline`).
 
 **Manifest name resolution** (when `--id` is not given): the `title` field from the JSON file (`name` for a flow with no `title`) or Markdown frontmatter, else an interactive prompt.

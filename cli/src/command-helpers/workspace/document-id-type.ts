@@ -25,9 +25,16 @@ export function documentTypeForDocumentId(id: string): CalmDocumentType | undefi
     return isControlDocumentId(id) ? 'control' : undefined;
 }
 
+/**
+ * Whether a conformant CalmHub `$id` can imply this document type. `timeline` and `adr` have no
+ * `$id` form of their own, so their `$id` cannot be checked against the type (#3311).
+ */
+export function documentTypeHasIdType(type: CalmDocumentType): boolean {
+    return type === 'control' || resourceTypeForDocumentType(type) !== undefined;
+}
+
 /** The workspace document type implied by the `$id` in a JSON document's content, if any. */
-export function documentTypeForContent(content: string | undefined): CalmDocumentType | undefined {
-    if (content === undefined) return undefined;
+export function documentTypeForContent(content: string): CalmDocumentType | undefined {
     try {
         const id = JSON.parse(content)?.['$id'];
         return typeof id === 'string' ? documentTypeForDocumentId(id) : undefined;
