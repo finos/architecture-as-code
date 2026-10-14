@@ -46,7 +46,7 @@ Explore, visualize, and manage CALM architecture models through an interactive w
 
 ### 📝 ADR Rendering
 - **Rich Display**: Context, decision drivers, considered options, outcome, and links
-- **Markdown Support**: GitHub-flavored Markdown in context, option descriptions, and rationale, including tables, task lists, strikethrough, and footnotes. Wide tables scroll within each section; footnotes keep the current ADR route.
+- **Markdown Support**: GitHub-flavored Markdown in context, option descriptions, and rationale, including tables, task lists, strikethrough, and footnotes. Overflowing tables scroll and enter the tab order, with labels identifying their section and source line; footnotes keep the current ADR route.
 - **Revision Browsing**: Switch between ADR versions
 - **Status Badges**: Visual indicators for approved, deprecated, and other statuses
 

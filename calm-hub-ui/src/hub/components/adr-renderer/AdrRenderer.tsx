@@ -31,7 +31,7 @@ export function AdrRenderer({ adrDetails }: AdrRendererProps) {
                 <StyleTitle title="Context and Problem" />
 
                 <div className="collapse-content ps-0 markdownParagraphSpacing">
-                    <AdrMarkdown>{adr!.contextAndProblemStatement}</AdrMarkdown>
+                    <AdrMarkdown label="Context and problem">{adr!.contextAndProblemStatement}</AdrMarkdown>
                 </div>
             </div>
 

@@ -1,9 +1,8 @@
-/* SPDX-License-Identifier: Apache-2.0
- * Copyright 2026 Russlan Ramdowar
- */
+/* SPDX-License-Identifier: Apache-2.0 */
 import { MouseEvent, useId, useMemo } from 'react';
 import Markdown, { Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { AdrMarkdownTable } from './AdrMarkdownTable.js';
 import './AdrMarkdown.css';
 
 function scrollToFragment(event: MouseEvent<HTMLAnchorElement>) {
@@ -23,7 +22,7 @@ function scrollToFragment(event: MouseEvent<HTMLAnchorElement>) {
     document.getElementById(id)?.scrollIntoView();
 }
 
-export function AdrMarkdown({ children }: { children?: string }) {
+export function AdrMarkdown({ children, label = 'ADR' }: { children?: string; label?: string }) {
     const prefix = `adr-${useId()}-`;
     const components = useMemo<Components>(
         () => ({
@@ -41,13 +40,11 @@ export function AdrMarkdown({ children }: { children?: string }) {
                     className={node?.properties.id === 'footnote-label' ? 'sr-only' : props.className}
                 />
             ),
-            table: ({ children }) => (
-                <div className="adr-markdown-table" role="region" aria-label="ADR table" tabIndex={0}>
-                    <table>{children}</table>
-                </div>
+            table: ({ node, children }) => (
+                <AdrMarkdownTable label={`${label} table at line ${node?.position?.start.line ?? 1}`}>{children}</AdrMarkdownTable>
             ),
         }),
-        [prefix]
+        [label, prefix]
     );
 
     return (

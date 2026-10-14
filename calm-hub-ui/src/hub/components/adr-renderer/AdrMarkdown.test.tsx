@@ -1,23 +1,82 @@
-/* SPDX-License-Identifier: Apache-2.0
- * Copyright 2026 Russlan Ramdowar
- */
-import { fireEvent, render, screen } from '@testing-library/react';
+/* SPDX-License-Identifier: Apache-2.0 */
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { HashRouter } from 'react-router-dom';
 import { AdrMarkdown } from './AdrMarkdown.js';
 
 describe('ADR Markdown', () => {
     const originalUrl = window.location.href;
-    afterEach(() => window.history.replaceState(null, '', originalUrl));
+    const originalResizeObserver = globalThis.ResizeObserver;
+    afterEach(() => {
+        window.history.replaceState(null, '', originalUrl);
+        vi.stubGlobal('ResizeObserver', originalResizeObserver);
+        vi.restoreAllMocks();
+    });
 
-    it('keeps a semantic table inside a keyboard-accessible scrolling region', () => {
+    it('keeps a fitting semantic table out of the tab order', () => {
         render(<AdrMarkdown>{'| Choice | Cost |\n| --- | --- |\n| Queue | 2 |'}</AdrMarkdown>);
 
-        const region = screen.getByRole('region', { name: 'ADR table' });
-        expect(region).toHaveAttribute('tabindex', '0');
+        const region = screen.getByRole('region', { name: 'ADR table at line 1' });
+        expect(region).not.toHaveAttribute('tabindex');
         expect(region).toHaveClass('adr-markdown-table');
         expect(region).toContainElement(screen.getByRole('table'));
         expect(screen.getByRole('columnheader', { name: 'Choice' })).toBeInTheDocument();
+    });
+
+    it('updates the tab stop when observed table or container dimensions change and disconnects on unmount', () => {
+        let notify = () => {};
+        const observer = { observe: vi.fn(), disconnect: vi.fn() };
+        vi.stubGlobal(
+            'ResizeObserver',
+            vi.fn(function (callback: ResizeObserverCallback) {
+                notify = () => callback([], observer as unknown as ResizeObserver);
+                return observer;
+            })
+        );
+        const { unmount } = render(<AdrMarkdown>{'| Choice |\n| --- |\n| Queue |'}</AdrMarkdown>);
+        const region = screen.getByRole('region');
+        let scrollWidth = 200;
+        Object.defineProperties(region, {
+            scrollWidth: { get: () => scrollWidth },
+            clientWidth: { value: 100 },
+        });
+        expect(observer.observe).toHaveBeenCalledWith(region);
+        expect(observer.observe).toHaveBeenCalledWith(screen.getByRole('table'));
+        act(notify);
+        expect(region).toHaveAttribute('tabindex', '0');
+        scrollWidth = 100;
+        act(notify);
+        expect(region).not.toHaveAttribute('tabindex');
+        unmount();
+        expect(observer.disconnect).toHaveBeenCalledOnce();
+    });
+
+    it('measures on window resize when ResizeObserver is unavailable and removes the listener', () => {
+        vi.stubGlobal('ResizeObserver', undefined);
+        const removeListener = vi.spyOn(window, 'removeEventListener');
+        const { unmount } = render(<AdrMarkdown>{'| Choice |\n| --- |\n| Queue |'}</AdrMarkdown>);
+        const region = screen.getByRole('region');
+        Object.defineProperties(region, { scrollWidth: { value: 200 }, clientWidth: { value: 100 } });
+        fireEvent(window, new Event('resize'));
+        expect(region).toHaveAttribute('tabindex', '0');
+        unmount();
+        expect(removeListener).toHaveBeenCalledWith('resize', expect.any(Function));
+    });
+
+    it('labels tables distinctly across sections and within one section', () => {
+        const table = '| Choice |\n| --- |\n| Queue |';
+        render(
+            <>
+                <AdrMarkdown label="Context and problem">{`${table}\n\n${table}`}</AdrMarkdown>
+                <AdrMarkdown label="Decision rationale">{table}</AdrMarkdown>
+            </>
+        );
+        const labels = screen.getAllByRole('region').map((element) => element.getAttribute('aria-label'));
+        expect(labels).toEqual([
+            'Context and problem table at line 1',
+            'Context and problem table at line 5',
+            'Decision rationale table at line 1',
+        ]);
     });
 
     it('preserves CommonMark, headings and normal links while adding GFM autolinks', () => {

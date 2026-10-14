@@ -1,11 +1,13 @@
-/* SPDX-License-Identifier: Apache-2.0
- * Copyright 2026 Russlan Ramdowar
- */
+/* SPDX-License-Identifier: Apache-2.0 */
 const adrRoute = '#/finos/adrs/1/1';
 const longCell = 'evidence'.repeat(12);
 const markdown = `| Choice | Input | Evidence | Review | Cost | Outcome |
 | --- | --- | --- | --- | --- | --- |
 | Queue | ${longCell} | ${longCell} | ${longCell} | 2 | accepted |
+
+| A | B |
+| --- | --- |
+| 1 | 2 |
 
 ~~removed~~
 
@@ -49,10 +51,14 @@ for (const [width, height] of [
             });
 
             it('renders GFM, contains table overflow and keeps footnote navigation on the ADR route', () => {
-                cy.get('.adr-markdown table').should('have.length', 4);
+                cy.get('.adr-markdown table').should('have.length', 8);
                 cy.get('.adr-markdown del').first().should('have.text', 'removed');
                 cy.get('.adr-markdown input[type="checkbox"]').first().should('be.checked').and('be.disabled');
                 cy.get('.adr-markdown-table').first().should('have.attr', 'tabindex', '0').and('have.css', 'overflow-x', 'auto');
+                cy.get('.adr-markdown-table').eq(1).should('not.have.attr', 'tabindex');
+                cy.get('.adr-markdown-table').eq(2).closest('.collapse').find('> input[type="checkbox"]').check();
+                cy.get('.adr-markdown-table').eq(2).should('have.attr', 'tabindex', '0');
+                cy.get('.adr-markdown-table').eq(3).should('not.have.attr', 'tabindex');
                 cy.get('.adr-markdown-table')
                     .first()
                     .then(($region) => {
@@ -60,7 +66,7 @@ for (const [width, height] of [
                         expect($region.find('table').css('display')).to.equal('table');
                     });
                 cy.get('.adr-markdown-table').first().focus();
-                cy.focused().should('have.attr', 'aria-label', 'ADR table');
+                cy.focused().should('have.attr', 'aria-label', 'Context and problem table at line 1');
                 cy.get('.adr-markdown-table')
                     .first()
                     .scrollTo('right')
@@ -71,6 +77,8 @@ for (const [width, height] of [
                     expect(doc.documentElement.scrollWidth).to.be.at.most(doc.documentElement.clientWidth + 1);
                     const ids = Array.from(doc.querySelectorAll('.adr-markdown [id]'), (element) => element.id);
                     expect(new Set(ids).size).to.equal(ids.length);
+                    const labels = Array.from(doc.querySelectorAll('.adr-markdown-table'), (element) => element.getAttribute('aria-label'));
+                    expect(new Set(labels).size).to.equal(labels.length);
                 });
                 cy.get('.adr-markdown h2.sr-only').first().should('have.css', 'position', 'absolute').and('have.css', 'width', '1px');
                 cy.get('.adr-markdown a[data-footnote-ref]').first().click();
