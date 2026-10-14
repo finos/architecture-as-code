@@ -26,10 +26,6 @@
 		folderInput?.select();
 	});
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
 			event.preventDefault();
@@ -51,8 +47,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="extract-title">
 		<h2 id="extract-title" class="title">Extract to diagram</h2>
 		{#if warning}

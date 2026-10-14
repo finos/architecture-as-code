@@ -72,6 +72,11 @@ export interface CalmProjectUiConfig {
 	 * Default / missing = false after a project is open.
 	 */
 	demo: boolean;
+	/**
+	 * Maximum open editor tabs, including ADR previews (R89).
+	 * Missing or invalid → 10. Project file only.
+	 */
+	maxOpenEditors?: number;
 }
 
 /** Canonical URL → local file map used by `calm validate -u` (R75). */

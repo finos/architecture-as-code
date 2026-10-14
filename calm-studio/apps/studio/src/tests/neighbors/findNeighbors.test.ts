@@ -4,6 +4,7 @@
 
 import { describe, expect, test } from 'vitest';
 import type { CalmArchitecture } from '@calmstudio/calm-core';
+import type { ExplorerTreeEntry } from '$lib/explorer/types';
 import {
 	collectNeighborsFromArchitecture,
 	dedupeNeighborHits,
@@ -11,6 +12,7 @@ import {
 	expandHitsForNeighborIds,
 	filterNeighborHits,
 	isPathUnderSearchRoots,
+	listJsonFiles,
 } from '$lib/neighbors/findNeighbors';
 import { addNeighborsToCanvas } from '$lib/neighbors/addNeighbors';
 import type { Node, Edge } from '@xyflow/svelte';
@@ -273,5 +275,37 @@ describe('addNeighborsToCanvas', () => {
 		expect(result.addedNodeIds).toHaveLength(0);
 		expect(result.addedEdgeIds).toHaveLength(0);
 		expect(result.edges).toHaveLength(1);
+	});
+});
+
+describe('listJsonFiles', () => {
+	test('does not treat markdown as a JSON template or architecture', () => {
+		const tree: ExplorerTreeEntry[] = [
+			{
+				kind: 'directory',
+				name: 'component-view',
+				relativePath: 'templates/docify/component-view',
+				children: [
+					{
+						kind: 'file',
+						name: 'services.md',
+						relativePath: 'templates/docify/component-view/services.md',
+						handle: {} as FileSystemFileHandle,
+						isCalm: false,
+						isMarkdown: true,
+					},
+					{
+						kind: 'file',
+						name: 'view.json',
+						relativePath: 'templates/docify/component-view/view.json',
+						handle: {} as FileSystemFileHandle,
+						isCalm: false,
+					},
+				],
+			},
+		];
+		expect(listJsonFiles(tree).map((file) => file.relativePath)).toEqual([
+			'templates/docify/component-view/view.json',
+		]);
 	});
 });

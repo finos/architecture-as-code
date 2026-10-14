@@ -3,7 +3,7 @@
 
 <script lang="ts">
 	import { EditorView } from '@codemirror/view';
-	import { EditorState, type Extension } from '@codemirror/state';
+	import type { Extension } from '@codemirror/state';
 	import { json, jsonParseLinter } from '@codemirror/lang-json';
 	import { linter, lintGutter } from '@codemirror/lint';
 	import { oneDark } from '@codemirror/theme-one-dark';
@@ -49,8 +49,6 @@
 		linter(jsonParseLinter()),
 		lintGutter(),
 		EditorView.lineWrapping,
-		EditorView.editable.of(!readonly),
-		EditorState.readOnly.of(readonly),
 	]);
 
 	// Sync external model → editor only when not actively typing.
@@ -156,6 +154,8 @@
 				lang={json()}
 				theme={isDark() ? oneDark : undefined}
 				{extensions}
+				readonly={readonly}
+				editable={!readonly}
 				lineNumbers
 				lineWrapping
 				nodebounce

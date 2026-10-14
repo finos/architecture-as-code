@@ -21,8 +21,8 @@ export interface DiagramTabState {
 	cleanSnapshot: string;
 	selectedNodeId: string | null;
 	selectedEdgeId: string | null;
-	/** Hub architecture tabs are read-only (R54). Pattern canvas is editable (R55–R56). */
-	kind?: 'architecture' | 'pattern' | 'hub';
+	/** Hub architecture tabs are read-only (R54). Pattern canvas is editable (R55–R56). ADR preview is read-only (R88). */
+	kind?: 'architecture' | 'pattern' | 'hub' | 'adr';
 	readonly?: boolean;
 	/** Original CLI pattern JSON Schema for Save round-trip (R56). */
 	patternBase?: object;
@@ -39,7 +39,7 @@ export interface OpenTabRequest {
 	cleanSnapshot: string;
 	selectedNodeId?: string | null;
 	selectedEdgeId?: string | null;
-	kind?: 'architecture' | 'pattern' | 'hub';
+	kind?: 'architecture' | 'pattern' | 'hub' | 'adr';
 	readonly?: boolean;
 	patternBase?: object;
 }
@@ -51,6 +51,8 @@ export interface TabManagerResult {
 	evicted?: DiagramTabState;
 	/** True when an existing tab was activated instead of creating a new one. */
 	activatedExisting?: boolean;
+	/** True when the open count is already above the limit (R89). */
+	refused?: boolean;
 }
 
 /** Match tab to a file by relative path or handle identity. */
@@ -96,7 +98,8 @@ export function openOrActivateTab(
 	activeTabId: string | null,
 	tabId: string,
 	request: OpenTabRequest,
-	now = Date.now()
+	now = Date.now(),
+	max = MAX_DIAGRAM_TABS
 ): TabManagerResult {
 	const existing = findTabByFile(
 		tabs,
@@ -108,6 +111,14 @@ export function openOrActivateTab(
 			tabs,
 			activeTabId: existing.id,
 			activatedExisting: true,
+		};
+	}
+
+	if (tabs.length > max) {
+		return {
+			tabs,
+			activeTabId: activeTabId ?? tabs[0]?.id ?? tabId,
+			refused: true,
 		};
 	}
 
@@ -132,7 +143,7 @@ export function openOrActivateTab(
 	let nextTabs = [...tabs, newTab];
 	let evicted: DiagramTabState | undefined;
 
-	if (nextTabs.length > MAX_DIAGRAM_TABS) {
+	if (nextTabs.length > max) {
 		const victim = pickFifoEvictionCandidate(nextTabs.filter((t) => t.id !== tabId));
 		if (victim) {
 			nextTabs = nextTabs.filter((t) => t.id !== victim.id);

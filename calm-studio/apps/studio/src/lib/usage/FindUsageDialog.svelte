@@ -3,6 +3,7 @@
 
 <script lang="ts">
 	import type { UsageHit } from './findUsage';
+	import ColumnGrid from '$lib/ui/ColumnGrid.svelte';
 
 	interface Props {
 		hits: UsageHit[];
@@ -24,9 +25,12 @@
 
 	const selected = $derived(hits.find((h) => h.rowId === selectedId) ?? null);
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
+	const columns = [
+		{ id: 'path', label: 'Path', width: 200 },
+		{ id: 'kind', label: 'Kind', width: 90 },
+		{ id: 'meta', label: 'Detail', width: 120 },
+		{ id: 'name', label: 'Name', width: 160 },
+	];
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') {
@@ -43,8 +47,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="usage-title">
 		<h2 id="usage-title" class="title">Find usage</h2>
 		{#if loading}
@@ -54,24 +57,9 @@
 		{:else if hits.length === 0}
 			<p class="hint">No usages in other files.</p>
 		{:else}
-			<ul class="list">
-				{#each hits as hit (hit.rowId)}
-					<li>
-						<button
-							type="button"
-							class="row"
-							class:selected={selectedId === hit.rowId}
-							onclick={() => (selectedId = hit.rowId)}
-							ondblclick={() => onopen(hit)}
-						>
-							<span class="path">{hit.relativePath}</span>
-							<span class="kind">{hit.kind}</span>
-							<span class="meta">{kindLabel(hit)}</span>
-							<span class="name">{hit.name}</span>
-						</button>
-					</li>
-				{/each}
-			</ul>
+			<div class="table-scroll">
+				<ColumnGrid columns={columns} rowIds={hits.map((hit) => hit.rowId)} cell={usageCell} />
+			</div>
 		{/if}
 		<div class="actions">
 			<button type="button" onclick={oncancel}>Cancel</button>
@@ -86,6 +74,21 @@
 		</div>
 	</div>
 </div>
+
+{#snippet usageCell(rowId: string, columnId: string)}
+	{@const hit = hits.find((item) => item.rowId === rowId)}
+	{#if hit}
+		{#if columnId === 'path'}
+			<button type="button" class="cell-btn" class:selected={selectedId === hit.rowId} title={hit.relativePath} onclick={() => (selectedId = hit.rowId)} ondblclick={() => onopen(hit)}>{hit.relativePath}</button>
+		{:else if columnId === 'kind'}
+			<span title={hit.kind}>{hit.kind}</span>
+		{:else if columnId === 'meta'}
+			<span title={kindLabel(hit)}>{kindLabel(hit)}</span>
+		{:else}
+			<span title={hit.name}>{hit.name}</span>
+		{/if}
+	{/if}
+{/snippet}
 
 <style>
 	.backdrop {
@@ -118,29 +121,25 @@
 	.error {
 		color: #b91c1c;
 	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-		display: flex;
-		flex-direction: column;
-		gap: 4px;
-	}
-	.row {
-		display: grid;
-		grid-template-columns: 1fr auto auto 1fr;
-		gap: 8px;
-		width: 100%;
-		text-align: left;
-		padding: 8px 10px;
+	.table-scroll {
+		overflow: auto;
+		max-height: 50vh;
 		border: 1px solid #e2e8f0;
 		border-radius: 6px;
-		background: #fff;
-		cursor: pointer;
-		font-size: 12px;
 	}
-	.row.selected {
-		border-color: #93c5fd;
+	.cell-btn {
+		width: 100%;
+		text-align: left;
+		border: none;
+		background: transparent;
+		cursor: pointer;
+		font: inherit;
+		padding: 0;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.cell-btn.selected {
 		background: #eff6ff;
 	}
 	.path {

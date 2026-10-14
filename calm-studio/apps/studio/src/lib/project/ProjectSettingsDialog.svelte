@@ -18,6 +18,7 @@
 		setUrlMappingPath,
 		setNamingConfig,
 		setUiDemo,
+		setUiMaxOpenEditors,
 		applyUserConfig,
 		getUserConfig,
 	} from '$lib/project/projectStore.svelte';
@@ -49,6 +50,7 @@
 	let hubUrl = $state(normalizeHubUrl(getProjectFileConfig()?.hub?.url) ?? '');
 	let urlMappingPath = $state(getProjectFileConfig()?.urlMapping?.path ?? '');
 	let uiDemo = $state(getProjectFileConfig()?.ui?.demo === true);
+	let maxOpenEditors = $state(String(getProjectFileConfig()?.ui?.maxOpenEditors ?? 10));
 	let namingProfile = $state(getProjectFileConfig()?.naming.profile ?? '');
 	let namingRootDirs = $state(
 		Object.entries(getProjectFileConfig()?.naming.rootDirs ?? {}).map(([key, value]) => ({ key, value }))
@@ -226,6 +228,11 @@
 			formError = hubErr;
 			return;
 		}
+		const parsedLimit = Number(maxOpenEditors);
+		if (!Number.isInteger(parsedLimit) || parsedLimit < 1) {
+			formError = 'Max open editors must be a whole number of at least 1.';
+			return;
+		}
 		formError = null;
 		setNamingConfig(naming);
 		setPatternsDir(patternsDir);
@@ -233,9 +240,11 @@
 		setUrlMappingPath(urlMappingPath);
 		setExtensionsDisabled(disabledPacks);
 		setUiDemo(uiDemo);
+		setUiMaxOpenEditors(parsedLimit);
 		hubUrl = getProjectFileConfig()?.hub?.url ?? '';
 		urlMappingPath = getProjectFileConfig()?.urlMapping?.path ?? '';
 		uiDemo = getProjectFileConfig()?.ui?.demo === true;
+		maxOpenEditors = String(getProjectFileConfig()?.ui?.maxOpenEditors ?? 10);
 		await persist();
 	}
 
@@ -316,8 +325,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && onclose()}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="dialog" aria-modal="true" aria-labelledby="prj-settings-title">
 		<h2 id="prj-settings-title" class="title">Project settings</h2>
 		<p class="meta">
@@ -584,6 +592,21 @@
 				<label class="check">
 					<input type="checkbox" bind:checked={uiDemo} disabled={saving} />
 					<span>Demo</span>
+				</label>
+				<h3 class="section-title">Editors</h3>
+				<p class="hint">
+					Maximum diagram and preview tabs. Lowering this does not close tabs that are already open.
+				</p>
+				<label class="add-row">
+					<span>Max open editors</span>
+					<input
+						class="input"
+						type="number"
+						min="1"
+						step="1"
+						bind:value={maxOpenEditors}
+						disabled={saving}
+					/>
 				</label>
 			</section>
 			{/if}

@@ -187,7 +187,7 @@
 	<ul class="tree" role="tree">
 		{#each namespaces as ns (ns)}
 			<li>
-				<button type="button" class="row" onclick={() => void toggleNamespace(ns)}>
+				<button type="button" class="row" title={ns} onclick={() => void toggleNamespace(ns)}>
 					<span class="chevron">{openNs[ns] ? '▼' : '▶'}</span>
 					<span class="label">{ns}</span>
 				</button>
@@ -199,7 +199,7 @@
 						{#each architectures[ns] ?? [] as arch (arch.id)}
 							{@const aKey = archKey(ns, arch.id)}
 							<li>
-								<button type="button" class="row" onclick={() => void toggleArchitecture(ns, arch)}>
+								<button type="button" class="row" title={arch.name} onclick={() => void toggleArchitecture(ns, arch)}>
 									<span class="chevron">{openArch[aKey] ? '▼' : '▶'}</span>
 									<span class="label">{arch.name}</span>
 								</button>
@@ -214,7 +214,7 @@
 												<button
 													type="button"
 													class="row"
-													title="Double-click to open read-only"
+													title={version}
 													onclick={() => onVersionClick(ns, arch, version)}
 													ondblclick={() => onVersionDblClick(ns, arch, version)}
 												>
@@ -233,7 +233,7 @@
 																	role="button"
 																	tabindex="0"
 																	draggable="true"
-																	title="Drag onto the diagram"
+																	title={node.name}
 																	ondragstart={(e) => dragNode(e, node, versionUrl(ns, arch, version))}
 																>
 																	{#if iconMarkup(node.nodeType)}
@@ -282,7 +282,8 @@
 		display: flex;
 		gap: 4px;
 		align-items: center;
-		width: 100%;
+		width: max-content;
+		min-width: 100%;
 		border: none;
 		background: transparent;
 		color: var(--color-text-primary);
@@ -301,8 +302,6 @@
 	}
 
 	.label {
-		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 

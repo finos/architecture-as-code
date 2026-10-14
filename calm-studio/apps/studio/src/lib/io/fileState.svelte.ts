@@ -81,6 +81,11 @@ export function hasUnsavedChanges(currentJson: string): boolean {
 	return currentJson !== cleanSnapshot;
 }
 
+/** Last JSON that counted as saved. Null until the first clean snapshot. */
+export function getCleanSnapshot(): string {
+	return cleanSnapshot ?? EMPTY_MODEL_JSON;
+}
+
 /** Store the current JSON as the clean baseline (after open/save/new). */
 export function setCleanSnapshot(currentJson: string): void {
 	cleanSnapshot = currentJson;

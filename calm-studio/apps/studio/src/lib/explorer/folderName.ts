@@ -66,7 +66,8 @@ function applyNameToken(template: string, slug: string): string {
 
 export function selectedDirectoryPath(selectedPath: string | null | undefined): string {
 	if (!selectedPath) return '';
-	if (selectedPath.toLowerCase().endsWith('.json')) {
+	const name = selectedPath.split('/').pop() ?? selectedPath;
+	if (/\.(json|md)$/i.test(name)) {
 		const idx = selectedPath.lastIndexOf('/');
 		return idx < 0 ? '' : selectedPath.slice(0, idx);
 	}

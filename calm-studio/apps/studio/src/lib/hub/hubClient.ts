@@ -28,7 +28,7 @@ export interface HubArchitectureSummary {
 	url: string;
 }
 
-export type HubResourceKind = 'architectures' | 'patterns' | 'standards' | 'flows';
+export type HubResourceKind = 'architectures' | 'patterns' | 'standards' | 'flows' | 'adrs';
 
 function valuesOf<T>(data: unknown): T[] {
 	if (Array.isArray(data)) return data as T[];
@@ -38,6 +38,7 @@ function valuesOf<T>(data: unknown): T[] {
 	if (Array.isArray(rec['namespaces'])) return rec['namespaces'] as T[];
 	if (Array.isArray(rec['patterns'])) return rec['patterns'] as T[];
 	if (Array.isArray(rec['architectures'])) return rec['architectures'] as T[];
+	if (Array.isArray(rec['adrs'])) return rec['adrs'] as T[];
 	return [];
 }
 
@@ -202,6 +203,44 @@ export async function listHubArchitectures(
 		});
 	}
 	return out;
+}
+
+export interface HubAdrSummary {
+	id: string;
+	title: string;
+	status?: string;
+	url: string;
+}
+
+export async function listHubAdrs(hubUrl: string, namespace: string): Promise<HubAdrSummary[]> {
+	const items = await listCatalog(
+		hubUrl,
+		`/calm/namespaces/${encodeURIComponent(namespace)}/adrs`
+	);
+	const out: HubAdrSummary[] = [];
+	for (const item of items) {
+		const id = item['id'] != null ? String(item['id']) : catalogResourceId(item);
+		if (!id) continue;
+		const title =
+			typeof item['title'] === 'string' && item['title']
+				? item['title']
+				: catalogResourceName(item, id);
+		out.push({
+			id,
+			title,
+			...(typeof item['status'] === 'string' ? { status: item['status'] } : {}),
+			url: hubResourceUrl(hubUrl, 'adrs', namespace, id),
+		});
+	}
+	return out;
+}
+
+export async function fetchHubAdr(url: string): Promise<Record<string, unknown>> {
+	const data = await getJsonWithApiFallback(url);
+	if (!data || typeof data !== 'object' || Array.isArray(data)) {
+		throw new Error('Hub ADR is not an object');
+	}
+	return data as Record<string, unknown>;
 }
 
 export async function listHubArchitectureVersions(

@@ -98,6 +98,7 @@ export function fileMoveDestination(pathField: string, folderField: string): str
 		const folder = folderPathFromMoveField(folderRaw);
 		dest = folder ? `${folder}/${name}` : name;
 	}
-	if (dest && !dest.toLowerCase().endsWith('.json')) dest += '.json';
+	const fileName = dest.split('/').pop() ?? dest;
+	if (dest && !/\.[a-z0-9]+$/i.test(fileName)) dest += '.json';
 	return dest;
 }

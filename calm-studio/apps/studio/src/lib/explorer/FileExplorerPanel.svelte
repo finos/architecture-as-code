@@ -57,7 +57,7 @@
 		type TreeMenuTarget,
 	} from '$lib/explorer/treeMenu';
 	import ExplorerContextMenu from '$lib/explorer/ExplorerContextMenu.svelte';
-	import { listJsonFilesInTree, findDirectoryInTree } from '$lib/explorer/folderScan';
+	import { listExplorerFiles, findDirectoryInTree } from '$lib/explorer/folderScan';
 	import {
 		PROJECT_ROOT_FIELD,
 		fileMoveDestination,
@@ -407,7 +407,7 @@
 			root: rootHandle,
 			sourcePath,
 			destPath,
-			files: listJsonFilesInTree(tree),
+			files: listExplorerFiles(tree),
 		});
 		tree = await scanDirectoryTree(rootHandle);
 		setExplorerTree(tree);
@@ -539,7 +539,7 @@
 				return;
 			}
 			const dest = joinMoveDestination(destParent, value);
-			const movedPaths = listJsonFilesInTree(tree)
+			const movedPaths = listExplorerFiles(tree)
 				.filter(
 					(file) =>
 						file.relativePath === sourcePrefix ||
@@ -553,7 +553,7 @@
 					root: rootHandle,
 					sourcePrefix,
 					destPrefix: dest,
-					files: listJsonFilesInTree(tree),
+					files: listExplorerFiles(tree),
 					overwrite: false,
 				});
 				mapping = result.mapping;
@@ -565,7 +565,7 @@
 						root: rootHandle,
 						sourcePrefix,
 						destPrefix: dest,
-						files: listJsonFilesInTree(tree),
+						files: listExplorerFiles(tree),
 						overwrite: true,
 					});
 					mapping = result.mapping;
@@ -655,7 +655,7 @@
 	{:else if tree.length === 0}
 		<p class="hint">No folder selected. Open a project folder to browse CALM files.</p>
 	{:else}
-		<ul class="tree" role="tree">
+		<ul class="tree tree-scroll" role="tree">
 			{#each tree as entry (entry.relativePath)}
 				{@render treeEntry(entry, 0)}
 			{/each}
@@ -768,6 +768,7 @@
 				class="tree-row directory"
 				class:selected={selectedPath === entry.relativePath}
 				role="treeitem"
+				title={entry.name}
 				aria-expanded={expandedDirs[entry.relativePath] ?? false}
 				onclick={() => {
 					selectPath(entry.relativePath);
@@ -778,7 +779,7 @@
 				oncontextmenu={(e) => openTreeMenu(e, { kind: 'directory', path: entry.relativePath })}
 			>
 				<span class="chevron">{expandedDirs[entry.relativePath] ? '▼' : '▶'}</span>
-				<span class="icon">📁</span>
+				<span class="icon">📝</span>
 				<span class="label">{entry.name}</span>
 			</button>
 			{#if expandedDirs[entry.relativePath]}
@@ -795,27 +796,32 @@
 					class:current={isCurrentFile(entry.relativePath)}
 					class:revealed={revealedPath === entry.relativePath}
 					class:selected={selectedPath === entry.relativePath}
+					class:markdown={entry.isMarkdown}
 					data-relative-path={entry.relativePath}
 					role="treeitem"
 					onclick={() => selectPath(entry.relativePath)}
 					oncontextmenu={(e) => openTreeMenu(e, { kind: 'file', path: entry.relativePath })}
 				>
-					<button
-						type="button"
-						class="chevron-btn"
-						aria-label={expandedFiles[entry.relativePath] ? 'Collapse file' : 'Expand file'}
-						aria-expanded={expandedFiles[entry.relativePath] ?? false}
-						onclick={() => toggleFile(entry)}
-					>
-						<span class="chevron">{expandedFiles[entry.relativePath] ? '▼' : '▶'}</span>
-					</button>
+					{#if entry.isMarkdown}
+						<span class="md-badge" aria-hidden="true">MD</span>
+					{:else}
+						<button
+							type="button"
+							class="chevron-btn"
+							aria-label={expandedFiles[entry.relativePath] ? 'Collapse file' : 'Expand file'}
+							aria-expanded={expandedFiles[entry.relativePath] ?? false}
+							onclick={() => toggleFile(entry)}
+						>
+							<span class="chevron">{expandedFiles[entry.relativePath] ? '▼' : '▶'}</span>
+						</button>
+					{/if}
 					<button
 						type="button"
 						class="file-open-btn"
 						draggable="true"
 						ondragstart={(e) => handleFileMoveDragStart(e, entry.relativePath)}
 						ondblclick={() => handleFileDblClick(entry)}
-						title="Double-click to open. Drag onto a folder to move."
+						title={entry.name}
 					>
 						<span class="icon">📄</span>
 						<span class="label">{entry.name}</span>
@@ -831,9 +837,7 @@
 									role="treeitem"
 									draggable={canDragNode(entry.relativePath)}
 									ondragstart={(e) => handleNodeDragStart(e, entry, node)}
-									title={canDragNode(entry.relativePath)
-										? 'Drag to canvas to add reference'
-										: 'Cannot reference nodes from the current file'}
+									title={node.name}
 								>
 									{#if nodeIconMarkup(node.nodeType)}
 										<span
@@ -848,7 +852,7 @@
 							</li>
 						{/each}
 					</ul>
-				{:else if expandedFiles[entry.relativePath] && entry.nodesLoaded && !entry.isCalm}
+				{:else if expandedFiles[entry.relativePath] && entry.nodesLoaded && !entry.isCalm && !entry.isMarkdown}
 					<p class="non-calm">Not a CALM architecture file</p>
 				{/if}
 			</div>
@@ -973,8 +977,12 @@
 		list-style: none;
 		margin: 0;
 		padding: 4px 0;
-		overflow-y: auto;
+	}
+
+	.tree-scroll {
+		overflow: auto;
 		flex: 1;
+		min-height: 0;
 	}
 
 	.tree-item {
@@ -985,7 +993,8 @@
 		display: flex;
 		align-items: center;
 		gap: 4px;
-		width: 100%;
+		width: max-content;
+		min-width: 100%;
 		padding: 3px 6px;
 		border: none;
 		background: transparent;
@@ -1006,7 +1015,8 @@
 	}
 
 	.chevron-btn,
-	.file-open-btn {
+	.file-open-btn,
+	.md-badge {
 		display: inline-flex;
 		align-items: center;
 		gap: 4px;
@@ -1017,6 +1027,14 @@
 		cursor: pointer;
 		padding: 3px 4px;
 		border-radius: 4px;
+	}
+
+	.md-badge {
+		font-size: 9px;
+		font-weight: 700;
+		letter-spacing: 0.04em;
+		color: var(--color-text-secondary, #64748b);
+		cursor: default;
 	}
 
 	.file-open-btn {
@@ -1104,8 +1122,6 @@
 	}
 
 	.label {
-		overflow: hidden;
-		text-overflow: ellipsis;
 		white-space: nowrap;
 	}
 

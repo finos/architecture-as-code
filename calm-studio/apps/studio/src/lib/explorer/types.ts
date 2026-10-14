@@ -15,6 +15,8 @@ export interface ExplorerFileEntry {
 	relativePath: string;
 	handle: FileSystemFileHandle;
 	isCalm: boolean;
+	/** Markdown file. Shown in the tree and opened as a read-only preview. */
+	isMarkdown?: boolean;
 	nodes?: CalmNodePreview[];
 	nodesLoaded?: boolean;
 }

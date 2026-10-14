@@ -5,6 +5,7 @@
 import type { ExplorerFileEntry } from '$lib/explorer/types';
 import {
 	isNestedUnder,
+	mapMovedPath,
 	planFolderMoveRewrites,
 	type FolderMoveRewriteFile,
 	type FolderMoveRewritePlan,
@@ -79,6 +80,11 @@ export async function moveProjectFolder(options: {
 	const mapping: Record<string, string> = {};
 	for (const plan of rewritten) {
 		if (plan.newPath !== plan.oldPath) mapping[plan.oldPath] = plan.newPath;
+	}
+	for (const file of files) {
+		if (mapping[file.relativePath]) continue;
+		const newPath = mapMovedPath(file.relativePath, sourcePrefix, destPrefix);
+		if (newPath !== file.relativePath) mapping[file.relativePath] = newPath;
 	}
 
 	const sourceDir = await getExistingDirectory(root, sourcePrefix);

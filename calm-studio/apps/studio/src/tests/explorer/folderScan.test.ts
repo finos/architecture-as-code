@@ -3,7 +3,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 import { describe, test, expect } from 'vitest';
-import { updateFileInTree } from '$lib/explorer/folderScan';
+import { explorerListedFileKind, listExplorerFiles, listJsonFilesInTree, updateFileInTree } from '$lib/explorer/folderScan';
+import { selectedDirectoryPath } from '$lib/explorer/folderName';
 import type { ExplorerDirectoryEntry, ExplorerFileEntry, ExplorerTreeEntry } from '$lib/explorer/types';
 
 function makeFile(relativePath: string, overrides: Partial<ExplorerFileEntry> = {}): ExplorerFileEntry {
@@ -69,5 +70,27 @@ describe('updateFileInTree', () => {
 		const updated = makeFile('missing.json');
 		const result = updateFileInTree(tree, 'missing.json', updated);
 		expect(result).toEqual(tree);
+	});
+});
+
+describe('explorer file list', () => {
+	test('lists markdown beside json and keeps json rewrites on json only', () => {
+		expect(explorerListedFileKind('notes.MD')).toBe('markdown');
+		expect(explorerListedFileKind('coa.json')).toBe('json');
+		expect(explorerListedFileKind('readme.txt')).toBeNull();
+
+		const tree: ExplorerTreeEntry[] = [
+			makeDir('docs', 'docs', [
+				makeFile('docs/one.md', { isMarkdown: true, nodesLoaded: true }),
+				makeFile('docs/arch.json'),
+			]),
+		];
+		expect(listExplorerFiles(tree).map((file) => file.relativePath)).toEqual([
+			'docs/one.md',
+			'docs/arch.json',
+		]);
+		expect(listJsonFilesInTree(tree).map((file) => file.relativePath)).toEqual(['docs/arch.json']);
+		expect(selectedDirectoryPath('docs/one.md')).toBe('docs');
+		expect(selectedDirectoryPath('docs')).toBe('docs');
 	});
 });

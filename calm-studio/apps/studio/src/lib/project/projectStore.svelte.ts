@@ -339,6 +339,20 @@ export function setUiDemo(demo: boolean): void {
 	});
 }
 
+/** Set `ui.maxOpenEditors` in the project file (R89). Values below 1 are stored as 1. */
+export function setUiMaxOpenEditors(value: number): void {
+	if (!projectFileConfig) return;
+	const maxOpenEditors = Number.isInteger(value) && value >= 1 ? value : 1;
+	setProjectFile({
+		...projectFileConfig,
+		ui: {
+			...projectFileConfig.ui,
+			demo: projectFileConfig.ui?.demo === true,
+			maxOpenEditors,
+		},
+	});
+}
+
 export function setNamingConfig(naming: CalmProjectConfig['naming']): void {
 	if (!projectFileConfig) return;
 	setProjectFile({ ...projectFileConfig, naming });

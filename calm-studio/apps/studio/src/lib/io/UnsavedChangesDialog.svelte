@@ -11,10 +11,6 @@
 
 	let { filename = null, onsave, ondiscard, oncancel }: Props = $props();
 
-	function handleBackdrop(event: MouseEvent) {
-		if (event.target === event.currentTarget) oncancel();
-	}
-
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Escape') oncancel();
 	}
@@ -22,15 +18,14 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={handleBackdrop}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" role="alertdialog" aria-modal="true" aria-labelledby="unsaved-title">
 		<h2 id="unsaved-title" class="title">Unsaved changes</h2>
 		<p class="message">
 			{#if filename}
-				Do you want to save changes to <strong>{filename}</strong> before opening another file?
+				Do you want to save changes to <strong>{filename}</strong>?
 			{:else}
-				Do you want to save your changes before opening another file?
+				Do you want to save your changes?
 			{/if}
 		</p>
 		<div class="actions">

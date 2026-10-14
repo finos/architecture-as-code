@@ -52,8 +52,7 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
-<div class="backdrop" role="presentation" onclick={(e) => e.target === e.currentTarget && oncancel()}>
+<div class="backdrop" role="presentation">
 	<div class="dialog" class:wide={folderTree != null} role="dialog" aria-modal="true" aria-labelledby="prompt-title">
 		<h2 id="prompt-title" class="title">{title}</h2>
 		{#if hint}

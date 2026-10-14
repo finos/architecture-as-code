@@ -141,6 +141,17 @@ V15
 - properties editor: needitovat pole (array) jako jeden záznam — editace jednotlivých prvků (primitiva i objekty), inline seznam Add/Remove; prázdné pole ukáže Add. Vnořené JSON zobrazovat jako formátovaný (pretty) víceřádkový text v náhledu i v Edit dialogu. Platí pro metadata / customMetadata (JSON) / controls-interfaces dle výskytu polí.
 V16
 - doplnit práci s adr. V založce properties pro celý diagram zobrazovat seznam ADR ze souboru s možností dané adr Zobrazit mo6nost pridat ADR z HUBU nebo jako referenci na lokalni soubor pomoci relativni cesty. Obojí se bude vybírat pomocí dialogu. Jeli toto ADR jako MD soubor zobrait v samostatne založce jako readonly peview. 
+- počet současne otevřenbých editoru dat do konfigurace
+- dotaz na uloženi editoru jen pri zavirani nikoli pri opuštení editoru (prepnuti na jiný tab nebo otevření nového tabu)
+- u elementu ve stromu pri najeti zobrazit plný nazev jako tooltip
+- doplnit horizobtalní scroolbar do založky files a hub.
+- opravit modifikaci velikosti editoru tak abi pri taženi splitru mezi editorme a levým panelem menila velikost panelu a editoru a nedochazelo k modifikaci panelu properties  a pri taženi splitru mezi editorem a propertie dochazelo k modifikaci editrou a panelu properties  a ne panelu v levo.Aktualně sliter mezi propertis a editorem meni velikost panelu vlevo a obraceně.
+- všechny tabulky budou mít:
+  -- Modifikovatelnou šiřku sloupcu v tabulkach aplikuj na všechny tabulky. 
+  -- po najetiu na bunku se jako tooltip zobrazí celá hodnota v bunce.
+  -- budou mit hlavičku s popisem sloupce. Nad tou to halvičkou bude možnost menit taženim hrany velikost sloupce. zmena nemeni velist cele tabulyk pouze meni velikost sloupcu prilehajících k hraně, která je tažena. 
+- dialog pro Find neighbors udělej s možností zmeny velkosti  
+
 Vxx
 - použivat  namessapce v detailed-architecture. Namespace pro projekt umisti do konfigurace.Pro namespace root adresař je v konfiguraci. Adreasře v tomto rootu už odpovifdajicestev namespace. Artefakty z tohoto namespace prekladej na lokálni soubory projektu. Priklad mapovani namesapce na adresařovou strukturu ns: https://architecture.creditas.cz/ je mapovana na adresař : v projekt architecture-model tj vysledná namespace pro soubor architecture-model/onebank/components-ext/test.architecture.json je https://architecture.creditas.cz/onebank/components-ext/test.architecture.json
 ```

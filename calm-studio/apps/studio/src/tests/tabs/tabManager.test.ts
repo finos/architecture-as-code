@@ -72,6 +72,31 @@ describe('tabManager', () => {
 		expect(result.activeTabId).toBe('new');
 	});
 
+	test('openOrActivateTab refuses when the open count is already above the limit', () => {
+		const tabs = Array.from({ length: 4 }, (_, i) =>
+			makeTab(`t${i}`, `file-${i}.json`, i + 1, `f/${i}.json`)
+		);
+		const result = openOrActivateTab(
+			tabs,
+			't0',
+			'new',
+			{
+				label: 'new.json',
+				relativePath: 'f/new.json',
+				nodes: [],
+				edges: [],
+				history: createEmptyHistoryState(),
+				modelJson: '{}',
+				cleanSnapshot: '{}',
+			},
+			Date.now(),
+			2
+		);
+		expect(result.refused).toBe(true);
+		expect(result.tabs).toHaveLength(4);
+		expect(result.evicted).toBeUndefined();
+	});
+
 	test('pickFifoEvictionCandidate returns oldest openedAt', () => {
 		const tabs = [makeTab('a', 'a', 10), makeTab('b', 'b', 5), makeTab('c', 'c', 20)];
 		expect(pickFifoEvictionCandidate(tabs)?.id).toBe('b');

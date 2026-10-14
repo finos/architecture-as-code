@@ -121,6 +121,20 @@ export function rewriteArchitectureDocument(
 	const clone = structuredClone(doc) as Record<string, unknown>;
 	const nodes = clone.nodes;
 	let changed = false;
+	if (Array.isArray(clone.adrs)) {
+		clone.adrs = clone.adrs.map((item) => {
+			if (typeof item !== 'string') return item;
+			const next = rewriteDetailedArchitectureHref(
+				item,
+				fromFileOld,
+				fromFileNew,
+				sourcePrefix,
+				destPrefix
+			);
+			if (next !== item) changed = true;
+			return next;
+		});
+	}
 	if (Array.isArray(nodes)) {
 		for (const node of nodes) {
 			if (node && typeof node === 'object') {
