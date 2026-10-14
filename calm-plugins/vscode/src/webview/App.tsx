@@ -58,6 +58,7 @@ import { BuildingBlockCreator } from './panels/BuildingBlockCreator';
 import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
+import { minimapNodeClassName } from './canvas/minimap';
 import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
 import { mergeControls } from '@finos/calm-shared/browser';
 import { validateArchitecture } from './utils/validation';
@@ -874,7 +875,7 @@ function CanvasApp() {
                     >
                         <Background />
                         <Controls />
-                        <MiniMap />
+                        <MiniMap nodeClassName={minimapNodeClassName} />
                     </ReactFlow>
 
                     {/* Validation Panel */}
