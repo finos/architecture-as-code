@@ -283,6 +283,33 @@ describe('validateNodeDetails', () => {
         ]);
     });
 
+    // A loaded but invalid sub-architecture is validated once, so its own errors are reported once,
+    // under the first referencing node, and not repeated for every node that references it.
+    it('reports the errors of a shared invalid detailed-architecture once', async () => {
+        const sharedUrl = 'https://example.com/invalid-shared.json';
+        const arch = {
+            nodes: [
+                {
+                    'unique-id': 'n1', 'node-type': 'service', name: 'N1', description: 'D',
+                    details: { 'detailed-architecture': sharedUrl }
+                },
+                {
+                    'unique-id': 'n2', 'node-type': 'service', name: 'N2', description: 'D',
+                    details: { 'detailed-architecture': sharedUrl }
+                }
+            ]
+        };
+        const schemaDir = makeSchemaDirectory();
+        (noop as ReturnType<typeof vi.fn>).mockResolvedValue(errorOutcome('/nodes/0'));
+
+        const result = await validateNodeDetails(arch, schemaDir, false, noop, makeResolver(schemaDir));
+        expect(noop).toHaveBeenCalledOnce();
+        expect(result.hasErrors).toBe(true);
+        expect(result.jsonSchemaOutputs.map(o => o.path)).toEqual([
+            '/nodes/0/details/detailed-architecture/nodes/0'
+        ]);
+    });
+
     it('propagates hasWarnings from sub-architecture outcome', async () => {
         const arch = {
             nodes: [{

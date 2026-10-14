@@ -299,6 +299,14 @@ A sub-architecture reference the policy permits but that cannot be loaded or val
 a single `node-details-validation` error at the referencing node's
 `/nodes/{i}/details/detailed-architecture` path. A reference the policy forbids is not an error.
 
+When more than one node references the same sub-architecture, the two cases are different on purpose:
+
+- A reference that cannot be loaded is reported at each node that references it. The user can then
+  find and fix all of these references.
+- A sub-architecture that loads is validated once. Its own findings, or a failure to validate it,
+  are reported once, at the path of the first node that references it. A shared sub-architecture
+  that is not valid does not repeat its findings for each node.
+
 ### Callers and CalmHub
 
 The resolution policy is chosen by the caller. The CLI defaults to deep (with a shallow opt-out flag)
