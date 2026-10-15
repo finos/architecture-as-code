@@ -105,7 +105,8 @@
     "package": "npm run build && npx @vscode/vsce package --no-dependencies",
     "vscode:prepublish": "npm run build",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "changelog": "node ../../scripts/vscode-changelog.mjs"
   },
   "dependencies": {
     "@finos/calm-models": "file:../../calm-models",
