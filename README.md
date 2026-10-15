@@ -60,10 +60,21 @@ upcoming and previous meetings. For active contributors we have Office Hours eve
 Have an idea or feedback? [Raise an issue](https://github.com/finos/architecture-as-code/issues/new/choose) in this
 repository.
 
+## Project repositories
+
+Architecture as Code is one of three repositories that make up the FINOS Architecture as Code project, also known as CALM:
+
+| Repository | Contents |
+|------------|----------|
+| **architecture-as-code** | This repository. The tools that use the CALM specification: CLI, server, shared libraries, data models, widgets, CALM Hub and its UI, the VS Code extension, CALM Studio, CALM Guard, the documentation site and CALM Lab. |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its documentation and validation test suite. Published to npm as [`@finos/calm-schema`](https://www.npmjs.com/package/@finos/calm-schema), which the tools here depend on, and to [calm.finos.org](https://calm.finos.org). |
+| [calm-governance](https://github.com/finos/calm-governance) | The governance home: project-wide governance, contribution guidelines, Maintainer roster and Code of Conduct. Holds no code. |
+
+Propose a schema change in calm-schema, not here.
+
 ## Contributing
 
-Architecture as Code operates as a monorepo, in here you will find both the CALM JSON Schema and the various projects
-that are being built to utilize the CALM specification.
+Architecture as Code operates as a monorepo of the projects that are being built to utilize the CALM specification.
 
 We accept contributions via Pull Request, to make a contribution:
 

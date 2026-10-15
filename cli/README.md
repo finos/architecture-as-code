@@ -76,7 +76,7 @@ Generate an architecture from a CALM pattern file.
 Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -o, --output <file>           Path location at which to output the generated file. (default: "architecture.json")
-  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  -s, --schema-directory <path>  Path to the directory containing the meta schemas to use. (default: the bundled schemas)
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
   --option-choices <choices>    Pre-defined option choices as a JSON object mapping option unique-ids to choice descriptions. Skips interactive prompts.
   -v, --verbose                 Enable verbose logging. (default: false)
@@ -134,7 +134,7 @@ Options:
   -p, --pattern <file>          Path to the pattern file to use. May be a file path or a URL.
   -a, --architecture <file>     Path to the architecture file to use. May be a file path or a URL.
   --timeline <file>             Path to the timeline file to validate. May be a file path or a URL.
-  -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: "../calm/release")
+  -s, --schema-directory <path> Path to the directory containing the meta schemas to use. (default: the bundled schemas)
   -c, --calm-hub-url <url>      URL to CalmHub to use when loading documents.
   --assets-path <path>          Local path to CALM assets directory for resolving detailed-architecture CURIEs without a Hub
   -u, --url-to-local-file-mapping <path>  Path to mapping file which maps URLs to local paths
