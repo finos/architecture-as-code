@@ -14,10 +14,10 @@ export function ActorNode({ id, data, selected }: NodeProps) {
     return (
         <>
             <NodeResizer isVisible={selected} minWidth={60} minHeight={50} lineStyle={{ borderColor: theme.focus }} />
-            <Handle type="target" position={Position.Top} style={handleStyle} />
-            <Handle type="source" position={Position.Bottom} style={handleStyle} />
-            <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
-            <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
+            <Handle type="target" position={Position.Top} />
+            <Handle type="source" position={Position.Bottom} />
+            <Handle type="target" position={Position.Left} id="left-target" />
+            <Handle type="source" position={Position.Right} id="right-source" />
 
             <div style={{ ...nodeStyle, ...(selected ? selectedStyle : {}) }}>
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
@@ -47,7 +47,7 @@ const selectedStyle: React.CSSProperties = {};
 const labelStyle: React.CSSProperties = {
     fontSize: '10px',
     fontWeight: 600,
-    color: 'var(--calm-fg)',
+    color: theme.text,
     textAlign: 'center',
     maxWidth: '80px',
     overflow: 'hidden',
@@ -55,4 +55,3 @@ const labelStyle: React.CSSProperties = {
     whiteSpace: 'nowrap',
 };
 
-const handleStyle: React.CSSProperties = { width: '8px', height: '8px', background: theme.fgMuted, border: `1px solid ${theme.borderWidget}` };
