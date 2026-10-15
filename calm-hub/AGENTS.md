@@ -275,7 +275,7 @@ The read-only images use a **two-stage Docker build**:
 ```
 Stage 1 — seed (JVM, writable)
   FROM ubi9/openjdk-21
-  COPY quarkus-app/ + calm/ schemas + controls/
+  COPY quarkus-app/ + released meta-schemas (npm copy) + calm/ drafts + controls/ + interfaces/
   RUN boot Quarkus in standalone (writable) mode
       init script POSTs all namespaces, schemas, controls
       graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
@@ -408,7 +408,8 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas, controls, standards and patterns + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts and
+  release candidates, controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
 
 ### Bundled CALM Meta-Schemas
 - GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
@@ -424,6 +425,11 @@ All four workflows:
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
   read-only variant
+- The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
+  `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
+  repository holds only the drafts and the release candidates, which are seeded as before. The
+  seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
+  or namespace
 
 ### Integration Tests
 - Located in `src/integration-test/java/`

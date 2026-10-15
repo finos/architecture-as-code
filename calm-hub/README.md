@@ -24,6 +24,13 @@ docker compose --profile readonly-static up
 docker compose --profile readonly-native up
 ```
 
+The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas from
+`calm-hub/target/calm-schemas/release`. Make it first, from the repository root:
+
+```shell
+npm ci && npm run calm-hub:copy-schemas
+```
+
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 

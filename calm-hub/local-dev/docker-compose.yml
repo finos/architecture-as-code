@@ -1,3 +1,5 @@
+# The MongoDB container seeds the released meta-schemas from calm-hub/target/calm-schemas/release.
+# Make it first, from the repository root: npm ci && npm run calm-hub:copy-schemas
 services:
   mongodb:
     image: mongo:latest
@@ -7,9 +9,11 @@ services:
     volumes:
       - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
       - ../../calm:/calm:ro
+      - ../target/calm-schemas/release:/calm-schemas/release:ro
       - ../mongo/controls:/controls:ro
     environment:
       - CALM_SCHEMA_BASE_PATH=/calm
+      - CALM_RELEASE_SCHEMA_PATH=/calm-schemas/release
       - CALM_CONTROLS_BASE_PATH=/controls
     networks:
       - calm-net
