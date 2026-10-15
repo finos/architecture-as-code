@@ -37,10 +37,39 @@
     display: none !important;
 }
 
-/* Minimap styling */
+/* Minimap styling. These rules override the fill attributes that React Flow sets, so the
+   selected state and the container class can have their own colours. */
 .react-flow__minimap {
-    background: rgba(0, 0, 0, 0.15);
+    background: var(--calm-bg-secondary);
+    /* Many themes set widget.border close to the background, so mix one from the foreground */
+    border: 2px solid var(--vscode-contrastBorder, color-mix(in srgb, var(--calm-fg) 70%, var(--calm-bg)));
     border-radius: 4px;
+}
+
+.react-flow__minimap-node {
+    fill: color-mix(in srgb, var(--calm-fg-muted) 70%, transparent);
+    stroke: none;
+}
+
+.react-flow__minimap-node.calm-minimap-container {
+    fill: color-mix(in srgb, var(--calm-fg-muted) 12%, transparent);
+    stroke: var(--calm-fg-muted);
+    stroke-width: 1px;
+    vector-effect: non-scaling-stroke;
+}
+
+.react-flow__minimap-node.selected {
+    fill: var(--calm-focus);
+}
+
+.react-flow__minimap-node.calm-minimap-container.selected {
+    fill: color-mix(in srgb, var(--calm-focus) 20%, transparent);
+    stroke: var(--calm-focus);
+}
+
+/* Dims the part of the diagram outside the view */
+.react-flow__minimap-mask {
+    fill: color-mix(in srgb, var(--calm-bg-secondary) 65%, transparent);
 }
 
 /* Controls styling */
