@@ -1,7 +1,8 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
 import { isBuildingBlock, getNodeStyleOverride } from '../../utils/building-block-style';
-import { onSurface, theme, blockBorder, readableTextOn } from '../theme-colors';
+import { theme, blockBorder, readableTextOn } from '../theme-colors';
+import { SERVICE_FILL } from '../node-colours';
 import { ValidationBadge } from './ValidationBadge';
 
 export function ServiceNode({ id, data, selected }: NodeProps) {
@@ -43,7 +44,7 @@ export function ServiceNode({ id, data, selected }: NodeProps) {
 const baseStyle: React.CSSProperties = {
     position: 'relative', display: 'flex', alignItems: 'center', gap: '7px',
     width: '100%', height: '100%', padding: '8px 10px', boxSizing: 'border-box',
-    background: onSurface(theme.green, 22), border: `1.5px solid ${theme.green}`, borderRadius: '10px',
+    background: SERVICE_FILL, border: `1.5px solid ${theme.green}`, borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
 };
 const buildingBlockStyle: React.CSSProperties = {

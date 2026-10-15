@@ -1,14 +1,32 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { NodeStyleOverride } from '../utils/building-block-style';
-import { THEME_BG_FALLBACK, THEME_BG_VAR, THEME_TEXT_FALLBACK, THEME_TEXT_VAR, cssColorToHex } from '../canvas/theme-colors';
+import { THEME_BG_FALLBACK, THEME_TEXT_FALLBACK, cssColorToHex } from '../canvas/theme-colors';
+import type { NodeColours } from '../canvas/node-colours';
 
-function useThemeHex(variable: string, fallback: string): string {
+/**
+ * A CSS colour as `#rrggbb`, for `<input type="color">`. Theme colours are variables or
+ * `color-mix()`, so a hidden element resolves them. VS Code changes the theme class on `body`
+ * and the colour variables on `html`, so the value is read again when either changes.
+ */
+function useResolvedHex(cssColor: string, fallback: string): string {
     const [hex, setHex] = useState(fallback);
     useEffect(() => {
         if (typeof document === 'undefined') return;
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(variable);
-        setHex(cssColorToHex(raw, fallback));
-    }, [variable, fallback]);
+        const read = () => {
+            const probe = document.createElement('span');
+            probe.style.display = 'none';
+            probe.style.color = cssColor;
+            document.body.appendChild(probe);
+            const computed = getComputedStyle(probe).color;
+            probe.remove();
+            setHex(cssColorToHex(computed, fallback));
+        };
+        read();
+        const observer = new MutationObserver(read);
+        observer.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+        return () => observer.disconnect();
+    }, [cssColor, fallback]);
     return hex;
 }
 
@@ -17,6 +35,8 @@ interface NodeAppearanceProps {
     style: NodeStyleOverride | undefined;
     /** Persist new overrides, or `undefined` to reset the node to its default look. */
     onUpdate: (style: NodeStyleOverride | undefined) => void;
+    /** The colours the node has without overrides, as CSS values. The colour inputs start from these. */
+    defaults: NodeColours;
     readonly?: boolean;
 }
 
@@ -29,12 +49,13 @@ interface NodeAppearanceProps {
 export function NodeAppearance({
     style,
     onUpdate,
+    defaults,
     readonly = false,
 }: NodeAppearanceProps) {
     const [bg, setBg] = useState(style?.background ?? '');
     const [text, setText] = useState(style?.text ?? '');
-    const defaultBg = useThemeHex(THEME_BG_VAR, THEME_BG_FALLBACK);
-    const defaultText = useThemeHex(THEME_TEXT_VAR, THEME_TEXT_FALLBACK);
+    const defaultBg = useResolvedHex(defaults.background, THEME_BG_FALLBACK);
+    const defaultText = useResolvedHex(defaults.text, THEME_TEXT_FALLBACK);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const push = (nextBg: string, nextText: string) => {
