@@ -1,34 +1,33 @@
 /**
- * Colours for the canvas webview, taken from the active VS Code theme.
- * Fallbacks match the dark-theme defaults in canvas.css.
+ * Colours for the canvas webview. Each one is a `--calm-*` token from canvas.css, which maps it to
+ * the active VS Code theme, so inline styles and the stylesheet stay in step.
  */
 
-export const THEME_BG_VAR = '--vscode-editorWidget-background';
-export const THEME_TEXT_VAR = '--vscode-foreground';
+/** Dark-theme defaults for the appearance picker, which needs a hex value. */
 export const THEME_BG_FALLBACK = '#252526';
 export const THEME_TEXT_FALLBACK = '#cccccc';
 
 export const theme = {
-    fg: `var(${THEME_TEXT_VAR}, ${THEME_TEXT_FALLBACK})`,
-    fgMuted: 'var(--vscode-descriptionForeground, #888888)',
+    fg: 'var(--calm-fg)',
+    fgMuted: 'var(--calm-fg-muted)',
     /** Text on the canvas. Some themes set a much lighter `foreground` for the UI. */
-    text: 'var(--vscode-editor-foreground, #d4d4d4)',
-    bg: 'var(--vscode-editor-background, #1e1e1e)',
-    bgWidget: `var(${THEME_BG_VAR}, ${THEME_BG_FALLBACK})`,
-    border: 'var(--vscode-panel-border, #2d2d2d)',
-    borderWidget: 'var(--vscode-widget-border, #444444)',
-    borderInput: 'var(--vscode-input-border, #555555)',
-    focus: 'var(--vscode-focusBorder, #007fd4)',
-    link: 'var(--vscode-textLink-foreground, #3794ff)',
-    badgeBg: 'var(--vscode-badge-background, #0e639c)',
-    badgeFg: 'var(--vscode-badge-foreground, #ffffff)',
-    shadow: 'var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36))',
-    errorFg: 'var(--vscode-editorError-foreground, #f14c4c)',
-    errorBg: 'var(--vscode-inputValidation-errorBackground, #5a1d1d)',
-    warningFg: 'var(--vscode-editorWarning-foreground, #cca700)',
-    warningBg: 'var(--vscode-inputValidation-warningBackground, #352a05)',
-    green: 'var(--vscode-charts-green, #89d185)',
-    blue: 'var(--vscode-charts-blue, #3794ff)',
+    text: 'var(--calm-text)',
+    bg: 'var(--calm-bg)',
+    bgWidget: 'var(--calm-bg-widget)',
+    border: 'var(--calm-border)',
+    borderWidget: 'var(--calm-border-heavy)',
+    borderInput: 'var(--calm-border-input)',
+    focus: 'var(--calm-focus)',
+    link: 'var(--calm-link)',
+    badgeBg: 'var(--calm-badge-bg)',
+    badgeFg: 'var(--calm-badge-fg)',
+    shadow: 'var(--calm-shadow)',
+    errorFg: 'var(--calm-error-fg)',
+    errorBg: 'var(--calm-error-bg)',
+    warningFg: 'var(--calm-warning-fg)',
+    warningBg: 'var(--calm-warning-bg)',
+    green: 'var(--calm-green)',
+    blue: 'var(--calm-blue)',
 } as const;
 
 /** A translucent wash of a theme colour. Containers stay see-through. */
@@ -70,14 +69,15 @@ export function cssColorToHex(raw: string, fallback: string): string {
         return `#${channels.map((n) => Math.round(n * 255).toString(16).padStart(2, '0')).join('')}`;
     }
 
-    const rgb = /^rgba?\(\s*([0-9.]+)[,\s]+([0-9.]+)[,\s]+([0-9.]+)/i.exec(value);
+    const rgb = /^rgba?\(\s*([0-9.]+%?)[,\s]+([0-9.]+%?)[,\s]+([0-9.]+%?)/i.exec(value);
     if (!rgb) return fallback;
 
     const channels: string[] = [];
     for (const part of [rgb[1], rgb[2], rgb[3]]) {
-        const n = Number(part);
-        if (!Number.isFinite(n) || n < 0 || n > 255) return fallback;
-        channels.push(Math.round(n).toString(16).padStart(2, '0'));
+        const percent = part.endsWith('%');
+        const n = Number(percent ? part.slice(0, -1) : part);
+        if (!Number.isFinite(n) || n < 0 || n > (percent ? 100 : 255)) return fallback;
+        channels.push(Math.round(percent ? (n * 255) / 100 : n).toString(16).padStart(2, '0'));
     }
     return `#${channels.join('')}`;
 }
