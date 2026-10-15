@@ -1,7 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath, getSmoothStepPath, getStraightPath, type EdgeProps } from 'reactflow';
 import { theme } from '../theme-colors';
-import { ArrowMarker, arrowMarkerId } from './ArrowMarker';
+import { ArrowMarker, arrowMarkerId, hasMarker } from './ArrowMarker';
 
 export type EdgeDirection = 'source-to-target' | 'bidirectional' | 'none';
 export type EdgeLineStyle = 'solid' | 'dashed' | 'dotted';
@@ -55,8 +55,8 @@ export function TooltipEdge({
     const dashArray = strokeDasharray(lineStyle);
     const edgeStyle = style as React.CSSProperties | undefined;
     const stroke = edgeStroke(hovered, edgeStyle);
-    const endMarkerId = markerEnd ? arrowMarkerId(id, 'end') : undefined;
-    const startMarkerId = markerStart ? arrowMarkerId(id, 'start') : undefined;
+    const endMarkerId = hasMarker(markerEnd) ? arrowMarkerId(id, 'end') : undefined;
+    const startMarkerId = hasMarker(markerStart) ? arrowMarkerId(id, 'start') : undefined;
     const endMarkerUrl = endMarkerId && `url(#${endMarkerId})`;
     const startMarkerUrl = startMarkerId && `url(#${startMarkerId})`;
     const pathStyle: React.CSSProperties = {

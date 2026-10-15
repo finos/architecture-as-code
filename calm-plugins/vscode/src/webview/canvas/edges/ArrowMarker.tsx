@@ -9,6 +9,11 @@ export function arrowMarkerId(edgeId: string, end: 'start' | 'end'): string {
     return `calm-arrow-${end}-${safe}`;
 }
 
+/** Whether an edge end has a marker. React Flow passes an end with no marker as `url('#')`. */
+export function hasMarker(marker: string | undefined): boolean {
+    return !!marker && marker !== "url('#')";
+}
+
 /**
  * The closed arrowhead of React Flow's `MarkerType.ArrowClosed`, in a given colour. React Flow
  * shares one marker per colour value and puts the colour in the marker id, so it cannot follow

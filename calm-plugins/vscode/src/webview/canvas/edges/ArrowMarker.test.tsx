@@ -1,7 +1,7 @@
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
-import { ArrowMarker, arrowMarkerId } from './ArrowMarker';
+import { ArrowMarker, arrowMarkerId, hasMarker } from './ArrowMarker';
 
 describe('arrowMarkerId', () => {
     it('keeps a plain edge id readable', () => {
@@ -17,6 +17,18 @@ describe('arrowMarkerId', () => {
     it('gives different ids for edge ids that differ only in escaped characters', () => {
         const ids = ['a b', 'a_b', 'a.b', 'a_20_b'].map(e => arrowMarkerId(e, 'end'));
         expect(new Set(ids).size).toBe(ids.length);
+    });
+});
+
+describe('hasMarker', () => {
+    it('is true for an end with a marker', () => {
+        expect(hasMarker("url('#1__type=arrowclosed')")).toBe(true);
+    });
+
+    it("is false for an end with no marker, which React Flow passes as url('#')", () => {
+        expect(hasMarker("url('#')")).toBe(false);
+        expect(hasMarker(undefined)).toBe(false);
+        expect(hasMarker('')).toBe(false);
     });
 });
 
