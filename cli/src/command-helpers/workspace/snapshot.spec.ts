@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
-import { markAsSnapshot, releaseSnapshot, findSnapshotDependencies, findSnapshotDependencyViolations } from './snapshot';
+import { markAsSnapshot, releaseSnapshot, findSnapshotDependencies, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { saveManifest } from './bundle';
 import { CalmHubClient } from '@finos/calm-shared';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
@@ -166,6 +166,47 @@ describe('snapshot', () => {
 
             expect((await read('a.json'))['$id']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
             expect((await read('b.json')).interfaces[0]['$ref']).toBe(idAt('a', '1.1.0-SNAPSHOT'));
+        });
+    });
+
+    describe('listSnapshotCandidates', () => {
+        it('splits mappable documents into releases and snapshots, leaving out the rest', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.1.0-SNAPSHOT'), title: 'B' });
+            await write('c.json', { $id: 'bare-id', title: 'C' });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+                'c': { path: 'files/c.json', type: 'architecture' },
+                'missing': { path: 'files/missing.json', type: 'architecture' },
+            });
+
+            expect(await listSnapshotCandidates(bundlePath)).toEqual({ releases: ['a'], snapshots: ['b'] });
+        });
+    });
+
+    describe('flows', () => {
+        // A CALM flow has a name and no title.
+        const flowAt = (version: string) => ({
+            $id: idAt('f', version, 'flows'),
+            'unique-id': 'f',
+            name: 'F',
+            transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }],
+        });
+
+        it('snapshots and releases a flow, keeping it name-only', async () => {
+            await write('f.json', flowAt('1.0.0'));
+            await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
+            const client = makeClient({ f: ['1.0.0'] });
+
+            const snapshot = await markAsSnapshot(bundlePath, 'f', client, { increment: 'MINOR' });
+            expect(snapshot.toVersion).toBe('1.1.0-SNAPSHOT');
+            expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'f', 'flows');
+            expect(await read('f.json')).toEqual(flowAt('1.1.0-SNAPSHOT'));
+
+            const release = await releaseSnapshot(bundlePath, 'f', client);
+            expect(release.toVersion).toBe('1.1.0');
+            expect(await read('f.json')).toEqual(flowAt('1.1.0'));
         });
     });
 

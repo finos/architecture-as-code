@@ -9,7 +9,7 @@ import { promptForDocumentId } from './document-id-prompt';
 import { documentTypeForContent, documentTypeForDocumentId, documentTypeHasIdType } from './document-id-type';
 import { pushWorkspaceToHub } from './push';
 import { detectChangedResources, bumpWorkspace } from './bump';
-import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations } from './snapshot';
+import { markAsSnapshot, releaseSnapshot, findSnapshotDependencyViolations, listSnapshotCandidates } from './snapshot';
 import { loadPostBumpValidationOptions, runPostBumpValidation } from './post-bump-validate';
 import { loadWorkspaceConfig } from './config';
 import { findWorkspaceManifestPath, findProjectRoot } from '../../workspace-resolver';
@@ -587,9 +587,8 @@ export function setupWorkspaceCommands(program: Command) {
                     }
                 }
 
-                // A document that is not itself a snapshot must not reference a tracked document
-                // that is still a snapshot — that would bake a reference to mutable content into
-                // what's meant to be an immutable release.
+                // A document that is not itself a snapshot must not reference a snapshot — that would
+                // bake a reference to mutable content into what's meant to be an immutable release.
                 const snapshotViolations = await findSnapshotDependencyViolations(bundlePath);
                 for (const v of snapshotViolations) {
                     logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first, or pin a released version.`);
@@ -746,13 +745,14 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const manifest = await loadManifest(bundlePath);
-                const docIds = Object.keys(manifest);
-                if (docIds.length === 0) {
-                    logger.info('No documents currently tracked in workspace bundle.');
-                    return;
+                if (!id) {
+                    const { releases } = await listSnapshotCandidates(bundlePath);
+                    if (releases.length === 0) {
+                        logger.info('No tracked documents can be snapshotted.');
+                        return;
+                    }
+                    id = await enforceOptionPresenceByPrompt(id, 'Select a document to snapshot:', releases);
                 }
-                id = await enforceOptionPresenceByPrompt(id, 'Select a document to snapshot:', docIds);
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
                 const client = new CalmHubClient(calmHubOptions);
@@ -777,13 +777,14 @@ export function setupWorkspaceCommands(program: Command) {
                     process.exit(1);
                 }
 
-                const manifest = await loadManifest(bundlePath);
-                const docIds = Object.keys(manifest);
-                if (docIds.length === 0) {
-                    logger.info('No documents currently tracked in workspace bundle.');
-                    return;
+                if (!id) {
+                    const { snapshots } = await listSnapshotCandidates(bundlePath);
+                    if (snapshots.length === 0) {
+                        logger.info('No tracked documents are snapshots.');
+                        return;
+                    }
+                    id = await enforceOptionPresenceByPrompt(id, 'Select a document to release:', snapshots);
                 }
-                id = await enforceOptionPresenceByPrompt(id, 'Select a document to release:', docIds);
 
                 const calmHubOptions = await resolveCalmHubOptions({ calmHubUrl: options.calmHubUrl });
                 const client = new CalmHubClient(calmHubOptions);

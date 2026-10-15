@@ -105,11 +105,16 @@ export function sortSemVer(versions: string[]): string[] {
     return [...versions].sort(compareSemVer);
 }
 
-/** The highest release, or the highest snapshot if nothing has been released yet. */
+/**
+ * The highest release, ignoring snapshots.
+ *
+ * @throws Error if `versions` holds no release. A snapshot is not a base to bump from: its
+ * release is the next version.
+ */
 export function latestReleaseVersion(versions: string[]): string {
-    const sorted = sortSemVer(versions);
-    for (let i = sorted.length - 1; i >= 0; i--) {
-        if (!isSnapshotVersion(sorted[i])) return sorted[i];
+    const latest = sortSemVer(versions.filter(version => !isSnapshotVersion(version))).at(-1);
+    if (latest === undefined) {
+        throw new Error(`No released version among: ${versions.join(', ') || '(none)'}.`);
     }
-    return sorted[sorted.length - 1];
+    return latest;
 }

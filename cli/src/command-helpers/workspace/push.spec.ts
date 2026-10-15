@@ -843,6 +843,32 @@ describe('pushWorkspaceToHub', () => {
             );
         });
 
+        it('overwrites a changed flow snapshot', async () => {
+            const flowSnapshot = {
+                $id: mappingId('my-flow', '1.1.0-SNAPSHOT', 'flows'),
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'edited',
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }]
+            };
+            await writeFile(path.join(filesPath, 'flow.json'), JSON.stringify(flowSnapshot));
+            await saveManifest(bundlePath, {
+                'flow': { path: 'files/flow.json', type: 'flow', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockResolvedValue({ ...flowSnapshot, description: 'A flow' }),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('my-flow', '1.1.0-SNAPSHOT', 'flows')),
+            });
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'flows', version: '1.1.0-SNAPSHOT' }),
+                JSON.stringify(flowSnapshot)
+            );
+        });
+
         it('skips a snapshot version whose content is unchanged on CalmHub, without saving the manifest', async () => {
             const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
             await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));

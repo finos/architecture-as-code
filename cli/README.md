@@ -1028,7 +1028,7 @@ Mark a tracked document as a mutable `-SNAPSHOT` version, so it can be pushed an
 calm workspace snapshot [id] [--calm-hub-url <url>] [--major | --minor | --patch]
 ```
 
-If `id` is omitted, you're prompted to pick from tracked documents. If the on-disk version is already published in CalmHub, it's bumped first (from the highest published release, not the on-disk version) using the given increment (or `bump.defaultIncrement`), then `-SNAPSHOT` is appended. If that snapshot version already exists in CalmHub (for example, a colleague's), a warning is shown: the next push overwrites it. Only `pattern`, `architecture`, `standard` and `interface` documents support this — it mirrors CalmHub's own `-SNAPSHOT` support.
+If `id` is omitted, you're prompted to pick from tracked documents that are not yet snapshots. If the on-disk version is already published in CalmHub, it's bumped first (from the highest published release, not the on-disk version) using the given increment (or `bump.defaultIncrement`), then `-SNAPSHOT` is appended. If that snapshot version already exists in CalmHub (for example, a colleague's), a warning is shown: the next push overwrites it. Only `pattern`, `architecture`, `flow`, `standard` and `interface` documents support this — it mirrors CalmHub's own `-SNAPSHOT` support.
 
 #### `calm workspace release`
 
@@ -1038,7 +1038,7 @@ Strip the `-SNAPSHOT` suffix from a tracked document, turning it back into an im
 calm workspace release [id] [--calm-hub-url <url>]
 ```
 
-If `id` is omitted, you're prompted to pick from tracked documents. Refuses if the document still references a snapshot, as `workspace check` defines it (release that one first, or pin a released version), or if the release version is already published in CalmHub (e.g. someone else published it first) — bump instead.
+If `id` is omitted, you're prompted to pick from tracked snapshot documents. Refuses if the document still references a snapshot, as `workspace check` defines it (release that one first, or pin a released version), or if the release version is already published in CalmHub (e.g. someone else published it first) — bump instead.
 
 #### Workspace config — `.calm-workspace/config.json`
 

@@ -201,7 +201,11 @@ describe('latestReleaseVersion', () => {
         expect(latestReleaseVersion(['1.0.0', '1.1.0-SNAPSHOT'])).toBe('1.0.0');
     });
 
-    it('falls back to the highest snapshot when nothing is released yet', () => {
-        expect(latestReleaseVersion(['1.1.0-SNAPSHOT', '1.0.0-SNAPSHOT'])).toBe('1.1.0-SNAPSHOT');
+    it('throws when nothing is released yet', () => {
+        expect(() => latestReleaseVersion(['1.1.0-SNAPSHOT', '1.0.0-SNAPSHOT'])).toThrow(/No released version/);
+    });
+
+    it('throws for an empty list', () => {
+        expect(() => latestReleaseVersion([])).toThrow(/\(none\)/);
     });
 });

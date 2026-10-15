@@ -1440,6 +1440,22 @@ describe('hub-commands', () => {
             expect(pushedDocument(mockClient).$id).toBe(`${FLOW_ID}/1.2.0`);
         });
 
+        it('pushes a flow snapshot at its own version and keeps it name-only', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(flowDoc('1.1.0-SNAPSHOT') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0']);
+
+            await runPushFlow({ calmHubOptions: { calmHubUrl: 'http://hub' }, changeType: 'MINOR', file: 'flow.json' });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'flows', version: '1.1.0-SNAPSHOT', name: 'My Flow' }),
+                expect.any(String)
+            );
+            const pushed = pushedDocument(mockClient);
+            expect(pushed.$id).toBe(`${FLOW_ID}/1.1.0-SNAPSHOT`);
+            expect(pushed).not.toHaveProperty('title');
+        });
+
         it('exits when the flow has neither a name nor a title', async () => {
             const { mockClient } = await getSharedMocks();
             vi.mocked(fs.readFile).mockResolvedValue(JSON.stringify({

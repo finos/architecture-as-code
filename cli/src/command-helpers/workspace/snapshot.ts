@@ -57,6 +57,17 @@ async function buildSnapshotContext(bundlePath: string): Promise<SnapshotContext
     return { manifest, rules, versionById };
 }
 
+/** Tracked documents that `markAsSnapshot` (releases) and `releaseSnapshot` (snapshots) can act on. */
+export async function listSnapshotCandidates(bundlePath: string): Promise<{ releases: string[]; snapshots: string[] }> {
+    const { versionById } = await buildSnapshotContext(bundlePath);
+    const releases: string[] = [];
+    const snapshots: string[] = [];
+    for (const [id, version] of versionById) {
+        (isSnapshotVersion(version) ? snapshots : releases).push(id);
+    }
+    return { releases, snapshots };
+}
+
 async function snapshotDependenciesFor(bundlePath: string, id: string, ctx: SnapshotContext): Promise<string[]> {
     const entry = ctx.manifest[id];
     if (!entry) return [];
