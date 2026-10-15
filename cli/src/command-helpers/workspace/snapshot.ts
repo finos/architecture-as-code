@@ -1,7 +1,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { loadManifest, resolveFilePath, extractAllReferences, WorkspaceManifest } from './bundle';
-import { buildRefRulesFromDiskIds, extractRefVersion, syncReferences, findRuleForRef, partitionBySnapshot, RefRule } from './ref-rewrite';
+import { buildRefRulesFromDiskIds, extractRefVersion, syncReferences, findRuleForRef, partitionBySnapshot, stripFragment, RefRule } from './ref-rewrite';
 import { applyVersionToDocument } from './bump';
 import { resolveWorkspaceDocumentType } from './document-kind';
 import {
@@ -73,13 +73,30 @@ async function snapshotDependenciesFor(bundlePath: string, id: string, ctx: Snap
     const snapshotDeps = new Set<string>();
     for (const ref of extractAllReferences(json)) {
         const rule = findRuleForRef(ref, ctx.rules);
-        if (!rule || rule.bareId === id) continue;
+        if (!rule) {
+            // An untracked target cannot be released from this workspace, so report the ref itself.
+            const pinnedVersion = extractRefVersion(ref);
+            if (pinnedVersion && isSnapshotVersion(pinnedVersion)) {
+                snapshotDeps.add(stripFragment(ref));
+            }
+            continue;
+        }
+        if (rule.bareId === id) continue;
 
         // A ref pinned to a specific version is a snapshot dependency only if that version is
         // itself a snapshot; a bare-id ref has no pinned version, so it depends on whatever the
         // target's current on-disk version is.
-        const version = extractRefVersion(ref) ?? ctx.versionById.get(rule.bareId);
+        const onDiskVersion = ctx.versionById.get(rule.bareId);
+        const pinnedVersion = extractRefVersion(ref);
+        const version = pinnedVersion ?? onDiskVersion;
         if (version && isSnapshotVersion(version)) {
+            snapshotDeps.add(rule.bareId);
+            continue;
+        }
+
+        // A pin to V while the target is at V-SNAPSHOT (snapshotted after an unpushed bump)
+        // resolves to whatever that snapshot is finally released as.
+        if (pinnedVersion && onDiskVersion && isSnapshotVersion(onDiskVersion) && toReleaseVersion(onDiskVersion) === pinnedVersion) {
             snapshotDeps.add(rule.bareId);
         }
     }
@@ -223,7 +240,7 @@ export async function releaseSnapshot(bundlePath: string, id: string, client: Ca
     if (snapshotDeps.length > 0) {
         throw new Error(
             `Cannot release '${id}': it depends on snapshot version(s) of ${snapshotDeps.join(', ')}. ` +
-            'Release those first.'
+            'Release those first, or pin a released version.'
         );
     }
 

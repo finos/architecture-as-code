@@ -930,6 +930,29 @@ describe('pushWorkspaceToHub', () => {
             );
         });
 
+        it('does not block an already-published release that depends on a snapshot, since nothing is sent for it', async () => {
+            const docASnapshot = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            const docBWithDep = { $id: mappingId('doc-b', '1.0.0'), title: 'Doc B', interfaces: [{ $ref: 'doc-a' }] };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docASnapshot));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docBWithDep));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'doc-a' }),
+                JSON.stringify(docASnapshot)
+            );
+        });
+
         it('does not guard a snapshot document pushing itself even if it depends on another snapshot', async () => {
             const docASnapshot = { $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' };
             const docBSnapshot = {

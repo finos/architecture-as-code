@@ -218,6 +218,47 @@ describe('hub-commands', () => {
             );
         });
 
+        it.each(['MINOR', 'PATCH'] as const)('releases the highest snapshot\'s version when only snapshots exist (%s)', async (changeType) => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0-SNAPSHOT']);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                changeType,
+                file: 'arch.json'
+            });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.0.0' }),
+                expect.any(String)
+            );
+        });
+
+        it('does not compare against a snapshot under --fail-if-modified when only snapshots exist', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0-SNAPSHOT']);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.0.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                failIfModified: true,
+                file: 'arch.json'
+            });
+
+            expect(mockClient.getMappedResourceByVersion).not.toHaveBeenCalled();
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.0.0' }),
+                expect.any(String)
+            );
+        });
+
         describe('snapshot documents', () => {
             const snapshotId = 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0-SNAPSHOT';
             const snapshotDoc = (extra: object = {}) => JSON.stringify({ $id: snapshotId, title: 'my-arch', nodes: [], ...extra });

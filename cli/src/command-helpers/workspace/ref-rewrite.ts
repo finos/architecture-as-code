@@ -32,7 +32,7 @@ export function stripVersionSuffix(ref: string): string | null {
     return m ? m[1] : null;
 }
 
-function stripFragment(ref: string): string {
+export function stripFragment(ref: string): string {
     const fragmentIdx = ref.indexOf('#');
     return fragmentIdx >= 0 ? ref.slice(0, fragmentIdx) : ref;
 }

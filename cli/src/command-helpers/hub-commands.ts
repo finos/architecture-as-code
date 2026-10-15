@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -226,7 +226,7 @@ export async function pushDocument(
 
     // const resourceTypeString: string = resourceType;
     const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
-    const mappingExists = mappedResourceVersions.length > 0;
+    const hasRelease = mappedResourceVersions.some(version => !isSnapshotVersion(version));
 
     // override name/description if set
     const newDocumentMetadata = {
@@ -238,7 +238,7 @@ export async function pushDocument(
         return pushSnapshot(client, namespace, mappedResourceVersions, newDocumentMetadata, fileContent, options);
     }
 
-    if (mappingExists) {
+    if (hasRelease) {
         const latestVersion = latestReleaseVersion(mappedResourceVersions);
 
         if (options.failIfModified) {
@@ -267,7 +267,9 @@ export async function pushDocument(
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
-        newDocumentMetadata.version = '1.0.0';
+        // With only snapshots, the first release is the highest snapshot's. CalmHub then deletes that snapshot.
+        const latestSnapshot = sortSemVer(mappedResourceVersions).at(-1);
+        newDocumentMetadata.version = latestSnapshot ? toReleaseVersion(latestSnapshot) : '1.0.0';
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }

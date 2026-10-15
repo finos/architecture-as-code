@@ -137,7 +137,7 @@ export async function pushWorkspaceToHub(
         if (snapshotBlocked.length > 0) {
             summaries.push(
                 `${snapshotBlocked.length} document(s) depend on snapshot versions (${snapshotBlocked.join('; ')}). ` +
-                'Run `calm workspace release` on those dependencies first.'
+                'Run `calm workspace release` on those dependencies first, or pin a released version.'
             );
         }
         if (mappingFailures.length > 0) {
@@ -270,15 +270,6 @@ async function pushMappingEntry(
         return;
     }
 
-    if (!isSnapshotVersion(version)) {
-        const snapshotDeps = await findSnapshotDependencies(bundlePath, id);
-        if (snapshotDeps.length > 0) {
-            logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first.`);
-            snapshotBlocked.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
-            return;
-        }
-    }
-
     let existingVersions: string[];
     try {
         existingVersions = await client.getMappedResourceVersions(namespace, mappingId, resourceType);
@@ -315,6 +306,16 @@ async function pushMappingEntry(
         if (!snapshot) {
             logger.error(`'${id}' version ${version} already exists in CalmHub but differs on disk. Bump it before pushing.`);
             conflicts.push(`${id}@${version}`);
+            return;
+        }
+    }
+
+    // Guard only what would be published: an existing release is skipped or conflicts above.
+    if (!isSnapshotVersion(version)) {
+        const snapshotDeps = await findSnapshotDependencies(bundlePath, id);
+        if (snapshotDeps.length > 0) {
+            logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first, or pin a released version.`);
+            snapshotBlocked.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
             return;
         }
     }

@@ -592,7 +592,7 @@ export function setupWorkspaceCommands(program: Command) {
                 // what's meant to be an immutable release.
                 const snapshotViolations = await findSnapshotDependencyViolations(bundlePath);
                 for (const v of snapshotViolations) {
-                    logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first.`);
+                    logger.error(`'${v.id}' depends on snapshot version(s) of: ${v.dependsOn.join(', ')} — release those first, or pin a released version.`);
                 }
 
                 if (needsBump || validationFailed || snapshotViolations.length > 0) {

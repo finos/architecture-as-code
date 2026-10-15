@@ -199,6 +199,15 @@ describe('snapshot', () => {
             await expect(releaseSnapshot(bundlePath, 'b', makeClient({}))).rejects.toThrow(/depends on snapshot version\(s\) of a/);
         });
 
+        it('is blocked by a ref to a snapshot of an untracked resource', async () => {
+            const untracked = idAt('other', '2.0.0-SNAPSHOT', 'patterns');
+            await write('b.json', { $id: idAt('b', '1.1.0-SNAPSHOT'), title: 'B', 'interfaces': [{ '$ref': untracked }] });
+            await saveManifest(bundlePath, { 'b': { path: 'files/b.json', type: 'architecture' } });
+
+            await expect(releaseSnapshot(bundlePath, 'b', makeClient({}))).rejects.toThrow(/pin a released version/);
+            expect((await read('b.json'))['$id']).toBe(idAt('b', '1.1.0-SNAPSHOT'));
+        });
+
         it('succeeds once the dependency is released first', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0-SNAPSHOT'), title: 'A' });
             await write('b.json', { $id: idAt('b', '1.1.0-SNAPSHOT'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.0.0-SNAPSHOT') }] });
@@ -263,6 +272,21 @@ describe('snapshot', () => {
             expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual([]);
         });
 
+        it('reports a ref pinned to a snapshot of an untracked resource', async () => {
+            const untracked = idAt('other', '2.0.0-SNAPSHOT', 'patterns');
+            await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', 'interfaces': [{ '$ref': `${untracked}#/nodes` }] });
+            await saveManifest(bundlePath, { 'b': { path: 'files/b.json', type: 'architecture' } });
+
+            expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual([untracked]);
+        });
+
+        it('ignores a ref pinned to a release of an untracked resource', async () => {
+            await write('b.json', { $id: idAt('b', '1.0.0'), title: 'B', 'interfaces': [{ '$ref': idAt('other', '2.0.0', 'patterns') }] });
+            await saveManifest(bundlePath, { 'b': { path: 'files/b.json', type: 'architecture' } });
+
+            expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual([]);
+        });
+
         it('returns an empty list when the source document itself is not valid JSON', async () => {
             await writeFile(path.join(filesPath, 'b.json'), 'not json {{{', 'utf8');
             await saveManifest(bundlePath, { 'b': { path: 'files/b.json', type: 'architecture' } });
@@ -297,6 +321,17 @@ describe('snapshot', () => {
             });
 
             expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual([]);
+        });
+
+        it('flags a ref pinned to the release that a snapshot target will become', async () => {
+            await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.0.1'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.1.0') }] });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+
+            expect(await findSnapshotDependencies(bundlePath, 'b')).toEqual(['a']);
         });
 
         it('resolves a full-URL ref against a target whose $id is a bare path', async () => {
@@ -338,6 +373,21 @@ describe('snapshot', () => {
             });
 
             expect(await findSnapshotDependencyViolations(bundlePath)).toEqual([]);
+        });
+
+        it('reports a release whose cascaded ref targets a document then snapshotted in place', async () => {
+            // `workspace bump` moved a to 1.1.0 and cascaded b to it; neither is pushed yet.
+            await write('a.json', { $id: idAt('a', '1.1.0'), title: 'A' });
+            await write('b.json', { $id: idAt('b', '1.0.1'), title: 'B', 'interfaces': [{ '$ref': idAt('a', '1.1.0') }] });
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+
+            await markAsSnapshot(bundlePath, 'a', makeClient({ a: ['1.0.0'], b: ['1.0.0'] }), { increment: 'MINOR' });
+
+            expect((await read('b.json')).interfaces[0].$ref).toBe(idAt('a', '1.1.0'));
+            expect(await findSnapshotDependencyViolations(bundlePath)).toEqual([{ id: 'b', dependsOn: ['a'] }]);
         });
 
         it('returns an empty list for a workspace with no snapshots', async () => {
