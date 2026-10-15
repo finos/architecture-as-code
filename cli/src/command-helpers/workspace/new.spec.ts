@@ -6,18 +6,29 @@ import { existsSync, readdirSync, readFileSync } from 'fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 
 const FLOW_DEFINITION_ID = 'https://calm.finos.org/release/1.2/meta/flow.json#/defs/flow';
+const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
-// A standalone flow document carries `$schema` and `$id`, which the flow definition does not
-// allow, so the body is checked against `#/defs/flow` without them. The 1.2 alias matches the
-// template's `$schema`; `@finos/calm-schema` moves to each new release.
-function flowDefinitionValidator() {
+// The 1.2 alias matches the templates' `$schema`; `@finos/calm-schema` moves to each new release.
+function calmSchema12Ajv() {
     const schemaDir = path.join(path.dirname(require.resolve('calm-schema-1.2/package.json')), 'schema');
     const ajv = new Ajv2020({ strict: false });
     for (const file of readdirSync(schemaDir).filter(f => f.endsWith('.json'))) {
         ajv.addSchema(JSON.parse(readFileSync(path.join(schemaDir, file), 'utf8')));
     }
-    return ajv.getSchema(FLOW_DEFINITION_ID);
+    return ajv;
 }
+
+// A standalone flow document carries `$schema` and `$id`, which the flow definition does not
+// allow, so the body is checked against `#/defs/flow` without them.
+function flowDefinitionValidator() {
+    return calmSchema12Ajv().getSchema(FLOW_DEFINITION_ID);
+}
+
+const ALL_TEMPLATES = readdirSync(TEMPLATES_DIR).flatMap(type =>
+    readdirSync(path.join(TEMPLATES_DIR, type))
+        .filter(f => f.endsWith('.hbs'))
+        .map(f => ({ type, template: f.replace(/\.hbs$/, '') }))
+);
 
 describe('getTemplatesForType', () => {
     it('returns template names for a known type', async () => {
@@ -94,6 +105,27 @@ describe('createNewDocument', () => {
         expect(validateFlow, `${FLOW_DEFINITION_ID} not found`).toBeDefined();
         expect(validateFlow!(flow), JSON.stringify(validateFlow!.errors)).toBe(true);
     });
+
+    it.each(ALL_TEMPLATES.filter(t => t.type !== 'flow'))(
+        'creates a $type ($template) that validates against the CALM 1.2 schemas',
+        async ({ type, template }) => {
+            const slug = `release-schema-${type}-${template}`;
+            const filePath = await createNewDocument(DOCUMENT_ID, 'Release Schema', type, slug, template);
+            createdFiles.push(filePath);
+
+            const content = readFileSync(filePath, 'utf8');
+            for (const url of content.match(/https:\/\/calm\.finos\.org\/[^"]+/g) ?? []) {
+                expect(url).toMatch(/^https:\/\/calm\.finos\.org\/release\/1\.2\/meta\//);
+            }
+
+            const document = JSON.parse(content);
+            const ajv = calmSchema12Ajv();
+            expect(ajv.validate(document.$schema, document), JSON.stringify(ajv.errors)).toBe(true);
+            if (document.type === 'object') {
+                expect(() => ajv.compile(document)).not.toThrow();
+            }
+        }
+    );
 
     it('throws if the output file already exists', async () => {
         const filePath = await createNewDocument(DOCUMENT_ID, 'My Arch', 'architecture', 'duplicate-guard');
