@@ -13,7 +13,9 @@ CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
 # which is not necessarily the URL this script reaches the hub on.
 CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
+CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
+CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-}"
 CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-}"
 CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
@@ -143,18 +145,25 @@ load_schemas_from_dir() {
     done
 }
 
-# Resolve CALM_SCHEMA_BASE_PATH once (falling back to the calm/ dir beside this
+# Resolve the schema paths once (falling back to the directories beside this
 # script when unset) so every schema-reading function — create_core_schemas,
-# create_standards, create_interfaces — sees the same path.  Without this a bare
-# `bash init-nitrite.sh` (no env var) leaves the var empty, which causes those
+# create_standards — sees the same paths.  Without this a bare
+# `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
 # functions to build absolute paths from '/' that don't exist and silently
-# [WARN]-skip content.  seed-readonly.sh always exports CALM_SCHEMA_BASE_PATH,
-# so the Docker build masks the issue; this fix makes the bare run equally safe.
+# [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
+# Docker build masks the issue; this makes the bare run equally safe.
+#
+# The released meta-schemas come from the @finos/calm-schema npm packages, which
+# `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
+# calm/ in the repository holds only the drafts and the release candidates.
 resolve_schema_base_path() {
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     if [[ -z "$CALM_SCHEMA_BASE_PATH" ]]; then
-        local script_dir
-        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
         CALM_SCHEMA_BASE_PATH=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        CALM_RELEASE_SCHEMA_PATH=$(realpath "$script_dir/../target/calm-schemas/release" 2>/dev/null || echo "")
     fi
 }
 
@@ -162,12 +171,18 @@ resolve_schema_base_path() {
 create_core_schemas() {
     print_status "Creating core schemas..."
 
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" || ! -d "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        print_error "Released CALM schemas not found. Run './mvnw package' in calm-hub (or 'npm run calm-hub:copy-schemas' at the repository root), or set CALM_RELEASE_SCHEMA_PATH."
+        return 1
+    fi
     if [[ -z "$CALM_SCHEMA_BASE_PATH" || ! -d "$CALM_SCHEMA_BASE_PATH" ]]; then
         print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
         return 1
     fi
 
-    print_status "Loading schemas from: $CALM_SCHEMA_BASE_PATH"
+    print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
+    load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
+    print_status "Loading release candidates and drafts from: $CALM_SCHEMA_BASE_PATH"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
@@ -5290,40 +5305,42 @@ create_standards() {
     fi
 }
 
-# Function to seed CALM interface examples into finos.calm
+# Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
+# document's title. These are not CALM Standards, so the name-based API does not apply.
 create_interfaces() {
-    print_status "Creating interfaces in finos.calm..."
+    print_status "Creating interfaces..."
 
-    local interfaces_dir="${CALM_SCHEMA_BASE_PATH}/interfaces/example"
-    if [[ ! -d "$interfaces_dir" ]]; then
-        print_warning "Interfaces example directory not found at $interfaces_dir, skipping"
+    local base_path="$CALM_INTERFACES_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/../mongo/interfaces" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No interfaces directory at ${base_path:-../mongo/interfaces}, skipping interfaces"
         return
     fi
 
-    for f in "$interfaces_dir"/*.json; do
-        [[ -f "$f" ]] || continue
-        local name doc payload http_code
-        # Derive name from the .title field; fall back to the basename without extension
-        name=$(jq -r '.title // empty' "$f")
-        if [[ -z "$name" ]]; then
-            name=$(basename "$f" .json)
+    print_status "Loading interfaces from: $base_path"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed interfaces into namespace $namespace"
+            exit 1
         fi
-        doc=$(cat "$f")
-        payload=$(jq -n \
-            --arg name "$name" \
-            --arg description "CALM interface example: $name" \
-            --argjson doc "$doc" \
-            '{name: $name, description: $description, interfaceJson: ($doc | tojson)}')
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/interfaces" \
-            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created interface '$name' in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Interface '$name' already exists, skipping"
-        else
-            print_warning "Failed to create interface '$name' (HTTP $http_code)"
-        fi
+        local f
+        for f in "$namespace_dir"*.json; do
+            [[ -f "$f" ]] || continue
+            local name
+            name=$(jq -r '.title // empty' "$f")
+            if [[ -z "$name" ]]; then
+                name=$(basename "$f" .json)
+            fi
+            post_document "$namespace" interfaces interfaceJson "$name" "CALM interface: $name" "$(cat "$f")"
+        done
     done
 }
 
@@ -6297,15 +6314,23 @@ show_help() {
     echo "Options:"
     echo "  -h, --help               Show this help message"
     echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
-    echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
+    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft and release-candidate schemas"
+    echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
+    echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
     echo "  -t, --standards-path PATH Set the base path for namespace standards"
     echo "  -p, --patterns-path PATH Set the base path for namespace patterns"
     echo ""
     echo "Environment Variables:"
     echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ and release-candidate schemas"
     echo "                          (default: auto-detected relative to this script)"
+    echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
+    echo "                          (default: ../target/calm-schemas/release relative to this script,"
+    echo "                          which './mvnw package' copies from the @finos/calm-schema npm packages)"
+    echo "  CALM_INTERFACES_BASE_PATH Path to the interfaces directory containing one subdirectory per namespace,"
+    echo "                          each holding one interface JSON file per document"
+    echo "                          (default: auto-detected as ../mongo/interfaces relative to this script)"
     echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
     echo "                          each holding control requirement JSON files"
     echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
@@ -6335,6 +6360,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         -s|--schema-path)
             CALM_SCHEMA_BASE_PATH="$2"
+            shift 2
+            ;;
+        -r|--release-schema-path)
+            CALM_RELEASE_SCHEMA_PATH="$2"
+            shift 2
+            ;;
+        -i|--interfaces-path)
+            CALM_INTERFACES_BASE_PATH="$2"
             shift 2
             ;;
         -c|--controls-path)
