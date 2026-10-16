@@ -112,9 +112,9 @@ export function sortSemVer(versions: string[]): string[] {
  * release is the next version.
  */
 export function latestReleaseVersion(versions: string[]): string {
-    const latest = sortSemVer(versions.filter(version => !isSnapshotVersion(version))).at(-1);
-    if (latest === undefined) {
+    const releases = sortSemVer(versions.filter(version => !isSnapshotVersion(version)));
+    if (releases.length === 0) {
         throw new Error(`No released version among: ${versions.join(', ') || '(none)'}.`);
     }
-    return latest;
+    return releases[releases.length - 1];
 }

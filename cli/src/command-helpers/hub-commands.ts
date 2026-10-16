@@ -268,8 +268,8 @@ export async function pushDocument(
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
         // With only snapshots, the first release is the highest snapshot's. CalmHub then deletes that snapshot.
-        const latestSnapshot = sortSemVer(mappedResourceVersions).at(-1);
-        newDocumentMetadata.version = latestSnapshot ? toReleaseVersion(latestSnapshot) : '1.0.0';
+        const snapshots = sortSemVer(mappedResourceVersions);
+        newDocumentMetadata.version = snapshots.length > 0 ? toReleaseVersion(snapshots[snapshots.length - 1]) : '1.0.0';
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
