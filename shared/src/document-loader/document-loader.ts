@@ -1,5 +1,6 @@
 import type { SchemaDirectory } from '../schema-directory.js';
 import type { AuthPlugin } from '../auth/auth-plugin.js';
+import type { DirectUrlAuthPlugin } from '../auth/direct-url-auth-plugin.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
 
 export const CALM_HUB_PROTOS = ['http:', 'https:', 'calm:'];
@@ -17,6 +18,8 @@ export interface DocumentLoader {
 export type DocumentLoaderOptions = {
     calmHubUrl?: string;
     authPlugin?: AuthPlugin;
+    directUrlAuthPlugin?: DirectUrlAuthPlugin;
+    directUrlAuthAuthenticatedHosts?: string[];
     schemaDirectoryPath?: string;
     urlToLocalMap?: Map<string, string>;
     basePath?: string;
@@ -40,7 +43,7 @@ export function assertJsonObject(data: unknown, source: string): asserts data is
     }
 }
 
-type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN';
+type ErrorName = 'OPERATION_NOT_IMPLEMENTED' | 'UNKNOWN' | 'AUTHENTICATION_FAILED';
 
 export class DocumentLoadError extends Error {
     name: ErrorName;
