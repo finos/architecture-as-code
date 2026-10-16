@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { pushWorkspaceToHub } from './push';
+import { findSnapshotDependencyViolations } from './snapshot';
 import { loadManifest, saveManifest } from './bundle';
 import * as bundle from './bundle';
 import { CalmHubClient, HubClientError } from '@finos/calm-shared';
@@ -32,6 +33,11 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
         debug: vi.fn(),
     }),
 }));
+
+vi.mock('./snapshot', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./snapshot')>();
+    return { ...actual, findSnapshotDependencyViolations: vi.fn(actual.findSnapshotDependencyViolations) };
+});
 
 const BASE = 'https://hub.example.com';
 const mappingId = (resource: string, version = '1.0.0', type = 'architectures', ns = 'com.example') =>
@@ -820,6 +826,218 @@ describe('pushWorkspaceToHub', () => {
 
             await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.not.toThrow();
             expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('snapshot versions', () => {
+        it('always pushes (overwrites) a snapshot version that already exists, even without --fail-if-modified', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A', extra: 'edited again' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a', '1.1.0-SNAPSHOT')),
+            });
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.1.0-SNAPSHOT' }),
+                JSON.stringify(snapshotDoc)
+            );
+        });
+
+        it('overwrites a changed flow snapshot', async () => {
+            const flowSnapshot = {
+                $id: mappingId('my-flow', '1.1.0-SNAPSHOT', 'flows'),
+                'unique-id': 'my-flow',
+                name: 'My Flow',
+                description: 'edited',
+                transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }]
+            };
+            await writeFile(path.join(filesPath, 'flow.json'), JSON.stringify(flowSnapshot));
+            await saveManifest(bundlePath, {
+                'flow': { path: 'files/flow.json', type: 'flow', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockResolvedValue({ ...flowSnapshot, description: 'A flow' }),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('my-flow', '1.1.0-SNAPSHOT', 'flows')),
+            });
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ type: 'flows', version: '1.1.0-SNAPSHOT' }),
+                JSON.stringify(flowSnapshot)
+            );
+        });
+
+        it('skips a snapshot version whose content is unchanged on CalmHub, without saving the manifest', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockResolvedValue({ ...snapshotDoc }),
+            });
+            const saveSpy = vi.spyOn(bundle, 'saveManifest');
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.getMappedResourceByVersion).toHaveBeenCalledWith(
+                'com.example', 'doc-a', '1.1.0-SNAPSHOT', 'architectures'
+            );
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+            expect(saveSpy).not.toHaveBeenCalled();
+        });
+
+        it('reports a failure when the existing snapshot cannot be fetched to compare', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.1.0-SNAPSHOT']),
+                getMappedResourceByVersion: vi.fn().mockRejectedValue(new Error('boom')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client)).rejects.toThrow(/doc-a: boom/);
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalled();
+        });
+
+        it('--fail-if-modified has no effect on a snapshot version — it still overwrites instead of conflicting', async () => {
+            const snapshotDoc = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A', extra: 'edited again' };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(snapshotDoc));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' }
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.1.0-SNAPSHOT']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a', '1.1.0-SNAPSHOT')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client, { failIfModified: true })).resolves.not.toThrow();
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    describe('snapshot dependency guard', () => {
+        beforeEach(() => {
+            vi.mocked(findSnapshotDependencyViolations).mockClear();
+        });
+
+        it('scans the workspace for snapshot dependencies once per push', async () => {
+            for (const id of ['doc-a', 'doc-b', 'doc-c']) {
+                await writeFile(path.join(filesPath, `${id}.json`), JSON.stringify({ $id: mappingId(id), title: id }));
+            }
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+                'doc-c': { path: 'files/doc-c.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient();
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(3);
+            expect(findSnapshotDependencyViolations).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not scan when no release is published', async () => {
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify({ $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' }));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            });
+
+            await pushWorkspaceToHub(bundlePath, makeClient());
+
+            expect(findSnapshotDependencyViolations).not.toHaveBeenCalled();
+        });
+
+        it('refuses to push a non-snapshot document that depends on a tracked snapshot, but still pushes the snapshot itself', async () => {
+            const docASnapshot = { $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' };
+            const docBWithDep = {
+                $id: mappingId('doc-b', '1.0.0'),
+                title: 'Doc B',
+                interfaces: [{ $ref: mappingId('doc-a', '1.0.0-SNAPSHOT') }],
+            };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docASnapshot));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docBWithDep));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue([]),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
+            });
+
+            const result = pushWorkspaceToHub(bundlePath, client);
+            await expect(result).rejects.toThrow(/doc-b depends on snapshot/);
+            await expect(result).rejects.toThrow(/calm workspace release/);
+            await expect(result).rejects.not.toThrow(/calm workspace bump/);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'doc-a' }),
+                JSON.stringify(docASnapshot)
+            );
+            expect(client.createMappedResourceVersion).not.toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'doc-b' }),
+                expect.anything()
+            );
+        });
+
+        it('does not block an already-published release that depends on a snapshot, since nothing is sent for it', async () => {
+            const docASnapshot = { $id: mappingId('doc-a', '1.1.0-SNAPSHOT'), title: 'Doc A' };
+            const docBWithDep = { $id: mappingId('doc-b', '1.0.0'), title: 'Doc B', interfaces: [{ $ref: 'doc-a' }] };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docASnapshot));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docBWithDep));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue(['1.0.0']),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(1);
+            expect(client.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ mapping: 'doc-a' }),
+                JSON.stringify(docASnapshot)
+            );
+        });
+
+        it('does not guard a snapshot document pushing itself even if it depends on another snapshot', async () => {
+            const docASnapshot = { $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' };
+            const docBSnapshot = {
+                $id: mappingId('doc-b', '1.0.0-SNAPSHOT'),
+                title: 'Doc B',
+                interfaces: [{ $ref: mappingId('doc-a', '1.0.0-SNAPSHOT') }],
+            };
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify(docASnapshot));
+            await writeFile(path.join(filesPath, 'doc-b.json'), JSON.stringify(docBSnapshot));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient({
+                getMappedResourceVersions: vi.fn().mockResolvedValue([]),
+                createMappedResourceVersion: vi.fn().mockResolvedValue(mappingId('doc-a')),
+            });
+
+            await expect(pushWorkspaceToHub(bundlePath, client)).resolves.not.toThrow();
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(2);
         });
     });
 });

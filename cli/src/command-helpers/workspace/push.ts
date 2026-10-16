@@ -15,6 +15,7 @@ import {
     DocumentMetadata,
     HubClientError,
     extractDocumentMetadata,
+    isSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -31,6 +32,7 @@ import {
     type ResolvedWorkspaceManifestEntry,
     type WorkspaceManifestEntryOperations,
 } from './document-kind';
+import { findSnapshotDependencyViolations } from './snapshot';
 
 const logger: Logger = initLogger(false, 'workspace');
 const DEFINITE_CREATE_REJECTION_STATUSES = new Set([400, 401, 403, 404]);
@@ -56,6 +58,8 @@ interface PushEntryContext {
     mappingFailures: string[];
     narrativeFailures: string[];
     raw: string;
+    snapshotBlocked: string[];
+    snapshotDependencies: () => Promise<Map<string, string[]>>;
 }
 
 const PUSH_ENTRY_OPERATIONS = {
@@ -80,6 +84,11 @@ export async function pushWorkspaceToHub(
     const conflicts: string[] = [];
     const mappingFailures: string[] = [];
     const narrativeFailures: string[] = [];
+    const snapshotBlocked: string[] = [];
+    // Scanned once, on first use: a per-document scan reads every file again. Push does not change versions on disk.
+    let snapshotScan: Promise<Map<string, string[]>> | undefined;
+    const snapshotDependencies = () => snapshotScan ??= findSnapshotDependencyViolations(bundlePath)
+        .then(violations => new Map(violations.map(v => [v.id, v.dependsOn])));
 
     for (const [id, entry] of entries) {
         let document: ResolvedWorkspaceManifestEntry;
@@ -118,15 +127,23 @@ export async function pushWorkspaceToHub(
             mappingFailures,
             narrativeFailures,
             raw,
+            snapshotBlocked,
+            snapshotDependencies,
         });
     }
 
-    if (conflicts.length > 0 || mappingFailures.length > 0 || narrativeFailures.length > 0) {
+    if (conflicts.length > 0 || snapshotBlocked.length > 0 || mappingFailures.length > 0 || narrativeFailures.length > 0) {
         const summaries: string[] = [];
         if (conflicts.length > 0) {
             summaries.push(
                 `${conflicts.length} modified document(s) already exist in CalmHub at their declared version ` +
                 `(${conflicts.join(', ')}). Run \`calm workspace bump\` to create new versions for them.`
+            );
+        }
+        if (snapshotBlocked.length > 0) {
+            summaries.push(
+                `${snapshotBlocked.length} document(s) depend on snapshot versions (${snapshotBlocked.join('; ')}). ` +
+                'Run `calm workspace release` on those dependencies first, or pin a released version.'
             );
         }
         if (mappingFailures.length > 0) {
@@ -237,7 +254,7 @@ async function pushMappingEntry(
     entry: MappingWorkspaceManifestEntry,
     context: PushEntryContext
 ): Promise<void> {
-    const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw } = context;
+    const { bundlePath, client, conflicts, failIfModified, id, manifest, mappingFailures, raw, snapshotBlocked, snapshotDependencies } = context;
     // The mapping API addresses resources by (namespace, type, mappingId, version),
     // all encoded in the document's $id. Documents without a well-formed mapping $id
     // (or whose type has no ResourceType, e.g. adr/timeline) cannot be pushed and are skipped.
@@ -270,13 +287,14 @@ async function pushMappingEntry(
     }
 
     if (existingVersions.includes(version)) {
-        if (!failIfModified) {
+        const snapshot = isSnapshotVersion(version);
+        if (!snapshot && !failIfModified) {
             logger.info(`No changes for '${id}' - version ${version} already exists, skipping`);
             return;
         }
 
-        // Strict mode: an existing version is only a conflict if the on-disk content differs
-        // from what is already published. Unchanged content is still skipped.
+        // Strict mode: an existing release is a conflict only if its content changed. A snapshot is
+        // overwritten in place, but only when changed: CalmHub records each POST as an audit update.
         let remote: object;
         try {
             remote = await client.getMappedResourceByVersion(namespace, mappingId, version, resourceType);
@@ -289,11 +307,23 @@ async function pushMappingEntry(
 
         if (canonicalEqual(JSON.parse(raw), remote)) {
             logger.info(`No changes for '${id}' - version ${version} already exists and is unchanged, skipping`);
-        } else {
+            return;
+        }
+        if (!snapshot) {
             logger.error(`'${id}' version ${version} already exists in CalmHub but differs on disk. Bump it before pushing.`);
             conflicts.push(`${id}@${version}`);
+            return;
         }
-        return;
+    }
+
+    // Guard only what would be published: an existing release is skipped or conflicts above.
+    if (!isSnapshotVersion(version)) {
+        const snapshotDeps = (await snapshotDependencies()).get(id) ?? [];
+        if (snapshotDeps.length > 0) {
+            logger.error(`'${id}' depends on snapshot version(s) of: ${snapshotDeps.join(', ')} — release those first, or pin a released version.`);
+            snapshotBlocked.push(`${id} depends on snapshot(s) of ${snapshotDeps.join(', ')}`);
+            return;
+        }
     }
 
     try {
