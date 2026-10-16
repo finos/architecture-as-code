@@ -34,7 +34,7 @@ sub-architectures.
 ## 2. Assumptions
 
 - **A1: Downstream expects the current `ValidationOutcome` contract.** `hasErrors`/`hasWarnings`
-  drive process exit codes (`exitBasedOffOfValidationOutcome`); formatters read `jsonSchema*` and
+  drive the CLI's process exit codes; formatters read `jsonSchema*` and
   `spectral*` output arrays and each `ValidationOutput` field. Behaviour-preservation applies to this
   external output *shape*; it does not mandate always-on recursion, which is policy-controlled (O6).
 - **A2: `SchemaDirectory` is the single resolution boundary.** All remote/relative document and
@@ -255,7 +255,7 @@ flowchart TD
     C --> D[SEMANTIC: ControlsValidationRule<br/>iterateControls -> requirement schema -> AJV]
     D --> E[RECURSIVE: NodeDetailsValidationRule<br/>recurse detailed-architecture per sub-arch]
     E --> F[Aggregate -> ValidationOutcome]
-    F --> G[exitBasedOffOfValidationOutcome / formatOutput]
+    F --> G[formatOutput / CLI exit code]
 ```
 
 - **LINT: Spectral (`SpectralValidationRule`).** Runs the `rules-pattern`, `rules-architecture`
