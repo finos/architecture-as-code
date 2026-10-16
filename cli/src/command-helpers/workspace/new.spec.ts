@@ -1,16 +1,17 @@
 import { describe, it, expect, afterAll } from 'vitest';
 import { getTemplatesForType, createNewDocument } from './new';
+import { CALM_META_SCHEMA_BASE_URL, CALM_SCHEMA_RELEASE } from '../calm-schema-release';
 import { rm } from 'fs/promises';
 import path from 'path';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import Ajv2020 from 'ajv/dist/2020.js';
 
-const FLOW_DEFINITION_ID = 'https://calm.finos.org/release/1.2/meta/flow.json#/defs/flow';
+const FLOW_DEFINITION_ID = `${CALM_META_SCHEMA_BASE_URL}/flow.json#/defs/flow`;
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
 
-// The 1.2 alias matches the templates' `$schema`; `@finos/calm-schema` moves to each new release.
-function calmSchema12Ajv() {
-    const schemaDir = path.join(path.dirname(require.resolve('calm-schema-1.2/package.json')), 'schema');
+// The latest release has a calm-schema-<major.minor> alias too (see scripts/copy-calm-schemas.mjs).
+function calmSchemaAjv() {
+    const schemaDir = path.join(path.dirname(require.resolve(`calm-schema-${CALM_SCHEMA_RELEASE}/package.json`)), 'schema');
     const ajv = new Ajv2020({ strict: false });
     for (const file of readdirSync(schemaDir).filter(f => f.endsWith('.json'))) {
         ajv.addSchema(JSON.parse(readFileSync(path.join(schemaDir, file), 'utf8')));
@@ -21,7 +22,7 @@ function calmSchema12Ajv() {
 // A standalone flow document carries `$schema` and `$id`, which the flow definition does not
 // allow, so the body is checked against `#/defs/flow` without them.
 function flowDefinitionValidator() {
-    return calmSchema12Ajv().getSchema(FLOW_DEFINITION_ID);
+    return calmSchemaAjv().getSchema(FLOW_DEFINITION_ID);
 }
 
 const ALL_TEMPLATES = readdirSync(TEMPLATES_DIR).flatMap(type =>
@@ -96,7 +97,7 @@ describe('createNewDocument', () => {
         createdFiles.push(filePath);
 
         const { $schema, $id, ...flow } = JSON.parse(readFileSync(filePath, 'utf8'));
-        expect($schema).toBe('https://calm.finos.org/release/1.2/meta/flow.json');
+        expect($schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/flow.json`);
         expect($id).toBe(flowId);
         expect(flow['unique-id']).toBe('my-flow');
         expect(flow.name).toBe('My Flow');
@@ -107,7 +108,7 @@ describe('createNewDocument', () => {
     });
 
     it.each(ALL_TEMPLATES.filter(t => t.type !== 'flow'))(
-        'creates a $type ($template) that validates against the CALM 1.2 schemas',
+        'creates a $type ($template) that validates against the latest CALM schemas',
         async ({ type, template }) => {
             const slug = `release-schema-${type}-${template}`;
             const filePath = await createNewDocument(DOCUMENT_ID, 'Release Schema', type, slug, template);
@@ -115,11 +116,11 @@ describe('createNewDocument', () => {
 
             const content = readFileSync(filePath, 'utf8');
             for (const url of content.match(/https:\/\/calm\.finos\.org\/[^"]+/g) ?? []) {
-                expect(url).toMatch(/^https:\/\/calm\.finos\.org\/release\/1\.2\/meta\//);
+                expect(url.startsWith(`${CALM_META_SCHEMA_BASE_URL}/`), url).toBe(true);
             }
 
             const document = JSON.parse(content);
-            const ajv = calmSchema12Ajv();
+            const ajv = calmSchemaAjv();
             expect(ajv.validate(document.$schema, document), JSON.stringify(ajv.errors)).toBe(true);
             if (document.type === 'object') {
                 expect(() => ajv.compile(document)).not.toThrow();
