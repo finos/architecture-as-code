@@ -424,7 +424,10 @@ All four workflows:
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
-  read-only variant
+  read-only variant. `-u` sets the URL the script calls and, unless
+  `CALM_HUB_BASE_URL` or `--base-url` is set, the name-based `$id` base. That
+  base must equal the server's `calm.hub.base-url`. Resolve it after argument
+  parsing (`resolve_calm_hub_base_url`); defaulting it at the top ignores `-u`
 - The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
   `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
   repository holds only the drafts and the release candidates, which are seeded as before. The
