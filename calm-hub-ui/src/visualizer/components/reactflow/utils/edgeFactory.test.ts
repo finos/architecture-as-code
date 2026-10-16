@@ -102,4 +102,12 @@ describe('createEdge', () => {
         expect(edge.data.target).toBeUndefined();
         expect(edge.data.label).toBeUndefined();
     });
+
+    it('passes routing metadata through to edge data', () => {
+        const edge = createEdge({
+            ...baseConfig,
+            data: { metadata: { routing: 'smoothstep' } },
+        });
+        expect(edge.data.metadata.routing).toBe('smoothstep');
+    });
 });

@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "private": false,
   "description": "Embed CALM architecture diagrams in Docusaurus MDX — build-time SVG with client-side interactive hydration",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-studio/packages/docusaurus-plugin"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

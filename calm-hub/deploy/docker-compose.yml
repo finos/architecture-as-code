@@ -18,6 +18,9 @@
 # The jvm and native profiles also start a MongoDB sidecar.  The readonly
 # variants are self-contained (NitriteDB baked into the image).
 #
+#
+# The MongoDB sidecar seeds the released meta-schemas from calm-hub/target/calm-schemas/release.
+# Make it first, from the repository root: npm ci && npm run calm-hub:copy-schemas
 # WARNING: jvm and native profiles use the `no-auth` Quarkus profile for local
 # quick-start only.  DO NOT use in production — see calm-hub/README.md for the
 # secure / proxy-auth profiles.
@@ -32,8 +35,10 @@ services:
     volumes:
       - ../mongo/init-mongo.js:/docker-entrypoint-initdb.d/init-mongo.js:ro
       - ../../calm:/calm:ro
+      - ../target/calm-schemas/release:/calm-schemas/release:ro
     environment:
       - CALM_SCHEMA_BASE_PATH=/calm
+      - CALM_RELEASE_SCHEMA_PATH=/calm-schemas/release
     networks:
       - calm-net
 

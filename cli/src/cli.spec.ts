@@ -32,6 +32,8 @@ describe('CLI Commands', () => {
         optionsModule = await import('./command-helpers/generate-options');
         diffModule = await import('./command-helpers/diff');
         documentLoaderModule = await import('../../shared/src/document-loader/node-document-loader');
+        cliConfigModule = await import('./cli-config');
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({});
 
         vi.spyOn(calmShared, 'runGenerate').mockResolvedValue(undefined);
         vi.spyOn(calmShared.TemplateProcessor.prototype, 'processTemplate').mockResolvedValue(undefined);
@@ -520,77 +522,6 @@ describe('CLI Commands', () => {
                 undefined,
                 undefined
             );
-        });
-
-        it('should not show --ants in help output', () => {
-            const docifyCmd = program.commands.find(c => c.name() === 'docify');
-            const helpText = docifyCmd!.helpInformation();
-            expect(helpText).not.toContain('--ants');
-        });
-
-        it('should use ANTS mode when --ants is specified', async () => {
-            await program.parseAsync([
-                'node', 'cli.js', 'docify',
-                '--architecture', 'model.json',
-                '--output', 'outDir',
-                '--ants',
-            ]);
-
-            expect(docifierConstructorSpy).toHaveBeenCalledWith(
-                'ANTS',
-                'model.json',
-                'outDir',
-                undefined,
-                'bundle',
-                undefined,
-                false,
-                false,
-                undefined,
-                undefined,
-                undefined
-            );
-        });
-
-        it('should exit if --ants is combined with --template', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
-                throw new Error('process.exit called');
-            });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
-
-            await expect(program.parseAsync([
-                'node', 'cli.js', 'docify',
-                '--architecture', 'model.json',
-                '--output', 'outDir',
-                '--ants',
-                '--template', 'template.hbs',
-            ])).rejects.toThrow('process.exit called');
-
-            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
-            errorSpy.mockRestore();
-        });
-
-        it('should exit if --ants is combined with --template-dir', async () => {
-            const exitSpy = vi.spyOn(process, 'exit').mockImplementationOnce(function () {
-                throw new Error('process.exit called');
-            });
-            const errorSpy = vi.spyOn(console, 'error').mockImplementation(function () { });
-
-            await expect(program.parseAsync([
-                'node', 'cli.js', 'docify',
-                '--architecture', 'model.json',
-                '--output', 'outDir',
-                '--ants',
-                '--template-dir', 'templateDir',
-            ])).rejects.toThrow('process.exit called');
-
-            expect(errorSpy).toHaveBeenCalledWith('❌ --ants cannot be combined with --template or --template-dir');
-            expect(exitSpy).toHaveBeenCalledWith(1);
-
-            exitSpy.mockRestore();
-            errorSpy.mockRestore();
         });
 
         it('should exit if --export-diagrams is combined with --scaffold', async () => {
@@ -1604,127 +1535,228 @@ describe('CLI Commands', () => {
         });
     });
 
-});
-
-describe('parseDocumentLoaderConfig', () => {
-    const parseDocLoaderConfigForTest = async (options: {
-        verbose?: boolean;
-        calmHubUrl?: string;
-        schemaDirectory?: string;
-        allowedRemoteHosts?: string[];
-    }) => {
-        const cliModule = await import('./cli');
-        return cliModule.parseDocumentLoaderConfig(options);
-    };
-
-    it('should parse calmhub url when provided', async () => {
-        const options = await parseDocLoaderConfigForTest({
-            calmHubUrl: 'calmhub'
-        });
-        expect(options.calmHubUrl).toEqual('calmhub');
-    });
-
-    it('sets workspaceBundlePath when a workspace bundle is found in the repo', async () => {
-        const resolverModule = await import('./workspace-resolver');
-        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath')
-            .mockReturnValue('/repo/.calm-workspace/bundles/default');
-        try {
-            const options = await parseDocLoaderConfigForTest({});
-            expect(options.workspaceBundlePath).toBe('/repo/.calm-workspace/bundles/default');
-        } finally {
-            spy.mockRestore();
-        }
-    });
-
-    it('leaves workspaceBundlePath unset when no workspace bundle is found', async () => {
-        const resolverModule = await import('./workspace-resolver');
-        const spy = vi.spyOn(resolverModule, 'findWorkspaceManifestPath').mockReturnValue(null);
-        try {
-            const options = await parseDocLoaderConfigForTest({});
-            expect(options.workspaceBundlePath).toBeUndefined();
-        } finally {
-            spy.mockRestore();
-        }
-    });
-
-    it('should override calmhub url in file when provided', async () => {
-        cliConfigModule = await import('./cli-config');
-        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ calmHubUrl: 'calmhub-file' });
-
-        const options = await parseDocLoaderConfigForTest({
-            calmHubUrl: 'calmhub-cli'
-        });
-        expect(options.calmHubUrl).toEqual('calmhub-cli');
-    });
-
-    it('should parse schemaDirectoryPath when provided', async () => {
-        const options = await parseDocLoaderConfigForTest({
-            schemaDirectory: 'path'
-        });
-        expect(options.schemaDirectoryPath).toEqual('path');
-    });
-
-    it('should parse allowedRemoteHosts when provided', async () => {
-        const options = await parseDocLoaderConfigForTest({
-            allowedRemoteHosts: ['schemas.example.com']
-        });
-        expect(options.allowedRemoteHosts).toEqual(['schemas.example.com']);
-    });
-
-    it('should use allowedRemoteHosts from config when CLI does not provide them', async () => {
-        cliConfigModule = await import('./cli-config');
-        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
-            allowedRemoteHosts: ['config.example.com']
+    describe('push flow command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPushFlow').mockResolvedValue(undefined);
         });
 
-        const options = await parseDocLoaderConfigForTest({});
-        expect(options.allowedRemoteHosts).toEqual(['config.example.com']);
-    });
+        it('calls runPushFlow with file, name, description and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--name', 'Payment Processing',
+                '--description', 'End-to-end payment flow',
+                '--calm-hub-url', 'http://hub',
+            ]);
 
-    it('should prefer CLI allowedRemoteHosts over config values', async () => {
-        cliConfigModule = await import('./cli-config');
-        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
-            allowedRemoteHosts: ['config.example.com']
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                file: 'flow.json',
+                name: 'Payment Processing',
+                description: 'End-to-end payment flow',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
         });
 
-        const options = await parseDocLoaderConfigForTest({
-            allowedRemoteHosts: ['cli.example.com']
+        it('passes the change type and --fail-if-modified through', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--change-type', 'minor',
+                '--fail-if-modified',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'MINOR',
+                failIfModified: true,
+            }));
         });
-        expect(options.allowedRemoteHosts).toEqual(['cli.example.com']);
-    });
 
-    it('should set debug to true when verbose passed along', async () => {
-        const options = await parseDocLoaderConfigForTest({
-            verbose: true
+        it('defaults the change type to PATCH when not provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'push', 'flow', 'flow.json',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPushFlow).toHaveBeenCalledWith(expect.objectContaining({
+                changeType: 'PATCH',
+            }));
         });
-        expect(options.debug).toBeTruthy();
     });
 
-    it('should default debug to false', async () => {
-        const options = await parseDocLoaderConfigForTest({
+    describe('pull flow command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runPullFlow').mockResolvedValue(undefined);
         });
-        expect(options.debug).toBeFalsy();
+
+        it('calls runPullFlow with namespace, mapping, version and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'flow',
+                '--namespace', 'finos',
+                '--mapping', 'my-flow',
+                '--ver', '1.0.0',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runPullFlow).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                mapping: 'my-flow',
+                version: '1.0.0',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('passes --output when provided', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'pull', 'flow',
+                '--namespace', 'finos',
+                '--mapping', 'my-flow',
+                '--output', 'out.json',
+            ]);
+
+            expect(hubCommandsModule.runPullFlow).toHaveBeenCalledWith(expect.objectContaining({
+                output: 'out.json',
+            }));
+        });
     });
 
-    it('loads auth plugin from config file when authPluginPath is set', async () => {
-        cliConfigModule = await import('./cli-config');
-        const fakePlugin = { getAuthHeader: vi.fn() };
-        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ authPluginPath: '/fake/plugin.js' });
-        vi.spyOn(cliConfigModule, 'loadAuthPlugin').mockResolvedValue(fakePlugin as never);
+    describe('list flows command', () => {
+        beforeEach(async () => {
+            hubCommandsModule = await import('./command-helpers/hub-commands');
+            vi.spyOn(hubCommandsModule, 'runListFlows').mockResolvedValue(undefined);
+        });
 
-        const options = await parseDocLoaderConfigForTest({});
+        it('calls runListFlows with namespace and hub url', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'flows',
+                '--namespace', 'finos',
+                '--calm-hub-url', 'http://hub',
+            ]);
 
-        expect(cliConfigModule.loadAuthPlugin).toHaveBeenCalledWith('/fake/plugin.js', false);
-        expect(options.authPlugin).toBe(fakePlugin);
+            expect(hubCommandsModule.runListFlows).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'finos',
+                calmHubOptions: expect.objectContaining({ calmHubUrl: 'http://hub' }),
+            }));
+        });
+
+        it('defaults namespace to "default"', async () => {
+            await program.parseAsync([
+                'node', 'cli.js', 'hub', 'list', 'flows',
+                '--calm-hub-url', 'http://hub',
+            ]);
+
+            expect(hubCommandsModule.runListFlows).toHaveBeenCalledWith(expect.objectContaining({
+                namespace: 'default',
+            }));
+        });
     });
 
-    it('logs an error and continues when auth plugin loading throws', async () => {
-        cliConfigModule = await import('./cli-config');
-        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({ authPluginPath: '/bad/plugin.js' });
-        vi.spyOn(cliConfigModule, 'loadAuthPlugin').mockRejectedValue(new Error('module not found'));
+    describe('init-config command', () => {
+        it('saves all supported authentication options', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
 
-        const options = await parseDocLoaderConfigForTest({});
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--calm-hub-url', 'https://calmhub.example.com',
+                '--allowed-remote-hosts', 'schemas.example.com, calm.finos.org',
+                '--auth-plugin-path', '~/plugins/auth-plugin.js',
+                '--direct-url-auth-module', '~/plugins/direct-url-auth.js',
+                '--direct-url-auth-config-path', '~/plugins/direct-url-auth.config.json',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com, secure.example.com',
+            ]);
 
-        expect(options.authPlugin).toBeUndefined();
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://calmhub.example.com',
+                allowedRemoteHosts: ['schemas.example.com', 'calm.finos.org'],
+                authPluginPath: '~/plugins/auth-plugin.js',
+                directUrlAuthModule: '~/plugins/direct-url-auth.js',
+                directUrlAuthConfigPath: '~/plugins/direct-url-auth.config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('saves a relative direct URL auth module path unchanged', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-module', './dist/direct-url-auth.js',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                directUrlAuthModule: './dist/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+        });
+
+        it('preserves existing values and deduplicates authenticated hosts', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', ' protected.example.com, secure.example.com, ',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                calmHubUrl: 'https://existing.example.com',
+                authPluginPath: '/existing/auth-plugin.js',
+                directUrlAuthModule: '/existing/direct-url-auth.js',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com', 'secure.example.com'],
+            });
+        });
+
+        it('replaces scalar values when they are supplied', async () => {
+            vi.mocked(cliConfigModule.loadCliConfig).mockResolvedValue({
+                authPluginPath: '/old/auth-plugin.js',
+                directUrlAuthModule: '/old/direct-url-auth.js',
+                directUrlAuthConfigPath: '/old/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--auth-plugin-path', '/new/auth-plugin.js',
+                '--direct-url-auth-module', '/new/direct-url-auth.js',
+                '--direct-url-auth-config-path', '/new/config.json',
+            ]);
+
+            expect(saveCliConfig).toHaveBeenCalledWith({
+                authPluginPath: '/new/auth-plugin.js',
+                directUrlAuthModule: '/new/direct-url-auth.js',
+                directUrlAuthConfigPath: '/new/config.json',
+                directUrlAuthAuthenticatedHosts: ['protected.example.com'],
+            });
+        });
+
+        it('fails when --direct-url-auth-module is set without --direct-url-authenticated-hosts', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-module', './dist/direct-url-auth.js',
+            ])).rejects.toThrow(/directUrlAuth\.authenticatedHosts must be a non-empty array/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
+
+        it('fails when --direct-url-auth-authenticated-hosts is set without --direct-url-auth-module', async () => {
+            const saveCliConfig = vi.spyOn(cliConfigModule, 'saveCliConfig').mockResolvedValue(undefined);
+
+            await expect(program.parseAsync([
+                'node', 'cli.js', 'init-config',
+                '--direct-url-auth-authenticated-hosts', 'protected.example.com',
+            ])).rejects.toThrow(/directUrlAuth\.module must be a non-empty string/);
+
+            expect(saveCliConfig).not.toHaveBeenCalled();
+        });
     });
+
 });

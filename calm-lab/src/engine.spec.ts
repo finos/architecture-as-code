@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateArchitecture, commandSupport, ENGINE_VERSION } from './engine';
+import { validateArchitecture, commandSupport, CLI_VERSION } from './engine';
 
 const valid = {
     $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
@@ -62,7 +62,7 @@ describe('capability manifest', () => {
         expect(support && 'reason' in support ? support.reason : '').toMatch(/filesystem|headless browser/);
     });
 
-    it('exposes the engine version', () => {
-        expect(ENGINE_VERSION).toMatch(/^\d+\.\d+\.\d+/);
+    it('exposes the CLI version', () => {
+        expect(CLI_VERSION).toMatch(/^\d+\.\d+\.\d+/);
     });
 });

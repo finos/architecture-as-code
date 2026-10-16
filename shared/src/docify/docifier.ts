@@ -6,7 +6,7 @@ import { BrowserOverrideError } from './diagram-rendering/errors.js';
 import { MermaidBrowserRenderer } from './diagram-rendering/mermaid-browser-renderer.js';
 import { processDiagramsInDirectory, processDiagramsInFile, formatDiagramSummary, MARKDOWN_FILE_REGEX } from './diagram-rendering/markdown-diagram-processor.js';
 
-export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED' | 'ANTS';
+export type DocifyMode = 'SAD' | 'WEBSITE' | 'USER_PROVIDED';
 
 export type DiagramExportFormat = 'svg' | 'png';
 
@@ -14,8 +14,7 @@ export class Docifier {
     private static readonly TEMPLATE_BUNDLE_PATHS: Record<DocifyMode, string> = {
         SAD: __dirname + '/template-bundles/sad',
         WEBSITE: __dirname + '/template-bundles/docusaurus',
-        USER_PROVIDED: __dirname + '/template-bundles/null-pattern',
-        ANTS: __dirname + '/template-bundles/ants'
+        USER_PROVIDED: __dirname + '/template-bundles/null-pattern'
     };
 
     private templateProcessor: TemplateProcessor;

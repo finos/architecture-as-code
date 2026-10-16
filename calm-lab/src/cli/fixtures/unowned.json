@@ -1,0 +1,12 @@
+{
+  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "nodes": [
+    {
+      "unique-id": "svc",
+      "node-type": "service",
+      "name": "Svc",
+      "description": "A service."
+    }
+  ],
+  "relationships": []
+}

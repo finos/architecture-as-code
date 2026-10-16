@@ -1,13 +1,15 @@
 package org.finos.calm.store.producer;
 
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
 import jakarta.inject.Inject;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.UserAccessStore;
+import org.finos.calm.store.github.GitHubUserAccessStore;
 import org.finos.calm.store.mongo.MongoUserAccessStore;
 import org.finos.calm.store.nitrite.NitriteUserAccessStore;
-import jakarta.enterprise.inject.Instance;
 
 /**
  * Producer for UserAccessStore implementations.
@@ -26,6 +28,9 @@ public class UserAccessStoreProducer {
     @Inject
     Instance<NitriteUserAccessStore> standaloneUserAccessStore;
 
+    @Inject
+    Instance<GitHubUserAccessStore> gitHubUserAccessStore;
+
     /**
      * Produces the appropriate UserAccessStore implementation based on the configured database mode.
      *
@@ -34,7 +39,9 @@ public class UserAccessStoreProducer {
     @Produces
     @ApplicationScoped
     public UserAccessStore produceUserAccessStore() {
-        if ("standalone".equals(databaseMode)) {
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubUserAccessStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
             return standaloneUserAccessStore.get();
         } else {
             return mongoUserAccessStore.get();

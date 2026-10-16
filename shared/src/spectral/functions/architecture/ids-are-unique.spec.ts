@@ -59,6 +59,23 @@ describe('idsAreUnique', () => {
         expect(result[0].message).toContain('Duplicate unique-id detected. ID: node1, path: /nodes/1/unique-id');
     });
 
+    it('should return the path of a duplicate ID as path segments', () => {
+        const input = {};
+        const context = {
+            document: {
+                data: {
+                    nodes: [
+                        { 'unique-id': 'node1' },
+                        { 'unique-id': 'node1' }
+                    ]
+                }
+            }
+        };
+
+        const result = idsAreUnique(input, null, asContext(context));
+        expect(result[0].path).toEqual(['nodes', '1', 'unique-id']);
+    });
+
     it('should return messages for duplicate IDs within relationships', () => {
         const input = {};
         const context = {

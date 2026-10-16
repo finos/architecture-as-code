@@ -24,8 +24,4 @@ assuming anything here reflects current behaviour.
 | [0005](0005-layout-is-hub-internal-not-a-calm-schema.md) | Layout is a Hub-internal shape, not a CALM schema | Implemented |
 | [0006](0006-denormalize-adr-title-onto-header.md) | Denormalize ADR title onto the header | Implemented |
 | [0007](0007-control-storage-header-version-split.md) | Control storage — header/version split via two composed helper instances | Implemented |
-
-0001–0003 cover the seven *versioned* resource types; 0007 brings Control
-onto the same shape via two composed instances of the same helper. Decorator
-alone keeps the one-document-per-namespace shape by decision, not by
-omission — see 0004, which is still open with respect to Decorator only.
+| [0008](0008-pattern-implementations-read-the-architecture-schema.md) | Pattern implementations are found by reading the architecture's `$schema` | Implemented |

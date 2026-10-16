@@ -1,6 +1,7 @@
 import { SchemaDirectory } from '../schema-directory.js';
 import type { CalmReferenceResolver } from './calm-reference-resolver.js';
 import type { CalmDocumentType } from '@finos/calm-models/types';
+import { isCurie } from '../hub/curie.js';
 
 /**
  * A {@link CalmReferenceResolver} that resolves references by loading raw documents through a
@@ -17,7 +18,8 @@ export class SchemaDirectoryReferenceResolver implements CalmReferenceResolver {
         private readonly documentType: CalmDocumentType = 'architecture'
     ) {}
 
-    canResolve(_reference: string): boolean {
+    canResolve(reference: string): boolean {
+        if (isCurie(reference)) return false;
         return this.schemaDirectory !== undefined;
     }
 

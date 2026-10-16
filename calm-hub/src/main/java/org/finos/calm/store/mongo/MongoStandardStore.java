@@ -19,8 +19,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link StandardStore}.
  *
@@ -70,18 +68,18 @@ public class MongoStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace) throws NamespaceNotFoundException {
+    public Standard createStandardForNamespace(CreateStandardRequest standardRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         Document content = Document.parse(standardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
         documentStore.createHeader(namespace, id, standardRequest.getName(), standardRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         Standard createdStandard = new Standard(standardRequest);
         createdStandard.setId(id);
-        createdStandard.setVersion(INITIAL_VERSION);
+        createdStandard.setVersion(version);
         return createdStandard;
     }
 
@@ -121,6 +119,25 @@ public class MongoStandardStore implements StandardStore {
         return standard;
     }
 
+    @Override
+    public Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                             Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        requireStandard(namespace, standardId);
+
+        Document content = Document.parse(standardRequest.getStandardJson());
+        documentStore.upsertVersion(namespace, standardId, version, content);
+
+        // Unconditional, matching the old shape: Standard did not guard these on blank.
+        documentStore.updateHeaderDetails(namespace, standardId,
+                standardRequest.getName(), standardRequest.getDescription());
+
+        Standard standard = new Standard(standardRequest);
+        standard.setId(standardId);
+        standard.setVersion(version);
+        return standard;
+    }
+
     private void requireStandard(String namespace, Integer standardId) throws NamespaceNotFoundException, StandardNotFoundException {
         namespaceStore.requireNamespace(namespace);
         if (!documentStore.headerExists(namespace, standardId)) {
@@ -134,5 +151,15 @@ public class MongoStandardStore implements StandardStore {
         if (!documentStore.deleteResource(namespace, standardId)) {
             throw new StandardNotFoundException();
         }
+    }
+
+    @Override
+    public boolean deleteStandardVersion(String namespace, int standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, standardId, version);
     }
 }

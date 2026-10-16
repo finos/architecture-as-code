@@ -5,10 +5,12 @@
 // (see package.json).
 import * as esbuild from 'esbuild';
 import { builtinModules } from 'node:module';
+import { readdirSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { ROOT_PACKAGE_JSON, schemaPackageJsonPaths } from '../../scripts/copy-calm-schemas.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const sharedRoot = path.resolve(here, '..');
@@ -50,7 +52,7 @@ function stubPlugin(requests) {
     };
 }
 
-async function bundle(entry, outfile, requests) {
+async function bundle(entry, outfile, requests, define = {}) {
     await esbuild.build({
         entryPoints: [entry],
         outfile,
@@ -62,10 +64,24 @@ async function bundle(entry, outfile, requests) {
             'process.env.NODE_ENV': '"production"',
             process: 'undefined',
             Buffer: 'undefined',
+            ...define,
         },
         logLevel: 'silent',
         plugins: [stubPlugin(requests)],
     });
+}
+
+// The meta-schemas of every release that the root package.json pins, keyed by $id, for the probe.
+function releaseSchemas() {
+    const schemas = {};
+    for (const packageJson of schemaPackageJsonPaths(ROOT_PACKAGE_JSON)) {
+        const schemaDir = path.join(path.dirname(packageJson), 'schema');
+        for (const file of readdirSync(schemaDir).filter((name) => name.endsWith('.json'))) {
+            const schema = JSON.parse(readFileSync(path.join(schemaDir, file), 'utf8'));
+            schemas[schema.$id] = schema;
+        }
+    }
+    return schemas;
 }
 
 function checkRequests(requests) {
@@ -114,7 +130,11 @@ async function main() {
         const probeOut = path.join(workDir, 'probe.js');
         // The probe's module graph is the entry's graph plus JSON schema fixtures, already
         // checked above, so its builtin requests are intentionally not re-checked here.
-        await bundle(path.join(here, 'browser-probe.ts'), probeOut, []);
+        const latestCalm = JSON.parse(readFileSync(path.join(repoRoot, 'node_modules/@finos/calm-schema/schema/calm.json'), 'utf8'));
+        await bundle(path.join(here, 'browser-probe.ts'), probeOut, [], {
+            __CALM_SCHEMAS__: JSON.stringify(releaseSchemas()),
+            __CALM_SCHEMA_ID__: JSON.stringify(latestCalm.$id),
+        });
         await import(pathToFileURL(probeOut).href);
     } catch (err) {
         console.error('Browser entry guard FAILED: ' + (err instanceof Error ? err.message : String(err)));

@@ -1,0 +1,128 @@
+import {
+    type CalmDocumentType,
+    type NarrativeDocumentType,
+} from '@finos/calm-models/types';
+import {
+    classifyWorkspaceDocumentType,
+    type WorkspaceDocumentKind,
+} from '@finos/calm-shared';
+import type {
+    MappingWorkspaceManifestEntry,
+    NarrativeWorkspaceManifestEntry,
+    WorkspaceManifest,
+    WorkspaceManifestEntry,
+} from './bundle';
+
+export const WORKSPACE_DOCUMENT_HANDLERS = {
+    mapping: {
+        unreadableFile: 'warn',
+        supportsJsonReferences: true,
+    },
+    narrative: {
+        unreadableFile: 'fail',
+        supportsJsonReferences: false,
+    },
+} as const satisfies Record<WorkspaceDocumentKind, {
+    unreadableFile: 'warn' | 'fail';
+    supportsJsonReferences: boolean;
+}>;
+
+export type ResolvedWorkspaceDocumentType =
+    | { kind: 'mapping'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.mapping; type: CalmDocumentType | 'unknown' }
+    | { kind: 'narrative'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.narrative; type: NarrativeDocumentType };
+
+export type ResolvedWorkspaceManifestEntry =
+    | { kind: 'mapping'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.mapping; entry: MappingWorkspaceManifestEntry }
+    | { kind: 'narrative'; handler: typeof WORKSPACE_DOCUMENT_HANDLERS.narrative; entry: NarrativeWorkspaceManifestEntry };
+
+export type WorkspaceDocumentTypeOperations<TResult, TArgs extends unknown[] = []> = {
+    [K in WorkspaceDocumentKind]: (
+        type: Extract<ResolvedWorkspaceDocumentType, { kind: K }>['type'],
+        ...args: TArgs
+    ) => TResult;
+};
+
+export type WorkspaceManifestEntryOperations<TResult, TArgs extends unknown[] = []> = {
+    [K in WorkspaceDocumentKind]: (
+        entry: Extract<ResolvedWorkspaceManifestEntry, { kind: K }>['entry'],
+        ...args: TArgs
+    ) => TResult;
+};
+
+/** Resolve only explicitly supported workspace types plus the legacy literal `unknown`. */
+export function resolveWorkspaceDocumentType(type: unknown): ResolvedWorkspaceDocumentType | undefined {
+    const document = classifyWorkspaceDocumentType(type);
+    if (document === undefined) return undefined;
+    switch (document.kind) {
+    case 'mapping':
+        return { ...document, handler: WORKSPACE_DOCUMENT_HANDLERS.mapping };
+    case 'narrative':
+        return { ...document, handler: WORKSPACE_DOCUMENT_HANDLERS.narrative };
+    default:
+        return assertNever(document);
+    }
+}
+
+export function isNarrativeWorkspaceManifestEntry(
+    entry: WorkspaceManifestEntry
+): entry is NarrativeWorkspaceManifestEntry {
+    return resolveWorkspaceDocumentType(entry.type)?.kind === 'narrative';
+}
+
+export function resolveWorkspaceManifestEntry(
+    entry: WorkspaceManifestEntry
+): ResolvedWorkspaceManifestEntry {
+    if (isNarrativeWorkspaceManifestEntry(entry)) {
+        return { kind: 'narrative', handler: WORKSPACE_DOCUMENT_HANDLERS.narrative, entry };
+    }
+    if (resolveWorkspaceDocumentType(entry.type)?.kind !== 'mapping') {
+        throw new Error(`Unsupported workspace document type '${String(entry.type)}'.`);
+    }
+    return { kind: 'mapping', handler: WORKSPACE_DOCUMENT_HANDLERS.mapping, entry };
+}
+
+export function dispatchWorkspaceDocumentType<TResult, TArgs extends unknown[]>(
+    document: ResolvedWorkspaceDocumentType,
+    operations: WorkspaceDocumentTypeOperations<TResult, TArgs>,
+    ...args: TArgs
+): TResult {
+    switch (document.kind) {
+    case 'mapping':
+        return operations.mapping(document.type, ...args);
+    case 'narrative':
+        return operations.narrative(document.type, ...args);
+    default:
+        return assertNever(document);
+    }
+}
+
+export function dispatchWorkspaceManifestEntry<TResult, TArgs extends unknown[]>(
+    document: ResolvedWorkspaceManifestEntry,
+    operations: WorkspaceManifestEntryOperations<TResult, TArgs>,
+    ...args: TArgs
+): TResult {
+    switch (document.kind) {
+    case 'mapping':
+        return operations.mapping(document.entry, ...args);
+    case 'narrative':
+        return operations.narrative(document.entry, ...args);
+    default:
+        return assertNever(document);
+    }
+}
+
+/** Keep non-JSON workspace documents out of mapping reference reads and rewrites. */
+export function getJsonReferenceWorkspaceManifest(manifest: WorkspaceManifest): WorkspaceManifest {
+    const result: WorkspaceManifest = {};
+    for (const [id, entry] of Object.entries(manifest)) {
+        const resolved = resolveWorkspaceManifestEntry(entry);
+        if (resolved.handler.supportsJsonReferences) {
+            result[id] = resolved.entry;
+        }
+    }
+    return result;
+}
+
+function assertNever(value: never): never {
+    throw new Error(`Unsupported workspace document kind '${String(value)}'.`);
+}

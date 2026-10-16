@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.CoreSchemaStore;
+import org.finos.calm.store.classpath.ClasspathCoreSchemaStore;
 import org.finos.calm.store.mongo.MongoCoreSchemaStore;
 import org.finos.calm.store.nitrite.NitriteCoreSchemaStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestCoreSchemaStoreProducerShould {
     @Mock
     Instance<NitriteCoreSchemaStore> nitriteCoreSchemaStoreInstance;
 
+    @Mock
+    ClasspathCoreSchemaStore classpathCoreSchemaStore;
+
+    @Mock
+    Instance<ClasspathCoreSchemaStore> classpathCoreSchemaStoreInstance;
+
     private CoreSchemaStoreProducer coreSchemaStoreProducer;
 
     @BeforeEach
@@ -42,41 +50,43 @@ public class TestCoreSchemaStoreProducerShould {
         coreSchemaStoreProducer.mongoCoreSchemaStore = mongoCoreSchemaStoreInstance;
         when(nitriteCoreSchemaStoreInstance.get()).thenReturn(nitriteCoreSchemaStore);
         coreSchemaStoreProducer.standaloneCoreSchemaStore = nitriteCoreSchemaStoreInstance;
+        when(classpathCoreSchemaStoreInstance.get()).thenReturn(classpathCoreSchemaStore);
+        coreSchemaStoreProducer.classpathCoreSchemaStore = classpathCoreSchemaStoreInstance;
     }
 
     @Test
     void return_mongo_core_schema_store_when_database_mode_is_mongo() {
-        // Given
-        coreSchemaStoreProducer.databaseMode = "mongo";
+        coreSchemaStoreProducer.databaseMode = DatabaseMode.MONGO;
 
-        // When
         CoreSchemaStore result = coreSchemaStoreProducer.produceCoreSchemaStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoCoreSchemaStore)));
     }
 
     @Test
     void return_nitrite_core_schema_store_when_database_mode_is_standalone() {
-        // Given
-        coreSchemaStoreProducer.databaseMode = "standalone";
+        coreSchemaStoreProducer.databaseMode = DatabaseMode.STANDALONE;
 
-        // When
         CoreSchemaStore result = coreSchemaStoreProducer.produceCoreSchemaStore();
 
-        // Then
         assertThat(result, is(sameInstance(nitriteCoreSchemaStore)));
     }
 
     @Test
     void return_mongo_core_schema_store_when_database_mode_is_not_recognized() {
-        // Given
         coreSchemaStoreProducer.databaseMode = "unknown";
 
-        // When
         CoreSchemaStore result = coreSchemaStoreProducer.produceCoreSchemaStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoCoreSchemaStore)));
+    }
+
+    @Test
+    void return_classpath_core_schema_store_when_database_mode_is_github() {
+        coreSchemaStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        CoreSchemaStore result = coreSchemaStoreProducer.produceCoreSchemaStore();
+
+        assertThat(result, is(sameInstance(classpathCoreSchemaStore)));
     }
 }

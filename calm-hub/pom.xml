@@ -18,6 +18,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <surefire-plugin.version>3.5.6</surefire-plugin.version>
+        <!-- Defined so that <skip>${skip.npm}</skip> below always resolves. -->
+        <skip.npm>false</skip.npm>
     </properties>
 
     <!-- dependencyManagement overrides for native-image compatibility.
@@ -73,7 +75,7 @@
         <dependency>
             <groupId>com.googlecode.owasp-java-html-sanitizer</groupId>
             <artifactId>owasp-java-html-sanitizer</artifactId>
-            <version>20240325.1</version>
+            <version>20260101.1</version>
         </dependency>
 
         <!-- Caffeine in-memory cache. Use the Quarkus extension, not the bare
@@ -86,11 +88,11 @@
             <artifactId>quarkus-caffeine</artifactId>
         </dependency>
 
-        <!-- JGit for GitHub clone/pull operations -->
+        <!-- JGit via its Quarkus extension, which configures JGit for native builds -->
         <dependency>
-            <groupId>org.eclipse.jgit</groupId>
-            <artifactId>org.eclipse.jgit</artifactId>
-            <version>7.2.1.202505142326-r</version>
+            <groupId>io.quarkiverse.jgit</groupId>
+            <artifactId>quarkus-jgit</artifactId>
+            <version>3.7.0</version>
         </dependency>
 
         <!-- Quarkus Scheduler for periodic sync -->
@@ -182,6 +184,22 @@
         </dependency>
     </dependencies>
     <build>
+        <!-- Declaring <resources> drops the default src/main/resources entry, so it is
+             re-added here. ClasspathCoreSchemaStore (GitHub storage mode) reads
+             META-INF/calm-schemas/. The meta-schemas come from the @finos/calm-schema npm
+             packages in the root package.json, which the frontend stage below copies to
+             target/calm-schemas. versions.txt and files.txt are hand-authored, so when the
+             root package.json adds a release, TestClasspathCoreSchemaResourcesShould fails
+             until they list it. -->
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>${project.basedir}/target/calm-schemas/release</directory>
+                <targetPath>META-INF/calm-schemas</targetPath>
+            </resource>
+        </resources>
         <plugins>
             <!-- Quarkus Maven Plugin -->
             <plugin>
@@ -261,6 +279,37 @@
                     </execution>
                 </executions>
             </plugin>
+            <!-- Remove the meta-schemas of the previous build before the copy below, so that a
+                 build without `clean` cannot bundle a release that the root package.json no
+                 longer pins. The resources plugin does not delete files from target/classes,
+                 so the bundled copy is removed too. skip.npm skips the copy, so it skips this
+                 removal: such a build bundles whatever the last copy left. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+                <executions>
+                    <execution>
+                        <id>remove-copied-calm-schemas</id>
+                        <phase>initialize</phase>
+                        <goals>
+                            <goal>clean</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.npm}</skip>
+                            <excludeDefaultDirectories>true</excludeDefaultDirectories>
+                            <filesets>
+                                <fileset>
+                                    <directory>${project.basedir}/target/calm-schemas</directory>
+                                </fileset>
+                                <fileset>
+                                    <directory>${project.build.outputDirectory}/META-INF/calm-schemas</directory>
+                                </fileset>
+                            </filesets>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
             <plugin>
                 <groupId>com.github.eirslett</groupId>
                 <artifactId>frontend-maven-plugin</artifactId>
@@ -290,12 +339,57 @@
                         </configuration>
                     </execution>
                     <execution>
+                        <id>copy calm schemas</id>
+                        <goals>
+                            <goal>npm</goal>
+                        </goals>
+                        <configuration>
+                            <arguments>run calm-hub:copy-schemas</arguments>
+                        </configuration>
+                    </execution>
+                    <execution>
                         <id>npm run build</id>
                         <goals>
                             <goal>npm</goal>
                         </goals>
                         <configuration>
                             <arguments>run calm-hub-ui:prod</arguments>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!-- Fail the build if the copy did not run (target/calm-schemas/release is
+                 missing). The calm-schemas resource would then bundle no meta-schemas, and
+                 GitHub mode would 404 every /calm/schemas request. This check does not look
+                 at which releases were copied: TestClasspathCoreSchemaResourcesShould compares
+                 them with versions.txt and files.txt, and PR CI always runs it before an image
+                 is published.
+                 The check is bound to generate-resources and declared after the frontend
+                 plugin, so it runs after the copy. If it were bound to process-resources, it
+                 would run after the resources plugin had already bundled the files, because
+                 default lifecycle bindings run before POM executions in the same phase.
+                 skip.npm skips the copy, so it skips this check. -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-enforcer-plugin</artifactId>
+                <version>3.5.0</version>
+                <executions>
+                    <execution>
+                        <id>require-bundled-calm-schemas</id>
+                        <phase>generate-resources</phase>
+                        <goals>
+                            <goal>enforce</goal>
+                        </goals>
+                        <configuration>
+                            <skip>${skip.npm}</skip>
+                            <rules>
+                                <requireFilesExist>
+                                    <files>
+                                        <file>${project.basedir}/target/calm-schemas/release</file>
+                                    </files>
+                                    <message>CALM meta-schemas are missing from target/calm-schemas. The frontend stage copies them from the @finos/calm-schema packages in the root package.json (npm run calm-hub:copy-schemas).</message>
+                                </requireFilesExist>
+                            </rules>
                         </configuration>
                     </execution>
                 </executions>
@@ -466,16 +560,18 @@
             </build>
         </profile>
         <!-- Server-only profile: skips the frontend stage (Node download, monorepo
-             npm install, and the calm-hub-ui Vite build) so backend-only work doesn't
-             pay for it. Deliberately NOT active by default.
+             npm install, the CALM meta-schema copy, and the calm-hub-ui Vite build) so
+             backend-only work doesn't pay for it. Deliberately NOT active by default.
 
              Consequence to understand before using it: the UI is copied into
              src/main/resources/META-INF/resources by the npm script, that directory is
              gitignored, and `mvn clean` does not remove it (it lives under src/, not
              target/). So on a fresh clone this profile produces a jar with NO UI at all
              (404 at /), and on a machine that has built before it silently ships
-             whatever UI was last built. Never use it for a release or Docker image
-             build — see calm-hub/AGENTS.md and README.md for the full explanation. -->
+             whatever UI was last built. After `mvn clean` the jar also has no bundled
+             meta-schemas (target/calm-schemas is gone). Never use it for a release or
+             Docker image build — see calm-hub/AGENTS.md and README.md for the full
+             explanation. -->
         <profile>
             <id>server-only</id>
             <activation>
@@ -489,43 +585,6 @@
                 <skip.installnodenpm>true</skip.installnodenpm>
                 <skip.npm>true</skip.npm>
             </properties>
-        </profile>
-        <profile>
-            <id>dependency-check</id>
-            <activation>
-                <activeByDefault>false</activeByDefault>
-            </activation>
-            <build>
-                <plugins>
-                    <!-- OWASP Dependency Check Plugin -->
-                    <plugin>
-                        <groupId>org.owasp</groupId>
-                        <artifactId>dependency-check-maven</artifactId>
-                        <version>12.2.2</version>
-                        <executions>
-                            <execution>
-                                <goals>
-                                    <goal>check</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                        <!-- Optional configuration: reuse suppression file if present -->
-                        <configuration>
-                            <formats>HTML,JSON</formats>
-                            <failOnError>true</failOnError>
-                            <skipSystemScope>true</skipSystemScope>
-                            <!-- Disable .NET analyzers to avoid dotnet requirement -->
-                            <assemblyAnalyzerEnabled>false</assemblyAnalyzerEnabled>
-                            <!-- Use environment-provided NVD API Key, fallback to Maven property -->
-                            <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
-                            <suppressionFiles>
-                                <suppressionFile>
-                                    ${project.basedir}/../.github/maven-cve-ignore-list.xml</suppressionFile>
-                            </suppressionFiles>
-                        </configuration>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
 </project>

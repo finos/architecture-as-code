@@ -6,7 +6,7 @@ Thank you for your interest in contributing to the Architecture as Code project!
 > The Architecture as Code project (also known as CALM) spans several repositories. Its
 > [governance policies](https://github.com/finos/calm-governance/blob/main/GOVERNANCE.md),
 > [contribution guidelines](https://github.com/finos/calm-governance/blob/main/CONTRIBUTING.md)
-> (DCO sign-off, raising issues, pull request etiquette, and the responsible use of AI coding
+> (raising issues, pull request etiquette, and the responsible use of AI coding
 > assistants), [Code of Conduct](https://github.com/finos/calm-governance/blob/main/CODE_OF_CONDUCT.md)
 > and [Maintainer roster](https://github.com/finos/calm-governance/blob/main/MAINTAINERS.md)
 > apply to every repository in the project and are maintained there. This document covers what is
@@ -15,6 +15,13 @@ Thank you for your interest in contributing to the Architecture as Code project!
 Maintainers working in this repository should also read
 [MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md) for repository-specific review, triage,
 merge, release, and onboarding guidance.
+
+## ✍️ Contributor License Agreement
+
+All pull requests need a signed FINOS Contributor License Agreement (CLA). The
+[EasyCLA](https://community.finos.org/docs/governance/Software-Projects/easycla) bot comments on
+your first pull request with a link to sign it, as an individual or through your employer's
+corporate CLA.
 
 ## 🚀 Why We Use Semantic Release
 
@@ -131,6 +138,30 @@ the TypeScript workspaces:
 ```typescript
 import { CalmWidget } from './types';
 ```
+
+## 🛠️ Building and Testing
+
+### Building from source
+
+Use Node 26 (`nvm use` reads `.nvmrc`) and run everything from the repository root:
+
+```bash
+npm ci                      # install every workspace from the single root lockfile
+npm run build               # build all TypeScript workspaces in dependency order
+./mvnw clean install        # build the Java modules (CALM Hub, calm-models)
+```
+
+`npm run build:cli` builds the CLI and only the packages it depends on. Package-specific build notes are in each package's `AGENTS.md`. There are no private or undocumented release steps: the release workflows in `.github/workflows` run exactly these commands.
+
+### When and how tests run
+
+- **Locally**: run `npm test` from the repository root to test every TypeScript workspace, or `npm test --workspace <name>` for one package. Java modules are tested with `./mvnw verify` from the root (or `cd calm-hub && ../mvnw verify` for CALM Hub, which also enforces its coverage gate). Lint with `npm run lint`.
+- **On every pull request**: the `build-*` workflows in `.github/workflows` build, lint and test each affected package (they are path-filtered, so only the packages touched by the change run), and `CLI ↔ CalmHub smoke` exercises the CLI against a live Hub. CodeQL, Semgrep and Dependency Review also run on every pull request; see [SECURITY.md](./SECURITY.md) for the policy behind them.
+- **On `main` and at release**: the same workflows run on push. The release workflows build the package they publish and refuse to publish unless the build and test workflows for that package have passed on `main`. The CLI and CALM Server release workflows also require a passing OSV Scanner run for the commit they release.
+
+### Test policy
+
+Every change that adds or modifies functionality must add or update automated tests for that functionality in the affected package's test suite (Vitest for TypeScript, JUnit for Java). Bug fixes must include a regression test that fails without the fix. Reviewers ask for tests before approving; the review checklist is in [MAINTAINERS_GUIDELINES.md](./MAINTAINERS_GUIDELINES.md). Aim for at least 80% coverage on new code.
 
 ## Responsible Use of AI Coding Assistants
 

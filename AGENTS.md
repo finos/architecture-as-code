@@ -23,15 +23,30 @@
 
 ## Project Overview
 
-This is the **FINOS Architecture as Code** monorepo containing the Common Architecture Language Model (CALM) specification and associated tools.
+This is the **FINOS Architecture as Code** monorepo. It holds the tools for the Common Architecture Language Model (CALM). The CALM schema lives in finos/calm-schema and the governance documents in finos/calm-governance (see [Project Repositories](#project-repositories)).
 
 **CALM** is a declarative, JSON-based modeling language for describing complex software architectures, particularly in regulated environments like financial services.
+
+## Project Repositories
+
+| Repository | Owns | Send here |
+|---|---|---|
+| [architecture-as-code](https://github.com/finos/architecture-as-code) | This repository: the tools, the docs site and CALM Lab. The tools get the schema from the `@finos/calm-schema` npm package (see [CALM Schema Updates](#calm-schema-updates)) | Tool changes, the documentation site, examples that the tools use |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only the drafts and release candidates until [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes them, and CALM's own architecture |
+| [calm-governance](https://github.com/finos/calm-governance) | Project-wide governance, the Maintainer roster, contribution guidelines, the Code of Conduct. No code | Governance and roster changes |
+
+Clone the three repositories side by side, with the same parent directory. Start the agent here and
+add the other two as additional directories. Each repository has its own `AGENTS.md`; read the one
+for the repository you change. Target commands at the correct repository: `git -C ../calm-schema ...`
+and `gh ... --repo finos/calm-schema`. Each repository is a fork clone: `origin` is the contributor's
+fork and `upstream` is the FINOS repository. Branch from `upstream/main` and open pull requests
+against `finos/<repo>`.
 
 ## Monorepo Structure
 
 ```
 architecture-as-code/
-├── calm/                      # CALM specification (JSON schemas)
+├── calm/                      # CALM's own architecture; schema drafts and release candidates until #3240 step 6
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
@@ -71,7 +86,7 @@ from inside these folders.
   tested with vitest, managed as npm workspaces off a single root lockfile
   (see [Lockfile Regeneration](#lockfile-regeneration)).
 - **Java/Maven** — the root `pom.xml` is a reactor over six modules. Two carry Java code: `calm-hub`
-  (Quarkus 3.34+, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
+  (Quarkus LTS releases only, MongoDB/NitriteDB, TestContainers) and `calm-models` (a plain jar). `cli`, `calm`,
   `docs` and `shared` are POM-only placeholders. Note that `calm-models` is built by both toolchains
   — it is an npm workspace *and* a Maven module.
 - **Documentation** — Docusaurus, both for the main site and CALMGuard's `calmguard-docs`.
@@ -112,11 +127,44 @@ rm -rf node_modules package-lock.json && npm install
 **Never** regenerate the lockfile without deleting `node_modules` first. The `validate-lockfile`
 CI workflow checks that all expected platform variants are present in `package-lock.json`.
 
+## CALM Schema Updates
+
+The tools get the CALM schema from the `@finos/calm-schema` npm package. The root `package.json`
+pins the latest release as `@finos/calm-schema`, and each release by a `calm-schema-<major.minor>`
+alias (see [cli/AGENTS.md](cli/AGENTS.md#schema-handling)). Renovate raises `@finos/calm-schema`
+updates in their own PR. That PR must also pin the alias of that release to the same version.
+
+`.github/workflows/calm-schema-compatibility.yml` builds and tests each tool against a new release,
+with the commands of its `build-*.yml` workflow (listed in `scripts/calm-schema-compat.mjs`). It
+stops before the tests if the version is not on npm. If a tool fails, the workflow opens one issue
+for that release (label `calm-schema-compatibility`), or comments on the open issue. The issue asks
+for `Closes #<issue>` in the PR that moves `@finos/calm-schema` to the release, so that the merge
+closes it. A run on the default branch in which all tools pass also closes it. A manual run on
+another branch only comments on the open issue: it never opens or closes one. The workflow does
+not reopen a closed issue: a new failure gets a new issue. `cli-hub-smoke.yml` is not in the
+matrix: it tests the CLI against a CALM Hub image, and the cli and calm-hub jobs already test the
+schema.
+
+| Trigger | Version | Notes |
+|---|---|---|
+| `repository_dispatch` | `client_payload.version` | From the finos/calm-schema publish workflow: `event_type: calm-schema-published`, `client_payload: {"version": "x.y.z"}`. Waits up to about five minutes for the version on npm |
+| Daily schedule | npm `latest` | Skips the pinned version, a version with any issue (open or closed), and a version that passed |
+| Manual run | `version` input, or npm `latest` | Always runs. Run it on a fix branch to test the fix |
+
+calm-hub fails for each new `major.minor` release until its schema index files list the release
+(see [calm-hub/AGENTS.md](calm-hub/AGENTS.md)).
+
+To test a tool locally, run `node scripts/calm-schema-compat.mjs use <version>`, then
+`node scripts/calm-schema-compat.mjs test <tool>`. The `use` command changes `package.json` and
+`package-lock.json` as the update PR must, with `npm install --package-lock-only`, then runs
+`npm ci`. It never installs over an existing `node_modules`, because that can prune other
+platforms' packages from the lockfile. If your PR does not update the schema, restore both files
+(`git checkout -- package.json package-lock.json`) and run `npm ci` when you are done.
+
 ## Package-Specific Guides
 
 Read the guide for a package before working on its code, tests, or build.
 
-- **[calm/AGENTS.md](calm/AGENTS.md)** - CALM JSON Meta Schema, schema change workflow, draft/release rules
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions
@@ -167,6 +215,10 @@ Always build dependencies before dependent packages. The Maven reactor works thi
 `calm-lab` consumes the compiled `@finos/calm-shared/browser` entry, so `shared` must be built
 first — `npm run build:calm-lab` chains the whole order for you.
 
+The root `npm run build` builds the workspaces in the order of the `workspaces` list in
+`package.json`, not in dependency order. `docs` must stay after `calm-studio/packages/*`, because
+it loads the built `@finos/calm-docusaurus-plugin`, which loads the built `@calmstudio/diagram`.
+
 ## Testing
 
 **IMPORTANT**: All workspaces use `vitest run` for the test script, which runs tests once and exits.
@@ -199,7 +251,7 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 - **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
   `docs`, `vscode`, `deps`, `ci`, `release`
 
-Run `npx cz` for an interactive prompt.
+Run `npm run commit` for an interactive prompt. Stage your changes first.
 
 Type and scope drive the automated release, so neither is cosmetic: `cli/.releaserc.json` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule

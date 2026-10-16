@@ -1,7 +1,3 @@
-export const CUSTOM_BG = '#1a4d8f';
-export const CUSTOM_BORDER = '#0f3461';
-export const CUSTOM_TEXT = '#ffffff';
-
 export function isBuildingBlock(data: Record<string, unknown>): boolean {
     const metadata = data.metadata as Record<string, unknown> | undefined;
     return !!metadata?.['source-building-block'] || !!metadata?.['source-fidelity-node'];

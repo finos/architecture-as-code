@@ -1,6 +1,11 @@
 {
   "name": "@calmstudio/diagram",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/finos/architecture-as-code.git",
+    "directory": "calm-studio/packages/web-component"
+  },
   "private": false,
   "type": "module",
   "main": "./dist/calm-diagram.es.js",

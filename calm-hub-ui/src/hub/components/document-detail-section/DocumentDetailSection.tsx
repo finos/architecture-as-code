@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoGridOutline, IoGitNetworkOutline, IoPlayOutline, IoCodeOutline, IoCubeOutline } from 'react-icons/io5';
+import Markdown from 'react-markdown';
 import { CalmCore } from '@finos/calm-models/model';
 import type { Architecture } from '@finos/calm-models/model';
 import type { CalmCoreSchema } from '@finos/calm-models/types';
@@ -26,6 +27,17 @@ const DEFAULT_ARCHITECTURE_VERSION = '1.0.0';
 
 interface DocumentDetailSectionProps {
     data?: Data;
+}
+
+function getDisplayName(data: Data): string {
+    const headingMatch = (data.data as string).match(/^#\s+(.+)$/m);
+    return headingMatch ? headingMatch[1] : data.id;
+}
+
+// The GitHub backend serves a standard's .md sibling as a plain string; JSON documents
+// arrive parsed as objects, or as a string that opens with "{".
+function isMarkdownContent(data: Data): boolean {
+    return typeof data.data === 'string' && !data.data.trimStart().startsWith('{');
 }
 
 function calmTypeToUrlSegment(calmType: string): string {
@@ -145,10 +157,11 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     if (!data) return null;
 
     const isFlow = data.calmType === 'Flows';
+    const isMarkdown = isMarkdownContent(data);
 
     // The route carries only the id, which is usually numeric. The breadcrumb shows
     // the document name and a singular type label: "finos / Flow / Payments / 1.0.0".
-    const displayName = isFlow ? data.data?.name : undefined;
+    const displayName = isFlow ? data.data?.name : isMarkdown ? getDisplayName(data) : undefined;
     const typeLabel = isFlow ? 'Flow'
         : data.calmType === 'Standards' ? 'Standard'
             : undefined;
@@ -213,6 +226,10 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
                             : architectureViewState.status === 'ready'
                                 ? <FlowArchitectureDiagram flowJson={data.data ?? {}} architectureJson={architectureData} architecture={architecture} />
                                 : <div className="flex items-center justify-center h-full text-base-content/50">{architectureViewState.message}</div>
+                    ) : isMarkdown ? (
+                        <div className="prose prose-sm max-w-none p-6 bg-base-100">
+                            <Markdown>{data.data as string}</Markdown>
+                        </div>
                     ) : (
                         <JsonRenderer json={data} />
                     )}

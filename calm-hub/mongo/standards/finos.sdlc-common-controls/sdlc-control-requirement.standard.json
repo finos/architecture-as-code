@@ -1,0 +1,377 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+  "title": "SDLC Common Controls control requirement",
+  "description": "What every control requirement document of the FINOS SDLC Common Controls Catalog carries. Each document in the finos-sdlc-common-controls control domain declares this Standard as its $schema. A document is a readable catalog entry and a JSON Schema: an architecture that cites it as a requirement-url has its control config validated against it, with control-id and name pinned to the catalog.",
+  "allOf": [
+    {
+      "$ref": "https://json-schema.org/draft/2020-12/schema"
+    }
+  ],
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "const": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "description": "Every document declares this Standard"
+    },
+    "$id": {
+      "type": "string",
+      "pattern": "^https?://",
+      "description": "Where CALM Hub serves the document: .../calm/domains/<domain>/controls/<slug>/requirement/versions/<version>"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Control id and name, for example \"SDLC-PREV-017 Service Dependency Control\""
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The catalog's name for the control"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The catalog's summary of the control"
+    },
+    "control-id": {
+      "type": "string",
+      "pattern": "^SDLC-[A-Z]+-[0-9]{3}$",
+      "description": "The catalog's identifier: SDLC, the control type, a three digit sequence"
+    },
+    "category": {
+      "enum": [
+        "META",
+        "LIFECYCLE",
+        "CODE",
+        "BUILD",
+        "RELEASE",
+        "RUNTIME"
+      ],
+      "description": "The SDLC phase the catalog places the control in"
+    },
+    "source": {
+      "const": "FINOS SDLC Common Controls Catalog"
+    },
+    "url": {
+      "type": "string",
+      "pattern": "^https?://",
+      "description": "The control's page on the catalog site"
+    },
+    "catalog": {
+      "type": "object",
+      "description": "Provenance: which revision of the catalog this document was generated from",
+      "properties": {
+        "repository": {
+          "type": "string",
+          "pattern": "^https?://"
+        },
+        "revision": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Commit of the catalog source"
+        },
+        "revision-date": {
+          "type": "string"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "control-type": {
+          "type": "string",
+          "pattern": "^[A-Z]+$"
+        },
+        "phase": {
+          "enum": [
+            "META",
+            "LIFECYCLE",
+            "CODE",
+            "BUILD",
+            "RELEASE",
+            "RUNTIME"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "minLength": 1,
+          "description": "The catalog's approval status for the control"
+        },
+        "chain": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "The control chains the catalog places it in, when any"
+        }
+      },
+      "required": [
+        "repository",
+        "revision",
+        "revision-date",
+        "sequence",
+        "control-type",
+        "status"
+      ]
+    },
+    "mitigates": {
+      "type": "array",
+      "minItems": 1,
+      "description": "The catalog risks this control mitigates",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^SDLC-[A-Z]+-[0-9]{3}$"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "related-controls": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    "details": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "The catalog's description, one paragraph per item"
+    },
+    "requirements": {
+      "type": "array",
+      "description": "The catalog's requirement statements, MUST and SHOULD",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "text",
+              "items"
+            ]
+          }
+        ]
+      },
+      "minItems": 1
+    },
+    "examples": {
+      "type": "array",
+      "description": "The catalog's examples and commentary",
+      "items": {
+        "oneOf": [
+          {
+            "type": "string",
+            "minLength": 1
+          },
+          {
+            "type": "object",
+            "properties": {
+              "text": {
+                "type": "string",
+                "minLength": 1
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": [
+              "text",
+              "items"
+            ]
+          }
+        ]
+      }
+    },
+    "references": {
+      "type": "object",
+      "description": "Standards and regulatory references, keyed by framework, plus the page links",
+      "properties": {
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string",
+                "pattern": "^https?://"
+              }
+            },
+            "required": [
+              "title",
+              "url"
+            ]
+          }
+        }
+      },
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Identifier of the clause or document in that framework"
+            },
+            "title": {
+              "type": "string"
+            },
+            "url": {
+              "type": "string",
+              "pattern": "^https?://"
+            },
+            "note": {
+              "type": "string",
+              "description": "Why the catalog cites it for this control"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      }
+    },
+    "type": {
+      "const": "object"
+    },
+    "allOf": {
+      "type": "array",
+      "contains": {
+        "properties": {
+          "$ref": {
+            "const": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+          }
+        },
+        "required": [
+          "$ref"
+        ]
+      },
+      "description": "Extends CALM's control-requirement meta schema"
+    },
+    "properties": {
+      "type": "object",
+      "properties": {
+        "control-id": {
+          "type": "object",
+          "properties": {
+            "const": {
+              "type": "string",
+              "pattern": "^SDLC-[A-Z]+-[0-9]{3}$"
+            }
+          },
+          "required": [
+            "const"
+          ]
+        },
+        "name": {
+          "type": "object",
+          "properties": {
+            "const": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "const"
+          ]
+        },
+        "description": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ],
+      "description": "Pins control-id and name to the catalog; description says how the control is met"
+    },
+    "required": {
+      "type": "array",
+      "allOf": [
+        {
+          "contains": {
+            "const": "control-id"
+          }
+        },
+        {
+          "contains": {
+            "const": "name"
+          }
+        },
+        {
+          "contains": {
+            "const": "description"
+          }
+        }
+      ]
+    }
+  },
+  "required": [
+    "$schema",
+    "$id",
+    "title",
+    "name",
+    "description",
+    "control-id",
+    "source",
+    "url",
+    "catalog",
+    "mitigates",
+    "requirements",
+    "type",
+    "allOf",
+    "properties",
+    "required"
+  ]
+}

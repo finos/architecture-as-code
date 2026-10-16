@@ -12,6 +12,8 @@ on:
             - '!calm-hub/ec2/**'
             - 'calm-hub-ui/**'
             - 'calm/**'
+            - 'package.json'
+            - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-readonly-native.yml'
     # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
@@ -138,6 +140,8 @@ jobs:
                   file: calm-hub/src/main/docker/Dockerfile.readonly-native
                   platforms: ${{ matrix.platform }}
                   outputs: type=image,name=${{ secrets.DOCKER_USERNAME }}/calm-hub,push-by-digest=true,name-canonical=true,push=true
+                  sbom: true
+                  provenance: mode=max
                   labels: ${{ steps.meta-labels.outputs.labels }}
                   cache-from: type=gha,scope=readonly-native-${{ matrix.arch }}
                   cache-to: type=gha,mode=max,scope=readonly-native-${{ matrix.arch }}
@@ -150,7 +154,7 @@ jobs:
                   touch "/tmp/digests/${digest#sha256:}"
 
             - name: Upload digest
-              uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+              uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
               with:
                   name: digests-readonly-native-${{ matrix.arch }}
                   path: /tmp/digests/*

@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.ControlStore;
+import org.finos.calm.store.github.GitHubControlStore;
 import org.finos.calm.store.mongo.MongoControlStore;
 import org.finos.calm.store.nitrite.NitriteControlStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,6 +34,12 @@ public class TestControlStoreProducerShould {
     @Mock
     Instance<NitriteControlStore> standaloneControlStoreInstance;
 
+    @Mock
+    GitHubControlStore gitHubControlStore;
+
+    @Mock
+    Instance<GitHubControlStore> gitHubControlStoreInstance;
+
     ControlStoreProducer producer;
 
     @BeforeEach
@@ -41,6 +49,8 @@ public class TestControlStoreProducerShould {
         producer = new ControlStoreProducer();
         producer.mongoControlStore = mongoControlStoreInstance;
         producer.standaloneControlStore = standaloneControlStoreInstance;
+        when(gitHubControlStoreInstance.get()).thenReturn(gitHubControlStore);
+        producer.gitHubControlStore = gitHubControlStoreInstance;
     }
 
     @Test
@@ -73,5 +83,13 @@ public class TestControlStoreProducerShould {
         ControlStore result = producer.produceControlStore();
         assertNotNull(result);
         assertEquals(mongoControlStore, result);
+    }
+
+    @Test
+    public void return_github_store_when_database_mode_is_github() {
+        producer.databaseMode = DatabaseMode.GITHUB;
+        ControlStore result = producer.produceControlStore();
+        assertNotNull(result);
+        assertEquals(gitHubControlStore, result);
     }
 }

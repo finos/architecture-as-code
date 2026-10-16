@@ -13,6 +13,7 @@ import ReactFlow, {
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Map as MapIcon } from 'lucide-react';
+import { MotionToggleButton } from './MotionToggleButton.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
@@ -343,6 +344,7 @@ export function ArchitectureGraph({
                                 color={minimapHidden ? THEME.colors.muted : colors.redesign.primaryText}
                             />
                         </ControlButton>
+                        <MotionToggleButton />
                     </Controls>
                 )}
                 {isMobile && (

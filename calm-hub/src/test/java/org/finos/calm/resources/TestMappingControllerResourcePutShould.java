@@ -9,12 +9,15 @@ import org.finos.calm.domain.exception.*;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.finos.calm.security.CalmHubPermissionChecker;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -66,6 +69,27 @@ public class TestMappingControllerResourcePutShould {
     }
 
     @Test
+    void store_the_document_body_as_content_and_the_title_as_the_name() throws Exception {
+        // The other PUT tests match with any(Pattern.class), which cannot catch the stored
+        // fields being transposed.
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "patterns", "api-gateway", "1.0.0", "test pattern"))
+                .when().put("/calm")
+                .then().statusCode(201);
+
+        ArgumentCaptor<Pattern> captor = ArgumentCaptor.forClass(Pattern.class);
+        verify(mockPatternStore).updatePatternForVersion(captor.capture());
+        Pattern stored = captor.getValue();
+        assertThat(stored.getPatternJson(), containsString("\"title\""));
+        assertThat(stored.getName(), is("test pattern"));
+    }
+
+    @Test
     void return_201_when_updating_existing_architecture() throws Exception {
         ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
                 .setNamespace("finos").setCustomId("my-arch")
@@ -95,6 +119,38 @@ public class TestMappingControllerResourcePutShould {
                 .header("Location", containsString("/calm/namespaces/finos/flows/my-flow/versions/1.0.0"));
 
         verify(mockFlowStore).updateFlowForVersion(any(Flow.class));
+    }
+
+    @Test
+    void store_the_name_of_a_flow_that_has_no_title() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-flow")
+                .setResourceType(ResourceType.FLOW).setNumericId(5).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(existing);
+        String flow = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/flows/my-flow/versions/1.0.0\","
+                + "\"unique-id\":\"my-flow\",\"name\":\"My Flow\",\"description\":\"A flow\",\"transitions\":[]}";
+
+        given().header("Content-Type", "application/json")
+                .body(flow)
+                .when().put("/calm")
+                .then().statusCode(201);
+
+        ArgumentCaptor<Flow> captor = ArgumentCaptor.forClass(Flow.class);
+        verify(mockFlowStore).updateFlowForVersion(captor.capture());
+        assertThat(captor.getValue().getName(), is("My Flow"));
+    }
+
+    @Test
+    void return_400_when_put_body_has_no_title_or_name() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-flow")
+                .setResourceType(ResourceType.FLOW).setNumericId(5).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.FLOW, "my-flow")).thenReturn(existing);
+
+        given().header("Content-Type", "application/json")
+                .body("{\"$id\":\"http://localhost:8080/calm/namespaces/finos/flows/my-flow/versions/1.0.0\"}")
+                .when().put("/calm")
+                .then().statusCode(400).body(containsString("'title' or 'name' is required"));
     }
 
     @Test

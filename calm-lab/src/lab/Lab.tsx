@@ -6,77 +6,19 @@ import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
-import {validateArchitecture, ENGINE_VERSION, type LabValidation} from '../engine';
+import {clearProgress, loadProgress, loadUiPrefs, saveProgress, saveUiPrefs, workspaceKey} from './storage';
+import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {completeCommand, runCommand, type Line} from '../shell';
-import {
-    ARCHITECTURE_FILE,
-    COMPLETION,
-    HOME_DIR,
-    SEED_FILES,
-    STEPS,
-    type LessonState,
-    type LessonStep,
-} from './lesson';
+import type {CommandEvent, CommandOutcome} from '../cli/outcome';
+import {freshOutcomes} from '../lessons/checks';
+import {commandText, hintContent, HOME_DIR, type Lesson, type LessonState, type LessonStep} from '../lessons/types';
 
-const PROGRESS_KEY = 'calm-lab-progress-v1';
-const UI_PREFS_KEY = 'calm-lab-ui-v1';
-const EDITOR_FILE_LABEL = 'architecture/trading-system.architecture.json';
 const MIN_PANE_HEIGHT = 120;
 const SPLITTER_SIZE = 8;
 const AUTO_EXPAND = 'auto';
 
-function loadProgress(): Set<string> {
-    try {
-        const raw = window.localStorage?.getItem(PROGRESS_KEY);
-        if (raw) {
-            const ids: unknown = JSON.parse(raw);
-            if (Array.isArray(ids)) {
-                return new Set(ids.filter((id): id is string => STEPS.some((step) => step.id === id)));
-            }
-        }
-    } catch {
-        // ignore — start fresh
-    }
-    return new Set();
-}
-
-function saveProgress(completed: Set<string>): void {
-    try {
-        window.localStorage?.setItem(PROGRESS_KEY, JSON.stringify([...completed]));
-    } catch {
-        // ignore
-    }
-}
-
-function clearProgress() {
-    try {
-        window.localStorage?.removeItem(PROGRESS_KEY);
-    } catch {
-        // ignore
-    }
-}
-
-function loadUiPrefs(): Record<string, unknown> {
-    try {
-        const raw = window.localStorage?.getItem(UI_PREFS_KEY);
-        if (raw) {
-            const prefs: unknown = JSON.parse(raw);
-            if (prefs && typeof prefs === 'object') {
-                return prefs as Record<string, unknown>;
-            }
-        }
-    } catch {
-        // ignore
-    }
-    return {};
-}
-
-function saveUiPrefs(prefs: Record<string, unknown>): void {
-    try {
-        window.localStorage?.setItem(UI_PREFS_KEY, JSON.stringify(prefs));
-    } catch {
-        // ignore
-    }
+export interface LabProps {
+    lesson: Lesson;
 }
 
 /** Render `code` spans in lesson copy. */
@@ -137,11 +79,17 @@ interface StepItemProps {
     done: boolean;
     current: boolean;
     open: boolean;
+    /** The saved workspace files, for a hint built from the learner's work. */
+    files: Record<string, string>;
     onToggle(): void;
 }
 
-function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
+function StepItem({step, index, done, current, open, files, onToggle}: StepItemProps) {
     const [showHint, setShowHint] = useState(false);
+    const hintLabel = step.hint.kind === 'commands'
+        ? 'commands'
+        : `complete ${step.hint.path ? relativeToHome(step.hint.path) : 'file'}`;
+    const hintText = step.hint.kind === 'file' ? hintContent(step.hint, {files}) : step.hint.commands.map(commandText).join('\n');
     return (
         <li className={styles.step}>
             <button
@@ -162,7 +110,7 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
                     {done ? '✓' : current ? '●' : '○'}
                 </span>
                 <span className={styles.stepTitle}>{step.title}</span>
-                {done && <span className={styles.srOnly}>(completed)</span>}
+                {done && <>{' '}<span className={styles.srOnly}>(completed)</span></>}
             </button>
             <div className={clsx(styles.stepBodyWrap, open && styles.stepBodyOpen)}>
                 <div className={styles.stepBodyInner}>
@@ -177,10 +125,11 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
                     {showHint && (
                         <div className={styles.hintBlock}>
                             <div className={styles.hintHead}>
-                                <span>{step.hintLabel}</span>
-                                <CopyButton text={step.hint} />
+                                <span>{hintLabel}</span>
+                                {/* The final newline makes a paste into the terminal run every command. */}
+                                <CopyButton text={step.hint.kind === 'commands' ? `${hintText}\n` : hintText} />
                             </div>
-                            <pre className={styles.hintPre}>{step.hint}</pre>
+                            <pre className={styles.hintPre}>{hintText}</pre>
                         </div>
                     )}
                 </div>
@@ -189,12 +138,19 @@ function StepItem({step, index, done, current, open, onToggle}: StepItemProps) {
     );
 }
 
-function ProgressDots({completed, currentId, vertical}: {completed: Set<string>; currentId?: string; vertical?: boolean}) {
+interface ProgressDotsProps {
+    steps: readonly LessonStep[];
+    completed: Set<string>;
+    currentId?: string;
+    vertical?: boolean;
+}
+
+function ProgressDots({steps, completed, currentId, vertical}: ProgressDotsProps) {
     return (
         <span
             className={clsx(styles.titleDots, vertical && styles.titleDotsVertical)}
             aria-hidden="true">
-            {STEPS.map((step) => (
+            {steps.map((step) => (
                 <i
                     key={step.id}
                     className={clsx(
@@ -211,21 +167,45 @@ function ProgressDots({completed, currentId, vertical}: {completed: Set<string>;
     );
 }
 
-export default function Lab() {
+const relativeToHome = (path: string) => path.slice(HOME_DIR.length + 1);
+
+/** True when the text parses as a JSON object with a `nodes` array. */
+function isArchitecture(text: string | null): boolean {
+    if (text === null) {
+        return false;
+    }
+    try {
+        return Array.isArray((JSON.parse(text) as {nodes?: unknown} | null)?.nodes);
+    } catch {
+        return false;
+    }
+}
+
+export default function Lab({lesson}: LabProps) {
+    const {editorFile, seedFiles, steps, completion} = lesson;
+    const editableFiles = lesson.editableFiles ?? [editorFile];
+    const editorLabel = relativeToHome(editorFile);
     const vfsRef = useRef<Vfs | null>(null);
     if (!vfsRef.current) {
-        vfsRef.current = createVfs(SEED_FILES);
+        vfsRef.current = createVfs(seedFiles, workspaceKey(lesson.id));
     }
     const vfs = vfsRef.current;
 
-    const flagsRef = useRef({hasValidatedOk: false});
+    const outcomesRef = useRef<CommandOutcome[]>([]);
     // Validation is async now, so results can arrive out of order — only the
     // newest recompute is allowed to publish its result.
     const validationSeq = useRef(0);
-    // Bumped by "Reset lesson" — anything captured under an older epoch is
-    // discarded rather than applied to the fresh lesson.
+    // Bumped by "Reset lesson" and on unmount (a lesson switch) — anything
+    // captured under an older epoch is discarded, never applied or saved.
     const sessionEpoch = useRef(0);
-    const [editorText, setEditorText] = useState(() => vfs.read(ARCHITECTURE_FILE) ?? '');
+    useEffect(() => () => {
+        sessionEpoch.current += 1;
+    }, []);
+    const [openFile, setOpenFile] = useState(editorFile);
+    // What the UI shows now, for a terminal command that finishes after the learner acted.
+    const uiRef = useRef({dirty: false, openFile: editorFile, diagramFile: editorFile, topTab: 'editor'});
+    const openLabel = relativeToHome(openFile);
+    const [editorText, setEditorText] = useState(() => vfs.read(editorFile) ?? '');
     const [dirty, setDirty] = useState(false);
     const [cwd, setCwd] = useState(() => vfs.getCwd());
     const [validation, setValidation] = useState<LabValidation | null>(null);
@@ -235,7 +215,7 @@ export default function Lab() {
     // reload right after completing a step must never lose the tick).
     const completedRef = useRef<Set<string> | null>(null);
     if (completedRef.current === null) {
-        completedRef.current = loadProgress();
+        completedRef.current = loadProgress(lesson.id, steps.map((step) => step.id));
     }
     const [completed, setCompleted] = useState<Set<string>>(() => completedRef.current!);
     const [terminalNonce, setTerminalNonce] = useState(0);
@@ -295,13 +275,14 @@ export default function Lab() {
     };
 
     const recompute = async () => {
-        const text = vfs.read(ARCHITECTURE_FILE) ?? '';
+        const text = vfs.read(editorFile) ?? '';
         const seq = ++validationSeq.current;
+        const epoch = sessionEpoch.current;
         let result: LabValidation;
         try {
             result = await validateArchitecture(text);
         } catch (error) {
-            if (seq !== validationSeq.current) {
+            if (seq !== validationSeq.current || epoch !== sessionEpoch.current) {
                 return;
             }
             // The engine itself failed (schema load, Spectral) — say so rather
@@ -317,18 +298,20 @@ export default function Lab() {
             });
             return;
         }
-        if (seq !== validationSeq.current) {
-            return; // a newer recompute has superseded this one
+        if (seq !== validationSeq.current || epoch !== sessionEpoch.current) {
+            return; // superseded by a newer recompute, a reset or a lesson switch
         }
         setValidation(result);
         const state: LessonState = {
             doc: (result.doc as Record<string, unknown> | undefined) || null,
             validation: result,
-            hasValidatedOk: flagsRef.current.hasValidatedOk,
+            commands: freshOutcomes(outcomesRef.current, (path) => vfs.read(path)),
+            editorFile,
+            files: vfs.toJSON().files,
         };
         let changed = false;
         const next = new Set(completedRef.current);
-        for (const step of STEPS) {
+        for (const step of steps) {
             if (!next.has(step.id) && step.check(state)) {
                 next.add(step.id);
                 changed = true;
@@ -338,7 +321,7 @@ export default function Lab() {
             // Persist synchronously, before any render, so a reload
             // immediately after completing a step keeps the tick.
             completedRef.current = next;
-            saveProgress(next);
+            saveProgress(lesson.id, next);
             setCompleted(next);
             // Collapse the finished step and expand the next one.
             setExpandedId(AUTO_EXPAND);
@@ -350,18 +333,8 @@ export default function Lab() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    const handleEvent = (event: {type: 'validate'; file: string; ok: boolean}) => {
-        if (event.type !== 'validate' || !event.ok) {
-            return;
-        }
-        // Compare resolved-to-resolved so any path spelling that reaches
-        // the lesson file ('./x', 'architecture//x', relative from a cd'd
-        // directory, ...) counts.
-        const eventFile = vfs.resolve('/', event.file || '');
-        const lessonFile = vfs.resolve('/', ARCHITECTURE_FILE);
-        if (eventFile === lessonFile) {
-            flagsRef.current.hasValidatedOk = true;
-        }
+    const handleEvent = (event: CommandEvent) => {
+        outcomesRef.current.push(event.outcome);
     };
 
     const runShell = async (input: string): Promise<Line[]> => {
@@ -369,6 +342,7 @@ export default function Lab() {
         // the in-flight command's output, its event and its recompute all
         // belong to the session the learner threw away.
         const epoch = sessionEpoch.current;
+        const before = vfs.toJSON().files;
         const lines = await runCommand(input, {
             vfs,
             getCwd: () => vfs.getCwd(),
@@ -385,6 +359,7 @@ export default function Lab() {
         if (epoch !== sessionEpoch.current) {
             return [];
         }
+        showWrittenFiles(before);
         // Not awaited: `ls`, `cat` and `pwd` must not sit behind a Spectral run
         // with the terminal input disabled. validationSeq orders the results.
         void recompute();
@@ -394,18 +369,46 @@ export default function Lab() {
     const completeShell = (input: string, cursor: number | undefined) =>
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
+    // The diagram draws the open file when it is an architecture, else the editor file.
+    const drawnFile = (path: string) => (path !== editorFile && isArchitecture(vfs.read(path)) ? path : editorFile);
+    const diagramFile = drawnFile(openFile);
+    useEffect(() => {
+        uiRef.current = {dirty, openFile, diagramFile, topTab};
+    });
+
+    /** A command can write workspace files (`calm generate -o`); show what changed. */
+    const showWrittenFiles = (before: Record<string, string>) => {
+        const ui = uiRef.current;
+        const wrote = (path: string) => vfs.read(path) !== (before[path] ?? null);
+        // Unsaved edits win, as in any editor: Save writes them over the command's output.
+        if (wrote(ui.openFile) && !ui.dirty) {
+            setEditorText(vfs.read(ui.openFile) ?? '');
+        }
+        if ((wrote(ui.diagramFile) || wrote(drawnFile(ui.openFile))) && ui.topTab !== 'diagram') {
+            setDiagramStale(true);
+        }
+    };
+
     const handleSave = () => {
-        // Saving is the only mutation path to the architecture file
-        // (terminal commands are read-only) — flag the diagram as stale
-        // when a save actually changes it while the diagram is hidden;
-        // an open diagram re-renders live, so no flag is needed then.
-        const changed = vfs.read(ARCHITECTURE_FILE) !== editorText;
-        vfs.write(ARCHITECTURE_FILE, editorText);
-        if (changed && topTab !== 'diagram') {
+        // Flag the diagram as stale when a save changes the file it draws
+        // while it is hidden; an open diagram re-renders live, so no flag
+        // is needed then.
+        const changed = vfs.read(openFile) !== editorText;
+        vfs.write(openFile, editorText);
+        const nextDiagramFile = openFile !== editorFile && isArchitecture(editorText) ? openFile : editorFile;
+        if (changed && (diagramFile === openFile || nextDiagramFile === openFile) && topTab !== 'diagram') {
             setDiagramStale(true);
         }
         setDirty(false);
         recompute();
+    };
+
+    const switchFile = (path: string) => {
+        if (dirty) {
+            return;
+        }
+        setOpenFile(path);
+        setEditorText(vfs.read(path) ?? '');
     };
 
     const toggleGuide = () => {
@@ -416,12 +419,13 @@ export default function Lab() {
 
     const handleReset = () => {
         sessionEpoch.current += 1;
-        vfs.seed(SEED_FILES);
-        clearProgress();
-        flagsRef.current = {hasValidatedOk: false};
+        vfs.seed(seedFiles);
+        clearProgress(lesson.id);
+        outcomesRef.current = [];
         completedRef.current = new Set();
         setCompleted(new Set());
-        setEditorText(vfs.read(ARCHITECTURE_FILE) ?? '');
+        setOpenFile(editorFile);
+        setEditorText(vfs.read(editorFile) ?? '');
         setDirty(false);
         setDiagramStale(false);
         setCwd(HOME_DIR);
@@ -430,10 +434,11 @@ export default function Lab() {
         recompute();
     };
 
-    const currentStep = STEPS.find((step) => !completed.has(step.id));
+    const currentStep = steps.find((step) => !completed.has(step.id));
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
-    const allDone = completed.size === STEPS.length;
+    const allDone = completed.size === steps.length;
+    const savedFiles = vfs.toJSON().files;
     // The uncapped total: the Problems tab lists at most 20, the badge must
     // still report every error the engine found.
     const errorCount = validation?.errorCount ?? 0;
@@ -445,7 +450,9 @@ export default function Lab() {
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
-    const savedArchitecture = vfs.read(ARCHITECTURE_FILE) ?? '';
+    const savedArchitecture = vfs.read(diagramFile) ?? '';
+    // A saved workspace from an older lesson version may lack a file.
+    const fileOptions = editableFiles.filter((path) => vfs.exists(path));
     const cssVars =
         termHeight != null
             ? ({'--lab-term-height': `${termHeight}px`} as CSSProperties)
@@ -455,7 +462,7 @@ export default function Lab() {
         <main className={styles.workspace} style={cssVars}>
             <div className={styles.chassis}>
                 <div className={styles.titlebar}>
-                    <ProgressDots completed={completed} currentId={currentStep?.id} />
+                    <ProgressDots steps={steps} completed={completed} currentId={currentStep?.id} />
                     <span className={styles.titleLabel}>CALM LEARNING LAB</span>
                     <button
                         type="button"
@@ -472,7 +479,7 @@ export default function Lab() {
                         <div className={styles.guideHeader}>
                             <span className={styles.guideTitle}>GUIDE</span>
                             <span className={styles.guideProgress}>
-                                {completed.size}/{STEPS.length}
+                                {completed.size}/{steps.length}
                             </span>
                             <button
                                 type="button"
@@ -483,9 +490,16 @@ export default function Lab() {
                                 «
                             </button>
                         </div>
+                        {lesson.tutorial && (
+                            <p className={styles.lessonTutorial}>
+                                <a href={lesson.tutorial.url} target="_blank" rel="noopener noreferrer">
+                                    {lesson.tutorial.title} ↗
+                                </a>
+                            </p>
+                        )}
                         <div className={styles.guideScroll}>
                             <ol className={styles.stepsList}>
-                                {STEPS.map((step, index) => (
+                                {steps.map((step, index) => (
                                     <StepItem
                                         key={step.id}
                                         step={step}
@@ -493,6 +507,7 @@ export default function Lab() {
                                         done={completed.has(step.id)}
                                         current={currentStep?.id === step.id}
                                         open={effectiveExpanded === step.id}
+                                        files={savedFiles}
                                         onToggle={() =>
                                             setExpandedId(
                                                 effectiveExpanded === step.id ? null : step.id,
@@ -503,10 +518,10 @@ export default function Lab() {
                             </ol>
                             {allDone && (
                                 <div className={styles.doneCard}>
-                                    <h3>🏁 {COMPLETION.heading}</h3>
-                                    <p>{COMPLETION.message}</p>
+                                    <h3>🏁 {completion.heading}</h3>
+                                    <p>{completion.message}</p>
                                     <div className={styles.doneLinks}>
-                                        {COMPLETION.links.map((link) => (
+                                        {completion.links.map((link) => (
                                             <a href={link.to} key={link.to}>
                                                 {link.label}
                                             </a>
@@ -531,6 +546,7 @@ export default function Lab() {
                             GUIDE »
                         </button>
                         <ProgressDots
+                            steps={steps}
                             completed={completed}
                             currentId={currentStep?.id}
                             vertical
@@ -546,7 +562,7 @@ export default function Lab() {
                                     aria-selected={topTab === 'editor'}
                                     className={clsx(styles.tab, topTab === 'editor' && styles.tabActive)}
                                     onClick={() => setTopTab('editor')}>
-                                    {EDITOR_FILE_LABEL}
+                                    {openLabel}
                                     {dirty && (
                                         <span
                                             className={styles.dirtyDot}
@@ -578,6 +594,25 @@ export default function Lab() {
                                     )}
                                 </button>
                                 <div className={styles.tabBarActions}>
+                                    {fileOptions.length > 1 && (
+                                        // A disabled control shows no tooltip, so the wrapper carries it.
+                                        <span
+                                            className={styles.filePickerWrap}
+                                            title={dirty ? 'Save your changes before you open another file' : 'Open a file'}>
+                                            <select
+                                                className={styles.filePicker}
+                                                aria-label="File"
+                                                value={openFile}
+                                                disabled={dirty}
+                                                onChange={(event) => switchFile(event.target.value)}>
+                                                {fileOptions.map((path) => (
+                                                    <option key={path} value={path}>
+                                                        {relativeToHome(path)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </span>
+                                    )}
                                     <button
                                         type="button"
                                         className={styles.saveBtn}
@@ -590,7 +625,7 @@ export default function Lab() {
                             <div className={styles.tabPanel} hidden={topTab !== 'editor'}>
                                 <Editor
                                     chromeless
-                                    fileName={EDITOR_FILE_LABEL}
+                                    fileName={openLabel}
                                     value={editorText}
                                     dirty={dirty}
                                     onChange={(text) => {
@@ -659,9 +694,12 @@ export default function Lab() {
                             </div>
                             <div className={styles.tabPanel} hidden={bottomTab !== 'problems'}>
                                 <div className={styles.problemsPanel}>
+                                    {fileOptions.length > 1 && (
+                                        <div className={styles.problemsHeader}>Problems in {editorLabel}</div>
+                                    )}
                                     {(!validation || validation.ok) && !warnings.length ? (
                                         <div className={styles.problemsEmpty}>
-                                            no problems — the saved file is schema-valid
+                                            no problems — {fileOptions.length > 1 ? editorLabel : 'the saved file'} is schema-valid
                                         </div>
                                     ) : !validation || validation.ok ? null : (
                                         <ul className={styles.problemsList}>
@@ -685,7 +723,7 @@ export default function Lab() {
                                     {capped && (
                                         <div className={styles.problemsEmpty}>
                                             showing first {listedCount} of {totalCount} problems —
-                                            run `calm validate {EDITOR_FILE_LABEL}` for the full
+                                            run `calm validate -a {editorLabel} -f pretty` for the full
                                             report
                                         </div>
                                     )}
@@ -696,22 +734,24 @@ export default function Lab() {
                 </div>
 
                 <div className={styles.statusBar}>
-                    <span>CALM 1.2 · @finos/calm-shared {ENGINE_VERSION}</span>
+                    <span>CALM 1.2 · CALM CLI {CLI_VERSION}</span>
                     {!validation ? (
                         <span>checking…</span>
                     ) : validation.ok ? (
-                        <span className={styles.statusOk}>✓ schema-valid</span>
+                        <span className={styles.statusOk}>
+                            ✓ {fileOptions.length > 1 ? `${editorLabel} ` : ''}schema-valid
+                        </span>
                     ) : (
                         <button
                             type="button"
                             className={clsx(styles.statusErr, styles.statusErrBtn)}
                             title="Open the Problems tab"
                             onClick={() => setBottomTab('problems')}>
-                            ✗ {errorCount} problem{errorCount === 1 ? '' : 's'}
+                            ✗ {fileOptions.length > 1 ? `${editorLabel}: ` : ''}{errorCount} problem{errorCount === 1 ? '' : 's'}
                         </button>
                     )}
                     <span className={styles.statusFile}>
-                        {EDITOR_FILE_LABEL}
+                        {openLabel}
                         {dirty ? ' ●' : ''} · {lineCount} lines
                     </span>
                 </div>

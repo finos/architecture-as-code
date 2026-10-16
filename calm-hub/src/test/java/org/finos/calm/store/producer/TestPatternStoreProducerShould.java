@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.PatternStore;
+import org.finos.calm.store.github.GitHubPatternStore;
 import org.finos.calm.store.mongo.MongoPatternStore;
 import org.finos.calm.store.nitrite.NitritePatternStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestPatternStoreProducerShould {
     @Mock
     Instance<NitritePatternStore> nitritePatternStoreInstance;
 
+    @Mock
+    GitHubPatternStore gitHubPatternStore;
+
+    @Mock
+    Instance<GitHubPatternStore> gitHubPatternStoreInstance;
+
     private PatternStoreProducer patternStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestPatternStoreProducerShould {
         patternStoreProducer.mongoPatternStore = mongoPatternStoreInstance;
         when(nitritePatternStoreInstance.get()).thenReturn(nitritePatternStore);
         patternStoreProducer.standalonePatternStore = nitritePatternStoreInstance;
+        when(gitHubPatternStoreInstance.get()).thenReturn(gitHubPatternStore);
+        patternStoreProducer.gitHubPatternStore = gitHubPatternStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestPatternStoreProducerShould {
 
     @Test
     void return_mongo_pattern_store_when_database_mode_is_not_recognized() {
-        // Given
         patternStoreProducer.databaseMode = "unknown";
 
-        // When
         PatternStore result = patternStoreProducer.producePatternStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoPatternStore)));
+    }
+
+    @Test
+    void return_github_pattern_store_when_database_mode_is_github() {
+        patternStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        PatternStore result = patternStoreProducer.producePatternStore();
+
+        assertThat(result, is(sameInstance(gitHubPatternStore)));
     }
 }

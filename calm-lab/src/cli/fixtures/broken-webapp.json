@@ -1,0 +1,51 @@
+{
+  "nodes": [
+    {
+      "unique-id": "web-frontend",
+      "node-type": "webclient",
+      "name": "Web Frontend",
+      "description": "[[ DESCRIPTION ]]"
+    },
+    {
+      "unique-id": "backend-api",
+      "node-type": "service",
+      "name": "API Service",
+      "description": "[[ DESCRIPTION ]]"
+    },
+    {
+      "unique-id": "app-database",
+      "node-type": "database",
+      "name": "Application Database",
+      "description": "[[ DESCRIPTION ]]"
+    }
+  ],
+  "relationships": [
+    {
+      "unique-id": "frontend-to-api",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "web-frontend"
+          },
+          "destination": {
+            "node": "api-service"
+          }
+        }
+      }
+    },
+    {
+      "unique-id": "api-to-database",
+      "relationship-type": {
+        "connects": {
+          "source": {
+            "node": "api-service"
+          },
+          "destination": {
+            "node": "app-database"
+          }
+        }
+      }
+    }
+  ],
+  "$schema": "https://example.com/patterns/web-app-pattern.json"
+}

@@ -248,7 +248,7 @@ describe('renderELKDiagram nested containers (integration)', () => {
           name: 'F',
           description: 'd',
           transitions: [
-            { 'relationship-unique-id': 'sys-contains', 'sequence-number': 1, summary: 's', direction: 'source-to-destination' },
+            { 'relationship-unique-id': 'sys-contains', 'sequence-number': 1, description: 's', direction: 'source-to-destination' },
           ],
         },
       ],

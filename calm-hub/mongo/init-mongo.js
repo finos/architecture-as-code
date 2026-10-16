@@ -1,6 +1,9 @@
 // Environment variables:
 // - CALM_DB_NAME: Name of the MongoDB database to use (default: calmSchemas)
-// - CALM_SCHEMA_BASE_PATH: Base path to load schemas from (default: /calm)
+// - CALM_SCHEMA_BASE_PATH: Base path of the draft and release-candidate schemas (default: /calm)
+// - CALM_RELEASE_SCHEMA_PATH: Path of the released schemas, <version>/meta per release
+//   (default: /calm-schemas/release). The compose files mount calm-hub/target/calm-schemas/release,
+//   which `npm run calm-hub:copy-schemas` fills from the @finos/calm-schema npm packages.
 //
 // Set environment variables if required, and run `mongosh init-mongo.js` to
 // initialize the database with counters, schema, namespaces, and patterns.
@@ -266,8 +269,9 @@ if (isEmptyDatabase) {
     db.patternVersions.createIndex({ namespace: 1, patternId: 1, version: 1 }, unique);
     db.flows.createIndex({ namespace: 1, flowId: 1 }, unique);
     db.flowVersions.createIndex({ namespace: 1, flowId: 1, version: 1 }, unique);
-    // Standards are not seeded by this script, but the indexes still have to match the
-    // shape the store reads, since pinning the version skips the migration that creates them.
+    // Standards are not seeded by this script (the Nitrite seeder loads calm-hub/mongo/standards/),
+    // but the indexes still have to match the shape the store reads, since pinning the version
+    // skips the migration that creates them.
     db.standards.createIndex({ namespace: 1, standardId: 1 }, unique);
     db.standardVersions.createIndex({ namespace: 1, standardId: 1, version: 1 }, unique);
     db.interfaces.createIndex({ namespace: 1, interfaceId: 1 }, unique);
@@ -407,9 +411,9 @@ if (db.counters.countDocuments({ _id: "userAccessStoreCounter" }) === 0) {
 if (db.counters.countDocuments({ _id: "controlStoreCounter" }) === 0) {
     db.counters.insertOne({
         _id: "controlStoreCounter",
-        sequence_value: 18
+        sequence_value: 40
     });
-    logSuccess("Initialized controlStoreCounter with sequence_value 18");
+    logSuccess("Initialized controlStoreCounter with sequence_value 40");
 } else {
     logSkip("controlStoreCounter already exists, no initialization needed");
 }
@@ -435,12 +439,15 @@ if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 0) {
 }
 
 logSection("Schemas");
-// Load schemas dynamically from the CALM release and draft directories.
-// Set CALM_SCHEMA_BASE_PATH env var to override the default base path (/calm).
+// Load the released schemas from the npm copy, and the release candidates and drafts from calm/.
+// Set CALM_RELEASE_SCHEMA_PATH and CALM_SCHEMA_BASE_PATH to override the defaults.
 const fs = require('fs');
 const basePath = (typeof process !== 'undefined' && process.env.CALM_SCHEMA_BASE_PATH)
     ? process.env.CALM_SCHEMA_BASE_PATH
     : '/calm';
+const releaseSchemaPath = (typeof process !== 'undefined' && process.env.CALM_RELEASE_SCHEMA_PATH)
+    ? process.env.CALM_RELEASE_SCHEMA_PATH
+    : '/calm-schemas/release';
 
 // Load controls dynamically from domain subdirectories.
 // Set CALM_CONTROLS_BASE_PATH env var to override the default base path (/controls).
@@ -451,12 +458,17 @@ const controlsBasePath = (typeof process !== 'undefined' && process.env.CALM_CON
 function loadSchemasFromDir(baseDir, prefix) {
     if (!fs.existsSync(baseDir)) {
         logFail(`Schema directory not found at ${baseDir}, skipping`);
-        logFail(`Set CALM_SCHEMA_BASE_PATH environment variable to load schemas from a different location`);
+        logFail(`Set CALM_SCHEMA_BASE_PATH or CALM_RELEASE_SCHEMA_PATH to load schemas from a different location`);
         return;
     }
     const versions = fs.readdirSync(baseDir).filter(f =>
         fs.statSync(`${baseDir}/${f}`).isDirectory() && !f.startsWith('.')
     );
+    if (versions.length === 0) {
+        // A bind mount of a missing host directory is an empty directory, not an error.
+        logFail(`No schema versions in ${baseDir}`);
+        return;
+    }
     for (const ver of versions) {
         const version = `${prefix}/${ver}`;
         if (db.schemas.countDocuments({ version: version }) === 0) {
@@ -476,6 +488,7 @@ function loadSchemasFromDir(baseDir, prefix) {
     }
 }
 
+loadSchemasFromDir(releaseSchemaPath, 'release');
 loadSchemasFromDir(`${basePath}/release`, 'release');
 loadSchemasFromDir(`${basePath}/draft`, 'draft');
 
@@ -518,9 +531,11 @@ if (db.namespaces.countDocuments() === 0) {
         { name: "traderx", description: "TraderX namespace" },
         { name: "ai-governance-v2", description: "AI Governance v2 namespace" },
         { name: "qcon", description: "QCon scenario 3 namespace" },
-        { name: "finos.fluxnova", description: "FluxNova BPM example architectures" }
+        { name: "finos.fluxnova", description: "FluxNova BPM example architectures" },
+        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" },
+        { name: "finos.agentic-sdlc", description: "Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" }
     ]);
-    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova");
+    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls, finos.agentic-sdlc");
 } else {
     logSkip("Namespaces already exist, no initialization needed");
 }
@@ -531,12 +546,13 @@ if (db.domains.countDocuments() === 0) {
     db.domains.insertMany([
         { name: "security" },
         { name: "ai-governance" },
+        { name: "finos-sdlc-common-controls" },
         { name: "mcp-controls" },
         { name: "network" },
         { name: "compliance" },
         { name: "observability" }
     ]);
-    logSuccess("Initialized domains: security, ai-governance, mcp-controls, network, compliance, observability");
+    logSuccess("Initialized domains: security, ai-governance, finos-sdlc-common-controls, mcp-controls, network, compliance, observability");
 } else {
     logSkip("Domains already exist, no initialization needed");
 }

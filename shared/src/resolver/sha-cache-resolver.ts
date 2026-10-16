@@ -38,9 +38,12 @@ export class ShaCacheReferenceResolver implements CalmReferenceResolver {
         fs.writeFileSync(filePath, JSON.stringify(content, null, 2), 'utf-8');
     }
 
+    private static readonly MUTABLE_VERSION = /-(SNAPSHOT|RC\d*|BETA\d*|ALPHA\d*)$/i;
+
     private toFilePath(ref: string): string | null {
         const components = parseCurie(ref);
         if (!components || !components.version) return null;
+        if (ShaCacheReferenceResolver.MUTABLE_VERSION.test(components.version)) return null;
         return path.join(
             this.cacheDir,
             components.namespace,

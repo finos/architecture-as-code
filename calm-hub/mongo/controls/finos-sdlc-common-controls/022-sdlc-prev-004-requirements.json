@@ -1,0 +1,99 @@
+{
+  "controlId": 22,
+  "name": "sdlc-prev-004-requirements",
+  "description": "Requirements Repository ensures that every application records its requirements in a designated and approved system of record.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-004-requirements/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-004 Requirements Repository",
+      "name": "Requirements Repository",
+      "description": "Requirements Repository ensures that every application records its requirements in a designated and approved system of record.",
+      "control-id": "SDLC-PREV-004",
+      "category": "LIFECYCLE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-4_requirements.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 4,
+        "control-type": "PREV",
+        "phase": "LIFECYCLE",
+        "status": "Draft",
+        "chain": [
+          "requirements-governance"
+        ]
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-008",
+          "name": "Version Control",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-8-version-control.html"
+        },
+        {
+          "id": "SDLC-PREV-020",
+          "name": "Requirements Approval for Release",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-20_requirements-approval.html"
+        }
+      ],
+      "details": [
+        "This control requires the organisation to designate an approved repository or repositories for storage of the requirements that are used as part of software development. It is important for such a repository to have appropriate requirements around storage in terms of duration since this will need to live alongside the software it helps inform and create, but also around appropriate audit trail of who created a requirement and what its content was at the time the work was carried out.",
+        "The repository must also either hold requirements immutably or maintain an audit trail sufficient to reconstruct the state of any requirement at any past point in time — a property commonly achieved by holding requirements as files in version control, or as tickets in a system that preserves full revision history.",
+        "A repository can be designated on paper while teams continue to work from informal channels; periodic attestation by a named owner confirms it is in active use. The control sits at the entry point of the SDLC and is a precondition for traceability between requirements and tests (MI-15 (https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html)), release-time approval (MI-20 (https://finos.github.io/sdlc-common-controls/mitigations/mi-20_requirements-approval.html)), and audit reconstruction."
+      ],
+      "requirements": [
+        "Each application MUST use an approved requirements repository",
+        "The approved repository MUST either hold requirements immutably or maintain a complete, attributable, timestamped audit trail of every creation, amendment, and closure sufficient to reconstruct the state of any requirement at any past point in time",
+        "The retention of requirement history (whether by immutability or by audit trail) MUST cover the period required by applicable regulation and the organisation's record-keeping policy",
+        "All requirements that enter development for the application MUST be recorded in an approved repository.",
+        "A named owner MUST attest, on a defined cadence (no less than annually, or following any material change to the application's delivery model), that the approved repository is in active use as the authoritative record of requirements for the application or organisation",
+        "Attestations MUST be timestamped, attributed to a named individual, and retained as governance evidence in accordance with the organisation's record-retention policy"
+      ],
+      "examples": [
+        "Designated repository with enforcement: An application's metadata in the technology system of record names a specific Jira project as its approved requirements repository. Branch-protection rules and PR templates require that every change reference a ticket in that project; PRs referencing tickets from other projects (or none) are blocked.",
+        "Audit trail via version control: Requirements for a regulated trading application are held as Markdown files in a Git repository, with every change made through a pull request that records the author, the reviewer, the timestamp, and the rationale. The repository's commit history provides the complete reconstructable record; immutability is not required because the audit trail is sufficient.",
+        "Audit trail via ticketing system: An application uses a ticketing system that preserves every field change with author and timestamp. The state of any requirement on any past date can be reproduced from the ticket's revision history, satisfying the audit-trail requirement without external tooling."
+      ],
+      "references": {
+        "links": [
+          {
+            "title": "ISO/IEC/IEEE 29148 — Systems and software engineering — Life cycle processes — Requirements engineering",
+            "url": "https://www.iso.org/standard/72089.html"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-004"
+        },
+        "name": {
+          "const": "Requirements Repository"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

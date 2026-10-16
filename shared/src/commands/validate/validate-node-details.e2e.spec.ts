@@ -1,11 +1,12 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import path from 'path';
 import { validate } from './validate.js';
+import { ValidationOutcome } from './validation.output.js';
 import { FileSystemDocumentLoader } from '../../document-loader/file-system-document-loader.js';
 import { InMemoryDocumentLoader } from '../../test/in-memory-document-loader.js';
 import { SchemaDirectory } from '../../schema-directory.js';
+import { calmSchemaDir } from '../../test/test-utils';
 
-const schemaDir_12 = path.join(__dirname, '../../../../calm/release/1.2/meta/');
+const schemaDir = calmSchemaDir();
 
 const CYCLIC_ARCH_URL = 'https://calm.example.com/cyclic-arch.json';
 const NESTED_ARCH_URL = 'https://calm.example.com/nested-arch.json';
@@ -50,7 +51,7 @@ const nestedSubArch = {
 
 describe('validate node-details E2E', () => {
     function schemaDirectoryWith(docs: Record<string, object>): SchemaDirectory {
-        const fsLoader = new FileSystemDocumentLoader([schemaDir_12], false);
+        const fsLoader = new FileSystemDocumentLoader([schemaDir], false);
         return new SchemaDirectory(new InMemoryDocumentLoader(docs, fsLoader));
     }
 
@@ -97,5 +98,37 @@ describe('validate node-details E2E', () => {
             o.path.startsWith('/nodes/0/details/detailed-architecture')
         );
         expect(prefixed).toBe(true);
+    });
+
+    it('reports the errors of an invalid detailed-architecture once when two nodes reference it', async () => {
+        const invalidNested = {
+            'unique-id': 'invalid-sub',
+            nodes: [
+                { 'unique-id': 'broken', name: 'Broken', description: 'missing node-type' }
+            ],
+            relationships: []
+        };
+        const topArchSharingOneDetail = {
+            'unique-id': 'top-shared',
+            nodes: [
+                { ...nodeWithDetail(NESTED_ARCH_URL), 'unique-id': 'svc-a' },
+                { ...nodeWithDetail(NESTED_ARCH_URL), 'unique-id': 'svc-b' }
+            ],
+            relationships: []
+        };
+        const subArchOutputs = (outcome: ValidationOutcome) =>
+            [...outcome.jsonSchemaValidationOutputs, ...outcome.spectralSchemaValidationOutputs]
+                .filter(o => o.path.includes('/details/detailed-architecture'));
+
+        schemaDirectory = schemaDirectoryWith({ [NESTED_ARCH_URL]: invalidNested });
+        await schemaDirectory.loadSchemas();
+        const singleReference = subArchOutputs(await validate(topArchNested, undefined, undefined, schemaDirectory, false));
+
+        schemaDirectory = schemaDirectoryWith({ [NESTED_ARCH_URL]: invalidNested });
+        await schemaDirectory.loadSchemas();
+        const sharedReference = subArchOutputs(await validate(topArchSharingOneDetail, undefined, undefined, schemaDirectory, false));
+
+        expect(singleReference.length).toBeGreaterThan(0);
+        expect(sharedReference.map(o => o.path)).toEqual(singleReference.map(o => o.path));
     });
 });

@@ -51,7 +51,7 @@ All output must conform to CALM 1.2. These are non-negotiable:
 { "unique-id": "...", "relationship-type": { "options": [ ... ] } }
 ```
 
-The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) was a **local CalmStudio divergence** — it has **never** been valid in any published CALM release. The nested `relationship-type` object above is canonical across CALM 1.0/1.1/1.2 (identical in `calm/release/1.1/meta/core.json` and `calm/release/1.2/meta/core.json`); CalmStudio was brought onto it in #2550/#2553. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
+The flat shape (`'relationship-type': 'connects'` + sibling `source`/`destination` strings) was a **local CalmStudio divergence** — it has **never** been valid in any published CALM release. The nested `relationship-type` object above is canonical across CALM 1.0/1.1/1.2 (identical in the 1.1 and 1.2 `core.json`, see the `calm-schema-1.1` and `calm-schema-1.2` npm aliases); CalmStudio was brought onto it in #2550/#2553. Use the variant accessors `getRelationshipVariant`, `getConnectsEndpoints`, `getContainerAndNodes`, `getActorAndNodes`, `getReferencedNodeIds` from `@calmstudio/calm-core` to traverse relationships generically.
 
 **Protocols:** `HTTP`, `HTTPS`, `FTP`, `SFTP`, `JDBC`, `WebSocket`, `SocketIO`, `LDAP`, `AMQP`, `TLS`, `mTLS`, `TCP`
 
@@ -65,7 +65,7 @@ Docs: `docs/AIGF_CATALOGUE.json`, `docs/CALM_1.2_CONTROLS_SCHEMA.md`, `docs/REQ_
 
 ## Conventions
 - TS strict, no `any`. Svelte 5 runes only. kebab-case files, PascalCase components/types.
-- `git commit -s` (DCO). Conventional commits.
+- Conventional commits.
 
 ## Refs
 - CALM: https://calm.finos.org/release/1.2/ | https://github.com/finos/architecture-as-code

@@ -1,6 +1,8 @@
 package org.finos.calm.store.producer;
 
+import org.finos.calm.config.DatabaseMode;
 import org.finos.calm.store.ArchitectureStore;
+import org.finos.calm.store.github.GitHubArchitectureStore;
 import org.finos.calm.store.mongo.MongoArchitectureStore;
 import org.finos.calm.store.nitrite.NitriteArchitectureStore;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +35,12 @@ public class TestArchitectureStoreProducerShould {
     @Mock
     Instance<NitriteArchitectureStore> nitriteArchitectureStoreInstance;
 
+
+    @Mock
+    GitHubArchitectureStore gitHubArchitectureStore;
+
+    @Mock
+    Instance<GitHubArchitectureStore> gitHubArchitectureStoreInstance;
     private ArchitectureStoreProducer architectureStoreProducer;
 
     @BeforeEach
@@ -42,6 +50,8 @@ public class TestArchitectureStoreProducerShould {
         architectureStoreProducer.mongoArchitectureStore = mongoArchitectureStoreInstance;
         when(nitriteArchitectureStoreInstance.get()).thenReturn(nitriteArchitectureStore);
         architectureStoreProducer.standaloneArchitectureStore = nitriteArchitectureStoreInstance;
+        when(gitHubArchitectureStoreInstance.get()).thenReturn(gitHubArchitectureStore);
+        architectureStoreProducer.gitHubArchitectureStore = gitHubArchitectureStoreInstance;
     }
 
     @Test
@@ -70,13 +80,19 @@ public class TestArchitectureStoreProducerShould {
 
     @Test
     void return_mongo_architecture_store_when_database_mode_is_not_recognized() {
-        // Given
         architectureStoreProducer.databaseMode = "unknown";
 
-        // When
         ArchitectureStore result = architectureStoreProducer.produceArchitectureStore();
 
-        // Then
         assertThat(result, is(sameInstance(mongoArchitectureStore)));
+    }
+
+    @Test
+    void return_github_architecture_store_when_database_mode_is_github() {
+        architectureStoreProducer.databaseMode = DatabaseMode.GITHUB;
+
+        ArchitectureStore result = architectureStoreProducer.produceArchitectureStore();
+
+        assertThat(result, is(sameInstance(gitHubArchitectureStore)));
     }
 }

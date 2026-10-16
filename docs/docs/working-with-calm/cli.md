@@ -137,8 +137,8 @@ For each options relationship in the pattern, the CLI will ask you to select a c
 
 You can skip the interactive prompts by passing `--option-choices` with a JSON object that maps each option's `unique-id` to the chosen description(s).
 
-- For **`oneOf`** options, supply a **string** (exactly one choice).
-- For **`anyOf`** options, supply a **string** or an **array of strings** (one or more choices).
+- For **`oneOf`** options, supply a **string** (exactly one choice). Every `oneOf` option needs one.
+- For **`anyOf`** options, supply a **string** or an **array of strings**. An empty array, or leaving the option out, chooses none. That drops the `prefixItems` position of its alternatives, so the nodes after it move up one position.
 
 ```shell
 # oneOf option — single string
@@ -173,6 +173,10 @@ After running `calm generate` interactively, the CLI prints your selections in t
 info: Selected choices (reusable with --option-choices): {"connection-options":"Application A connects to Application C","node-options":["Node 1","Node 2"]}
 ```
 :::
+
+#### What a choice can name
+
+A choice names nodes and relationships that the pattern declares. They can be the alternatives of a `prefixItems` entry, or the candidates in an `items` catalogue. `calm generate` builds the ones that a selected choice names. Without a choice that names them, `calm generate` builds no `items` candidate, but an architecture can still add one by hand. See [The `options` relationship](../core-concepts/patterns.md#the-options-relationship).
 
 ### URL to Local File Mapping
 
@@ -232,6 +236,7 @@ If the architecture does not match the pattern, the command will output a list o
 - **`    --timeline <timeline>`**: Path to the timeline file to validate.
 - **`-s, --schema-directory <path>`**: Path to the directory containing the meta schemas to use.
 - **`-c, --calm-hub-url <url>`**: URL to CALMHub instance.
+- **`--assets-path <path>`**: Local path to a CALM assets directory. Resolves `detailed-architecture` CURIEs from the filesystem without a Hub.
 - **`-u, --url-to-local-file-mapping <path>`**: Path to a JSON file that maps URLs to local file paths (see [URL Mapping](#url-to-local-file-mapping) below).
 - **`--strict`**: When enabled, the CLI will fail if any warnings are reported (default: false).
 - **`-f, --format <format>`**: The format of the output (choices: "json", "junit", "pretty", default: "json").
@@ -776,3 +781,36 @@ All `hub` subcommands support a `-f, --format <format>` option with two choices:
 
 - **`json`** _(default)_ — outputs the raw JSON response from CALM Hub. Suitable for piping into other tools or scripts.
 - **`pretty`** — renders the output as a human-readable ASCII table. Available for `list` commands; for `push` and `pull` commands it formats the response in a more readable way.
+
+---
+
+## Interacting with non-CALM Hub repository
+
+For an organization that does not require the full functionality of CALM Hub and only needs the ability to store CALM artifacts in a central repository, the CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server or an internal artifact repository — without going through CALM Hub.
+
+Depending on the authentication/authorization requirements for the non-CALM Hub repositories the following configurations in `~/.calm.json` are supported:
+
+- Public, anonymous access allowed:  
+  - **`allowedRemoteHosts`** is an allow-list of hostnames the CLI is permitted to fetch documents.
+- Requires authenticated access: 
+  - **`directUrlAuthModule`**: Path to the local JavaScript authentication plugin used for protected direct URLs.
+  - **`directUrlAuthConfigPath`**: Optional path passed to the plugin constructor for its own configuration.
+  - **`directUrlAuthAuthenticatedHosts`**: List of hostnames that require authentication headers.
+
+:::note
+The `DirectUrlDocumentLoader` may access any host in the union of `allowedRemoteHosts` and `directUrlAuthAuthenticatedHosts`.
+:::
+
+::::note
+The `directUrlAuth` plugin mechanism exists to let end user organizations implement their own authentication/authorization method based on HTTP(S) headers. Building, configuring, and securing that plugin is the sole responsibility of the end user organization. The JavaScript plugin module exports a `default class` implementing a `getAuthHeaders(url, requestBody)` function.
+
+**The CALM project provides this mechanism and documentation as-is, with no warranty or support**. 
+
+:::warning
+The end user organization is solely responsible for security or correctness of the plugin implementation.
+:::
+::::
+
+This plugin approach means the auth scheme is not fixed by the CLI itself — the end user supplied  module can implement anything from a hard-coded header, to OAuth2 client-credentials, to a secret pulled from a vault at request time.
+
+[DirectUrlAuth Plugin](directurl-auth-plugin) page provides technical details for writing and configuring the plugin.

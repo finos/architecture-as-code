@@ -111,6 +111,39 @@
   border-color: var(--ifm-color-primary);
 }
 
+/* Action chip on tutorials with a Learning Lab lesson. It takes the right
+   alignment so it sits directly left of "Edit on GitHub". */
+.theme-doc-markdown a.calm-dm-lab {
+  color: #15803d;
+  background: #effaf3;
+  border-color: #bfe6cc;
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: auto;
+}
+
+.theme-doc-markdown a.calm-dm-lab + a.calm-dm-edit {
+  margin-left: 0;
+}
+
+.theme-doc-markdown a.calm-dm-lab:hover {
+  color: #fff;
+  background: #15803d;
+  border-color: #15803d;
+}
+
+[data-theme='dark'] .theme-doc-markdown a.calm-dm-lab {
+  color: #4ade80;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(74, 222, 128, 0.4);
+}
+
+[data-theme='dark'] .theme-doc-markdown a.calm-dm-lab:hover {
+  color: var(--calm-ink);
+  background: #4ade80;
+  border-color: #4ade80;
+}
+
 /* ---------------------------------------------------------------- *
  *  Section callouts (Prerequisites, Learning objectives, …)        *
  * ---------------------------------------------------------------- */
@@ -200,6 +233,11 @@
   --ccbg: #fff9f0;
 }
 
+.theme-doc-markdown .calm-callout--lab {
+  --cc: #15803d;
+  --ccbg: #f2fbf5;
+}
+
 /* Dark mode: lighter accents, tinted surface backgrounds. */
 [data-theme='dark'] .theme-doc-markdown .calm-callout {
   --ccbg: color-mix(in srgb, var(--cc) 10%, var(--ifm-background-color));
@@ -227,6 +265,10 @@
 
 [data-theme='dark'] .theme-doc-markdown .calm-callout--amber {
   --cc: #fbbf24;
+}
+
+[data-theme='dark'] .theme-doc-markdown .calm-callout--lab {
+  --cc: #4ade80;
 }
 
 /* ---------------------------------------------------------------- *

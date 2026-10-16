@@ -78,5 +78,5 @@ Organizations can reference these standards directly in their decorator document
 |---------|---------|----------|
 | **Standard** | Reusable decorator schemas and cross-cutting patterns | `calm/standards/` |
 | **Interface** | Communication protocol definitions | `calm/interfaces/` |
-| **Control** | Compliance and governance requirements | `calm/controls/` |
+| **Control** | Compliance and governance requirements | Defined by each organisation |
 | **Schema** | Core CALM meta-schemas | `calm/release/X.Y/meta/` |

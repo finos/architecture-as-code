@@ -1,0 +1,169 @@
+{
+  "controlId": 20,
+  "name": "sdlc-prev-002-content-addressable-identities",
+  "description": "Where a control's evidence refers to the subject it is evidence about, that reference must be a cryptographic hash of the subject's content, so that the binding between evidence and subject cannot be broken after the fact.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-002-content-addressable-identities/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-002 Content Addressable Identities",
+      "name": "Content Addressable Identities",
+      "description": "Where a control's evidence refers to the subject it is evidence about, that reference must be a cryptographic hash of the subject's content, so that the binding between evidence and subject cannot be broken after the fact.",
+      "control-id": "SDLC-PREV-002",
+      "category": "META",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-2_content-addressable-identities.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 2,
+        "control-type": "PREV",
+        "phase": "META",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-RC-001",
+          "name": "Insider Threat",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-1_insider-threat.html"
+        },
+        {
+          "id": "SDLC-RC-005",
+          "name": "Audit and Compliance Evidence Failure",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-5_audit-and-compliance-evidence-failure.html"
+        },
+        {
+          "id": "SDLC-OP-007",
+          "name": "Configuration Drift",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-7_configuration-drift.html"
+        },
+        {
+          "id": "SDLC-SEC-011",
+          "name": "Build Toolchain and Service Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-11_build-toolchain-and-service-supply-chain-compromise.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-003",
+          "name": "Software Artifact Provenance",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html"
+        },
+        {
+          "id": "SDLC-PREV-008",
+          "name": "Version Control",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-8-version-control.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        },
+        {
+          "id": "SDLC-PREV-001",
+          "name": "Code Review",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html"
+        },
+        {
+          "id": "SDLC-PREV-022",
+          "name": "Data Retention and Disposal",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-22_data-retention.html"
+        }
+      ],
+      "details": [
+        "Every control in this catalogue produces evidence about a subject. A peer review (SDLC-PREV-001 (https://finos.github.io/sdlc-common-controls/mitigations/mi-1_code-review.html)) is evidence about a source revision. A static analysis scan (SDLC-PREV-005 (https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html)) is evidence about a state of the codebase. Test evidence (SDLC-PREV-014 (https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html)) is evidence about a build. A provenance record (SDLC-PREV-003 (https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html)) is evidence about an artifact. A release approval (SDLC-PREV-019 (https://finos.github.io/sdlc-common-controls/mitigations/mi-19_version-approval.html)) is evidence about a version. In every case the evidence is worth no more than the reference that ties it to its subject.",
+        "Where that reference is a mutable label — a version tag, a branch name, a filename, a build number, an environment name — the binding can be broken without touching the evidence. The label is reassigned to different content, and the evidence silently becomes a claim about something it was never about. Nothing in the record changes, so nothing appears wrong: the control still shows as having operated, and the evidence it produced no longer means what it says. This is a failure mode that reviewing the evidence cannot detect, because the evidence is not what changed.",
+        "Content addressable identification closes this gap by deriving the subject's identity from its content, using a cryptographic hash such as SHA-256. Any change to the content produces a different identity, so a reference by hash cannot be re-pointed. It resolves to exactly the content that was examined, or it does not resolve at all, and either outcome is detectable.",
+        "This is why the control is classified as a meta control rather than sitting at a single SDLC phase. It does not prevent or detect a specific undesirable outcome by itself; it is the property that makes the evidence produced by other controls dependable. Build outputs are the most familiar application, but the same requirement applies to source revisions at CODE, to approvals at RELEASE, and to the inventories and evidence stores that span the lifecycle.",
+        "Human-readable identifiers — semantic versions, tags, branch names, environment names — remain necessary for navigation, communication, and day-to-day operation. They must not be the reference of record where that reference carries security or compliance weight."
+      ],
+      "requirements": [
+        "Content-Derived Identity — A subject MUST be identifiable by a cryptographic hash computed over its content, such that any modification to the content produces a different identity.",
+        "Collision-Resistant Algorithm — The hash algorithm MUST be SHA-256 or stronger. Algorithms with known practical collision attacks, such as MD5 and SHA-1, MUST NOT be used where the identity carries security or compliance weight.",
+        "Recorded Algorithm — The algorithm MUST be recorded alongside the digest, so that an identity remains independently verifiable and can be migrated when an algorithm is deprecated.",
+        "Fingerprint References in Evidence — Where a control's record, report, attestation, or approval refers to its subject, it MUST identify that subject by content addressable identity. Human-readable identifiers MAY be recorded alongside, but MUST NOT be the only reference.",
+        "Verifiable on Use — A system that acts on a subject by its content addressable identity MUST be able to recompute the hash from the content and confirm it matches before relying on it.",
+        "Preserved Across Handoffs — The identity MUST be carried unchanged as a subject moves between systems, pipeline stages, and organisational boundaries. A downstream system MUST NOT substitute a mutable label for the identity it received."
+      ],
+      "examples": [
+        "Source revisions are already content addressable: A Git commit ID is a hash over the tree and the parent chain, so citing a review or scan result by commit SHA rather than by branch name gives that evidence a subject that cannot be reassigned. Referring to main instead records only where a branch pointer happened to be at the time. SDLC-PREV-008 (https://finos.github.io/sdlc-common-controls/mitigations/mi-8-version-control.html) covers the integrity of the history those identities are drawn from.",
+        "Container images: OCI registries support digest references (registry/app@sha256:...) alongside mutable tags. Deployment manifests and admission policies should pin by digest — a tag, including a semantic version tag, can be re-pushed to point at different image content, whereas a digest cannot.",
+        "Packages and dependencies: Lockfiles are the usual mechanism for holding dependency digests: npm integrity fields, go.sum, Cargo.lock, Maven checksums. A component inventory (SDLC-PREV-009 (https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html)) that lists only names and versions cannot support the claim that the inventory describes what was actually built.",
+        "Evidence naming its subject: A test report should record the digest of the build under test rather than a CI build number. Where the build number is the only identifier, the evidence cannot be re-bound to its subject once the CI system's own records age out under retention policy (SDLC-PREV-022 (https://finos.github.io/sdlc-common-controls/mitigations/mi-22_data-retention.html)).",
+        "Where a mutable label is unavoidable: Operational workflows legitimately need names such as release tags and latest. Where they are used, the mapping from label to digest should itself be recorded immutably, so that the mapping in force at a given point in time can be reconstructed rather than inferred. SDLC-PREV-003 (https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html) covers this binding for build artifacts.",
+        "Verification at boundaries: Deployment gates and admission controllers (SDLC-PREV-012 (https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html)) are the natural enforcement points for the verifiable-on-use property: recompute or confirm the digest before admitting the subject, rather than trusting the reference that accompanied it.",
+        "Algorithm migration: Recording the algorithm alongside the digest is what makes migration possible without invalidating historical evidence. Git's ongoing move from SHA-1 to SHA-256 object identities is the clearest example of why the algorithm cannot be left implicit."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "si-7",
+            "title": "SI-7 Software, Firmware, and Information Integrity",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1106%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C536.0%2C0%5D"
+          },
+          {
+            "id": "sa-10",
+            "title": "SA-10 Developer Configuration Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A890%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C211.0%2C0%5D"
+          },
+          {
+            "id": "au-10",
+            "title": "AU-10 Non-repudiation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A301%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "FIPS 180-4: Secure Hash Standard",
+            "url": "https://csrc.nist.gov/pubs/fips/180-4/upd1/final"
+          },
+          {
+            "title": "NIST SP 800-53r5 SI-7: Software, Firmware, and Information Integrity",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 SA-10: Developer Configuration Management",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 AU-10: Non-repudiation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "OCI Image Specification: Descriptors and digests",
+            "url": "https://github.com/opencontainers/image-spec/blob/main/descriptor.md"
+          },
+          {
+            "title": "Git Internals: Git Objects",
+            "url": "https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-002"
+        },
+        "name": {
+          "const": "Content Addressable Identities"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

@@ -49,4 +49,17 @@ describe('ShaCacheReferenceResolver', () => {
     it('canResolve returns false for CURIEs without version', () => {
         expect(resolver.canResolve('ns:controls:my-ctrl')).toBe(false);
     });
+
+    it('rejects SNAPSHOT versions — put is a no-op', async () => {
+        await resolver.put('ns:controls:my-ctrl@1.0.0-SNAPSHOT', { id: 'snap' });
+        expect(resolver.canResolve('ns:controls:my-ctrl@1.0.0-SNAPSHOT')).toBe(false);
+    });
+
+    it('rejects RC versions', () => {
+        expect(resolver.canResolve('ns:controls:my-ctrl@1.0.0-RC1')).toBe(false);
+    });
+
+    it('rejects BETA versions', () => {
+        expect(resolver.canResolve('ns:controls:my-ctrl@1.0.0-BETA')).toBe(false);
+    });
 });

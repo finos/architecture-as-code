@@ -3,13 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
+import { THEME, getRiskLevelColor } from './theme.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
     Position: { Right: 'right', Left: 'left' },
 }));
 
-function makeNodeProps(details?: Record<string, unknown>) {
+function makeNodeProps(details?: Record<string, unknown>, extraData: Record<string, unknown> = {}) {
     return {
         id: 'node-1',
         type: 'custom',
@@ -24,6 +25,7 @@ function makeNodeProps(details?: Record<string, unknown>) {
             description: 'A test node',
             'node-type': 'service',
             details,
+            ...extraData,
         },
     };
 }
@@ -187,5 +189,71 @@ describe('CustomNode — external URL support', () => {
         renderNode(props, vi.fn());
 
         expect(screen.getByTitle('Has detailed architecture')).toBeInTheDocument();
+    });
+
+    describe('building-block-style metadata', () => {
+        const BLOCK_BLUE = '#1C4587';
+
+        // Round-trips a colour through the DOM so hex and rgb() spellings compare equal.
+        function normalisedColor(color: string): string {
+            const probe = document.createElement('div');
+            probe.style.color = color;
+            return probe.style.color;
+        }
+
+        function renderStyled(metadata: Record<string, unknown>, nodeType = 'webclient') {
+            const { container } = renderNode(makeNodeProps(undefined, { 'node-type': nodeType, metadata }));
+            return container.querySelector('[data-testid="custom-node"] > div') as HTMLElement;
+        }
+
+        it('applies the background and text colours', () => {
+            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE, text: '#ffffff' } });
+
+            expect(nodeDiv.style.background).toBe(normalisedColor(BLOCK_BLUE));
+            expect(nodeDiv.style.color).toBe(normalisedColor('#ffffff'));
+        });
+
+        it('uses the block background as the border when the node has no risk level', () => {
+            const nodeDiv = renderStyled({ 'building-block-style': { background: BLOCK_BLUE } });
+
+            expect(nodeDiv.style.borderColor).toBe(normalisedColor(BLOCK_BLUE));
+        });
+
+        it('keeps the AIGF risk colour as the border when a block style is also set', () => {
+            const nodeDiv = renderStyled({
+                'building-block-style': { background: BLOCK_BLUE },
+                aigf: { 'risk-level': 'high' },
+            });
+
+            expect(nodeDiv.style.borderColor).toBe(normalisedColor(getRiskLevelColor('high')));
+            expect(nodeDiv.style.background).toBe(normalisedColor(BLOCK_BLUE));
+        });
+
+        it('falls back to the card background for a node type with no catalogued colour', () => {
+            const nodeDiv = renderStyled({}, 'not-a-known-type');
+
+            expect(nodeDiv.style.background).toBe(normalisedColor(THEME.colors.card));
+        });
+
+        it.each([
+            ['an empty string', ''],
+            ['whitespace', '   '],
+            ['a non-string value', { not: 'a colour' }],
+            ['a url()', 'url(https://host/pixel.png)'],
+        ])('ignores %s as the background, keeping the default background and border', (_label, background) => {
+            const styled = renderStyled({ 'building-block-style': { background } });
+            const unstyled = renderStyled({});
+
+            expect(styled.style.background).toBe(unstyled.style.background);
+            expect(styled.style.borderColor).not.toBe('');
+            expect(styled.style.borderColor).toBe(unstyled.style.borderColor);
+        });
+
+        it('ignores a non-string text colour', () => {
+            const styled = renderStyled({ 'building-block-style': { text: 42 } });
+            const unstyled = renderStyled({});
+
+            expect(styled.style.color).toBe(unstyled.style.color);
+        });
     });
 });

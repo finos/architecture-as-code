@@ -6,10 +6,10 @@ import { createRequire } from 'node:module';
 
 const shim = (name: string) => fileURLToPath(new URL(`./src/shims/${name}.ts`, import.meta.url));
 
-// The engine version the lab reports. Read here rather than imported from src/:
-// a `resolveJsonModule` import of ../../shared/package.json would pull the whole
-// manifest into the bundle and reach outside the app's own tree.
-const sharedVersion: string = createRequire(import.meta.url)('../shared/package.json').version;
+// The CLI version the lab reports (`calm --version` and the status bar), as the installed CLI
+// does. Read here rather than imported from src/: a `resolveJsonModule` import of
+// ../cli/package.json would pull the whole manifest into the bundle and reach outside the app's tree.
+const cliVersion: string = createRequire(import.meta.url)('../cli/package.json').version;
 
 // @finos/calm-shared/browser's dependency chain requests fs/path/buffer at bundle time but never
 // touches fs/path at runtime (see shared/README.md "Browser entry point"). Map them to shims and
@@ -26,7 +26,7 @@ export default defineConfig({
     },
     define: {
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV ?? 'production'),
-        __CALM_SHARED_VERSION__: JSON.stringify(sharedVersion),
+        __CALM_CLI_VERSION__: JSON.stringify(cliVersion),
     },
     optimizeDeps: {
         include: ['reactflow'],

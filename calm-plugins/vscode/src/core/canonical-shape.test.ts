@@ -37,11 +37,11 @@ describe('canonical CALM shape — calm-models adoption (#2553 rework)', () => {
 		expect(errors).toEqual([]);
 	});
 
-	// Upstream gap: even the canonical calm/release/1.2/meta/core.json puts
+	// Upstream gap: even the canonical core.json in @finos/calm-schema 1.2 puts
 	// `additionalProperties: false` *inside* `properties` (a property named
 	// "additionalProperties") rather than at the schema root. The constraint
 	// is therefore never enforced. Tracked upstream in #2552. When the
 	// canonical schema is fixed, flip `it.todo` → `it` and this assertion
-	// will pass via the symlinked canonical bundle.
+	// will pass via the @finos/calm-schema package.
 	it.todo('rejects an unknown field at the architecture root (blocked on upstream #2552)');
 });

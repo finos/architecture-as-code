@@ -83,8 +83,7 @@ public class PluginAuthResource {
     // appended, URL-encoded, to the OIDC authorize redirect URL. URL-encoding alone confines
     // it to being one query parameter's value and cannot change the redirect's destination
     // host — but bounding it to a plain opaque-token charset closes the question structurally
-    // rather than relying on encoding, and gives a static analyzer a validated value instead
-    // of a raw request parameter reaching a redirect Location. Named REPLAY_GUARD_PATTERN
+    // rather than relying on encoding. Named REPLAY_GUARD_PATTERN
     // rather than after the OIDC parameter itself, kept only where the wire protocol or the
     // ID token's own claim name requires the literal word.
     private static final Pattern REPLAY_GUARD_PATTERN = Pattern.compile("^[A-Za-z0-9._-]{1,128}$");
@@ -149,10 +148,17 @@ public class PluginAuthResource {
                     .build();
         }
 
-        if (replayGuard != null && !replayGuard.isBlank() && !REPLAY_GUARD_PATTERN.matcher(replayGuard).matches()) {
-            return Response.status(Response.Status.BAD_REQUEST)
-                    .entity(Map.of("error", "nonce must be 1-128 characters from [A-Za-z0-9._-]"))
-                    .build();
+        // The value appended to the redirect is assigned only on the branch the pattern check
+        // dominates: a check folded into the early-return condition is skipped when the nonce
+        // is absent, which static analysis cannot distinguish from an unchecked value.
+        String validatedReplayGuard = null;
+        if (replayGuard != null && !replayGuard.isBlank()) {
+            if (!REPLAY_GUARD_PATTERN.matcher(replayGuard).matches()) {
+                return Response.status(Response.Status.BAD_REQUEST)
+                        .entity(Map.of("error", "nonce must be 1-128 characters from [A-Za-z0-9._-]"))
+                        .build();
+            }
+            validatedReplayGuard = replayGuard;
         }
 
         if (oidcAuthority.isEmpty() || oidcAuthority.get().isBlank()) {
@@ -210,8 +216,8 @@ public class PluginAuthResource {
                 .append("&state=").append(encode(state))
                 .append("&code_challenge=").append(encode(codeChallenge))
                 .append("&code_challenge_method=S256");
-        if (replayGuard != null && !replayGuard.isBlank()) {
-            authorizeUrl.append("&nonce=").append(encode(replayGuard));
+        if (validatedReplayGuard != null) {
+            authorizeUrl.append("&nonce=").append(encode(validatedReplayGuard));
         }
 
         LOG.debug("Redirecting plugin auth to OIDC authorize endpoint for port {}", port);

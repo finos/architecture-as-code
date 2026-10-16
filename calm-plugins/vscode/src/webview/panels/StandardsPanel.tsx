@@ -1,4 +1,5 @@
 import React from 'react';
+import { theme } from '../canvas/theme-colors';
 
 interface StandardsPanelProps {
     requirementUrl: string;
@@ -28,7 +29,7 @@ const panelStyle: React.CSSProperties = {
     position: 'absolute', top: '10%', right: '10%', width: '400px', maxHeight: '60%',
     display: 'flex', flexDirection: 'column',
     background: 'var(--calm-bg)', border: '1px solid var(--calm-border-heavy)', borderRadius: '8px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.5)', zIndex: 200,
+    boxShadow: `0 8px 24px ${theme.shadow}`, zIndex: 200,
 };
 const headerStyle: React.CSSProperties = {
     display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',

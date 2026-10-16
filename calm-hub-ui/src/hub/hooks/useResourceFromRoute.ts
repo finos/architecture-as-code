@@ -118,18 +118,22 @@ export function useResourceFromRoute({
                     if (cancelled) return;
                     // Controls are deep-linked both by numeric id (mobile drill-down) and by
                     // name slug (global/Explorer search -> /controls/<name>/detail), so match either.
-                    const match = controls.find((c) => String(c.id) === params.id || c.name === params.id);
-                    if (match) {
-                        onControlLoadRef.current({
-                            domain: namespace,
-                            controlId: match.id,
-                            controlName: match.name,
-                            controlDescription: match.description,
-                            controlTitle: match.title,
-                        });
+                    const match =
+                        controls.find((c) => String(c.id) === params.id) ??
+                        controls.find((c) => c.name === params.id);
+                    if (!match) {
+                        reportError(new Error(`Control ${params.id} not found in domain ${namespace}`));
+                        return;
                     }
+                    onControlLoadRef.current({
+                        domain: namespace,
+                        controlId: match.id,
+                        controlName: match.name,
+                        controlDescription: match.description,
+                        controlTitle: match.title,
+                    });
                 })
-                .catch(() => undefined);
+                .catch(reportError);
             return cleanup;
         }
 

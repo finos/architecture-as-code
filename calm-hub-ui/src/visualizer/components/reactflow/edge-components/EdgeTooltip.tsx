@@ -36,9 +36,11 @@ export function EdgeTooltip({
                     maxWidth: '400px',
                 }}
             >
-                <p style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.foreground, marginBottom: '8px' }}>
-                    {description}
-                </p>
+                {description && (
+                    <p style={{ fontSize: '12px', fontWeight: 500, color: THEME.colors.foreground, marginBottom: '8px' }}>
+                        {description}
+                    </p>
+                )}
                 {protocol && (
                     <p style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '8px' }}>
                         Protocol: <span style={{ fontFamily: 'monospace', color: THEME.colors.accentText }}>{protocol}</span>

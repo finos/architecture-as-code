@@ -31,9 +31,10 @@ read.
 A pattern declares a relationship at the same five sites.
 
 `prefixItems` and `items` differ in how many of their declarations reach one architecture.
-A `prefixItems` entry is one position, so exactly one of its alternatives is built. `items`
-describes every position after the last entry, so an architecture may build any number of
-its members, or none.
+A `prefixItems` entry is one position, so at most one of its alternatives is built. An
+`anyOf` decision answered with nothing drops the entry, and every later entry moves up one
+position. `items` describes every position after the last entry, so an architecture may build
+any number of its members, or none.
 
 ## Rules that hold across all tools
 
@@ -125,9 +126,14 @@ branches that declare the same property discard one of the two declarations.
 
 ## What generation guarantees
 
-`calm generate` builds one element per `prefixItems` entry, in order. An answer that selects
-an `items` member appends that member to the same list, so a selected member reaches the
-architecture and an unselected one does not.
+`calm generate` builds one element per `prefixItems` entry, in order. It drops an entry when
+no answer selects any of its alternatives. A `oneOf` decision needs exactly one answer, so
+`calm generate` and `calm validate` both reject a `oneOf` decision with none. An answer that
+selects an `items` member appends that member to the same list, so a selected member reaches
+the architecture and an unselected one does not.
+
+`calm validate` applies the answers that the architecture records, empty ones included, in the
+same way. It then checks the architecture against the result.
 
 An answer comes from a decision. A decision names an `items` member in its `nodes` or
 `relationships` list, and `calm generate` then offers it. A catalogue that no decision names

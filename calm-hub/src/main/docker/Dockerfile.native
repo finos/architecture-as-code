@@ -13,7 +13,7 @@
 # Before building, compile the native binary (handled by build-native-image.sh):
 #
 #   ./mvnw package -Dnative -Dquarkus.native.container-build=true \
-#       -DskipITs -DskipTests -Ddependency-check.skip=true
+#       -DskipITs -DskipTests
 #   → target/*-runner is populated (Linux native binary)
 #
 # Build (from calm-hub/ directory):

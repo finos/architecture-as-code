@@ -5,7 +5,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 ## Tech Stack
 
 - **Language**: Java 21
-- **Framework**: Quarkus (Reactive REST, CDI) — version is set via `quarkus.platform.version` in the root `pom.xml`
+- **Framework**: Quarkus (Reactive REST, CDI) — version is set via `quarkus.platform.version` in the root `pom.xml`. Use [LTS releases](https://quarkus.io/blog/tag/lts/) only: upgrade to a new LTS release or a patch of the current LTS, never to a non-LTS minor release
 - **Build Tool**: Maven (via parent POM)
 - **Databases**: 
   - MongoDB (production default)
@@ -28,7 +28,7 @@ This guide helps AI assistants work efficiently with the CALM Hub backend codeba
 # Development Mode (Hot Reload)
 # NOTE: The default profile is secure (401 on all requests). Use no-auth for local testing.
 ../mvnw quarkus:dev -Dquarkus.profile=no-auth        # No-auth (local testing, MongoDB)
-../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit
+../mvnw quarkus:dev -Pstandalone                     # Standalone (NitriteDB) — no-auth is implicit, no Docker needed
 ../mvnw quarkus:dev -Pstandalone,server-only         # Standalone + no frontend build — profiles compose
 ../mvnw quarkus:dev -Dquarkus.profile=secure         # Secure mode (Keycloak)
 
@@ -70,6 +70,9 @@ src/
 │   │   ├── interfaces        # Store abstractions
 │   │   ├── mongo/           # MongoDB implementations
 │   │   ├── nitrite/         # NitriteDB implementations
+│   │   ├── github/          # Read-only stores over cloned GitHub repos (+ config/sync/registry/api/access)
+│   │   ├── classpath/       # CALM meta-schemas bundled in the JAR (GitHub mode has no database)
+│   │   ├── noop/            # GitHub-mode stubs for stores with nothing to back them
 │   │   └── producer/        # CDI producers for store selection
 │   ├── domain/               # Domain models
 │   └── config/               # Configuration beans
@@ -118,31 +121,47 @@ CALM Hub supports pluggable storage backends via CDI Producers:
 1. **mongo** (default) - MongoDB production storage
 2. **standalone** - NitriteDB embedded storage (no external DB needed)
 3. **read-only** - `standalone` + `calm.readonly=true`; pre-seeded NitriteDB opened with `.readOnly(true)`
+4. **github** - read-only; namespaces map to cloned GitHub repos (`calm.github.namespaces`, one
+   `namespace|repo|branch|groups` entry each). Writes return 501. Versions are commit SHAs, never
+   `latest`. Needs no database.
 
 **How It Works**:
 - Store interfaces defined in `org.finos.calm.store`
-- Implementations in `store/mongo/` and `store/nitrite/`
-- Producers in `store/producer/` select implementation at runtime via `@LookupIfProperty`
+- Implementations in `store/mongo/`, `store/nitrite/` and `store/github/`
+- `store/github/` reads from an in-memory registry (`registry/`) rebuilt after each clone or pull
+  (`sync/`). Its stores extend `AbstractGitHubStore` (no file to read) or
+  `AbstractReadOnlyGitHubStore` (reads the file at a SHA or from the clone).
+- A store with nothing to back it in GitHub mode gets a stub: `store/noop/` for stores that
+  need no namespace check, or a `store/github/` store that only does `verifyNamespace` (e.g.
+  `GitHubAdrStore`, `GitHubDocumentStore`)
+- Producers in `store/producer/` select the implementation at runtime from `DatabaseMode`. Every
+  producer needs a `github` arm: the Mongo store is gated on the mode, so a missing arm fails
+  every request in GitHub mode with an unsatisfied resolution.
 
 Example Producer Pattern:
 ```java
 @ApplicationScoped
 public class ArchitectureStoreProducer {
-    
+
     @Inject
     @ConfigProperty(name = "calm.database.mode", defaultValue = "mongo")
     String databaseMode;
-    
-    @Inject MongoArchitectureStore mongoStore;
-    
-    @Inject NitriteArchitectureStore nitriteStore;
-    
+
+    @Inject Instance<MongoArchitectureStore> mongoStore;
+
+    @Inject Instance<NitriteArchitectureStore> nitriteStore;
+
+    @Inject Instance<GitHubArchitectureStore> gitHubStore;
+
     @Produces
     @ApplicationScoped
     public ArchitectureStore produceStore() {
-        return "standalone".equals(databaseMode) 
-            ? nitriteStore 
-            : mongoStore;
+        if (DatabaseMode.GITHUB.equals(databaseMode)) {
+            return gitHubStore.get();
+        } else if (DatabaseMode.STANDALONE.equals(databaseMode)) {
+            return nitriteStore.get();
+        }
+        return mongoStore.get();
     }
 }
 ```
@@ -256,7 +275,7 @@ The read-only images use a **two-stage Docker build**:
 ```
 Stage 1 — seed (JVM, writable)
   FROM ubi9/openjdk-21
-  COPY quarkus-app/ + calm/ schemas + controls/
+  COPY quarkus-app/ + released meta-schemas (npm copy) + calm/ drafts + controls/ + interfaces/
   RUN boot Quarkus in standalone (writable) mode
       init script POSTs all namespaces, schemas, controls
       graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
@@ -366,7 +385,7 @@ All four workflows:
 ### Adding New Storage Modes
 1. Create implementation package: `org.finos.calm.store.newmode`
 2. Implement store interfaces
-3. Update Producer classes to inject and conditionally return new implementation
+3. Update every Producer class: inject `Instance<NewStore>` and add a `DatabaseMode` arm
 4. Add mode to configuration documentation
 
 ### MCP Server
@@ -376,17 +395,41 @@ All four workflows:
   method returns a disabled error, though the `/mcp` HTTP endpoint stays reachable
 - Enable with `-Dcalm.mcp.enabled=true` or `CALM_MCP_ENABLED=true`
 
+### UI Customization
+- `config/UiConfig` (`@ConfigMapping(prefix = "calm.ui")`) holds the operator values that
+  `GET /api/calm/ui/config` (`UiConfigResource`) returns to CALM Hub UI
+- `UiConfigValidator` fails startup on a bad colour, URL or item, so do not relax its checks:
+  they stop CSS injection and `javascript:` links in the UI
+- The response leaves out a section that is not configured or not enabled. The server does not
+  read `SecurityIdentity` unless `calm.ui.identity.enabled=true`
+
 ### Read-Only Deployment Mode
 - `calm.readonly=true` opens Nitrite with `readOnly(true)` and installs
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas and controls + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts and
+  release candidates, controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
+
+### Bundled CALM Meta-Schemas
+- GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
+- The frontend stage runs `npm run calm-hub:copy-schemas` after `npm install`. It copies every
+  `@finos/calm-schema` release that the root `package.json` pins into `target/calm-schemas`, which
+  the build bundles. The build removes the previous copy first, and an enforcer check fails the
+  build if the copy did not run
+- `versions.txt` and each `files.txt` under `src/main/resources/META-INF/calm-schemas/` are
+  hand-authored. When the root `package.json` adds a release, add it to them;
+  `TestClasspathCoreSchemaResourcesShould` fails until you do
 
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
   read-only variant
+- The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
+  `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
+  repository holds only the drafts and the release candidates, which are seeded as before. The
+  seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
+  or namespace
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
@@ -403,11 +446,11 @@ All four workflows:
 
 ### Coverage Requirements
 
-**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify -Ddependency-check.skip=true` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
+**CRITICAL**: JaCoCo enforces **90% line coverage per class**. CI runs `mvn clean verify` which includes the JaCoCo coverage check. Any class below 90% will fail the build.
 
 ```bash
 # Run the same check CI uses — always run this before pushing changes
-../mvnw clean verify -Ddependency-check.skip=true
+../mvnw clean verify
 ```
 
 **Exclusions** (from `pom.xml`): `**/*Builder.*`, `**/*CalmResourceErrorResponses.*`, `**/*Constants.*`, `**/*NamespaceStandardSummary.*`, `**/*ArchitectureRequest.*`, `**/config/**/*`, and `**/domain/**/*` are excluded from the coverage check.
@@ -569,8 +612,8 @@ trail in this iteration — read it via direct DB access or ops tooling.
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
 2. Implement all store interfaces
-3. Update all Producer classes to include new implementation
-4. Add conditional logic based on `calm.database.mode`
+3. Update all Producer classes to include new implementation (`Instance<>` + a `DatabaseMode` arm)
+4. Add a producer test for the new mode
 5. Document in README.md
 
 ### Working with MongoDB
@@ -634,9 +677,13 @@ CALM Hub is largely independent - it's a standalone REST API server.
 1. **TestContainers Errors**: Ensure Docker is running before integration tests
 2. **Port Conflicts**: Check if port 8080 is free (or change `quarkus.http.port`)
 3. **MongoDB Connection**: Start MongoDB before dev mode (unless using `-Pstandalone` for NitriteDB)
-   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. The Maven plugin
-     forks a separate JVM and the `-D` flag does not reliably propagate; the Maven profile injects
-     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration.
+   - **IMPORTANT**: Use `-Pstandalone` (Maven profile), not `-Dquarkus.profile=standalone`. Dev mode
+     does not apply a `quarkus.profile` set with `-D` on the Maven command line; the Maven profile injects
+     `quarkus.profile=standalone` via the plugin's own `systemProperties` configuration. Other `-D`
+     flags reach the app.
+   - Standalone turns off all dev services, so it needs no Docker. To start the Grafana LGTM
+     observability dev service, add `-Dquarkus.devservices.enabled=true` (needs Docker).
+     OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
 4. **Certificate Issues**: Use exact CN in URLs when using self-signed certs
 5. **Profile Selection**: Remember to pass `-Dquarkus.profile=secure` for secure mode
 6. **Reflected XSS in error bodies/logs**: Concatenating a raw `@PathParam`/`@QueryParam`/request
@@ -646,7 +693,8 @@ CALM Hub is largely independent - it's a standalone REST API server.
 7. **`-Pserver-only` does not build or refresh the bundled UI**: it skips the Node/npm frontend
    stage entirely (see [README.md](./README.md#skipping-the-frontend-build)). A fresh clone built
    with this profile ships no UI at all; never use it for a release, Docker image, or CI build
-   that needs to serve the UI.
+   that needs to serve the UI. It (and `-Dskip.npm`) also skips the meta-schema copy, so after
+   `clean` the jar has no bundled meta-schemas and GitHub mode serves none.
 
 ## Known Issues
 

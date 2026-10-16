@@ -1,27 +1,60 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import { detectChangedResources, bumpWorkspace, canonicalEqual, maxIncrement } from './bump';
-import { saveManifest } from './bundle';
+import { loadManifest, saveManifest } from './bundle';
 import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
 
+const logger = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }));
+
 vi.mock('@finos/calm-shared', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@finos/calm-shared')>()),
-    initLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+    initLogger: () => logger,
 }));
+
+vi.mock('./bundle', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./bundle')>();
+    return {
+        ...actual,
+        loadManifest: vi.fn(actual.loadManifest),
+        saveManifest: vi.fn(actual.saveManifest),
+    };
+});
 
 const BASE = 'https://hub.example.com';
 const idAt = (resource: string, version: string, type = 'architectures', ns = 'com.example') =>
     `${BASE}/calm/namespaces/${ns}/${type}/${resource}/versions/${version}`;
+// A CALM flow has a name and no title.
+const flowAt = (version: string) => ({
+    $id: idAt('f', version, 'flows'),
+    'unique-id': 'f',
+    name: 'F',
+    description: 'A flow',
+    transitions: [{ 'relationship-unique-id': 'a-to-b', 'sequence-number': 1, description: 'A calls B' }],
+});
 
 interface ClientOpts {
     versions?: Record<string, string[]>;
     remote?: Record<string, object>;
+    narrativeVersions?: string[];
+    narrativeMarkdown?: string;
 }
 const makeClient = (opts: ClientOpts = {}): CalmHubClient => ({
     getMappedResourceVersions: vi.fn(async (_ns: string, mappingId: string) => opts.versions?.[mappingId] ?? []),
     getMappedResourceByVersion: vi.fn(async (_ns: string, mappingId: string, version: string) => opts.remote?.[`${mappingId}@${version}`] ?? {}),
+    getNarrativeDocumentVersions: vi.fn(async () => opts.narrativeVersions ?? []),
+    getNarrativeDocumentVersion: vi.fn(async () => ({ documentMarkdown: opts.narrativeMarkdown ?? '' })),
 }) as unknown as CalmHubClient;
+
+const deferred = <T = void>() => {
+    let resolve!: (value: T | PromiseLike<T>) => void;
+    let reject!: (reason?: unknown) => void;
+    const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+        resolve = resolvePromise;
+        reject = rejectPromise;
+    });
+    return { promise, resolve, reject };
+};
 
 describe('bump', () => {
     const bundlePath = path.join(__dirname, 'test-bump', 'bundle');
@@ -30,6 +63,7 @@ describe('bump', () => {
     beforeAll(async () => { await mkdir(filesPath, { recursive: true }); });
     afterAll(async () => { await rm(path.join(__dirname, 'test-bump'), { recursive: true, force: true }); });
     beforeEach(async () => {
+        logger.warn.mockClear();
         await rm(bundlePath, { recursive: true, force: true });
         await mkdir(filesPath, { recursive: true });
     });
@@ -49,6 +83,359 @@ describe('bump', () => {
     });
 
     describe('detectChangedResources', () => {
+        it.each([undefined, 'future-document-kind'])('checks later valid entries and reports unsupported type %s before bumping', async (type) => {
+            const mapping = { $id: idAt('a', '1.0.0'), title: 'Changed' };
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed';
+            await write('a.json', mapping);
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await writeFile(path.join(bundlePath, 'workspace-manifest.json'), JSON.stringify({
+                invalid: { path: 'files/invalid.json', ...(type === undefined ? {} : { type }) },
+                a: { path: 'files/a.json', type: 'architecture' },
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            }));
+            const client = makeClient({ versions: { a: ['1.0.0'] }, narrativeVersions: ['1.0.0'] });
+
+            await expect(bumpWorkspace(bundlePath, client, { increment: 'MINOR' })).rejects.toThrow(
+                `invalid: Unsupported workspace document type '${String(type)}'`
+            );
+            expect(client.getMappedResourceByVersion).toHaveBeenCalledOnce();
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalledOnce();
+            expect(await read('a.json')).toEqual(mapping);
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.0.0');
+        });
+
+        it('treats new, already-bumped, and unchanged narrative documents as clean', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            const baseEntry = {
+                path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            };
+
+            await saveManifest(bundlePath, { payments: { ...baseEntry, calmHubDocumentId: undefined, calmHubId: undefined } });
+            expect(await detectChangedResources(bundlePath, makeClient())).toEqual([]);
+
+            await saveManifest(bundlePath, { payments: { ...baseEntry, version: '1.1.0' } });
+            expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'] }))).toEqual([]);
+
+            await saveManifest(bundlePath, { payments: baseEntry });
+            expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown }))).toEqual([]);
+        });
+
+        it.each(['local LF', 'local CRLF'])('ignores narrative line endings in drift detection (%s)', async (direction) => {
+            const lf = '---\ntitle: Payments SAD\n---\n# Published\n';
+            const crlf = lf.replace(/\n/g, '\r\n');
+            await writeFile(path.join(filesPath, 'payments.md'), direction === 'local LF' ? lf : crlf);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+
+            expect(await detectChangedResources(bundlePath, makeClient({
+                narrativeVersions: ['1.0.0'], narrativeMarkdown: direction === 'local LF' ? crlf : lf,
+            }))).toEqual([]);
+        });
+
+        it('treats pending create recovery as unassigned without mutating the fence', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Published\n';
+            const entry = {
+                path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                createRecovery: { pending: true as const },
+            };
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, { payments: entry });
+            const client = makeClient();
+
+            expect(await detectChangedResources(bundlePath, client)).toEqual([]);
+
+            expect(client.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+            expect(await loadManifest(bundlePath)).toEqual({ payments: entry });
+        });
+
+        it('fails narrative checks with incomplete identity or missing source', async () => {
+            await saveManifest(bundlePath, {
+                partial: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/file not found/);
+
+            await writeFile(path.join(filesPath, 'partial.md'), '---\ntitle: Partial\n---\n# Partial');
+            await saveManifest(bundlePath, {
+                partial: { path: 'files/partial.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubId: '/partial' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/incomplete Hub identity/);
+        });
+
+        it('rejects a missing namespace before Hub calls and accepts a valid namespace', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Payments';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            const entry = {
+                path: 'files/payments.md', type: 'sad' as const, version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            };
+            const invalidClient = makeClient();
+            await saveManifest(bundlePath, { payments: entry });
+            await expect(detectChangedResources(bundlePath, invalidClient)).rejects.toThrow(/valid namespace/);
+            expect(invalidClient.getNarrativeDocumentVersions).not.toHaveBeenCalled();
+
+            const validClient = makeClient({ narrativeVersions: [] });
+            await saveManifest(bundlePath, { payments: { ...entry, namespace: 'com.example' } });
+            await expect(detectChangedResources(bundlePath, validClient)).resolves.toEqual([]);
+            expect(validClient.getNarrativeDocumentVersions).toHaveBeenCalledWith('com.example', 'sad', 42);
+        });
+
+        it('preserves files and manifest when a later narrative entry fails the scan', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+                missing: { path: 'files/missing.md', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            });
+            const before = await readFile(path.join(bundlePath, 'workspace-manifest.json'), 'utf8');
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            await expect(bumpWorkspace(bundlePath, client, { increment: 'MINOR' })).rejects.toThrow(/file not found/);
+
+            expect(client.getNarrativeDocumentVersion).toHaveBeenCalled();
+            expect(await readFile(path.join(bundlePath, 'workspace-manifest.json'), 'utf8')).toBe(before);
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
+        });
+
+        it('fails narrative checks when Hub version retrieval fails', async () => {
+            await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const client = makeClient({ narrativeVersions: ['1.0.0'] });
+            (client.getNarrativeDocumentVersion as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('Hub unavailable'));
+
+            await expect(detectChangedResources(bundlePath, client)).rejects.toThrow(/Hub unavailable/);
+        });
+
+        it('checks narrative documents concurrently and returns changes in manifest order', async () => {
+            await writeFile(path.join(filesPath, 'first.md'), '---\ntitle: First\n---\n# First changed');
+            await writeFile(path.join(filesPath, 'second.md'), '---\ntitle: Second\n---\n# Second changed');
+            await saveManifest(bundlePath, {
+                first: {
+                    path: 'files/first.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 41, calmHubId: '/api/calm/namespaces/com.example/documents/sad/41/versions/1.0.0',
+                },
+                second: {
+                    path: 'files/second.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const releaseFirst = deferred();
+            const releaseSecond = deferred();
+            const secondCompleted = deferred();
+            const client = makeClient();
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 41) {
+                    firstEntered.resolve();
+                    await releaseFirst.promise;
+                } else {
+                    secondEntered.resolve();
+                    await releaseSecond.promise;
+                }
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getNarrativeDocumentVersion).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 42) secondCompleted.resolve();
+                return { documentMarkdown: '# Published' };
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            releaseSecond.resolve();
+            await secondCompleted.promise;
+            releaseFirst.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'first' }, { id: 'second' }]);
+        });
+
+        it('checks mapping documents concurrently', async () => {
+            await write('first.json', { $id: idAt('first', '1.0.0'), title: 'First changed' });
+            await write('second.json', { $id: idAt('second', '1.0.0'), title: 'Second changed' });
+            await saveManifest(bundlePath, {
+                first: { path: 'files/first.json', type: 'architecture' },
+                second: { path: 'files/second.json', type: 'architecture' },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const releaseFirst = deferred();
+            const releaseSecond = deferred();
+            const secondCompleted = deferred();
+            const client = makeClient();
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'first') {
+                    firstEntered.resolve();
+                    await releaseFirst.promise;
+                } else {
+                    secondEntered.resolve();
+                    await releaseSecond.promise;
+                }
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getMappedResourceByVersion).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'second') secondCompleted.resolve();
+                return { $id: idAt(mappingId, '1.0.0'), title: 'Published' };
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            releaseSecond.resolve();
+            await secondCompleted.promise;
+            releaseFirst.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'first' }, { id: 'second' }]);
+        });
+
+        it('overlaps mapping and narrative Hub checks', async () => {
+            await write('architecture.json', { $id: idAt('architecture', '1.0.0'), title: 'Changed' });
+            await writeFile(path.join(filesPath, 'sad.md'), '---\ntitle: SAD\n---\n# Changed');
+            await saveManifest(bundlePath, {
+                architecture: { path: 'files/architecture.json', type: 'architecture' },
+                sad: {
+                    path: 'files/sad.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const mappingEntered = deferred();
+            const narrativeEntered = deferred();
+            const releaseMapping = deferred();
+            const releaseNarrative = deferred();
+            const client = makeClient();
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async () => {
+                mappingEntered.resolve();
+                await releaseMapping.promise;
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getMappedResourceByVersion).mockResolvedValue({
+                $id: idAt('architecture', '1.0.0'), title: 'Published',
+            });
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async () => {
+                narrativeEntered.resolve();
+                await releaseNarrative.promise;
+                return ['1.0.0'];
+            });
+            vi.mocked(client.getNarrativeDocumentVersion).mockResolvedValue({ documentMarkdown: '# Published' });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([mappingEntered.promise, narrativeEntered.promise]);
+            releaseNarrative.resolve();
+            releaseMapping.resolve();
+
+            await expect(detection).resolves.toMatchObject([{ id: 'architecture' }, { id: 'sad' }]);
+        });
+
+        it('reports the first narrative Hub failure in manifest order', async () => {
+            await writeFile(path.join(filesPath, 'first.md'), '---\ntitle: First\n---\n# First');
+            await writeFile(path.join(filesPath, 'second.md'), '---\ntitle: Second\n---\n# Second');
+            await saveManifest(bundlePath, {
+                first: {
+                    path: 'files/first.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 41, calmHubId: '/api/calm/namespaces/com.example/documents/sad/41/versions/1.0.0',
+                },
+                second: {
+                    path: 'files/second.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const firstEntered = deferred();
+            const secondEntered = deferred();
+            const failFirst = deferred<string[]>();
+            const failSecond = deferred<string[]>();
+            const client = makeClient();
+            vi.mocked(client.getNarrativeDocumentVersions).mockImplementation(async (_namespace, _type, documentId) => {
+                if (documentId === 41) {
+                    firstEntered.resolve();
+                    return failFirst.promise;
+                }
+                secondEntered.resolve();
+                return failSecond.promise;
+            });
+
+            const detection = detectChangedResources(bundlePath, client);
+            await Promise.all([firstEntered.promise, secondEntered.promise]);
+            failSecond.reject(new Error('second failure'));
+            failFirst.reject(new Error('first failure'));
+
+            await expect(detection).rejects.toThrow('first failure');
+        });
+
+        it('treats a document with no Hub versions as new and rejects missing manifest versions', async () => {
+            await writeFile(path.join(filesPath, 'payments.md'), '---\ntitle: Payments SAD\n---\n# Payments');
+            const entry = {
+                path: 'files/payments.md', type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: 42, calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+            };
+            await saveManifest(bundlePath, { payments: entry });
+            expect(await detectChangedResources(bundlePath, makeClient({ narrativeVersions: [] }))).toEqual([]);
+
+            await saveManifest(bundlePath, { payments: { ...entry, version: undefined } });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/no manifest version/);
+        });
+
+        it('fails narrative checks when a tracked path cannot be read', async () => {
+            await saveManifest(bundlePath, {
+                unreadable: { path: 'files', type: 'sad', namespace: 'com.example', version: '1.0.0' },
+            });
+            await expect(detectChangedResources(bundlePath, makeClient())).rejects.toThrow(/could not be read/);
+        });
+
+        it('detects and bumps changed narrative Markdown without rewriting it', async () => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example',
+                    version: '1.0.0', calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(changed).toHaveLength(1);
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR', preDetectedChanges: changed });
+
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.1.0');
+            expect(await readFile(path.join(filesPath, 'payments.md'), 'utf8')).toBe(markdown);
+        });
+
+        it.each([
+            ['MAJOR', '2.0.0'],
+            ['PATCH', '1.0.1'],
+        ] as const)('applies a %s bump to a changed narrative document', async (increment, version) => {
+            const markdown = '---\ntitle: Payments SAD\n---\n# Changed\n';
+            await writeFile(path.join(filesPath, 'payments.md'), markdown);
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0', calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+            const client = makeClient({ narrativeVersions: ['1.0.0'], narrativeMarkdown: markdown.replace('Changed', 'Published') });
+
+            await bumpWorkspace(bundlePath, client, { increment });
+            expect((await loadManifest(bundlePath)).payments.version).toBe(version);
+
+            expect(await bumpWorkspace(bundlePath, client, { increment })).toMatchObject({ bumped: [] });
+        });
+
         it('skips a brand-new resource with no versions in CalmHub', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
@@ -83,6 +470,41 @@ describe('bump', () => {
             }));
             expect(changed).toHaveLength(1);
             expect(changed[0]).toMatchObject({ id: 'a', currentVersion: '1.0.0', latestHubVersion: '1.0.0' });
+        });
+
+        it('detects a flow changed on disk relative to CalmHub', async () => {
+            await write('f.json', { ...flowAt('1.0.0'), description: 'edited' });
+            await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
+            const client = makeClient({
+                versions: { f: ['1.0.0'] },
+                remote: { 'f@1.0.0': flowAt('1.0.0') },
+            });
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(client.getMappedResourceVersions).toHaveBeenCalledWith('com.example', 'f', 'flows');
+            expect(changed).toHaveLength(1);
+            expect(changed[0]).toMatchObject({ id: 'f', currentVersion: '1.0.0', latestHubVersion: '1.0.0' });
+        });
+
+        it('resolves latestHubVersion to the highest release, not a snapshot ranked higher', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const changed = await detectChangedResources(bundlePath, makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            }));
+            expect(changed[0]).toMatchObject({ latestHubVersion: '1.0.0' });
+        });
+
+        it('skips a modified snapshot version — no bump is ever required for it', async () => {
+            await write('a.json', { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.1.0-SNAPSHOT': { $id: idAt('a', '1.1.0-SNAPSHOT'), title: 'A' } },
+            });
+            const changed = await detectChangedResources(bundlePath, client);
+            expect(changed).toHaveLength(0);
+            expect(client.getMappedResourceVersions).not.toHaveBeenCalled();
         });
 
         it('warns and skips a doc with an unmappable $id', async () => {
@@ -122,6 +544,125 @@ describe('bump', () => {
     });
 
     describe('bumpWorkspace', () => {
+        it('loads and saves the manifest once for a batch of narrative updates', async () => {
+            const entry = (name: string, documentId: number) => ({
+                path: `files/${name}.md`, type: 'sad' as const, namespace: 'com.example', version: '1.0.0',
+                calmHubDocumentId: documentId,
+                calmHubId: `/api/calm/namespaces/com.example/documents/sad/${documentId}/versions/1.0.0`,
+            });
+            await writeFile(path.join(filesPath, 'payments.md'), '# Payments');
+            await writeFile(path.join(filesPath, 'orders.md'), '# Orders');
+            await saveManifest(bundlePath, { payments: entry('payments', 42), orders: entry('orders', 43) });
+            vi.mocked(loadManifest).mockClear();
+            vi.mocked(saveManifest).mockClear();
+
+            const result = await bumpWorkspace(bundlePath, makeClient(), {
+                increment: 'MINOR',
+                preDetectedChanges: [
+                    { id: 'payments', kind: 'narrative', filePath: path.join(filesPath, 'payments.md'), currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+                    { id: 'orders', kind: 'narrative', filePath: path.join(filesPath, 'orders.md'), currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+                ],
+            });
+
+            expect(result.bumped.map(({ id, toVersion }) => ({ id, toVersion }))).toEqual([
+                { id: 'payments', toVersion: '1.1.0' },
+                { id: 'orders', toVersion: '1.1.0' },
+            ]);
+            expect(saveManifest).toHaveBeenCalledTimes(1);
+            expect(saveManifest).toHaveBeenCalledWith(bundlePath, expect.objectContaining({
+                payments: expect.objectContaining({ version: '1.1.0' }),
+                orders: expect.objectContaining({ version: '1.1.0' }),
+            }));
+            const saveCallOrder = vi.mocked(saveManifest).mock.invocationCallOrder[0];
+            const updatePhaseLoads = vi.mocked(loadManifest).mock.invocationCallOrder.filter(order => order < saveCallOrder);
+            expect(updatePhaseLoads).toHaveLength(1);
+        });
+
+        it('does not save a partially validated narrative batch', async () => {
+            await writeFile(path.join(filesPath, 'payments.md'), '# Payments');
+            await saveManifest(bundlePath, {
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+                architecture: { path: 'files/a.json', type: 'architecture' },
+            });
+            vi.mocked(loadManifest).mockClear();
+            vi.mocked(saveManifest).mockClear();
+
+            await expect(bumpWorkspace(bundlePath, makeClient(), {
+                increment: 'MINOR',
+                preDetectedChanges: [
+                    { id: 'payments', kind: 'narrative', filePath: path.join(filesPath, 'payments.md'), currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+                    { id: 'architecture', kind: 'narrative', filePath: path.join(filesPath, 'a.json'), currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+                ],
+            })).rejects.toThrow(/no longer a narrative manifest entry/);
+
+            expect(loadManifest).toHaveBeenCalledTimes(1);
+            expect(saveManifest).not.toHaveBeenCalled();
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.0.0');
+        });
+
+        it('does not save the manifest update phase for mapping-only changes', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { a: { path: 'files/a.json', type: 'architecture' } });
+            vi.mocked(saveManifest).mockClear();
+
+            const result = await bumpWorkspace(bundlePath, makeClient(), {
+                increment: 'MINOR',
+                preDetectedChanges: [{
+                    id: 'a', kind: 'mapping', filePath: path.join(filesPath, 'a.json'),
+                    currentVersion: '1.0.0', latestHubVersion: '1.0.0', hubVersions: ['1.0.0'],
+                    metadata: {
+                        rawDocumentId: idAt('a', '1.0.0'), baseUrl: BASE, name: 'A',
+                        namespace: 'com.example', type: 'architectures', mapping: 'a', version: '1.0.0',
+                    },
+                }],
+            });
+
+            expect(saveManifest).not.toHaveBeenCalled();
+            expect(result.bumped).toEqual([
+                expect.objectContaining({ id: 'a', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+            ]);
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('preserves result order and updates both document kinds in a mixed batch', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await writeFile(path.join(filesPath, 'payments.md'), '# Payments');
+            await saveManifest(bundlePath, {
+                a: { path: 'files/a.json', type: 'architecture' },
+                payments: {
+                    path: 'files/payments.md', type: 'sad', namespace: 'com.example', version: '1.0.0',
+                    calmHubDocumentId: 42,
+                    calmHubId: '/api/calm/namespaces/com.example/documents/sad/42/versions/1.0.0',
+                },
+            });
+
+            const result = await bumpWorkspace(bundlePath, makeClient(), {
+                increment: 'MINOR',
+                preDetectedChanges: [
+                    {
+                        id: 'a', kind: 'mapping', filePath: path.join(filesPath, 'a.json'),
+                        currentVersion: '1.0.0', latestHubVersion: '1.0.0', hubVersions: ['1.0.0'],
+                        metadata: {
+                            rawDocumentId: idAt('a', '1.0.0'), baseUrl: BASE, name: 'A',
+                            namespace: 'com.example', type: 'architectures', mapping: 'a', version: '1.0.0',
+                        },
+                    },
+                    { id: 'payments', kind: 'narrative', filePath: path.join(filesPath, 'payments.md'), currentVersion: '1.0.0', latestHubVersion: '1.0.0' },
+                ],
+            });
+
+            expect(result.bumped.map(({ id, toVersion }) => ({ id, toVersion }))).toEqual([
+                { id: 'a', toVersion: '1.1.0' },
+                { id: 'payments', toVersion: '1.1.0' },
+            ]);
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+            expect((await loadManifest(bundlePath)).payments.version).toBe('1.1.0');
+        });
+
         it('bumps a changed doc by one MINOR increment relative to the latest hub version', async () => {
             await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
             await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
@@ -136,6 +677,22 @@ describe('bump', () => {
                 expect.objectContaining({ id: 'a', fromVersion: '1.0.0', toVersion: '1.1.0' }),
             ]);
             expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('bumps a changed flow, keeps its name and does not add a title', async () => {
+            await write('f.json', { ...flowAt('1.0.0'), description: 'edited' });
+            await saveManifest(bundlePath, { 'f': { path: 'files/f.json', type: 'flow' } });
+            const client = makeClient({
+                versions: { f: ['1.0.0'] },
+                remote: { 'f@1.0.0': flowAt('1.0.0') },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped).toEqual([
+                expect.objectContaining({ id: 'f', fromVersion: '1.0.0', toVersion: '1.1.0' }),
+            ]);
+            expect(await read('f.json')).toEqual({ ...flowAt('1.1.0'), description: 'edited' });
         });
 
         it('does not inject an empty description into a document that never had one', async () => {
@@ -222,6 +779,119 @@ describe('bump', () => {
             expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
             expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
             expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('warns when the bumped version would delete its snapshot in CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Pushing \'a\' 1.1.0 deletes 1.1.0-SNAPSHOT'));
+        });
+
+        it('does not warn when no snapshot of the bumped version exists', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'PATCH' });
+
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.0.1'));
+            expect(logger.warn).not.toHaveBeenCalled();
+        });
+
+        it('warns when a cascade bump would delete a snapshot in CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], b: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' }, 'b@1.0.0': bDoc },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Pushing \'b\' 1.1.0 deletes 1.1.0-SNAPSHOT'));
+        });
+
+        it('still cascade-bumps when CalmHub cannot be checked for a snapshot', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'b') throw new Error('hub down');
+                return ['1.0.0'];
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Could not check CalmHub for a snapshot of \'b\' 1.1.0: hub down'));
+        });
+
+        it('does not strip -SNAPSHOT from a cascade candidate, leaving it mutable but relinked', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.5.0-SNAPSHOT'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped).toHaveLength(1);
+            expect(result.bumped[0]).toMatchObject({ id: 'a', fromVersion: '1.0.0', toVersion: '1.1.0' });
+            const updatedB = await read('b.json');
+            expect(updatedB.$id).toBe(idAt('b', '1.5.0-SNAPSHOT'));
+            expect(updatedB.nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('does not relink a release document to a snapshot during an unrelated bump', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await write('x.json', { $id: idAt('x', '1.1.0-SNAPSHOT'), title: 'X' });
+            const yDoc = { $id: idAt('y', '1.0.0'), title: 'Y', nodes: [{ $ref: idAt('x', '1.0.0') }] };
+            await write('y.json', yDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'x': { path: 'files/x.json', type: 'architecture' },
+                'y': { path: 'files/y.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], x: ['1.0.0'], y: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' }, 'y@1.0.0': yDoc },
+            });
+
+            const result = await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect(result.bumped.map(b => b.id)).toEqual(['a']);
+            expect(await read('y.json')).toEqual(yDoc);
         });
 
         it('cascades through a three-level chain in one call', async () => {

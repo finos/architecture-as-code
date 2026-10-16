@@ -24,6 +24,13 @@ docker compose --profile readonly-static up
 docker compose --profile readonly-native up
 ```
 
+The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas from
+`calm-hub/target/calm-schemas/release`. Make it first, from the repository root:
+
+```shell
+npm ci && npm run calm-hub:copy-schemas
+```
+
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
@@ -57,7 +64,7 @@ CalmHub will install and build the frontend every time you run it by default.
 This takes a while and can be rather tedious for backend-only work.
 
 The `server-only` Maven profile skips the whole frontend stage — Node/npm download,
-the monorepo `npm install`, and the calm-hub-ui build:
+the monorepo `npm install`, the CALM meta-schema copy, and the calm-hub-ui build:
 
 ```shell
 ../mvnw -Pserver-only package
@@ -85,6 +92,10 @@ So on a fresh clone, `-Pserver-only` produces a jar/dev server with **no UI at a
 was last built. Never use `-Pserver-only` for a release, Docker image, or CI build that
 needs to ship the UI.
 
+`-Pserver-only` and `-Dskip.npm` also skip the copy of the CALM meta-schemas from npm
+into `target/calm-schemas`. After `mvn clean`, the jar has no bundled meta-schemas, and
+GitHub storage mode serves none from `/calm/schemas`.
+
 ### Storage Modes
 
 Calm Hub supports two different storage modes:
@@ -110,12 +121,15 @@ java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 ```
 
 > **Note:** In dev mode use `-Pstandalone` (the Maven profile), not `-Dquarkus.profile=standalone`.
-> The `quarkus-maven-plugin` forks a separate JVM for dev mode and does not reliably propagate
-> `-D` flags from the Maven CLI into that process; the Maven profile `standalone` configures the
-> plugin's own `systemProperties` so `quarkus.profile=standalone` reaches the running app.
-> The `standalone` Quarkus profile activates `calm.database.mode=standalone` and suppresses
-> MongoDB health-checks and dev-services. For production (`java -jar …`) the JVM flag
-> `-Dquarkus.profile=standalone` is passed directly to the process and works as expected.
+> Dev mode does not apply a `quarkus.profile` set with `-D` on the Maven command line; the Maven
+> profile `standalone` sets it through the plugin's own `systemProperties`, so it reaches the
+> running app. Other `-D` flags reach the app as usual.
+> The `standalone` Quarkus profile activates `calm.database.mode=standalone`, suppresses
+> MongoDB health-checks and turns off all dev services, so standalone dev mode needs no Docker.
+> To start the Grafana LGTM observability dev service, add `-Dquarkus.devservices.enabled=true`
+> (needs Docker). OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
+> For production (`java -jar …`) the JVM flag `-Dquarkus.profile=standalone` is passed directly
+> to the process and works as expected.
 
 ### Mongo Database Startup
 

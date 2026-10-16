@@ -1,0 +1,184 @@
+{
+  "controlId": 30,
+  "name": "sdlc-prev-012-deployment-gating",
+  "description": "Deployment gating blocks promotion of software to the target environment when defined control criteria are not met.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-012-deployment-gating/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-012 Deployment Gating",
+      "name": "Deployment Gating",
+      "description": "Deployment gating blocks promotion of software to the target environment when defined control criteria are not met.",
+      "control-id": "SDLC-PREV-012",
+      "category": "RELEASE",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-12_deployment-gating.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 12,
+        "control-type": "PREV",
+        "phase": "RELEASE",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-SEC-004",
+          "name": "Vulnerable Software in Production",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-4_vulnerable-software-in-production.html"
+        },
+        {
+          "id": "SDLC-SEC-009",
+          "name": "Environment Breach",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-9_environment-breach.html"
+        }
+      ],
+      "related-controls": [
+        {
+          "id": "SDLC-PREV-005",
+          "name": "Vulnerability Scanning - SAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-5_vulnerability-scanning-sast.html"
+        },
+        {
+          "id": "SDLC-PREV-006",
+          "name": "Vulnerability Scanning - DAST",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-6_vulnerability-scanning-dast.html"
+        },
+        {
+          "id": "SDLC-PREV-007",
+          "name": "Vulnerability Scanning - Dependencies",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-7_vulnerability-scanning-dependencies.html"
+        },
+        {
+          "id": "SDLC-PREV-010",
+          "name": "Secret Detection",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-10_secret-detection.html"
+        },
+        {
+          "id": "SDLC-PREV-011",
+          "name": "Vulnerability Remediation SLAs",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-11_vulnerability-remediation-slas.html"
+        },
+        {
+          "id": "SDLC-PREV-015",
+          "name": "Testing Requirements",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-15_testing-requirements.html"
+        },
+        {
+          "id": "SDLC-PREV-016",
+          "name": "Test Execution and Sign-Off",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-16_test-execution.html"
+        },
+        {
+          "id": "SDLC-PREV-014",
+          "name": "Test Evidence Retention",
+          "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-14_test-evidence.html"
+        }
+      ],
+      "details": [
+        "Deployment gating enforces policy-based decisions at the point of deployment to ensure that only software meeting defined control criteria is promoted to production. Gates evaluate the posture of an artefact against the organisation's defined policies and block deployment when criteria are not met. Without deployment gates, other controls in the catalog are advisory only, and non-compliant software may reach the target environment despite known issues. In regulated financial services environments, deployment gating provides auditable evidence that organisational policy was enforced at every release."
+      ],
+      "requirements": [
+        "Deployment gating policies MUST be defined to specify which conditions block deployment, based on the organisation's risk appetite and regulatory requirements",
+        "Gating policies MUST be configurable per application or service to allow organisations to tailor risk thresholds (e.g., stricter policies for internet-facing applications, adjusted thresholds for internal tools)",
+        "A documented override and emergency deployment process MUST exist for situations where deployment is critical despite unmet gate conditions. Overrides MUST require approval from an appropriate authority, include documented justification, and be time-bound",
+        "Overrides MUST be logged and auditable, including who approved, the justification, and the conditions that were bypassed",
+        "Gate evaluation results — including pass/fail status, which checks were evaluated, and any overrides — MUST be retained as part of the deployment record",
+        "Gating policies MUST be reviewed and updated at least annually, or when significant changes to the threat landscape, regulatory requirements, or technology stack occur"
+      ],
+      "examples": [
+        "Policy Examples: An organisation might define the following deployment gates: no new critical or high SAST findings; no critical CVEs in dependencies without an approved waiver; DAST scan completed within the last 14 days; no secrets detected in the codebase. The specific policies will vary by organisation and risk appetite",
+        "Pipeline Enforcement: Implement gates as required steps in the CI/CD pipeline. For example, a deployment job queries the vulnerability management platform for the artefact's security posture and proceeds only if all gate conditions are satisfied",
+        "Graduated Policies: Apply different gate strictness by environment and application criticality. A development environment might allow deployment with medium findings, while production for a customer-facing application blocks on anything high or above",
+        "Emergency Overrides: Define an emergency deployment process for genuinely urgent situations (e.g., a critical production outage fix). The override should require real-time approval from a security lead or on-call manager, be time-limited, and automatically create a follow-up ticket to address the bypassed condition",
+        "Visibility & Feedback: When a deployment is blocked, provide clear and actionable feedback to the engineering team: which gate failed, what findings caused the failure, and what actions are needed to proceed. Poor feedback loops lead to frustration and incentivise workarounds",
+        "Relationship to Remediation SLAs: Deployment gating works hand-in-hand with Remediation SLAs (SDLC-PREV-011 (https://finos.github.io/sdlc-common-controls/mitigations/mi-11_vulnerability-remediation-slas.html)). SLAs define *when* findings must be remediated; gates enforce that deployments cannot proceed when those timelines are breached. For example, a high-severity SAST finding with a 7-day SLA may not block deployment on day 1, but will block it on day 8 if unresolved"
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "ra-5",
+            "title": "RA-5 Vulnerability Monitoring and Scanning",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A797%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C594.0%2C0%5D"
+          },
+          {
+            "id": "si-2",
+            "title": "SI-2 Flaw Remediation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1070%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C720.0%2C0%5D"
+          },
+          {
+            "id": "cm-3",
+            "title": "CM-3 Configuration Change Control",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A366%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C205.0%2C0%5D"
+          },
+          {
+            "id": "cm-4",
+            "title": "CM-4 Impact Analyses",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A375%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C509.0%2C0%5D"
+          },
+          {
+            "id": "sa-11",
+            "title": "SA-11 Developer Testing and Evaluation",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A899%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C601.0%2C0%5D"
+          },
+          {
+            "id": "ca-2",
+            "title": "CA-2 Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#page=111"
+          }
+        ],
+        "links": [
+          {
+            "title": "NIST SP 800-53r5 CM-3: Configuration Change Control",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 CM-4: Impact Analyses",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "NIST SP 800-53r5 CA-2: Control Assessments",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf"
+          },
+          {
+            "title": "OWASP DevSecOps Guideline",
+            "url": "https://owasp.org/www-project-devsecops-guideline/"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          },
+          {
+            "title": "FFIEC IT Handbook - Information Security",
+            "url": "https://ithandbook.ffiec.gov/"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-012"
+        },
+        "name": {
+          "const": "Deployment Gating"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

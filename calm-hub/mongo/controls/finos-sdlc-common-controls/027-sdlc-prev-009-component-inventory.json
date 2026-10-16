@@ -1,0 +1,125 @@
+{
+  "controlId": 27,
+  "name": "sdlc-prev-009-component-inventory",
+  "description": "Component inventory provides visibility and traceability and enables fast response by maintaining an accurate, machine-readable record of what is actually shipped in each artifact.",
+  "requirement": {
+    "1-0-0": {
+      "$schema": "https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0",
+      "$id": "https://hub.calm.finos.org/calm/domains/finos-sdlc-common-controls/controls/sdlc-prev-009-component-inventory/requirement/versions/1.0.0",
+      "title": "SDLC-PREV-009 Component Inventory",
+      "name": "Component Inventory",
+      "description": "Component inventory provides visibility and traceability and enables fast response by maintaining an accurate, machine-readable record of what is actually shipped in each artifact.",
+      "control-id": "SDLC-PREV-009",
+      "category": "BUILD",
+      "source": "FINOS SDLC Common Controls Catalog",
+      "url": "https://finos.github.io/sdlc-common-controls/mitigations/mi-9-component-inventory.html",
+      "catalog": {
+        "repository": "https://github.com/finos/sdlc-common-controls",
+        "revision": "748449af280e50ef1a9fb0d32d369b79f3526e89",
+        "revision-date": "2026-09-30",
+        "sequence": 9,
+        "control-type": "PREV",
+        "phase": "BUILD",
+        "status": "Draft"
+      },
+      "mitigates": [
+        {
+          "id": "SDLC-OP-007",
+          "name": "Configuration Drift",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-7_configuration-drift.html"
+        },
+        {
+          "id": "SDLC-SEC-010",
+          "name": "Dependency and Transitive Supply Chain Compromise",
+          "url": "https://finos.github.io/sdlc-common-controls/risks/ri-10_dependency-and-transitive-supply-chain-compromise.html"
+        }
+      ],
+      "details": [
+        "Component inventory is the practice of identifying and cataloguing all third-party components (libraries, packages, modules) that are included in a software artifact — i.e. what is actually shipped. This includes direct and transitive dependencies. The output is typically a Software Bill of Materials (SBOM) in a standard format such as SPDX or CycloneDX.",
+        "The inventory provides visibility and traceability and enables fast response: you know what you ship (visibility), you can trace components to artifacts (traceability), and when a vulnerability is disclosed, a license concern arises, or another issue surfaces, you can query the inventory to see which artifacts are affected and respond quickly. Additional analysis (e.g. vulnerability scanning, license compliance) adds further value by enabling prevention before issues reach production. Extraction from the actual artifact (container image, binary, filesystem) rather than from declarations alone enables detection of discrepancies between what is declared and what is present."
+      ],
+      "requirements": [
+        "The output MUST be a structured, machine-readable SBOM (e.g. SPDX or CycloneDX).",
+        "The inventory MUST include direct and transitive dependencies with version and provenance information where available.",
+        "The SBOM MUST be produced for each releasable artifact."
+      ],
+      "examples": [
+        "No releasable artifact should be deployed without a corresponding component inventory (SBOM); this complements Software Artifact Provenance (SDLC-PREV-003 (https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html)), which establishes build-level provenance, by providing component-level visibility and traceability.",
+        "Automated extraction from the artifact plus a machine-readable manifest (SBOM) together provide full coverage. Extraction (e.g. automated binary scan) can be compared to declared dependencies to identify discrepancies; the manifest records what is in each artifact so you can query it when issues arise (e.g. which artifacts contain a given component).",
+        "When a new CVE is published (e.g. Log4Shell), query the inventory across all artifacts to identify which contain the affected component and version; without an inventory, manual inspection or waiting for a scan would be required — with SBOMs, remediation can be prioritised and executed within hours.",
+        "Use the inventory for license compliance: an SBOM listing components with their licenses allows automated checks before deployment; any artifact containing a prohibited license can be flagged or blocked.",
+        "Implement deployment gates that verify an artifact has a valid SBOM before allowing promotion to production; the SBOM can be stored alongside provenance records (SDLC-PREV-003 (https://finos.github.io/sdlc-common-controls/mitigations/mi-3_software-artifact-provenance.html)) or in a dedicated SBOM store.",
+        "Tools exist to extract components from container images or filesystems, or to generate SBOMs from the build; the SBOM is the input for vulnerability scanning and license compliance checks.",
+        "The SBOM MAY include recommended elements (e.g. component name, version, PURL, CPE, license info, file hashes) to support faster response and downstream analysis."
+      ],
+      "references": {
+        "nist-sp-800-53r5": [
+          {
+            "id": "cm-8",
+            "title": "CM-8 System Component Inventory",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A393%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C197.0%2C0%5D"
+          },
+          {
+            "id": "sr-4",
+            "title": "SR-4 Provenance",
+            "url": "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf#%5B%7B%22num%22%3A1169%2C%22gen%22%3A0%7D%2C%7B%22name%22%3A%22XYZ%22%7D%2C88.0%2C257.0%2C0%5D"
+          }
+        ],
+        "links": [
+          {
+            "title": "NTIA Minimum Elements for an SBOM",
+            "url": "https://www.ntia.gov/report/2021/minimum-elements-software-bill-materials-sbom"
+          },
+          {
+            "title": "OWASP SCVS V2: SBOM Requirements",
+            "url": "https://scvs.owasp.org/scvs/v2-software-bill-of-materials/"
+          },
+          {
+            "title": "CycloneDX Specification",
+            "url": "https://cyclonedx.org/specification/overview/"
+          },
+          {
+            "title": "SPDX Specification",
+            "url": "https://spdx.github.io/spdx-spec/"
+          },
+          {
+            "title": "CISA SBOM Guide",
+            "url": "https://www.cisa.gov/sbom"
+          },
+          {
+            "title": "CRA Regulation (EU) 2024/2847",
+            "url": "https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:02024R2847-20241120"
+          },
+          {
+            "title": "NIST SSDF SP 800-218",
+            "url": "https://csrc.nist.gov/pubs/sp/800/218/final"
+          }
+        ]
+      },
+      "type": "object",
+      "allOf": [
+        {
+          "$ref": "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+        }
+      ],
+      "properties": {
+        "control-id": {
+          "const": "SDLC-PREV-009"
+        },
+        "name": {
+          "const": "Component Inventory"
+        },
+        "description": {
+          "type": "string",
+          "description": "How this architecture meets the control: what is in place and where it is enforced."
+        }
+      },
+      "required": [
+        "control-id",
+        "name",
+        "description"
+      ]
+    }
+  },
+  "configurations": []
+}

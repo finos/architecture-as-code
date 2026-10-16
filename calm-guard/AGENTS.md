@@ -187,7 +187,7 @@ OPENAI_API_KEY=                 # OpenAI (optional)
 
 ## Important References
 
-- CALM Schema 1.2: https://github.com/finos/architecture-as-code/tree/main/calm/release/1.2
+- CALM Schema 1.2: https://github.com/finos/calm-schema/tree/v1.2/schema
 - CALM CLI: https://github.com/finos/architecture-as-code/tree/main/cli
 - CALM AI module: https://github.com/finos/architecture-as-code/tree/main/calm-ai
 - Vercel AI SDK: https://sdk.vercel.ai/docs
@@ -196,7 +196,6 @@ OPENAI_API_KEY=                 # OpenAI (optional)
 
 ## Git Workflow
 
-- Always commit with `git commit -s` (signs off with user's identity via DCO)
 - Claude should commit on the user's behalf — do not defer commits to the user
 
 ## Learnings

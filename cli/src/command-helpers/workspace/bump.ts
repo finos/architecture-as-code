@@ -1,19 +1,35 @@
 import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
-import { loadManifest, resolveFilePath } from './bundle';
-import { buildRefRulesFromDiskIds, syncReferences, RefUpdateResult } from './ref-rewrite';
+import {
+    loadManifest,
+    resolveFilePath,
+    saveManifest,
+    type MappingWorkspaceManifestEntry,
+    type NarrativeWorkspaceManifestEntry,
+} from './bundle';
+import { buildRefRulesFromDiskIds, syncReferences, partitionBySnapshot, isSnapshotRule, RefUpdateResult } from './ref-rewrite';
 import {
     CalmHubClient,
     ResourceChangeType,
     DocumentMetadata,
     extractDocumentMetadata,
     constructDocumentId,
+    documentNameField,
     computeSemVerBump,
-    sortSemVer,
+    latestReleaseVersion,
     canonicalEqual,
+    isSnapshotVersion,
+    toSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
+import { narrativeMarkdownEqual, resolveNarrativeEntry, validateNarrativeDocumentLocation } from './narrative-document';
+import {
+    dispatchWorkspaceManifestEntry,
+    resolveWorkspaceManifestEntry,
+    type ResolvedWorkspaceManifestEntry,
+    type WorkspaceManifestEntryOperations,
+} from './document-kind';
 
 // Re-exported for existing consumers (push.ts, tests) that import it from here.
 export { canonicalEqual };
@@ -21,7 +37,7 @@ export { canonicalEqual };
 const logger: Logger = initLogger(false, 'workspace');
 
 /**
- * Rewrites `$id`/`title` for a version bump without the empty-description default that
+ * Rewrites `$id` and the name field for a version bump without the empty-description default that
  * `updateDocumentMetadata` applies for CalmHub push normalisation (see hub-commands.ts, where it
  * mirrors how CalmHub stores a description-less document). Workspace documents are pushed raw
  * (see push.ts) and validated locally, so injecting `description: ''` into a document that never
@@ -29,24 +45,30 @@ const logger: Logger = initLogger(false, 'workspace');
  *
  * Unlike `updateDocumentMetadata` this parses/stringifies the document exactly once and only
  * touches `description` when it was already present, leaving description-less documents untouched.
+ *
+ * Exported for reuse by `snapshot.ts`, which applies the same `$id`/`title`/`description` rewrite
+ * when marking a document as a snapshot or releasing one.
  */
-function bumpDocumentContent(raw: string, metadata: DocumentMetadata): string {
+export function applyVersionToDocument(raw: string, metadata: DocumentMetadata): string {
     const json = JSON.parse(raw);
     json['$id'] = constructDocumentId(metadata);
-    json['title'] = metadata.name;
+    json[documentNameField(json, metadata.type)] = metadata.name;
     if (Object.prototype.hasOwnProperty.call(json, 'description')) {
         json['description'] = metadata.description ?? '';
     }
     return JSON.stringify(json, null, 2);
 }
 
-export interface ChangedResource {
+interface ChangedResourceBase {
     id: string;
     filePath: string;
-    metadata: DocumentMetadata;
     currentVersion: string;
     latestHubVersion: string;
 }
+
+export type ChangedResource =
+    | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata; hubVersions: string[] })
+    | (ChangedResourceBase & { kind: 'narrative' });
 
 export interface BumpResult {
     bumped: Array<{ id: string; filePath: string; fromVersion: string; toVersion: string; triggeredBy?: string; increment?: ResourceChangeType }>;
@@ -65,6 +87,28 @@ export interface BumpOptions {
     getCascadeIncrement?: (docId: string, triggeredBy: string, defaultIncrement: ResourceChangeType) => Promise<ResourceChangeType>;
 }
 
+interface DetectChangedEntryContext {
+    client: CalmHubClient;
+    filePath: string;
+    id: string;
+    raw: string;
+}
+
+type DetectChangedEntryCheck = () => Promise<ChangedResource | undefined>;
+
+const DETECT_CHANGED_ENTRY_OPERATIONS = {
+    mapping: prepareChangedMappingEntry,
+    narrative: prepareChangedNarrativeEntry,
+} satisfies WorkspaceManifestEntryOperations<DetectChangedEntryCheck | undefined, [DetectChangedEntryContext]>;
+
+/** CalmHub deletes `V-SNAPSHOT` when `V` is published, and cannot restore it. */
+function warnIfSnapshotDeleted(id: string, hubVersions: string[], toVersion: string): void {
+    const snapshot = toSnapshotVersion(toVersion);
+    if (hubVersions.includes(snapshot)) {
+        logger.warn(`Pushing '${id}' ${toVersion} deletes ${snapshot} in CalmHub. Use a different increment unless you mean to release that snapshot.`);
+    }
+}
+
 /** Returns the highest-priority increment from a list (MAJOR > MINOR > PATCH). */
 export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeType {
     if (increments.includes('MAJOR')) return 'MAJOR';
@@ -78,6 +122,8 @@ export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeTy
  *
  * Per document (identity comes from the `$id`):
  *  - unmappable `$id` → warn and skip
+ *  - on-disk version is a `-SNAPSHOT` → skip; it's mutable, `workspace push` overwrites it in
+ *    place and no bump is ever required
  *  - no versions in CalmHub (brand-new resource) → skip (push will create it; nothing to bump)
  *  - on-disk version not present in CalmHub → skip — it is already ahead (bumped, not yet pushed);
  *    this is the idempotency guard that prevents a second bump from incrementing again
@@ -88,66 +134,136 @@ export async function detectChangedResources(
     client: CalmHubClient
 ): Promise<ChangedResource[]> {
     const manifest = await loadManifest(bundlePath);
-    const changed: ChangedResource[] = [];
+    const checks: DetectChangedEntryCheck[] = [];
+    let preparationFailure: { reason: unknown } | undefined;
+    const unsupportedFailures: string[] = [];
 
     for (const [id, entry] of Object.entries(manifest)) {
-        const filePath = resolveFilePath(bundlePath, entry.path);
-        if (!existsSync(filePath)) {
-            logger.warn(`File not found for id '${id}': ${filePath}`);
-            continue;
-        }
-
-        let raw: string;
+        let document: ResolvedWorkspaceManifestEntry;
         try {
-            raw = await readFile(filePath, 'utf8');
-        } catch (e) {
-            logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+            document = resolveWorkspaceManifestEntry(entry);
+        } catch (reason) {
+            unsupportedFailures.push(`${id}: ${reason instanceof Error ? reason.message : String(reason)}`);
             continue;
         }
-
-        let metadata: DocumentMetadata;
         try {
-            metadata = extractDocumentMetadata(raw);
-        } catch (e) {
-            logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
-            continue;
-        }
-        if (!metadata.namespace) {
-            logger.warn(`Skipping '${id}': document $id has no namespace.`);
-            continue;
-        }
+            const filePath = resolveFilePath(bundlePath, entry.path);
+            if (!existsSync(filePath)) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' file not found: ${filePath}`);
+                logger.warn(`File not found for id '${id}': ${filePath}`);
+                continue;
+            }
 
+            let raw: string;
+            try {
+                raw = await readFile(filePath, 'utf8');
+            } catch (e) {
+                if (document.handler.unreadableFile === 'fail') throw new Error(`Narrative document '${id}' could not be read: ${e instanceof Error ? e.message : String(e)}`);
+                logger.warn(`Failed to read file for id '${id}': ${e instanceof Error ? e.message : String(e)}`);
+                continue;
+            }
+
+            const check = dispatchWorkspaceManifestEntry(
+                document,
+                DETECT_CHANGED_ENTRY_OPERATIONS,
+                { client, filePath, id, raw }
+            );
+            if (check) checks.push(check);
+        } catch (reason) {
+            preparationFailure = { reason };
+            break;
+        }
+    }
+
+    // Run only entries before the first local failure, then inspect results in manifest order.
+    const results = await Promise.allSettled(checks.map(check => check()));
+    const changed: ChangedResource[] = [];
+    for (const result of results) {
+        if (result.status === 'rejected') throw result.reason;
+        if (result.value) changed.push(result.value);
+    }
+    if (preparationFailure) throw preparationFailure.reason;
+    if (unsupportedFailures.length > 0) {
+        throw new Error(`Unsupported workspace entry/entries: ${unsupportedFailures.join('; ')}`);
+    }
+
+    return changed;
+}
+
+function prepareChangedNarrativeEntry(
+    entry: NarrativeWorkspaceManifestEntry,
+    context: DetectChangedEntryContext
+): DetectChangedEntryCheck | undefined {
+    const { client, filePath, id, raw } = context;
+    // Bump stops on invalid narrative state because it writes local manifest versions; push can report independent failures together.
+    const { version, identity, hubIdentityAssigned } = resolveNarrativeEntry(id, entry, raw);
+    if (!hubIdentityAssigned) return undefined;
+    validateNarrativeDocumentLocation(entry.calmHubId, identity, false);
+    return async () => {
+        const versions = await client.getNarrativeDocumentVersions(identity.namespace, identity.type, identity.calmHubDocumentId);
+        if (versions.length === 0 || !versions.includes(version)) return undefined;
+        const remote = await client.getNarrativeDocumentVersion(
+            identity.namespace, identity.type, identity.calmHubDocumentId, version
+        );
+        if (narrativeMarkdownEqual(raw, remote.documentMarkdown)) return undefined;
+        return {
+            id, filePath, currentVersion: version,
+            latestHubVersion: latestReleaseVersion(versions), kind: 'narrative',
+        };
+    };
+}
+
+function prepareChangedMappingEntry(
+    _entry: MappingWorkspaceManifestEntry,
+    context: DetectChangedEntryContext
+): DetectChangedEntryCheck | undefined {
+    const { client, filePath, id, raw } = context;
+    let metadata: DocumentMetadata;
+    try {
+        metadata = extractDocumentMetadata(raw);
+    } catch (e) {
+        logger.warn(`Skipping '${id}': not mappable to CalmHub (${e instanceof Error ? e.message : String(e)})`);
+        return undefined;
+    }
+    const namespace = metadata.namespace;
+    if (!namespace) {
+        logger.warn(`Skipping '${id}': document $id has no namespace.`);
+        return undefined;
+    }
+    if (isSnapshotVersion(metadata.version)) return undefined; // mutable; push overwrites, no bump needed
+
+    return async () => {
         let versions: string[];
         try {
-            versions = await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type);
+            versions = await client.getMappedResourceVersions(namespace, metadata.mapping, metadata.type);
         } catch (e) {
             logger.error(`Failed to fetch versions for '${id}': ${e instanceof Error ? e.message : String(e)}`);
-            continue;
+            return undefined;
         }
 
-        if (versions.length === 0) continue;                 // new resource — nothing to bump
-        if (!versions.includes(metadata.version)) continue;  // already ahead — already bumped
+        if (versions.length === 0) return undefined;                 // new resource — nothing to bump
+        if (!versions.includes(metadata.version)) return undefined;  // already ahead — already bumped
 
         let remote: object;
         try {
-            remote = await client.getMappedResourceByVersion(metadata.namespace, metadata.mapping, metadata.version, metadata.type);
+            remote = await client.getMappedResourceByVersion(namespace, metadata.mapping, metadata.version, metadata.type);
         } catch (e) {
             logger.error(`Failed to fetch '${id}' @ ${metadata.version} from CalmHub: ${e instanceof Error ? e.message : String(e)}`);
-            continue;
+            return undefined;
         }
 
-        if (canonicalEqual(JSON.parse(raw), remote)) continue; // unchanged
+        if (canonicalEqual(JSON.parse(raw), remote)) return undefined;
 
-        changed.push({
+        return {
             id,
             filePath,
             metadata,
             currentVersion: metadata.version,
-            latestHubVersion: sortSemVer(versions)[versions.length - 1],
-        });
-    }
-
-    return changed;
+            latestHubVersion: latestReleaseVersion(versions),
+            hubVersions: versions,
+            kind: 'mapping',
+        };
+    };
 }
 
 /**
@@ -171,17 +287,44 @@ export async function bumpWorkspace(
     // Tracks the actual increment used for each bumped doc, so cascade passes can inherit it.
     const appliedIncrements = new Map<string, ResourceChangeType>();
 
+    const narrativeChanges = changed.filter((change): change is Extract<ChangedResource, { kind: 'narrative' }> =>
+        change.kind === 'narrative'
+    );
+    const narrativeManifest = narrativeChanges.length > 0 ? await loadManifest(bundlePath) : undefined;
+    for (const change of narrativeChanges) {
+        const entry = narrativeManifest?.[change.id];
+        if (!entry) throw new Error(`Narrative document '${change.id}' is no longer in the manifest.`);
+        const document = resolveWorkspaceManifestEntry(entry);
+        if (document.kind !== 'narrative') {
+            throw new Error(`Narrative document '${change.id}' is no longer a narrative manifest entry.`);
+        }
+        const increment = options.perDocIncrements?.get(change.id) ?? options.increment;
+        narrativeManifest[change.id] = {
+            ...document.entry,
+            version: computeSemVerBump(change.latestHubVersion, increment),
+        };
+    }
+
     for (const c of changed) {
         const docIncrement = options.perDocIncrements?.get(c.id) ?? options.increment;
         const toVersion = computeSemVerBump(c.latestHubVersion, docIncrement);
+        if (c.kind === 'narrative') {
+            bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
+            appliedIncrements.set(c.id, docIncrement);
+            bumpedIds.add(c.id);
+            logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
+            continue;
+        }
+        warnIfSnapshotDeleted(c.id, c.hubVersions, toVersion);
         const raw = await readFile(c.filePath, 'utf8');
-        const updated = bumpDocumentContent(raw, { ...c.metadata, version: toVersion });
+        const updated = applyVersionToDocument(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
         bumped.push({ id: c.id, filePath: c.filePath, fromVersion: c.currentVersion, toVersion, increment: docIncrement });
         appliedIncrements.set(c.id, docIncrement);
         bumpedIds.add(c.id);
         logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
     }
+    if (narrativeManifest) await saveManifest(bundlePath, narrativeManifest);
 
     // Cascade: sync refs, then bump any document that was modified by the sync but not yet bumped.
     // Repeat until nothing new gets changed (fixed-point). Terminates because each iteration adds
@@ -195,7 +338,12 @@ export async function bumpWorkspace(
     for (let depth = 0; depth < MAX_CASCADE_DEPTH; depth++) {
         const manifest = await loadManifest(bundlePath);
         const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-        const refUpdates = await syncReferences(bundlePath, manifest, rules);
+        // A release is only relinked to a snapshot by snapshotting it deliberately, never by a cascade.
+        const { snapshots, releases } = await partitionBySnapshot(bundlePath, manifest);
+        const refUpdates = [
+            ...await syncReferences(bundlePath, snapshots, rules),
+            ...await syncReferences(bundlePath, releases, rules.filter(rule => !isSnapshotRule(rule))),
+        ];
         allRefUpdates.push(...refUpdates);
 
         const cascadeCandidates = refUpdates.filter(r => r.changeCount > 0 && !bumpedIds.has(r.docId));
@@ -223,8 +371,14 @@ export async function bumpWorkspace(
             try {
                 metadata = extractDocumentMetadata(raw);
             } catch {
-                // Non-CalmHub $id (flow, adr, timeline, etc.) — ref was updated but version cannot be bumped.
+                // Non-CalmHub $id (adr, timeline, etc.) — ref was updated but version cannot be bumped.
                 logger.warn(`'${candidate.docId}' references ${triggerLabel} (updated) but its $id is not a CalmHub URL; version not bumped.`);
+                bumpedIds.add(candidate.docId);
+                continue;
+            }
+
+            if (isSnapshotVersion(metadata.version)) {
+                // Already mutable; bumping would strip the suffix and promote it to a release.
                 bumpedIds.add(candidate.docId);
                 continue;
             }
@@ -234,7 +388,14 @@ export async function bumpWorkspace(
                 : cascadeDefault;
 
             const toVersion = computeSemVerBump(metadata.version, cascadeIncrement);
-            const updated = bumpDocumentContent(raw, { ...metadata, version: toVersion });
+            if (metadata.namespace) {
+                try {
+                    warnIfSnapshotDeleted(candidate.docId, await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type), toVersion);
+                } catch (e) {
+                    logger.warn(`Could not check CalmHub for a snapshot of '${candidate.docId}' ${toVersion}: ${e instanceof Error ? e.message : String(e)}`);
+                }
+            }
+            const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
             await writeFile(filePath, updated, 'utf8');
             bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion, triggeredBy: triggerLabel, increment: cascadeIncrement });
             appliedIncrements.set(candidate.docId, cascadeIncrement);

@@ -73,4 +73,35 @@ public class TestSemverShould {
     void format_as_dot_separated_string() {
         assertThat(Semver.parse("1.2.3").toString(), is("1.2.3"));
     }
+
+    @Test
+    void parse_a_snapshot_as_its_release_version() {
+        assertThat(Semver.tryParse("1.0.0-SNAPSHOT"), is(new Semver(1, 0, 0)));
+    }
+
+    @Test
+    void parse_a_dashed_snapshot_as_its_release_version() {
+        // The suffix must be removed before the '-' to '.' replacement that makes the dashed
+        // form parse. Removing it afterwards yields "1.0.0.SNAPSHOT" — four segments, which
+        // collapses to 0.0.0 and sorts lowest. That is the ADR revision 100 bug.
+        assertThat(Semver.tryParse("1-0-0-SNAPSHOT"), is(new Semver(1, 0, 0)));
+    }
+
+    @Test
+    void still_parse_the_dashed_release_form() {
+        assertThat(Semver.tryParse("1-10-0"), is(new Semver(1, 10, 0)));
+    }
+
+    @Test
+    void still_collapse_a_genuinely_unparseable_version() {
+        assertThat(Semver.tryParse("not-a-version"), is(new Semver(0, 0, 0)));
+    }
+
+    @Test
+    void accept_a_snapshot_in_the_throwing_parse() {
+        // ArchitectureTimelineService uses parse() to classify versions as semver or not.
+        // A snapshot that threw would be classified non-semver and pushed to the end of
+        // every implied timeline.
+        assertThat(Semver.parse("2.3.4-SNAPSHOT"), is(new Semver(2, 3, 4)));
+    }
 }

@@ -1,9 +1,9 @@
-import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, initLogger, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader, DocumentLoaderOptions } from '@finos/calm-shared';
+import { CALM_META_SCHEMA_DIRECTORY, DocifyMode, DiagramExportFormat, runGenerate, SchemaDirectory, TemplateProcessingMode, CalmChoice, buildDocumentLoader, DocumentLoader } from '@finos/calm-shared';
 import { Option, Command } from 'commander';
 import { version } from '../package.json';
 import { promptUserForOptions, loadChoicesFromInput } from './command-helpers/generate-options';
 import path from 'path';
-import { findWorkspaceManifestPath } from './workspace-resolver';
+import { parseDocumentLoaderConfig } from './document-loader-config';
 import { setupWorkspaceCommands } from './command-helpers/workspace/commands';
 import * as cliConfig from './cli-config';
 import { select } from '@inquirer/prompts';
@@ -26,6 +26,9 @@ import {
     runPushStandard,
     runPushInterface,
     runListInterfaces,
+    runPushFlow,
+    runPullFlow,
+    runListFlows,
     CreateDomainOptions,
     ListDomainsOptions,
     PushControlOptions,
@@ -59,6 +62,7 @@ const OPTION_CHOICES_OPTION = '--option-choices <choices>';
 // Validate command options
 const FORMAT_OPTION = '-f, --format <format>';
 const STRICT_OPTION = '--strict';
+const ASSETS_PATH_OPTION = '--assets-path <path>';
 
 // Template and Docify command options
 const BUNDLE_OPTION = '-b, --bundle <path>';
@@ -128,7 +132,7 @@ Validation requires:
         .option(TIMELINE_OPTION, 'Path to the timeline file to validate. May be a file path or a URL.')
         .option(SCHEMAS_OPTION, 'Path to the directory containing the meta schemas to use.', CALM_META_SCHEMA_DIRECTORY)
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
-        .option('--assets-path <path>', 'Local path to CALM assets directory (resolves CURIEs without a Hub)')
+        .option(ASSETS_PATH_OPTION, 'Local path to CALM assets directory for resolving detailed-architecture CURIEs without a Hub')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option(STRICT_OPTION, 'When run in strict mode, the CLI will fail if any warnings are reported.', false)
         .addOption(
@@ -218,7 +222,6 @@ Validation requires:
         .option(TEMPLATE_DIR_OPTION, 'Path to a directory of .hbs/.md templates')
         .option(URL_MAPPING_OPTION, 'Path to mapping file which maps URLs to local paths')
         .option('--scaffold', 'Copy template files without processing (for customization/live docify)', false)
-        .addOption(new Option('--ants').default(false).hideHelp())
         .addOption(new Option('--export-diagrams <format>',
             'Render mermaid diagrams to image files using a local Chromium-based browser ' +
             '(adds roughly 10-40s depending on diagram count)').choices(['svg', 'png']))
@@ -239,11 +242,6 @@ Validation requires:
 
             if (flagsUsed.length > 1) {
                 console.error('❌ Please specify only one of --template or --template-dir');
-                process.exit(1);
-            }
-
-            if (options.ants && flagsUsed.length > 0) {
-                console.error('❌ --ants cannot be combined with --template or --template-dir');
                 process.exit(1);
             }
 
@@ -275,9 +273,7 @@ Validation requires:
             let templateProcessingMode: TemplateProcessingMode = 'bundle';
             let templatePath: string | undefined = undefined;
 
-            if (options.ants) {
-                docifyMode = 'ANTS';
-            } else if (options.template) {
+            if (options.template) {
                 docifyMode = 'USER_PROVIDED';
                 templateProcessingMode = 'template';
                 templatePath = options.template;
@@ -442,6 +438,10 @@ Example:
         .description('Create or update the CALM CLI configuration file (~/.calm.json).')
         .option('--allowed-remote-hosts <hosts>', 'Comma-separated list of trusted remote hosts to allow for direct URL loading')
         .option('--calm-hub-url <url>', 'URL to a trusted file location (e.g. CALMHub) to allow for direct URL loading of CALM documents')
+        .option('--auth-plugin-path <path>', 'Path to the CALM Hub authentication plugin')
+        .option('--direct-url-auth-module <path>', 'Optional path to the direct URL authentication plugin module')
+        .option('--direct-url-auth-config-path <path>', 'Optional config path for the direct URL authentication plugin module')
+        .option('--direct-url-auth-authenticated-hosts <hosts>', 'If direct-url-auth-module is specified, this specifies a comma-separated list of hostnames requiring direct URL authentication plugin module')
         .action(async (options) => {
             const existingConfig = await cliConfig.loadCliConfig() ?? {};
 
@@ -454,6 +454,29 @@ Example:
 
             if (options.calmHubUrl) {
                 existingConfig.calmHubUrl = options.calmHubUrl;
+            }
+
+            if (options.authPluginPath) {
+                existingConfig.authPluginPath = options.authPluginPath;
+            }
+
+            if (options.directUrlAuthModule) {
+                existingConfig.directUrlAuthModule = options.directUrlAuthModule;
+            }
+
+            if (options.directUrlAuthConfigPath) {
+                existingConfig.directUrlAuthConfigPath = options.directUrlAuthConfigPath;
+            }
+
+            if (options.directUrlAuthAuthenticatedHosts) {
+                const newHosts = (options.directUrlAuthAuthenticatedHosts as string).split(',').map((host: string) => host.trim()).filter(Boolean);
+                const existingHosts = existingConfig.directUrlAuthAuthenticatedHosts ?? [];
+                existingConfig.directUrlAuthAuthenticatedHosts = [...new Set([...existingHosts, ...newHosts])];
+            }
+            
+            const directUrlAuthConfig = cliConfig.getDirectUrlAuthConfig(existingConfig);
+            if (directUrlAuthConfig) {
+                cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
             }
 
             const configPath = cliConfig.getUserConfigLocation();
@@ -564,6 +587,28 @@ Example:
                 failIfModified: options.failIfModified
             };
             await runPushInterface(pushInterfaceOptions);
+        });
+
+    hubPushCmd
+        .command('flow <flow-file>')
+        .description('Push a CALM flow file to CALM Hub. $id of document must contain a full document ID including namespace, type, mapping slug and version.')
+        .option(NAME_OPTION, 'Name for the flow in CALM Hub; overrides `name` field if set.')
+        .option(DESCRIPTION_OPTION, 'Description for the flow; overrides `description` field if set.')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .addOption(hubVersionBumpOption)
+        .addOption(hubFailIfModifiedOption)
+        .action(async (flowFile, options) => {
+            const pushFlowOptions: PushOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                name: options.name,
+                description: options.description,
+                file: flowFile,
+                format: options.format,
+                changeType: options.changeType.toUpperCase() as ResourceChangeType,
+                failIfModified: options.failIfModified
+            };
+            await runPushFlow(pushFlowOptions);
         });
 
     hubPushCmd
@@ -679,6 +724,25 @@ Example:
                 output: options.output
             };
             await runPullInterface(pullInterfaceOptions);
+        });
+
+    hubPullCmd
+        .command('flow')
+        .description('Pull a specific version of a CALM flow from CALM Hub')
+        .requiredOption(NAMESPACE_OPTION, 'Source namespace')
+        .requiredOption(MAPPING_OPTION, 'Mapping slug of the flow to pull')
+        .option(HUB_VERSION_OPTION, 'Version to retrieve')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .option(OUTPUT_OPTION, 'Write output to this file instead of stdout')
+        .action(async (options) => {
+            const pullFlowOptions: PullOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                mapping: options.mapping,
+                version: options.ver,
+                output: options.output
+            };
+            await runPullFlow(pullFlowOptions);
         });
 
     hubPullCmd
@@ -798,6 +862,21 @@ Example:
         });
 
     hubListCmd
+        .command('flows')
+        .description('List flows in a namespace')
+        .option(NAMESPACE_OPTION, 'Target namespace', 'default')
+        .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
+        .addOption(hubOutputOption)
+        .action(async (options) => {
+            const listFlowsOptions: ListOptions = {
+                calmHubOptions: { calmHubUrl: options.calmHubUrl },
+                namespace: options.namespace,
+                format: options.format
+            };
+            await runListFlows(listFlowsOptions);
+        });
+
+    hubListCmd
         .command('domains')
         .description('List all domains')
         .option(CALMHUB_URL_OPTION, 'URL to CALMHub instance')
@@ -881,70 +960,6 @@ Example:
 
     // Dev commands
     setupWorkspaceCommands(program);
-}
-
-interface ParseDocumentLoaderOptions {
-    verbose?: boolean;
-    calmHubUrl?: string;
-    schemaDirectory?: string;
-    allowedRemoteHosts?: string[];
-}
-
-export async function parseDocumentLoaderConfig(
-    options: ParseDocumentLoaderOptions,
-    urlToLocalMap?: Map<string, string>,
-    basePath?: string
-): Promise<DocumentLoaderOptions> {
-    const logger = initLogger(options.verbose ?? false, 'calm-cli');
-    const docLoaderOpts: DocumentLoaderOptions = {
-        calmHubUrl: options.calmHubUrl,
-        schemaDirectoryPath: options.schemaDirectory,
-        urlToLocalMap: urlToLocalMap,
-        basePath: basePath,
-        allowedRemoteHosts: options.allowedRemoteHosts,
-        debug: !!options.verbose
-    };
-
-    const userConfig = await cliConfig.loadCliConfig();
-    if (userConfig && userConfig.calmHubUrl && !options.calmHubUrl) {
-        logger.info('Using CALMHub URL from config file: ' + userConfig.calmHubUrl);
-        docLoaderOpts.calmHubUrl = userConfig.calmHubUrl;
-    }
-    
-    // if we have an auth plugin and we have calmHub configured
-    if (userConfig && userConfig.authPluginPath) {
-        logger.info('Loading auth plugin from config file: ' + userConfig.authPluginPath);
-        try {
-            const authPlugin = await cliConfig.loadAuthPlugin(userConfig.authPluginPath, !!options.verbose);
-            docLoaderOpts.authPlugin = authPlugin;
-            logger.debug('Auth plugin loaded successfully');
-        } catch (err) {
-            logger.error('Failed to load auth plugin: ' + (err instanceof Error ? err.message : String(err)));
-        }
-    }
-
-
-    // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
-    // The WorkspaceDocumentLoader (added first by buildDocumentLoader when workspaceBundlePath is
-    // set) resolves any reference to a tracked document — bare id, $id, versioned path, or full
-    // URL — to the local working copy, overriding CalmHub.
-    try {
-        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
-        if (workspaceBundle) {
-            logger.info('Using workspace bundle for document resolution: ' + workspaceBundle);
-            docLoaderOpts.workspaceBundlePath = workspaceBundle;
-            // Fall back to the bundle as the base path so relative references still resolve.
-            docLoaderOpts.basePath = docLoaderOpts.basePath ?? workspaceBundle;
-        }
-    } catch (err) {
-        logger.debug('Error while checking for workspace bundle: ' + (err instanceof Error ? err.message : String(err)));
-    }
-
-    if (userConfig && userConfig.allowedRemoteHosts && !options.allowedRemoteHosts) {
-        logger.info('Using allowed remote hosts from config file');
-        docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;
-    }
-    return docLoaderOpts;
 }
 
 export async function buildSchemaDirectory(docLoader: DocumentLoader, debug: boolean): Promise<SchemaDirectory> {

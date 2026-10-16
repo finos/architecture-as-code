@@ -3,8 +3,12 @@
     {
       "code": "json-schema",
       "message": "must match format \"date\"",
-      "path": "/moments/1/valid-from",
+      "path": "/moments/api-gateway-v2/valid-from",
       "schemaPath": "#/defs/node-moment/properties/valid-from/format",
+      "line_start": 19,
+      "line_end": 19,
+      "character_start": 20,
+      "character_end": 32,
       "severity": "error",
       "source": "timeline"
     }
@@ -16,10 +20,10 @@
       "message": "Moment with unique-id \"api-gateway-v2\" is after current-moment \"api-gateway-v1\" but has a valid-from.",
       "path": "/current-moment",
       "schemaPath": "",
-      "line_start": 0,
-      "line_end": 0,
-      "character_start": 89,
-      "character_end": 105,
+      "line_start": 3,
+      "line_end": 3,
+      "character_start": 20,
+      "character_end": 36,
       "source": "timeline"
     }
   ],

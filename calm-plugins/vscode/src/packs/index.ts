@@ -10,28 +10,28 @@ export {
   getPacksForTypes,
   resetRegistry,
 } from './registry.js';
-export { corePack } from './packs/core.js';
-export { awsPack } from './packs/aws.js';
-export { gcpPack } from './packs/gcp.js';
-export { azurePack } from './packs/azure.js';
-export { kubernetesPack } from './packs/kubernetes.js';
-export { aiPack } from './packs/ai.js';
-export { fluxnovaPack } from './packs/fluxnova.js';
-export { messagingPack } from './packs/messaging.js';
-export { identityPack } from './packs/identity.js';
-export { openGrisPack } from './packs/opengris.js';
+export { corePack } from './definitions/core.js';
+export { awsPack } from './definitions/aws.js';
+export { gcpPack } from './definitions/gcp.js';
+export { azurePack } from './definitions/azure.js';
+export { kubernetesPack } from './definitions/kubernetes.js';
+export { aiPack } from './definitions/ai.js';
+export { fluxnovaPack } from './definitions/fluxnova.js';
+export { messagingPack } from './definitions/messaging.js';
+export { identityPack } from './definitions/identity.js';
+export { openGrisPack } from './definitions/opengris.js';
 
 import { registerPack } from './registry.js';
-import { corePack } from './packs/core.js';
-import { awsPack } from './packs/aws.js';
-import { gcpPack } from './packs/gcp.js';
-import { azurePack } from './packs/azure.js';
-import { kubernetesPack } from './packs/kubernetes.js';
-import { aiPack } from './packs/ai.js';
-import { fluxnovaPack } from './packs/fluxnova.js';
-import { messagingPack } from './packs/messaging.js';
-import { identityPack } from './packs/identity.js';
-import { openGrisPack } from './packs/opengris.js';
+import { corePack } from './definitions/core.js';
+import { awsPack } from './definitions/aws.js';
+import { gcpPack } from './definitions/gcp.js';
+import { azurePack } from './definitions/azure.js';
+import { kubernetesPack } from './definitions/kubernetes.js';
+import { aiPack } from './definitions/ai.js';
+import { fluxnovaPack } from './definitions/fluxnova.js';
+import { messagingPack } from './definitions/messaging.js';
+import { identityPack } from './definitions/identity.js';
+import { openGrisPack } from './definitions/opengris.js';
 
 /**
  * Register all built-in packs (core + 9 extension packs).

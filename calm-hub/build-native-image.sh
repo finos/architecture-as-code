@@ -65,8 +65,7 @@ if [[ "${RUN_MAVEN}" == true ]]; then
         -Dnative \
         -Dquarkus.native.container-build=true \
         -DskipITs \
-        -DskipTests \
-        -Ddependency-check.skip=true
+        -DskipTests
     cd "${REPO_ROOT}"
 fi
 

@@ -7,6 +7,8 @@ import { redesignTokens } from '../../../theme/redesign-tokens.js';
 import { RailItem } from './RailItem.js';
 import { RailSectionLabel } from './RailSectionLabel.js';
 import { LoadingSpinner } from '../LoadingSpinner.js';
+import { NamespaceRailItem } from './NamespaceRailItem.js';
+import { useNamespaceTree } from './useNamespaceTree.js';
 
 interface ExploreRailProps {
     /** Per-namespace counts, fetched once by {@link Hub} and passed down. */
@@ -23,6 +25,8 @@ interface ExploreRailProps {
     domainsFailed?: boolean;
     /** Collapse the rail (keeps the existing sidebar collapse affordance). */
     onCollapse?: () => void;
+    /** Storage instance for persisting the namespace tree's collapsed set. Defaults to localStorage. Inject a fake in tests. */
+    storage?: Storage;
 }
 
 function RailSpinner({ label }: { label: string }) {
@@ -57,6 +61,7 @@ export function ExploreRail({
     namespacesFailed,
     domainsFailed,
     onCollapse,
+    storage,
 }: ExploreRailProps) {
     // `ns` comes from /namespace/:ns; on the detail route /:namespace/:type/:id/:version the
     // param is `namespace`. Fall back to it so the rail keeps its highlight during a detail session.
@@ -66,9 +71,10 @@ export function ExploreRail({
     const [filter, setFilter] = useState('');
 
     const needle = filter.trim().toLowerCase();
-    const filteredNamespaces = useMemo(
-        () => namespaceCounts.filter((nc) => nc.namespace.toLowerCase().includes(needle)),
-        [namespaceCounts, needle]
+    const { rows, filtering, toggleCollapsed } = useNamespaceTree({ namespaceCounts, needle, activeNamespace, storage });
+    const descriptions = useMemo(
+        () => new Map(namespaceCounts.map((nc) => [nc.namespace, nc.description])),
+        [namespaceCounts]
     );
 
     return (
@@ -115,18 +121,26 @@ export function ExploreRail({
                         <RailSpinner label="Loading namespaces" />
                     ) : namespacesFailed ? (
                         <RailEmpty>Couldn&apos;t load namespaces</RailEmpty>
-                    ) : filteredNamespaces.length === 0 ? (
+                    ) : rows.length === 0 ? (
                         <RailEmpty>
-                            {namespaceCounts.length === 0 ? 'Nothing here' : 'No namespaces match your filter'}
+                            {needle !== '' && namespaceCounts.length > 0
+                                ? 'No namespaces match your filter'
+                                : 'Nothing here'}
                         </RailEmpty>
                     ) : (
-                        filteredNamespaces.map((nc) => (
-                            <RailItem
-                                key={nc.namespace}
-                                label={nc.namespace}
-                                count={nc.total}
-                                active={nc.namespace === activeNamespace}
-                                to={`/namespace/${nc.namespace}`}
+                        rows.map((row) => (
+                            <NamespaceRailItem
+                                key={row.node.path}
+                                node={row.node}
+                                description={descriptions.get(row.node.path)}
+                                depth={row.depth}
+                                hasChildren={row.hasChildren}
+                                collapsed={row.collapsed}
+                                descendantTotal={row.descendantTotal}
+                                active={row.node.path === activeNamespace}
+                                filtering={filtering}
+                                needle={needle}
+                                onToggleCollapsed={toggleCollapsed}
                             />
                         ))
                     )}

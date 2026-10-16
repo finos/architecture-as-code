@@ -9,6 +9,8 @@ on:
             - 'cli/**'
             - 'calm-hub/**'
             - 'shared/**'
+            - 'package.json'
+            - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/cli-hub-smoke.yml'
     workflow_dispatch:
 

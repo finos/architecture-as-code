@@ -13,30 +13,33 @@
 import { describe, expect, it } from 'vitest';
 import Ajv2020 from 'ajv/dist/2020.js';
 import addFormats from 'ajv-formats';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import calmSchema from '@finos/calm-schema/schema/calm.json' with { type: 'json' };
+import coreSchema from '@finos/calm-schema/schema/core.json' with { type: 'json' };
+import controlSchema from '@finos/calm-schema/schema/control.json' with { type: 'json' };
+import controlRequirementSchema from '@finos/calm-schema/schema/control-requirement.json' with { type: 'json' };
+import interfaceSchema from '@finos/calm-schema/schema/interface.json' with { type: 'json' };
+import flowSchema from '@finos/calm-schema/schema/flow.json' with { type: 'json' };
+import evidenceSchema from '@finos/calm-schema/schema/evidence.json' with { type: 'json' };
+import unitsSchema from '@finos/calm-schema/schema/units.json' with { type: 'json' };
 import { validateCalmArchitecture } from './validation.js';
 import type { CalmArchitecture, CalmRelationship } from './types.js';
 
-const here = fileURLToPath(new URL('.', import.meta.url));
-const loadSchema = (name: string) =>
-	JSON.parse(readFileSync(resolve(here, 'schemas', name), 'utf-8'));
+const CALM_SCHEMA_ID = calmSchema.$id;
 
 function buildAjv(): Ajv2020 {
 	const ajv = new Ajv2020({ allErrors: true, strict: false, allowUnionTypes: true });
 	addFormats.default(ajv);
-	for (const f of [
-		'calm.json',
-		'core.json',
-		'control.json',
-		'control-requirement.json',
-		'interface.json',
-		'flow.json',
-		'evidence.json',
-		'units.json',
+	for (const schema of [
+		calmSchema,
+		coreSchema,
+		controlSchema,
+		controlRequirementSchema,
+		interfaceSchema,
+		flowSchema,
+		evidenceSchema,
+		unitsSchema,
 	]) {
-		ajv.addSchema(loadSchema(f));
+		ajv.addSchema(schema as object);
 	}
 	return ajv;
 }
@@ -160,9 +163,9 @@ describe('CalmRelationship — CALM 1.2 nested form (#2550)', () => {
 		expect(errors.length).toBeGreaterThan(0);
 	});
 
-	it('ajv 2020: nested-form arch validates against vendored calm.json meta-schema', () => {
+	it('ajv 2020: nested-form arch validates against the @finos/calm-schema calm.json meta-schema', () => {
 		const ajv = buildAjv();
-		const validate = ajv.getSchema('https://calm.finos.org/release/1.2/meta/calm.json');
+		const validate = ajv.getSchema(CALM_SCHEMA_ID);
 		expect(validate).toBeDefined();
 		const arch = {
 			nodes: [
@@ -198,9 +201,9 @@ describe('CalmRelationship — CALM 1.2 nested form (#2550)', () => {
 		expect(ok).toBe(true);
 	});
 
-	it('ajv 2020: flat-form arch FAILS the vendored calm.json meta-schema', () => {
+	it('ajv 2020: flat-form arch FAILS the @finos/calm-schema calm.json meta-schema', () => {
 		const ajv = buildAjv();
-		const validate = ajv.getSchema('https://calm.finos.org/release/1.2/meta/calm.json');
+		const validate = ajv.getSchema(CALM_SCHEMA_ID);
 		const arch = {
 			nodes: [
 				{ 'unique-id': 'a', 'node-type': 'service', name: 'A', description: 'A' },

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/standards/owned-node.json",
+  "title": "Owned node",
+  "type": "object",
+  "properties": {
+    "owner": {
+      "type": "string"
+    }
+  },
+  "required": [
+    "owner"
+  ]
+}

@@ -21,6 +21,7 @@ import org.finos.calm.domain.exception.StorageWriteException;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
@@ -569,6 +570,18 @@ class TestNitriteVersionDocumentStoreShould {
     }
 
     @Test
+    void return_every_summary_after_an_offset_when_there_is_no_limit() {
+        stubFind(headerCollection, List.of(
+                header(1, "First", "d", 1),
+                header(2, "Second", "d", 1),
+                header(3, "Third", "d", 1)));
+
+        assertThat(store.listSummariesPaged(NAMESPACE, new PageRequest(null, 1)), contains(
+                new NamespaceResourceSummary("Second", "d", 2, 1),
+                new NamespaceResourceSummary("Third", "d", 3, 1)));
+    }
+
+    @Test
     void fall_back_to_a_generated_name_and_blank_description_when_a_header_has_neither() {
         // Headers migrated from the old shape can lack both, which must not produce nulls.
         stubFind(headerCollection, List.of(header(7, null, null, null)));
@@ -590,5 +603,78 @@ class TestNitriteVersionDocumentStoreShould {
         assertThat(store.listSummariesPaged(NAMESPACE, PageRequest.UNPAGED), contains(
                 new NamespaceResourceSummary("No id", "d", null, 0),
                 new NamespaceResourceSummary("First", "d", 1, 1)));
+    }
+
+    // --- deleteVersion ---
+
+    @Test
+    void delete_one_version_and_leave_the_others() {
+        // The mock's find(...) is stubbed against any Filter, so it returns exactly the
+        // one document set up here regardless of which version filter deleteVersion builds
+        // — matching how the rest of this file stubs a single lookup-then-act call. That
+        // alone can't prove selectivity, so the captured Filter's rendered content is
+        // asserted too: Filter's toString includes each field/value pair it was built
+        // from, so a filter that dropped the version constraint (e.g. fell back to
+        // matching on namespace/id alone) would not mention "1.1.0-SNAPSHOT" here.
+        Document versionToDelete = versionDocument("1.1.0-SNAPSHOT");
+        stubFind(versionCollection, List.of(versionToDelete));
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Test", "desc", 2)));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.1.0-SNAPSHOT"), is(true));
+
+        verify(versionCollection).remove(versionToDelete);
+        ArgumentCaptor<Filter> filterCaptor = ArgumentCaptor.forClass(Filter.class);
+        verify(versionCollection).find(filterCaptor.capture());
+        assertThat(filterCaptor.getValue().toString(), containsString("version == 1.1.0-SNAPSHOT"));
+    }
+
+    @Test
+    void report_that_it_removed_nothing_when_the_version_is_absent() {
+        stubFind(versionCollection, List.of());
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "9.9.9-SNAPSHOT"), is(false));
+
+        verify(versionCollection, never()).remove(any(Document.class));
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void decrement_the_version_count_when_it_deleted_a_version() {
+        // createVersion and upsertVersion both increment. Without the matching decrement the
+        // header's versionCount drifts permanently high and disagrees with the version list.
+        stubFind(versionCollection, List.of(versionDocument("1.0.0-SNAPSHOT")));
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Test", "desc", 1)));
+
+        store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
+
+        ArgumentCaptor<Document> captor = ArgumentCaptor.forClass(Document.class);
+        verify(headerCollection).update(any(Filter.class), captor.capture());
+        assertThat(captor.getValue().get("versionCount", Integer.class), is(0));
+    }
+
+    @Test
+    void not_decrement_the_version_count_when_nothing_was_deleted() {
+        stubFind(versionCollection, List.of());
+
+        store.deleteVersion(NAMESPACE, RESOURCE_ID, "1.0.0-SNAPSHOT");
+
+        verify(headerCollection, never()).update(any(Filter.class), any(Document.class));
+    }
+
+    @Test
+    void find_the_version_under_any_accepted_spelling() {
+        // Canonicalisation happens on the way in, so a delete must canonicalise too or it
+        // silently removes nothing. The mock's find(...) matches any Filter and returns the
+        // stubbed document regardless, so the return value alone can't prove canonicalisation
+        // happened — the captured Filter's rendered content must show the canonical
+        // "1.0.0-SNAPSHOT", not the "100-SNAPSHOT" spelling that was passed in.
+        stubFind(versionCollection, List.of(versionDocument("1.0.0-SNAPSHOT")));
+        stubFind(headerCollection, List.of(header(RESOURCE_ID, "Test", "desc", 1)));
+
+        assertThat(store.deleteVersion(NAMESPACE, RESOURCE_ID, "100-SNAPSHOT"), is(true));
+
+        ArgumentCaptor<Filter> filterCaptor = ArgumentCaptor.forClass(Filter.class);
+        verify(versionCollection).find(filterCaptor.capture());
+        assertThat(filterCaptor.getValue().toString(), containsString("version == 1.0.0-SNAPSHOT"));
     }
 }

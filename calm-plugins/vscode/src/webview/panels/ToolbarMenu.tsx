@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { theme } from '../canvas/theme-colors';
 
 export interface ToolbarMenuItem {
     label: string;
@@ -35,7 +36,7 @@ export function ToolbarMenu({ items }: Readonly<{ items: ToolbarMenuItem[] }>) {
                 aria-haspopup="menu"
                 aria-expanded={open}
                 onClick={() => setOpen((o) => !o)}
-                style={{ padding: '3px 7px', border: '1px solid #555', borderRadius: '4px' }}
+                style={{ padding: '3px 7px', border: `1px solid ${theme.borderInput}`, borderRadius: '4px' }}
             >
                 <span style={dotsStyle}>
                     <span style={dotStyle} />
@@ -70,7 +71,7 @@ const menuStyle: React.CSSProperties = {
     background: 'var(--calm-bg-secondary)',
     border: '1px solid var(--calm-border-heavy)',
     borderRadius: '6px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+    boxShadow: `0 4px 12px ${theme.shadow}`,
     minWidth: '170px',
     zIndex: 1000,
     padding: '4px',

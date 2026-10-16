@@ -1,4 +1,5 @@
 import axios, { Axios } from 'axios';
+import type { NarrativeDocumentType } from '@finos/calm-models/types';
 import { AuthPlugin } from '../auth/auth-plugin';
 import { initLogger, Logger } from '../logger';
 import { DocumentMetadata, extractDocumentMetadata, validateDocumentId } from './document-id-utils';
@@ -41,6 +42,16 @@ export interface HubControlSummary {
 }
 
 export type ResourceChangeType = 'MAJOR' | 'MINOR' | 'PATCH';
+
+export interface NarrativeDocumentRequest {
+    name: string;
+    description?: string;
+    documentMarkdown: string;
+}
+
+export interface NarrativeDocumentVersion {
+    documentMarkdown: string;
+}
 
 export class HubClientError extends Error {
     /**
@@ -113,6 +124,92 @@ export class CalmHubClient {
             return { name, location };
         } catch (err) {
             throw this.wrapError(err, endpoint);
+        }
+    }
+
+    // ── Narrative documents ─────────────────────────────────────────────────
+
+    async createNarrativeDocument(
+        namespace: string,
+        type: NarrativeDocumentType,
+        request: NarrativeDocumentRequest
+    ): Promise<string | undefined> {
+        this.logger.debug(`Creating narrative document for namespace=${namespace} with type=${type}`);
+        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}`;
+        try {
+            const response = await this.ax.post(endpoint, request);
+            this.logger.debug(`Received create narrative document response: ${JSON.stringify(response.headers)}`);
+            return response.headers.location as string | undefined;
+        } catch (err) {
+            throw this.wrapError(err, `POST ${endpoint}`);
+        }
+    }
+
+    async createNarrativeDocumentVersion(
+        namespace: string,
+        type: NarrativeDocumentType,
+        id: number,
+        version: string,
+        request: NarrativeDocumentRequest
+    ): Promise<string> {
+        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`;
+        this.logger.debug(`Creating narrative document version ${version} for namespace=${namespace}, document type=${type} and id=${id}`);
+        return this.createNarrativeDocumentAt(endpoint, request, `POST ${endpoint}`);
+    }
+
+    async getNarrativeDocumentVersions(namespace: string, type: NarrativeDocumentType, id: number): Promise<string[]> {
+        this.logger.debug(`Getting narrative document versions for namespace=${namespace}, document type=${type} and id=${id}`);
+        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions`;
+        try {
+            const response = await this.ax.get(endpoint);
+            this.logger.debug(`Received narrative document versions response: ${JSON.stringify(response.data)}`);
+            if (!response.data || typeof response.data !== 'object' || !Array.isArray(response.data.values) ||
+                !response.data.values.every((value: unknown) => typeof value === 'string')) {
+                throw new HubClientError(0, 'Response does not contain a string values array', `GET ${endpoint}`);
+            }
+            return response.data.values;
+        } catch (err) {
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    async getNarrativeDocumentVersion(
+        namespace: string,
+        type: NarrativeDocumentType,
+        id: number,
+        version: string
+    ): Promise<NarrativeDocumentVersion> {
+        this.logger.debug(`Getting narrative document version ${version} for namespace=${namespace}, document type=${type} and id=${id}`);
+        const endpoint = `/api/calm/namespaces/${namespace}/documents/${type}/${id}/versions/${version}`;
+        try {
+            const response = await this.ax.get(endpoint);
+            this.logger.debug(`Received narrative document version response: ${JSON.stringify(response.data)}`);
+            if (!response.data || typeof response.data !== 'object' || typeof response.data.documentMarkdown !== 'string') {
+                throw new HubClientError(0, 'Response does not contain documentMarkdown', `GET ${endpoint}`);
+            }
+            return { documentMarkdown: response.data.documentMarkdown };
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
+            throw this.wrapError(err, `GET ${endpoint}`);
+        }
+    }
+
+    private async createNarrativeDocumentAt(
+        endpoint: string,
+        request: NarrativeDocumentRequest,
+        requestLabel: string
+    ): Promise<string> {
+        try {
+            const response = await this.ax.post(endpoint, request);
+            this.logger.debug(`Received create narrative document version response: ${JSON.stringify(response.headers)}`);
+            const location = response.headers.location as string | undefined;
+            if (!location) {
+                throw new HubClientError(0, 'Response does not include Location header', requestLabel);
+            }
+            return location;
+        } catch (err) {
+            if (err instanceof HubClientError) throw err;
+            throw this.wrapError(err, requestLabel);
         }
     }
 
@@ -366,16 +463,25 @@ export class CalmHubClient {
         }
     }
 
+    /**
+     * Return the latest version of a resource.
+     * CALM Hub has no latest-version endpoint, so this reads the last entry of the version list.
+     * CALM Hub returns that list in ascending order. It is not sorted again as semver here,
+     * because in GitHub storage mode the versions are commit SHAs.
+     * @param namespace The namespace to query
+     * @param mappingId The mapping ID of the resource
+     * @param resourceType The resource type that this mapping ID belongs to
+     * @returns The latest version of the resource
+     */
     async getMappedResourceLatestVersion(namespace: string, mappingId: string, resourceType: ResourceType): Promise<object> {
         this.logger.debug(`Getting latest version for namespace=${namespace}, resource type=${resourceType} and mappingId=${mappingId}`);
-        const endpoint = `/calm/namespaces/${namespace}/${resourceType}/${mappingId}`;
-        try {
-            const response = await this.ax.get(endpoint);
-            this.logger.debug(`Received latest version response: ${JSON.stringify(response.data)}`);
-            return response.data as object;
-        } catch (err) {
-            throw this.wrapError(err, `GET ${endpoint}`);
+        const versions = await this.getMappedResourceVersions(namespace, mappingId, resourceType);
+        const latestVersion = versions[versions.length - 1];
+        if (latestVersion === undefined) {
+            throw new HubClientError(404, `No versions found for ${resourceType} '${mappingId}' in namespace '${namespace}'`,
+                `GET /calm/namespaces/${namespace}/${resourceType}/${mappingId}/versions`);
         }
+        return this.getMappedResourceByVersion(namespace, mappingId, latestVersion, resourceType);
     }
 
     async getMappedResourceByVersion(namespace: string, mappingId: string, version: string, resourceType: ResourceType): Promise<object> {

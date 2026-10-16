@@ -13,6 +13,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.finos.calm.domain.*;
 import org.finos.calm.domain.audit.AuditAction;
@@ -22,12 +23,18 @@ import org.finos.calm.security.AuditRequestFilter;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.finos.calm.security.CalmHubScopes;
 import org.finos.calm.services.MappingControllerService;
+import org.finos.calm.services.PatternImplementationService;
+import org.finos.calm.domain.implementations.PatternImplementations;
+import org.finos.calm.security.UserAccessValidator;
+import jakarta.enterprise.inject.Instance;
+import java.util.Optional;
+import java.util.Set;
+import org.finos.calm.store.util.SemanticVersionOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Comparator;
 import java.util.List;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
@@ -66,6 +73,8 @@ public class MappingControllerResource {
     private final MappingControllerService service;
     private final CalmDocumentParser documentParser;
     private final CalmHubPermissionChecker permissionChecker;
+    private final PatternImplementationService patternImplementationService;
+    private final Instance<UserAccessValidator> userAccessValidatorInstance;
 
     @Inject
     SecurityIdentity identity;
@@ -74,12 +83,20 @@ public class MappingControllerResource {
     Boolean allowPutOperations;
 
     @Inject
+    @ConfigProperty(name = "calm.auth.enabled", defaultValue = "false")
+    boolean authEnabled;
+
+    @Inject
     public MappingControllerResource(MappingControllerService service,
                                      CalmDocumentParser documentParser,
-                                     CalmHubPermissionChecker permissionChecker) {
+                                     CalmHubPermissionChecker permissionChecker,
+                                     PatternImplementationService patternImplementationService,
+                                     Instance<UserAccessValidator> userAccessValidatorInstance) {
         this.service = service;
         this.documentParser = documentParser;
         this.permissionChecker = permissionChecker;
+        this.patternImplementationService = patternImplementationService;
+        this.userAccessValidatorInstance = userAccessValidatorInstance;
     }
 
     // =========================================================================
@@ -95,8 +112,12 @@ public class MappingControllerResource {
                     "canonical URL. For namespace resources: {baseUrl}/calm/namespaces/{namespace}/{type}/{name}/versions/{version}. " +
                     "For control requirements: {baseUrl}/calm/domains/{domain}/controls/{controlName}/requirement/versions/{version}. " +
                     "For configurations: {baseUrl}/calm/domains/{domain}/controls/{controlName}/configurations/{configName}/versions/{version}. " +
-                    "A version is always required. For a brand-new resource the first version must be 1.0.0. " +
-                    "For an existing resource the requested version is created (409 if it already exists)."
+                    "A version is always required. For a brand-new resource the first version must be 1.0.0 or " +
+                    "1.0.0-SNAPSHOT. " +
+                    "For an existing resource the requested version is created (409 if it already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @Authenticated
     public Response createResourceFromDocument(String requestBody) throws URISyntaxException {
@@ -218,10 +239,10 @@ public class MappingControllerResource {
             return CalmResourceErrorResponses.invalidNamespaceResponse(canonical.namespace());
         }
         String storedBody = documentParser.stripId(requestBody);
-        String title = documentParser.extractStringField(requestBody, "title");
+        String title = documentParser.extractTitle(requestBody, canonical.resourceType());
         if (title.isBlank()) {
             return Response.status(Response.Status.BAD_REQUEST)
-                    .entity("'title' is required in the document body").build();
+                    .entity(CalmDocumentParser.missingTitleMessage(canonical.resourceType())).build();
         }
         String description = documentParser.extractStringField(requestBody, "description");
         return service.updateVersionedResource(canonical.resourceType(), canonical.namespace(),
@@ -241,14 +262,18 @@ public class MappingControllerResource {
             summary = "Create a specific version of a named resource",
             description = "The request body must be the raw CALM document, and its \"$id\" must equal the canonical " +
                     "versioned URL for the exact version in the path. For a brand-new resource the version must be " +
-                    "1.0.0; for an existing resource the requested version is created (409 if it already exists)."
+                    "1.0.0 or 1.0.0-SNAPSHOT; for an existing resource the requested version is created (409 if it " +
+                    "already exists). " +
+                    "A version ending in -SNAPSHOT is mutable: posting to it again replaces its content and " +
+                    "returns 200. Creating a snapshot whose release version is already published returns 409. " +
+                    "Publishing a release version deletes the matching snapshot, if one exists."
     )
     @PermissionsAllowed(CalmHubScopes.WRITE)
     public Response createResourceVersion(
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
             String requestBody
     ) throws URISyntaxException {
         return handlePost(namespace, type, name, version, requestBody);
@@ -314,9 +339,21 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             List<String> versions = service.getVersionsForMapping(mapping);
-            List<String> sortedVersions = versions.stream()
-                    .sorted(Comparator.comparing(Semver::tryParse))
-                    .toList();
+            // VERSION_REGEX's optional separators make an all-digit string like "1234567"
+            // valid semver *and* SHA-shaped. Only treat a version as a real git SHA - and so
+            // skip semver sorting for the whole list - when it isn't also a valid semver on
+            // its own terms; a genuine SHA containing a letter can never satisfy VERSION_REGEX.
+            boolean hasShas = versions.stream()
+                    .anyMatch(v -> v.matches("[0-9a-f]{7,40}") && !v.matches(VERSION_REGEX));
+            List<String> sortedVersions;
+            if (hasShas) {
+                sortedVersions = versions;
+            } else {
+                // Semver::tryParse strips the -SNAPSHOT suffix, so a release and its snapshot tie.
+                sortedVersions = versions.stream()
+                        .sorted(SemanticVersionOrder.ASCENDING)
+                        .toList();
+            }
             return Response.ok(new ValueWrapper<>(sortedVersions)).build();
         } catch (MappingNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)
@@ -345,7 +382,7 @@ public class MappingControllerResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Operation(
             summary = "Get a specific version of a named resource",
-            description = "Returns the resource at the specified semver version. " +
+            description = "Returns the resource at the specified version (semver or git SHA). " +
                     "The \"$id\" in the returned document is rewritten to the versioned canonical URL."
     )
     @PermissionsAllowed(CalmHubScopes.READ)
@@ -353,7 +390,7 @@ public class MappingControllerResource {
             @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
             @PathParam("type") String type,
             @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
-            @PathParam("version") @Pattern(regexp = VERSION_REGEX, message = VERSION_MESSAGE) String version
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_OR_SHA_REGEX, message = SNAPSHOT_VERSION_OR_SHA_MESSAGE) String version
     ) {
         ResourceType resourceType = documentParser.parseTypePlural(type);
         if (resourceType == null) {
@@ -718,5 +755,44 @@ public class MappingControllerResource {
     private Response invalidJsonResponse(String message) {
         return Response.status(Response.Status.BAD_REQUEST)
                 .entity("Invalid JSON: " + message).build();
+    }
+
+    // =========================================================================
+    // GET /calm/namespaces/{ns}/patterns/{name}/versions/{v}/implementations
+    // =========================================================================
+
+    @GET
+    @Path("namespaces/{namespace}/patterns/{name}/versions/{version}/implementations")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Operation(
+            summary = "Architectures implementing a pattern version",
+            description = "Returns the architecture versions whose $schema names this pattern version, for assessing "
+                    + "the blast radius of a pattern change. Matching reads the path of the $schema and never the "
+                    + "host, so a reference survives the hub moving, and it is pinned to one pattern version. An "
+                    + "architecture records its pattern only when it was generated from one fetched from this hub, "
+                    + "so an empty list does not distinguish a pattern nothing implements from a set of "
+                    + "architectures that record no pattern at all. Supports optional limit and offset; "
+                    + "the default returns every match, because a truncated blast radius reads as a safe one."
+    )
+    @APIResponse(responseCode = "200", description = "Architecture versions naming this pattern version")
+    @APIResponse(responseCode = "400", description = "Namespace, pattern name or version is malformed")
+    @APIResponse(responseCode = "403", description = "The caller may not read the pattern's namespace")
+    @APIResponse(responseCode = "404", description = "Pattern or version not found")
+    @APIResponse(responseCode = "501", description = "Not available in GitHub storage mode")
+    @PermissionsAllowed(CalmHubScopes.READ)
+    public Response getPatternImplementations(
+            @PathParam("namespace") @Pattern(regexp = NAMESPACE_REGEX, message = NAMESPACE_MESSAGE) String namespace,
+            @PathParam("name") @Pattern(regexp = CUSTOM_ID_REGEX, message = CUSTOM_ID_MESSAGE) String name,
+            @PathParam("version") @Pattern(regexp = SNAPSHOT_VERSION_REGEX, message = SNAPSHOT_VERSION_MESSAGE) String version,
+            @Valid @BeanParam PaginationQueryParams page
+    ) {
+        Optional<Set<String>> readableNamespaces = ReadableScope.resolve(
+                authEnabled, userAccessValidatorInstance, identity, UserAccessValidator::getReadableNamespaces);
+
+        return patternImplementationService
+                .findImplementations(namespace, name, version, readableNamespaces, page.toPageRequest())
+                .map(implementations -> Response.ok(implementations).build())
+                .orElseGet(() -> Response.status(Response.Status.NOT_FOUND)
+                        .entity("{\"error\":\"Pattern version not found\"}").build());
     }
 }

@@ -7,7 +7,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "${ROOT}/calm-hub"
 
 echo "[build-hub-smoke-image] Packaging calm-hub with Maven..."
-../mvnw clean package -Ddependency-check.skip=true
+../mvnw clean package
 
 echo "[build-hub-smoke-image] Building Docker image calm-hub:smoke..."
 docker build -f src/main/docker/Dockerfile.jvm -t calm-hub:smoke .

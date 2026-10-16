@@ -33,6 +33,9 @@ jobs:
             - name: Lint CLI Module
               run: npm run lint --workspace=cli
 
+            - name: Test CALM schema copy script
+              run: npm run test:scripts
+
             - name: Build workspace
               run: npm run build:cli
 

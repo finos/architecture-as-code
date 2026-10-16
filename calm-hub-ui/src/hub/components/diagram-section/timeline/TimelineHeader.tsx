@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { IoTimeOutline } from 'react-icons/io5';
 import { colors } from '../../../../theme/colors.js';
+import { isCommitSha } from '../../../../model/version.js';
 
 interface TimelineHeaderProps {
     /** The version currently shown in the main area — surfaced as the mono pill. */
@@ -19,6 +20,7 @@ interface TimelineHeaderProps {
  * Diagram and JSON views.
  */
 export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps) {
+    const displayVersion = isCommitSha(currentVersion) ? currentVersion : `v${currentVersion}`;
     return (
         <div className="flex items-center gap-2 shrink-0" style={{ paddingTop: 4 }}>
             <IoTimeOutline size={14} style={{ color: colors.ink[500], strokeWidth: 2 }} />
@@ -46,7 +48,7 @@ export function TimelineHeader({ currentVersion, children }: TimelineHeaderProps
                 }}
                 title={`Viewing version ${currentVersion}`}
             >
-                v{currentVersion}
+                {displayVersion}
             </span>
             {children}
         </div>

@@ -60,6 +60,10 @@ export {
     constructDocumentId,
     isConformantDocumentId,
     namespaceFromDocumentId,
+    resourceTypeFromDocumentId,
+    isControlDocumentId,
+    documentNameField,
+    documentName,
     extractDocumentMetadata,
     updateDocumentMetadata,
     type DocumentMetadata,
@@ -69,6 +73,16 @@ export {
     type ControlDocumentMetadata,
     type ControlDocumentKind,
 } from './hub/document-id-utils.js';
-export { computeSemVerBump, compareSemVer, sortSemVer } from './hub/semver.js';
+export {
+    computeSemVerBump,
+    compareSemVer,
+    sortSemVer,
+    isSnapshotVersion,
+    latestReleaseVersion,
+    toSnapshotVersion,
+    toReleaseVersion,
+    SNAPSHOT_SUFFIX
+} from './hub/semver.js';
 export { canonicalEqual, canonicalize } from './hub/canonical.js';
-export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport } from './browser-capabilities.js';
+export { BROWSER_COMMAND_SUPPORT, browserSupportFor, type BrowserCommandSupport, type BrowserOptionSupport } from './browser-capabilities.js';
+export { mergeControls } from './controls/merge-controls.js';

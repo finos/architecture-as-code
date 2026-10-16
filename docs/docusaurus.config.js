@@ -38,7 +38,7 @@ const config = {
     markdown: {
         hooks: {
             onBrokenMarkdownLinks: 'warn'
-        }
+        },
     },
 
     headTags: [

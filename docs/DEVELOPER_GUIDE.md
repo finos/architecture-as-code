@@ -19,12 +19,15 @@ Whilst the server is running, if you run `npm run build` then it'll pick up any 
 See the main [contributing guide](../README.md#contributing) for details on commit standards, etc.
 
 
-## OWASP DEPENDENCY-CHECK
-The [OWASP dependency check tool](https://jeremylong.github.io/DependencyCheck/) will run on PRs and periodically on the committed code, but it can be helpful to be able to run this locally to investigate CVEs.
+## Dependency vulnerability scanning
 
-To use the dependency check tool locally, first install the tool following the instructions for your operating system [here](https://jeremylong.github.io/DependencyCheck/dependency-check-cli/index.html).
+[OSV Scanner](https://google.github.io/osv-scanner/) runs on every pull request and on `main` (`.github/workflows/osv-scanner.yml`). To run the same scan locally, install `osv-scanner` and run this from the repository root:
 
-Once that is done the tool is configured as a script in the package.json, run `npm run dependency-check`; the reports will be output to `cli/dependency-check-report`.
+```bash
+osv-scanner scan source --config osv-scanner.toml -L package-lock.json
+```
+
+Suppressions go in `osv-scanner.toml`, with a justification. See `SECURITY.md`.
 
 ## Search Configuration
 

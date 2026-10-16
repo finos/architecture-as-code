@@ -26,8 +26,7 @@
         "test": "node scripts/check-browser-entry.mjs && vitest run",
         "check:browser-entry": "node scripts/check-browser-entry.mjs",
         "lint": "eslint src",
-        "lint-fix": "eslint src --fix",
-        "dependency-check": "dependency-check --project 'calm-shared' --scan . --out ./dependency-check-report --format ALL --suppression ../.github/node-cve-ignore-list.xml"
+        "lint-fix": "eslint src --fix"
     },
     "eslintConfig": {
         "extends": "../.eslintrc.json"
@@ -49,8 +48,7 @@
         "@stoplight/spectral-functions": "^1.9.4",
         "ajv": "^8.18.0",
         "ajv-formats": "^2.1.1",
-        "axios": "^1.15.2",
-        "copyfiles": "^2.4.1",
+        "axios": "^1.20.0",
         "handlebars": "^4.7.9",
         "js-yaml": "^4.3.2",
         "json-pointer": "^0.6.2",
@@ -62,12 +60,11 @@
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
-        "regexparam": "^3.0.0",
-        "string-table": "^0.1.5",
         "ts-node": "10.9.2",
         "winston": "^3.17.0"
     },
     "devDependencies": {
+        "@finos/calm-schema": "*",
         "esbuild": "^0.28.1"
     },
     "overrides": {

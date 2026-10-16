@@ -1,7 +1,7 @@
 import { DocumentLoader, DocumentLoadError } from './document-loader';
 import { initLogger, Logger } from '../logger';
 import { readdir, readFile } from 'fs/promises';
-import { join, isAbsolute } from 'path';
+import { join, isAbsolute, resolve } from 'path';
 import { SchemaDirectory } from '../schema-directory';
 import { existsSync } from 'fs';
 import { getErrorMessage } from '../error-utils';
@@ -54,37 +54,60 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     async loadMissingDocument(documentId: string, type: CalmDocumentType): Promise<object> {
-        // 1. Try to resolve as relative path first
         const resolvedPath = this.resolvePath(documentId);
         if (resolvedPath && existsSync(resolvedPath)) {
             this.logger.debug(`Resolved relative path: ${documentId} -> ${resolvedPath}`);
-            const doc = await this.loadDocument(resolvedPath, type);
+            const doc = await this.loadLocalFile(resolvedPath, type);
             if (doc) {
                 return doc;
             }
         }
 
-        // 2. Fallback to checking exact path (existing behavior)
+        let exists = false;
         try {
-            if (existsSync(documentId)) {
-                this.logger.info(`${documentId} exists, loading as file...`);
-                const doc = await this.loadDocument(documentId, type);
-                if (doc) {
-                    return doc;
-                }
-            }
+            exists = existsSync(documentId);
         } catch (err) {
             this.logger.error(`Error checking existence of document ID ${documentId}: ${getErrorMessage(err)}. This could be because it isn't a file path.`);
         }
+        if (exists) {
+            this.logger.info(`${documentId} exists, loading as file...`);
+            // Use an absolute path so a load failure names a path a caller can act on,
+            // even when documentId itself was relative.
+            const doc = await this.loadLocalFile(resolve(documentId), type);
+            if (doc) {
+                return doc;
+            }
+        } else if (this.isLocalPath(documentId)) {
+            // A path with no URL scheme is ours: report the missing file rather than
+            // letting a URL loader answer "Not a valid absolute URL".
+            await this.loadLocalFile(resolvedPath ?? resolve(documentId), type);
+        }
 
         this.logger.debug(`Document ID ${documentId} does not exist in file system, cannot load.`);
-        const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation. 
+        const errorMessage = `Document with id [${documentId}] and type [${type}] was requested but not loaded at initialisation.
             File system document loader can only load at startup. Please ensure the schemas are present on your directory path or use CALMHub.`;
         this.logger.debug(errorMessage);
         throw new DocumentLoadError({
             name: 'OPERATION_NOT_IMPLEMENTED',
             message: errorMessage
         });
+    }
+
+    private async loadLocalFile(path: string, type: CalmDocumentType): Promise<object | undefined> {
+        try {
+            return await this.loadDocument(path, type);
+        } catch (err) {
+            throw new DocumentLoadError({
+                name: 'UNKNOWN',
+                message: err instanceof SyntaxError ? `${path} is not valid JSON: ${err.message}` : getErrorMessage(err),
+                cause: err instanceof Error ? err : undefined,
+                recoverable: false,
+            });
+        }
+    }
+
+    private isLocalPath(ref: string): boolean {
+        return isAbsolute(ref) || this.isRelativePath(ref);
     }
 
     private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object | undefined> {
@@ -128,10 +151,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         if (isAbsolute(ref)) {
             return false;
         }
-        if (ref.startsWith('http://') || ref.startsWith('https://') ||
-            ref.startsWith('file://') || ref.startsWith('calm:')) {
-            return false;
-        }
-        return true;
+        // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
+        return !/^[a-z][a-z0-9+.-]+:/i.test(ref);
     }
 }

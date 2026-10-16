@@ -57,6 +57,50 @@ GET  /calm/namespaces/{namespace}/architectures
 
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
+### Finding the architectures that implement a pattern
+
+```
+GET /calm/namespaces/{namespace}/patterns/{name}/versions/{version}/implementations
+```
+
+Use this before you change a pattern. It shows which architectures depend on the version you are about to change.
+
+```jsonc
+{
+  "pattern": { "namespace": "finos", "name": "api-gateway", "version": "1.0.0" },
+  "implementations": [
+    { "namespace": "finos", "architectureId": 7, "version": "1.2.0", "customId": "trade-capture" }
+  ]
+}
+```
+
+An architecture names its pattern in its own `$schema`, which `calm generate` sets to the pattern's `$id`.
+
+| | |
+|---|---|
+| Version | A release such as `1.0.0`, or a snapshot such as `1.0.0-SNAPSHOT`. A version that does not exist returns `404`, not an empty list. |
+| Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
+| Order | Sorted by namespace, then `architectureId`, then architecture version, so `1.2.0` comes before `1.10.0`. |
+| Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. An `offset` without a `limit` returns every match after the offset. |
+| `customId` | The name on the name-based API. Omitted for an architecture created through the numeric-id API, which never had one; use `architectureId` for those. |
+| GitHub mode | Not available. The endpoint returns `501`. |
+
+The hub answers on demand and caches nothing, reading the architectures you are allowed to see. See [ADR 0008](https://github.com/finos/architecture-as-code/blob/main/calm-hub/decisions/0008-pattern-implementations-read-the-architecture-schema.md) for why the link is resolved at request time rather than stored.
+
+### Snapshot Versions
+
+A version ending in `-SNAPSHOT` (e.g. `1.0.0-SNAPSHOT`) is mutable — it can be re-posted with new content. A release version (e.g. `1.0.0`) is immutable once created. Publishing a release deletes the matching snapshot, if one exists. Snapshots are supported on architectures, patterns, flows, standards, and interfaces only.
+
+| Request | Effect | Status |
+|:--------|:-------|:-------|
+| `POST .../versions/1.0.0-SNAPSHOT` (first time) | Creates the snapshot | `201` |
+| `POST .../versions/1.0.0-SNAPSHOT` (again) | Replaces the snapshot's content | `200` |
+| `POST .../versions/1.0.0` | Publishes the release, deletes `1.0.0-SNAPSHOT` | `201` |
+
+A snapshot cannot be created if its release version is already published — CALM Hub returns `409 Conflict`.
+
+Snapshots are written through the name-based `/calm/...` API only. The numeric `/api/calm/...` write endpoints reject a `-SNAPSHOT` version; their `GET` endpoints can read one.
+
 ### Access Control
 
 Endpoints are protected by **per-namespace permissions**. Access is granted via `UserAccess` records stored in the active backend; each record ties a username to a permission level for a specific namespace or control domain.

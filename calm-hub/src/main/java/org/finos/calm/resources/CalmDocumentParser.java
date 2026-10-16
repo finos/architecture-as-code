@@ -147,15 +147,43 @@ public class CalmDocumentParser {
      */
     public String extractStringField(String json, String fieldName) {
         try {
-            JsonNode tree = OBJECT_MAPPER.readTree(json);
-            if (tree.isObject()) {
-                JsonNode node = tree.get(fieldName);
-                if (node != null && !node.isNull() && node.isTextual()) {
-                    return node.asText();
-                }
-            }
+            return textField(OBJECT_MAPPER.readTree(json), fieldName);
         } catch (JsonProcessingException ignored) {
-            // fall through
+            return "";
+        }
+    }
+
+    /**
+     * Extracts a document's display name: its {@code title}, or for a flow its {@code name} when
+     * it has no title, as the CALM flow schema has {@code name} and no {@code title}. Returns an
+     * empty string if the document has no display name or cannot be parsed.
+     */
+    public String extractTitle(String json, ResourceType resourceType) {
+        try {
+            JsonNode tree = OBJECT_MAPPER.readTree(json);
+            String title = textField(tree, "title");
+            if (!title.isBlank()) {
+                return title;
+            }
+            return resourceType == ResourceType.FLOW ? textField(tree, "name") : "";
+        } catch (JsonProcessingException ignored) {
+            return "";
+        }
+    }
+
+    /** The error message for a document that {@link #extractTitle} finds no display name in. */
+    public static String missingTitleMessage(ResourceType resourceType) {
+        return resourceType == ResourceType.FLOW
+                ? "'title' or 'name' is required in the document body"
+                : "'title' is required in the document body";
+    }
+
+    private static String textField(JsonNode tree, String fieldName) {
+        if (tree.isObject()) {
+            JsonNode node = tree.get(fieldName);
+            if (node != null && !node.isNull() && node.isTextual()) {
+                return node.asText();
+            }
         }
         return "";
     }
@@ -208,7 +236,9 @@ public class CalmDocumentParser {
             throw new IllegalArgumentException(
                     "'versions' is a reserved path segment and cannot be used as a resource name");
         }
-        if (!version.matches(VERSION_REGEX)) {
+        // Matches createResourceVersion's path-driven POST, which already accepts -SNAPSHOT;
+        // domain controls use validateVersion instead and deliberately stay strict.
+        if (!version.matches(SNAPSHOT_VERSION_REGEX)) {
             throw new IllegalArgumentException("Invalid version in $id: " + version);
         }
         ResourceType resourceType = TYPE_MAP.get(type.toLowerCase());

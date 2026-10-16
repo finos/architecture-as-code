@@ -1,7 +1,8 @@
+import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
 
-export function DecisionGroupNode({ data }: NodeProps) {
+function DecisionGroupNodeComponent({ data }: NodeProps) {
     const isOneOf = data.decisionType === 'oneOf';
     const borderColor = isOneOf
         ? THEME.colors.decision.oneOf
@@ -69,3 +70,5 @@ export function DecisionGroupNode({ data }: NodeProps) {
         </div>
     );
 }
+
+export const DecisionGroupNode = memo(DecisionGroupNodeComponent);

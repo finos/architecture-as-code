@@ -11,6 +11,8 @@ on:
             - 'calm-hub/**'
             - '!calm-hub/ec2/**'
             - 'calm/**'
+            - 'package.json'
+            - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-readonly.yml'
     # Manual trigger from GitHub UI (allows custom tag)
     workflow_dispatch:
@@ -128,6 +130,8 @@ jobs:
                   file: calm-hub/src/main/docker/Dockerfile.readonly-static
                   platforms: linux/amd64,linux/arm64
                   push: true
+                  sbom: true
+                  provenance: mode=max
                   tags: ${{ steps.meta.outputs.tags }}
                   labels: ${{ steps.meta.outputs.labels }}
                   cache-from: type=gha

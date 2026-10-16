@@ -37,11 +37,6 @@
           "light": "media/calm-canvas.svg",
           "dark": "media/calm-canvas.svg"
         }
-      },
-      {
-        "command": "calm.importSvg",
-        "title": "Import SVG as CALM Architecture",
-        "category": "CALM"
       }
     ],
     "keybindings": [
@@ -71,11 +66,6 @@
         {
           "command": "calm.openCanvas",
           "when": "resourceFilename =~ /\\.(calm|architecture|template|solution|standard|guideline)\\.json$/",
-          "group": "navigation"
-        },
-        {
-          "command": "calm.importSvg",
-          "when": "resourceExtname == .svg",
           "group": "navigation"
         }
       ]
@@ -108,9 +98,9 @@
     }
   },
   "scripts": {
-    "build": "node esbuild.mjs && npx vite build --config vite.webview.config.ts",
+    "build": "node esbuild.mjs && npx vite build --config vite.webview.config.mts",
     "build:extension": "node esbuild.mjs",
-    "build:webview": "npx vite build --config vite.webview.config.ts",
+    "build:webview": "npx vite build --config vite.webview.config.mts",
     "watch": "node esbuild.mjs --watch",
     "package": "npm run build && npx @vscode/vsce package --no-dependencies",
     "vscode:prepublish": "npm run build",
@@ -119,32 +109,32 @@
   },
   "dependencies": {
     "@finos/calm-models": "file:../../calm-models",
-    "svg-parser": "^2.0.4",
-    "xml2js": "^0.5.0",
+    "@finos/calm-shared": "file:../../shared",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "reactflow": "^11.11.4",
     "html-to-image": "1.11.13",
     "yaml": "^2.7.0",
     "@dagrejs/dagre": "^1.1.4",
-    "elkjs": "^0.9.0",
-    "zustand": "^5.0.0",
-    "lucide-react": "^0.577.0",
+    "zustand": "^5.0.15",
     "ajv": "^8.17.0",
-    "ajv-formats": "^3.0.0"
+    "ajv-formats": "^3.0.0",
+    "svg-parser": "^2.0.4",
+    "xml2js": "^0.5.0"
   },
   "devDependencies": {
-    "vite": "^6.3.0",
-    "@vitejs/plugin-react": "^4.0.0",
+    "@finos/calm-schema": "*",
+    "vite": "^8.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
     "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
     "esbuild": "^0.25.0",
     "@types/vscode": "^1.88.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",
-    "@types/xml2js": "^0.4.14",
     "typescript": "^5.8.0",
     "vitest": "^4.1.0",
-    "@vscode/vsce": "^3.0.0"
+    "@vscode/vsce": "^4.0.0",
+    "@types/xml2js": "^0.4.14"
   }
 }

@@ -19,8 +19,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.MongoVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * MongoDB-backed implementation of {@link FlowStore}.
  *
@@ -68,7 +66,7 @@ public class MongoFlowStore implements FlowStore {
     }
 
     @Override
-    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace) throws NamespaceNotFoundException {
+    public Flow createFlowForNamespace(CreateFlowRequest flowRequest, String namespace, String version) throws NamespaceNotFoundException {
         namespaceStore.requireNamespace(namespace);
 
         // Parsed before the counter is drawn and before anything is written, so malformed
@@ -77,11 +75,11 @@ public class MongoFlowStore implements FlowStore {
 
         int id = counterStore.getNextFlowSequenceValue();
         documentStore.createHeader(namespace, id, flowRequest.getName(), flowRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, content);
+        documentStore.createFirstVersion(namespace, id, version, content);
 
         return new Flow.FlowBuilder()
                 .setId(id)
-                .setVersion(INITIAL_VERSION)
+                .setVersion(version)
                 .setNamespace(namespace)
                 .setFlow(flowRequest.getFlowJson())
                 .build();
@@ -150,5 +148,15 @@ public class MongoFlowStore implements FlowStore {
         if (!documentStore.deleteResource(namespace, flowId)) {
             throw new FlowNotFoundException();
         }
+    }
+
+    @Override
+    public boolean deleteFlowVersion(String namespace, int flowId, String version)
+            throws NamespaceNotFoundException, FlowNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, flowId)) {
+            throw new FlowNotFoundException();
+        }
+        return documentStore.deleteVersion(namespace, flowId, version);
     }
 }

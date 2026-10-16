@@ -7,10 +7,8 @@ interface ControlCardProps {
     description?: string;
     /** The control's numeric id, shown as the mono footer meta (`#5`). */
     controlId: number;
-    /** Whether this control's detail panel is currently open (selected styling). */
-    active?: boolean;
-    /** Activates the card — opens the control's detail panel. */
-    onActivate: () => void;
+    /** Deep link to the control's detail route. */
+    href: string;
 }
 
 /**
@@ -21,9 +19,9 @@ interface ControlCardProps {
  *
  * Control-specific bits are passed through: the `Controls` type paints the blue
  * thumbnail + "Control" pill, a shield glyph marks the header, the mono footer shows
- * the control id (`#5`), and `active` drives the selected treatment + `aria-pressed`.
+ * the control id (`#5`), and the card is a real link to the control's deep-link route.
  */
-export function ControlCard({ name, description, controlId, active = false, onActivate }: ControlCardProps) {
+export function ControlCard({ name, description, controlId, href }: ControlCardProps) {
     return (
         <ItemCard
             name={name}
@@ -38,9 +36,8 @@ export function ControlCard({ name, description, controlId, active = false, onAc
                     style={{ color: colors.resourceTypes.control.accentText, opacity: 0.55 }}
                 />
             }
-            active={active}
+            href={href}
             testId="control-card"
-            onActivate={onActivate}
         />
     );
 }

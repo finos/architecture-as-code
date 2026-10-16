@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useMatch, useNavigate } from 'react-router-dom';
-import { IoChevronForwardOutline, IoCompassOutline } from 'react-icons/io5';
+import { IoCompassOutline } from 'react-icons/io5';
 import { ExploreRail } from './components/explore-rail/ExploreRail.js';
+import { CollapsedRail } from './components/explore-rail/CollapsedRail.js';
 import { MobileNavMenu } from './components/tree-navigation/MobileNavMenu.js';
 import { NamespacePage } from './components/namespace-page/NamespacePage.js';
 import { DomainPage } from './components/domain-page/DomainPage.js';
@@ -141,12 +142,10 @@ export default function Hub() {
     }, []);
 
     // Every navigation clears any loaded resource so the incoming route decides what
-    // renders — including navigating *to* a detail route, where a stale in-place control
-    // would otherwise flash before the new fetch resolves (detailContent evaluates
-    // controlData first). Keyed on react-router's location.key, which changes on every
-    // navigation but NOT on an in-place control/interface load (that sets state without
-    // navigating), so those loads are preserved. Runs in a layout effect so the clear
-    // happens before paint, avoiding a one-frame flash of the stale panel.
+    // renders. Every resource load now comes from the route, so a stale control or
+    // interface would otherwise flash before the new fetch resolves (detailContent
+    // evaluates controlData first). Runs in a layout effect so the clear happens
+    // before paint, avoiding a one-frame flash of the stale panel.
     useLayoutEffect(() => {
         setData(undefined);
         setAdrData(undefined);
@@ -365,13 +364,12 @@ export default function Hub() {
         <DocumentDetailSection data={data} />
     );
 
-    // Route decides the content pane. A loaded resource (including an in-place
-    // interface selected from the namespace page) takes precedence over the
-    // route-driven page so its detail view shows. A selected control fills the
-    // whole pane like an architecture or document detail view — the ControlPanel
-    // carries its own breadcrumb (Explore / <domain> / <control>) back to the
-    // domain's control list. The key resets the panel's view mode when the
-    // selected control changes.
+    // Route decides the content pane. A resource loaded from a detail route takes
+    // precedence over the route-driven page so its detail view shows. A loaded control
+    // fills the whole pane like an architecture or document detail view — the
+    // ControlPanel carries its own breadcrumb (Explore / <domain> / <control>) back to
+    // the domain's control list. The key resets the panel's view mode when the
+    // control changes.
     const content = controlData ? (
         <ControlPanel key={controlData.controlId} controlData={controlData} />
     ) : isBrokenRefRoute ? (
@@ -397,7 +395,6 @@ export default function Hub() {
         <DomainPage
             domain={activeDomain}
             controlCount={domainControlCount}
-            onControlLoad={handleControlLoad}
         />
     ) : (
         // Only reached on `/search` (the bare-`/` intro early-returns above).
@@ -421,7 +418,7 @@ export default function Hub() {
             <div className="relative flex flex-row flex-1 overflow-hidden bg-base-300">
                 {/* Desktop: inline, collapsible browse rail. */}
                 {!isMobile && (
-                    <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12 p-4 pr-2'} transition-all duration-300`}>
+                    <div className={`h-full shrink-0 ${isSidebarOpen ? '' : 'w-12'} transition-all duration-300`}>
                         {isSidebarOpen ? (
                             <ExploreRail
                                 namespaceCounts={namespaceCounts}
@@ -433,17 +430,7 @@ export default function Hub() {
                                 onCollapse={() => setIsSidebarOpen(false)}
                             />
                         ) : (
-                            <div className="h-full bg-base-100 rounded-box overflow-hidden shadow-xl flex flex-col">
-                                <div className="flex items-center justify-center pt-3">
-                                    <button
-                                        aria-label="Expand sidebar"
-                                        className="btn btn-ghost btn-xs btn-circle"
-                                        onClick={() => setIsSidebarOpen(true)}
-                                    >
-                                        <IoChevronForwardOutline />
-                                    </button>
-                                </div>
-                            </div>
+                            <CollapsedRail namespaceCounts={namespaceCounts} onExpand={() => setIsSidebarOpen(true)} />
                         )}
                     </div>
                 )}

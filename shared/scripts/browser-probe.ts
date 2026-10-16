@@ -1,25 +1,15 @@
 // Bundled by check-browser-entry.mjs with fs/path stubbed to throw on touch. Exercises the real
 // validate(), generate() and diffDocuments() paths through the browser entry with in-memory schemas.
 import { validate, SchemaDirectory, buildBrowserDocumentLoader, formatOutput, browserSupportFor, generate, diffDocuments } from '../src/browser';
-import calm from '../../calm/release/1.2/meta/calm.json';
-import core from '../../calm/release/1.2/meta/core.json';
-import iface from '../../calm/release/1.2/meta/interface.json';
-import control from '../../calm/release/1.2/meta/control.json';
-import controlRequirement from '../../calm/release/1.2/meta/control-requirement.json';
-import evidence from '../../calm/release/1.2/meta/evidence.json';
-import flow from '../../calm/release/1.2/meta/flow.json';
-import units from '../../calm/release/1.2/meta/units.json';
-import decorators from '../../calm/release/1.2/meta/decorators.json';
-import timeline from '../../calm/release/1.2/meta/timeline.json';
-import calmTimeline from '../../calm/release/1.2/meta/calm-timeline.json';
 
-const documents: Record<string, object> = Object.fromEntries(
-    [calm, core, iface, control, controlRequirement, evidence, flow, units, decorators, timeline, calmTimeline]
-        .map((schema) => [(schema as { $id: string }).$id, schema])
-);
+// Injected by check-browser-entry.mjs: the meta-schemas of every pinned release, keyed by $id, and
+// the $id of the latest release's calm.json.
+declare const __CALM_SCHEMAS__: Record<string, object>;
+declare const __CALM_SCHEMA_ID__: string;
+const documents = __CALM_SCHEMAS__;
 
 const arch = (destination: string) => ({
-    $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+    $schema: __CALM_SCHEMA_ID__,
     'unique-id': 'probe',
     nodes: [
         { 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'a service' },

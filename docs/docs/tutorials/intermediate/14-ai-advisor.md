@@ -123,15 +123,33 @@ Should pass! ✅
 
 ### 8. Add Resilience Controls
 
+These examples use CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json). Each inline configuration requires `control-id`, `name`, and `description`. The uptime, recovery, and failure thresholds are illustrative targets. Validation checks the documented configuration; it does not enforce runtime availability, failover, or circuit breaking.
+
 **Prompt:**
 ```text
-Add resilience controls to my e-commerce architecture:
+Add an architecture-level "high-availability" control in architectures/ecommerce-platform.json with:
+- description: "System-wide uptime requirement"
+- requirements:
+  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+    config (inline): { "control-id": "RES-001", "name": "High availability", "description": "The platform targets 99.9% uptime" }
+```
 
-1. Add an architecture-level "high-availability" control requiring 99.9% uptime
-2. Add a node-level "failover" control on the order-database-cluster documenting RTO/RPO targets
-3. Add a "circuit-breaker" control on the order-service documenting failure thresholds
+**Prompt:**
+```text
+Add a "failover" control to the order-database-cluster node in architectures/ecommerce-platform.json with:
+- description: "Database recovery targets"
+- requirements:
+  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+    config (inline): { "control-id": "RES-002", "name": "Database failover", "description": "Target a recovery time objective (RTO) of 60 seconds and a recovery point objective (RPO) of 5 seconds" }
+```
 
-Use requirement-url pointing to internal-policy.example.com and include inline config with specific values.
+**Prompt:**
+```text
+Add a "circuit-breaker" control to the order-service node in architectures/ecommerce-platform.json with:
+- description: "Failure isolation thresholds"
+- requirements:
+  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+    config (inline): { "control-id": "RES-003", "name": "Circuit breaking", "description": "Open the circuit after 5 consecutive failures and retry after 30 seconds" }
 ```
 
 ### 9. Final Validation
@@ -171,8 +189,8 @@ After implementing improvements, formalize the requirements as controls:
       "description": "System-wide uptime requirement",
       "requirements": [
         {
-          "requirement-url": "https://internal-policy.example.com/sla/99-9-uptime",
-          "config": { "availability-percent": 99.9 }
+          "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+          "config": { "control-id": "RES-001", "name": "High availability", "description": "The platform targets 99.9% uptime" }
         }
       ]
     }

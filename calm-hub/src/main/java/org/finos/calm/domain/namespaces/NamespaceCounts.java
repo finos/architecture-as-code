@@ -5,15 +5,16 @@ import jakarta.json.bind.annotation.JsonbPropertyOrder;
 import java.util.Objects;
 
 /**
- * Per-namespace, per-resource-type counts. Surfaced by
+ * Per-namespace description and per-resource-type counts. Surfaced by
  * {@code GET /api/calm/namespaces/counts} so the browse rail and namespace page
  * can show live counts without one client round-trip per resource type.
  *
  * <p>{@code total} is the sum of the six resource-type counts.</p>
  */
-@JsonbPropertyOrder({"namespace", "architectures", "patterns", "flows", "standards", "adrs", "interfaces", "total"})
+@JsonbPropertyOrder({"namespace", "description", "architectures", "patterns", "flows", "standards", "adrs", "interfaces", "total"})
 public class NamespaceCounts {
     private final String namespace;
+    private final String description;
     private final int architectures;
     private final int patterns;
     private final int flows;
@@ -21,9 +22,10 @@ public class NamespaceCounts {
     private final int adrs;
     private final int interfaces;
 
-    public NamespaceCounts(String namespace, int architectures, int patterns, int flows,
+    public NamespaceCounts(String namespace, String description, int architectures, int patterns, int flows,
                            int standards, int adrs, int interfaces) {
         this.namespace = namespace;
+        this.description = description;
         this.architectures = architectures;
         this.patterns = patterns;
         this.flows = flows;
@@ -32,8 +34,16 @@ public class NamespaceCounts {
         this.interfaces = interfaces;
     }
 
+    public NamespaceCounts withDescription(String description) {
+        return new NamespaceCounts(namespace, description, architectures, patterns, flows, standards, adrs, interfaces);
+    }
+
     public String getNamespace() {
         return namespace;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public int getArchitectures() {
@@ -74,11 +84,12 @@ public class NamespaceCounts {
                 && standards == that.standards
                 && adrs == that.adrs
                 && interfaces == that.interfaces
-                && Objects.equals(namespace, that.namespace);
+                && Objects.equals(namespace, that.namespace)
+                && Objects.equals(description, that.description);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(namespace, architectures, patterns, flows, standards, adrs, interfaces);
+        return Objects.hash(namespace, description, architectures, patterns, flows, standards, adrs, interfaces);
     }
 }

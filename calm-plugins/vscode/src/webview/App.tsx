@@ -51,7 +51,8 @@ import { InterfaceList } from './panels/InterfaceList';
 import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
 import { NodeAppearance } from './panels/NodeAppearance';
-import { getNodeStyleOverride } from './utils/building-block-style';
+import { getNodeStyleOverride, isBuildingBlock } from './utils/building-block-style';
+import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
 import { TemplatePicker } from './panels/TemplatePicker';
 import { StandardsPanel } from './panels/StandardsPanel';
@@ -59,8 +60,9 @@ import { BuildingBlockCreator } from './panels/BuildingBlockCreator';
 import { ToolbarMenu } from './panels/ToolbarMenu';
 import { nodeTypes } from './canvas/nodeTypes';
 import { edgeTypes } from './canvas/edgeTypes';
+import { minimapNodeClassName } from './canvas/minimap';
 import { makeContainment, removeContainment, isInsideBounds, getAbsolutePosition } from './utils/containment';
-import { mergeControls } from './utils/controls';
+import { mergeControls } from '@finos/calm-shared/browser';
 import { validateArchitecture } from './utils/validation';
 
 const SUPPRESS_ECHO_MS = 1200;
@@ -279,7 +281,7 @@ function CanvasApp() {
             type: 'tooltip',
             label: '',
             markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+            style: { strokeWidth: 1.5 },
             data: { calmRelId: id, calmVariant: 'connects', protocol: '', description: '', direction: 'source-to-target', lineStyle: 'solid' },
         }, eds));
         setTimeout(() => emitChange(true), 0);
@@ -506,7 +508,7 @@ function CanvasApp() {
                                 type: 'tooltip',
                                 label: 'adheres to',
                                 markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                                style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                                style: { strokeWidth: 1.5 },
                                 data: {
                                     calmRelId: edgeId,
                                     calmVariant: 'connects',
@@ -878,7 +880,7 @@ function CanvasApp() {
                     >
                         <Background />
                         <Controls />
-                        <MiniMap />
+                        <MiniMap nodeClassName={minimapNodeClassName} />
                     </ReactFlow>
 
                     {/* Validation Panel */}
@@ -950,6 +952,7 @@ function CanvasApp() {
                                     <NodeAppearance
                                         key={`${selectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
+                                        defaults={defaultNodeColours(selectedNode.type, isBuildingBlock(data as Record<string, unknown>))}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
                                             if (style) {
@@ -1033,7 +1036,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 const toolbarStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'flex-start', padding: '6px 12px', background: 'var(--calm-bg-secondary)', borderBottom: '1px solid var(--calm-border)', flexShrink: 0 };
 const inputStyle: React.CSSProperties = { width: '100%', padding: '5px 8px', fontSize: '12px', color: 'var(--calm-fg)', background: 'var(--calm-bg-input)', border: '1px solid var(--calm-border-input)', borderRadius: '3px', outline: 'none', fontFamily: 'inherit' };
-const validationPanelStyle: React.CSSProperties = { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: '40%', display: 'flex', flexDirection: 'column', background: 'var(--calm-bg)', borderTop: '1px solid var(--calm-border-heavy)', zIndex: 100, boxShadow: '0 -2px 8px rgba(0,0,0,0.3)' };
+const validationPanelStyle: React.CSSProperties = { position: 'absolute', bottom: 0, left: 0, right: 0, maxHeight: '40%', display: 'flex', flexDirection: 'column', background: 'var(--calm-bg)', borderTop: '1px solid var(--calm-border-heavy)', zIndex: 100, boxShadow: '0 -2px 8px var(--vscode-widget-shadow, rgba(0, 0, 0, 0.36))' };
 const collapsedPanelStyle: React.CSSProperties = { width: '30px', minWidth: '30px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', padding: '10px 0', border: 'none', borderLeft: '1px solid var(--calm-border)', background: 'var(--calm-bg-secondary)', cursor: 'pointer' };
 const collapsedLabelStyle: React.CSSProperties = { fontSize: '10px', fontWeight: 700, color: 'var(--calm-fg-muted)', writingMode: 'vertical-rl', letterSpacing: '1px' };
 const collapseToggleStyle: React.CSSProperties = { border: 'none', background: 'transparent', color: 'var(--calm-fg)', cursor: 'pointer', fontSize: '14px', lineHeight: 1, padding: '0 4px' };

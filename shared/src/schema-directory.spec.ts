@@ -1,7 +1,7 @@
 import { SchemaDirectory } from '.';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { TEST_ALL_SCHEMA } from './test/test-utils';
+import { TEST_ALL_SCHEMA, calmSchemaDir } from './test/test-utils';
 
 vi.mock('./logger', () => {
     return {
@@ -56,7 +56,7 @@ describe('SchemaDirectory', () => {
     it.each(TEST_ALL_SCHEMA)('resolves a reference from a stored schema %s', async (schema) => {
         const schemaDir = new SchemaDirectory(mockDocLoader);
 
-        const nodeJson = loadSchema(path.join(__dirname, `../../calm/release/${schema}/meta/core.json`));
+        const nodeJson = loadSchema(path.join(calmSchemaDir(schema), 'core.json'));
         const nodeRef = `https://calm.finos.org/release/${schema}/meta/core.json#/defs/node`;
 
         mockDocLoader.loadMissingDocument.mockReturnValueOnce(new Promise(resolve => resolve(nodeJson)));

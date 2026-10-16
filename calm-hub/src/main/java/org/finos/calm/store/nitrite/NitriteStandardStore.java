@@ -23,8 +23,6 @@ import java.util.List;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 
-import static org.finos.calm.store.util.NitriteVersionDocumentStore.INITIAL_VERSION;
-
 /**
  * NitriteDB-backed implementation of {@link StandardStore}, used in standalone mode.
  *
@@ -69,18 +67,18 @@ public class NitriteStandardStore implements StandardStore {
     }
 
     @Override
-    public Standard createStandardForNamespace(CreateStandardRequest createStandardRequest, String namespace) throws NamespaceNotFoundException {
+    public Standard createStandardForNamespace(CreateStandardRequest createStandardRequest, String namespace, String version) throws NamespaceNotFoundException {
         Standard createdStandard = new Standard(createStandardRequest);
         namespaceStore.requireNamespace(namespace);
         validateStandardJson(createStandardRequest.getStandardJson());
 
         int id = counterStore.getNextStandardSequenceValue();
         documentStore.createHeader(namespace, id, createStandardRequest.getName(), createStandardRequest.getDescription());
-        documentStore.createFirstVersion(namespace, id, createStandardRequest.getStandardJson());
+        documentStore.createFirstVersion(namespace, id, version, createStandardRequest.getStandardJson());
 
         LOG.info("Created standard with ID {} for namespace '{}'", id, namespace);
         createdStandard.setId(id);
-        createdStandard.setVersion(INITIAL_VERSION);
+        createdStandard.setVersion(version);
         return createdStandard;
     }
 
@@ -125,6 +123,28 @@ public class NitriteStandardStore implements StandardStore {
         return standard;
     }
 
+    @Override
+    public Standard updateStandardForVersion(CreateStandardRequest standardRequest, String namespace,
+                                             Integer standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        validateStandardJson(standardRequest.getStandardJson());
+        requireStandardExists(namespace, standardId);
+
+        documentStore.upsertVersion(namespace, standardId, version, standardRequest.getStandardJson());
+
+        // Unconditional, matching the old shape: Standard did not guard these on blank.
+        documentStore.updateHeaderDetails(namespace, standardId,
+                standardRequest.getName(), standardRequest.getDescription());
+
+        LOG.info("Updated version '{}' for standard {} in namespace '{}'", version, standardId, namespace);
+        Standard standard = new Standard(standardRequest);
+        standard.setVersion(version);
+        standard.setId(standardId);
+        standard.setNamespace(namespace);
+        return standard;
+    }
+
     /**
      * Validates that the supplied standard JSON is parseable, throwing
      * {@link JsonParseException} if not so the REST layer can surface a 400.
@@ -161,5 +181,19 @@ public class NitriteStandardStore implements StandardStore {
             throw new StandardNotFoundException();
         }
         LOG.info("Deleted standard with ID {} from namespace '{}'", standardId, namespace);
+    }
+
+    @Override
+    public boolean deleteStandardVersion(String namespace, int standardId, String version)
+            throws NamespaceNotFoundException, StandardNotFoundException {
+        namespaceStore.requireNamespace(namespace);
+        if (!documentStore.headerExists(namespace, standardId)) {
+            throw new StandardNotFoundException();
+        }
+        boolean deleted = documentStore.deleteVersion(namespace, standardId, version);
+        if (deleted) {
+            LOG.info("Deleted version '{}' of standard {} from namespace '{}'", version, standardId, namespace);
+        }
+        return deleted;
     }
 }

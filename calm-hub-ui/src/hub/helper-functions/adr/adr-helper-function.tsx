@@ -1,6 +1,6 @@
 import { Option } from '../../../model/adr/option.js';
 import { Link } from '../../../model/adr/link.js';
-import Markdown from 'react-markdown';
+import { AdrMarkdown } from '../../components/adr-renderer/AdrMarkdown.js';
 import { Decision } from '../../../model/adr/decision.js';
 import { AdrStatus } from '../../../model/adr/adr-status/adrStatus.js';
 
@@ -68,7 +68,7 @@ function getListOfConsequences(consequences: string[], positive: boolean) {
 
 export function DisplayConsideredOptions(props: { consideredOptions: Option[] }) {
     const returnList = [];
-    for (const consideredOption of props.consideredOptions) {
+    for (const [index, consideredOption] of props.consideredOptions.entries()) {
         returnList.push(
             <div className="mt-3">
                 <div className="collapse collapse-arrow border border-l-4 border-base-300 border-l-blue-500">
@@ -77,7 +77,9 @@ export function DisplayConsideredOptions(props: { consideredOptions: Option[] })
 
                     <div className="collapse-content border-t border-base-300">
                         <div className=" pt-1 pe-2 markdownParagraphSpacing">
-                            <Markdown>{consideredOption.description}</Markdown>
+                            <AdrMarkdown label={`Considered option ${index + 1}: ${consideredOption.name}`}>
+                                {consideredOption.description}
+                            </AdrMarkdown>
                         </div>
                         <br></br>
                         <p className="font-bold"> Positive Consequences:</p>
@@ -104,7 +106,7 @@ export function DisplayChosenOption(props: { decisionOutcome: Decision }) {
             <p className="font-bold pb-1">{chosenOption.name}</p>
 
             <div className=" pt-1 pb-1 pe-2 markdownParagraphSpacing">
-                <Markdown>{chosenOption.description}</Markdown>
+                <AdrMarkdown label={`Chosen option: ${chosenOption.name}`}>{chosenOption.description}</AdrMarkdown>
             </div>
 
             <p className="font-bold"> Positive Consequences:</p>
@@ -115,7 +117,7 @@ export function DisplayChosenOption(props: { decisionOutcome: Decision }) {
 
             <p className="font-bold mt-4"> Decision Rational:</p>
             <div className="pe-1">
-                <Markdown>{props.decisionOutcome.rationale}</Markdown>
+                <AdrMarkdown label="Decision rationale">{props.decisionOutcome.rationale}</AdrMarkdown>
             </div>
         </div>
     );

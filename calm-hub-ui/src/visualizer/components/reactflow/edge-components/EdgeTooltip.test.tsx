@@ -21,6 +21,14 @@ describe('EdgeTooltip', () => {
         expect(screen.getByText('Test connection')).toBeInTheDocument();
     });
 
+    it('renders no empty description paragraph for an edge that has only a protocol', () => {
+        const { container } = render(<EdgeTooltip {...defaultProps} description="" protocol="HTTPS" />);
+
+        const paragraphs = Array.from(container.querySelectorAll('p'));
+        expect(paragraphs.every((p) => (p.textContent ?? '').trim() !== '')).toBe(true);
+        expect(screen.getByText('HTTPS')).toBeInTheDocument();
+    });
+
     it('renders protocol when provided', () => {
         render(<EdgeTooltip {...defaultProps} protocol="HTTPS" />);
         expect(screen.getByText('Protocol:')).toBeInTheDocument();

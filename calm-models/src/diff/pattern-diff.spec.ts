@@ -149,3 +149,77 @@ describe('diffPatterns', () => {
         expect(result.undiffableItems).toBeUndefined();
     });
 });
+describe('items catalogues', () => {
+    it('reduces a catalogue member to an instance-shaped node', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.cataloguePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache']);
+    });
+
+    it('reports a member added to a catalogue', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.catalogueGrownPattern);
+        expect(result.nodesAdded.map((n) => n['unique-id'])).toEqual(['queue']);
+        expect(result.nodesRemoved).toHaveLength(0);
+    });
+
+    it('reports a member removed from a catalogue', () => {
+        const result = diffPatterns(testPatterns.catalogueGrownPattern, testPatterns.cataloguePattern);
+        expect(result.nodesRemoved.map((n) => n['unique-id'])).toEqual(['queue']);
+        expect(result.nodesAdded).toHaveLength(0);
+    });
+
+    it('reports a changed member as modified', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.catalogueRenamedMemberPattern);
+        expect(result.nodesModified).toHaveLength(1);
+        expect(result.nodesModified[0].original['unique-id']).toBe('cache');
+    });
+
+    it('reports an unchanged member as same', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.cataloguePattern);
+        expect(result.nodesSame.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache']);
+    });
+
+    it('reports a pattern that gains a catalogue', () => {
+        const result = diffPatterns(testPatterns.noCataloguePattern, testPatterns.cataloguePattern);
+        expect(result.nodesAdded.map((n) => n['unique-id'])).toEqual(['cache']);
+    });
+
+    it('reports a pattern that loses its catalogue', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.noCataloguePattern);
+        expect(result.nodesRemoved.map((n) => n['unique-id'])).toEqual(['cache']);
+    });
+
+    it('reads a catalogue declared on relationships, not only on nodes', () => {
+        const { relationships } = normalisePatternToInstance(testPatterns.relationshipCataloguePattern);
+        expect(relationships.map((r) => r['unique-id'])).toEqual(['gateway-to-service', 'gateway-to-cache']);
+    });
+
+    it('reads a catalogue declared with anyOf as well as oneOf', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.anyOfCataloguePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache', 'queue']);
+    });
+
+    it('reads a catalogue declared inside an allOf branch', () => {
+        const { nodes } = normalisePatternToInstance(testPatterns.allOfCataloguePattern);
+        expect(nodes.map((n) => n['unique-id'])).toEqual(['api-gateway', 'cache']);
+    });
+
+    it('diffs a relationships catalogue member like any other relationship', () => {
+        const result = diffPatterns(testPatterns.cataloguePattern, testPatterns.relationshipCataloguePattern);
+        expect(result.edgesAdded.map((r) => r['unique-id']))
+            .toEqual(['gateway-to-service', 'gateway-to-cache']);
+    });
+
+    it('ignores an items schema that declares a node directly', () => {
+        const plain = {
+            properties: {
+                nodes: {
+                    type: 'array',
+                    prefixItems: [],
+                    items: { properties: { 'unique-id': { const: 'ghost' } } },
+                },
+                relationships: { type: 'array', prefixItems: [] },
+            },
+        };
+        expect(normalisePatternToInstance(plain).nodes).toHaveLength(0);
+    });
+});

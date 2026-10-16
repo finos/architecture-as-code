@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomainPage } from './DomainPage.js';
 
@@ -11,15 +11,13 @@ vi.mock('../../../service/control-service.js', () => ({
     }); }),
 }));
 
-const renderPage = (controlCount = 2, onControlLoad = vi.fn(), selectedControlId?: number) =>
+const LocationProbe = () => <div data-testid="location">{useLocation().pathname}</div>;
+
+const renderPage = (controlCount = 2, domain = 'security') =>
     render(
         <MemoryRouter>
-            <DomainPage
-                domain="security"
-                controlCount={controlCount}
-                onControlLoad={onControlLoad}
-                selectedControlId={selectedControlId}
-            />
+            <DomainPage domain={domain} controlCount={controlCount} />
+            <LocationProbe />
         </MemoryRouter>
     );
 
@@ -52,26 +50,20 @@ describe('DomainPage', () => {
         expect(screen.getByText('Access Control')).toBeInTheDocument();
     });
 
-    it('marks the selected control card as active', async () => {
-        renderPage(2, vi.fn(), 5);
-        const selected = await screen.findByText('Encryption');
-        expect(selected).toHaveAttribute('aria-pressed', 'true');
-        // The other card is not selected.
-        expect(screen.getByText('Access Control')).toHaveAttribute('aria-pressed', 'false');
-    });
-
-    it('loads a control via onControlLoad when a control is clicked', async () => {
-        const onControlLoad = vi.fn();
-        renderPage(2, onControlLoad);
+    it('navigates to the control deep link when a control is clicked', async () => {
+        renderPage();
 
         fireEvent.click(await screen.findByText('Encryption'));
 
-        expect(onControlLoad).toHaveBeenCalledWith({
-            domain: 'security',
-            controlId: 5,
-            controlName: 'Encryption',
-            controlDescription: 'Encrypt data',
-        });
+        expect(screen.getByTestId('location')).toHaveTextContent('/security/controls/5/detail');
+    });
+
+    it('encodes the domain in the control deep link', async () => {
+        renderPage(2, 'my domain');
+
+        fireEvent.click(await screen.findByText('Encryption'));
+
+        expect(screen.getByTestId('location')).toHaveTextContent('/my%20domain/controls/5/detail');
     });
 
     it('shows an empty message when the domain has no controls', async () => {

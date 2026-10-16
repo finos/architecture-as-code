@@ -13,7 +13,11 @@ CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
 # which is not necessarily the URL this script reaches the hub on.
 CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
+CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
+CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-}"
+CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-}"
+CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
 
 # Colors for output
@@ -48,30 +52,40 @@ check_calmhub_status() {
     fi
 }
 
+# create_namespace <name> <description>
+# Returns non-zero when the namespace does not exist afterwards.
+create_namespace() {
+    local namespace="$1" description="$2"
+    local http_code
+    http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
+        -H "$CONTENT_TYPE" \
+        -d "$(jq -n --arg name "$namespace" --arg description "$description" '{name: $name, description: $description}')")
+    if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+        print_status "Created namespace $namespace"
+    elif [[ "$http_code" == "409" ]]; then
+        print_status "Namespace $namespace already exists, skipping"
+    else
+        print_warning "Failed to create namespace $namespace (HTTP $http_code)"
+        return 1
+    fi
+}
+
 # Function to create namespaces
 create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
         print_status "Creating namespace: $namespace"
         local description
         case "$namespace" in
             # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
             finos.fluxnova) description="FluxNova BPM example architectures" ;;
+            finos.sdlc-common-controls) description="The Standard the SDLC Common Controls Catalog control requirements conform to" ;;
+            finos.agentic-sdlc) description="Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" ;;
             *) description="$namespace namespace" ;;
         esac
-        local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces" \
-            -H "$CONTENT_TYPE" \
-            -d "{\"name\": \"$namespace\", \"description\": \"$description\"}")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created namespace $namespace"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Namespace $namespace already exists, skipping"
-        else
-            print_warning "Failed to create namespace $namespace (HTTP $http_code)"
-        fi
+        create_namespace "$namespace" "$description" || true
     done
 }
 
@@ -119,7 +133,7 @@ load_schemas_from_dir() {
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/calm/schemas" \
             -H "$CONTENT_TYPE" \
-            -d "$payload")
+            --data-binary @- <<< "$payload")
 
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created schema version ${version}"
@@ -131,18 +145,25 @@ load_schemas_from_dir() {
     done
 }
 
-# Resolve CALM_SCHEMA_BASE_PATH once (falling back to the calm/ dir beside this
+# Resolve the schema paths once (falling back to the directories beside this
 # script when unset) so every schema-reading function — create_core_schemas,
-# create_standards, create_interfaces — sees the same path.  Without this a bare
-# `bash init-nitrite.sh` (no env var) leaves the var empty, which causes those
+# create_standards — sees the same paths.  Without this a bare
+# `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
 # functions to build absolute paths from '/' that don't exist and silently
-# [WARN]-skip content.  seed-readonly.sh always exports CALM_SCHEMA_BASE_PATH,
-# so the Docker build masks the issue; this fix makes the bare run equally safe.
+# [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
+# Docker build masks the issue; this makes the bare run equally safe.
+#
+# The released meta-schemas come from the @finos/calm-schema npm packages, which
+# `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
+# calm/ in the repository holds only the drafts and the release candidates.
 resolve_schema_base_path() {
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     if [[ -z "$CALM_SCHEMA_BASE_PATH" ]]; then
-        local script_dir
-        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
         CALM_SCHEMA_BASE_PATH=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        CALM_RELEASE_SCHEMA_PATH=$(realpath "$script_dir/../target/calm-schemas/release" 2>/dev/null || echo "")
     fi
 }
 
@@ -150,12 +171,18 @@ resolve_schema_base_path() {
 create_core_schemas() {
     print_status "Creating core schemas..."
 
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" || ! -d "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        print_error "Released CALM schemas not found. Run './mvnw package' in calm-hub (or 'npm run calm-hub:copy-schemas' at the repository root), or set CALM_RELEASE_SCHEMA_PATH."
+        return 1
+    fi
     if [[ -z "$CALM_SCHEMA_BASE_PATH" || ! -d "$CALM_SCHEMA_BASE_PATH" ]]; then
         print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
         return 1
     fi
 
-    print_status "Loading schemas from: $CALM_SCHEMA_BASE_PATH"
+    print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
+    load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
+    print_status "Loading release candidates and drafts from: $CALM_SCHEMA_BASE_PATH"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
@@ -183,7 +210,7 @@ post_document() {
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/$resource" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$name' in namespace $namespace"
@@ -217,7 +244,7 @@ post_named_document() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/calm/namespaces/$namespace/$resource/$slug/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created $resource '$slug' version $version in namespace $namespace"
@@ -228,6 +255,65 @@ post_named_document() {
         print_error "  \$id sent: $canonical"
         exit 1
     fi
+}
+
+# seed_named_documents_from_dir <base path> <resource plural> <default path beside this script>
+# Seeds every <base path>/<namespace>/*.json through the name-based API (post_named_document), so
+# the $id each document carries resolves on the hub. Namespace, slug and version are read from that
+# $id (.../calm/namespaces/<namespace>/<resource>/<slug>/versions/<version>) and the namespace must
+# match the directory. Failures are fatal, as for every name-based seed.
+seed_named_documents_from_dir() {
+    local base_path="$1" resource="$2" fallback="$3"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/$fallback" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No $resource directory at ${base_path:-$fallback}, skipping namespace $resource"
+        return
+    fi
+    print_status "Loading $resource from: $base_path"
+    local id_pattern="^.*/calm/namespaces/([^/]+)/${resource}/([^/]+)/versions/([^/]+)\$"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        # Create the namespace when create_namespaces does not list it.
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed $resource into namespace $namespace"
+            exit 1
+        fi
+        local document_file
+        while IFS= read -r document_file; do
+            [[ -f "$document_file" ]] || continue
+            local id doc
+            id=$(jq -r '."$id" // empty' "$document_file")
+            if [[ ! "$id" =~ $id_pattern ]]; then
+                print_error "$document_file needs a \$id of the form .../calm/namespaces/<namespace>/$resource/<slug>/versions/<version>"
+                exit 1
+            fi
+            if [[ "${BASH_REMATCH[1]}" != "$namespace" ]]; then
+                print_error "$document_file declares namespace ${BASH_REMATCH[1]} but sits in $namespace/"
+                exit 1
+            fi
+            doc=$(cat "$document_file")
+            post_named_document "$namespace" "$resource" "${BASH_REMATCH[2]}" "${BASH_REMATCH[3]}" "$doc"
+        done < <(find "$namespace_dir" -maxdepth 1 -name '*.json' | sort)
+    done
+}
+
+# Standards contributed by projects, one directory per namespace under calm-hub/mongo/standards/.
+create_namespace_standards() {
+    print_status "Creating namespace standards..."
+    seed_named_documents_from_dir "$CALM_STANDARDS_BASE_PATH" standards "../mongo/standards"
+}
+
+# Patterns contributed by projects, one directory per namespace under calm-hub/mongo/patterns/.
+create_namespace_patterns() {
+    print_status "Creating namespace patterns..."
+    seed_named_documents_from_dir "$CALM_PATTERNS_BASE_PATH" patterns "../mongo/patterns"
 }
 
 # Look up the numeric id of a namespace-scoped resource by its name.
@@ -263,7 +349,7 @@ post_architecture_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/architectures/$architecture_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created architecture '$name' version $version in namespace $namespace"
@@ -297,7 +383,7 @@ post_pattern_version() {
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/$namespace/patterns/$pattern_id/versions/$version" \
         -H "$CONTENT_TYPE" \
-        -d "$payload")
+        --data-binary @- <<< "$payload")
 
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created pattern '$name' version $version in namespace $namespace"
@@ -5176,7 +5262,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
@@ -5206,7 +5292,7 @@ create_standards() {
         local http_code
         http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
             "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
-            -H "$CONTENT_TYPE" -d "$payload")
+            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
         if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
             print_status "Created deployment standard in finos.calm"
         elif [[ "$http_code" == "409" ]]; then
@@ -5219,40 +5305,42 @@ create_standards() {
     fi
 }
 
-# Function to seed CALM interface examples into finos.calm
+# Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
+# document's title. These are not CALM Standards, so the name-based API does not apply.
 create_interfaces() {
-    print_status "Creating interfaces in finos.calm..."
+    print_status "Creating interfaces..."
 
-    local interfaces_dir="${CALM_SCHEMA_BASE_PATH}/interfaces/example"
-    if [[ ! -d "$interfaces_dir" ]]; then
-        print_warning "Interfaces example directory not found at $interfaces_dir, skipping"
+    local base_path="$CALM_INTERFACES_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/../mongo/interfaces" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No interfaces directory at ${base_path:-../mongo/interfaces}, skipping interfaces"
         return
     fi
 
-    for f in "$interfaces_dir"/*.json; do
-        [[ -f "$f" ]] || continue
-        local name doc payload http_code
-        # Derive name from the .title field; fall back to the basename without extension
-        name=$(jq -r '.title // empty' "$f")
-        if [[ -z "$name" ]]; then
-            name=$(basename "$f" .json)
+    print_status "Loading interfaces from: $base_path"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed interfaces into namespace $namespace"
+            exit 1
         fi
-        doc=$(cat "$f")
-        payload=$(jq -n \
-            --arg name "$name" \
-            --arg description "CALM interface example: $name" \
-            --argjson doc "$doc" \
-            '{name: $name, description: $description, interfaceJson: ($doc | tojson)}')
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/interfaces" \
-            -H "$CONTENT_TYPE" -d "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created interface '$name' in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Interface '$name' already exists, skipping"
-        else
-            print_warning "Failed to create interface '$name' (HTTP $http_code)"
-        fi
+        local f
+        for f in "$namespace_dir"*.json; do
+            [[ -f "$f" ]] || continue
+            local name
+            name=$(jq -r '.title // empty' "$f")
+            if [[ -z "$name" ]]; then
+                name=$(basename "$f" .json)
+            fi
+            post_document "$namespace" interfaces interfaceJson "$name" "CALM interface: $name" "$(cat "$f")"
+        done
     done
 }
 
@@ -5324,10 +5412,12 @@ create_domains_and_controls() {
                 --arg requirementJson "$requirement" \
                 '{name: $name, description: $description, requirementJson: $requirementJson}')
 
-            local location new_id
-            location=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
+            local headers http_code location new_id
+            headers=$(curl -s -D - -o /dev/null -X POST "$CALM_HUB_URL/api/calm/domains/$api_domain/controls" \
                 -H "$CONTENT_TYPE" \
-                -d "$payload" | grep -i '^location:' | tr -d '\r')
+                --data-binary @- <<< "$payload" | tr -d '\r')
+            http_code=$(echo "$headers" | head -n 1 | cut -d' ' -f2)
+            location=$(echo "$headers" | grep -i '^location:' || true)
             new_id=$(echo "$location" | sed -E 's#.*/controls/([0-9]+).*#\1#')
 
             if [[ -n "$new_id" && "$new_id" =~ ^[0-9]+$ ]]; then
@@ -5337,7 +5427,8 @@ create_domains_and_controls() {
                         | jq --arg k "$orig_id" --arg v "$new_id" '. + {($k): $v}')
                 fi
             else
-                print_warning "Failed to create control '$name' in domain $api_domain"
+                print_error "Failed to create control '$name' in domain $api_domain (HTTP $http_code)"
+                exit 1
             fi
         done < <(find "$domain_dir" -maxdepth 1 -name '*.json' | sort)
     done
@@ -6004,7 +6095,7 @@ create_timeline_demo() {
     local http_code
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
         "$CALM_HUB_URL/api/calm/namespaces/workshop/timelines" \
-        -H "$CONTENT_TYPE" -d "$tl_payload")
+        -H "$CONTENT_TYPE" --data-binary @- <<< "$tl_payload")
     if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
         print_status "Created explicit timeline for Trading Platform in workshop"
     elif [[ "$http_code" == "409" ]]; then
@@ -6177,7 +6268,7 @@ CALMDOC
     http_code=$(curl -s -o /dev/null -w "%{http_code}" -X PUT \
         "$CALM_HUB_URL/api/calm/namespaces/workshop/architectures/$conf_arch_id/layout" \
         -H "Content-Type: application/json" \
-        -d "$layout_json")
+        --data-binary @- <<< "$layout_json")
 
     if [[ "$http_code" == "204" ]]; then
         print_status "Created default layout for Conference Signup Architecture (id=$conf_arch_id)"
@@ -6199,11 +6290,13 @@ main() {
     create_core_schemas
     create_domains_and_controls
     create_patterns
+    create_namespace_patterns
     create_flows
     create_architectures
     create_layouts
     create_user_access
     create_standards
+    create_namespace_standards
     create_interfaces
     create_timeline_demo
 
@@ -6221,16 +6314,32 @@ show_help() {
     echo "Options:"
     echo "  -h, --help               Show this help message"
     echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
-    echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
+    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft and release-candidate schemas"
+    echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
+    echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
+    echo "  -t, --standards-path PATH Set the base path for namespace standards"
+    echo "  -p, --patterns-path PATH Set the base path for namespace patterns"
     echo ""
     echo "Environment Variables:"
     echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ and release-candidate schemas"
     echo "                          (default: auto-detected relative to this script)"
+    echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
+    echo "                          (default: ../target/calm-schemas/release relative to this script,"
+    echo "                          which './mvnw package' copies from the @finos/calm-schema npm packages)"
+    echo "  CALM_INTERFACES_BASE_PATH Path to the interfaces directory containing one subdirectory per namespace,"
+    echo "                          each holding one interface JSON file per document"
+    echo "                          (default: auto-detected as ../mongo/interfaces relative to this script)"
     echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
     echo "                          each holding control requirement JSON files"
     echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
+    echo "  CALM_STANDARDS_BASE_PATH Path to the standards directory containing one subdirectory per namespace,"
+    echo "                          each holding one Standard JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/standards relative to this script)"
+    echo "  CALM_PATTERNS_BASE_PATH Path to the patterns directory containing one subdirectory per namespace,"
+    echo "                          each holding one pattern JSON file per document, named by its \$id"
+    echo "                          (default: auto-detected as ../mongo/patterns relative to this script)"
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
@@ -6253,8 +6362,24 @@ while [[ $# -gt 0 ]]; do
             CALM_SCHEMA_BASE_PATH="$2"
             shift 2
             ;;
+        -r|--release-schema-path)
+            CALM_RELEASE_SCHEMA_PATH="$2"
+            shift 2
+            ;;
+        -i|--interfaces-path)
+            CALM_INTERFACES_BASE_PATH="$2"
+            shift 2
+            ;;
         -c|--controls-path)
             CALM_CONTROLS_BASE_PATH="$2"
+            shift 2
+            ;;
+        -t|--standards-path)
+            CALM_STANDARDS_BASE_PATH="$2"
+            shift 2
+            ;;
+        -p|--patterns-path)
+            CALM_PATTERNS_BASE_PATH="$2"
             shift 2
             ;;
         *)

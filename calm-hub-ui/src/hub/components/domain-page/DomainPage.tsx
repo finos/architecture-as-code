@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { IoShieldCheckmarkOutline } from 'react-icons/io5';
 import { ControlService } from '../../../service/control-service.js';
-import { ControlData, ControlDetail } from '../../../model/control.js';
+import { ControlDetail } from '../../../model/control.js';
 import { colors } from '../../../theme/colors.js';
 import { ControlCard } from './ControlCard.js';
 
@@ -14,18 +14,13 @@ interface DomainPageProps {
      * so a deep-link renders "controls" rather than a misleading "0 controls".
      */
     controlCount: number | undefined;
-    /** Opens a control's detail panel (kept on-page beside the card grid). */
-    onControlLoad: (control: ControlData) => void;
-    /** Id of the control whose detail panel is open, for selected-card styling. */
-    selectedControlId?: number;
 }
 
 /**
- * Control-domain browse page. Phase 1 = breadcrumb + header + a list of the
- * domain's controls; selecting one loads it via the existing `onControlLoad`
- * mechanism (ControlDetailSection), preserving control browsing.
+ * Control-domain browse page: breadcrumb + header + a list of the domain's
+ * controls. Selecting one navigates to its deep link so the view can be shared.
  */
-export function DomainPage({ domain, controlCount, onControlLoad, selectedControlId }: DomainPageProps) {
+export function DomainPage({ domain, controlCount }: DomainPageProps) {
     const controlService = useMemo(() => new ControlService(), []);
     const [controls, setControls] = useState<ControlDetail[]>([]);
     const [loading, setLoading] = useState(true);
@@ -96,16 +91,7 @@ export function DomainPage({ domain, controlCount, onControlLoad, selectedContro
                                 name={control.title ?? control.name}
                                 description={control.description}
                                 controlId={control.id}
-                                active={control.id === selectedControlId}
-                                onActivate={() =>
-                                    onControlLoad({
-                                        domain,
-                                        controlId: control.id,
-                                        controlName: control.name,
-                                        controlDescription: control.description,
-                                        controlTitle: control.title,
-                                    })
-                                }
+                                href={`/${encodeURIComponent(domain)}/controls/${control.id}/detail`}
                             />
                         ))}
                     </div>

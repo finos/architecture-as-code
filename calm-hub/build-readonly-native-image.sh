@@ -5,7 +5,7 @@
 #   1. Maven native build — compiles calm-hub to a Linux/amd64 native binary via
 #                           GraalVM Mandrel.  Quarkus automatically pulls and runs
 #                           the Mandrel builder container (quarkus.native.container-build).
-#   2. Stage content      — copies calm/ schemas and controls/ into the Docker build
+#   2. Stage content      — copies calm/ schemas, controls/, standards/ and patterns/ into the Docker build
 #                           context (target/readonly-seed/) which is gitignored.
 #   3. Docker build       — builds the two-stage Dockerfile.readonly-native image.
 #
@@ -71,17 +71,33 @@ if [[ "${RUN_MAVEN}" == true ]]; then
         -Dquarkus.native.container-build=true \
         -Dquarkus.package.jar.enabled=true \
         -DskipITs \
-        -DskipTests \
-        -Ddependency-check.skip=true
+        -DskipTests
     cd "${REPO_ROOT}"
 fi
 
 # ── Step 2: Stage seed content into the Docker build context ──────────────────
-echo "[build] Staging calm/ schemas and controls into target/readonly-seed/..."
+echo "[build] Staging meta-schemas, calm/ drafts, controls, standards, patterns and interfaces into target/readonly-seed/..."
+# Start from an empty staging directory: cp -r never removes files a previous run staged, so a
+# document deleted from the repository would otherwise still be seeded into the image.
+rm -rf "${SCRIPT_DIR}/target/readonly-seed"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/controls"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/standards"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/patterns"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm-schemas"
+mkdir -p "${SCRIPT_DIR}/target/readonly-seed/interfaces"
+# The released meta-schemas come from the @finos/calm-schema npm packages; the Maven build
+# copies them to target/calm-schemas/release. calm/ holds only the drafts and release candidates.
+if [[ ! -d "${SCRIPT_DIR}/target/calm-schemas/release" ]]; then
+    echo "[build] ERROR: target/calm-schemas/release is missing. Run the Maven build first (or 'npm run calm-hub:copy-schemas' at the repository root)." >&2
+    exit 1
+fi
+cp -r "${SCRIPT_DIR}/target/calm-schemas/release" "${SCRIPT_DIR}/target/readonly-seed/calm-schemas/release"
 cp -r "${REPO_ROOT}/calm/." "${SCRIPT_DIR}/target/readonly-seed/calm/"
+cp -r "${SCRIPT_DIR}/mongo/interfaces/." "${SCRIPT_DIR}/target/readonly-seed/interfaces/"
 cp -r "${SCRIPT_DIR}/mongo/controls/." "${SCRIPT_DIR}/target/readonly-seed/controls/"
+cp -r "${SCRIPT_DIR}/mongo/standards/." "${SCRIPT_DIR}/target/readonly-seed/standards/"
+cp -r "${SCRIPT_DIR}/mongo/patterns/." "${SCRIPT_DIR}/target/readonly-seed/patterns/"
 echo "[build] Staged:"
 ls "${SCRIPT_DIR}/target/readonly-seed/"
 

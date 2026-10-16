@@ -91,7 +91,7 @@ export const workspace: {
         writeFile: async () => {},
     },
     getConfiguration: () => ({
-        get: () => undefined,
+        get: (_key: string, defaultValue?: unknown) => defaultValue,
         update: async () => {},
     }),
     findFiles: async () => [],

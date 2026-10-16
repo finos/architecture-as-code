@@ -3,12 +3,6 @@ import { CalmReferenceResolver } from './calm-reference-resolver.js';
 /**
  * Tries a list of resolvers in order, returning the first successful result.
  * More flexible than CompositeReferenceResolver — accepts any resolver chain.
- *
- * Resolution chain for CURIEs (as designed):
- * 1. SHA cache (~/.calm/cache) — permanent, offline-first
- * 2. Local path (--assets-path) — if configured, resolve from filesystem
- * 3. CalmHub (--hub-url) — if configured, expand CURIE to Hub URL
- * 4. HTTP — absolute URLs resolve directly
  */
 export class ChainReferenceResolver implements CalmReferenceResolver {
     constructor(private resolvers: CalmReferenceResolver[]) {}
@@ -18,15 +12,24 @@ export class ChainReferenceResolver implements CalmReferenceResolver {
     }
 
     async resolve(ref: string): Promise<unknown> {
+        const errors: Error[] = [];
         for (const resolver of this.resolvers) {
             if (resolver.canResolve(ref)) {
                 try {
                     return await resolver.resolve(ref);
-                } catch {
-                    // Try next resolver in chain
+                } catch (error) {
+                    if (error instanceof Error) errors.push(error);
                 }
             }
         }
-        throw new Error(`No resolver in chain could resolve: ${ref}`);
+        const detail = errors.map(e => e.message).join('; ');
+        const message = detail
+            ? `No resolver in chain could resolve: ${ref}: ${detail}`
+            : `No resolver in chain could resolve: ${ref}`;
+        const error = new Error(message);
+        if (errors.length > 0) {
+            (error as Error & { cause: Error }).cause = errors[0];
+        }
+        throw error;
     }
 }

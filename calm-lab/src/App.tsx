@@ -1,6 +1,11 @@
+import { useEffect, useState } from 'react';
 import ColorModeToggle from './ColorModeToggle';
 import ErrorBoundary from './ErrorBoundary';
 import Lab from './lab/Lab';
+import { lastLessonId, rememberLesson } from './lab/storage';
+import { LESSONS } from './lessons';
+import { lessonUrl, selectLesson } from './lessons/select';
+import type { Lesson } from './lessons/types';
 import { useColorMode } from './theme';
 
 const DOCS_URL = 'https://calm.finos.org';
@@ -30,10 +35,18 @@ function LabCrashed() {
     );
 }
 
-export default function App() {
+export default function App({ lessons = LESSONS }: { lessons?: readonly Lesson[] } = {}) {
     const { mode, toggle } = useColorMode();
     // The white icon variant in dark mode, as the docs navbar's `srcDark` does.
     const logo = mode === 'dark' ? '/img/2025_CALM_Icon_WHT.svg' : '/img/2025_CALM_Icon.svg';
+    const [{ lesson, unknownId }] = useState(() => selectLesson(window.location.search, lastLessonId(), lessons));
+
+    useEffect(() => {
+        // Preserves no other query parameters — the lab has none, so this is fine.
+        window.history.replaceState(null, '', lessonUrl(lesson.id));
+        rememberLesson(lesson.id);
+    }, [lesson.id]);
+
     return (
         <div className="app">
             <header className="navbar" role="banner">
@@ -59,8 +72,13 @@ export default function App() {
                     <ColorModeToggle mode={mode} onToggle={toggle} />
                 </nav>
             </header>
+            {unknownId !== undefined && (
+                <p className="app-notice" role="status">
+                    There is no lesson called “{unknownId}”. Opened “{lesson.title}” instead.
+                </p>
+            )}
             <ErrorBoundary fallback={<LabCrashed />}>
-                <Lab />
+                <Lab lesson={lesson} />
             </ErrorBoundary>
         </div>
     );

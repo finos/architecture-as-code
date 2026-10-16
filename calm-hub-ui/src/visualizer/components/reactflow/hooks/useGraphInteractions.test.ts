@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook } from '@testing-library/react';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import type { Node, NodeChange } from 'reactflow';
 import { useGraphInteractions } from './useGraphInteractions.js';
 import { saveNodePositions } from '../../../services/node-position-service.js';
@@ -120,5 +121,54 @@ describe('useGraphInteractions persistence', () => {
             expect(onPositionsChange).toHaveBeenCalled();
             expect(saveNodePositions).not.toHaveBeenCalled();
         });
+    });
+});
+
+// Pins the reference-stability the memoised node components rely on: an
+// untouched node must come back as the exact same object, or React.memo
+// re-renders it anyway.
+describe('useGraphInteractions hover z-index', () => {
+    const hoverNodes: Node[] = [
+        { id: 'a', type: 'custom', position: { x: 0, y: 0 }, data: {}, style: { zIndex: 1 } },
+        { id: 'b', type: 'custom', position: { x: 0, y: 0 }, data: {}, style: { zIndex: 1 } },
+        { id: 'g', type: 'group', position: { x: 0, y: 0 }, data: {}, style: { zIndex: -1 } },
+    ];
+
+    function setupHover() {
+        let updated: Node[] = [];
+        const setNodes = vi.fn((updater: (nodes: Node[]) => Node[]) => {
+            updated = updater(hoverNodes);
+        });
+        const { result } = renderHook(() =>
+            useGraphInteractions({ setNodes, onNodesChangeBase: vi.fn(), groupNodeTypes: ['group'] })
+        );
+        return { result, getUpdated: () => updated };
+    }
+
+    it('elevates only the hovered node and keeps other node references stable', () => {
+        const { result, getUpdated } = setupHover();
+        result.current.handleNodeMouseEnter({} as ReactMouseEvent, hoverNodes[0]);
+        const [a, b, g] = getUpdated();
+        expect(a.style?.zIndex).toBe(1000);
+        expect(a).not.toBe(hoverNodes[0]);
+        expect(b).toBe(hoverNodes[1]);
+        expect(g).toBe(hoverNodes[2]);
+    });
+
+    it('resets only the elevated node on mouse leave', () => {
+        const { result, getUpdated } = setupHover();
+        result.current.handleNodeMouseEnter({} as ReactMouseEvent, hoverNodes[0]);
+        const elevated = getUpdated();
+
+        const setNodes = vi.fn((updater: (nodes: Node[]) => Node[]) => updater(elevated));
+        const { result: result2 } = renderHook(() =>
+            useGraphInteractions({ setNodes, onNodesChangeBase: vi.fn(), groupNodeTypes: ['group'] })
+        );
+        result2.current.handleNodeMouseLeave();
+
+        const [a, b, g] = setNodes.mock.results[0].value as Node[];
+        expect(a.style?.zIndex).toBe(1);
+        expect(b).toBe(elevated[1]);
+        expect(g).toBe(elevated[2]);
     });
 });

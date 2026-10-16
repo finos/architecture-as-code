@@ -1,6 +1,6 @@
 import { describe, it, afterEach, beforeEach } from 'vitest';
 import { Docifier } from './docifier.js';
-import { rmSync, existsSync, mkdirSync } from 'fs';
+import { rmSync, existsSync, mkdirSync, readFileSync } from 'fs';
 import { join } from 'path';
 import { expectDirectoryMatch } from '../test/file-comparison';
 
@@ -126,9 +126,32 @@ describe('Docifier Parity E2E - Option A vs Option B', () => {
         }
     });
 
-    it('front-matter contains required fields for VSCode plugin compatibility', async () => {
-        const { readFileSync } = await import('fs');
+    it('index.md links resolve to the generated node, relationship and flow files', async () => {
+        const docifier = new Docifier(
+            'WEBSITE',
+            ARCH_FILE,
+            OPTION_A_OUTPUT,
+            URL_MAPPING_FILE,
+            'bundle',
+            undefined,
+            false,
+            false
+        );
+        await docifier.docify();
 
+        const docsDir = join(OPTION_A_OUTPUT, 'docs');
+        const indexMd = readFileSync(join(docsDir, 'index.md'), 'utf8');
+        const links = [...indexMd.matchAll(/\]\(((?:nodes|relationships|flows)\/[^)]+)\)/g)].map(match => match[1]);
+
+        for (const section of ['nodes', 'relationships', 'flows']) {
+            expect(links.some(link => link.startsWith(`${section}/`)), `Expected index.md to link to ${section}`).toBe(true);
+        }
+        for (const link of links) {
+            expect(existsSync(join(docsDir, link)), `Expected link to resolve to a file: ${link}`).toBe(true);
+        }
+    });
+
+    it('front-matter contains required fields for VSCode plugin compatibility', async () => {
         // Generate using Option A (direct)
         const docifier = new Docifier(
             'WEBSITE',

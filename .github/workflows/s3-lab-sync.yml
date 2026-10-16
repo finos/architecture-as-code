@@ -5,6 +5,11 @@ name: Sync Lab to S3
 
 permissions:
     contents: read
+    actions: read # needed for gh run list in the dependency scan check
+
+concurrency:
+    group: s3-lab-sync
+    cancel-in-progress: false
 
 on:
     workflow_dispatch: {}
@@ -16,14 +21,49 @@ on:
             - 'calm-models/**'
             - 'calm-widgets/**'
             - 'calm/**'
+            - 'package.json'
+            - 'package-lock.json'
 
 jobs:
     sync-to-s3:
+        if: github.ref == 'refs/heads/main'
         runs-on: ubuntu-latest
 
         steps:
             - name: Checkout repository
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Check dependency scan status
+              run: |
+                  # Deploy only if OSV Scanner passed on the commit being deployed.
+                  # Wait for the push-triggered scan of that commit; a missing or failed scan blocks the deploy.
+                  # Only push runs count: a pull request run can report the same branch name or commit.
+                  SHA=$(git rev-parse HEAD)
+                  RUN='{}'
+                  for _ in $(seq 1 30); do
+                    RUN=$(gh run list \
+                      --workflow=osv-scanner.yml \
+                      --commit="$SHA" \
+                      --event=push \
+                      --limit=1 \
+                      --json status,conclusion,url \
+                      --jq '.[0] // {}')
+                    STATUS=$(echo "$RUN" | jq -r '.status // empty')
+                    if [ "$STATUS" = "completed" ]; then
+                      break
+                    fi
+                    echo "Waiting for the dependency scan of $SHA (status: ${STATUS:-not started})..."
+                    sleep 30
+                  done
+                  echo "Dependency scan of $SHA: $RUN"
+
+                  if [ "$(echo "$RUN" | jq -r '.conclusion // empty')" != "success" ]; then
+                    echo "❌ The dependency scan of $SHA did not pass. Fix or suppress the findings before deploying."
+                    exit 1
+                  fi
+                  echo "✅ Dependency scan passed on $SHA."
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
               with:

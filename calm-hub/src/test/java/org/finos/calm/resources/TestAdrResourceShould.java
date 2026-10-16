@@ -416,4 +416,19 @@ public class TestAdrResourceShould {
 
         verify(mockAdrStore, times(1)).deleteAdr(namespace, 12);
     }
+
+    @Test
+    void reject_a_snapshot_version_because_adrs_use_integer_revisions() {
+        // ADR runs on VersionScheme.NUMERIC, which stores revisions verbatim. A snapshot
+        // reaching it would be an unparseable revision, which NumericVersionOrder sorts
+        // first -- the exact ADR revision 100 failure. The {revision} path param is a plain
+        // int (see AdrResource#getAdrRevision), not a @Pattern-validated String, so a
+        // -SNAPSHOT suffix fails path-param conversion and never reaches AdrStore at all --
+        // RESTEasy reports that as 404, not 400.
+        given()
+                .when()
+                .get("/api/calm/namespaces/finos/adrs/12/revisions/1-SNAPSHOT")
+                .then()
+                .statusCode(404);
+    }
 }

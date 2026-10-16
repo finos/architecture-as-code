@@ -218,6 +218,23 @@ public class TestNitriteArchitectureStoreShould {
     }
 
     @Test
+    public void thread_the_requested_first_version_through_to_the_stored_version() throws NamespaceNotFoundException {
+        // A brand-new resource may start at a snapshot rather than always 1.0.0.
+        when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
+        stubFind(headerCollection, List.of(Document.createDocument()
+                .put("architectureId", 99).put("versionCount", 0)));
+        stubFind(versionCollection, List.of());
+
+        Architecture created = store.createArchitectureForNamespace(architecture("1.0.0-SNAPSHOT"));
+
+        assertThat(created.getDotVersion(), is("1.0.0-SNAPSHOT"));
+
+        ArgumentCaptor<Document> versionCaptor = ArgumentCaptor.forClass(Document.class);
+        verify(versionCollection).insert(versionCaptor.capture());
+        assertThat(versionCaptor.getValue().get("version", String.class), is("1.0.0-SNAPSHOT"));
+    }
+
+    @Test
     public void remove_the_header_again_when_the_first_version_write_fails() {
         when(mockCounterStore.getNextArchitectureSequenceValue()).thenReturn(99);
         stubFind(headerCollection, List.of());
@@ -456,5 +473,44 @@ public class TestNitriteArchitectureStoreShould {
         architectureDoesNotExist();
 
         assertThrows(ArchitectureNotFoundException.class, () -> store.deleteArchitecture(NAMESPACE, ARCHITECTURE_ID));
+    }
+
+    // --- deleteArchitectureVersion ---
+
+    @Test
+    public void throw_a_namespace_exception_when_deleting_a_version_in_a_missing_namespace() {
+        when(mockNamespaceStore.namespaceExists(NAMESPACE)).thenReturn(false);
+
+        assertThrows(NamespaceNotFoundException.class,
+                () -> store.deleteArchitectureVersion(NAMESPACE, ARCHITECTURE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void throw_an_architecture_exception_when_deleting_a_version_of_a_missing_architecture() {
+        architectureDoesNotExist();
+
+        assertThrows(ArchitectureNotFoundException.class,
+                () -> store.deleteArchitectureVersion(NAMESPACE, ARCHITECTURE_ID, "1.0.0-SNAPSHOT"));
+    }
+
+    @Test
+    public void delete_the_version_document_when_the_snapshot_exists() throws Exception {
+        architectureExists();
+        stubFind(versionCollection, List.of(Document.createDocument().put("version", "1.0.0-SNAPSHOT")));
+
+        boolean deleted = store.deleteArchitectureVersion(NAMESPACE, ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(true));
+        verify(versionCollection).remove(any(Document.class));
+    }
+
+    @Test
+    public void return_false_when_the_version_to_delete_does_not_exist() throws Exception {
+        architectureExists();
+        stubFind(versionCollection, List.of());
+
+        boolean deleted = store.deleteArchitectureVersion(NAMESPACE, ARCHITECTURE_ID, "1.0.0-SNAPSHOT");
+
+        assertThat(deleted, is(false));
     }
 }

@@ -34,7 +34,7 @@ npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
-npm run copy-calm-schema         # Copy CALM JSON schemas from ../calm/
+npm run copy-calm-schema         # Copy CALM meta schemas from npm and ../calm/
 npm run copy-docify-templates    # Copy docify templates from ../shared/
 npm run copy-widgets             # Copy widget files from ../calm-widgets/
 npm run copy-ai-tools            # Copy AI agent files from ../calm-ai/
@@ -59,12 +59,14 @@ npm run copy-workspace-templates # Copy `workspace new` templates from src/comma
 8. **init-config** - Create or update the CLI configuration file (`~/.calm.json`), e.g. allowed remote hosts and CALM Hub URL.
 9. **hub** - Command **group** for interacting with CALM Hub. Subcommands:
    - `hub push <resource> <file>` / `hub pull <resource>` / `hub list <resources>` / `hub create <resource>`
-   - Resources span architectures, patterns, standards, interfaces, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
-   - `hub push` auto-bumps by default (creates a new version off the latest). The `--fail-if-modified` flag (supported on `architecture`, `pattern`, `standard`, `control-requirement` and `control-configuration`) switches to a strict, non-bumping mode: a brand-new mapping is still created at `1.0.0`, an unchanged document is skipped, and a document that differs from the latest published version fails the push. The local document is normalised the same way Hub stores it (via `updateDocumentMetadata`/`updateControlDocumentMetadata`) before comparing with `canonicalEqual` from `@finos/calm-shared`, so a version-only or defaulted-field difference is not mistaken for a content change.
+   - Resources span architectures, patterns, standards, interfaces, flows, control-requirements, control-configurations, namespaces, and domains (which subcommands exist varies per verb).
+   - `hub push` auto-bumps by default (creates a new version off the latest). The `--fail-if-modified` flag (supported on `architecture`, `pattern`, `standard`, `interface`, `flow`, `control-requirement` and `control-configuration`) switches to a strict, non-bumping mode: a brand-new mapping is still created at `1.0.0`, an unchanged document is skipped, and a document that differs from the latest published version fails the push. The local document is normalised the same way Hub stores it (via `updateDocumentMetadata`/`updateControlDocumentMetadata`) before comparing with `canonicalEqual` from `@finos/calm-shared`, so a version-only or defaulted-field difference is not mistaken for a content change. A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version (overwritten in place, or skipped if unchanged), and `--fail-if-modified` does not apply.
 10. **workspace** - Command **group** for a local, git-rooted bundle of CALM documents (`.calm-workspace/`). Subcommands include `init`, `add`, `rm`, `new`, `tree`, `list`, `show`, `switch`, `clean`, and the CalmHub sync trio:
-    - `workspace push` — pushes the exact version each document's `$id` declares (no auto-bump). An existing version with unchanged content is skipped; `--fail-if-modified` (or `push.failIfModified: true` in `.calm-workspace/config.json`) fails when a document already published at its declared version has changed on disk, for strict merge-time CI.
-    - `workspace check` — CI/PR gate: exits non-zero if any tracked document changed on disk relative to CalmHub but wasn't version-bumped, or if any architecture/pattern in the workspace fails validation. Prints a pass/fail validation summary alongside the bump check.
+    - `workspace push` — pushes the exact version each document's `$id` declares (no auto-bump). An existing version with unchanged content is skipped; `--fail-if-modified` (or `push.failIfModified: true` in `.calm-workspace/config.json`) fails when a document already published at its declared version has changed on disk, for strict merge-time CI. A changed `-SNAPSHOT` version is overwritten regardless of `--fail-if-modified` — CalmHub treats it as mutable. An unchanged snapshot is skipped.
+    - `workspace check` — CI/PR gate: exits non-zero if any tracked document changed on disk relative to CalmHub but wasn't version-bumped, if any architecture/pattern in the workspace fails validation, or if a non-snapshot document references a `-SNAPSHOT` version: a tracked document still at one, or a ref pinned to one of any resource. Prints a pass/fail validation summary alongside the bump check. A modified snapshot document never triggers the bump check.
     - `workspace bump` — prompts interactively for the bump type (MAJOR/MINOR/PATCH) for each directly-changed document (default from config or MINOR). Cascade-bumped dependents are also prompted with the trigger's increment as the default; `--inherit-change-type` suppresses cascade prompts and auto-inherits silently. `--major`/`--minor`/`--patch` skip all prompts. After bumping, repoints all references to the new `$id`s and prints a post-bump validation summary (informational only). Idempotent: re-bumping an already-bumped doc is a no-op until it's pushed.
+    - `workspace snapshot [id]` — marks a tracked document as a mutable `-SNAPSHOT` version (bumping it first, from the highest published release, per `--major`/`--minor`/`--patch` or the config default, if the on-disk version is already published on CalmHub). Prompts for the id when omitted. Only namespace resources (`pattern`, `architecture`, `flow`, `standard`, `interface`) support this — it mirrors CalmHub's own `-SNAPSHOT` version support.
+    - `workspace release [id]` — strips the `-SNAPSHOT` suffix, turning the document back into an immutable release version. Prompts for the id when omitted. Refuses if the document still references a snapshot (the same rule as `workspace check`), or if the release version is already published in CalmHub (e.g. by someone else).
     - Central config `.calm-workspace/config.json` holds `push.failIfModified` (`true`|`false`) and `bump.defaultIncrement` (`MAJOR`|`MINOR`|`PATCH`).
 
 ### Important Directories
@@ -72,6 +74,7 @@ npm run copy-workspace-templates # Copy `workspace new` templates from src/comma
 src/
 ├── cli.ts                    # setupCLI: registers all commands, options, and actions
 ├── cli-config.ts             # Configuration helpers (~/.calm.json loading/saving)
+├── document-loader-config.ts # Document loader options from CLI options and ~/.calm.json
 ├── index.ts                  # Thin bin bootstrap (calls setupCLI + parseAsync)
 ├── command-helpers/          # Action logic for commands (see below)
 └── test_helpers/             # Test utilities
@@ -99,14 +102,15 @@ dist/
 └── widgets/              # Copied widget files (copy-widgets uses --up 4)
 ```
 
-Note: `copy-calm-schema` only bundles `**/meta/*` files (not every CALM schema)
-into `dist/calm/`.
+Note: `copy-calm-schema` only bundles meta schemas into `dist/calm/` (see Schema Handling).
 
 ## Key Concepts
 
 ### Schema Handling
-- CALM schemas live in `../calm/release/` and `../calm/draft/`
-- Default schema directory: `../calm/release`
+- Released CALM schemas come from the `@finos/calm-schema` npm package. The root `package.json` pins each released version by alias (`calm-schema-1.0`, `calm-schema-1.1`, ...) and the latest version as `@finos/calm-schema`
+- Release candidates and drafts live in `../calm/release/1.0-rc*/` and `../calm/draft/` until
+  [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes them
+- Default schema directory: the bundled `dist/calm` (`CALM_META_SCHEMA_DIRECTORY` in `shared`)
 - CLI accepts `-s, --schema-directory` to override
 - Schemas are copied during build, not at runtime
 
@@ -152,7 +156,7 @@ npm run test:smoke --workspace cli
 ```
 
 The suite starts one shared hub via `cli/smoke/global-setup.ts`; each flow uses
-its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`).
+its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`, `smoke-workspace-documents`, `smoke-flows`).
 
 ### Common Test Patterns
 - Use `test_helpers/` for shared test utilities
@@ -169,7 +173,8 @@ its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`).
 5. Update README.md with command documentation
 
 ### Modifying Schema Handling
-- Schemas are in `../calm/` directory (outside CLI)
+- `scripts/copy-calm-schemas.mjs` copies every `@finos/calm-schema` devDependency in the root `package.json`. The latest version must also have a `calm-schema-<major.minor>` alias, so a schema bump PR must add the new alias; the build fails until it does
+- `.github/workflows/calm-schema-compatibility.yml` tests every tool against each new `@finos/calm-schema` release (see the root [AGENTS.md](../AGENTS.md#calm-schema-updates))
 - Update copy script in `package.json` if schema structure changes
 - Test with `npm run build` to ensure schemas copy correctly
 
