@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, vi } from 'vitest';
 import { pushWorkspaceToHub } from './push';
+import { findSnapshotDependencyViolations } from './snapshot';
 import { loadManifest, saveManifest } from './bundle';
 import * as bundle from './bundle';
 import { CalmHubClient, HubClientError } from '@finos/calm-shared';
@@ -32,6 +33,11 @@ vi.mock('@finos/calm-shared', async (importOriginal) => ({
         debug: vi.fn(),
     }),
 }));
+
+vi.mock('./snapshot', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('./snapshot')>();
+    return { ...actual, findSnapshotDependencyViolations: vi.fn(actual.findSnapshotDependencyViolations) };
+});
 
 const BASE = 'https://hub.example.com';
 const mappingId = (resource: string, version = '1.0.0', type = 'architectures', ns = 'com.example') =>
@@ -923,6 +929,38 @@ describe('pushWorkspaceToHub', () => {
     });
 
     describe('snapshot dependency guard', () => {
+        beforeEach(() => {
+            vi.mocked(findSnapshotDependencyViolations).mockClear();
+        });
+
+        it('scans the workspace for snapshot dependencies once per push', async () => {
+            for (const id of ['doc-a', 'doc-b', 'doc-c']) {
+                await writeFile(path.join(filesPath, `${id}.json`), JSON.stringify({ $id: mappingId(id), title: id }));
+            }
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+                'doc-b': { path: 'files/doc-b.json', type: 'architecture', namespace: 'com.example' },
+                'doc-c': { path: 'files/doc-c.json', type: 'architecture', namespace: 'com.example' },
+            });
+            const client = makeClient();
+
+            await pushWorkspaceToHub(bundlePath, client);
+
+            expect(client.createMappedResourceVersion).toHaveBeenCalledTimes(3);
+            expect(findSnapshotDependencyViolations).toHaveBeenCalledTimes(1);
+        });
+
+        it('does not scan when no release is published', async () => {
+            await writeFile(path.join(filesPath, 'doc-a.json'), JSON.stringify({ $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' }));
+            await saveManifest(bundlePath, {
+                'doc-a': { path: 'files/doc-a.json', type: 'architecture', namespace: 'com.example' },
+            });
+
+            await pushWorkspaceToHub(bundlePath, makeClient());
+
+            expect(findSnapshotDependencyViolations).not.toHaveBeenCalled();
+        });
+
         it('refuses to push a non-snapshot document that depends on a tracked snapshot, but still pushes the snapshot itself', async () => {
             const docASnapshot = { $id: mappingId('doc-a', '1.0.0-SNAPSHOT'), title: 'Doc A' };
             const docBWithDep = {
