@@ -70,9 +70,9 @@ async function getSharedMocks() {
  * extractDocumentMetadata), not from the CLI options. The `title` becomes the resource name
  * when `--name` is not supplied.
  */
-function pushDoc(mapping: string, type = 'architectures', namespace = 'finos'): string {
+function pushDoc(mapping: string, type = 'architectures', namespace = 'finos', version = '1.0.0'): string {
     return JSON.stringify({
-        $id: `http://hub/calm/namespaces/${namespace}/${type}/${mapping}/versions/1.0.0`,
+        $id: `http://hub/calm/namespaces/${namespace}/${type}/${mapping}/versions/${version}`,
         title: mapping,
         nodes: []
     });
@@ -200,7 +200,7 @@ describe('hub-commands', () => {
 
         it('bumps off the highest release, not a snapshot ranked higher, when versions include one', async () => {
             const { mockClient } = await getSharedMocks();
-            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '2.0.0-SNAPSHOT']);
             vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
                 'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0'
             );
@@ -235,6 +235,62 @@ describe('hub-commands', () => {
             expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
                 expect.objectContaining({ version: '1.0.0' }),
                 expect.any(String)
+            );
+        });
+
+        it('refuses a bump that would delete a snapshot of the computed version', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']);
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                changeType: 'MINOR',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+            expect(fs.writeFile).not.toHaveBeenCalled();
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('Publishing 1.1.0 of \'my-arch\' deletes 1.1.0-SNAPSHOT'), expect.any(String), 'json'
+            );
+        });
+
+        it('releases a snapshot when the document declares the computed version', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-arch', 'architectures', 'finos', '1.1.0') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0', '1.1.0-SNAPSHOT']);
+            vi.mocked(mockClient.createMappedResourceVersion).mockResolvedValue(
+                'http://hub/calm/namespaces/finos/architectures/my-arch/versions/1.1.0'
+            );
+
+            await runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                changeType: 'MINOR',
+                file: 'arch.json'
+            });
+
+            expect(mockClient.createMappedResourceVersion).toHaveBeenCalledWith(
+                expect.objectContaining({ version: '1.1.0' }),
+                expect.any(String)
+            );
+        });
+
+        it('refuses to release the only snapshot when the document declares another version', async () => {
+            const { mockClient } = await getSharedMocks();
+            vi.mocked(fs.readFile).mockResolvedValue(pushDoc('my-arch', 'architectures', 'finos', '0.9.0') as unknown as Uint8Array);
+            vi.mocked(mockClient.getMappedResourceVersions).mockResolvedValue(['1.0.0-SNAPSHOT']);
+
+            await expect(runPushArchitecture({
+                calmHubOptions: { calmHubUrl: 'http://hub' },
+                namespace: 'finos',
+                file: 'arch.json'
+            })).rejects.toThrow('process.exit');
+
+            expect(mockClient.createMappedResourceVersion).not.toHaveBeenCalled();
+            expect(hubOutput.printError).toHaveBeenCalledWith(
+                0, expect.stringContaining('deletes 1.0.0-SNAPSHOT'), expect.any(String), 'json'
             );
         });
 

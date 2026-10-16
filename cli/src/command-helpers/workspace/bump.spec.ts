@@ -5,9 +5,11 @@ import { CalmHubClient, ResourceChangeType } from '@finos/calm-shared';
 import { mkdir, writeFile, rm, readFile } from 'fs/promises';
 import path from 'path';
 
+const logger = vi.hoisted(() => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }));
+
 vi.mock('@finos/calm-shared', async (importOriginal) => ({
     ...(await importOriginal<typeof import('@finos/calm-shared')>()),
-    initLogger: () => ({ info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() }),
+    initLogger: () => logger,
 }));
 
 vi.mock('./bundle', async (importOriginal) => {
@@ -61,6 +63,7 @@ describe('bump', () => {
     beforeAll(async () => { await mkdir(filesPath, { recursive: true }); });
     afterAll(async () => { await rm(path.join(__dirname, 'test-bump'), { recursive: true, force: true }); });
     beforeEach(async () => {
+        logger.warn.mockClear();
         await rm(bundlePath, { recursive: true, force: true });
         await mkdir(filesPath, { recursive: true });
     });
@@ -610,7 +613,7 @@ describe('bump', () => {
                 increment: 'MINOR',
                 preDetectedChanges: [{
                     id: 'a', kind: 'mapping', filePath: path.join(filesPath, 'a.json'),
-                    currentVersion: '1.0.0', latestHubVersion: '1.0.0',
+                    currentVersion: '1.0.0', latestHubVersion: '1.0.0', hubVersions: ['1.0.0'],
                     metadata: {
                         rawDocumentId: idAt('a', '1.0.0'), baseUrl: BASE, name: 'A',
                         namespace: 'com.example', type: 'architectures', mapping: 'a', version: '1.0.0',
@@ -642,7 +645,7 @@ describe('bump', () => {
                 preDetectedChanges: [
                     {
                         id: 'a', kind: 'mapping', filePath: path.join(filesPath, 'a.json'),
-                        currentVersion: '1.0.0', latestHubVersion: '1.0.0',
+                        currentVersion: '1.0.0', latestHubVersion: '1.0.0', hubVersions: ['1.0.0'],
                         metadata: {
                             rawDocumentId: idAt('a', '1.0.0'), baseUrl: BASE, name: 'A',
                             namespace: 'com.example', type: 'architectures', mapping: 'a', version: '1.0.0',
@@ -776,6 +779,76 @@ describe('bump', () => {
             expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
             expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
             expect((await read('b.json')).nodes[0].$ref).toBe(idAt('a', '1.1.0'));
+        });
+
+        it('warns when the bumped version would delete its snapshot in CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Pushing \'a\' 1.1.0 deletes 1.1.0-SNAPSHOT'));
+        });
+
+        it('does not warn when no snapshot of the bumped version exists', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            await saveManifest(bundlePath, { 'a': { path: 'files/a.json', type: 'architecture' } });
+            const client = makeClient({
+                versions: { a: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'PATCH' });
+
+            expect((await read('a.json')).$id).toBe(idAt('a', '1.0.1'));
+            expect(logger.warn).not.toHaveBeenCalled();
+        });
+
+        it('warns when a cascade bump would delete a snapshot in CalmHub', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'], b: ['1.0.0', '1.1.0-SNAPSHOT'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' }, 'b@1.0.0': bDoc },
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Pushing \'b\' 1.1.0 deletes 1.1.0-SNAPSHOT'));
+        });
+
+        it('still cascade-bumps when CalmHub cannot be checked for a snapshot', async () => {
+            await write('a.json', { $id: idAt('a', '1.0.0'), title: 'A', extra: 'edited' });
+            const bDoc = { $id: idAt('b', '1.0.0'), title: 'B', nodes: [{ $ref: idAt('a', '1.0.0') }] };
+            await write('b.json', bDoc);
+            await saveManifest(bundlePath, {
+                'a': { path: 'files/a.json', type: 'architecture' },
+                'b': { path: 'files/b.json', type: 'architecture' },
+            });
+            const client = makeClient({
+                versions: { a: ['1.0.0'] },
+                remote: { 'a@1.0.0': { $id: idAt('a', '1.0.0'), title: 'A' } },
+            });
+            vi.mocked(client.getMappedResourceVersions).mockImplementation(async (_namespace, mappingId) => {
+                if (mappingId === 'b') throw new Error('hub down');
+                return ['1.0.0'];
+            });
+
+            await bumpWorkspace(bundlePath, client, { increment: 'MINOR' });
+
+            expect((await read('b.json')).$id).toBe(idAt('b', '1.1.0'));
+            expect(logger.warn).toHaveBeenCalledWith(expect.stringContaining('Could not check CalmHub for a snapshot of \'b\' 1.1.0: hub down'));
         });
 
         it('does not strip -SNAPSHOT from a cascade candidate, leaving it mutable but relinked', async () => {

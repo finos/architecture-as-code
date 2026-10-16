@@ -708,7 +708,7 @@ Every subcommand accepts `-c, --calm-hub-url <url>` (falls back to `calmHubUrl` 
 
 ### `calm hub push`
 
-Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). The type in the `$id` must match the subcommand, or the push fails before it contacts CalmHub. By default, `push` **auto-bumps**: it computes a new version off the latest published release (or creates the mapping at `1.0.0` if it doesn't exist yet). If CalmHub holds only snapshots, it publishes the release of the highest snapshot, for example `1.0.0` for `1.0.0-SNAPSHOT`. A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version and overwrites the snapshot in CalmHub, or is skipped if unchanged. `--change-type` and `--fail-if-modified` do not apply to it.
+Pushes a document whose `$id` contains a full CalmHub document ID (namespace, type, mapping slug, and version). The type in the `$id` must match the subcommand, or the push fails before it contacts CalmHub. By default, `push` **auto-bumps**: it computes a new version off the latest published release (or creates the mapping at `1.0.0` if it doesn't exist yet). If CalmHub holds only snapshots, it publishes the release of the highest snapshot, for example `1.0.0` for `1.0.0-SNAPSHOT`. CalmHub deletes `V-SNAPSHOT` when `V` is published, so push refuses to publish a version that has a snapshot unless the document's `$id` is already at that version. A document whose `$id` is at a `-SNAPSHOT` version is never bumped: it is pushed at that version and overwrites the snapshot in CalmHub, or is skipped if unchanged. `--change-type` and `--fail-if-modified` do not apply to it.
 
 ```
 calm hub push <architecture|pattern|standard|interface|flow|control-requirement|control-configuration> <file> [options]
@@ -1017,6 +1017,8 @@ Documents bumped as a cascade dependency of another document also get a prompt, 
 The default increment when no flag is given is **MINOR** (overridable via `bump.defaultIncrement` in the workspace config). For each changed document the new version is computed relative to CalmHub's latest version, the file's `$id` is rewritten, and any `$ref` / `$schema` / `requirement-url` / `config-url` in **all** tracked documents that pointed at the old version is repointed to the new one (fragments preserved).
 
 Bump is **idempotent**: editing → bumping → editing again → bumping again only moves the version by a single increment, because once a document's on-disk version is ahead of CalmHub it is left alone until that version is pushed.
+
+If CalmHub holds a `-SNAPSHOT` of a new version, `bump` warns: pushing that version deletes the snapshot. Use a different increment unless you mean to release it.
 
 After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate` also stops `bump`, before it changes any file.
 

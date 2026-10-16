@@ -19,6 +19,7 @@ import {
     latestReleaseVersion,
     canonicalEqual,
     isSnapshotVersion,
+    toSnapshotVersion,
     initLogger,
     Logger,
 } from '@finos/calm-shared';
@@ -66,7 +67,7 @@ interface ChangedResourceBase {
 }
 
 export type ChangedResource =
-    | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata })
+    | (ChangedResourceBase & { kind: 'mapping'; metadata: DocumentMetadata; hubVersions: string[] })
     | (ChangedResourceBase & { kind: 'narrative' });
 
 export interface BumpResult {
@@ -99,6 +100,14 @@ const DETECT_CHANGED_ENTRY_OPERATIONS = {
     mapping: prepareChangedMappingEntry,
     narrative: prepareChangedNarrativeEntry,
 } satisfies WorkspaceManifestEntryOperations<DetectChangedEntryCheck | undefined, [DetectChangedEntryContext]>;
+
+/** CalmHub deletes `V-SNAPSHOT` when `V` is published, and cannot restore it. */
+function warnIfSnapshotDeleted(id: string, hubVersions: string[], toVersion: string): void {
+    const snapshot = toSnapshotVersion(toVersion);
+    if (hubVersions.includes(snapshot)) {
+        logger.warn(`Pushing '${id}' ${toVersion} deletes ${snapshot} in CalmHub. Use a different increment unless you mean to release that snapshot.`);
+    }
+}
 
 /** Returns the highest-priority increment from a list (MAJOR > MINOR > PATCH). */
 export function maxIncrement(increments: ResourceChangeType[]): ResourceChangeType {
@@ -251,6 +260,7 @@ function prepareChangedMappingEntry(
             metadata,
             currentVersion: metadata.version,
             latestHubVersion: latestReleaseVersion(versions),
+            hubVersions: versions,
             kind: 'mapping',
         };
     };
@@ -305,6 +315,7 @@ export async function bumpWorkspace(
             logger.info(`Bumped '${c.id}' ${c.currentVersion} -> ${toVersion}`);
             continue;
         }
+        warnIfSnapshotDeleted(c.id, c.hubVersions, toVersion);
         const raw = await readFile(c.filePath, 'utf8');
         const updated = applyVersionToDocument(raw, { ...c.metadata, version: toVersion });
         await writeFile(c.filePath, updated, 'utf8');
@@ -377,6 +388,13 @@ export async function bumpWorkspace(
                 : cascadeDefault;
 
             const toVersion = computeSemVerBump(metadata.version, cascadeIncrement);
+            if (metadata.namespace) {
+                try {
+                    warnIfSnapshotDeleted(candidate.docId, await client.getMappedResourceVersions(metadata.namespace, metadata.mapping, metadata.type), toVersion);
+                } catch (e) {
+                    logger.warn(`Could not check CalmHub for a snapshot of '${candidate.docId}' ${toVersion}: ${e instanceof Error ? e.message : String(e)}`);
+                }
+            }
             const updated = applyVersionToDocument(raw, { ...metadata, version: toVersion });
             await writeFile(filePath, updated, 'utf8');
             bumped.push({ id: candidate.docId, filePath, fromVersion: metadata.version, toVersion, triggeredBy: triggerLabel, increment: cascadeIncrement });

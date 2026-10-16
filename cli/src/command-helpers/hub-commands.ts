@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, toSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -263,17 +263,37 @@ export async function pushDocument(
         }
 
         const newVersion = computeSemVerBump(latestVersion, changeType);
+        assertNoSnapshotDeleted(mappedResourceVersions, metadata.version, newVersion, mapping, `push ${resourceType} ${options.file}`);
         newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
-        // With only snapshots, the first release is the highest snapshot's. CalmHub then deletes that snapshot.
+        // With only snapshots, the first release is the highest snapshot's.
         const snapshots = sortSemVer(mappedResourceVersions);
-        newDocumentMetadata.version = snapshots.length > 0 ? toReleaseVersion(snapshots[snapshots.length - 1]) : '1.0.0';
+        const newVersion = snapshots.length > 0 ? toReleaseVersion(snapshots[snapshots.length - 1]) : '1.0.0';
+        assertNoSnapshotDeleted(mappedResourceVersions, metadata.version, newVersion, mapping, `push ${resourceType} ${options.file}`);
+        newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return { action: 'created', metadata: newDocumentMetadata };
+}
+
+/**
+ * CalmHub deletes `V-SNAPSHOT` when `V` is published, and cannot restore it. `hub push` picks the
+ * release version itself, so it publishes over a snapshot only when the document declares that
+ * version: that is a deliberate release of the snapshot.
+ */
+function assertNoSnapshotDeleted(existingVersions: string[], localVersion: string, newVersion: string, mapping: string, requestLabel: string): void {
+    const snapshot = toSnapshotVersion(newVersion);
+    if (existingVersions.includes(snapshot) && localVersion !== newVersion) {
+        throw new HubCommandError(
+            0,
+            `Publishing ${newVersion} of '${mapping}' deletes ${snapshot} in CALM Hub. ` +
+            `Set the document version to ${newVersion} to release that snapshot, or use a different --change-type.`,
+            requestLabel
+        );
+    }
 }
 
 /**
