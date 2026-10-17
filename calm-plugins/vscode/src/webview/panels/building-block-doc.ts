@@ -2,27 +2,20 @@
 // Extracted from BuildingBlockCreator so the authoring logic can be unit-tested
 // without rendering the React component.
 
-export type ValidationType = 'none' | 'pattern' | 'allowed-values';
+import { makeControlMapKey } from '../../extension/services/control-curie';
+import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
-export interface ControlValidation {
-    type: ValidationType;
-    pattern?: string;
-    example?: string;
-    allowedValues?: string[];
-}
-
-export interface ControlEntry {
-    id: string;
-    description: string;
-    requirementUrl: string;
-    validation: ControlValidation;
+/** A control attached via the control picker — a Hub CURIE or local path ref plus its parsed requirement. */
+export interface AttachedControl {
+    ref: string;
+    parsed: ParsedRequirement;
 }
 
 export interface BuildingBlockInput {
     name: string;
     nodeType: string;
     description: string;
-    controls: ControlEntry[];
+    controls: AttachedControl[];
 }
 
 export interface BuiltBuildingBlock {
@@ -39,8 +32,9 @@ export function generateId(name: string): string {
 
 /**
  * Build a CALM document (plus its target file name) for a governed building
- * block from the authoring form's state. Controls with pattern / allowed-values
- * validation are emitted under `metadata.validation`.
+ * block. Each attached control is emitted as a slim reference — just
+ * `requirement-url` (CURIE or local path) and description. Config is filled
+ * in when the building block is instantiated on a node.
  */
 export function buildBuildingBlockDoc(
     input: BuildingBlockInput
@@ -49,28 +43,10 @@ export function buildBuildingBlockDoc(
     const controlsObj: Record<string, unknown> = {};
 
     for (const ctrl of input.controls) {
-        const controlId = ctrl.id || generateId(ctrl.description || 'control');
-        const entry: Record<string, unknown> = {
-            description: ctrl.description,
-            requirements: [
-                { 'requirement-url': ctrl.requirementUrl || '', config: {} },
-            ],
+        const key = makeControlMapKey(ctrl.ref);
+        controlsObj[key] = {
+            requirements: [{ 'requirement-url': ctrl.ref }],
         };
-
-        if (ctrl.validation.type !== 'none') {
-            const validationMeta: Record<string, unknown> = {};
-            if (ctrl.validation.type === 'pattern') {
-                validationMeta.pattern = ctrl.validation.pattern ?? '';
-                if (ctrl.validation.example)
-                    validationMeta.example = ctrl.validation.example;
-            } else if (ctrl.validation.type === 'allowed-values') {
-                validationMeta['allowed-values'] =
-                    ctrl.validation.allowedValues ?? [];
-            }
-            entry.metadata = { validation: validationMeta };
-        }
-
-        controlsObj[controlId] = entry;
     }
 
     const doc = {

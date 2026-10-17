@@ -143,3 +143,109 @@ describe('validateControls', () => {
         expect(issues[0].message).toContain('the solution');
     });
 });
+
+describe('validateControlConfig (multi-property shape)', () => {
+    const propControl = (
+        properties: Record<string, unknown>,
+        config: Record<string, unknown> = {}
+    ) => ({
+        requirements: [{ 'requirement-url': 'controls/x.requirement.json', config }],
+        metadata: {
+            validation: {
+                identity: { controlId: 'c', name: 'n', description: 'd' },
+                properties,
+            },
+        },
+    });
+
+    it('errors when a required property has no value', () => {
+        const issues = validateControlConfig(
+            'seg',
+            propControl({ 'permit-ingress': { type: 'boolean', required: true } }),
+            '"Svc"',
+            'svc-1'
+        );
+        expect(issues).toHaveLength(1);
+        expect(issues[0].message).toContain('permit-ingress');
+        expect(issues[0].message).toContain('required');
+    });
+
+    it('does not error for a missing optional property', () => {
+        expect(
+            validateControlConfig(
+                'seg',
+                propControl({ reason: { type: 'string', required: false } }),
+                '"Svc"'
+            )
+        ).toEqual([]);
+    });
+
+    it('accepts false and 0 as present values', () => {
+        const issues = validateControlConfig(
+            'seg',
+            propControl(
+                {
+                    'permit-ingress': { type: 'boolean', required: true },
+                    retries: { type: 'integer', required: true },
+                },
+                { 'permit-ingress': false, retries: 0 }
+            ),
+            '"Svc"'
+        );
+        expect(issues).toEqual([]);
+    });
+
+    it('errors when an enum value is not allowed', () => {
+        const issues = validateControlConfig(
+            'seg',
+            propControl(
+                { protocol: { type: 'enum', allowedValues: ['HTTP', 'HTTPS'], required: true } },
+                { protocol: 'FTP' }
+            ),
+            '"Svc"'
+        );
+        expect(issues).toHaveLength(1);
+        expect(issues[0].message).toContain('not allowed');
+    });
+
+    it('errors when a string property violates its pattern', () => {
+        const issues = validateControlConfig(
+            'seg',
+            propControl(
+                { 'app-id': { type: 'string', pattern: '^AP\\d+$', required: true } },
+                { 'app-id': 'nope' }
+            ),
+            '"Svc"'
+        );
+        expect(issues).toHaveLength(1);
+        expect(issues[0].message).toContain('does not match pattern');
+    });
+
+    it('errors when an integer property is not a whole number', () => {
+        const issues = validateControlConfig(
+            'seg',
+            propControl(
+                { retries: { type: 'integer', required: true } },
+                { retries: 1.5 }
+            ),
+            '"Svc"'
+        );
+        expect(issues.some((i) => i.message.includes('integer'))).toBe(true);
+    });
+
+    it('passes when all properties are valid', () => {
+        expect(
+            validateControlConfig(
+                'seg',
+                propControl(
+                    {
+                        'permit-ingress': { type: 'boolean', required: true },
+                        protocol: { type: 'enum', allowedValues: ['HTTP'], required: true },
+                    },
+                    { 'permit-ingress': true, protocol: 'HTTP' }
+                ),
+                '"Svc"'
+            )
+        ).toEqual([]);
+    });
+});
