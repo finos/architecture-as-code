@@ -24,10 +24,12 @@ const LABEL_PATTERNS: Array<[RegExp, string]> = [
 ];
 
 export function mapShapeToNodeType(shapeHint: ShapeHint, label: string): string {
-    // Label-based overrides take priority for strong signals
+    const shapeType = SHAPE_TO_NODE_TYPE[shapeHint] ?? 'system';
+    if (shapeHint !== 'rectangle' && shapeHint !== 'rounded-rectangle' && shapeHint !== 'unknown') {
+        return shapeType;
+    }
     for (const [pattern, nodeType] of LABEL_PATTERNS) {
         if (pattern.test(label)) return nodeType;
     }
-
-    return SHAPE_TO_NODE_TYPE[shapeHint] ?? 'system';
+    return shapeType;
 }

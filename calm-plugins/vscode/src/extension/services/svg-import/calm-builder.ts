@@ -95,14 +95,39 @@ export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
         });
     }
 
-    // Build layout metadata from geometry
+    // Build child → parent mapping for relative coordinate conversion
+    const childToParentSvgId = new Map<string, string>();
+    for (const node of graph.nodes) {
+        if (node.parentId && nodeIdMap.has(node.parentId)) {
+            childToParentSvgId.set(node.id, node.parentId);
+        }
+    }
+    for (const child of graph.nodes) {
+        if (childToParentSvgId.has(child.id)) continue;
+        const best = findSmallestContainer(child, containerCandidates);
+        if (best) childToParentSvgId.set(child.id, best.id);
+    }
+
+    const geoMap = new Map(graph.nodes.map(n => [n.id, n.geometry]));
+
+    // Build layout metadata from geometry (relative to parent for contained nodes)
     const layout: Record<string, { x: number; y: number; w: number; h: number }> = {};
     for (const n of graph.nodes) {
         const calmId = nodeIdMap.get(n.id);
         if (calmId) {
+            let x = n.geometry.x;
+            let y = n.geometry.y;
+            const parentSvgId = childToParentSvgId.get(n.id);
+            if (parentSvgId) {
+                const parentGeo = geoMap.get(parentSvgId);
+                if (parentGeo) {
+                    x -= parentGeo.x;
+                    y -= parentGeo.y;
+                }
+            }
             layout[calmId] = {
-                x: Math.round(n.geometry.x),
-                y: Math.round(n.geometry.y),
+                x: Math.round(x),
+                y: Math.round(y),
                 w: Math.round(n.geometry.width),
                 h: Math.round(n.geometry.height),
             };

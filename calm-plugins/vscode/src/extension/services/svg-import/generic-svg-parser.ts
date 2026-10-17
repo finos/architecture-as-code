@@ -94,7 +94,7 @@ function extractNodesFromElement(
 
             if (overlapsExisting(geo, capturedBounds)) continue;
 
-            const label = findNearbyTextInElement(element, geo);
+            const label = findNearbyTextInElement(element, geo, { tx: accTransform.tx, ty: accTransform.ty });
             const id = String(child.properties.id ?? `node-${nodes.length}`);
             nodes.push({
                 id,
@@ -208,25 +208,27 @@ function tryMatchLine(props: Record<string, string | number>, nodes: SvgNode[], 
 }
 
 function findNearestNode(point: { x: number; y: number }, nodes: SvgNode[]): SvgNode | null {
-    let closest: SvgNode | null = null;
-    let minDist = EDGE_PROXIMITY_THRESHOLD;
-    let minArea = Infinity;
+    let nearestBorder: SvgNode | null = null;
+    let minBorderDist = EDGE_PROXIMITY_THRESHOLD;
+    let smallestContainer: SvgNode | null = null;
+    let minContainerArea = Infinity;
 
     for (const node of nodes) {
         const dist = distanceToNodeBorder(point, node.geometry);
         const area = node.geometry.width * node.geometry.height;
 
-        if (dist < minDist) {
-            minDist = dist;
-            closest = node;
-            minArea = area;
-        } else if (dist === 0 && minDist === 0 && area < minArea) {
-            closest = node;
-            minArea = area;
+        if (dist === 0) {
+            if (area < minContainerArea) {
+                smallestContainer = node;
+                minContainerArea = area;
+            }
+        } else if (dist < minBorderDist) {
+            minBorderDist = dist;
+            nearestBorder = node;
         }
     }
 
-    return closest;
+    return nearestBorder ?? smallestContainer;
 }
 
 function distanceToNodeBorder(point: { x: number; y: number }, geo: SvgNodeGeometry): number {
@@ -385,10 +387,12 @@ function extractTextContent(textEl: ElementNode): string {
     return parts.join(' ').trim();
 }
 
-function findNearbyTextInElement(element: ElementNode, geo: SvgNodeGeometry): string | null {
+function findNearbyTextInElement(element: ElementNode, geo: SvgNodeGeometry, parentTransform?: { tx: number; ty: number }): string | null {
     const cx = geo.x + geo.width / 2;
     const cy = geo.y + geo.height / 2;
-    const threshold = Math.max(geo.width, geo.height);
+    const threshold = Math.min(geo.width, geo.height) * 1.5;
+    const offsetX = parentTransform?.tx ?? 0;
+    const offsetY = parentTransform?.ty ?? 0;
 
     let bestLabel: string | null = null;
     let bestDist = threshold;
@@ -396,8 +400,8 @@ function findNearbyTextInElement(element: ElementNode, geo: SvgNodeGeometry): st
     for (const child of element.children) {
         if (child.type !== 'element' || child.tagName !== 'text') continue;
         const props = child.properties;
-        const tx = parseFloat(String(props.x ?? '0'));
-        const ty = parseFloat(String(props.y ?? '0'));
+        const tx = parseFloat(String(props.x ?? '0')) + offsetX;
+        const ty = parseFloat(String(props.y ?? '0')) + offsetY;
         const dist = Math.sqrt((tx - cx) ** 2 + (ty - cy) ** 2);
         if (dist < bestDist) {
             bestDist = dist;

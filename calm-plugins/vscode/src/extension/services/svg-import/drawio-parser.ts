@@ -93,6 +93,14 @@ export async function parseDrawioSvg(svgContent: string): Promise<ParsedSvgGraph
     }
 
     const nodeIds = new Set(nodes.map(n => n.id));
+
+    // Clear parentId references to vertices that were skipped by parseVertex
+    for (const node of nodes) {
+        if (node.parentId && !nodeIds.has(node.parentId) && !groupIds.has(node.parentId)) {
+            node.parentId = undefined;
+        }
+    }
+
     for (const node of nodes) {
         if (!node.parentId || !groupIds.has(node.parentId)) continue;
 
@@ -211,27 +219,25 @@ function extractMxGraphModelFromDecoded(content: string): string | null {
 }
 
 function decodeDrawioContent(content: string): string {
+    let decoded = content;
+
     // Try URL decoding first (older draw.io exports use %3C etc.)
     try {
-        const urlDecoded = decodeURIComponent(content);
-        if (urlDecoded !== content) return urlDecoded;
+        const urlDecoded = decodeURIComponent(decoded);
+        if (urlDecoded !== decoded) decoded = urlDecoded;
     } catch {
-        // Malformed percent-encoding — decode only valid %XX escapes,
-        // but only use the result when it actually produced diagram XML
-        // (mixed-encoding content like HTML entities + percent-encoded font URLs
-        // should fall through to the HTML entity path below)
-        const lenient = content.replace(/%([0-9A-Fa-f]{2})/g, (_, hex: string) =>
+        const lenient = decoded.replace(/%([0-9A-Fa-f]{2})/g, (_, hex: string) =>
             String.fromCharCode(parseInt(hex, 16))
         );
-        if (lenient !== content && lenient.includes('<mxGraphModel')) return lenient;
+        if (lenient !== decoded && lenient.includes('<mxGraphModel')) decoded = lenient;
     }
 
     // HTML entity decoding (modern draw.io / Confluence exports use &lt; &gt; &quot; &amp;)
-    if (content.includes('&lt;') || content.includes('&amp;')) {
-        return decodeHtmlEntities(content);
+    if (decoded.includes('&lt;') || decoded.includes('&amp;')) {
+        decoded = decodeHtmlEntities(decoded);
     }
 
-    return content;
+    return decoded;
 }
 
 function decodeHtmlEntities(text: string): string {
