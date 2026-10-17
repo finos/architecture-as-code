@@ -202,13 +202,22 @@ export class TemplateBundleFileLoader implements ITemplateBundleLoader {
 
         logger.info(`📂 Loading template files from: ${templateDir}`);
 
-        const templateFiles = fs.readdirSync(templateDir).filter(file => file.includes('.'));
+        // Keys use '/' on every platform so they match the paths written in index.json.
+        const loadFilesRecursively = (dir: string, relativePath: string = '') => {
+            for (const item of fs.readdirSync(dir)) {
+                const filePath = path.join(dir, item);
+                const relPath = relativePath ? `${relativePath}/${item}` : item;
 
-        for (const file of templateFiles) {
-            const filePath = path.join(templateDir, file);
-            templates[file] = fs.readFileSync(filePath, 'utf8');
-            logger.debug(`✅ Loaded template file: ${file}`);
-        }
+                if (fs.statSync(filePath).isDirectory()) {
+                    loadFilesRecursively(filePath, relPath);
+                } else if (item.includes('.')) {
+                    templates[relPath] = fs.readFileSync(filePath, 'utf8');
+                    logger.debug(`✅ Loaded template file: ${relPath}`);
+                }
+            }
+        };
+
+        loadFilesRecursively(templateDir);
 
         logger.info(`🎯 Total Templates Loaded: ${Object.keys(templates).length}`);
         return templates;

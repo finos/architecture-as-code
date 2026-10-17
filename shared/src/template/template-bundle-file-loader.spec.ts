@@ -35,6 +35,7 @@ describe('TemplateBundleFileLoader', () => {
         });
 
         (fs.readdirSync as Mock).mockReturnValue(Object.keys(mockTemplateFiles));
+        (fs.statSync as Mock).mockReturnValue({ isDirectory: () => false });
 
         const loader = new TemplateBundleFileLoader(mockBundlePath);
 
@@ -87,6 +88,42 @@ describe('TemplateBundleFileLoader', () => {
 
         const loader = new TemplateBundleFileLoader(mockBundlePath);
         expect(loader.getTemplateFiles()).toEqual({});
+    });
+
+    it('should load template files from subdirectories with forward-slash keys', () => {
+        const directories: Record<string, string[]> = {
+            [mockBundlePath]: ['index.json', 'main.hbs', 'partials', 'LICENSE'],
+            [path.join(mockBundlePath, 'partials')]: ['node.hbs', 'flows'],
+            [path.join(mockBundlePath, 'partials', 'flows')]: ['flow.hbs'],
+        };
+        const contents: Record<string, string> = {
+            [path.join(mockBundlePath, 'main.hbs')]: '{{> partials/node.hbs}}',
+            [path.join(mockBundlePath, 'partials', 'node.hbs')]: '{{unique-id}}',
+            [path.join(mockBundlePath, 'partials', 'flows', 'flow.hbs')]: '{{name}}',
+        };
+        const indexJson = JSON.stringify({
+            name: 'nested-template',
+            transformer: 'mock-transformer',
+            templates: [{ template: 'main.hbs', from: 'document', output: 'out.md', 'output-type': 'single', partials: ['partials/node.hbs'] }]
+        });
+
+        (fs.existsSync as Mock).mockImplementation(function (filePath) { return filePath === mockIndexJsonPath; });
+        (fs.readdirSync as Mock).mockImplementation(function (dir: string) { return directories[dir] ?? []; });
+        (fs.statSync as Mock).mockImplementation(function (filePath: string) {
+            return { isDirectory: () => filePath in directories };
+        });
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
+            return filePath === mockIndexJsonPath ? indexJson : contents[filePath];
+        });
+
+        const loader = new TemplateBundleFileLoader(mockBundlePath);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'index.json': indexJson,
+            'main.hbs': '{{> partials/node.hbs}}',
+            'partials/node.hbs': '{{unique-id}}',
+            'partials/flows/flow.hbs': '{{name}}',
+        });
     });
 });
 
