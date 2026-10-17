@@ -612,6 +612,11 @@ pattern. Toggle independently with `calm.audit.store.enabled` / `calm.audit.log.
 `calm.audit.capture-source-ip` (all in `application.properties`). No REST API exposes the
 trail in this iteration — read it via direct DB access or ops tooling.
 
+GitHub storage mode (`calm.database.mode=github`) has no database, so it does not persist the
+trail: `GitHubAuditLogStore.query()` always returns an empty list, and the structured log line
+is the only record. `GitHubStartupInitializer` logs a warning about this at startup. Route the
+`org.finos.calm.audit` category to a durable sink if you need the trail in GitHub mode.
+
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
 2. Implement all store interfaces
