@@ -1181,7 +1181,7 @@ function CanvasApp() {
                                     <NodeAppearance
                                         key={`${liveSelectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
-                                        defaults={defaultNodeColours(selectedNode.type, isBuildingBlock(data as Record<string, unknown>))}
+                                        defaults={defaultNodeColours(liveSelectedNode.type, isBuildingBlock(data as Record<string, unknown>))}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
                                             if (style) {
