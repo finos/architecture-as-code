@@ -132,6 +132,7 @@ describe('runValidate', () => {
 
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('patterns/pattern.json'), 'pattern');
+        expect(mocks.parseDocumentLoaderConfig).toHaveBeenCalledWith(options, expect.any(Map), path.resolve('patterns'));
     });
 
     it('should process validation successfully with architecture only', async () => {
