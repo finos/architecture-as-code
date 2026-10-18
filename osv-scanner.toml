@@ -12,6 +12,19 @@ id = "GHSA-wrw7-89jp-8q8g"
 ignoreUntil = 2026-12-31
 reason = "glib 0.18 is pinned by Tauri's GTK stack; the unsound VariantStrIter impls are not used by CALM Studio. Re-check when Tauri supports gtk-rs 0.20."
 
+# zip 4.x comes in through tauri-plugin-updater for the CALM Studio desktop app, on Windows
+# builds only. Both flaws are in zip's Unix-only permission step, which the Windows build does
+# not compile. The fix (zip 9) needs a tauri-plugin-updater release that moves to it.
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0367"
+ignoreUntil = 2026-12-31
+reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the code that keeps SUID/SGID bits is in the Unix permission step, which is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0369"
+ignoreUntil = 2026-12-31
+reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the vulnerable Unix permission code is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
+
 # npm bundles its own copies of these packages inside the npm CLI, which semantic-release
 # uses at release time. They are dev-only, never shipped, and npm overrides cannot reach
 # bundled dependencies. No npm release (11.20.0, 12.1.0) bundles fixed versions yet.
