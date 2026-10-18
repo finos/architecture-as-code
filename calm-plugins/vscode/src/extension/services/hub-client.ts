@@ -117,7 +117,7 @@ export class HubClient {
         type: string
     ): Promise<ResourceSummary[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${namespace}/${type}`
+            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}`
         );
         const data = await res.json();
         const raw = this.unwrapValues<Record<string, unknown>>(data);
@@ -135,7 +135,7 @@ export class HubClient {
         name: string
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${namespace}/${type}/${name}/versions`
+            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
         );
         const data = await res.json();
         return this.unwrapValues(data);
@@ -148,7 +148,7 @@ export class HubClient {
         version: string
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${namespace}/${type}/${name}/versions/${version}`
+            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
         );
         return res.json();
     }

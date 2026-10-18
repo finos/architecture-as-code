@@ -42,7 +42,9 @@ describe('buildControlRequirement', () => {
         expect(doc.description).toBe('Prevent lateral movement');
         expect(doc.type).toBe('object');
         expect(doc.allOf).toBeUndefined();
-        expect(doc.properties).toEqual({});
+        expect(doc.properties['control-id']).toEqual({ type: 'string', const: 'micro-segmentation' });
+        expect(doc.properties.name).toEqual({ type: 'string', const: 'Micro-segmentation' });
+        expect(doc.properties.description).toEqual({ type: 'string', const: 'Prevent lateral movement' });
         expect(doc.required).toBeUndefined();
         expect(fileName).toBe('micro-segmentation.requirement.json');
     });
@@ -98,7 +100,7 @@ describe('buildControlRequirement', () => {
         });
         const fallback = { controlId: 'micro-segmentation', name: 'micro-segmentation', description: 'micro-segmentation' };
         const { parsed, warnings } = parseRequirementSchema(JSON.parse(json), fallback);
-        expect(warnings).toEqual(['Identity constants partially derived from control metadata']);
+        expect(warnings).toEqual([]);
         expect(parsed?.identity.controlId).toBe('micro-segmentation');
         expect(parsed?.properties['permit-ingress'].type).toBe('boolean');
         expect(parsed?.properties.protocol).toEqual({

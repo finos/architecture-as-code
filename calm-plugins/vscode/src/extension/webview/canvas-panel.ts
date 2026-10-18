@@ -23,63 +23,6 @@ import type {
     WebviewToExtMessage,
 } from '../types/messages';
 
-/**
- * Parse a CURIE of the form `namespace:type:slug@version` into its components.
- * Exported for unit testing.
- */
-export function parseCurie(curie: string): {
-    namespace: string;
-    type: string;
-    slug: string;
-    version: string | undefined;
-} {
-    const parts = curie.split(':');
-    const namespace = parts[0] ?? '';
-    const type = parts[1] ?? '';
-    const slugAndVersion = parts.slice(2).join(':');
-    const atIndex = slugAndVersion.indexOf('@');
-    const slug =
-        atIndex === -1 ? slugAndVersion : slugAndVersion.substring(0, atIndex);
-    const version =
-        atIndex === -1 ? undefined : slugAndVersion.substring(atIndex + 1);
-    return { namespace, type, slug, version };
-}
-
-/**
- * Pin unversioned control CURIEs in requirement-url fields with the parent's SHA.
- * A CURIE has the form `ns:type:slug` — if it lacks `@version`, append `@sha`.
- * Exported for unit testing.
- */
-export function pinControlCuries(
-    controls: Record<string, unknown>,
-    sha: string
-): Record<string, unknown> {
-    const pinned: Record<string, unknown> = {};
-    for (const [key, ctrl] of Object.entries(controls)) {
-        if (!ctrl || typeof ctrl !== 'object') {
-            pinned[key] = ctrl;
-            continue;
-        }
-        const c = ctrl as Record<string, unknown>;
-        const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
-        if (!reqs?.length) {
-            pinned[key] = ctrl;
-            continue;
-        }
-        const pinnedReqs = reqs.map((req) => {
-            const url = req['requirement-url'];
-            if (typeof url !== 'string') return req;
-            // Control CURIEs (`domain:controls:name`) carry their own independent
-            // version and must never be pinned with the parent building-block SHA.
-            if (url.includes(':controls:')) return req;
-            // Already versioned or not a CURIE (no colons)
-            if (url.includes('@') || (url.match(/:/g) ?? []).length < 2) return req;
-            return { ...req, 'requirement-url': `${url}@${sha}` };
-        });
-        pinned[key] = { ...c, requirements: pinnedReqs };
-    }
-    return pinned;
-}
 
 /** Human-readable message for a caught error. */
 function describeError(err: unknown): string {
@@ -604,7 +547,13 @@ export class CanvasPanel {
         });
         if (!name?.trim()) return;
 
-        const doc = JSON.parse(docJson);
+        let doc: Record<string, unknown>;
+        try {
+            doc = JSON.parse(docJson);
+        } catch {
+            vscode.window.showErrorMessage('Cannot export pattern: invalid document JSON');
+            return;
+        }
         const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         const fileName = `${slug}.pattern.json`;
 
@@ -686,12 +635,12 @@ export class CanvasPanel {
         requestId: string,
         domain: string
     ): Promise<void> {
-        this.postMessage({
-            type: 'controlDomainResult',
-            requestId,
-            ok: false,
-            error: 'Hub not connected',
-        });
+        const group = await this.controlAssetService.browseControlsForDomain(domain);
+        if (group.error) {
+            this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
+        } else {
+            this.postMessage({ type: 'controlDomainResult', requestId, ok: true, group });
+        }
     }
 
     private async handleControlVersions(

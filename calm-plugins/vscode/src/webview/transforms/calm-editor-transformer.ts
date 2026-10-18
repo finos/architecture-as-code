@@ -85,7 +85,7 @@ export function flowToCalm(
             }
         }
         if (data.details) calmNode.details = data.details;
-        if (data.metadata && !data['definition-id']) calmNode.metadata = data.metadata;
+        if (data.metadata) calmNode.metadata = data.metadata;
         calmNodes.push(calmNode);
     }
 

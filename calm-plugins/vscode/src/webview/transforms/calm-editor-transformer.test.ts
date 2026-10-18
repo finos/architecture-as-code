@@ -157,13 +157,3 @@ describe('flowToCalm - definition-id handling', () => {
     });
 });
 
-describe('parseCurie (via canvas-panel)', () => {
-    // Test the CURIE format that the drop handler generates
-    it('generates correct CURIE format from namespace:type:slug@sha', () => {
-        const namespace = 'finos';
-        const id = 'microservice';
-        const sha = 'abc123def';
-        const curie = `${namespace}:building-blocks:${id}@${sha}`;
-        expect(curie).toBe('finos:building-blocks:microservice@abc123def');
-    });
-});

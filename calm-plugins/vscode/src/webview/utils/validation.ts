@@ -5,6 +5,7 @@ import { validateCalmArchitecture } from '../../core/validation.js';
 interface ControlRequirement {
     config?: Record<string, unknown> & { value?: string };
     'requirement-url'?: string;
+    'config-url'?: string;
 }
 
 interface LegacyValidationMeta {
@@ -29,6 +30,7 @@ interface NewValidationMeta {
 type ControlValidationMeta = LegacyValidationMeta | NewValidationMeta;
 
 interface ControlEntry {
+    description?: string;
     requirements?: ControlRequirement[];
     metadata?: { validation?: ControlValidationMeta };
 }

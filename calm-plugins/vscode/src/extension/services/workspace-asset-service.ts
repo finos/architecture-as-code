@@ -105,7 +105,6 @@ export class WorkspaceAssetService {
     ): void {
         const globs = [
             'building-blocks/**/*.{calm.json,architecture.json}',
-            'building-blocks/**/*.{calm.json,architecture.json}',
             'patterns/**/*.pattern.json',
             'templates/**/*.template.json',
             'controls/**/*.json',
@@ -194,10 +193,6 @@ export class WorkspaceAssetService {
 
         for (const root of roots) {
             const globs = [
-                new vscode.RelativePattern(
-                    root,
-                    'building-blocks/**/*.{calm.json,architecture.json}'
-                ),
                 new vscode.RelativePattern(
                     root,
                     'building-blocks/**/*.{calm.json,architecture.json}'

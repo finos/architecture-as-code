@@ -142,13 +142,19 @@ export function buildControlRequirement(
         if (prop.required) required.push(name);
     }
 
+    const identityProps: Record<string, unknown> = {
+        'control-id': { type: 'string', const: input.slug },
+        name: { type: 'string', const: input.name },
+        description: { type: 'string', const: input.description },
+    };
+
     const doc: Record<string, unknown> = {
         $schema: 'https://json-schema.org/draft/2020-12/schema',
         $id,
         title: input.name,
         description: input.description,
         type: 'object',
-        properties,
+        properties: { ...identityProps, ...properties },
     };
     if (required.length > 0) doc.required = required;
     if (Object.keys($defs).length > 0) doc.$defs = $defs;
