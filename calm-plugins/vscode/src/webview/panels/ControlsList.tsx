@@ -19,7 +19,7 @@ interface ControlsListProps {
 }
 
 /** Coerce a raw input string back to the native type declared by the property. */
-function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
+export function coerceValue(def: RequirementPropertyDef, raw: string): unknown {
     if (raw === '') return undefined;
     if (def.type === 'boolean') return raw === 'true';
     if (def.type === 'number' || def.type === 'integer') {
