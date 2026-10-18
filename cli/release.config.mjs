@@ -26,6 +26,9 @@ const releaseRules = [
     { scope: `!(${RELEASE_SCOPES.join('|')})`, release: false },
     // The analyzer takes the highest matching rule, so these must not match other scopes.
     ...UNSCOPED_RELEASE_TYPES.map(type => ({ type, scope: null, release: SCOPED_RELEASE_TYPES[type] })),
+    // A `git revert` commit has no type or scope, so without this the default rules release a patch for a
+    // revert of any package. Give the PR a `revert(<scope>):` title to release a revert.
+    { revert: true, release: false },
 ];
 
 // GitHub puts the PR title on the line after "Merge pull request #N from ...", so the parser reads the title as the header.
@@ -55,8 +58,9 @@ const git = (...args) => execFileSync('git', args, { encoding: 'utf8', maxBuffer
 const mainline = new Set(git('rev-list', '--first-parent', 'HEAD').split('\n'));
 
 // PR titles are not linted, so use the branch commits of a PR whose title is not a conventional commit.
+// release-analyzer.mjs gives the analyzer only these commits, so the PR title decides the release.
 const conventionalHeader = /^\w+(\([^)]*\))?!?: /;
-const listed = new Set(mainline);
+export const listed = new Set(mainline);
 for (const merge of git('log', '--first-parent', '--merges', '--format=%H %P%x00%B%x01', 'HEAD').split('\x01')) {
     const [refs, message = ''] = merge.trim().split('\x00');
     const [, mainParent, branchParent] = refs.split(' ');
@@ -85,17 +89,22 @@ function transform(commit, context) {
 }
 
 // A PR's branch can hold the same change twice, e.g. a commit and the squash of a nested PR.
+// Separate PRs can share a subject, so never drop an entry that links its PR.
 function finalizeContext(context) {
     const prLink = / \(\[#\d+\]\([^)]*\)\)$/;
     for (const group of context.commitGroups) {
-        const kept = new Map();
-        for (const commit of group.commits) {
-            const key = `${commit.scope}:${commit.subject?.replace(prLink, '')}`;
-            if (!kept.has(key) || (!prLink.test(kept.get(key).subject) && prLink.test(commit.subject))) {
-                kept.set(key, commit);
+        const linked = group.commits.filter(commit => prLink.test(commit.subject ?? ''));
+        const seen = new Set(linked.map(commit => commit.subject.replace(prLink, '')));
+        group.commits = group.commits.filter(commit => {
+            if (linked.includes(commit)) {
+                return true;
             }
-        }
-        group.commits = group.commits.filter(commit => [...kept.values()].includes(commit));
+            if (seen.has(commit.subject)) {
+                return false;
+            }
+            seen.add(commit.subject);
+            return true;
+        });
     }
     return context;
 }
@@ -106,7 +115,7 @@ export default {
     tagFormat: 'cli-v${version}',
     ci: true,
     plugins: [
-        ['@semantic-release/commit-analyzer', { preset: 'conventionalcommits', releaseRules, parserOpts }],
+        ['./release-analyzer.mjs', { preset: 'conventionalcommits', releaseRules, parserOpts }],
         ['@semantic-release/release-notes-generator', {
             preset: 'conventionalcommits',
             presetConfig,
