@@ -23,6 +23,10 @@ jobs:
             - name: Checkout PR Branch
               uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
+            # Seed $id base follows -u. No running Hub is required.
+            - name: Check init-nitrite seed base URL
+              run: bash calm-hub/nitrite/test-init-nitrite-base-url.sh
+
             # Step 2: Set up JDK
             - name: Set up JDK
               uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
