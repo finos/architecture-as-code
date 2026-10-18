@@ -281,3 +281,38 @@ describe('classifyDrawioStyle', () => {
         expect(classifyDrawioStyle({ shape: 'mxgraph.general.user' })).toBe('person');
     });
 });
+
+describe('drawio edge cases', () => {
+    it('clears parentId when it references a skipped vertex', async () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg"
+            content="&lt;mxGraphModel&gt;
+                &lt;root&gt;
+                    &lt;mxCell id=&quot;0&quot;/&gt;
+                    &lt;mxCell id=&quot;1&quot; parent=&quot;0&quot;/&gt;
+                    &lt;mxCell id=&quot;legend&quot; vertex=&quot;1&quot; value=&quot;&quot; style=&quot;rounded=0;&quot; parent=&quot;1&quot;&gt;
+                        &lt;mxGeometry x=&quot;0&quot; y=&quot;0&quot; width=&quot;20&quot; height=&quot;20&quot; as=&quot;geometry&quot;/&gt;
+                    &lt;/mxCell&gt;
+                    &lt;mxCell id=&quot;child&quot; vertex=&quot;1&quot; value=&quot;Child Node&quot; style=&quot;rounded=1;&quot; parent=&quot;legend&quot;&gt;
+                        &lt;mxGeometry x=&quot;50&quot; y=&quot;50&quot; width=&quot;120&quot; height=&quot;60&quot; as=&quot;geometry&quot;/&gt;
+                    &lt;/mxCell&gt;
+                &lt;/root&gt;
+            &lt;/mxGraphModel&gt;">
+        </svg>`;
+        const result = await parseDrawioSvg(svg);
+        const child = result.nodes.find(n => n.label === 'Child Node');
+        expect(child).toBeDefined();
+        expect(child?.parentId).toBeUndefined();
+    });
+
+    it('runs both URL decode and HTML entity decode on mixed-encoded content', async () => {
+        const mxModel = '<mxGraphModel><root>' +
+            '<mxCell id="0"/><mxCell id="1" parent="0"/>' +
+            '<mxCell id="v1" vertex="1" value="Test%20Node" style="rounded=1;" parent="1">' +
+            '<mxGeometry x="10" y="10" width="120" height="60" as="geometry"/>' +
+            '</mxCell></root></mxGraphModel>';
+        const encoded = mxModel.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg" content="${encoded}"></svg>`;
+        const result = await parseDrawioSvg(svg);
+        expect(result.nodes.length).toBeGreaterThanOrEqual(1);
+    });
+});

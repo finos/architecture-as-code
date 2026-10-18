@@ -69,4 +69,22 @@ describe('mapShapeToNodeType', () => {
             expect(mapShapeToNodeType('rectangle', 'Client VPC')).toBe('network');
         });
     });
+
+    describe('shape hint priority over labels', () => {
+        it('cylinder labelled "Customer Records" maps to database, not actor', () => {
+            expect(mapShapeToNodeType('cylinder', 'Customer Records')).toBe('database');
+        });
+
+        it('person labelled "Payments Platform API" maps to actor, not ecosystem', () => {
+            expect(mapShapeToNodeType('person', 'Payments Platform API')).toBe('actor');
+        });
+
+        it('cloud labelled "User Portal" maps to ecosystem, not actor', () => {
+            expect(mapShapeToNodeType('cloud', 'User Portal')).toBe('ecosystem');
+        });
+
+        it('labels still override generic rectangle shapes', () => {
+            expect(mapShapeToNodeType('rectangle', 'Customer Database')).toBe('database');
+        });
+    });
 });

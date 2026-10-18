@@ -386,4 +386,31 @@ describe('parseGenericSvg', () => {
         expect(result.nodes).toHaveLength(1);
         expect(result.nodes[0]?.label).toBe('Near Label');
     });
+
+    it('line endpoint inside container resolves to nearby child, not the container', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g id="zone"><rect x="0" y="0" width="600" height="400"/><text x="10" y="20">Zone</text></g>
+            <g id="boxA"><rect x="50" y="50" width="100" height="60"/><text x="100" y="80">A</text></g>
+            <g id="boxB"><rect x="400" y="50" width="100" height="60"/><text x="450" y="80">B</text></g>
+            <line x1="150" y1="80" x2="400" y2="80" stroke="#000"/>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.edges).toHaveLength(1);
+        expect(result.edges[0]?.sourceId).toBe('boxA');
+        expect(result.edges[0]?.targetId).toBe('boxB');
+    });
+
+    it('applies parent transform to text coordinates for label matching', () => {
+        const svg = `<svg xmlns="http://www.w3.org/2000/svg">
+            <g transform="translate(1000, 0)">
+                <rect x="10" y="10" width="150" height="60"/>
+                <text x="85" y="45">Translated Label</text>
+            </g>
+        </svg>`;
+        const result = parseGenericSvg(svg);
+
+        expect(result.nodes).toHaveLength(1);
+        expect(result.nodes[0]?.label).toBe('Translated Label');
+    });
 });

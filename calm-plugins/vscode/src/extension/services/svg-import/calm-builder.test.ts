@@ -259,4 +259,22 @@ describe('buildCalmJson', () => {
         expect(doc.nodes[0].description).toBe('Enterprise Click to Agree [AP167757]');
         expect(doc.nodes[0]['unique-id']).toBe('service-ecta');
     });
+
+    it('uses parent-relative coordinates in _layout for contained nodes', () => {
+        const graph: ParsedSvgGraph = {
+            sourceFormat: 'drawio',
+            nodes: [
+                { id: 'zone', label: 'Zone', shapeHint: 'rectangle', geometry: { x: 500, y: 500, width: 400, height: 300 }, styleProps: {} },
+                { id: 'svc', label: 'Service', shapeHint: 'rounded-rectangle', geometry: { x: 550, y: 550, width: 100, height: 60 }, parentId: 'zone', styleProps: {} },
+            ],
+            edges: [],
+        };
+
+        const result = buildCalmJson(graph);
+        const doc = JSON.parse(result.json);
+        const svcLayout = doc.metadata._layout['service-service'];
+
+        expect(svcLayout.x).toBe(50);
+        expect(svcLayout.y).toBe(50);
+    });
 });
