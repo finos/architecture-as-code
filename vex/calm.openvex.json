@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-09T00:00:00Z",
-  "version": 7,
+  "timestamp": "2026-10-17T00:00:00Z",
+  "version": 8,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -25,6 +25,50 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "glib 0.18 is pinned by the Tauri GTK stack used by the CALM Studio desktop app. CALM Studio does not call the unsound glib::VariantStrIter iterator implementations. The fix (glib 0.20) needs a Tauri release that moves to gtk-rs 0.20."
+    },
+    {
+      "vulnerability": {
+        "name": "RUSTSEC-2026-0367",
+        "aliases": [
+          "GHSA-vv5m-jxxh-4627"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
+          "subcomponents": [
+            {
+              "@id": "pkg:cargo/zip@4.6.1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is that extraction keeps SUID, SGID and sticky bits when it applies Unix permissions, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
+    },
+    {
+      "vulnerability": {
+        "name": "RUSTSEC-2026-0369",
+        "aliases": [
+          "GHSA-4684-h2q9-2vcp"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
+          "subcomponents": [
+            {
+              "@id": "pkg:cargo/zip@4.6.1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is in the step that applies Unix permissions during extraction, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
     },
     {
       "vulnerability": {
@@ -473,5 +517,5 @@
       "impact_statement": "katex is pulled in only by mermaid, which pins ^0.16.45 (still the pin at mermaid 12.1.0); the fix is in 0.18.2, outside that range. The only place katex code runs is the CLI --export-diagrams renderer, which serves mermaid's self-contained ESM bundle with its own inlined katex copy, so an npm override cannot reach the code that executes. mermaid loads katex only when a diagram contains a math block. The advisory describes a read-side prototype pollution gadget: it needs an already-polluted Object.prototype plus attacker-controlled math input, and no CALM component pollutes the prototype or renders untrusted math."
     }
   ],
-  "last_updated": "2026-10-09T00:00:00Z"
+  "last_updated": "2026-10-17T00:00:00Z"
 }
