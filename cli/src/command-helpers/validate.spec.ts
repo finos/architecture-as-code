@@ -1,10 +1,10 @@
 import { Command } from 'commander';
 import { Mock } from 'vitest';
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, validationEnrichmentTest, ChainReferenceResolver, CalmReferenceResolver } from '@finos/calm-shared';
+import { getFormattedOutput, validate, ValidationOutcome, validationEnrichmentTest, ChainReferenceResolver, CalmReferenceResolver } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
 import path from 'path';
-import { runValidate, writeOutputFile, checkValidateOptions, ValidateOptions } from './validate';
+import { runValidate, writeOutputFile, checkValidateOptions, exitBasedOffOfValidationOutcome, ValidateOptions } from './validate';
 
 
 const dummyArch = { dummy: 'arch' };
@@ -18,7 +18,6 @@ const dummyCalmTimelineSchema = { '$id': 'calm-timeline-schema.json', dummy: 'ca
 const mocks = vi.hoisted(() => ({
     validate: vi.fn(),
     getFormattedOutput: vi.fn(),
-    exitBasedOffOfValidationOutcome: vi.fn(),
     loggerError: vi.fn(),
     loggerDebug: vi.fn(),
     initLogger: vi.fn(function () { return { error: mocks.loggerError, debug: mocks.loggerDebug }; }),
@@ -38,7 +37,6 @@ vi.mock('@finos/calm-shared', async () => ({
     ...(await vi.importActual('@finos/calm-shared')),
     validate: mocks.validate,
     getFormattedOutput: mocks.getFormattedOutput,
-    exitBasedOffOfValidationOutcome: mocks.exitBasedOffOfValidationOutcome,
     initLogger: mocks.initLogger,
     loadSchemas: mocks.loadSchemas,
     buildDocumentLoader: mocks.buildDocumentLoader
@@ -113,7 +111,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('pattern.json'), 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -154,7 +152,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
         expect(validate).toHaveBeenCalledWith(dummyArch, undefined, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -182,7 +180,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(resolvedPatternPath, 'pattern');
         expect(validate).toHaveBeenCalledWith(dummyArchOfAPattern, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -210,7 +208,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledOnce();
         expect(validate).toHaveBeenCalledWith(dummyArchOfCalmSchema, dummyCalmSchema, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -234,7 +232,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('pattern.json'), 'pattern');
         expect(validate).toHaveBeenCalledWith(undefined, dummyPattern, undefined, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -262,7 +260,7 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('timeline.json'), 'timeline');
         expect(validate).toHaveBeenCalledWith(undefined, dummyCalmTimelineSchema, dummyTimeline, expect.anything(), true, undefined);
         expect(getFormattedOutput).toHaveBeenCalledWith(fakeOutcome, 'json', expect.anything());
-        expect(exitBasedOffOfValidationOutcome).toHaveBeenCalledWith(fakeOutcome, false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
 
         expect(mkdirp.sync).toHaveBeenCalledWith(path.dirname('out.json'));
         expect(writeFileSync).toHaveBeenCalledWith('out.json', 'formatted output');
@@ -425,6 +423,34 @@ describe('runValidate', () => {
 
         expect(mocks.loggerError).toHaveBeenCalledWith('An error occurred while validating: Direct URL authentication failed');
         expect(mocks.loggerError).not.toHaveBeenCalledWith('Cause: token request failed');
+    });
+});
+
+describe('exitBasedOffOfValidationOutcome', () => {
+    beforeEach(() => {
+        vi.resetAllMocks();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        process.exit = mocks.processExit as any;
+    });
+
+    it('exits 1 when there are errors', () => {
+        exitBasedOffOfValidationOutcome(new ValidationOutcome([], [], true, false), false);
+        expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits 0 on warnings when failOnWarnings is false', () => {
+        exitBasedOffOfValidationOutcome(new ValidationOutcome([], [], false, true), false);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
+    });
+
+    it('exits 1 on warnings when failOnWarnings is true', () => {
+        exitBasedOffOfValidationOutcome(new ValidationOutcome([], [], false, true), true);
+        expect(mocks.processExit).toHaveBeenCalledWith(1);
+    });
+
+    it('exits 0 when there are no errors or warnings', () => {
+        exitBasedOffOfValidationOutcome(new ValidationOutcome([], [], false, false), true);
+        expect(mocks.processExit).toHaveBeenCalledWith(0);
     });
 });
 
