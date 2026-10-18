@@ -306,7 +306,7 @@ function CanvasApp() {
                 suppressFileUpdatesUntil.current = Date.now() + SUPPRESS_ECHO_MS;
                 setTimeout(() => { undoingOrRedoing.current = false; }, 100);
             }
-            if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key === 'z') || (!e.shiftKey && e.key === 'y'))) {
+            if ((e.ctrlKey || e.metaKey) && ((e.shiftKey && e.key.toLowerCase() === 'z') || (!e.shiftKey && e.key === 'y'))) {
                 e.preventDefault();
                 if (redoStack.current.length === 0 || undoingOrRedoing.current) return;
                 const next = redoStack.current.pop()!;

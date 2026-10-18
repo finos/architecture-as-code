@@ -1,25 +1,13 @@
 import type { ValidationIssue } from '../stores/canvas-store';
 import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
+import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
+import type { ControlRequirement, ControlEntry } from '../panels/control-metadata';
 import { validateCalmArchitecture } from '../../core/validation.js';
-
-interface ControlRequirement {
-    config?: Record<string, unknown> & { value?: string };
-    'requirement-url'?: string;
-    'config-url'?: string;
-}
 
 interface LegacyValidationMeta {
     pattern?: string;
     'allowed-values'?: string[];
     example?: string;
-}
-
-interface RequirementPropertyDef {
-    type: 'string' | 'boolean' | 'number' | 'integer' | 'enum';
-    allowedValues?: Array<string | number | boolean>;
-    pattern?: string;
-    description?: string;
-    required: boolean;
 }
 
 interface NewValidationMeta {
@@ -28,12 +16,6 @@ interface NewValidationMeta {
 }
 
 type ControlValidationMeta = LegacyValidationMeta | NewValidationMeta;
-
-interface ControlEntry {
-    description?: string;
-    requirements?: ControlRequirement[];
-    metadata?: { validation?: ControlValidationMeta };
-}
 
 function isNewValidation(v: ControlValidationMeta): v is NewValidationMeta {
     return !!v && typeof v === 'object' && 'properties' in v && !!v.properties;

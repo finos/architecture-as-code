@@ -2,6 +2,8 @@
 // Each node becomes a prefixItem with const-constrained identity fields;
 // each relationship becomes a prefixItem with const-constrained endpoints.
 
+import { slugify as generateId } from './control-doc';
+
 interface PatternNode {
     'unique-id': string;
     'node-type': string;
@@ -64,12 +66,7 @@ function relationshipToSchemaItem(rel: PatternRelationship): Record<string, unkn
     return { $ref: CALM_REL_REF, type: 'object', properties: props };
 }
 
-export function generateId(name: string): string {
-    return name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
+export { generateId };
 
 export function exportAsPattern(
     doc: CalmDocument,

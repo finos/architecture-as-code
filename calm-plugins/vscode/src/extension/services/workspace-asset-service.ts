@@ -75,9 +75,8 @@ export class WorkspaceAssetService {
     }
 
     async scanAll(): Promise<void> {
-        // Controls must be scanned before building blocks, because
-        // addStandardsPaletteItems() (invoked from scanBuildingBlocks) resolves
-        // standard control-refs against the scanned local controls.
+        // Controls must be scanned before building blocks so that
+        // control-ref resolution can use the scanned local controls.
         await this.scanControls();
         await Promise.all([
             this.scanBuildingBlocks(),
@@ -223,7 +222,6 @@ export class WorkspaceAssetService {
                             seen.add(id);
 
                             const category =
-                                this.extractCategory(file, 'building-blocks') ||
                                 this.extractCategory(file, 'building-blocks') ||
                                 'General';
 

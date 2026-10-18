@@ -4,6 +4,7 @@
 
 import { makeControlMapKey } from '../../extension/services/control-curie';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
+import { slugify as generateId } from './control-doc';
 
 /** A control attached via the control picker — a Hub CURIE or local path ref plus its parsed requirement. */
 export interface AttachedControl {
@@ -23,12 +24,7 @@ export interface BuiltBuildingBlock {
     fileName: string;
 }
 
-export function generateId(name: string): string {
-    return name
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '');
-}
+export { generateId };
 
 /**
  * Build a CALM document (plus its target file name) for a governed building

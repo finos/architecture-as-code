@@ -313,7 +313,6 @@ export class CanvasPanel {
             `[CanvasPanel] drillInto: label="${label}", path="${filePath}", type="${calmType}"`
         );
 
-        const path = await import('path');
         const isReadonly =
             calmType.startsWith('building-block:') ||
             filePath.includes('building-blocks/');
@@ -325,29 +324,29 @@ export class CanvasPanel {
         const externalPath = vscode.workspace
             .getConfiguration('calm')
             .get<string>('externalAssetsPath');
-        if (externalPath?.trim()) allowedRoots.push(path.resolve(externalPath.trim()));
+        if (externalPath?.trim()) allowedRoots.push(nodePath.resolve(externalPath.trim()));
 
         const isContained = (resolved: string): boolean => {
-            const canonical = path.resolve(resolved);
-            return allowedRoots.some((root) => canonical.startsWith(root + path.sep) || canonical === root);
+            const canonical = nodePath.resolve(resolved);
+            return allowedRoots.some((root) => canonical.startsWith(root + nodePath.sep) || canonical === root);
         };
 
         const candidates: string[] = [];
 
         for (const folder of vscode.workspace.workspaceFolders ?? []) {
-            candidates.push(path.join(folder.uri.fsPath, filePath));
+            candidates.push(nodePath.join(folder.uri.fsPath, filePath));
         }
 
         if (this.currentDocument) {
             candidates.push(
-                path.resolve(
-                    path.dirname(this.currentDocument.uri.fsPath),
+                nodePath.resolve(
+                    nodePath.dirname(this.currentDocument.uri.fsPath),
                     filePath
                 )
             );
         }
 
-        const stem = path.basename(filePath, '.calm.json');
+        const stem = nodePath.basename(filePath, '.calm.json');
         if (filePath.includes('building-blocks/')) {
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
                 const pattern = new vscode.RelativePattern(
@@ -402,12 +401,11 @@ export class CanvasPanel {
     private async handleGenerateSpec(): Promise<void> {
         if (!this.currentDocument) return;
 
-        const path = await import('path');
         const filePath = this.currentDocument.uri.fsPath;
-        const fileName = path.basename(filePath);
+        const fileName = nodePath.basename(filePath);
         const baseName = fileName.replace(/\.(calm\.)?json$/, '');
         const sdFileName = `${baseName}-solution-design.md`;
-        const sdPath = path.resolve(path.dirname(filePath), sdFileName);
+        const sdPath = nodePath.resolve(nodePath.dirname(filePath), sdFileName);
 
         const prompt = [
             `@CALM Generate a Solution Design document for the architecture at: ${filePath}`,
@@ -457,12 +455,12 @@ export class CanvasPanel {
             await vscode.workspace.fs.createDirectory(buildingBlocksDir);
         }
 
-        const safeName = filename.replace(/[/\\]/g, '');
-        if (!safeName || safeName !== filename || filename.includes('..')) {
+        const writePath = resolveSafeWritePath(`building-blocks/${filename}`, workspaceFolder.uri.fsPath);
+        if (!writePath) {
             vscode.window.showErrorMessage(`Invalid building block filename: ${filename}`);
             return;
         }
-        const fileUri = vscode.Uri.joinPath(buildingBlocksDir, safeName);
+        const fileUri = vscode.Uri.file(writePath);
         try {
             await vscode.workspace.fs.stat(fileUri);
             const overwrite = await vscode.window.showWarningMessage(
@@ -507,12 +505,12 @@ export class CanvasPanel {
             await vscode.workspace.fs.createDirectory(patternsDir);
         }
 
-        const safeName = filename.replace(/[/\\]/g, '');
-        if (!safeName || safeName !== filename || filename.includes('..')) {
+        const writePath = resolveSafeWritePath(`patterns/${filename}`, workspaceFolder.uri.fsPath);
+        if (!writePath) {
             vscode.window.showErrorMessage(`Invalid pattern filename: ${filename}`);
             return;
         }
-        const fileUri = vscode.Uri.joinPath(patternsDir, safeName);
+        const fileUri = vscode.Uri.file(writePath);
         try {
             await vscode.workspace.fs.stat(fileUri);
             const overwrite = await vscode.window.showWarningMessage(
@@ -635,11 +633,16 @@ export class CanvasPanel {
         requestId: string,
         domain: string
     ): Promise<void> {
-        const group = await this.controlAssetService.browseControlsForDomain(domain);
-        if (group.error) {
-            this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
-        } else {
-            this.postMessage({ type: 'controlDomainResult', requestId, ok: true, group });
+        try {
+            await this.scanReadyPromise;
+            const group = await this.controlAssetService.browseControlsForDomain(domain);
+            if (group.error) {
+                this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
+            } else {
+                this.postMessage({ type: 'controlDomainResult', requestId, ok: true, group });
+            }
+        } catch (err) {
+            this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: describeError(err) });
         }
     }
 

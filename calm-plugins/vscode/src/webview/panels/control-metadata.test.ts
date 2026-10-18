@@ -152,10 +152,18 @@ describe('needsEnrichment', () => {
         expect(needsEnrichment(enriched)).toBe(false);
     });
 
-    it('is true when metadata has empty properties (picker stub)', () => {
+    it('is false when metadata has identity even with empty properties', () => {
         const stub: ControlEntry = {
             requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
             metadata: { validation: { identity: parsed.identity, properties: {} } },
+        };
+        expect(needsEnrichment(stub)).toBe(false);
+    });
+
+    it('is true when metadata has properties but no identity', () => {
+        const stub: ControlEntry = {
+            requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
+            metadata: { validation: { properties: { tier: { type: 'string', required: true } } } },
         };
         expect(needsEnrichment(stub)).toBe(true);
     });

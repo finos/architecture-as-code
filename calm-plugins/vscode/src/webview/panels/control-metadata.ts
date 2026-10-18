@@ -153,7 +153,7 @@ export function needsEnrichment(control: ControlEntry): boolean {
     if (!getRequirementUrl(control)) return false;
     const validation = control?.metadata?.validation;
     if (!isNewControlMetadata(validation)) return true;
-    return Object.keys(validation.properties).length === 0;
+    return !validation.identity;
 }
 
 /** Sort ascending Hub versions and return the latest (last element), or undefined. */
