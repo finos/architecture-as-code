@@ -314,85 +314,56 @@ export class CanvasPanel {
             calmType.startsWith('standard-node:') ||
             filePath.includes('standard-nodes/');
 
-        const allowedRoots: string[] = [];
-        for (const folder of vscode.workspace.workspaceFolders ?? []) {
-            allowedRoots.push(folder.uri.fsPath);
-        }
+        const workspaceRoots = (vscode.workspace.workspaceFolders ?? []).map(f => f.uri.fsPath);
         const externalPath = vscode.workspace
             .getConfiguration('calm')
             .get<string>('externalAssetsPath');
-        if (externalPath?.trim()) allowedRoots.push(nodePath.resolve(externalPath.trim()));
 
-        const isContained = (resolved: string): boolean => {
-            const canonical = nodePath.resolve(resolved);
-            return allowedRoots.some((root) => canonical.startsWith(root + nodePath.sep) || canonical === root);
-        };
+        // Try resolveLocalPath first (handles containment + symlink checks)
+        const resolved = resolveLocalPath(filePath, workspaceRoots, externalPath);
+        if (!resolved) {
+            // Also try relative to current document
+            const docDir = this.currentDocument ? nodePath.dirname(this.currentDocument.uri.fsPath) : undefined;
+            const fromDoc = docDir ? resolveLocalPath(filePath, [docDir]) : null;
 
-        const candidates: string[] = [];
-
-        for (const folder of vscode.workspace.workspaceFolders ?? []) {
-            candidates.push(nodePath.join(folder.uri.fsPath, filePath));
-        }
-
-        if (this.currentDocument) {
-            candidates.push(
-                nodePath.resolve(
-                    nodePath.dirname(this.currentDocument.uri.fsPath),
-                    filePath
-                )
-            );
-        }
-
-        const stem = nodePath.basename(filePath, '.calm.json');
-        if (filePath.includes('standard-nodes/')) {
-            for (const folder of vscode.workspace.workspaceFolders ?? []) {
-                const pattern = new vscode.RelativePattern(
-                    folder,
-                    `standard-nodes/**/${stem}.calm.json`
-                );
-                const files = await vscode.workspace.findFiles(
-                    pattern,
-                    null,
-                    1
-                );
-                if (files.length > 0) {
-                    candidates.unshift(files[0].fsPath);
+            // Glob search for standard-nodes
+            let fromGlob: string | null = null;
+            if (!fromDoc && filePath.includes('standard-nodes/')) {
+                const stem = nodePath.basename(filePath, '.calm.json');
+                for (const folder of vscode.workspace.workspaceFolders ?? []) {
+                    const pattern = new vscode.RelativePattern(folder, `standard-nodes/**/${stem}.calm.json`);
+                    const files = await vscode.workspace.findFiles(pattern, null, 1);
+                    if (files.length > 0) {
+                        fromGlob = resolveLocalPath(
+                            nodePath.relative(folder.uri.fsPath, files[0].fsPath),
+                            [folder.uri.fsPath]
+                        );
+                        if (fromGlob) break;
+                    }
                 }
             }
-        }
 
-        for (const resolvedPath of candidates) {
-            if (!isContained(resolvedPath)) {
-                this.log.appendLine(
-                    `[CanvasPanel] drillInto BLOCKED path traversal: ${resolvedPath}`
-                );
-                continue;
-            }
-            try {
-                const uri = vscode.Uri.file(resolvedPath);
-                const content = await vscode.workspace.fs.readFile(uri);
-                const json = Buffer.from(content).toString('utf-8');
-
-                this.postMessage({
-                    type: 'drillResult',
-                    json,
-                    label,
-                    filePath: resolvedPath,
-                    readonly: isReadonly,
-                });
-                this.log.appendLine(
-                    `[CanvasPanel] drillInto resolved: ${resolvedPath} (readonly=${isReadonly})`
-                );
+            const target = fromDoc ?? fromGlob;
+            if (!target) {
+                this.log.appendLine(`[CanvasPanel] drillInto FAILED: no safe resolution for "${filePath}"`);
+                vscode.window.showWarningMessage(`Cannot find: ${filePath}`);
                 return;
-            } catch {
-                // Try next candidate
             }
+            return this.drillIntoFile(target, label, isReadonly);
         }
+        return this.drillIntoFile(resolved, label, isReadonly);
+    }
 
-        this.log.appendLine(
-            `[CanvasPanel] drillInto FAILED: tried ${candidates.length} paths, none found`
-        );
-        vscode.window.showWarningMessage(`Cannot find: ${filePath}`);
+    private async drillIntoFile(resolvedPath: string, label: string, readonly: boolean): Promise<void> {
+        try {
+            const uri = vscode.Uri.file(resolvedPath);
+            const content = await vscode.workspace.fs.readFile(uri);
+            const json = Buffer.from(content).toString('utf-8');
+            this.postMessage({ type: 'drillResult', json, label, filePath: resolvedPath, readonly });
+            this.log.appendLine(`[CanvasPanel] drillInto resolved: ${resolvedPath} (readonly=${readonly})`);
+        } catch {
+            vscode.window.showWarningMessage(`Cannot read: ${resolvedPath}`);
+        }
     }
 
     private async handleGenerateSpec(): Promise<void> {

@@ -79,5 +79,20 @@ export function resolveSafeWritePath(
     } catch {
         return null;
     }
+
+    // If the file already exists, resolve symlinks and re-check containment
+    // to prevent writing through a symlink to a location outside the workspace.
+    try {
+        if (fs.lstatSync(candidate).isSymbolicLink()) {
+            const realTarget = fs.realpathSync(candidate);
+            const realRoot = realpathDir(targetRoot);
+            if (!realTarget.startsWith(realRoot + path.sep) && realTarget !== realRoot) {
+                return null;
+            }
+        }
+    } catch {
+        // File doesn't exist yet — safe to create
+    }
+
     return candidate;
 }

@@ -174,8 +174,8 @@ export class HubClient {
             const controls = await this.getControlsForDomain(domain);
             const match = controls.find((c) => c.name === controlName);
             if (match) return { id: match.id, domain };
-        } catch {
-            // Domain may not exist (e.g. CURIE uses a namespace prefix, not a Hub domain)
+        } catch (err) {
+            if (err instanceof HubApiError && err.status !== 404) throw err;
         }
         const domains = await this.getDomains();
         for (const d of domains) {
@@ -184,7 +184,9 @@ export class HubClient {
                 const controls = await this.getControlsForDomain(d);
                 const match = controls.find((c) => c.name === controlName);
                 if (match) return { id: match.id, domain: d };
-            } catch { continue; }
+            } catch (err) {
+                if (err instanceof HubApiError && err.status !== 404) throw err;
+            }
         }
         throw new HubApiError(404, '', `Control "${controlName}" not found in domain "${domain}" or any other domain`);
     }
