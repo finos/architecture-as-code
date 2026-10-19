@@ -1,7 +1,7 @@
 import type { ValidationIssue } from '../stores/canvas-store';
 import type { CalmArchitecture } from '../transforms/calm-editor-transformer';
 import type { RequirementPropertyDef } from '../../extension/services/requirement-parser';
-import type { ControlRequirement, ControlEntry } from '../panels/control-metadata';
+import type { ControlEntry } from '../panels/control-metadata';
 import { validateCalmArchitecture } from '../../core/validation.js';
 
 interface LegacyValidationMeta {

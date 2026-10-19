@@ -7,8 +7,6 @@ import {
     parseControlCurie,
     parseCanonicalControlUrl,
     makeControlMapKey,
-    buildControlCurie,
-    stripControlCurieVersion,
 } from './control-curie';
 
 const CANONICAL =
