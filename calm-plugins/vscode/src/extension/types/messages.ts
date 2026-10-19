@@ -36,7 +36,6 @@ export type ExtToWebviewMessage =
           json: string;
           source: 'file' | 'ai' | 'text-editor' | 'import';
       }
-    | { type: 'templatesLoaded'; templates: unknown[] }
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'standardNodesLoaded'; nodes: unknown[] }
     | {

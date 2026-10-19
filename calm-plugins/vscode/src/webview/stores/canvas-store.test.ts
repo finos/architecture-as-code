@@ -18,7 +18,6 @@ describe('canvas-store', () => {
             documentControls: {},
             standardNodes: [],
             loadedPatterns: [],
-            loadedTemplates: [],
             availableUpdates: [],
         });
     });

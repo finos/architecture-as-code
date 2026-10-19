@@ -67,10 +67,9 @@ export class CanvasPanel {
         this.scanReadyPromise = this.assetService.scanAll().then(() => {
             const fn = this.assetService!.getStandardNodes();
             const p = this.assetService!.getPatterns();
-            const t = this.assetService!.getTemplates();
             const c = this.assetService!.getControls();
             this.log.appendLine(
-                `[CanvasPanel] Scan complete: ${fn.length} standard-nodes, ${p.length} patterns, ${t.length} templates, ${c.length} controls`
+                `[CanvasPanel] Scan complete: ${fn.length} standard-nodes, ${p.length} patterns, ${c.length} controls`
             );
             this.scanReady = true;
             if (this.webviewReady) {
@@ -255,14 +254,12 @@ export class CanvasPanel {
         if (!this.assetService) return;
         const localBlocks = this.assetService.getStandardNodes();
         const localPatterns = this.assetService.getPatterns();
-        const t = this.assetService.getTemplates();
 
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns, ${t.length} templates`
+            `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns`
         );
         this.postMessage({ type: 'standardNodesLoaded', nodes: localBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: localPatterns });
-        this.postMessage({ type: 'templatesLoaded', templates: t });
     }
 
     private async handleDrillUp(

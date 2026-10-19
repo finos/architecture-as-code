@@ -36,7 +36,6 @@ export interface CanvasState {
     documentControls: Record<string, unknown>;
     standardNodes: unknown[];
     loadedPatterns: unknown[];
-    loadedTemplates: unknown[];
     availableUpdates: UpdateInfo[];
 
     // Actions
@@ -71,7 +70,6 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     documentControls: {},
     standardNodes: [],
     loadedPatterns: [],
-    loadedTemplates: [],
     availableUpdates: [],
 
     setNodes: (nodes) => set({ nodes }),

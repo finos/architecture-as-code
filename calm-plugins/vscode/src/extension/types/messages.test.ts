@@ -4,11 +4,11 @@ import type { ExtToWebviewMessage, WebviewToExtMessage } from './messages';
 describe('message types', () => {
     it('ExtToWebviewMessage covers all expected variants', () => {
         const variants: ExtToWebviewMessage['type'][] = [
-            'modelUpdated', 'templatesLoaded', 'patternsLoaded', 'standardNodesLoaded',
+            'modelUpdated', 'patternsLoaded', 'standardNodesLoaded',
             'drillResult', 'controlsChanged', 'controlBrowseResult', 'controlDomainResult',
             'controlVersionsResult', 'controlResolveResult', 'saveControlResult',
         ];
-        expect(variants).toHaveLength(11);
+        expect(variants).toHaveLength(10);
     });
 
     it('WebviewToExtMessage covers all expected variants', () => {

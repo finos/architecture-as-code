@@ -24,7 +24,6 @@ type ModelUpdateCallback = (
     source: 'file' | 'ai' | 'text-editor' | 'import'
 ) => void;
 type PatternsLoadedCallback = (patterns: unknown[]) => void;
-type TemplatesLoadedCallback = (templates: unknown[]) => void;
 type StandardNodesLoadedCallback = (nodes: unknown[]) => void;
 type DrillResultCallback = (
     json: string,
@@ -36,7 +35,6 @@ type DrillResultCallback = (
 
 let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
-let templatesLoadedCallback: TemplatesLoadedCallback | undefined;
 let standardNodesLoadedCallback: StandardNodesLoadedCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
 
@@ -83,9 +81,6 @@ export function setModelUpdateCallback(cb: ModelUpdateCallback): void {
 export function setPatternsLoadedCallback(cb: PatternsLoadedCallback): void {
     patternsLoadedCallback = cb;
 }
-export function setTemplatesLoadedCallback(cb: TemplatesLoadedCallback): void {
-    templatesLoadedCallback = cb;
-}
 export function setStandardNodesLoadedCallback(
     cb: StandardNodesLoadedCallback
 ): void {
@@ -110,9 +105,6 @@ export function initBridge(): void {
                     break;
                 case 'patternsLoaded':
                     patternsLoadedCallback?.(msg.patterns);
-                    break;
-                case 'templatesLoaded':
-                    templatesLoadedCallback?.(msg.templates);
                     break;
                 case 'standardNodesLoaded':
                     standardNodesLoadedCallback?.(msg.nodes);

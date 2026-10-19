@@ -41,19 +41,9 @@ export interface PatternEntry {
     schema: unknown;
 }
 
-export interface CalmTemplate {
-    id: string;
-    name: string;
-    description: string;
-    category: string;
-    content: unknown;
-}
-
-
 export class WorkspaceAssetService {
     private standardNodes: StandardNodeDef[] = [];
     private patterns: PatternEntry[] = [];
-    private templates: CalmTemplate[] = [];
     private controls: LocalControlDef[] = [];
     private watchers: vscode.FileSystemWatcher[] = [];
     private debounceTimer: ReturnType<typeof setTimeout> | null = null;
@@ -81,7 +71,6 @@ export class WorkspaceAssetService {
         await Promise.all([
             this.scanStandardNodes(),
             this.scanPatterns(),
-            this.scanTemplates(),
         ]);
     }
 
@@ -90,9 +79,6 @@ export class WorkspaceAssetService {
     }
     getPatterns(): PatternEntry[] {
         return this.patterns;
-    }
-    getTemplates(): CalmTemplate[] {
-        return this.templates;
     }
     getControls(): LocalControlDef[] {
         return this.controls;
@@ -105,7 +91,6 @@ export class WorkspaceAssetService {
         const globs = [
             'standard-nodes/**/*.{calm.json,architecture.json}',
             'patterns/**/*.pattern.json',
-            'templates/**/*.template.json',
             'controls/**/*.json',
         ];
 
@@ -307,44 +292,6 @@ export class WorkspaceAssetService {
         }
 
         this.patterns = patterns;
-    }
-
-    private async scanTemplates(): Promise<void> {
-        const templates: CalmTemplate[] = [];
-        const seen = new Set<string>();
-
-        for (const root of this.getRoots()) {
-            const glob = new vscode.RelativePattern(
-                root,
-                'templates/**/*.template.json'
-            );
-            const files = await vscode.workspace.findFiles(glob);
-            for (const file of files) {
-                try {
-                    const content = await vscode.workspace.fs.readFile(file);
-                    const json = JSON.parse(
-                        Buffer.from(content).toString('utf-8')
-                    );
-                    const meta = json._template ?? {};
-                    const id = path
-                        .basename(file.fsPath)
-                        .replace(/\.template\.json$/, '');
-                    if (seen.has(id)) continue;
-                    seen.add(id);
-                    templates.push({
-                        id,
-                        name: meta.name ?? id,
-                        description: meta.description ?? '',
-                        category: meta.category ?? 'general',
-                        content: json,
-                    });
-                } catch {
-                    /* skip invalid template files */
-                }
-            }
-        }
-
-        this.templates = templates;
     }
 
     dispose(): void {

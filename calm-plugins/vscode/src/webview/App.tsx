@@ -24,7 +24,6 @@ import {
     initBridge,
     setModelUpdateCallback,
     setPatternsLoadedCallback,
-    setTemplatesLoadedCallback,
     setStandardNodesLoadedCallback,
     setDrillResultCallback,
     setControlsChangedCallback,
@@ -53,7 +52,6 @@ import { NodeAppearance } from './panels/NodeAppearance';
 import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
 import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
-import { TemplatePicker } from './panels/TemplatePicker';
 import { StandardNodeCreator } from './panels/StandardNodeCreator';
 import { ControlPicker } from './panels/ControlPicker';
 import { ControlCreator } from './panels/ControlCreator';
@@ -100,7 +98,6 @@ function CanvasApp() {
     const [panelCollapsed, setPanelCollapsed] = useState(false);
     const [showPatternPicker, setShowPatternPicker] = useState(false);
     const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
-    const [showTemplatePicker, setShowTemplatePicker] = useState(false);
     const [showStandardNodeCreator, setShowStandardNodeCreator] = useState(false);
     const [showControlCreator, setShowControlCreator] = useState(false);
     const [showControlPicker, setShowControlPicker] = useState(false);
@@ -273,7 +270,6 @@ function CanvasApp() {
             setInitialized(true);
         });
         setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
-        setTemplatesLoadedCallback((t) => useCanvasStore.setState({ loadedTemplates: t as any }));
         setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
@@ -916,11 +912,9 @@ function CanvasApp() {
         setTimeout(() => emitChange(true), 0);
     }, [setEdges, emitChange, store.readonlyMode]);
 
-    // --- Pattern/Template handlers ---
+    // --- Pattern handlers ---
     const handlePatterns = useCallback(() => { setPatternPickerMode('new'); setShowPatternPicker(true); }, []);
     const handleApplyPattern = useCallback(() => { setPatternPickerMode('apply'); setShowPatternPicker(true); }, []);
-    const handleTemplates = useCallback(() => setShowTemplatePicker(true), []);
-
     const handleArchApply = useCallback((arch: any, patternId?: string) => {
         if (patternId) {
             const metadata = (arch.metadata ?? {}) as Record<string, unknown>;
@@ -1062,7 +1056,6 @@ function CanvasApp() {
                     )}
                     {!store.readonlyMode && (
                         <ToolbarMenu items={[
-                            { label: 'Templates', onClick: handleTemplates },
                             { label: 'New from Pattern', onClick: handlePatterns },
                             { label: 'Create Node', onClick: () => setShowStandardNodeCreator(true) },
                             { label: 'Create Control', onClick: () => setShowControlCreator(true) },
@@ -1232,15 +1225,7 @@ function CanvasApp() {
                 onClose={() => setShowPatternPicker(false)}
             />
 
-            {/* Template Picker */}
-            <TemplatePicker
-                visible={showTemplatePicker}
-                templates={store.loadedTemplates as any[]}
-                onApply={handleArchApply}
-                onClose={() => setShowTemplatePicker(false)}
-            />
-
-            {/* Building Block Creator */}
+            {/* Standard Node Creator */}
             <StandardNodeCreator
                 visible={showStandardNodeCreator}
                 onClose={() => setShowStandardNodeCreator(false)}
