@@ -1,0 +1,13 @@
+{
+  "name": "CALM-Based Nested Template Bundle",
+  "transformer": "nested-transformer",
+  "templates": [
+    {
+      "template": "templates/main.hbs",
+      "from": "document",
+      "output": "reports/actual-nested.txt",
+      "output-type": "single",
+      "partials": ["partials/header.hbs", "partials/sections/nodes.hbs"]
+    }
+  ]
+}
