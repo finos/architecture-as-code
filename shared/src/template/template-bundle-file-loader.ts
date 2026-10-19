@@ -209,7 +209,10 @@ export class TemplateBundleFileLoader implements ITemplateBundleLoader {
                 const relPath = relativePath ? `${relativePath}/${item}` : item;
 
                 if (fs.statSync(filePath).isDirectory()) {
-                    loadFilesRecursively(filePath, relPath);
+                    // Skip dependency and VCS folders; other dot-folders (e.g. .github) may hold templates.
+                    if (item !== 'node_modules' && item !== '.git') {
+                        loadFilesRecursively(filePath, relPath);
+                    }
                 } else if (item.includes('.')) {
                     templates[relPath] = fs.readFileSync(filePath, 'utf8');
                     logger.debug(`✅ Loaded template file: ${relPath}`);

@@ -125,6 +125,34 @@ describe('TemplateBundleFileLoader', () => {
             'partials/flows/flow.hbs': '{{name}}',
         });
     });
+
+    it('should skip node_modules and .git but walk other dot-folders', () => {
+        const directories: Record<string, string[]> = {
+            [mockBundlePath]: ['index.json', 'node_modules', '.git', '.github'],
+            [path.join(mockBundlePath, 'node_modules')]: ['dep.js'],
+            [path.join(mockBundlePath, '.git')]: ['config.txt'],
+            [path.join(mockBundlePath, '.github')]: ['workflow.yml.hbs'],
+        };
+        const indexJson = JSON.stringify({ name: 'dot-folders', transformer: 'mock-transformer', templates: [] });
+
+        (fs.existsSync as Mock).mockImplementation(function (filePath) { return filePath === mockIndexJsonPath; });
+        (fs.readdirSync as Mock).mockImplementation(function (dir: string) { return directories[dir] ?? []; });
+        (fs.statSync as Mock).mockImplementation(function (filePath: string) {
+            return { isDirectory: () => filePath in directories };
+        });
+        (fs.readFileSync as Mock).mockImplementation(function (filePath: string) {
+            return filePath === mockIndexJsonPath ? indexJson : `content of ${path.basename(filePath)}`;
+        });
+
+        const loader = new TemplateBundleFileLoader(mockBundlePath);
+
+        expect(loader.getTemplateFiles()).toEqual({
+            'index.json': indexJson,
+            '.github/workflow.yml.hbs': 'content of workflow.yml.hbs',
+        });
+        expect(fs.readdirSync).not.toHaveBeenCalledWith(path.join(mockBundlePath, 'node_modules'));
+        expect(fs.readdirSync).not.toHaveBeenCalledWith(path.join(mockBundlePath, '.git'));
+    });
 });
 
 
