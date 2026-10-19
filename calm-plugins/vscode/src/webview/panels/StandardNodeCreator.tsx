@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
-    buildBuildingBlockDoc,
+    buildStandardNodeDoc,
     type AttachedControl,
-} from './building-block-doc';
+} from './standard-node-doc';
 import { makeControlMapKey } from '../../extension/services/control-curie';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
-interface BuildingBlockCreatorProps {
+interface StandardNodeCreatorProps {
     visible: boolean;
     onClose: () => void;
     onSave: (nodeJson: string, fileName: string) => void;
@@ -22,9 +22,9 @@ const NODE_TYPES = ['service', 'database', 'network', 'webclient', 'actor', 'sys
 /**
  * Authoring modal for governed building blocks ("building blocks"). Collects a
  * node definition plus controls attached via the shared control picker, and
- * emits a CALM document that the extension writes to `building-blocks/`.
+ * emits a CALM document that the extension writes to `standard-nodes/`.
  */
-export function BuildingBlockCreator({ visible, onClose, onSave, onRequestBrowseControls }: Readonly<BuildingBlockCreatorProps>) {
+export function StandardNodeCreator({ visible, onClose, onSave, onRequestBrowseControls }: Readonly<StandardNodeCreatorProps>) {
     const [nodeName, setNodeName] = useState('');
     const [nodeType, setNodeType] = useState('service');
     const [nodeDescription, setNodeDescription] = useState('');
@@ -52,7 +52,7 @@ export function BuildingBlockCreator({ visible, onClose, onSave, onRequestBrowse
 
     const handleSave = () => {
         if (!nodeName.trim()) return;
-        const { json, fileName } = buildBuildingBlockDoc({
+        const { json, fileName } = buildStandardNodeDoc({
             name: nodeName,
             nodeType,
             description: nodeDescription,

@@ -19,7 +19,7 @@ describe('flowToCalm - definition-id handling', () => {
                     label: 'Payment Service',
                     description: 'Handles payments',
                     interfaces: [{ id: 'iface-1', protocol: 'https' }],
-                    'definition-id': 'finos:building-blocks:microservice@abc123',
+                    'definition-id': 'finos:standard-nodes:microservice@abc123',
                 },
             },
         ];
@@ -30,7 +30,7 @@ describe('flowToCalm - definition-id handling', () => {
         expect(arch.nodes).toHaveLength(1);
         const calmNode = arch.nodes[0];
         expect(calmNode['definition-id']).toBe(
-            'finos:building-blocks:microservice@abc123'
+            'finos:standard-nodes:microservice@abc123'
         );
         expect(calmNode['unique-id']).toBe('svc-1');
         expect(calmNode.name).toBe('Payment Service');
@@ -55,7 +55,7 @@ describe('flowToCalm - definition-id handling', () => {
                     description: 'A locally defined service',
                     interfaces: [],
                     controls: { 'app-id': { description: 'App ID' } },
-                    metadata: { 'source-building-block': 'microservice' },
+                    metadata: { 'source-standard-node': 'microservice' },
                 },
             },
         ];
@@ -70,7 +70,7 @@ describe('flowToCalm - definition-id handling', () => {
             'app-id': { description: 'App ID' },
         });
         expect(calmNode.metadata).toEqual({
-            'source-building-block': 'microservice',
+            'source-standard-node': 'microservice',
         });
     });
 
@@ -85,7 +85,7 @@ describe('flowToCalm - definition-id handling', () => {
                     calmType: 'service',
                     label: 'Hub Node',
                     description: '',
-                    'definition-id': 'acme:building-blocks:api-gateway@sha256',
+                    'definition-id': 'acme:standard-nodes:api-gateway@sha256',
                 },
             },
             {
@@ -98,7 +98,7 @@ describe('flowToCalm - definition-id handling', () => {
                     label: 'Local DB',
                     description: '',
                     controls: { encryption: { description: 'AES256' } },
-                    metadata: { 'source-building-block': 'rds' },
+                    metadata: { 'source-standard-node': 'rds' },
                 },
             },
         ];
@@ -112,7 +112,7 @@ describe('flowToCalm - definition-id handling', () => {
             (n) => n['unique-id'] === 'hub-node'
         )!;
         expect(hubCalm['definition-id']).toBe(
-            'acme:building-blocks:api-gateway@sha256'
+            'acme:standard-nodes:api-gateway@sha256'
         );
         expect(hubCalm.controls).toBeUndefined();
         expect(hubCalm.metadata).toBeUndefined();
@@ -125,7 +125,7 @@ describe('flowToCalm - definition-id handling', () => {
             encryption: { description: 'AES256' },
         });
         expect(localCalm.metadata).toEqual({
-            'source-building-block': 'rds',
+            'source-standard-node': 'rds',
         });
     });
 
@@ -140,7 +140,7 @@ describe('flowToCalm - definition-id handling', () => {
                     calmType: 'system',
                     label: 'System',
                     description: '',
-                    'definition-id': 'org:building-blocks:platform@v1',
+                    'definition-id': 'org:standard-nodes:platform@v1',
                     details: { 'detailed-architecture': 'sub-arch.calm.json' },
                 },
             },
@@ -149,7 +149,7 @@ describe('flowToCalm - definition-id handling', () => {
         const arch = flowToCalm(nodes, []);
         const calmNode = arch.nodes[0];
         expect(calmNode['definition-id']).toBe(
-            'org:building-blocks:platform@v1'
+            'org:standard-nodes:platform@v1'
         );
         expect(calmNode.details).toEqual({
             'detailed-architecture': 'sub-arch.calm.json',

@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import {
-    buildBuildingBlockDoc,
+    buildStandardNodeDoc,
     generateId,
     type AttachedControl,
-} from './building-block-doc';
+} from './standard-node-doc';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 
 const parsed: ParsedRequirement = {
@@ -25,9 +25,9 @@ describe('generateId', () => {
     });
 });
 
-describe('buildBuildingBlockDoc', () => {
+describe('buildStandardNodeDoc', () => {
     it('builds a CALM document and file name for a node with no controls', () => {
-        const { json, fileName } = buildBuildingBlockDoc({
+        const { json, fileName } = buildStandardNodeDoc({
             name: 'API Gateway',
             nodeType: 'service',
             description: 'Edge gateway',
@@ -39,11 +39,11 @@ describe('buildBuildingBlockDoc', () => {
         expect(doc.$schema).toContain('calm.finos.org');
         expect(doc.nodes).toHaveLength(1);
         expect(doc.nodes[0]).toMatchObject({
-            'unique-id': 'building-block-api-gateway',
+            'unique-id': 'standard-node-api-gateway',
             'node-type': 'service',
             name: 'API Gateway',
             description: 'Edge gateway',
-            metadata: { 'building-block-type': 'infrastructure' },
+            metadata: { 'standard-node-type': 'infrastructure' },
         });
         expect(doc.nodes[0].controls).toEqual({});
         expect(doc.relationships).toEqual([]);
@@ -53,7 +53,7 @@ describe('buildBuildingBlockDoc', () => {
         const controls: AttachedControl[] = [
             { ref: 'security:controls:micro-segmentation@1.0.0', parsed },
         ];
-        const { json } = buildBuildingBlockDoc({
+        const { json } = buildStandardNodeDoc({
             name: 'Svc',
             nodeType: 'service',
             description: '',
@@ -73,7 +73,7 @@ describe('buildBuildingBlockDoc', () => {
         const controls: AttachedControl[] = [
             { ref: 'controls/micro-segmentation.requirement.json', parsed },
         ];
-        const { json } = buildBuildingBlockDoc({
+        const { json } = buildStandardNodeDoc({
             name: 'Svc',
             nodeType: 'service',
             description: '',

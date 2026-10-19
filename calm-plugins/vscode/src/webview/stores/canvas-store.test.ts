@@ -16,7 +16,7 @@ describe('canvas-store', () => {
             panelWidth: 280,
             expandControlKey: null,
             documentControls: {},
-            buildingBlocks: [],
+            standardNodes: [],
             loadedPatterns: [],
             loadedTemplates: [],
             availableUpdates: [],

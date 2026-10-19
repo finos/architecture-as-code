@@ -2,13 +2,13 @@
 // deterministic controls-map key derivation. Pure module — no VS Code or Node
 // APIs. The three formats are, in classification order:
 //   1. Canonical URL  https://{base}/calm/domains/{domain}/controls/{name}/requirement/versions/{version}
-//   2. Hub CURIE       {domain}:controls:{name}[@{version}]  (unversioned in building blocks)
+//   2. Hub CURIE       {domain}:controls:{name}[@{version}]  (unversioned in standard nodes)
 //   3. Local path      controls/....json (relative; `.requirement.json` is the convention)
 
 export interface ControlCurieResult {
     domain: string;
     controlName: string;
-    /** Undefined for an unversioned CURIE (the form used in building blocks). */
+    /** Undefined for an unversioned CURIE (the form used in standard nodes). */
     version?: string;
 }
 
@@ -24,7 +24,7 @@ export function isCanonicalControlUrl(ref: string): boolean {
     return /^https?:\/\//i.test(ref) && ref.includes('/calm/domains/');
 }
 
-/** A Hub control CURIE: contains `:controls:`. The `@version` suffix is optional (unversioned in building blocks). */
+/** A Hub control CURIE: contains `:controls:`. The `@version` suffix is optional (unversioned in standard nodes). */
 export function isControlCurie(ref: string): boolean {
     return ref.includes(':controls:') && !ref.includes('://');
 }
@@ -56,7 +56,7 @@ export function parseControlCurie(ref: string): ControlCurieResult | null {
     return { domain, controlName, version };
 }
 
-/** Build a control CURIE from parts. Omits the version when not given (building-block form). */
+/** Build a control CURIE from parts. Omits the version when not given (standard-node form). */
 export function buildControlCurie(
     domain: string,
     controlName: string,

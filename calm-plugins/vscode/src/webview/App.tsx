@@ -25,14 +25,14 @@ import {
     setModelUpdateCallback,
     setPatternsLoadedCallback,
     setTemplatesLoadedCallback,
-    setBuildingBlocksLoadedCallback,
+    setStandardNodesLoadedCallback,
     setDrillResultCallback,
     setControlsChangedCallback,
     notifyCanvasChanged,
     notifyDrillInto,
     notifyDrillUp,
     notifyRequestGenerateSpec,
-    notifySaveBuildingBlock,
+    notifySaveStandardNode,
     notifyRequestImportSvg,
     requestControlResolve,
 } from './stores/sync-bridge';
@@ -50,11 +50,11 @@ import { InterfaceList } from './panels/InterfaceList';
 import { ControlsList } from './panels/ControlsList';
 import { CustomMetadata } from './panels/CustomMetadata';
 import { NodeAppearance } from './panels/NodeAppearance';
-import { getNodeStyleOverride, isBuildingBlock } from './utils/building-block-style';
+import { getNodeStyleOverride, isStandardNode } from './utils/standard-node-style';
 import { defaultNodeColours } from './canvas/node-colours';
 import { PatternPicker } from './panels/PatternPicker';
 import { TemplatePicker } from './panels/TemplatePicker';
-import { BuildingBlockCreator } from './panels/BuildingBlockCreator';
+import { StandardNodeCreator } from './panels/StandardNodeCreator';
 import { ControlPicker } from './panels/ControlPicker';
 import { ControlCreator } from './panels/ControlCreator';
 import {
@@ -101,13 +101,13 @@ function CanvasApp() {
     const [showPatternPicker, setShowPatternPicker] = useState(false);
     const [patternPickerMode, setPatternPickerMode] = useState<'new' | 'apply'>('new');
     const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-    const [showBuildingBlockCreator, setShowBuildingBlockCreator] = useState(false);
+    const [showStandardNodeCreator, setShowStandardNodeCreator] = useState(false);
     const [showControlCreator, setShowControlCreator] = useState(false);
     const [showControlPicker, setShowControlPicker] = useState(false);
     const [controlPickerTarget, setControlPickerTarget] = useState<
         | { type: 'node'; nodeId: string }
         | { type: 'document' }
-        | { type: 'building-block-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
+        | { type: 'standard-node-draft'; onAttach: (ref: string, parsed: ParsedRequirement) => void; existingKeys?: Set<string> }
         | null
     >(null);
     const [expandControlKey, setExpandControlKey] = useState<string | null>(null);
@@ -274,7 +274,7 @@ function CanvasApp() {
         });
         setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
         setTemplatesLoadedCallback((t) => useCanvasStore.setState({ loadedTemplates: t as any }));
-        setBuildingBlocksLoadedCallback((n) => useCanvasStore.setState({ buildingBlocks: n as any }));
+        setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
@@ -457,15 +457,15 @@ function CanvasApp() {
         const calmType = (data?.calmType as string) ?? '';
         const label = (data?.label as string) || node.id;
         const metadata = data?.metadata as Record<string, unknown> | undefined;
-        const sourceBuildingBlock = metadata?.['source-building-block'] as string | undefined;
+        const sourceStandardNode = metadata?.['source-standard-node'] as string | undefined;
 
         if (details?.['detailed-architecture']) {
             notifyDrillInto(label, details['detailed-architecture'], calmType);
-        } else if (sourceBuildingBlock) {
-            notifyDrillInto(label, `building-blocks/${sourceBuildingBlock}.calm.json`, `building-block:${sourceBuildingBlock}`);
+        } else if (sourceStandardNode) {
+            notifyDrillInto(label, `standard-nodes/${sourceStandardNode}.calm.json`, `standard-node:${sourceStandardNode}`);
         } else if (calmType.includes(':')) {
-            const safeName = calmType.replace(/^building-block:/, '');
-            notifyDrillInto(label, `building-blocks/${safeName}.calm.json`, calmType);
+            const safeName = calmType.replace(/^standard-node:/, '');
+            notifyDrillInto(label, `standard-nodes/${safeName}.calm.json`, calmType);
         } else {
             // No drill target — select and focus the name field for editing
             setSelectedNode(node);
@@ -554,20 +554,20 @@ function CanvasApp() {
         e.stopPropagation();
         if (store.readonlyMode) return;
 
-        const buildingBlockId = e.dataTransfer.getData('application/building-block-id');
-        const behaviour = e.dataTransfer.getData('application/building-block-behaviour');
+        const standardNodeId = e.dataTransfer.getData('application/standard-node-id');
+        const behaviour = e.dataTransfer.getData('application/standard-node-behaviour');
         const nodeType = e.dataTransfer.getData('application/calm-node-type');
         const nodeLabel = e.dataTransfer.getData('application/calm-node-label');
         const isContainer = e.dataTransfer.getData('application/calm-container') === 'true';
 
         const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
 
-        if (buildingBlockId && behaviour) {
+        if (standardNodeId && behaviour) {
             // Building block / standard drop
-            const buildingBlock = (store.buildingBlocks as any[]).find((n: any) => n.id === buildingBlockId);
-            if (!buildingBlock) return;
-            const isHubSourced = !!(buildingBlock.namespace && buildingBlock.sha);
-            const controlsCopy = JSON.parse(JSON.stringify(buildingBlock.controls ?? {})) as Record<string, unknown>;
+            const standardNode = (store.standardNodes as any[]).find((n: any) => n.id === standardNodeId);
+            if (!standardNode) return;
+            const isHubSourced = !!(standardNode.namespace && standardNode.sha);
+            const controlsCopy = JSON.parse(JSON.stringify(standardNode.controls ?? {})) as Record<string, unknown>;
 
             if (behaviour === 'apply-controls-on-drop') {
                 // Find the node under the drop point.
@@ -596,15 +596,15 @@ function CanvasApp() {
                 }
                 if (targetId) {
                     // Hub-sourced standard/guideline: write a definition-id CURIE ref
-                    const stdCurieType = buildingBlock.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards';
-                    const requirementUrl = (isHubSourced && buildingBlock.sha)
-                        ? `${buildingBlock.namespace}:${stdCurieType}:${buildingBlock.id}@${buildingBlock.sha}`
+                    const stdCurieType = standardNode.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards';
+                    const requirementUrl = (isHubSourced && standardNode.sha)
+                        ? `${standardNode.namespace}:${stdCurieType}:${standardNode.id}@${standardNode.sha}`
                         : undefined;
 
                     // Merge controls into target (if any) and create standards node + edge
                     setNodes((nds) => {
                         const existingStdNode = nds.find(
-                            (n) => (n.data as any)?.metadata?.['source-building-block'] === buildingBlockId
+                            (n) => (n.data as any)?.metadata?.['source-standard-node'] === standardNodeId
                         );
                         let stdNodeId: string;
                         let updatedNodes = nds.map((n) => {
@@ -623,17 +623,17 @@ function CanvasApp() {
                             // Create a standards node near the drop position
                             stdNodeId = `standard-${Date.now()}`;
                             const stdNodeData: Record<string, unknown> = {
-                                label: buildingBlock.name,
+                                label: standardNode.name,
                                 calmId: stdNodeId,
                                 calmType: 'standard',
-                                description: buildingBlock.description ?? '',
+                                description: standardNode.description ?? '',
                                 interfaces: [],
                             };
                             if (requirementUrl) {
                                 stdNodeData['definition-id'] = requirementUrl;
                             } else {
                                 stdNodeData.controls = {};
-                                stdNodeData.metadata = { 'source-building-block': buildingBlockId };
+                                stdNodeData.metadata = { 'source-standard-node': standardNodeId };
                             }
                             const stdNode: Node = {
                                 id: stdNodeId,
@@ -680,36 +680,36 @@ function CanvasApp() {
                 // No target (or no controls to apply) — fall through to place a standalone marker.
             }
 
-            const id = `${buildingBlock.nodeType}-${Date.now()}`;
-            const curieType = buildingBlock.behaviour === 'apply-controls-on-drop'
-                ? (buildingBlock.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards')
-                : 'building-blocks';
+            const id = `${standardNode.nodeType}-${Date.now()}`;
+            const curieType = standardNode.behaviour === 'apply-controls-on-drop'
+                ? (standardNode.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards')
+                : 'standard-nodes';
             const newNode: Node = {
                 id,
-                type: resolveFlowNodeType(buildingBlock.nodeType),
+                type: resolveFlowNodeType(standardNode.nodeType),
                 position,
                 data: isHubSourced
                     ? {
-                        label: buildingBlock.name,
+                        label: standardNode.name,
                         calmId: id,
-                        calmType: buildingBlock.nodeType,
-                        description: buildingBlock.description ?? '',
+                        calmType: standardNode.nodeType,
+                        description: standardNode.description ?? '',
                         interfaces: [],
-                        'definition-id': `${buildingBlock.namespace}:${curieType}:${buildingBlock.id}@${buildingBlock.sha}`,
+                        'definition-id': `${standardNode.namespace}:${curieType}:${standardNode.id}@${standardNode.sha}`,
                     }
                     : {
-                        label: buildingBlock.name,
+                        label: standardNode.name,
                         calmId: id,
-                        calmType: buildingBlock.nodeType,
-                        description: buildingBlock.description ?? '',
+                        calmType: standardNode.nodeType,
+                        description: standardNode.description ?? '',
                         interfaces: [],
                         controls: controlsCopy,
-                        metadata: { 'source-building-block': buildingBlock.id },
+                        metadata: { 'source-standard-node': standardNode.id },
                     },
             };
             setNodes((nds) => [...nds, newNode]);
             setTimeout(() => emitChange(true), 0);
-            // Local building-block controls may carry local requirement refs — enrich them.
+            // Local standard-node controls may carry local requirement refs — enrich them.
             setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
             return;
         }
@@ -729,16 +729,16 @@ function CanvasApp() {
             }]);
         }
         setTimeout(() => emitChange(true), 0);
-    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.buildingBlocks, enrichAllControls, enrichNodeControls]);
+    }, [nodes, setNodes, setEdges, emitChange, reactFlowInstance, store.readonlyMode, store.standardNodes, enrichAllControls, enrichNodeControls]);
 
     // --- Validate ---
     const handleValidate = useCallback(() => {
         // Re-resolve controls onto standard/guideline nodes from the palette item they came
-        // from (via `source-building-block`). Nodes dropped before their front-matter controls
+        // from (via `source-standard-node`). Nodes dropped before their front-matter controls
         // were available — or whose controls were never populated — otherwise validate as
         // empty. Only backfill when the node currently has no controls of its own.
         const paletteControlsById = new Map<string, Record<string, unknown>>();
-        for (const fn of store.buildingBlocks as Array<{ id?: string; controls?: Record<string, unknown> }>) {
+        for (const fn of store.standardNodes as Array<{ id?: string; controls?: Record<string, unknown> }>) {
             if (fn?.id && fn.controls && Object.keys(fn.controls).length > 0) {
                 paletteControlsById.set(fn.id, fn.controls);
             }
@@ -746,7 +746,7 @@ function CanvasApp() {
         const effectiveNodes = nodes.map((n) => {
             const data = (n.data ?? {}) as Record<string, unknown>;
             const meta = data.metadata as Record<string, unknown> | undefined;
-            const sourceId = meta?.['source-building-block'] as string | undefined;
+            const sourceId = meta?.['source-standard-node'] as string | undefined;
             if (!sourceId) return n;
             const palette = paletteControlsById.get(sourceId);
             if (!palette) return n;
@@ -990,7 +990,7 @@ function CanvasApp() {
                 emitChange(true);
                 enrichAllControls(reactFlowInstance.getNodes(), generation);
             }, 0);
-        } else if (target.type === 'building-block-draft') {
+        } else if (target.type === 'standard-node-draft') {
             target.onAttach(ref, parsed);
         }
     }, [controlPickerTarget, setNodes, emitChange, reactFlowInstance, enrichNodeControls, enrichAllControls]);
@@ -1064,7 +1064,7 @@ function CanvasApp() {
                         <ToolbarMenu items={[
                             { label: 'Templates', onClick: handleTemplates },
                             { label: 'New from Pattern', onClick: handlePatterns },
-                            { label: 'Create Node', onClick: () => setShowBuildingBlockCreator(true) },
+                            { label: 'Create Node', onClick: () => setShowStandardNodeCreator(true) },
                             { label: 'Create Control', onClick: () => setShowControlCreator(true) },
                             { label: 'Export as Pattern', onClick: handleExportAsPattern },
                         ]} />
@@ -1090,7 +1090,7 @@ function CanvasApp() {
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {!store.readonlyMode && <NodePalette buildingBlocks={store.buildingBlocks as any[]} />}
+                {!store.readonlyMode && <NodePalette standardNodes={store.standardNodes as any[]} />}
 
                 <div style={{ flex: 1, position: 'relative' }} onDragOver={handleDragOver} onDrop={handleDrop}>
                     <ReactFlow
@@ -1181,13 +1181,13 @@ function CanvasApp() {
                                     <NodeAppearance
                                         key={`${liveSelectedNode.id}-appearance`}
                                         style={getNodeStyleOverride(data as Record<string, unknown>)}
-                                        defaults={defaultNodeColours(liveSelectedNode.type, isBuildingBlock(data as Record<string, unknown>))}
+                                        defaults={defaultNodeColours(liveSelectedNode.type, isStandardNode(data as Record<string, unknown>))}
                                         onUpdate={(style) => {
                                             const meta = { ...((data.metadata as Record<string, unknown>) ?? {}) };
                                             if (style) {
-                                                meta['building-block-style'] = style;
+                                                meta['standard-node-style'] = style;
                                             } else {
-                                                delete meta['building-block-style'];
+                                                delete meta['standard-node-style'];
                                             }
                                             onNodeUpdate(liveSelectedNode.id, 'metadata', meta);
                                         }}
@@ -1241,12 +1241,12 @@ function CanvasApp() {
             />
 
             {/* Building Block Creator */}
-            <BuildingBlockCreator
-                visible={showBuildingBlockCreator}
-                onClose={() => setShowBuildingBlockCreator(false)}
-                onSave={(json, fileName) => notifySaveBuildingBlock(fileName, json)}
+            <StandardNodeCreator
+                visible={showStandardNodeCreator}
+                onClose={() => setShowStandardNodeCreator(false)}
+                onSave={(json, fileName) => notifySaveStandardNode(fileName, json)}
                 onRequestBrowseControls={(onAttach, existingKeys) => {
-                    setControlPickerTarget({ type: 'building-block-draft', onAttach, existingKeys });
+                    setControlPickerTarget({ type: 'standard-node-draft', onAttach, existingKeys });
                     setShowControlPicker(true);
                 }}
             />

@@ -93,7 +93,7 @@ describe('validateControls', () => {
                     'unique-id': 'std-1',
                     'node-type': 'standard',
                     name: 'A Standard',
-                    metadata: { 'source-building-block': 'standards:foo' },
+                    metadata: { 'source-standard-node': 'standards:foo' },
                     controls: {
                         'app-id': control({ 'allowed-values': ['x'] }),
                     },

@@ -107,7 +107,7 @@ export function ControlPicker({
             const ref = buildRef(entry);
             if (!ref) return;
             // Build a minimal ParsedRequirement from browse metadata — same
-            // pattern as building-block drop. Full property enrichment happens
+            // pattern as standard-node drop. Full property enrichment happens
             // later via the webview enrichment flow.
             const parsed: ParsedRequirement = {
                 identity: {

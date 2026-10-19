@@ -2,7 +2,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import { parseRequirementSchema } from './requirement-parser';
 
-export interface BuildingBlockDef {
+export interface StandardNodeDef {
     id: string;
     name: string;
     behaviour: string;
@@ -51,7 +51,7 @@ export interface CalmTemplate {
 
 
 export class WorkspaceAssetService {
-    private buildingBlocks: BuildingBlockDef[] = [];
+    private standardNodes: StandardNodeDef[] = [];
     private patterns: PatternEntry[] = [];
     private templates: CalmTemplate[] = [];
     private controls: LocalControlDef[] = [];
@@ -79,14 +79,14 @@ export class WorkspaceAssetService {
         // control-ref resolution can use the scanned local controls.
         await this.scanControls();
         await Promise.all([
-            this.scanBuildingBlocks(),
+            this.scanStandardNodes(),
             this.scanPatterns(),
             this.scanTemplates(),
         ]);
     }
 
-    getBuildingBlocks(): BuildingBlockDef[] {
-        return this.buildingBlocks;
+    getStandardNodes(): StandardNodeDef[] {
+        return this.standardNodes;
     }
     getPatterns(): PatternEntry[] {
         return this.patterns;
@@ -103,7 +103,7 @@ export class WorkspaceAssetService {
         onRescan: () => void
     ): void {
         const globs = [
-            'building-blocks/**/*.{calm.json,architecture.json}',
+            'standard-nodes/**/*.{calm.json,architecture.json}',
             'patterns/**/*.pattern.json',
             'templates/**/*.template.json',
             'controls/**/*.json',
@@ -185,8 +185,8 @@ export class WorkspaceAssetService {
         this.controls = controls;
     }
 
-    private async scanBuildingBlocks(): Promise<void> {
-        const nodes: BuildingBlockDef[] = [];
+    private async scanStandardNodes(): Promise<void> {
+        const nodes: StandardNodeDef[] = [];
         const seen = new Set<string>();
         const roots = this.getRoots();
 
@@ -194,7 +194,7 @@ export class WorkspaceAssetService {
             const globs = [
                 new vscode.RelativePattern(
                     root,
-                    'building-blocks/**/*.{calm.json,architecture.json}'
+                    'standard-nodes/**/*.{calm.json,architecture.json}'
                 ),
             ];
 
@@ -222,14 +222,14 @@ export class WorkspaceAssetService {
                             seen.add(id);
 
                             const category =
-                                this.extractCategory(file, 'building-blocks') ||
+                                this.extractCategory(file, 'standard-nodes') ||
                                 'General';
 
                             nodes.push({
                                 id,
                                 name: node.name ?? id,
                                 behaviour:
-                                    metadata['building-block-behaviour'] ===
+                                    metadata['standard-node-behaviour'] ===
                                     'apply-controls-on-drop'
                                         ? 'apply-controls-on-drop'
                                         : 'create-node',
@@ -245,7 +245,7 @@ export class WorkspaceAssetService {
             }
         }
 
-        this.buildingBlocks = nodes;
+        this.standardNodes = nodes;
     }
 
     private toRelativeUrl(root: vscode.Uri, file: vscode.Uri): string {

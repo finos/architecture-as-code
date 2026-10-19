@@ -4,7 +4,7 @@ import { theme, tint } from '../canvas/theme-colors';
 
 initAllPacks();
 
-interface BuildingBlock {
+interface StandardNode {
     id: string;
     name: string;
     behaviour: string;
@@ -16,10 +16,10 @@ interface BuildingBlock {
 }
 
 interface NodePaletteProps {
-    buildingBlocks: BuildingBlock[];
+    standardNodes: StandardNode[];
 }
 
-export function NodePalette({ buildingBlocks }: NodePaletteProps) {
+export function NodePalette({ standardNodes }: NodePaletteProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, hub: false });
 
@@ -43,15 +43,15 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
     const lowerQuery = searchQuery.toLowerCase().trim();
     const isSearching = lowerQuery.length > 0;
 
-    const infraNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'create-node' && !n.namespace), [buildingBlocks]);
+    const infraNodes = useMemo(() => standardNodes.filter((n) => n.behaviour === 'create-node' && !n.namespace), [standardNodes]);
 
     function matchesSearch(name: string, description?: string): boolean {
         if (!isSearching) return true;
         return name.toLowerCase().includes(lowerQuery) || (description?.toLowerCase().includes(lowerQuery) ?? false);
     }
 
-    function groupByCategory(items: BuildingBlock[]): Array<{ name: string; items: BuildingBlock[] }> {
-        const map = new Map<string, BuildingBlock[]>();
+    function groupByCategory(items: StandardNode[]): Array<{ name: string; items: StandardNode[] }> {
+        const map = new Map<string, StandardNode[]>();
         for (const item of items) {
             const cat = item.category ?? 'General';
             if (!map.has(cat)) map.set(cat, []);
@@ -76,9 +76,9 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
 
     const toggleSection = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
-    const onDragStart = (e: React.DragEvent, node: BuildingBlock) => {
-        e.dataTransfer.setData('application/building-block-id', node.id);
-        e.dataTransfer.setData('application/building-block-behaviour', node.behaviour);
+    const onDragStart = (e: React.DragEvent, node: StandardNode) => {
+        e.dataTransfer.setData('application/standard-node-id', node.id);
+        e.dataTransfer.setData('application/standard-node-behaviour', node.behaviour);
         e.dataTransfer.setData('application/calm-node-type', node.nodeType);
         e.dataTransfer.setData('application/calm-node-label', node.name);
         e.dataTransfer.effectAllowed = 'move';
@@ -167,9 +167,9 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
             ))}
 
             {/* Empty state */}
-            {buildingBlocks.length === 0 && filteredPacks.length === 0 && !isSearching && (
+            {standardNodes.length === 0 && filteredPacks.length === 0 && !isSearching && (
                 <div style={{ padding: '12px', fontSize: '11px', color: 'var(--calm-fg-muted)', lineHeight: 1.4 }}>
-                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>building-blocks/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.calm.json</code> files.
+                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>standard-nodes/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.calm.json</code> files.
                 </div>
             )}
         </aside>

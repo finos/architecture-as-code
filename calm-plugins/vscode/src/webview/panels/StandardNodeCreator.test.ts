@@ -1,10 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { buildBuildingBlockDoc } from './building-block-doc';
+import { buildStandardNodeDoc } from './standard-node-doc';
 import { makeControlMapKey } from '../../extension/services/control-curie';
 
-describe('BuildingBlockCreator integration', () => {
-    it('produces valid building block JSON via buildBuildingBlockDoc', () => {
-        const { json, fileName } = buildBuildingBlockDoc({
+describe('StandardNodeCreator integration', () => {
+    it('produces valid building block JSON via buildStandardNodeDoc', () => {
+        const { json, fileName } = buildStandardNodeDoc({
             name: 'API Gateway',
             nodeType: 'service',
             description: 'Routes requests',
@@ -18,7 +18,7 @@ describe('BuildingBlockCreator integration', () => {
     });
 
     it('includes controls in building block', () => {
-        const { json } = buildBuildingBlockDoc({
+        const { json } = buildStandardNodeDoc({
             name: 'Secure Service',
             nodeType: 'service',
             description: 'A secured service',

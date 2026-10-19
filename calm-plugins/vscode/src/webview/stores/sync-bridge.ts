@@ -25,7 +25,7 @@ type ModelUpdateCallback = (
 ) => void;
 type PatternsLoadedCallback = (patterns: unknown[]) => void;
 type TemplatesLoadedCallback = (templates: unknown[]) => void;
-type BuildingBlocksLoadedCallback = (nodes: unknown[]) => void;
+type StandardNodesLoadedCallback = (nodes: unknown[]) => void;
 type DrillResultCallback = (
     json: string,
     label: string,
@@ -37,7 +37,7 @@ type DrillResultCallback = (
 let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let templatesLoadedCallback: TemplatesLoadedCallback | undefined;
-let buildingBlocksLoadedCallback: BuildingBlocksLoadedCallback | undefined;
+let standardNodesLoadedCallback: StandardNodesLoadedCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
 
 type ControlsChangedCallback = () => void;
@@ -86,10 +86,10 @@ export function setPatternsLoadedCallback(cb: PatternsLoadedCallback): void {
 export function setTemplatesLoadedCallback(cb: TemplatesLoadedCallback): void {
     templatesLoadedCallback = cb;
 }
-export function setBuildingBlocksLoadedCallback(
-    cb: BuildingBlocksLoadedCallback
+export function setStandardNodesLoadedCallback(
+    cb: StandardNodesLoadedCallback
 ): void {
-    buildingBlocksLoadedCallback = cb;
+    standardNodesLoadedCallback = cb;
 }
 export function setDrillResultCallback(cb: DrillResultCallback): void {
     drillResultCallback = cb;
@@ -114,8 +114,8 @@ export function initBridge(): void {
                 case 'templatesLoaded':
                     templatesLoadedCallback?.(msg.templates);
                     break;
-                case 'buildingBlocksLoaded':
-                    buildingBlocksLoadedCallback?.(msg.nodes);
+                case 'standardNodesLoaded':
+                    standardNodesLoadedCallback?.(msg.nodes);
                     break;
                 case 'drillResult':
                     drillResultCallback?.(
@@ -167,11 +167,11 @@ export function notifyRequestGenerateSpec(): void {
     postMessage({ type: 'requestGenerateSpec' });
 }
 
-export function notifySaveBuildingBlock(
+export function notifySaveStandardNode(
     filename: string,
     content: string
 ): void {
-    postMessage({ type: 'saveBuildingBlock', filename, content });
+    postMessage({ type: 'saveStandardNode', filename, content });
 }
 
 export function notifySavePattern(

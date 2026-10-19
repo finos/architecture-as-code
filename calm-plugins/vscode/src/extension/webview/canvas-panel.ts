@@ -65,12 +65,12 @@ export class CanvasPanel {
             () => this.assetService?.getControls() ?? []
         );
         this.scanReadyPromise = this.assetService.scanAll().then(() => {
-            const fn = this.assetService!.getBuildingBlocks();
+            const fn = this.assetService!.getStandardNodes();
             const p = this.assetService!.getPatterns();
             const t = this.assetService!.getTemplates();
             const c = this.assetService!.getControls();
             this.log.appendLine(
-                `[CanvasPanel] Scan complete: ${fn.length} building-blocks, ${p.length} patterns, ${t.length} templates, ${c.length} controls`
+                `[CanvasPanel] Scan complete: ${fn.length} standard-nodes, ${p.length} patterns, ${t.length} templates, ${c.length} controls`
             );
             this.scanReady = true;
             if (this.webviewReady) {
@@ -185,8 +185,8 @@ export class CanvasPanel {
             case 'requestGenerateSpec':
                 void this.handleGenerateSpec();
                 break;
-            case 'saveBuildingBlock':
-                void this.handleSaveBuildingBlock(
+            case 'saveStandardNode':
+                void this.handleSaveStandardNode(
                     message.filename,
                     message.content
                 );
@@ -253,14 +253,14 @@ export class CanvasPanel {
 
     private sendAssets(): void {
         if (!this.assetService) return;
-        const localBlocks = this.assetService.getBuildingBlocks();
+        const localBlocks = this.assetService.getStandardNodes();
         const localPatterns = this.assetService.getPatterns();
         const t = this.assetService.getTemplates();
 
         this.log.appendLine(
             `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns, ${t.length} templates`
         );
-        this.postMessage({ type: 'buildingBlocksLoaded', nodes: localBlocks });
+        this.postMessage({ type: 'standardNodesLoaded', nodes: localBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: localPatterns });
         this.postMessage({ type: 'templatesLoaded', templates: t });
     }
@@ -314,8 +314,8 @@ export class CanvasPanel {
         );
 
         const isReadonly =
-            calmType.startsWith('building-block:') ||
-            filePath.includes('building-blocks/');
+            calmType.startsWith('standard-node:') ||
+            filePath.includes('standard-nodes/');
 
         const allowedRoots: string[] = [];
         for (const folder of vscode.workspace.workspaceFolders ?? []) {
@@ -347,11 +347,11 @@ export class CanvasPanel {
         }
 
         const stem = nodePath.basename(filePath, '.calm.json');
-        if (filePath.includes('building-blocks/')) {
+        if (filePath.includes('standard-nodes/')) {
             for (const folder of vscode.workspace.workspaceFolders ?? []) {
                 const pattern = new vscode.RelativePattern(
                     folder,
-                    `building-blocks/**/${stem}.calm.json`
+                    `standard-nodes/**/${stem}.calm.json`
                 );
                 const files = await vscode.workspace.findFiles(
                     pattern,
@@ -435,7 +435,7 @@ export class CanvasPanel {
 
 
 
-    private async handleSaveBuildingBlock(
+    private async handleSaveStandardNode(
         filename: string,
         content: string
     ): Promise<void> {
@@ -445,17 +445,17 @@ export class CanvasPanel {
             return;
         }
 
-        const buildingBlocksDir = vscode.Uri.joinPath(
+        const standardNodesDir = vscode.Uri.joinPath(
             workspaceFolder.uri,
-            'building-blocks'
+            'standard-nodes'
         );
         try {
-            await vscode.workspace.fs.stat(buildingBlocksDir);
+            await vscode.workspace.fs.stat(standardNodesDir);
         } catch {
-            await vscode.workspace.fs.createDirectory(buildingBlocksDir);
+            await vscode.workspace.fs.createDirectory(standardNodesDir);
         }
 
-        const writePath = resolveSafeWritePath(`building-blocks/${filename}`, workspaceFolder.uri.fsPath);
+        const writePath = resolveSafeWritePath(`standard-nodes/${filename}`, workspaceFolder.uri.fsPath);
         if (!writePath) {
             vscode.window.showErrorMessage(`Invalid building block filename: ${filename}`);
             return;
@@ -478,7 +478,7 @@ export class CanvasPanel {
             Buffer.from(content, 'utf-8')
         );
         vscode.window.showInformationMessage(
-            `Building block saved: building-blocks/${filename}`
+            `Building block saved: standard-nodes/${filename}`
         );
 
         const doc = await vscode.workspace.openTextDocument(fileUri);

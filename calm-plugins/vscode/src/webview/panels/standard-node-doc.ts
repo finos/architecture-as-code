@@ -1,5 +1,5 @@
-// Pure builder for governed building-block ("building block") CALM documents.
-// Extracted from BuildingBlockCreator so the authoring logic can be unit-tested
+// Pure builder for governed standard-node ("building block") CALM documents.
+// Extracted from StandardNodeCreator so the authoring logic can be unit-tested
 // without rendering the React component.
 
 import { makeControlMapKey } from '../../extension/services/control-curie';
@@ -12,14 +12,14 @@ export interface AttachedControl {
     parsed: ParsedRequirement;
 }
 
-export interface BuildingBlockInput {
+export interface StandardNodeInput {
     name: string;
     nodeType: string;
     description: string;
     controls: AttachedControl[];
 }
 
-export interface BuiltBuildingBlock {
+export interface BuiltStandardNode {
     json: string;
     fileName: string;
 }
@@ -32,9 +32,9 @@ export { generateId };
  * `requirement-url` (CURIE or local path) and description. Config is filled
  * in when the building block is instantiated on a node.
  */
-export function buildBuildingBlockDoc(
-    input: BuildingBlockInput
-): BuiltBuildingBlock {
+export function buildStandardNodeDoc(
+    input: StandardNodeInput
+): BuiltStandardNode {
     const nodeId = generateId(input.name);
     const controlsObj: Record<string, unknown> = {};
 
@@ -49,12 +49,12 @@ export function buildBuildingBlockDoc(
         $schema: 'https://calm.finos.org/release/1.2/meta/core.json',
         nodes: [
             {
-                'unique-id': `building-block-${nodeId}`,
+                'unique-id': `standard-node-${nodeId}`,
                 'node-type': input.nodeType,
                 name: input.name,
                 description: input.description,
                 controls: controlsObj,
-                metadata: { 'building-block-type': 'infrastructure' },
+                metadata: { 'standard-node-type': 'infrastructure' },
             },
         ],
         relationships: [],

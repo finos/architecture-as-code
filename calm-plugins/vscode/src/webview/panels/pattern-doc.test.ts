@@ -53,7 +53,7 @@ describe('exportAsPattern', () => {
         expect(relType.properties.connects.properties.source.properties.node.const).toBe('web-app');
     });
 
-    it('preserves metadata including building-block-style colors', () => {
+    it('preserves metadata including standard-node-style colors', () => {
         const doc = {
             nodes: [
                 {
@@ -61,8 +61,8 @@ describe('exportAsPattern', () => {
                     'node-type': 'service',
                     name: 'Green',
                     metadata: {
-                        'building-block-type': 'infrastructure',
-                        'building-block-style': { background: '#38761D', text: '#FFFFFF' },
+                        'standard-node-type': 'infrastructure',
+                        'standard-node-style': { background: '#38761D', text: '#FFFFFF' },
                     },
                 },
             ],
@@ -72,9 +72,9 @@ describe('exportAsPattern', () => {
         const { json } = exportAsPattern(doc, 'Colored');
         const pattern = JSON.parse(json);
         const meta = pattern.properties.nodes.prefixItems[0].properties.metadata;
-        expect(meta.properties['building-block-style'].properties.background.const).toBe('#38761D');
-        expect(meta.properties['building-block-style'].properties.text.const).toBe('#FFFFFF');
-        expect(meta.properties['building-block-type'].const).toBe('infrastructure');
+        expect(meta.properties['standard-node-style'].properties.background.const).toBe('#38761D');
+        expect(meta.properties['standard-node-style'].properties.text.const).toBe('#FFFFFF');
+        expect(meta.properties['standard-node-type'].const).toBe('infrastructure');
     });
 
     it('preserves controls on nodes', () => {

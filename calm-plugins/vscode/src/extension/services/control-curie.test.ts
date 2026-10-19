@@ -61,7 +61,7 @@ describe('parseControlCurie', () => {
         expect(parseControlCurie('security:controls:x@1-0-0')?.version).toBe('1-0-0');
     });
 
-    it('parses an unversioned CURIE (building-block form)', () => {
+    it('parses an unversioned CURIE (standard-node form)', () => {
         expect(parseControlCurie('security:controls:micro-segmentation')).toEqual({
             domain: 'security',
             controlName: 'micro-segmentation',

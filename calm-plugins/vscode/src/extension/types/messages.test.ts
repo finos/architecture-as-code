@@ -4,7 +4,7 @@ import type { ExtToWebviewMessage, WebviewToExtMessage } from './messages';
 describe('message types', () => {
     it('ExtToWebviewMessage covers all expected variants', () => {
         const variants: ExtToWebviewMessage['type'][] = [
-            'modelUpdated', 'templatesLoaded', 'patternsLoaded', 'buildingBlocksLoaded',
+            'modelUpdated', 'templatesLoaded', 'patternsLoaded', 'standardNodesLoaded',
             'drillResult', 'controlsChanged', 'controlBrowseResult', 'controlDomainResult',
             'controlVersionsResult', 'controlResolveResult', 'saveControlResult',
         ];
@@ -14,7 +14,7 @@ describe('message types', () => {
     it('WebviewToExtMessage covers all expected variants', () => {
         const variants: WebviewToExtMessage['type'][] = [
             'ready', 'canvasChanged', 'drillInto', 'drillUp', 'requestGenerateSpec',
-            'saveBuildingBlock', 'exportDiagram', 'requestImportSvg', 'requestControlBrowse',
+            'saveStandardNode', 'exportDiagram', 'requestImportSvg', 'requestControlBrowse',
             'requestControlsForDomain', 'requestControlVersions', 'requestControlResolve',
             'saveControl', 'savePattern', 'requestExportPattern', 'openControlInHub',
         ];

@@ -1,6 +1,6 @@
 // Pure, framework-free helpers for building and enriching CALM control entries.
 // Shared by ControlsList (rendering), App (attach + webview enrichment), the
-// ControlPicker, and BuildingBlockCreator so control shape logic lives in one
+// ControlPicker, and StandardNodeCreator so control shape logic lives in one
 // testable place.
 
 import type {
