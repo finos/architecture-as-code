@@ -1,7 +1,6 @@
 /**
- * Polls the CalmHub Swagger UI until it responds 200 or the timeout elapses.
- * /q/swagger-ui is available as soon as Quarkus finishes starting, regardless
- * of DB profile (unlike /q/health/ready). Mirrors calm-hub/smoke-test.sh.
+ * Polls CalmHub until a MongoDB-backed endpoint responds 200 or the timeout elapses.
+ * /q/swagger-ui responds without MongoDB, so it does not show a dead database.
  */
 export async function waitForHub(
     baseUrl: string,
@@ -12,7 +11,7 @@ export async function waitForHub(
     let lastErr: unknown;
     while (Date.now() < deadline) {
         try {
-            const res = await fetch(`${baseUrl}/q/swagger-ui`, { signal: AbortSignal.timeout(intervalMs) });
+            const res = await fetch(`${baseUrl}/api/calm/namespaces`, { signal: AbortSignal.timeout(intervalMs) });
             if (res.ok) return;
             lastErr = new Error(`status ${res.status}`);
         } catch (err) {
