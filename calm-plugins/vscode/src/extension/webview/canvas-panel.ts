@@ -947,7 +947,7 @@ export class CanvasPanel {
             const version = parts.version ?? 'latest';
             const doc = await this.hubClient.getResourceAtVersion(
                 parts.domain,
-                'standard-nodes',
+                'building-blocks',
                 parts.controlName,
                 version
             ) as Record<string, unknown>;

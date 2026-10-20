@@ -29,12 +29,12 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (ns: string, type: string) => {
-                    if (ns === 'finos' && type === 'standard-nodes') {
+                    if (ns === 'finos' && type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'microservice', name: 'Microservice', numericId: 1 },
                         ]);
                     }
-                    if (ns === 'acme' && type === 'standard-nodes') {
+                    if (ns === 'acme' && type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'api-gateway', name: 'API Gateway', numericId: 3 },
                         ]);
@@ -88,7 +88,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standard-nodes') {
+                    if (type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
@@ -113,7 +113,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standard-nodes') {
+                    if (type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
@@ -155,7 +155,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (ns: string, type: string) => {
-                    if (type === 'standard-nodes') {
+                    if (type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: `${ns}-block`, name: `${ns} Block`, numericId: 1 },
                         ]);
@@ -314,7 +314,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'standard-nodes') {
+                    if (type === 'building-blocks') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);

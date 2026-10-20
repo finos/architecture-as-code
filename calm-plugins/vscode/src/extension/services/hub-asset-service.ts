@@ -32,12 +32,12 @@ export class HubAssetService {
             try {
                 const blocks = await this.client.getResources(
                     ns.name,
-                    'standard-nodes'
+                    'building-blocks'
                 );
                 const versionResults = await Promise.all(
                     blocks.map((block) =>
                         this.client
-                            .getVersions(ns.name, 'standard-nodes', block.uniqueId)
+                            .getVersions(ns.name, 'building-blocks', block.uniqueId)
                             .then((versions) => ({ block, versions }))
                             .catch(() => ({ block, versions: [] as string[] }))
                     )
@@ -53,7 +53,7 @@ export class HubAssetService {
                     if (latestSha) {
                         try {
                             const content = await this.client.getResourceAtVersion(
-                                ns.name, 'standard-nodes', block.uniqueId, latestSha
+                                ns.name, 'building-blocks', block.uniqueId, latestSha
                             ) as Record<string, unknown>;
                             const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
                             if (nodes?.[0]?.['node-type']) {
@@ -77,7 +77,7 @@ export class HubAssetService {
                     });
                 }
             } catch {
-                /* namespace may not have standard-nodes */
+                /* namespace may not have building-blocks */
             }
 
             try {
