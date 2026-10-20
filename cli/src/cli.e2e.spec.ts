@@ -8,6 +8,7 @@ import { expectDirectoryMatch, expectFilesMatch } from '../../shared/src/test/fi
 import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
 import { patchJson } from './test_helpers/json-file';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
+import { CALM_META_SCHEMA_BASE_URL } from './command-helpers/calm-schema-release';
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
@@ -1010,7 +1011,7 @@ describe('CLI Integration Tests', () => {
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const generated = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        expect(generated.$schema).toBe('https://calm.finos.org/release/1.2/meta/calm-timeline.json');
+        expect(generated.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/calm-timeline.json`);
         expect(generated.moments.map((m: { 'unique-id': string }) => m['unique-id'])).toEqual(['arch-v1', 'arch-v2']);
         expect(generated['current-moment']).toBe('arch-v2');
 

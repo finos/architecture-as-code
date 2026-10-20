@@ -12,7 +12,6 @@ registerOutputFormatter('junit', junitFormatter);
 export {
     validate,
     formatOutput as getFormattedOutput,
-    exitBasedOffOfValidationOutcome,
     ValidationFormattingOptions,
     ValidationDocumentContext,
 } from './commands/validate/validate.js';

@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, exitBasedOffOfValidationOutcome, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory } from '@finos/calm-shared';
+import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome } from '@finos/calm-shared';
 
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -128,6 +128,10 @@ function buildCurieResolverChain(options: ValidateOptions, schemaDirectory: Sche
     resolvers.unshift(new ShaCacheReferenceResolver());
 
     return new ChainReferenceResolver(resolvers);
+}
+
+export function exitBasedOffOfValidationOutcome(outcome: ValidationOutcome, failOnWarnings: boolean) {
+    process.exit(outcome.hasErrors || (failOnWarnings && outcome.hasWarnings) ? 1 : 0);
 }
 
 export function writeOutputFile(output: string, validationsOutput: string) {
