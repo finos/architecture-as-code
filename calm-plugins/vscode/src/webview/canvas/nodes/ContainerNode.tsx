@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, useStore, type NodeProps } from 'reactflow';
-import { getNodeStyleOverride } from '../../utils/building-block-style';
+import { getNodeStyleOverride } from '../../utils/standard-node-style';
 import { theme, tint } from '../theme-colors';
 
 export function ContainerNode({ id, data, selected }: NodeProps) {

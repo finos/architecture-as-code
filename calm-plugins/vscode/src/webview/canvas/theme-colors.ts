@@ -82,7 +82,7 @@ export function cssColorToHex(raw: string, fallback: string): string {
     return `#${channels.join('')}`;
 }
 
-/** A building-block outline. The fill is `badgeBg`, so mix in the foreground to set it apart. */
+/** A standard-node outline. The fill is `badgeBg`, so mix in the foreground to set it apart. */
 export const blockBorder = `color-mix(in srgb, ${theme.badgeBg} 60%, ${theme.fg})`;
 
 const DARK_TEXT = '#1e293b';

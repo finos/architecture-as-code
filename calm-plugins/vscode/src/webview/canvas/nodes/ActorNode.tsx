@@ -1,6 +1,6 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
-import { getNodeStyleOverride } from '../../utils/building-block-style';
+import { getNodeStyleOverride } from '../../utils/standard-node-style';
 import { theme } from '../theme-colors';
 import { ValidationBadge } from './ValidationBadge';
 
