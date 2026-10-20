@@ -95,7 +95,10 @@ domain field, write no migration, change no write path.
 generated. Comparing whole URLs would lose every reference as soon as a
 deployment moved. Within one hub the path is unambiguous, because the unique
 index on `resource_mappings` guarantees that namespace, type and name identify
-one resource.
+one resource. The type segment matches in any case. Before #3355, CALM Hub
+wrote the caller's spelling, such as `Patterns`, into the `$id` of a pattern, and
+`calm generate` copies the `$id` into `$schema`. Stored architectures keep that
+spelling. The namespace and the name match exactly.
 
 **Pin the match to one pattern version.** The canonical `$id` includes
 `/versions/{v}`, so a version-pinned match is what the data gives. "Any version
@@ -151,7 +154,7 @@ it where it is created.
 **Narrow the candidates in the store. Decide in the service.** The store
 returns each architecture version whose `$schema` contains
 `/calm/namespaces/{ns}/patterns/{name}/versions/`, with its `$schema` value. The
-service then matches the version, sorts and pages, once for both backends. One
+type in that path may use any case. The service then matches the version, sorts and pages, once for both backends. One
 rule in one place means that the backends cannot disagree.
 
 MongoDB runs the path filter in the database, so only candidate rows cross the

@@ -1,5 +1,8 @@
 package org.finos.calm.store.util;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * Recognises a hub pattern address inside an architecture's {@code $schema}.
  *
@@ -18,28 +21,41 @@ package org.finos.calm.store.util;
  * {@code calm generate} copies that into the architecture's {@code $schema}. A stored reference can
  * therefore read {@code 1.0.0}, {@code 1-0-0} or {@code 100} for the same version, and a caller can
  * ask with any of them.</p>
+ *
+ * <p>The type segment is matched in any case. Before CALM Hub wrote it in lowercase (#3355), it
+ * copied the caller's spelling, for example {@code Patterns}, into the pattern's {@code $id}, and
+ * {@code calm generate} copied that into {@code $schema}. The namespace and the name must match
+ * exactly, as they must in the API.</p>
  */
 public final class PatternReferenceMatcher {
 
     private PatternReferenceMatcher() {
     }
 
-    /** The path that every reference to any version of this pattern contains. */
-    public static String pathTo(String namespace, String name) {
-        return "/calm/namespaces/" + namespace + "/patterns/" + name + "/versions/";
+    /** Matches the path that every reference to any version of this pattern contains. */
+    public static Pattern pathPattern(String namespace, String name) {
+        return Pattern.compile(Pattern.quote("/calm/namespaces/" + namespace + "/") + "(?i:patterns)"
+                + Pattern.quote("/" + name + "/versions/"));
     }
 
-    /** True when {@code schema} names this pattern version, in any spelling of the version. */
-    public static boolean references(String schema, String namespace, String name, String version) {
+    /**
+     * True when {@code schema} names this pattern version, in any spelling of the version.
+     *
+     * @param path from {@link #pathPattern}
+     */
+    public static boolean references(String schema, Pattern path, String version) {
         if (schema == null) {
             return false;
         }
-        String path = pathTo(namespace, name);
-        int start = schema.lastIndexOf(path);
-        if (start < 0 || start + path.length() >= schema.length()) {
+        Matcher matcher = path.matcher(schema);
+        int end = -1;
+        // Each search starts one character after the last match, so an overlapping match counts, as with lastIndexOf.
+        for (int from = 0; from < schema.length() && matcher.find(from); from = matcher.start() + 1) {
+            end = matcher.end();
+        }
+        if (end < 0 || end >= schema.length()) {
             return false;
         }
-        String storedVersion = schema.substring(start + path.length());
-        return CanonicalVersion.of(storedVersion).equals(CanonicalVersion.of(version));
+        return CanonicalVersion.of(schema.substring(end)).equals(CanonicalVersion.of(version));
     }
 }

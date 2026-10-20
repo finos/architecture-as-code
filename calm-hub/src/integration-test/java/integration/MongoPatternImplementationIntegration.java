@@ -101,4 +101,14 @@ public class MongoPatternImplementationIntegration {
                 .then().statusCode(404)
                 .body(containsString("Pattern version not found"));
     }
+
+    @Test
+    @Order(6)
+    void return_an_architecture_whose_schema_capitalises_the_type() {
+        architecture("impl-capitalised", "http://localhost:8080/calm/namespaces/finos/Patterns/impl-pattern/versions/1.0.0");
+
+        given().when().get(IMPLEMENTATIONS)
+                .then().statusCode(200)
+                .body("implementations.customId", contains("impl-first", "impl-second", "impl-capitalised"));
+    }
 }

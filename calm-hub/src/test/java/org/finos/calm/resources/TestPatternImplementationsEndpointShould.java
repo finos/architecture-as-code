@@ -14,6 +14,7 @@ import org.finos.calm.store.ArchitectureSchema;
 import org.finos.calm.store.PatternImplementationStore;
 import org.finos.calm.store.PatternStore;
 import org.finos.calm.store.ResourceMappingStore;
+import org.finos.calm.store.util.PatternReferenceMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -35,6 +36,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
@@ -87,8 +89,14 @@ class TestPatternImplementationsEndpointShould {
         return new ArchitectureSchema(namespace, architectureId, version, "https://hub.example.com" + PATTERN_PATH + patternVersion);
     }
 
+    /** A compiled pattern has no equals, so compare its source with the one the matcher builds. */
+    private static java.util.regex.Pattern isTheApiGatewayPath() {
+        String expected = PatternReferenceMatcher.pathPattern("finos", "api-gateway").pattern();
+        return argThat(path -> path != null && path.pattern().equals(expected));
+    }
+
     private void stubCandidates(List<ArchitectureSchema> candidates) {
-        when(mockImplementationStore.findSchemasContaining(eq(PATTERN_PATH), any())).thenReturn(candidates);
+        when(mockImplementationStore.findSchemasContaining(isTheApiGatewayPath(), any())).thenReturn(candidates);
     }
 
     @Test
@@ -103,6 +111,17 @@ class TestPatternImplementationsEndpointShould {
                 .body("implementations[0].namespace", equalTo("finos"))
                 .body("implementations[0].architectureId", equalTo(7))
                 .body("implementations[0].version", equalTo("1.2.0"));
+    }
+
+    @Test
+    void return_an_architecture_whose_schema_capitalises_the_type() {
+        stubCandidates(List.of(new ArchitectureSchema("finos", 7, "1.2.0",
+                "https://hub.example.com/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0")));
+
+        given().when().get(PATH).then()
+                .statusCode(200)
+                .body("implementations", hasSize(1))
+                .body("implementations[0].architectureId", equalTo(7));
     }
 
     @Test
@@ -206,7 +225,7 @@ class TestPatternImplementationsEndpointShould {
 
         given().when().get(PATH).then().statusCode(200);
 
-        verify(mockImplementationStore).findSchemasContaining(PATTERN_PATH, readable);
+        verify(mockImplementationStore).findSchemasContaining(isTheApiGatewayPath(), eq(readable));
     }
 
     @Test
@@ -314,7 +333,7 @@ class TestPatternImplementationsEndpointShould {
     void return_501_in_github_mode_although_its_versions_are_commit_shas() throws Exception {
         // GitHub mode lists commit SHAs, so the version check alone would answer 404.
         when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("a1b2c3d"));
-        when(mockImplementationStore.findSchemasContaining(anyString(), any()))
+        when(mockImplementationStore.findSchemasContaining(any(), any()))
                 .thenThrow(new GitHubModeNotSupportedException("Not available in GitHub storage mode."));
 
         given().when().get(PATH).then().statusCode(501);

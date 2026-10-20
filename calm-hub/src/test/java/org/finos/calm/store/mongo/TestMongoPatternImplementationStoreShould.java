@@ -8,6 +8,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.store.ArchitectureSchema;
+import org.finos.calm.store.util.PatternReferenceMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -88,7 +89,7 @@ class TestMongoPatternImplementationStoreShould {
     }
 
     private List<ArchitectureSchema> find(Optional<Set<String>> readableNamespaces) {
-        return store.findSchemasContaining(PATH, readableNamespaces);
+        return store.findSchemasContaining(PatternReferenceMatcher.pathPattern("finos", "api-gateway"), readableNamespaces);
     }
 
     private String renderedFilter() {
@@ -137,7 +138,8 @@ class TestMongoPatternImplementationStoreShould {
 
         String rendered = renderedFilter();
         assertTrue(rendered.contains("content.$schema"), rendered);
-        assertTrue(rendered.contains("\\\\Q" + PATH + "\\\\E"), "expected a quoted path, got: " + rendered);
+        assertTrue(rendered.contains("\\\\Q/calm/namespaces/finos/\\\\E(?i:patterns)\\\\Q/api-gateway/versions/\\\\E"),
+                "expected a quoted path with the type in any case, got: " + rendered);
         assertFalse(rendered.contains("http"), "the host must not appear in the filter: " + rendered);
     }
 
