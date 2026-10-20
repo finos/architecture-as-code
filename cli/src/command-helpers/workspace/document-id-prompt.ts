@@ -8,6 +8,8 @@ import {
     RESOURCE_TYPES,
     ResourceType,
 } from '@finos/calm-shared';
+import type { CalmDocumentType } from '@finos/calm-models/types';
+import { resourceTypeForDocumentType } from './document-id-type';
 
 const DEFAULT_VERSION = '1.0.0';
 
@@ -27,6 +29,8 @@ export interface PromptForDocumentIdOptions {
     baseUrlDefault?: string;
     /** Default version (defaults to 1.0.0). */
     version?: string;
+    /** The document's type. When it fixes the resource type, the scope and resource type are not asked. */
+    documentType?: CalmDocumentType;
 }
 
 /** Validate a single `$id` path segment: trimmed, non-empty, no slashes. */
@@ -55,15 +59,21 @@ function assertConformant(id: string): void {
  *
  * Prompts for the resource scope (namespace resource, control requirement, or control
  * configuration) and then each `$id` segment, defaulting the version to 1.0.0 and the base URL
- * to the configured CalmHub URL.
+ * to the configured CalmHub URL. A document type that fixes the resource type skips the questions
+ * it answers. A type with no resource type (such as `timeline`) still gets every question, so its
+ * `$id` can still name a different resource type.
  */
 export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {}): Promise<BuiltDocumentId> {
-    const scope = await select<Scope>({
+    const knownResourceType = opts.documentType ? resourceTypeForDocumentType(opts.documentType) : undefined;
+    const controlChoices: { name: string, value: Scope }[] = [
+        { name: 'Control requirement', value: 'requirement' },
+        { name: 'Control configuration', value: 'configuration' },
+    ];
+    const scope = knownResourceType ? 'namespace' : await select<Scope>({
         message: 'What kind of CalmHub resource is this?',
-        choices: [
+        choices: opts.documentType === 'control' ? controlChoices : [
             { name: 'Namespace resource (pattern, architecture, flow, standard, interface)', value: 'namespace' },
-            { name: 'Control requirement', value: 'requirement' },
-            { name: 'Control configuration', value: 'configuration' },
+            ...controlChoices,
         ],
     });
 
@@ -81,7 +91,7 @@ export async function promptForDocumentId(opts: PromptForDocumentIdOptions = {})
 
     if (scope === 'namespace') {
         const namespace = await promptSegment('Namespace:', 'Namespace');
-        const type = await select<ResourceType>({
+        const type = knownResourceType ?? await select<ResourceType>({
             message: 'Resource type:',
             choices: RESOURCE_TYPES.map((t) => ({ name: t, value: t as ResourceType })),
         });

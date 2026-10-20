@@ -33,7 +33,7 @@ calm generate -p <pattern-file> [-o <output-file>] [--schema-directory <path>] [
 
 - `-p, --pattern`: Path or URL to the pattern file (required).
 - `-o, --output`: Where to write the generated architecture (defaults to `architecture.json`).
-- `-s, --schema-directory`: Location of CALM meta schemas (defaults to `../calm/release`).
+- `-s, --schema-directory`: Location of CALM meta schemas (defaults to the schemas bundled with the CLI).
 - `-c, --calm-hub-url`: URL to CALMHub instance for loading remote documents.
 - `-u, --url-to-local-file-mapping`: Path to JSON file mapping URLs to local paths (see [URL Mapping](#using---url-to-local-file-mapping)).
 - `-v, --verbose`: Enables verbose logging.

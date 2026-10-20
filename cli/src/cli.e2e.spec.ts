@@ -1,4 +1,6 @@
 import { execSync } from 'child_process';
+import http from 'http';
+import type { AddressInfo } from 'net';
 import path from 'path';
 import * as fs from 'fs';
 import { parseStringPromise } from 'xml2js';
@@ -6,6 +8,7 @@ import { expectDirectoryMatch, expectFilesMatch } from '../../shared/src/test/fi
 import { installPackedCli, type CliInstall } from './test_helpers/cli-runner';
 import { patchJson } from './test_helpers/json-file';
 import { STATIC_GETTING_STARTED_MAPPING_PATH } from './test_helpers/getting-started-url-mapping';
+import { CALM_META_SCHEMA_BASE_URL } from './command-helpers/calm-schema-release';
 
 const millisPerSecond = 1000;
 const integrationTestPrefix = 'calm-consumer-test';
@@ -1047,7 +1050,7 @@ describe('CLI Integration Tests', () => {
 
         expect(fs.existsSync(outputFile)).toBe(true);
         const generated = JSON.parse(fs.readFileSync(outputFile, 'utf8'));
-        expect(generated.$schema).toBe('https://calm.finos.org/release/1.2/meta/calm-timeline.json');
+        expect(generated.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/calm-timeline.json`);
         expect(generated.moments.map((m: { 'unique-id': string }) => m['unique-id'])).toEqual(['arch-v1', 'arch-v2']);
         expect(generated['current-moment']).toBe('arch-v2');
 
@@ -1067,6 +1070,79 @@ describe('CLI Integration Tests', () => {
         const generated = JSON.parse(stdout);
         expect(generated.moments).toHaveLength(1);
         expect(generated.moments[0]['node-type']).toBe('moment');
+    });
+
+    describe('workspace snapshot and release', () => {
+        // Stub CalmHub: snapshot and release only read the published versions of a mapping.
+        let publishedVersions: string[] = [];
+        let hub: http.Server;
+        let hubUrl: string;
+        let wsDir: string;
+        let docFile: string;
+
+        const docId = (version: string) =>
+            `${hubUrl}/calm/namespaces/e2e/architectures/svc-arch/versions/${version}`;
+        const readDocId = () => JSON.parse(fs.readFileSync(docFile, 'utf8'))['$id'];
+        const run = (args: string[]) => cli.run([...args, '--calm-hub-url', hubUrl], { cwd: wsDir });
+
+        beforeAll(async () => {
+            hub = http.createServer((req, res) => {
+                res.setHeader('Content-Type', 'application/json');
+                if (req.url === '/calm/namespaces/e2e/architectures/svc-arch/versions') {
+                    res.end(JSON.stringify({ values: publishedVersions }));
+                } else {
+                    res.statusCode = 404;
+                    res.end('{}');
+                }
+            });
+            await new Promise<void>(resolve => hub.listen(0, '127.0.0.1', resolve));
+            hubUrl = `http://127.0.0.1:${(hub.address() as AddressInfo).port}`;
+
+            wsDir = path.join(tempDir, 'workspace-snapshot-test');
+            fs.mkdirSync(wsDir, { recursive: true });
+            docFile = path.join(wsDir, 'svc-arch.architecture.json');
+            fs.writeFileSync(docFile, JSON.stringify({
+                $schema: 'https://calm.finos.org/release/1.0/meta/calm.json',
+                $id: docId('1.0.0'),
+                title: 'svc-arch',
+                nodes: [],
+                relationships: [],
+            }, null, 2));
+
+            await cli.run(['workspace', 'init', 'e2e-ws'], { cwd: wsDir });
+            await cli.run(['workspace', 'add', docFile, '--id', 'svc-arch', '--type', 'architecture', '--namespace', 'e2e'], { cwd: wsDir });
+        });
+
+        afterAll(async () => {
+            await new Promise(resolve => hub.close(resolve));
+        });
+
+        test('snapshot bumps a published document to a -SNAPSHOT version', async () => {
+            publishedVersions = ['1.0.0'];
+            await run(['workspace', 'snapshot', 'svc-arch', '--minor']);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('snapshot fails when the document is already a snapshot', async () => {
+            await expect(run(['workspace', 'snapshot', 'svc-arch', '--minor'])).rejects.toHaveProperty('exitCode', 1);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('release fails when the release version is already published', async () => {
+            publishedVersions = ['1.0.0', '1.1.0'];
+            await expect(run(['workspace', 'release', 'svc-arch'])).rejects.toHaveProperty('exitCode', 1);
+            expect(readDocId()).toBe(docId('1.1.0-SNAPSHOT'));
+        });
+
+        test('release strips the -SNAPSHOT suffix', async () => {
+            publishedVersions = ['1.0.0', '1.1.0-SNAPSHOT'];
+            await run(['workspace', 'release', 'svc-arch']);
+            expect(readDocId()).toBe(docId('1.1.0'));
+        });
+
+        test('release fails when the document is not a snapshot', async () => {
+            await expect(run(['workspace', 'release', 'svc-arch'])).rejects.toHaveProperty('exitCode', 1);
+        });
     });
 
     // Utility to recursively remove specific line/character fields from JSON

@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach, vi } from 'vitest';
 import {
     stripVersionSuffix,
+    extractRefVersion,
     resolveNewRef,
     buildRefRulesFromDiskIds,
     syncReferences,
@@ -23,6 +24,17 @@ const idAt = (resource: string, version: string, type = 'architectures', ns = 'c
     `${BASE}/calm/namespaces/${ns}/${type}/${resource}/versions/${version}`;
 
 describe('ref-rewrite pure functions', () => {
+    describe('extractRefVersion', () => {
+        it('returns the version at the end of a ref, ignoring a fragment', () => {
+            expect(extractRefVersion(idAt('a', '1.0.0-SNAPSHOT'))).toBe('1.0.0-SNAPSHOT');
+            expect(extractRefVersion(`${idAt('a', '1.2.0')}#/nodes/0`)).toBe('1.2.0');
+        });
+
+        it('returns null for a ref with no version segment', () => {
+            expect(extractRefVersion('some-bare-id')).toBeNull();
+        });
+    });
+
     describe('stripVersionSuffix', () => {
         it('strips a /versions/<v> suffix to the base path', () => {
             expect(stripVersionSuffix(idAt('a', '1.0.0'))).toBe(`${BASE}/calm/namespaces/com.example/architectures/a`);

@@ -20,7 +20,7 @@ export type ExtToWebviewMessage =
     | {
           type: 'modelUpdated';
           json: string;
-          source: 'file' | 'ai' | 'text-editor';
+          source: 'file' | 'ai' | 'text-editor' | 'import';
       }
     | { type: 'templatesLoaded'; templates: unknown[] }
     | { type: 'patternsLoaded'; patterns: unknown[] }
@@ -44,4 +44,5 @@ export type WebviewToExtMessage =
     | { type: 'requestStandardProse'; url: string }
     | { type: 'requestGenerateSpec' }
     | { type: 'saveBuildingBlock'; filename: string; content: string }
-    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string };
+    | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
+    | { type: 'requestImportSvg' };

@@ -1,6 +1,9 @@
 // Environment variables:
 // - CALM_DB_NAME: Name of the MongoDB database to use (default: calmSchemas)
-// - CALM_SCHEMA_BASE_PATH: Base path to load schemas from (default: /calm)
+// - CALM_SCHEMA_BASE_PATH: Base path of the draft and release-candidate schemas (default: /calm)
+// - CALM_RELEASE_SCHEMA_PATH: Path of the released schemas, <version>/meta per release
+//   (default: /calm-schemas/release). The compose files mount calm-hub/target/calm-schemas/release,
+//   which `npm run calm-hub:copy-schemas` fills from the @finos/calm-schema npm packages.
 //
 // Set environment variables if required, and run `mongosh init-mongo.js` to
 // initialize the database with counters, schema, namespaces, and patterns.
@@ -436,12 +439,15 @@ if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 0) {
 }
 
 logSection("Schemas");
-// Load schemas dynamically from the CALM release and draft directories.
-// Set CALM_SCHEMA_BASE_PATH env var to override the default base path (/calm).
+// Load the released schemas from the npm copy, and the release candidates and drafts from calm/.
+// Set CALM_RELEASE_SCHEMA_PATH and CALM_SCHEMA_BASE_PATH to override the defaults.
 const fs = require('fs');
 const basePath = (typeof process !== 'undefined' && process.env.CALM_SCHEMA_BASE_PATH)
     ? process.env.CALM_SCHEMA_BASE_PATH
     : '/calm';
+const releaseSchemaPath = (typeof process !== 'undefined' && process.env.CALM_RELEASE_SCHEMA_PATH)
+    ? process.env.CALM_RELEASE_SCHEMA_PATH
+    : '/calm-schemas/release';
 
 // Load controls dynamically from domain subdirectories.
 // Set CALM_CONTROLS_BASE_PATH env var to override the default base path (/controls).
@@ -452,12 +458,17 @@ const controlsBasePath = (typeof process !== 'undefined' && process.env.CALM_CON
 function loadSchemasFromDir(baseDir, prefix) {
     if (!fs.existsSync(baseDir)) {
         logFail(`Schema directory not found at ${baseDir}, skipping`);
-        logFail(`Set CALM_SCHEMA_BASE_PATH environment variable to load schemas from a different location`);
+        logFail(`Set CALM_SCHEMA_BASE_PATH or CALM_RELEASE_SCHEMA_PATH to load schemas from a different location`);
         return;
     }
     const versions = fs.readdirSync(baseDir).filter(f =>
         fs.statSync(`${baseDir}/${f}`).isDirectory() && !f.startsWith('.')
     );
+    if (versions.length === 0) {
+        // A bind mount of a missing host directory is an empty directory, not an error.
+        logFail(`No schema versions in ${baseDir}`);
+        return;
+    }
     for (const ver of versions) {
         const version = `${prefix}/${ver}`;
         if (db.schemas.countDocuments({ version: version }) === 0) {
@@ -477,6 +488,7 @@ function loadSchemasFromDir(baseDir, prefix) {
     }
 }
 
+loadSchemasFromDir(releaseSchemaPath, 'release');
 loadSchemasFromDir(`${basePath}/release`, 'release');
 loadSchemasFromDir(`${basePath}/draft`, 'draft');
 

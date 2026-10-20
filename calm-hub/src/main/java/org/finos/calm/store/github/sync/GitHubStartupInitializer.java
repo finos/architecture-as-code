@@ -71,6 +71,10 @@ public class GitHubStartupInitializer {
             return;
         }
 
+        LOG.warn("GitHub storage mode: the audit trail is not persisted. GitHubAuditLogStore.query() "
+                + "always returns an empty list; audit events are only emitted as structured log lines "
+                + "under the 'org.finos.calm.audit' category when calm.audit.log.enabled is true.");
+
         List<String> configs = namespaceConfigs.orElse(List.of());
         if (configs.isEmpty()) {
             LOG.warn("No GitHub namespaces configured (calm.github.namespaces). The registry will be empty.");

@@ -181,7 +181,7 @@ Controls can be placed at four levels:
 
 ## Resources
 
-- [CALM Controls Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/control.json)
+- [CALM Controls Schema](https://github.com/finos/calm-schema/blob/v1.2/schema/control.json)
 - [PCI-DSS Standards](https://www.pcisecuritystandards.org/)
 
 ## Next Steps

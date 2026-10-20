@@ -275,7 +275,7 @@ The read-only images use a **two-stage Docker build**:
 ```
 Stage 1 — seed (JVM, writable)
   FROM ubi9/openjdk-21
-  COPY quarkus-app/ + calm/ schemas + controls/
+  COPY quarkus-app/ + released meta-schemas (npm copy) + calm/ drafts + controls/ + interfaces/
   RUN boot Quarkus in standalone (writable) mode
       init script POSTs all namespaces, schemas, controls
       graceful SIGTERM → NitriteDB flushes + commits (~290–450 KB)
@@ -408,7 +408,8 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage `calm/` schemas, controls, standards and patterns + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts and
+  release candidates, controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
 
 ### Bundled CALM Meta-Schemas
 - GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
@@ -423,7 +424,15 @@ All four workflows:
 ### Local-Dev Nitrite Seeding
 - `nitrite/init-nitrite.sh` is the standard script for seeding a local Nitrite
   database for standalone development; `nitrite/seed-readonly.sh` seeds the
-  read-only variant
+  read-only variant. `-u` sets the URL the script calls and, unless
+  `CALM_HUB_BASE_URL` or `--base-url` is set, the name-based `$id` base. That
+  base must equal the server's `calm.hub.base-url`. Resolve it after argument
+  parsing (`resolve_calm_hub_base_url`); defaulting it at the top ignores `-u`
+- The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
+  `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
+  repository holds only the drafts and the release candidates, which are seeded as before. The
+  seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
+  or namespace
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
@@ -602,6 +611,11 @@ is append-only (no `update`/`delete`) and follows the standard Mongo/Nitrite dua
 pattern. Toggle independently with `calm.audit.store.enabled` / `calm.audit.log.enabled` /
 `calm.audit.capture-source-ip` (all in `application.properties`). No REST API exposes the
 trail in this iteration — read it via direct DB access or ops tooling.
+
+GitHub storage mode (`calm.database.mode=github`) has no database, so it does not persist the
+trail: `GitHubAuditLogStore.query()` always returns an empty list, and the structured log line
+is the only record. `GitHubStartupInitializer` logs a warning about this at startup. Route the
+`org.finos.calm.audit` category to a durable sink if you need the trail in GitHub mode.
 
 ### Adding a New Storage Backend
 1. Create package: `org.finos.calm.store.mybackend`
