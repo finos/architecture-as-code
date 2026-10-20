@@ -4,6 +4,8 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
@@ -15,6 +17,9 @@ import org.finos.calm.domain.exception.MappingNotFoundException;
 import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.mockito.ArgumentCaptor;
 
@@ -84,6 +89,109 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .then()
                 .statusCode(200)
                 .body(containsString("https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
+    }
+
+    /** A capitalised type in the path still gives the lowercase canonical $id that the CALM tooling reads. */
+    @Test
+    void rewrite_id_with_a_lowercase_type_on_get_through_a_capitalised_path() throws Exception {
+        ResourceMapping mapping = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway").setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(mapping);
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{ \"name\": \"original\" }");
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("\"$id\":\"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\""));
+    }
+
+    /** Every resource type gets the lowercase plural in its $id, whatever case the path uses. */
+    @ParameterizedTest
+    @CsvSource({"PATTERN,PATTERNS,patterns", "ARCHITECTURE,Architectures,architectures", "FLOW,FLOWS,flows",
+            "STANDARD,Standards,standards", "INTERFACE,INTERFACES,interfaces"})
+    void rewrite_id_with_the_lowercase_plural_for_every_type_on_get_through_a_capitalised_path(
+            ResourceType type, String pathType, String plural) throws Exception {
+        when(mockMappingStore.getMapping("finos", type, "my-resource")).thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-resource").setResourceType(type).setNumericId(1).build());
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
+        when(mockArchitectureStore.getArchitectureForVersion(any(Architecture.class))).thenReturn("{}");
+        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{}");
+        when(mockStandardStore.getStandardForVersion("finos", 1, "1.0.0")).thenReturn("{}");
+        when(mockInterfaceStore.getInterfaceForVersion("finos", 1, "1.0.0")).thenReturn("{}");
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/" + pathType + "/my-resource/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("\"$id\":\"https://hub.example.com/calm/namespaces/finos/" + plural + "/my-resource/versions/1.0.0\""));
+    }
+
+    private void givenANewPattern() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenThrow(new MappingNotFoundException());
+        when(mockMappingStore.createMapping(eq("finos"), eq("api-gateway"), eq(ResourceType.PATTERN), eq(0)))
+                .thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                        .setNamespace("finos").setCustomId("api-gateway")
+                        .setResourceType(ResourceType.PATTERN).setNumericId(0).build());
+        when(mockPatternStore.createPatternForNamespace(any(), eq("finos"), eq("1.0.0"))).thenReturn(new Pattern.PatternBuilder()
+                .setNamespace("finos").setId(1).setVersion("1.0.0").setPattern("{}").build());
+    }
+
+    /** A capitalised path accepts a $id in its own spelling or the canonical one, and returns a lowercase Location. */
+    @ParameterizedTest
+    @ValueSource(strings = {"Patterns", "patterns"})
+    void return_a_lowercase_location_when_post_through_a_capitalised_path(String idType) throws Exception {
+        givenANewPattern();
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/" + idType + "/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
+    }
+
+    /** A new version of an existing resource, posted through a capitalised path, also returns a lowercase Location. */
+    @Test
+    void return_a_lowercase_location_when_post_adds_a_version_through_a_capitalised_path() throws Exception {
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build());
+        when(mockPatternStore.getPatternVersions(any(Pattern.class))).thenReturn(List.of("1.0.0"));
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/PATTERNS/api-gateway/versions/2.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm/namespaces/finos/PATTERNS/api-gateway/versions/2.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0"));
+    }
+
+    /** POST to /calm with a capitalised type in the $id returns a lowercase Location. */
+    @Test
+    void return_a_lowercase_location_when_post_to_calm_with_a_capitalised_type() throws Exception {
+        givenANewPattern();
+        String body = "{ \"$id\": \"https://hub.example.com/calm/namespaces/finos/PATTERNS/api-gateway/versions/1.0.0\","
+                + " \"title\": \"API Gateway Pattern\" }";
+
+        given()
+                .header("Content-Type", "application/json")
+                .body(body)
+                .when()
+                .post("/calm")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
     }
 
     /** POST to /calm with a versioned $id of 1.0.0 matching the canonical URL creates the resource. */

@@ -5,7 +5,10 @@ import org.finos.calm.domain.ResourceType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+
+import java.util.Locale;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,7 +37,6 @@ class TestCalmDocumentParserShould {
         CalmDocumentParser.CanonicalId id = parser.parseCanonicalId(json);
         assertEquals("finos", id.namespace());
         assertEquals(ResourceType.PATTERN, id.resourceType());
-        assertEquals("patterns", id.type());
         assertEquals("api-gateway", id.name());
         assertEquals("1.0.0", id.version());
     }
@@ -94,6 +96,14 @@ class TestCalmDocumentParserShould {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> parser.parseCanonicalId("{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/123-starts-with-number/versions/1.0.0\"}"));
         assertTrue(ex.getMessage().contains("Invalid resource name"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"Patterns", "PATTERNS"})
+    void parse_a_type_segment_in_any_case(String type) throws JsonProcessingException {
+        CalmDocumentParser.CanonicalId id = parser.parseCanonicalId(
+                "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/" + type + "/api-gateway/versions/1.0.0\"}");
+        assertEquals(ResourceType.PATTERN, id.resourceType());
     }
 
     @Test
@@ -167,7 +177,7 @@ class TestCalmDocumentParserShould {
     void verify_matching_path_and_id() throws JsonProcessingException {
         CalmDocumentParser.VersionSpec spec = parser.resolveAndVerify(
                 "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\"}",
-                "finos", "patterns", "api-gateway", "1.0.0");
+                "finos", ResourceType.PATTERN, "api-gateway", "1.0.0");
         assertEquals("1.0.0", spec.version());
         assertTrue(spec.explicit());
     }
@@ -177,14 +187,51 @@ class TestCalmDocumentParserShould {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
                 () -> parser.resolveAndVerify(
                         "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/api-gateway/versions/2.0.0\"}",
-                        "finos", "patterns", "api-gateway", "1.0.0"));
+                        "finos", ResourceType.PATTERN, "api-gateway", "1.0.0"));
         assertTrue(ex.getMessage().contains("does not match"));
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"patterns", "Patterns", "PATTERNS"})
+    void verify_an_id_whose_type_segment_uses_any_case(String type) throws JsonProcessingException {
+        CalmDocumentParser.VersionSpec spec = parser.resolveAndVerify(
+                "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/" + type + "/api-gateway/versions/1.0.0\"}",
+                "finos", ResourceType.PATTERN, "api-gateway", "1.0.0");
+        assertEquals("1.0.0", spec.version());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"architectures", "", "patterns/extra", "bananas"})
+    void reject_an_id_whose_type_segment_is_not_the_path_type(String type) {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.resolveAndVerify(
+                        "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/" + type + "/api-gateway/versions/1.0.0\"}",
+                        "finos", ResourceType.PATTERN, "api-gateway", "1.0.0"));
+        assertEquals("$id does not match the expected URL. Expected: "
+                + "http://localhost:8080/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0", ex.getMessage());
+    }
+
+    @Test
+    void reject_an_id_with_no_type_segment() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> parser.resolveAndVerify(
+                        "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/api-gateway/versions/1.0.0\"}",
+                        "finos", ResourceType.PATTERN, "api-gateway", "1.0.0"));
+        assertTrue(ex.getMessage().contains("does not match"));
+    }
+
+    @Test
+    void reject_an_id_that_differs_outside_the_type_segment() {
+        assertThrows(IllegalArgumentException.class,
+                () -> parser.resolveAndVerify(
+                        "{\"$id\":\"http://localhost:8080/calm/namespaces/FINOS/patterns/api-gateway/versions/1.0.0\"}",
+                        "finos", ResourceType.PATTERN, "api-gateway", "1.0.0"));
     }
 
     @Test
     void reject_missing_id_in_resolve() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> parser.resolveAndVerify("{\"name\":\"no-id-here\"}", "finos", "patterns", "api-gateway", "1.0.0"));
+                () -> parser.resolveAndVerify("{\"name\":\"no-id-here\"}", "finos", ResourceType.PATTERN, "api-gateway", "1.0.0"));
         assertTrue(ex.getMessage().contains("$id is required"));
     }
 
@@ -194,14 +241,14 @@ class TestCalmDocumentParserShould {
 
     @Test
     void rewrite_injects_versioned_id() {
-        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", "patterns", "api-gateway", "1.0.0");
+        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", ResourceType.PATTERN, "api-gateway", "1.0.0");
         assertTrue(result.contains("\"$id\""));
         assertTrue(result.contains("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
     }
 
     @Test
     void rewrite_injects_versionless_id_when_version_is_null() {
-        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", "patterns", "api-gateway", null);
+        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", ResourceType.PATTERN, "api-gateway", null);
         assertTrue(result.contains("\"$id\""));
         assertFalse(result.contains("versions"));
     }
@@ -209,15 +256,31 @@ class TestCalmDocumentParserShould {
     @Test
     void rewrite_preserves_existing_id_field_on_overwrite() {
         String original = "{\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\",\"name\":\"x\"}";
-        String rewritten = parser.rewriteId(original, "finos", "patterns", "x", "1.0.0");
+        String rewritten = parser.rewriteId(original, "finos", ResourceType.PATTERN, "x", "1.0.0");
         assertTrue(rewritten.contains("\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/x/versions/1.0.0\""));
     }
 
     @Test
     void rewrite_strips_trailing_slash_from_base() {
         parser.baseUrl = "http://localhost:8080/";
-        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", "patterns", "x", "1.0.0");
+        String result = parser.rewriteId("{\"name\":\"x\"}", "finos", ResourceType.PATTERN, "x", "1.0.0");
         assertFalse(result.contains("//calm"));
+    }
+
+    // -------------------------------------------------------------------------
+    // namedResourcePath
+    // -------------------------------------------------------------------------
+
+    @ParameterizedTest
+    @CsvSource({"PATTERN,patterns", "ARCHITECTURE,architectures", "FLOW,flows", "STANDARD,standards", "INTERFACE,interfaces"})
+    void build_the_canonical_path_with_the_lowercase_plural(ResourceType type, String plural) {
+        assertEquals("/calm/namespaces/finos/" + plural + "/x/versions/1.0.0",
+                CalmDocumentParser.namedResourcePath("finos", type, "x", "1.0.0"));
+    }
+
+    @Test
+    void build_the_versionless_canonical_path_when_the_version_is_null() {
+        assertEquals("/calm/namespaces/finos/patterns/x", CalmDocumentParser.namedResourcePath("finos", ResourceType.PATTERN, "x", null));
     }
 
     // -------------------------------------------------------------------------
@@ -342,6 +405,17 @@ class TestCalmDocumentParserShould {
     @Test
     void type_matching_is_case_insensitive() {
         assertEquals(ResourceType.PATTERN, parser.parseTypePlural("PATTERNS"));
+    }
+
+    @Test
+    void type_matching_does_not_depend_on_the_default_locale() {
+        Locale original = Locale.getDefault();
+        try {
+            Locale.setDefault(Locale.forLanguageTag("tr-TR"));
+            assertEquals(ResourceType.ARCHITECTURE, parser.parseTypePlural("ARCHITECTURES"));
+        } finally {
+            Locale.setDefault(original);
+        }
     }
 
     // -------------------------------------------------------------------------
