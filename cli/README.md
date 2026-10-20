@@ -1020,7 +1020,7 @@ Bump is **idempotent**: editing → bumping → editing again → bumping again 
 
 If CalmHub holds a `-SNAPSHOT` of a new version, `bump` warns: pushing that version deletes the snapshot. Use a different increment unless you mean to release it.
 
-After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate` also stops `bump`, before it changes any file.
+After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `bump` before it changes any file. A direct-URL authentication module that cannot load does not stop `bump`. The module loads only when validation needs it, after `bump` writes the new versions, so each document that needs the module shows `(could not validate)`. A second `bump` does not validate again, because it finds nothing to bump. After you correct the module, run `calm workspace check`.
 
 #### `calm workspace snapshot`
 
