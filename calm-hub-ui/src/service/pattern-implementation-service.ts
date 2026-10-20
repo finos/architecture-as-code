@@ -7,11 +7,7 @@ export class PatternImplementationService {
     private readonly ax: AxiosInstance;
 
     constructor(axiosInstance?: AxiosInstance) {
-        if (axiosInstance) {
-            this.ax = axiosInstance;
-        } else {
-            this.ax = apiClient;
-        }
+        this.ax = axiosInstance ?? apiClient;
     }
 
     /**

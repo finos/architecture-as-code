@@ -34,7 +34,7 @@ import { useUserAccess } from '../../../admin/context/UserAccessContext.js';
 import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
-import { UsedByVariants } from './used-by/variants/UsedByVariants.js';
+import { UsedByPanel } from './used-by/UsedByPanel.js';
 import { USED_BY_TOOLTIP, usedByLabel } from './used-by/usedBy.js';
 
 interface DiagramSectionProps {
@@ -121,6 +121,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
+    const comparing = compareFrom !== null && compareTo !== null;
     const [versions, setVersions] = useState<string[]>([]);
     const [moments, setMoments] = useState<TimelineMoment[]>([]);
     /**
@@ -150,9 +151,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
 
     const implementationService = useMemo(() => new PatternImplementationService(), []);
     const showUsedBy = !isArchitecture && patternName !== undefined;
-    const usedByOpen = showUsedBy && activeTab === 'used-by' && (compareFrom === null || compareTo === null);
+    const usedByOpen = showUsedBy && activeTab === 'used-by' && !comparing;
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
-    const usedByTabLabel = usedByLabel(usedBy);
+    const usedByTabLabel = useMemo(() => usedByLabel(usedBy), [usedBy]);
 
     // Save/reset the shared default layout — supported for both architectures
     // and patterns (backed by separate resources/collections server-side, see
@@ -403,7 +404,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     ]);
 
     const Icon = iconMap[data.calmType];
-    const comparing = compareFrom !== null && compareTo !== null;
 
     // Desktop: inline tabs in the section header (unchanged).
     const tabs = (
@@ -713,8 +713,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         <div className="h-full bg-base-200 overflow-auto p-4">
             <DeploymentPanel decorators={decorators} />
         </div>
-    ) : activeTab === 'used-by' && !isArchitecture ? (
-        <UsedByVariants state={usedBy} variant={searchParams.get('variant')} />
+    ) : activeTab === 'used-by' && showUsedBy ? (
+        <UsedByPanel state={usedBy} />
     ) : (
         <div className="h-full bg-base-200 overflow-auto">
             <JsonRenderer json={data} />

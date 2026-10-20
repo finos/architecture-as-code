@@ -307,12 +307,36 @@ describe('DiagramSection', () => {
                     <DiagramSection data={{ ...patternData, version: '1.0.0' }} />
                 </MemoryRouter>
             );
-            expect(await screen.findByText('No architectures use this version.')).toBeInTheDocument();
+            expect(await screen.findByText(/No architectures use this version/)).toBeInTheDocument();
             await act(async () => resolveOld(implementations));
 
             await waitFor(() => expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledTimes(2));
             expect(screen.queryByRole('link', { name: /trade-capture/ })).not.toBeInTheDocument();
-            expect(screen.getByText('No architectures use this version.')).toBeInTheDocument();
+            expect(screen.getByText(/No architectures use this version/)).toBeInTheDocument();
+        });
+
+        it('opens on the tab from a link, once the pattern name is known', async () => {
+            render(
+                <MemoryRouter initialEntries={['/?tab=used-by']}>
+                    <DiagramSection data={patternData} />
+                </MemoryRouter>
+            );
+
+            expect(await screen.findByText('Architectures that use this pattern version')).toBeInTheDocument();
+            expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledWith('pattern-namespace', 'test-pattern', '2.0.0');
+        });
+
+        it('does not show the panel from a link when the pattern has no name', async () => {
+            calmServiceMock.fetchPatternSummaries.mockResolvedValueOnce([{ id: 1, name: 'Signup Pattern', description: '' }]);
+            render(
+                <MemoryRouter initialEntries={['/?tab=used-by']}>
+                    <DiagramSection data={{ ...patternData, id: '1' }} />
+                </MemoryRouter>
+            );
+
+            await waitFor(() => expect(calmServiceMock.fetchPatternSummaries).toHaveBeenCalled());
+            expect(screen.queryByText('Architectures that use this pattern version')).not.toBeInTheDocument();
+            expect(screen.queryByText('Not available for this pattern.')).not.toBeInTheDocument();
         });
 
         it('offers the tab in the mobile view menu', async () => {
