@@ -69,6 +69,20 @@ public class TestMappingControllerResourcePutShould {
     }
 
     @Test
+    void return_a_lowercase_location_when_the_put_id_capitalises_the_type() throws Exception {
+        ResourceMapping existing = new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("api-gateway")
+                .setResourceType(ResourceType.PATTERN).setNumericId(1).build();
+        when(mockMappingStore.getMapping("finos", ResourceType.PATTERN, "api-gateway")).thenReturn(existing);
+
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "Patterns", "api-gateway", "1.0.0", "test pattern"))
+                .when().put("/calm")
+                .then().statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0"));
+    }
+
+    @Test
     void store_the_document_body_as_content_and_the_title_as_the_name() throws Exception {
         // The other PUT tests match with any(Pattern.class), which cannot catch the stored
         // fields being transposed.
@@ -164,6 +178,14 @@ public class TestMappingControllerResourcePutShould {
                 .body(versionedDoc("finos", "standards", "my-standard", "1.0.0", "test standard"))
                 .when().put("/calm")
                 .then().statusCode(501).body(containsString("not supported"));
+    }
+
+    @Test
+    void name_the_lowercase_type_in_the_501_when_the_put_id_capitalises_it() {
+        given().header("Content-Type", "application/json")
+                .body(versionedDoc("finos", "Standards", "my-standard", "1.0.0", "test standard"))
+                .when().put("/calm")
+                .then().statusCode(501).body(is("PUT is not supported for resource type: standards"));
     }
 
     @Test

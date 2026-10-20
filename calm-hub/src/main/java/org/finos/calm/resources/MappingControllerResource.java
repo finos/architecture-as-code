@@ -178,7 +178,7 @@ public class MappingControllerResource {
                             + STRICT_SANITIZATION_POLICY.sanitize(canonical.namespace())).build();
         }
         CalmDocumentParser.VersionSpec versionSpec = new CalmDocumentParser.VersionSpec(canonical.version(), true);
-        return service.createOrAddVersion(canonical.namespace(), canonical.resourceType(), canonical.type(),
+        return service.createOrAddVersion(canonical.namespace(), canonical.resourceType(),
                 canonical.name(), requestBody, versionSpec);
     }
 
@@ -225,7 +225,8 @@ public class MappingControllerResource {
         if (canonical.resourceType() == ResourceType.STANDARD
                 || canonical.resourceType() == ResourceType.INTERFACE) {
             return Response.status(Response.Status.NOT_IMPLEMENTED)
-                    .entity("PUT is not supported for resource type: " + canonical.type()).build();
+                    .entity("PUT is not supported for resource type: "
+                            + CalmDocumentParser.TYPE_PLURAL_MAP.get(canonical.resourceType())).build();
         }
         ResourceMapping existing;
         try {
@@ -246,7 +247,7 @@ public class MappingControllerResource {
         }
         String description = documentParser.extractStringField(requestBody, "description");
         return service.updateVersionedResource(canonical.resourceType(), canonical.namespace(),
-                canonical.type(), canonical.name(), existing.getNumericId(), canonical.version(),
+                canonical.name(), existing.getNumericId(), canonical.version(),
                 title, description, storedBody);
     }
 
@@ -303,7 +304,7 @@ public class MappingControllerResource {
 
         CalmDocumentParser.VersionSpec versionSpec;
         try {
-            versionSpec = documentParser.resolveAndVerify(requestBody, namespace, type, name, pathVersion);
+            versionSpec = documentParser.resolveAndVerify(requestBody, namespace, resourceType, name, pathVersion);
         } catch (IllegalArgumentException e) {
             return Response.status(Response.Status.BAD_REQUEST)
                     .entity(STRICT_SANITIZATION_POLICY.sanitize(e.getMessage())).build();
@@ -311,7 +312,7 @@ public class MappingControllerResource {
             return invalidJsonResponse("Cannot parse request body as JSON");
         }
 
-        return service.createOrAddVersion(namespace, resourceType, type, name, requestBody, versionSpec);
+        return service.createOrAddVersion(namespace, resourceType, name, requestBody, versionSpec);
     }
 
     // =========================================================================
@@ -400,7 +401,7 @@ public class MappingControllerResource {
         try {
             ResourceMapping mapping = service.getMapping(namespace, resourceType, name);
             String json = service.getResourceJsonForVersion(mapping, version);
-            String rewrittenJson = documentParser.rewriteId(json, namespace, type, name, version);
+            String rewrittenJson = documentParser.rewriteId(json, namespace, resourceType, name, version);
             return Response.ok(rewrittenJson).build();
         } catch (MappingNotFoundException e) {
             return Response.status(Response.Status.NOT_FOUND)

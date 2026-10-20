@@ -80,7 +80,7 @@ public class MappingControllerService {
      * Looks up any existing mapping and either creates the resource fresh or appends a new
      * version, then handles any {@link NamespaceNotFoundException}.
      */
-    public Response createOrAddVersion(String namespace, ResourceType resourceType, String type,
+    public Response createOrAddVersion(String namespace, ResourceType resourceType,
                                        String name, String requestBody,
                                        CalmDocumentParser.VersionSpec versionSpec)
             throws URISyntaxException {
@@ -92,9 +92,9 @@ public class MappingControllerService {
                 existing = null;
             }
             if (existing == null) {
-                return createNewResource(namespace, resourceType, type, name, requestBody, versionSpec);
+                return createNewResource(namespace, resourceType, name, requestBody, versionSpec);
             } else {
-                return addNewVersion(namespace, type, name, existing, requestBody, versionSpec);
+                return addNewVersion(namespace, name, existing, requestBody, versionSpec);
             }
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating/updating resource",
@@ -106,13 +106,12 @@ public class MappingControllerService {
     /**
      * Updates an existing version of a resource in place (PUT operation).
      */
-    public Response updateVersionedResource(ResourceType resourceType, String namespace, String type,
+    public Response updateVersionedResource(ResourceType resourceType, String namespace,
                                             String name, int numericId, String version,
                                             String title, String description, String storedBody) throws URISyntaxException {
         try {
             updateVersionedResourceInStore(resourceType, namespace, numericId, version, storedBody, title, description);
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + type
-                    + "/" + name + "/versions/" + version);
+            URI location = new URI(CalmDocumentParser.namedResourcePath(namespace, resourceType, name, version));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource via PUT",
@@ -433,7 +432,7 @@ public class MappingControllerService {
      * about the release version, so {@code 2.0.0-SNAPSHOT} is still rejected with
      * {@code 400 Bad Request}.</p>
      */
-    private Response createNewResource(String namespace, ResourceType resourceType, String typePath,
+    private Response createNewResource(String namespace, ResourceType resourceType,
                                        String name, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         String finalVersion = versionSpec.version() != null ? versionSpec.version() : "1.0.0";
         // The request's release spelling must be canonicalised before comparison — releaseVersion
@@ -467,8 +466,8 @@ public class MappingControllerService {
             }
             // The store folds the requested spelling to canonical form, so a Location built from
             // finalVersion would not match the version GET .../versions lists.
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name
-                    + "/versions/" + CanonicalVersion.of(finalVersion));
+            URI location = new URI(CalmDocumentParser.namedResourcePath(
+                    namespace, resourceType, name, CanonicalVersion.of(finalVersion)));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when creating resource",
@@ -494,7 +493,7 @@ public class MappingControllerService {
      * <p>The version from the {@code $id} or path is always used explicitly;
      * returns {@code 409} if the version already exists.</p>
      */
-    private Response addNewVersion(String namespace, String typePath, String name,
+    private Response addNewVersion(String namespace, String name,
                                    ResourceMapping mapping, String json, CalmDocumentParser.VersionSpec versionSpec) throws URISyntaxException {
         try {
             List<String> versions = getVersionsForMapping(mapping);
@@ -547,8 +546,8 @@ public class MappingControllerService {
 
             // The store folds the requested spelling to canonical form, so a Location built from
             // newVersion would not match the version GET .../versions lists.
-            URI location = new URI("/calm/namespaces/" + namespace + "/" + typePath + "/" + name
-                    + "/versions/" + CanonicalVersion.of(newVersion));
+            URI location = new URI(CalmDocumentParser.namedResourcePath(
+                    namespace, mapping.getResourceType(), name, CanonicalVersion.of(newVersion)));
             return Response.created(location).build();
         } catch (NamespaceNotFoundException e) {
             logger.error("Invalid namespace [{}] when updating resource",
