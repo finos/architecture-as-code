@@ -23,15 +23,30 @@
 
 ## Project Overview
 
-This is the **FINOS Architecture as Code** monorepo containing the Common Architecture Language Model (CALM) specification and associated tools.
+This is the **FINOS Architecture as Code** monorepo. It holds the tools for the Common Architecture Language Model (CALM). The CALM schema lives in finos/calm-schema and the governance documents in finos/calm-governance (see [Project Repositories](#project-repositories)).
 
 **CALM** is a declarative, JSON-based modeling language for describing complex software architectures, particularly in regulated environments like financial services.
+
+## Project Repositories
+
+| Repository | Owns | Send here |
+|---|---|---|
+| [architecture-as-code](https://github.com/finos/architecture-as-code) | This repository: the tools, the docs site and CALM Lab. The tools get the schema from the `@finos/calm-schema` npm package (see [CALM Schema Updates](#calm-schema-updates)) | Tool changes, the documentation site, examples that the tools use |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only the drafts and release candidates until [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes them, and CALM's own architecture |
+| [calm-governance](https://github.com/finos/calm-governance) | Project-wide governance, the Maintainer roster, contribution guidelines, the Code of Conduct. No code | Governance and roster changes |
+
+Clone the three repositories side by side, with the same parent directory. Start the agent here and
+add the other two as additional directories. Each repository has its own `AGENTS.md`; read the one
+for the repository you change. Target commands at the correct repository: `git -C ../calm-schema ...`
+and `gh ... --repo finos/calm-schema`. Each repository is a fork clone: `origin` is the contributor's
+fork and `upstream` is the FINOS repository. Branch from `upstream/main` and open pull requests
+against `finos/<repo>`.
 
 ## Monorepo Structure
 
 ```
 architecture-as-code/
-├── calm/                      # CALM specification (JSON schemas)
+├── calm/                      # CALM's own architecture; schema drafts and release candidates until #3240 step 6
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
@@ -150,7 +165,6 @@ platforms' packages from the lockfile. If your PR does not update the schema, re
 
 Read the guide for a package before working on its code, tests, or build.
 
-- **[calm/AGENTS.md](calm/AGENTS.md)** - CALM JSON Meta Schema, schema change workflow, draft/release rules
 - **[cli/AGENTS.md](cli/AGENTS.md)** - CLI commands, build pipeline, Commander.js patterns
 - **[calm-hub/AGENTS.md](calm-hub/AGENTS.md)** - Java/Quarkus backend, storage modes, security
 - **[calm-hub-ui/AGENTS.md](calm-hub-ui/AGENTS.md)** - React frontend, service patterns, component conventions

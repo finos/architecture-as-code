@@ -5,6 +5,10 @@ about: Propose changes to the JSON schema in the CALM project
 
 ## CALM Schema Change Proposal
 
+> The CALM schema lives in [finos/calm-schema](https://github.com/finos/calm-schema). Open the proposal
+> there, with its [Schema Change Proposal template](https://github.com/finos/calm-schema/issues/new?template=schema_change_proposal.yml).
+> Use this template only for a change that the tools in this repository need from the schema.
+
 ### Target Schema:
 
 ...which schema file(s) in the CALM project will be modified, added or removed? (e.g. core.json)

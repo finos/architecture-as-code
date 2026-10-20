@@ -5,6 +5,111 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.64.0] - 2026-10-19
+
+## [1.64.0](https://github.com/finos/architecture-as-code/compare/cli-v1.63.0...cli-v1.64.0) (2026-10-19)
+
+* Merge branch 'main' into feat/import-svg-to-calm ([](https://github.com/finos/architecture-as-code/commit/d2fb12a2abba9c7e808fea1304109d264982ba75))
+* Merge branch 'main' into feat/import-svg-to-calm ([](https://github.com/finos/architecture-as-code/commit/6d4c200e04fee411d78e4c980490ed893692505f))
+* Merge branch 'main' into stack/vscode-hub/03-svg-import ([](https://github.com/finos/architecture-as-code/commit/29d48fcb3bb8689a5d24277c8ea4d3aa1577f63d))
+* Merge pull request #3374 from fidelity-contributions/stack/vscode-hub/03-svg-import ([](https://github.com/finos/architecture-as-code/commit/8d842fb1a46f59358b9d0ddf61047c9d86a13912))
+* Merge remote-tracking branch 'origin/main' into stack/vscode-hub/03-svg-import ([](https://github.com/finos/architecture-as-code/commit/56cc6fa746b71e39b54f002b76587f8abf867285))
+
+### chore
+
+* add the required results field to Security Insights tools ([](https://github.com/finos/architecture-as-code/commit/f9e433c75267983c990ff30e3563f6b1b8474ef7))
+* add the required results field to Security Insights tools ([](https://github.com/finos/architecture-as-code/commit/34149d9f6e63b1618345d951a5d488235310dc33)), closes [#3268](https://github.com/finos/architecture-as-code/issues/3268)
+* **deps:** patch 5 npm security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/a4cfa1b65e802cee9196da8db8199fe285eaebdb))
+* **deps:** patch 5 npm security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/30dc25a0b2b85768d3bc237ccbfbfd20bd35b2e9))
+* **deps:** patch 6 cargo security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/0da48d3c543a38a48a1beefbe212d8aa60ccaa75))
+* **deps:** patch 6 cargo security vulnerabilities ([](https://github.com/finos/architecture-as-code/commit/088e7ac69bb2ff5e04f4d3fe507f678851c46115))
+* **deps:** suppress zip RUSTSEC-2026-0367 and RUSTSEC-2026-0369 for CALM Studio desktop ([](https://github.com/finos/architecture-as-code/commit/c2d557553a0131464d35816fe779a106acbfe69f))
+* **deps:** suppress zip RUSTSEC-2026-0367 and RUSTSEC-2026-0369 for CALM Studio desktop ([](https://github.com/finos/architecture-as-code/commit/7c7eb3b713ed621693c2d517a77eaac547b4cb9d))
+* remove the published calm/ folders and send schema work to calm-schema ([](https://github.com/finos/architecture-as-code/commit/f0b2fb6981bf10557b85d7946f089f78b4646f6e))
+* remove the published calm/ folders and send schema work to calm-schema ([](https://github.com/finos/architecture-as-code/commit/0fc4649a3d68bc6418150b66f67430843c858fd1)), closes [#3240](https://github.com/finos/architecture-as-code/issues/3240) [#3240](https://github.com/finos/architecture-as-code/issues/3240)
+* update the last-updated date in security-insights.yml ([](https://github.com/finos/architecture-as-code/commit/3fcf5b7b9ba263028fe270b0aa021ed84a05e5a3))
+
+### ci
+
+* stop publishing calm/ to calm.finos.org ([](https://github.com/finos/architecture-as-code/commit/d52ea43a4824c99ebb815def06653eb948787a31))
+* stop publishing calm/ to calm.finos.org ([](https://github.com/finos/architecture-as-code/commit/037e25362381a1d5c95f37ba48845512685d7277)), closes [finos/calm-schema#33](https://github.com/finos/calm-schema/issues/33) [#3240](https://github.com/finos/architecture-as-code/issues/3240) [#3240](https://github.com/finos/architecture-as-code/issues/3240)
+
+### feat
+
+* **cli:** add flow subcommands to calm hub ([](https://github.com/finos/architecture-as-code/commit/6b64f5502b282508a9e14a3b6f37e41938224384))
+* **cli:** add flow subcommands to calm hub ([](https://github.com/finos/architecture-as-code/commit/1696ad22654e1ae305239f03f3057dc8da4c86fb)), closes [#3297](https://github.com/finos/architecture-as-code/issues/3297)
+* **cli:** support snapshot versions in workspace commands (#3132) ([](https://github.com/finos/architecture-as-code/commit/2d08db6aae2d345a1d923d0bf5fc30f8ed5c8c2b)), closes [#3132](https://github.com/finos/architecture-as-code/issues/3132) [#3122](https://github.com/finos/architecture-as-code/issues/3122)
+* **shared:** add CURIE resolution chain and remove DirectUrlAuthPlugin ([](https://github.com/finos/architecture-as-code/commit/7ac5bc2a781f96b71d668e7ade83ca8fe2f46b83))
+* **shared:** add CURIE resolution chain and remove DirectUrlAuthPlugin ([](https://github.com/finos/architecture-as-code/commit/c0291b3e116832bc51252c1d3c7489f3cd6b1d90))
+* **shared:** add CURIE resolver chain and --assets-path for validate ([](https://github.com/finos/architecture-as-code/commit/c32042f731b554670908ec4adb59e3d7f6028397))
+* **vscode plugin:** Address Rveview Comments ([](https://github.com/finos/architecture-as-code/commit/d49e1c450c1436d2b5a783a6e818e3c7295b4559))
+* **vscode:** import SVG diagrams as CALM architecture ([](https://github.com/finos/architecture-as-code/commit/2b7f00e337f86ce05a01c12d6a41f578fd0217ed))
+* **vscode:** import SVG to calm json file ([](https://github.com/finos/architecture-as-code/commit/249b2f1331b7c209b4e3e2bb0d1e0d88116a183e))
+
+### fix
+
+* **calm-hub:** accept a flow's name as the mapping title ([](https://github.com/finos/architecture-as-code/commit/58ac368ce17db640f2b895ffcbfda15edb86ada9))
+* **calm-hub:** accept a flow's name in place of a title for flows only ([](https://github.com/finos/architecture-as-code/commit/628f1fbf7e8c43a7402bf5da45cca4553f298fd7))
+* **calm-hub:** resolve the seed base URL after init-nitrite.sh reads -u ([](https://github.com/finos/architecture-as-code/commit/c359ba32ff3249862247b4181d944f417f852235))
+* **calm-hub:** resolve the seed base URL after init-nitrite.sh reads -u ([](https://github.com/finos/architecture-as-code/commit/3c80f519d75436d297e724649003f4e42294952b)), closes [#3370](https://github.com/finos/architecture-as-code/issues/3370)
+* **calm-hub:** seed the released schemas from the npm copy and own the interface seed ([](https://github.com/finos/architecture-as-code/commit/3678be543fc3855d0ad5086709b13694e77e5d18))
+* **calm-hub:** seed the released schemas from the npm copy and own the interface seed ([](https://github.com/finos/architecture-as-code/commit/88b1efdbf026048a2f6678338ce3e210361ccc03)), closes [#3240](https://github.com/finos/architecture-as-code/issues/3240) [#3240](https://github.com/finos/architecture-as-code/issues/3240)
+* **calm-hub:** warn at startup that GitHub storage mode does not persist the audit trail ([](https://github.com/finos/architecture-as-code/commit/ce4400c8e4292a6e893a6adeb620844e5977dcd3))
+* **calm-hub:** warn at startup that GitHub storage mode does not persist the audit trail ([](https://github.com/finos/architecture-as-code/commit/85b57e16fc75350348a878404a9c4e7a198786ce)), closes [#3081](https://github.com/finos/architecture-as-code/issues/3081)
+* **cli:** check workspace document types against the $id ([](https://github.com/finos/architecture-as-code/commit/4037cf29e431b8ccc9b1567021c4d05dd15fee85))
+* **cli:** check workspace document types against the $id ([](https://github.com/finos/architecture-as-code/commit/93ce5bef7c1992a1f836bcb6b95a8629f691276d)), closes [#3296](https://github.com/finos/architecture-as-code/issues/3296)
+* **cli:** declare CALM 1.2 schemas in workspace templates (#3356) ([](https://github.com/finos/architecture-as-code/commit/2656ac024272235ebbdcfb031df64716f2c4d997)), closes [#3356](https://github.com/finos/architecture-as-code/issues/3356) [#3352](https://github.com/finos/architecture-as-code/issues/3352)
+* **cli:** name a workspace document with the shared title-or-name rule ([](https://github.com/finos/architecture-as-code/commit/0c1b30bff1412665c86aa0f1f72a42d7c496134f))
+* **cli:** push workspace flows to CalmHub ([](https://github.com/finos/architecture-as-code/commit/ddc0a05ab6ee215acbdc1e222f7fe5ccfec5eb23))
+* **cli:** push workspace flows to CalmHub ([](https://github.com/finos/architecture-as-code/commit/2e65481044921920f6e40d688b253a2fd5f36e2c)), closes [#3202](https://github.com/finos/architecture-as-code/issues/3202)
+* **cli:** reject calm hub push when the $id type differs from the subcommand ([](https://github.com/finos/architecture-as-code/commit/41fa190167d7dbefda8c2431df320794fb1a6b22))
+* **cli:** take the CALM schema release from @finos/calm-schema ([](https://github.com/finos/architecture-as-code/commit/d9b96c524f938b05f43395406e5923f9b6a27257))
+* **cli:** take the CALM schema release from @finos/calm-schema ([](https://github.com/finos/architecture-as-code/commit/cc6c19a8ff5e305c90f2b7dfcb93ee3951d81885)), closes [#3352](https://github.com/finos/architecture-as-code/issues/3352)
+* **cli:** warn instead of reject for timeline ids and fail fast on an unreadable file ([](https://github.com/finos/architecture-as-code/commit/0dac4f6698351c38d2efed7cde32f72ebfa49011)), closes [#3311](https://github.com/finos/architecture-as-code/issues/3311)
+* restore files removed by branch that main still depends on ([](https://github.com/finos/architecture-as-code/commit/b7309a7a9fda54909638c09f89ad3a6799f114d1))
+* **shared:** address review feedback on CURIE resolver chain ([](https://github.com/finos/architecture-as-code/commit/553213ea9ad0aaacff0bdfbfecfe395cf10ef061))
+* **shared:** address review feedback on CURIE resolver chain ([](https://github.com/finos/architecture-as-code/commit/88b7b7bd23eca2fc864eb6b1ab43a0fdebf112f8))
+* **shared:** address reviewer follow-up items on CURIE resolvers ([](https://github.com/finos/architecture-as-code/commit/721c297050052d19f585744e335d5aaddebaaeb7))
+* **shared:** apply one title-or-name rule to a document's name, for flows only ([](https://github.com/finos/architecture-as-code/commit/4551740ce1ee7d31989439d0232b1c1ddac762e6))
+* **shared:** apply reviewer nits on chain-reference-resolver ([](https://github.com/finos/architecture-as-code/commit/dbaa1d98beaef751411a60746862b1250b04eda4))
+* **shared:** read a flow's name when it has no title ([](https://github.com/finos/architecture-as-code/commit/c4d941cc5ef160d3c3d0c66276350b8d94c8f456))
+* **shared:** restore DirectUrlAuthPlugin alongside CURIE resolver chain ([](https://github.com/finos/architecture-as-code/commit/a55b016474ac5cce964968973a2cd454dc83f6ba))
+* **shared:** skip CURIEs in SchemaDirectoryReferenceResolver ([](https://github.com/finos/architecture-as-code/commit/3ace780aff6e117c6acc493e55a7d1c16977ade5))
+* **vscode:** address medium and low SVG import review items ([](https://github.com/finos/architecture-as-code/commit/172df330f1b8bba505537d9197e0cd6971de707c))
+* **vscode:** address PR #3003 review feedback for SVG import ([](https://github.com/finos/architecture-as-code/commit/ab246c025d046bebcfe8bba6161ae22bfe4080d7)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** address PR #3003 review feedback for SVG import ([](https://github.com/finos/architecture-as-code/commit/54d9c9542c0b2a747ff3a2f0a4b5ec13fe409c46)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** address PR #3003 review feedback for SVG import ([](https://github.com/finos/architecture-as-code/commit/71ae70591fc9b38dcc1b7ddc22e1150d3b339058)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** address PR #3003 review feedback for SVG import ([](https://github.com/finos/architecture-as-code/commit/e9e12579210f6e8d8df28d396276d10f2e5f2cc0)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** address review feedback on PR #3374 ([](https://github.com/finos/architecture-as-code/commit/8c48be2e403369d4ab0012c87aee27cadd564698)), closes [#3374](https://github.com/finos/architecture-as-code/issues/3374)
+* **vscode:** draw arrowheads only on edge ends that have a marker ([](https://github.com/finos/architecture-as-code/commit/9d24cf03fe2e53f02c7b036a6e9bed937f3748e0))
+* **vscode:** keep canvas container outlines visible ([](https://github.com/finos/architecture-as-code/commit/4e20f6cf783497806782a1764c17ed6769cb752e))
+* **vscode:** keep canvas container outlines visible ([](https://github.com/finos/architecture-as-code/commit/a8a4e9fd8d408234bbfb601cd8d25a22f4a4c71b))
+* **vscode:** merge SVG import review fixes from feat/import-svg-to-calm ([](https://github.com/finos/architecture-as-code/commit/06a240b8024cc8c588792113bc61189825a20438)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** resolve merge conflict in drawio-parser lenient decode ([](https://github.com/finos/architecture-as-code/commit/c65ebd34cc1703c91fba25c86454722858b00a07))
+* **vscode:** resolve shared controls in webview ([](https://github.com/finos/architecture-as-code/commit/79b232475f04ab09aebd744645d97bdb3be91ee9))
+* **vscode:** theme canvas arrowheads and keep hovered edges on top ([](https://github.com/finos/architecture-as-code/commit/2ea92776adc8fee7224335c57bde6571c0f72d36)), closes [#94a3b8](https://github.com/finos/architecture-as-code/issues/94a3b8)
+* **vscode:** use the theme link colour for edge drag and hover in the canvas ([](https://github.com/finos/architecture-as-code/commit/e7106cac80db7a2f799bcaf00e5b72a2953041b2)), closes [#60a5fa](https://github.com/finos/architecture-as-code/issues/60a5fa)
+* **vscode:** use theme colours for canvas edges ([](https://github.com/finos/architecture-as-code/commit/9e507cb5d381927ed7eafdfd4745ceb556d1a128))
+* **vscode:** use theme colours for canvas nodes and handles ([](https://github.com/finos/architecture-as-code/commit/796dd34cda0e05a621b1223375760802184c3364))
+* **vscode:** use theme colours for canvas nodes and handles ([](https://github.com/finos/architecture-as-code/commit/99198733540ee3c4287038a368700322e2829cf2))
+* **vscode:** use theme colours for the canvas minimap ([](https://github.com/finos/architecture-as-code/commit/3519156f3fc75304ec5cc1dda0f122627e2f46f8))
+* **vscode:** use theme colours for the canvas minimap ([](https://github.com/finos/architecture-as-code/commit/c6e3829bd732e56f7d906369c9d5678c0f26dbd1))
+* **vscode:** use theme colours for the canvas toolbar and panels ([](https://github.com/finos/architecture-as-code/commit/f6abd1c66e19a89c751c01a98a7b6238564f3df9))
+* **vscode:** use theme colours for the canvas toolbar and panels ([](https://github.com/finos/architecture-as-code/commit/5c4835423284e3056e412fb8f0ba48cbf6992a96))
+* **vscode:** use theme colours in the canvas preview ([](https://github.com/finos/architecture-as-code/commit/afd07523ae3de71c3aa98289a292136a2d9b7c91))
+* **vscode:** use VS Code theme colours in the canvas preview ([](https://github.com/finos/architecture-as-code/commit/d6bd0832d718f7dd3581cd6a58e748ce06b029d4)), closes [#3076](https://github.com/finos/architecture-as-code/issues/3076)
+
+### refactor
+
+* **cli:** move exitBasedOffOfValidationOutcome out of shared into the CLI (#3379) ([](https://github.com/finos/architecture-as-code/commit/0e87812c732d62d93d5d2f9c5a611dce9feef92c)), closes [#3379](https://github.com/finos/architecture-as-code/issues/3379) [#3028](https://github.com/finos/architecture-as-code/issues/3028)
+* **vscode:** point canvas theme colours at the canvas.css tokens ([](https://github.com/finos/architecture-as-code/commit/56f10df271b71a55f48186ab009122ebd252cfab))
+* **vscode:** point canvas theme colours at the canvas.css tokens ([](https://github.com/finos/architecture-as-code/commit/f29f6b0c80465ef7390603e97bb690c5919bcf9c))
+* **vscode:** rename extensions/ to packs/, add definition-id, simplify patterns ([](https://github.com/finos/architecture-as-code/commit/c43276b998be5c24a0a786537da4841594c9f1e8))
+
+### test
+
+* **vscode:** add test cases for SVG import review fixes ([](https://github.com/finos/architecture-as-code/commit/9c6be6f7a72e6164015c0096af6ab8557baf1245))
+
 ## [1.63.0] - 2026-10-14
 
 ## [1.63.0](https://github.com/finos/architecture-as-code/compare/cli-v1.62.0...cli-v1.63.0) (2026-10-14)

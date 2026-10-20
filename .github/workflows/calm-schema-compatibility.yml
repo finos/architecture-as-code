@@ -8,7 +8,7 @@ permissions:
 
 on:
     # Sent by the finos/calm-schema publish workflow after npm publish, with
-    # client_payload: {"version": "x.y.z"}. Not wired yet: it needs a GitHub App token there.
+    # client_payload: {"version": "x.y.z"}.
     repository_dispatch:
         types: [calm-schema-published]
     # Fallback for a missed dispatch: checks the npm latest version.

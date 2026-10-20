@@ -221,7 +221,7 @@ Metadata transforms architecture files from anonymous diagrams into living docum
 
 ## Resources
 
-- [CALM Metadata Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/core.json)
+- [CALM Metadata Schema](https://github.com/finos/calm-schema/blob/v1.2/schema/core.json)
 - [JSON Schema Documentation](https://json-schema.org/)
 
 ## Tips
