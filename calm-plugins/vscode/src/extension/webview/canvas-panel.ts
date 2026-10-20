@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import * as nodePath from 'path';
 import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
+import { HubClient, HubApiError } from '../services/hub-client';
+import { HubAssetService } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
+import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
 import {
     parseRequirementSchema,
@@ -24,8 +28,15 @@ import type {
 } from '../types/messages';
 
 
-/** Human-readable message for a caught error. */
+function shortHash(input: string): string {
+    return crypto.createHash('sha256').update(input.trim().toLowerCase()).digest('hex').slice(0, 8);
+}
+
 function describeError(err: unknown): string {
+    if (err instanceof HubApiError) {
+        if (err.status === 403) return 'Access denied (403)';
+        return `Hub request failed (${err.status})`;
+    }
     return err instanceof Error ? err.message : String(err);
 }
 
@@ -37,7 +48,11 @@ export class CanvasPanel {
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
     private exportService = new DiagramExportService();
+    private hubClient: HubClient | undefined;
+    private hubAssetService: HubAssetService | undefined;
     private controlAssetService: ControlAssetService;
+    private shaCache = new ShaCacheService();
+    private hubBaseHash = '';
     private importService: SvgImportService | undefined;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
@@ -47,6 +62,7 @@ export class CanvasPanel {
     private webviewReady = false;
     /** Resolves once the initial local asset scan completes. */
     private scanReadyPromise: Promise<void> = Promise.resolve();
+    private hubReadyPromise: Promise<void> = new Promise<void>(() => {});
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -83,6 +99,36 @@ export class CanvasPanel {
             this.sendAssets();
             this.postMessage({ type: 'controlsChanged' });
         });
+    }
+
+    async setHubConnection(client?: HubClient): Promise<void> {
+        if (!client) {
+            this.hubClient = undefined;
+            this.hubAssetService = undefined;
+            this.hubBaseHash = '';
+            this.controlAssetService.setHubClient(undefined);
+            this.hubReadyPromise = new Promise<void>(() => {});
+            this.log.appendLine('[CanvasPanel] Hub connection cleared');
+            this.sendAssets();
+            return;
+        }
+
+        this.hubClient = client;
+        this.hubBaseHash = shortHash(client.getBaseUrl());
+        this.hubAssetService = new HubAssetService(client);
+        this.controlAssetService.setHubClient(client);
+        this.hubReadyPromise = this.hubAssetService
+            .refresh()
+            .then(() => {
+                this.log.appendLine(
+                    `[CanvasPanel] Hub asset refresh complete: ${this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes`
+                );
+            })
+            .catch((err) => {
+                this.log.appendLine(`[CanvasPanel] Hub asset refresh failed: ${String(err)}`);
+            });
+        await this.hubReadyPromise;
+        this.sendAssets();
     }
 
     reveal(document: vscode.TextDocument): void {
@@ -255,11 +301,20 @@ export class CanvasPanel {
         const localBlocks = this.assetService.getStandardNodes();
         const localPatterns = this.assetService.getPatterns();
 
+        const selectedNs = this.hubAssetService
+            ? this.hubAssetService.getNamespaces().map(ns => ns.name)
+            : [];
+        const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
+        const hubPatterns = this.hubAssetService?.getAllPatterns?.(selectedNs) ?? [];
+
+        const allBlocks = [...localBlocks, ...hubBlocks];
+        const allPatterns = [...localPatterns, ...hubPatterns];
+
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub), ${allPatterns.length} patterns`
         );
-        this.postMessage({ type: 'standardNodesLoaded', nodes: localBlocks });
-        this.postMessage({ type: 'patternsLoaded', patterns: localPatterns });
+        this.postMessage({ type: 'standardNodesLoaded', nodes: allBlocks });
+        this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
     }
 
     private async handleDrillUp(
@@ -603,6 +658,7 @@ export class CanvasPanel {
     ): Promise<void> {
         try {
             await this.scanReadyPromise;
+            if (domain !== LOCAL_DOMAIN) await this.hubReadyPromise;
             const group = await this.controlAssetService.browseControlsForDomain(domain);
             if (group.error) {
                 this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
