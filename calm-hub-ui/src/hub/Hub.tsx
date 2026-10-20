@@ -9,6 +9,7 @@ import { DomainPage } from './components/domain-page/DomainPage.js';
 import { IntroScreen } from './components/intro-screen/IntroScreen.js';
 import { SearchResultsPage } from './components/search-results/SearchResultsPage.js';
 import { useResourceFromRoute } from './hooks/useResourceFromRoute.js';
+import { useResourceNavigationKey } from './hooks/useResourceNavigationKey.js';
 import { useIsMobile } from '../hooks/useMediaQuery.js';
 import { BreadcrumbItem, Data, Adr } from '../model/calm.js';
 import { ControlData } from '../model/control.js';
@@ -145,14 +146,20 @@ export default function Hub() {
     // renders. Every resource load now comes from the route, so a stale control or
     // interface would otherwise flash before the new fetch resolves (detailContent
     // evaluates controlData first). Runs in a layout effect so the clear happens
-    // before paint, avoiding a one-frame flash of the stale panel.
+    // before paint, avoiding a one-frame flash of the stale panel. A change to the
+    // query only, such as a diagram tab, keeps the resource (useResourceNavigationKey).
+    const resourceKey = useResourceNavigationKey(location);
     useLayoutEffect(() => {
         setData(undefined);
         setAdrData(undefined);
         setControlData(undefined);
         setInterfaceData(undefined);
-        setSelectedItem(null);
         setResourceLoadFailed(false);
+    }, [resourceKey]);
+
+    // Any navigation, a tab change included, closes the node details panel.
+    useLayoutEffect(() => {
+        setSelectedItem(null);
     }, [location.key]);
 
     const handleDataLoad = useCallback((loaded: Data) => {
@@ -199,6 +206,7 @@ export default function Hub() {
 
     // Single owner of deep-link / external-navigation loading for the detail route.
     useResourceFromRoute({
+        resourceKey,
         onDataLoad: handleDataLoad,
         onAdrLoad: handleAdrLoad,
         onControlLoad: handleControlLoad,
