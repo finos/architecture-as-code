@@ -233,11 +233,12 @@ function stripResolvedNoise(controls: Record<string, unknown>): Record<string, u
         const ctrl = value as Record<string, unknown> | undefined;
         if (!ctrl) continue;
         const clean: Record<string, unknown> = {};
-        // Keep only requirements (with requirement-url + config), drop description and other resolved fields
+        if (ctrl.description) clean.description = ctrl.description;
         if (ctrl.requirements && Array.isArray(ctrl.requirements)) {
             clean.requirements = (ctrl.requirements as Array<Record<string, unknown>>).map((req) => {
                 const r: Record<string, unknown> = {};
                 if (req['requirement-url']) r['requirement-url'] = req['requirement-url'];
+                if (req['config-url']) r['config-url'] = req['config-url'];
                 if (req.config) r.config = req.config;
                 return r;
             });

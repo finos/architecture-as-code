@@ -122,12 +122,14 @@ export function enrichControlWithRequirement(
 ): ControlEntry {
     const reqs = [...(control.requirements ?? [])];
     if (reqs.length === 0) reqs.push({ 'requirement-url': '' });
-    const config = { ...(reqs[0].config ?? {}) };
-    const base = seedBaseConstants(parsed.identity);
-    for (const [k, v] of Object.entries(base)) {
-        if (config[k] === undefined) config[k] = v;
+    if (!reqs[0]['config-url']) {
+        const config = { ...(reqs[0].config ?? {}) };
+        const base = seedBaseConstants(parsed.identity);
+        for (const [k, v] of Object.entries(base)) {
+            if (config[k] === undefined) config[k] = v;
+        }
+        reqs[0] = { ...reqs[0], config };
     }
-    reqs[0] = { ...reqs[0], config };
 
     const description =
         !control.description || control.description.trim() === ''

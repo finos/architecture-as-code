@@ -958,7 +958,7 @@ function CanvasApp() {
 
     // --- Control picker attach ---
     const handleControlAttach = useCallback((ref: string, parsed: ParsedRequirement) => {
-        const key = parsed.identity.name || makeControlMapKey(ref);
+        const key = makeControlMapKey(ref);
         const entry = buildControlEntry(ref, parsed);
         const target = controlPickerTarget;
         setShowControlPicker(false);
@@ -970,6 +970,7 @@ function CanvasApp() {
                 if (n.id !== target.nodeId) return n;
                 const data = n.data as Record<string, unknown>;
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
+                if (key in existing) return n;
                 return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
             }));
             setTimeout(() => {
@@ -979,6 +980,7 @@ function CanvasApp() {
             }, 0);
         } else if (target.type === 'document') {
             const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
+            if (key in existing) return;
             useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
             setTimeout(() => {
                 emitChange(true);

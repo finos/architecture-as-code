@@ -275,13 +275,12 @@ export function requestSaveControl(
     callback: (result: SaveControlResult) => void
 ): void {
     const requestId = nextRequestId();
-    registerPending(
-        requestId,
-        (msg) => {
-            if (msg.type !== 'saveControlResult') return;
-            callback(msg.ok ? { ok: true } : { ok: false, error: msg.error });
-        },
-        () => callback({ ok: false, error: 'timeout' })
-    );
+    const resolve: PendingResolver = (msg) => {
+        if (msg.type !== 'saveControlResult') return;
+        callback(msg.ok ? { ok: true } : { ok: false, error: msg.error });
+    };
+    // No timeout — the extension host waits for the user to answer the
+    // "Overwrite?" prompt, which can take arbitrarily long.
+    pending.set(requestId, { resolve, timer: setTimeout(() => {}, 0x7FFFFFFF) });
     postMessage({ type: 'saveControl', requestId, filename, content });
 }
