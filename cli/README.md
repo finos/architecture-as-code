@@ -331,7 +331,7 @@ A template bundle consists of:
 
 - `index.json`: Defines the structure of the template and how it maps to CALM model elements.
 - A **CalmTemplateTransformer** implementation: Transforms the CALM model into a format that can be rendered by Handlebars.
-- Handlebar templates define the final output format.
+- Handlebar templates define the final output format. Templates and partials can be in subdirectories. Refer to them in `index.json` by their path from the bundle root, with `/` separators (for example `partials/node.hbs`). Call a partial by the same path, for example `{{> partials/node.hbs}}`.
 - The `--url-to-local-file-mapping` option allows you to provide a JSON file that maps external URLs to local files.  
    This is useful when working with files that are not yet published but are referenced in the model.
 

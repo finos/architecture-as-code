@@ -222,11 +222,9 @@ describe('validateAllControls', () => {
         expect(result.jsonSchemaOutputs[0].message).toContain('Could not resolve');
     });
 
-    it('loads config via getSchema when config-url is present', async () => {
+    it('loads config as a control document when config-url is present', async () => {
         const schemaDir = makeSchemaDirectory(requirementSchema);
-        (schemaDir.getSchema as ReturnType<typeof vi.fn>)
-            .mockResolvedValueOnce(requirementSchema)   // first call: requirement schema
-            .mockResolvedValueOnce(inlineConfig);        // second call: config doc
+        (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce(inlineConfig);
 
         const arch = {
             nodes: [{
@@ -247,7 +245,7 @@ describe('validateAllControls', () => {
         };
         const result = await validateAllControls(arch, undefined, schemaDir, false);
         expect(result.hasErrors).toBe(false);
-        expect(schemaDir.getSchema).toHaveBeenCalledWith('https://example.com/config.json');
+        expect(schemaDir.loadDocument).toHaveBeenCalledWith('https://example.com/config.json', 'control');
     });
 
     it('skips control detail when neither config nor config-url is present', async () => {
@@ -333,9 +331,7 @@ describe('validateAllControls', () => {
 
     it('emits error when config-url document fails to load', async () => {
         const schemaDir = makeSchemaDirectory();
-        (schemaDir.getSchema as ReturnType<typeof vi.fn>)
-            .mockResolvedValueOnce(requirementSchema)                 // requirement schema
-            .mockRejectedValueOnce(new Error('config fetch failed')); // config-url
+        (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('config fetch failed'));
         const arch = {
             nodes: [{
                 'unique-id': 'node-1', 'node-type': 'service', name: 'N', description: 'D',
@@ -358,9 +354,7 @@ describe('validateAllControls', () => {
 
     it('skips validation when config-url document is not found', async () => {
         const schemaDir = makeSchemaDirectory();
-        (schemaDir.getSchema as ReturnType<typeof vi.fn>)
-            .mockResolvedValueOnce(requirementSchema)  // requirement schema
-            .mockResolvedValueOnce(undefined);         // config-url -> not found
+        (schemaDir.loadDocument as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined);
         const arch = {
             nodes: [{
                 'unique-id': 'node-1', 'node-type': 'service', name: 'N', description: 'D',
