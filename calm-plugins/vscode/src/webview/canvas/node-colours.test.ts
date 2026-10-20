@@ -22,7 +22,7 @@ describe('defaultNodeColours', () => {
         expect(defaultNodeColours('system', true)).toEqual({ background: theme.badgeBg, text: theme.badgeFg });
     });
 
-    it('ignores the building-block flag for types that do not draw one', () => {
+    it('ignores the standard-node flag for types that do not draw one', () => {
         expect(defaultNodeColours('database', true).background).toBe(DATABASE_FILL);
         expect(defaultNodeColours('container', true).background).toBe(theme.bg);
     });

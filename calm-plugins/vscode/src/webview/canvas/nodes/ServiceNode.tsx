@@ -1,12 +1,12 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
-import { isBuildingBlock, getNodeStyleOverride } from '../../utils/building-block-style';
+import { isStandardNode, getNodeStyleOverride } from '../../utils/standard-node-style';
 import { theme, blockBorder, readableTextOn } from '../theme-colors';
 import { SERVICE_FILL } from '../node-colours';
 import { ValidationBadge } from './ValidationBadge';
 
 export function ServiceNode({ id, data, selected }: NodeProps) {
-    const isBlock = isBuildingBlock(data as Record<string, unknown>);
+    const isBlock = isStandardNode(data as Record<string, unknown>);
     const override = getNodeStyleOverride(data as Record<string, unknown>);
     const text = override.text ?? readableTextOn(override.background);
     const errorCount = (data as any).validationErrors ?? 0;
@@ -22,7 +22,7 @@ export function ServiceNode({ id, data, selected }: NodeProps) {
             <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <div style={{
                 ...baseStyle,
-                ...(isBlock ? buildingBlockStyle : {}),
+                ...(isBlock ? standardNodeStyle : {}),
                 ...(selected ? selectedStyle : {}),
                 ...(override.background ? { background: override.background } : {}),
             }}>
@@ -47,7 +47,7 @@ const baseStyle: React.CSSProperties = {
     background: SERVICE_FILL, border: `1.5px solid ${theme.green}`, borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
 };
-const buildingBlockStyle: React.CSSProperties = {
+const standardNodeStyle: React.CSSProperties = {
     background: theme.badgeBg, borderColor: blockBorder, borderWidth: '2px', borderRadius: '6px',
 };
 const selectedStyle: React.CSSProperties = {

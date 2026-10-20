@@ -1,0 +1,7 @@
+===== NESTED BUNDLE REPORT =====
+
+## Nodes
+    ### SYSTEM: DocuFlow
+    ### SERVICE: Upload Service
+    ### SERVICE: Storage Service
+    ### DATABASE: Document Database
