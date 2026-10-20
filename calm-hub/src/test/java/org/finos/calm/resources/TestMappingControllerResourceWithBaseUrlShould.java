@@ -4,6 +4,8 @@ import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.security.TestSecurity;
+import org.finos.calm.domain.Architecture;
+import org.finos.calm.domain.Flow;
 import org.finos.calm.domain.Pattern;
 import org.finos.calm.domain.ResourceMapping;
 import org.finos.calm.domain.ResourceType;
@@ -16,6 +18,7 @@ import org.finos.calm.domain.pattern.CreatePatternRequest;
 import org.finos.calm.store.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.finos.calm.security.CalmHubPermissionChecker;
 import org.mockito.ArgumentCaptor;
@@ -102,6 +105,28 @@ public class TestMappingControllerResourceWithBaseUrlShould {
                 .then()
                 .statusCode(200)
                 .body(containsString("\"$id\":\"https://hub.example.com/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0\""));
+    }
+
+    /** Every resource type gets the lowercase plural in its $id, whatever case the path uses. */
+    @ParameterizedTest
+    @CsvSource({"PATTERN,PATTERNS,patterns", "ARCHITECTURE,Architectures,architectures", "FLOW,FLOWS,flows",
+            "STANDARD,Standards,standards", "INTERFACE,INTERFACES,interfaces"})
+    void rewrite_id_with_the_lowercase_plural_for_every_type_on_get_through_a_capitalised_path(
+            ResourceType type, String pathType, String plural) throws Exception {
+        when(mockMappingStore.getMapping("finos", type, "my-resource")).thenReturn(new ResourceMapping.ResourceMappingBuilder()
+                .setNamespace("finos").setCustomId("my-resource").setResourceType(type).setNumericId(1).build());
+        when(mockPatternStore.getPatternForVersion(any(Pattern.class))).thenReturn("{}");
+        when(mockArchitectureStore.getArchitectureForVersion(any(Architecture.class))).thenReturn("{}");
+        when(mockFlowStore.getFlowForVersion(any(Flow.class))).thenReturn("{}");
+        when(mockStandardStore.getStandardForVersion("finos", 1, "1.0.0")).thenReturn("{}");
+        when(mockInterfaceStore.getInterfaceForVersion("finos", 1, "1.0.0")).thenReturn("{}");
+
+        given()
+                .when()
+                .get("/calm/namespaces/finos/" + pathType + "/my-resource/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("\"$id\":\"https://hub.example.com/calm/namespaces/finos/" + plural + "/my-resource/versions/1.0.0\""));
     }
 
     private void givenANewPattern() throws Exception {
