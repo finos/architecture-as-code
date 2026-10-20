@@ -1008,7 +1008,8 @@ function CanvasApp() {
                 if (n.id !== target.nodeId) return n;
                 const data = n.data as Record<string, unknown>;
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
-                if (key in existing) return n;
+                const prev = existing[key];
+                if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return n;
                 return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
             }));
             setTimeout(() => {
@@ -1018,7 +1019,8 @@ function CanvasApp() {
             }, 0);
         } else if (target.type === 'document') {
             const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
-            if (key in existing) return;
+            const prev = existing[key];
+            if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return;
             useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
             setTimeout(() => {
                 emitChange(true);

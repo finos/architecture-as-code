@@ -125,4 +125,15 @@ describe('timeout cleanup', () => {
         dispatch({ type: 'controlBrowseResult', requestId, ok: true, groups: [] });
         expect(cb).not.toHaveBeenCalled();
     });
+
+    it('saveControl has no timeout — a slow reply still reaches the caller', () => {
+        vi.useFakeTimers();
+        const cb = vi.fn();
+        requestSaveControl('ctrl.requirement.json', '{}', cb);
+        const requestId = lastRequestId('saveControl');
+        vi.advanceTimersByTime(120000);
+        expect(cb).not.toHaveBeenCalled();
+        dispatch({ type: 'saveControlResult', requestId, ok: true });
+        expect(cb).toHaveBeenCalledWith({ ok: true });
+    });
 });
