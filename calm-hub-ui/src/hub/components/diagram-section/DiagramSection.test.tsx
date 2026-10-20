@@ -233,6 +233,33 @@ describe('DiagramSection', () => {
             expect(screen.queryByTestId('drawer')).not.toBeInTheDocument();
         });
 
+        it('shows the number of architectures only once the tab has loaded them, and keeps it', async () => {
+            implementationServiceMock.fetchImplementations.mockResolvedValue([
+                { namespace: 'finos', architectureId: 7, version: '1.0.0', customId: 'trade-capture' },
+                { namespace: 'finos', architectureId: 7, version: '1.1.0', customId: 'trade-capture' },
+                { namespace: 'other', architectureId: 7, version: '1.0.0' },
+            ]);
+            const user = userEvent.setup();
+            renderPattern();
+
+            await user.click(await screen.findByRole('tab', { name: 'Used by' }));
+            expect(await screen.findByRole('tab', { name: 'Used by (2)' })).toBeInTheDocument();
+
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            expect(screen.getByRole('tab', { name: 'Used by (2)' })).toBeInTheDocument();
+        });
+
+        it('shows no number when the lookup fails', async () => {
+            implementationServiceMock.fetchImplementations.mockRejectedValue(new Error('boom'));
+            const user = userEvent.setup();
+            renderPattern();
+
+            await user.click(await screen.findByRole('tab', { name: 'Used by' }));
+
+            expect(await screen.findByText('Could not load the architectures that use this version.')).toBeInTheDocument();
+            expect(screen.getByRole('tab', { name: 'Used by' })).toBeInTheDocument();
+        });
+
         it('sends one request when the tab opens again on the same version', async () => {
             implementationServiceMock.fetchImplementations.mockResolvedValue(implementations);
             const user = userEvent.setup();
@@ -241,7 +268,7 @@ describe('DiagramSection', () => {
             await user.click(await screen.findByRole('tab', { name: 'Used by' }));
             await screen.findByRole('link', { name: /trade-capture/ });
             await user.click(screen.getByRole('tab', { name: 'Diagram' }));
-            await user.click(screen.getByRole('tab', { name: 'Used by' }));
+            await user.click(screen.getByRole('tab', { name: /^Used by/ }));
 
             expect(await screen.findByRole('link', { name: /trade-capture/ })).toBeInTheDocument();
             expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledTimes(1);
@@ -260,7 +287,7 @@ describe('DiagramSection', () => {
             );
             expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledTimes(1);
 
-            await user.click(screen.getByRole('tab', { name: 'Used by' }));
+            await user.click(screen.getByRole('tab', { name: /^Used by/ }));
 
             expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledTimes(2);
             expect(implementationServiceMock.fetchImplementations).toHaveBeenLastCalledWith('pattern-namespace', 'test-pattern', '1.0.0');

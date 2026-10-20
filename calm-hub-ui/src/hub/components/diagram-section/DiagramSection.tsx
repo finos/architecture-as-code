@@ -35,7 +35,7 @@ import { IoSaveOutline, IoRefreshOutline } from 'react-icons/io5';
 import { PatternImplementationService } from '../../../service/pattern-implementation-service.js';
 import { usePatternImplementations } from './used-by/usePatternImplementations.js';
 import { UsedByVariants } from './used-by/variants/UsedByVariants.js';
-import { USED_BY_LABEL, USED_BY_TOOLTIP } from './used-by/usedBy.js';
+import { USED_BY_TOOLTIP, usedByLabel } from './used-by/usedBy.js';
 
 interface DiagramSectionProps {
     data: Data & { calmType: 'Architectures' | 'Patterns' };
@@ -152,6 +152,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const showUsedBy = !isArchitecture && patternName !== undefined;
     const usedByOpen = showUsedBy && activeTab === 'used-by' && (compareFrom === null || compareTo === null);
     const usedBy = usePatternImplementations(implementationService, data.name, patternName, data.version, usedByOpen);
+    const usedByTabLabel = usedByLabel(usedBy);
 
     // Save/reset the shared default layout — supported for both architectures
     // and patterns (backed by separate resources/collections server-side, see
@@ -439,13 +440,13 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             {showUsedBy && (
                 <button
                     role="tab"
-                    aria-label={USED_BY_LABEL}
+                    aria-label={usedByTabLabel}
                     title={USED_BY_TOOLTIP}
                     className={`tab gap-1 rounded-lg ${!comparing && activeTab === 'used-by' ? 'tab-active !bg-[var(--color-interaction)] !text-white' : ''}`}
                     onClick={() => setActiveTab('used-by')}
                 >
                     <IoGitNetworkOutline />
-                    <span className="hidden sm:inline">{USED_BY_LABEL}</span>
+                    <span className="hidden sm:inline">{usedByTabLabel}</span>
                 </button>
             )}
         </div>
@@ -568,7 +569,7 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             {viewModeRow('diagram', <IoEyeOutline size={18} />, 'Diagram', onSelect)}
             {viewModeRow('json', <IoCodeOutline size={18} />, 'JSON', onSelect)}
             {isArchitecture && viewModeRow('deployments', <IoRocketOutline size={18} />, 'Deployments', onSelect)}
-            {showUsedBy && viewModeRow('used-by', <IoGitNetworkOutline size={18} />, USED_BY_LABEL, onSelect)}
+            {showUsedBy && viewModeRow('used-by', <IoGitNetworkOutline size={18} />, usedByTabLabel, onSelect)}
         </div>
     );
 

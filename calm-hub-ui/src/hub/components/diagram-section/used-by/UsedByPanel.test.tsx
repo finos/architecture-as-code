@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import { UsedByPanel } from './UsedByPanel.js';
 import { architectureHref } from './usedBy.js';
+import type { ImplementationsState } from './usePatternImplementations.js';
 
 describe('UsedByPanel', () => {
     it('links each architecture by its name and opens it in a new tab', () => {
@@ -29,12 +30,12 @@ describe('UsedByPanel', () => {
         expect(screen.getByRole('link', { name: /Architecture 9/ })).toHaveAttribute('href', '#/finos/architectures/9/1.0.0');
     });
 
-    it.each([
-        [{ status: 'loaded', implementations: [] } as const, 'No architectures use this version.'],
-        [{ status: 'idle' } as const, 'Loading…'],
-        [{ status: 'loading' } as const, 'Loading…'],
-        [{ status: 'error' } as const, 'Could not load the architectures that use this version.'],
-        [{ status: 'unavailable' } as const, 'Not available for this pattern.'],
+    it.each<[ImplementationsState, string]>([
+        [{ status: 'loaded', implementations: [] }, 'No architectures use this version.'],
+        [{ status: 'idle' }, 'Loading…'],
+        [{ status: 'loading' }, 'Loading…'],
+        [{ status: 'error' }, 'Could not load the architectures that use this version.'],
+        [{ status: 'unavailable' }, 'Not available for this pattern.'],
     ])('shows a message for the %o state', (state, text) => {
         render(<UsedByPanel state={state} />);
 
