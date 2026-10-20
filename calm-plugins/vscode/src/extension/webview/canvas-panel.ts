@@ -280,6 +280,9 @@ export class CanvasPanel {
             case 'openControlInHub':
                 void this.handleOpenControlInHub(message.ref);
                 break;
+            case 'resolveDefinitionId':
+                void this.handleResolveDefinitionId(message.nodeId, message.curie);
+                break;
         }
     }
 
@@ -313,8 +316,13 @@ export class CanvasPanel {
         this.log.appendLine(
             `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub), ${allPatterns.length} patterns`
         );
+        const hubAdrs = this.hubAssetService?.getAllAdrs(selectedNs) ?? [];
+
         this.postMessage({ type: 'standardNodesLoaded', nodes: allBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
+        if (hubAdrs.length > 0) {
+            this.postMessage({ type: 'adrsLoaded', adrs: hubAdrs });
+        }
     }
 
     private async handleDrillUp(
@@ -912,7 +920,50 @@ export class CanvasPanel {
     }
 
     private async handleOpenControlInHub(ref: string): Promise<void> {
-        vscode.window.showWarningMessage('Hub not connected');
+        if (!this.hubClient) {
+            vscode.window.showWarningMessage('Hub not connected');
+            return;
+        }
+        const baseUrl = this.hubClient.getBaseUrl();
+        const parsed = parseControlCurie(ref) ?? parseCanonicalControlUrl(ref);
+        if (parsed) {
+            const url = `${baseUrl}/calm/domains/${encodeURIComponent(parsed.domain)}/controls/${encodeURIComponent(parsed.controlName)}`;
+            vscode.env.openExternal(vscode.Uri.parse(url));
+        }
+    }
+
+    private async handleResolveDefinitionId(nodeId: string, curie: string): Promise<void> {
+        if (!this.hubClient) {
+            this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: 'Hub not connected' });
+            return;
+        }
+        try {
+            await this.hubReadyPromise;
+            const parts = parseControlCurie(curie);
+            if (!parts) {
+                this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `Invalid CURIE: ${curie}` });
+                return;
+            }
+            const version = parts.version ?? 'latest';
+            const doc = await this.hubClient.getResourceAtVersion(
+                parts.domain,
+                'standard-nodes',
+                parts.controlName,
+                version
+            ) as Record<string, unknown>;
+            const nodes = (doc.nodes as Array<Record<string, unknown>>) ?? [];
+            const node = nodes[0];
+            const controls = (node?.controls as Record<string, unknown>) ?? {};
+            this.postMessage({ type: 'definitionResolved', nodeId, controls });
+            this.shaCache.put(curie, JSON.stringify(controls));
+        } catch (err) {
+            const cached = this.shaCache.get(curie);
+            if (cached) {
+                this.postMessage({ type: 'definitionResolved', nodeId, controls: JSON.parse(cached) });
+                return;
+            }
+            this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
+        }
     }
 
     private async handleImportSvg(): Promise<void> {
