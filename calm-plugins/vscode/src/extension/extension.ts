@@ -193,20 +193,21 @@ async function connectToHub(
     hubStatusBar!.setState('connecting', undefined, url);
 
     try {
-        hubClient = new HubClient(url);
-        hubAuthService = new HubAuthService(context.secrets, hubClient);
-        await hubAuthService.initialize();
+        const client = new HubClient(url);
+        const authService = new HubAuthService(context.secrets, client, url);
+        await authService.initialize();
 
         const authenticated =
-            await hubAuthService.discoverAndAuthenticate();
+            await authService.discoverAndAuthenticate();
         if (!authenticated) {
             hubStatusBar!.setState('error');
             return;
         }
 
-        // NOTE: getNamespaces() is called here for the status bar and again
-        // inside HubAssetService.refresh(). The duplication is accepted for
-        // simplicity — piping the result through would add method-signature churn.
+        // Assign to module-level only after successful auth
+        hubClient = client;
+        hubAuthService = authService;
+
         const namespaces = await hubClient.getNamespaces();
         const availableNames = namespaces.map((ns: { name: string }) => ns.name);
 
@@ -237,6 +238,8 @@ async function connectToHub(
             `[INFO] Connected to ${url} — ${availableNames.length} available, ${validSelection.length} selected`
         );
     } catch (err) {
+        hubClient = undefined;
+        hubAuthService = undefined;
         hubStatusBar!.setState('error');
         const message =
             err instanceof Error ? err.message : String(err);

@@ -12,14 +12,19 @@ import { HubClient, HubAuthConfig } from './hub-client';
 export class HubAuthService {
     private token: string | undefined;
     private authConfig: HubAuthConfig | undefined;
+    private readonly secretKey: string;
 
     constructor(
         private secrets: vscode.SecretStorage,
-        private client: HubClient
-    ) {}
+        private client: HubClient,
+        hubUrl: string
+    ) {
+        const hash = crypto.createHash('sha256').update(hubUrl.trim().toLowerCase()).digest('hex').slice(0, 8);
+        this.secretKey = `calm.hub.token.${hash}`;
+    }
 
     async initialize(): Promise<void> {
-        this.token = (await this.secrets.get('calm.hub.token')) ?? undefined;
+        this.token = (await this.secrets.get(this.secretKey)) ?? undefined;
         if (this.token) {
             this.client.setAuthHeaders({ Authorization: `Bearer ${this.token}` });
         }
@@ -51,7 +56,7 @@ export class HubAuthService {
             const token = await this.loginViaHub();
             if (token) {
                 this.token = token;
-                await this.secrets.store('calm.hub.token', token);
+                await this.secrets.store(this.secretKey, token);
                 this.client.setAuthHeaders({ Authorization: `Bearer ${token}` });
                 return true;
             }
@@ -66,7 +71,7 @@ export class HubAuthService {
     async signOut(): Promise<void> {
         this.token = undefined;
         this.authConfig = undefined;
-        await this.secrets.delete('calm.hub.token');
+        await this.secrets.delete(this.secretKey);
         this.client.setAuthHeaders({});
     }
 

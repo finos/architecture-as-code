@@ -82,12 +82,12 @@ export class HubAssetService {
                 // Standards unchanged — re-fetch patterns and ADRs (lightweight).
                 // Start with old data so partial failures preserve cached content.
                 const refreshed: HubNamespace = { ...old };
-                try {
-                    await this.fetchPatternsAndAdrs(refreshed);
-                    changed = true;
-                } catch {
-                    // fetchPatternsAndAdrs only overwrites on success; old data preserved
-                }
+                await this.fetchPatternsAndAdrs(refreshed);
+                const patternsChanged = refreshed.patterns.length !== old.patterns.length ||
+                    refreshed.patterns.some((p, i) => p.id !== old.patterns[i]?.id);
+                const adrsChanged = refreshed.adrs.length !== old.adrs.length ||
+                    refreshed.adrs.some((a, i) => a.id !== old.adrs[i]?.id);
+                if (patternsChanged || adrsChanged) changed = true;
                 updated.push(refreshed);
             }
         }
@@ -154,7 +154,7 @@ export class HubAssetService {
             const patterns = await this.client.getResources(nsName, 'patterns');
             const patResults = await Promise.all(
                 patterns.map((pat) =>
-                    this.client.getVersions(nsName, 'patterns', pat.uniqueId)
+                    this.client.getVersions(nsName, 'patterns', String(pat.numericId))
                         .then((versions) => ({ pat, versions }))
                         .catch(() => ({ pat, versions: [] as string[] }))
                 )
@@ -163,7 +163,7 @@ export class HubAssetService {
                 const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
                 if (!latestSha) continue;
                 try {
-                    const content = await this.client.getResourceAtVersion(nsName, 'patterns', pat.uniqueId, latestSha) as Record<string, unknown>;
+                    const content = await this.client.getResourceAtVersion(nsName, 'patterns', String(pat.numericId), latestSha) as Record<string, unknown>;
                     newPatterns.push({
                         id: pat.uniqueId,
                         name: (content.title as string) || pat.name || humanize(pat.uniqueId),

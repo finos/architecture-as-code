@@ -38,13 +38,13 @@ describe('HubAuthService', () => {
         mockFetch.mockReset();
         client = new HubClient('https://hub.example.com');
         secrets = createMockSecrets();
-        authService = new HubAuthService(secrets, client);
+        authService = new HubAuthService(secrets, client, 'https://hub.example.com');
     });
 
     describe('initialize', () => {
         it('loads stored token and sets auth headers', async () => {
             // Pre-store a token in the mock secret storage
-            await secrets.store('calm.hub.token', 'stored-token');
+            await secrets.store('calm.hub.token.093a09df', 'stored-token');
 
             await authService.initialize();
 
@@ -96,7 +96,7 @@ describe('HubAuthService', () => {
 
         it('uses stored token when auth is enabled and token is valid', async () => {
             // Pre-store a token
-            await secrets.store('calm.hub.token', 'valid-token');
+            await secrets.store('calm.hub.token.093a09df', 'valid-token');
             await authService.initialize();
 
             // getAuthConfig
@@ -130,12 +130,12 @@ describe('HubAuthService', () => {
 
     describe('signOut', () => {
         it('clears token and auth headers', async () => {
-            await secrets.store('calm.hub.token', 'my-token');
+            await secrets.store('calm.hub.token.093a09df', 'my-token');
             await authService.initialize();
 
             await authService.signOut();
 
-            expect(secrets.delete).toHaveBeenCalledWith('calm.hub.token');
+            expect(secrets.delete).toHaveBeenCalledWith('calm.hub.token.093a09df');
             expect(authService.isAuthenticated).toBe(false);
 
             // Verify auth headers are cleared

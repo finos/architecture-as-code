@@ -110,40 +110,46 @@ export class CanvasPanel {
         }
 
         this.hubClient = client;
-        this.hubBaseHash = shortHash(client.getBaseUrl());
-        this.hubAssetService = new HubAssetService(client);
+        const hubHash = shortHash(client.getBaseUrl());
+        this.hubBaseHash = hubHash;
+        const service = new HubAssetService(client);
+        this.hubAssetService = service;
         this.controlAssetService.setHubClient(client);
-
-        if (forceRefresh) {
-            await this.shaCache.clearHub(this.hubBaseHash);
-            this.log.appendLine('[CanvasPanel] Cache cleared for clean refresh');
-        }
-
-        // Phase 1: Load from cache instantly
-        const cached = await this.shaCache.getPalette(this.hubBaseHash) as HubNamespace[] | null;
-        if (cached && cached.length > 0 && !forceRefresh) {
-            this.hubAssetService.loadFromCache(cached);
-            this.log.appendLine(`[CanvasPanel] Loaded ${cached.reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
-            this.sendAssets();
-        }
-
-        // Phase 2: Delta sync from Hub in background
         this.hubRefreshing = true;
         this.postMessage({ type: 'hubLoading', loading: true });
-        this.hubReadyPromise = (cached && !forceRefresh
-            ? this.hubAssetService.deltaRefresh()
-            : this.hubAssetService.refresh().then(() => ({ changed: true }))
-        )
-            .then(async ({ changed }) => {
-                if (!this.hubAssetService) return;
-                const total = this.hubAssetService.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
-                this.log.appendLine(`[CanvasPanel] Hub sync complete: ${total} nodes${changed ? ' (updated)' : ' (no changes)'}`);
-                if (changed) this.sendAssets();
-                this.shaCache.putPalette(this.hubBaseHash, this.hubAssetService.getNamespaces()).catch(() => {});
-            })
-            .catch((err) => {
-                this.log.appendLine(`[CanvasPanel] Hub sync failed: ${String(err)}`);
-            });
+
+        // Assign hubReadyPromise immediately so handlers that fire during
+        // cache load / sync don't get the old never-resolving promise.
+        this.hubReadyPromise = (async () => {
+            if (forceRefresh) {
+                await this.shaCache.clearHub(hubHash);
+                this.log.appendLine('[CanvasPanel] Cache cleared for clean refresh');
+            }
+
+            // Phase 1: Load from cache instantly
+            const cached = await this.shaCache.getPalette(hubHash) as HubNamespace[] | null;
+            if (cached && cached.length > 0 && !forceRefresh) {
+                service.loadFromCache(cached);
+                this.log.appendLine(`[CanvasPanel] Loaded ${cached.reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
+                this.sendAssets();
+            }
+
+            // Phase 2: Delta sync from Hub
+            const { changed } = cached && !forceRefresh
+                ? await service.deltaRefresh()
+                : await service.refresh().then(() => ({ changed: true }));
+
+            // Guard: if a second setHubConnection replaced the service, bail
+            if (this.hubAssetService !== service) return;
+
+            const total = service.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
+            this.log.appendLine(`[CanvasPanel] Hub sync complete: ${total} nodes${changed ? ' (updated)' : ' (no changes)'}`);
+            if (changed) this.sendAssets();
+            this.shaCache.putPalette(hubHash, service.getNamespaces()).catch(() => {});
+        })().catch((err) => {
+            this.log.appendLine(`[CanvasPanel] Hub sync failed: ${String(err)}`);
+        });
+
         await this.hubReadyPromise;
         this.hubRefreshing = false;
         this.postMessage({ type: 'hubLoading', loading: false });
@@ -337,8 +343,8 @@ export class CanvasPanel {
 
         const allNs = this.hubAssetService?.getNamespaces().map(ns => ns.name) ?? [];
         const userSelection = vscode.workspace.getConfiguration('calm.hub').get<string[]>('selectedNamespaces');
-        // null/undefined = not configured → show all; empty array = user deselected all → show none
-        const selectedNs = userSelection != null
+        // VS Code defaults unset arrays to []. Treat null/undefined/[] as "show all".
+        const selectedNs = (userSelection && userSelection.length > 0)
             ? allNs.filter(ns => userSelection.includes(ns))
             : allNs;
         const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
@@ -979,9 +985,10 @@ export class CanvasPanel {
                 return;
             }
             const [namespace, , resourceName] = segments;
+            const cacheNs = `${this.hubBaseHash}_${namespace}`;
 
             // Cache first — SHA-based versions are immutable, so cached data is always valid.
-            const cached = await this.shaCache.get(namespace, 'standards', resourceName, version);
+            const cached = await this.shaCache.get(cacheNs, 'standards', resourceName, version);
             if (cached) {
                 this.postMessage({ type: 'definitionResolved', nodeId, controls: cached as Record<string, unknown> });
                 return;
@@ -1005,7 +1012,7 @@ export class CanvasPanel {
             const controls = (docNode?.controls as Record<string, unknown>) ?? {};
             await this.pinControlVersions(controls);
             this.postMessage({ type: 'definitionResolved', nodeId, controls });
-            this.shaCache.put(namespace, 'standards', resourceName, version, controls).catch(() => {});
+            this.shaCache.put(cacheNs, 'standards', resourceName, version, controls).catch(() => {});
         } catch (err) {
             this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
         }
