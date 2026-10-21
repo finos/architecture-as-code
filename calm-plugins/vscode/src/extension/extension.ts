@@ -269,9 +269,9 @@ async function refreshFromHub(): Promise<void> {
         hubStatusBar.setState('connecting');
         const namespaces = await hubClient.getNamespaces();
         hubStatusBar.setState('connected', namespaces.length);
-        void canvasPanel?.setHubConnection(hubClient);
+        void canvasPanel?.setHubConnection(hubClient, true);
         outputChannel.appendLine(
-            `[INFO] Refreshed from CalmHub — ${namespaces.length} namespace(s)`
+            `[INFO] Refreshed from CalmHub (clean) — ${namespaces.length} namespace(s)`
         );
     } catch (err) {
         hubStatusBar.setState('error');

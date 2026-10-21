@@ -6,7 +6,7 @@ import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
 import { HubClient, HubApiError } from '../services/hub-client';
-import { HubAssetService } from '../services/hub-asset-service';
+import { HubAssetService, type HubNamespace } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
 import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
@@ -102,7 +102,7 @@ export class CanvasPanel {
         });
     }
 
-    async setHubConnection(client?: HubClient): Promise<void> {
+    async setHubConnection(client?: HubClient, forceRefresh = false): Promise<void> {
         if (!client) {
             this.hubClient = undefined;
             this.hubAssetService = undefined;
@@ -120,22 +120,39 @@ export class CanvasPanel {
         this.hubBaseHash = shortHash(client.getBaseUrl());
         this.hubAssetService = new HubAssetService(client);
         this.controlAssetService.setHubClient(client);
+
+        if (forceRefresh) {
+            this.shaCache.clearHub(this.hubBaseHash);
+            this.log.appendLine('[CanvasPanel] Cache cleared for clean refresh');
+        }
+
+        // Phase 1: Load from cache instantly
+        const cached = await this.shaCache.getPalette(this.hubBaseHash) as HubNamespace[] | null;
+        if (cached && cached.length > 0 && !forceRefresh) {
+            this.hubAssetService.loadFromCache(cached);
+            this.log.appendLine(`[CanvasPanel] Loaded ${cached.reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
+            this.sendAssets();
+        }
+
+        // Phase 2: Delta sync from Hub in background
         this.hubRefreshing = true;
         this.postMessage({ type: 'hubLoading', loading: true });
-        this.hubReadyPromise = this.hubAssetService
-            .refresh()
-            .then(() => {
-                this.log.appendLine(
-                    `[CanvasPanel] Hub asset refresh complete: ${this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes`
-                );
+        this.hubReadyPromise = (cached && !forceRefresh
+            ? this.hubAssetService.deltaRefresh()
+            : this.hubAssetService.refresh().then(() => ({ changed: true }))
+        )
+            .then(({ changed }) => {
+                const total = this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
+                this.log.appendLine(`[CanvasPanel] Hub sync complete: ${total} nodes${changed ? ' (updated)' : ' (no changes)'}`);
+                this.shaCache.putPalette(this.hubBaseHash, this.hubAssetService!.getNamespaces());
+                if (changed) this.sendAssets();
             })
             .catch((err) => {
-                this.log.appendLine(`[CanvasPanel] Hub asset refresh failed: ${String(err)}`);
+                this.log.appendLine(`[CanvasPanel] Hub sync failed: ${String(err)}`);
             });
         await this.hubReadyPromise;
         this.hubRefreshing = false;
         this.postMessage({ type: 'hubLoading', loading: false });
-        this.sendAssets();
     }
 
     reveal(document: vscode.TextDocument): void {
@@ -210,6 +227,16 @@ export class CanvasPanel {
                     `[CanvasPanel] Webview ready. scanReady=${this.scanReady}`
                 );
                 this.sendInitialData();
+                // Load Hub cache on ready so palette appears instantly
+                if (this.hubClient && this.hubAssetService && this.hubBaseHash) {
+                    this.shaCache.getPalette(this.hubBaseHash).then((cached) => {
+                        if (cached && this.hubAssetService && this.hubAssetService.getNamespaces().length === 0) {
+                            this.hubAssetService.loadFromCache(cached as HubNamespace[]);
+                            this.log.appendLine(`[CanvasPanel] Webview ready — loaded ${(cached as HubNamespace[]).reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
+                            this.sendAssets();
+                        }
+                    });
+                }
                 if (this.scanReady) {
                     this.sendAssets();
                 }

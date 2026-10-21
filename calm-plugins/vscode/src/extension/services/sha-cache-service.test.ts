@@ -115,4 +115,24 @@ describe('ShaCacheService', () => {
             expect(await service.get('ns-b', 'type', 'slug', 'sha')).toEqual({ from: 'b' });
         });
     });
+
+    describe('palette cache', () => {
+        it('round-trips palette data', async () => {
+            const palette = [{ name: 'ns1', standardNodes: [{ id: 'svc' }] }];
+            await service.putPalette('abc123', palette);
+            const loaded = await service.getPalette('abc123');
+            expect(loaded).toEqual(palette);
+        });
+
+        it('returns null for missing palette', async () => {
+            expect(await service.getPalette('nonexistent')).toBeNull();
+        });
+
+        it('clearHub removes palette and per-standard caches', async () => {
+            await service.putPalette('hub1', [{ name: 'ns' }]);
+            await service.put('hub1', 'standards', 'svc', 'sha1', { controls: {} });
+            service.clearHub('hub1');
+            expect(await service.getPalette('hub1')).toBeNull();
+        });
+    });
 });

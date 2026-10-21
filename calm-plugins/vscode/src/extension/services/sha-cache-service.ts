@@ -53,6 +53,30 @@ export class ShaCacheService {
         return this.cacheDir;
     }
 
+    async getPalette(hubHash: string): Promise<unknown | null> {
+        const filePath = path.join(this.cacheDir, this.sanitizeSegment(hubHash), 'palette.json');
+        try {
+            const content = fs.readFileSync(filePath, 'utf-8');
+            return JSON.parse(content);
+        } catch {
+            return null;
+        }
+    }
+
+    async putPalette(hubHash: string, data: unknown): Promise<void> {
+        const filePath = path.join(this.cacheDir, this.sanitizeSegment(hubHash), 'palette.json');
+        const dir = path.dirname(filePath);
+        fs.mkdirSync(dir, { recursive: true });
+        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+    }
+
+    clearHub(hubHash: string): void {
+        const dir = path.join(this.cacheDir, this.sanitizeSegment(hubHash));
+        try {
+            fs.rmSync(dir, { recursive: true, force: true });
+        } catch { /* ignore */ }
+    }
+
     private sanitizeSegment(segment: string): string {
         return segment.replace(/[^a-zA-Z0-9._-]/g, '_');
     }
