@@ -5,6 +5,57 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.65.0] - 2026-10-21
+
+## [1.65.0](https://github.com/finos/architecture-as-code/compare/cli-v1.64.0...cli-v1.65.0) (2026-10-21)
+
+* Merge branch 'main' into feat/template-bundle-subdirectories ([](https://github.com/finos/architecture-as-code/commit/4b75177af4f51c6367c7e22a7f64084ae1e28c03))
+* Merge branch 'main' into feat/template-bundle-subdirectories ([](https://github.com/finos/architecture-as-code/commit/ef456eae8c633915b1e843dce8cd07a6c6f6901a))
+* Merge branch 'main' into fix/3172-lowercase-type-in-id ([](https://github.com/finos/architecture-as-code/commit/346fb3092279de7cfba14b575fe9f1a4216d7f41))
+* Merge remote-tracking branch 'origin/main' into stack/vscode-hub/04-controls ([](https://github.com/finos/architecture-as-code/commit/28ad8b50fffbcbb5d76dbfcd5cc654a5bb2cd642))
+
+### chore
+
+* **deps:** update dtolnay/rust-toolchain digest to b725eda ([](https://github.com/finos/architecture-as-code/commit/1ed7489306721b92520976db1e9b719b568c2c88))
+* **deps:** update dtolnay/rust-toolchain digest to b725eda ([](https://github.com/finos/architecture-as-code/commit/daa38f64634c3dfec1ab388c4a3d0eb78ce7ceb1))
+* **deps:** update semgrep/semgrep docker digest to 529ee8a ([](https://github.com/finos/architecture-as-code/commit/8fb4de03b290e22750e2a80c497841a9166df567))
+* **deps:** update semgrep/semgrep docker digest to 529ee8a ([](https://github.com/finos/architecture-as-code/commit/5e5a8062c3377b0e3629e32e26aa1e152a72d548))
+
+### feat
+
+* **shared:** load template bundle files from subdirectories ([](https://github.com/finos/architecture-as-code/commit/17435decf3198ade03dcd88d23d6acfe833ad67e))
+* **shared:** load template bundle files from subdirectories ([](https://github.com/finos/architecture-as-code/commit/cbe89b3d4c026fe254e40dcc1cd7b8bfb606e0c5))
+* **vscode:** replace standards/guidelines with structured controls system ([](https://github.com/finos/architecture-as-code/commit/8d90242a33d9c5f2cf4565144cc35cde4d10139d))
+* **vscode:** replace standards/guidelines with structured controls system ([](https://github.com/finos/architecture-as-code/commit/5e6cd5bad76ce4a6c0c7e7b954b9146f5a2807cc))
+
+### fix
+
+* **calm-hub:** write the type segment of a $id in lowercase ([](https://github.com/finos/architecture-as-code/commit/9e288d1020b9d061afc356845068f0a62f2d9549))
+* **calm-hub:** write the type segment of a $id in lowercase ([](https://github.com/finos/architecture-as-code/commit/6fb85a4f8ff0811dbd76f57823a438a9bb4bff91)), closes [#3172](https://github.com/finos/architecture-as-code/issues/3172)
+* **deps:** update vulnerable npm packages in package-lock.json ([](https://github.com/finos/architecture-as-code/commit/917180bbcdf8b3fb78082e2e31f26ce9bf86d3e5))
+* **deps:** update vulnerable npm packages in package-lock.json ([](https://github.com/finos/architecture-as-code/commit/b68cdae13fc4c1454f6ba1d499282f74bd91bc4c))
+* **shared:** load control config documents by type instead of as schemas ([](https://github.com/finos/architecture-as-code/commit/3f685e033064bb9e1d8387689a8aa7bb8c600fb1))
+* **shared:** load control config documents by type instead of as schemas ([](https://github.com/finos/architecture-as-code/commit/4ae1118ee1af99da18c58fc98f759a8716bd273d)), closes [#3216](https://github.com/finos/architecture-as-code/issues/3216)
+* **shared:** skip node_modules and .git when loading template bundles ([](https://github.com/finos/architecture-as-code/commit/5a2bb9197785849aa8fc735c004edcff4b4879c8))
+* **vscode:** address code review findings across extension ([](https://github.com/finos/architecture-as-code/commit/baf1825de4165da22ad0bc0d778fbc42a80d3e93))
+* **vscode:** address critical and major PR #3375 review findings ([](https://github.com/finos/architecture-as-code/commit/c3137998b4a481a05d88116b333d868ac3c0be92)), closes [#3375](https://github.com/finos/architecture-as-code/issues/3375)
+* **vscode:** address PR #3375 review feedback ([](https://github.com/finos/architecture-as-code/commit/6c6d52939bc8316f84642402452f4f95a8bceaa3)), closes [#3375](https://github.com/finos/architecture-as-code/issues/3375)
+* **vscode:** address second-pass code review findings ([](https://github.com/finos/architecture-as-code/commit/a3194fc1cb52238b329831fb45966d315db6d6d6))
+* **vscode:** remove unused imports flagged by linter ([](https://github.com/finos/architecture-as-code/commit/195c4d85639e0f3a2c4e3564a1c772886543857f))
+* **vscode:** use null-safe liveSelectedNode in NodeAppearance defaults ([](https://github.com/finos/architecture-as-code/commit/2dcf793252c3f6f1e6fa409fd199b8d7d586d816))
+
+### refactor
+
+* **vscode:** remove template picker and all template scanning ([](https://github.com/finos/architecture-as-code/commit/3d7fe81103f8170afdaf405507cca1445adbc76f))
+* **vscode:** rename building-blocks to standard-nodes ([](https://github.com/finos/architecture-as-code/commit/4d3791c0750bcf9718fd65d1aafa791d09bcb6cb))
+
+### test
+
+* **calm-hub:** check the lowercase $id for every type and in Nitrite ([](https://github.com/finos/architecture-as-code/commit/a20ab8437c16af5499cbb82af6a7d72e604eb173))
+* **shared:** render a bundle with nested templates and partials ([](https://github.com/finos/architecture-as-code/commit/4493fb762da209e6502101a4eb5fbcda7049bf1b)), closes [#1032](https://github.com/finos/architecture-as-code/issues/1032)
+* **vscode:** add tests for calm-parser, canvas-store, ControlsList, ([](https://github.com/finos/architecture-as-code/commit/3593cbfd648989f507845d58495f126edd6e9675))
+* **vscode:** add tests for ControlCreator and ControlPicker ([](https://github.com/finos/architecture-as-code/commit/28d1a02e3f291b5132d634000ec04a82b9c222bb))
+
 ## [1.64.0] - 2026-10-19
 
 ## [1.64.0](https://github.com/finos/architecture-as-code/compare/cli-v1.63.0...cli-v1.64.0) (2026-10-19)
