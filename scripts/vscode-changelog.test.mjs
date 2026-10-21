@@ -109,6 +109,27 @@ describe('generateChangelog', () => {
         assert.doesNotMatch(changelog, /Free text PR title/);
     });
 
+    it('lists a change once when a free-text PR holds it twice', async () => {
+        mergeBranch('nested', 'Another free-text title', 'fix(vscode): repeated fix', 'fix(vscode): repeated fix');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.equal(changelog.match(/repeated fix/g)?.length, 1, changelog);
+    });
+
+    it('keeps changes that share a subject but not a scope', async () => {
+        mergeBranch('scopes', 'Free text with two scopes', 'fix(shared): same subject', 'fix(vscode): same subject');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.match(changelog, /\*\*shared:\*\* same subject/);
+        assert.match(changelog, /\*\*vscode:\*\* same subject/);
+    });
+
+    it('keeps separate PRs that share a title', async () => {
+        mergeBranch('same-a', 'fix(vscode): shared title', 'x');
+        mergeBranch('same-bb', 'fix(vscode): shared title', 'y');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.match(changelog, /shared title \(\[#6\]/);
+        assert.match(changelog, /shared title \(\[#7\]/);
+    });
+
     it('leaves out other paths, dependency updates, repo-wide docs and chores', async () => {
         const changelog = await generateChangelog(repo, '2026-01-02');
         for (const hidden of ['outside the extension', 'update a dependency', 'repo-wide guide', 'bump version']) {

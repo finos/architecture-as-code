@@ -108,6 +108,28 @@ export function keep(commit) {
     return Boolean(commit.scope) || UNSCOPED_TYPES.includes(commit.type) || commit.notes.length > 0;
 }
 
+// A PR's branch can hold the same change twice, e.g. a commit and the squash of a nested PR.
+// Separate PRs can share a subject, so never drop an entry that links its PR.
+function finalizeContext(context) {
+    const prLink = / \(\[#\d+\]\([^)]*\)\)$/;
+    for (const group of context.commitGroups) {
+        const linked = group.commits.filter(commit => prLink.test(commit.subject ?? ''));
+        const key = commit => `${commit.scope}:${(commit.subject ?? '').replace(prLink, '')}`;
+        const seen = new Set(linked.map(key));
+        group.commits = group.commits.filter(commit => {
+            if (linked.includes(commit)) {
+                return true;
+            }
+            if (seen.has(key(commit))) {
+                return false;
+            }
+            seen.add(key(commit));
+            return true;
+        });
+    }
+    return context;
+}
+
 /** Markdown for one release, in the CLI changelog format. */
 export async function renderRelease(release, previous, commits) {
     const preset = await createPreset(presetConfig);
@@ -129,7 +151,7 @@ export async function renderRelease(release, previous, commits) {
         currentTag: `${TAG_PREFIX}${release.version}`,
         linkCompare: Boolean(previous),
     };
-    const markdown = (await writeChangelogString(commits, context, { ...preset.writer, transform })).trim();
+    const markdown = (await writeChangelogString(commits, context, { ...preset.writer, transform, finalizeContext })).trim();
     return markdown.includes('\n') ? markdown : `${markdown}\n\n${NO_CHANGES}`;
 }
 
