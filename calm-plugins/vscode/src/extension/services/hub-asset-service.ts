@@ -32,52 +32,54 @@ export class HubAssetService {
             try {
                 const blocks = await this.client.getResources(
                     ns.name,
-                    'building-blocks'
+                    'standards'
                 );
                 const versionResults = await Promise.all(
                     blocks.map((block) =>
                         this.client
-                            .getVersions(ns.name, 'building-blocks', block.uniqueId)
+                            .getVersions(ns.name, 'standards', String(block.numericId))
                             .then((versions) => ({ block, versions }))
                             .catch(() => ({ block, versions: [] as string[] }))
                     )
                 );
-                for (const { block, versions } of versionResults) {
-                    const latestSha =
-                        versions.length > 0
-                            ? versions[versions.length - 1]
-                            : undefined;
-                    // Fetch content to get the actual node-type and display name
-                    let nodeType = 'service';
-                    let displayName = block.name || humanize(block.uniqueId);
-                    if (latestSha) {
-                        try {
-                            const content = await this.client.getResourceAtVersion(
-                                ns.name, 'building-blocks', block.uniqueId, latestSha
-                            ) as Record<string, unknown>;
-                            const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
-                            if (nodes?.[0]?.['node-type']) {
-                                nodeType = nodes[0]['node-type'] as string;
-                            }
-                            if (nodes?.[0]?.name) {
-                                displayName = nodes[0].name as string;
-                            } else if (content?.title) {
-                                displayName = content.title as string;
-                            }
-                        } catch { /* fallback */ }
-                    }
+                const contentResults = await Promise.all(
+                    versionResults.map(async ({ block, versions }) => {
+                        const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
+                        let nodeType = 'service';
+                        let displayName = block.name || humanize(block.uniqueId);
+                        let controls: Record<string, unknown> = {};
+                        if (latestSha) {
+                            try {
+                                const content = await this.client.getResourceAtVersion(
+                                    ns.name, 'standards', String(block.numericId), latestSha
+                                ) as Record<string, unknown>;
+                                const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
+                                if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
+                                if (nodes?.[0]?.name) displayName = nodes[0].name as string;
+                                else if (content?.title) displayName = content.title as string;
+                                if (nodes?.[0]?.controls && typeof nodes[0].controls === 'object') {
+                                    controls = nodes[0].controls as Record<string, unknown>;
+                                    await this.pinControlVersions(controls);
+                                }
+                            } catch { /* fallback */ }
+                        }
+                        return { block, latestSha, nodeType, displayName, controls };
+                    })
+                );
+                for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
                     namespace.standardNodes.push({
                         id: block.uniqueId,
                         name: displayName,
                         behaviour: 'create-node',
-                        controls: {},
+                        controls,
                         nodeType,
                         namespace: ns.name,
                         sha: latestSha,
+                        hubId: block.numericId,
                     });
                 }
             } catch {
-                /* namespace may not have building-blocks */
+                /* namespace may not have standard-nodes */
             }
 
             try {
@@ -156,6 +158,33 @@ export class HubAssetService {
     getAllAdrs(selectedNamespaces: string[]): AdrEntry[] {
         const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
         return filtered.flatMap((ns) => ns.adrs);
+    }
+
+    private async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
+        const tasks: Array<{ req: Record<string, unknown>; url: string }> = [];
+        for (const ctrl of Object.values(controls)) {
+            if (!ctrl || typeof ctrl !== 'object') continue;
+            const c = ctrl as Record<string, unknown>;
+            const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
+            if (!reqs) continue;
+            for (const req of reqs) {
+                const url = req['requirement-url'];
+                if (typeof url !== 'string' || !url.includes(':controls:') || url.includes('@')) continue;
+                const parts = url.split(':');
+                if (parts.length !== 3 || parts[1] !== 'controls') continue;
+                tasks.push({ req, url });
+            }
+        }
+        await Promise.all(tasks.map(async ({ req, url }) => {
+            try {
+                const [domain, , controlName] = url.split(':');
+                const resolved = await this.client.resolveControlId(domain, controlName);
+                const versions = await this.client.getRequirementVersions(resolved.domain, resolved.id);
+                if (versions.length > 0) {
+                    req['requirement-url'] = `${url}@${versions[versions.length - 1]}`;
+                }
+            } catch { /* keep unversioned */ }
+        }));
     }
 }
 

@@ -1,5 +1,5 @@
 /**
- * Solution metadata surfaced when drilling into a governed building block that
+ * Solution metadata surfaced when drilling into a governed standard node that
  * links to a CALM solution. Shape matches calm-hub-ui's
  * `visualizer/contracts/editor-contracts.ts` `SolutionMetadata` so the two
  * editors stay protocol-compatible.
@@ -36,6 +36,7 @@ export type ExtToWebviewMessage =
           json: string;
           source: 'file' | 'ai' | 'text-editor' | 'import';
       }
+    | { type: 'hubLoading'; loading: boolean }
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'standardNodesLoaded'; nodes: unknown[] }
     | { type: 'adrsLoaded'; adrs: AdrEntry[] }

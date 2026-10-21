@@ -1,4 +1,4 @@
-// Pure builder for governed standard-node ("building block") CALM documents.
+// Pure builder for governed standard-node ("standard node") CALM documents.
 // Extracted from StandardNodeCreator so the authoring logic can be unit-tested
 // without rendering the React component.
 
@@ -30,7 +30,7 @@ export { generateId };
  * Build a CALM document (plus its target file name) for a governed building
  * block. Each attached control is emitted as a slim reference — just
  * `requirement-url` (CURIE or local path) and description. Config is filled
- * in when the building block is instantiated on a node.
+ * in when the standard node is instantiated on a node.
  */
 export function buildStandardNodeDoc(
     input: StandardNodeInput

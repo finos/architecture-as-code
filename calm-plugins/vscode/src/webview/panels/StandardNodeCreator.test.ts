@@ -3,7 +3,7 @@ import { buildStandardNodeDoc } from './standard-node-doc';
 import { makeControlMapKey } from '../../extension/services/control-curie';
 
 describe('StandardNodeCreator integration', () => {
-    it('produces valid building block JSON via buildStandardNodeDoc', () => {
+    it('produces valid standard node JSON via buildStandardNodeDoc', () => {
         const { json, fileName } = buildStandardNodeDoc({
             name: 'API Gateway',
             nodeType: 'service',
@@ -17,7 +17,7 @@ describe('StandardNodeCreator integration', () => {
         expect(doc.nodes[0]['node-type']).toBe('service');
     });
 
-    it('includes controls in building block', () => {
+    it('includes controls in standard node', () => {
         const { json } = buildStandardNodeDoc({
             name: 'Secure Service',
             nodeType: 'service',

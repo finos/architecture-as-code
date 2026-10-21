@@ -13,13 +13,15 @@ interface StandardNode {
     description?: string;
     namespace?: string;
     sha?: string;
+    hubId?: number;
 }
 
 interface NodePaletteProps {
     standardNodes: StandardNode[];
+    hubLoading?: boolean;
 }
 
-export function NodePalette({ standardNodes }: NodePaletteProps) {
+export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, hub: false });
 
@@ -156,44 +158,24 @@ export function NodePalette({ standardNodes }: NodePaletteProps) {
                 </Section>
             )}
 
+            {/* Hub Loading */}
+            {hubLoading && (
+                <div style={{ padding: '6px 12px', fontSize: '11px', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid var(--calm-border)' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', border: '2px solid #4caf50', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    Loading Standard Nodes from Hub...
+                </div>
+            )}
+
             {/* Hub Namespaces */}
             {filteredHub.length > 0 && (
                 <Section title={`HUB (${hubNodes.length})`} collapsed={!isSearching && collapsed.hub} onToggle={() => toggleSection('hub')} badge="Hub">
-                    {filteredHub.map((group) => {
-                        const blocks = group.items.filter((n) => n.behaviour === 'create-node');
-                        const standards = group.items.filter((n) => n.behaviour === 'apply-controls-on-drop');
-                        return (
-                            <CollapsibleSub key={group.name} label={`${humanizeNs(group.name)} (${group.items.length})`} color="#2e7d32">
-                                {blocks.length > 0 && (
-                                    <CollapsibleSub key={`${group.name}-blocks`} label={`Building Blocks (${blocks.length})`} color="#4caf50">
-                                        {blocks.map((node) => (
-                                            <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubBlockIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
-                                        ))}
-                                    </CollapsibleSub>
-                                )}
-                                {(() => {
-                                    const stdOnly = standards.filter((n) => !n.name.toLowerCase().includes('guideline'));
-                                    const guideOnly = standards.filter((n) => n.name.toLowerCase().includes('guideline'));
-                                    return (<>
-                                        {stdOnly.length > 0 && (
-                                            <CollapsibleSub key={`${group.name}-standards`} label={`Standards (${stdOnly.length})`} color="#66bb6a">
-                                                {stdOnly.map((node) => (
-                                                    <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubStandardIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
-                                                ))}
-                                            </CollapsibleSub>
-                                        )}
-                                        {guideOnly.length > 0 && (
-                                            <CollapsibleSub key={`${group.name}-guidelines`} label={`Guidelines (${guideOnly.length})`} color="#81c784">
-                                                {guideOnly.map((node) => (
-                                                    <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubStandardIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
-                                                ))}
-                                            </CollapsibleSub>
-                                        )}
-                                    </>);
-                                })()}
-                            </CollapsibleSub>
-                        );
-                    })}
+                    {filteredHub.map((group) => (
+                        <CollapsibleSub key={group.name} label={`${humanizeNs(group.name)} — Standard Nodes (${group.items.length})`} color="#2e7d32">
+                            {group.items.map((node) => (
+                                <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubBlockIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
+                            ))}
+                        </CollapsibleSub>
+                    ))}
                 </Section>
             )}
 
@@ -266,7 +248,6 @@ function PaletteItem({ icon, iconHtml, label, onDragStart, title }: { icon?: str
 
 const hubIconSvg = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19.35 10.04A7.49 7.49 0 0 0 12 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 0 0 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>';
 const hubBlockIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
-const hubStandardIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#66bb6a" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>';
 
 function humanizeNs(slug: string): string {
     return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

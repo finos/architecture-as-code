@@ -232,3 +232,7 @@
 .fid-menu-item:hover {
     background: var(--calm-hover);
 }
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}

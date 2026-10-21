@@ -22,19 +22,19 @@ describe('HubAssetService', () => {
     });
 
     describe('refresh', () => {
-        it('fetches building blocks for each namespace', async () => {
+        it('fetches standard nodes for each namespace', async () => {
             (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
                 { name: 'finos' },
                 { name: 'acme' },
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (ns: string, type: string) => {
-                    if (ns === 'finos' && type === 'building-blocks') {
+                    if (ns === 'finos' && type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: 'microservice', name: 'Microservice', numericId: 1 },
                         ]);
                     }
-                    if (ns === 'acme' && type === 'building-blocks') {
+                    if (ns === 'acme' && type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: 'api-gateway', name: 'API Gateway', numericId: 3 },
                         ]);
@@ -88,7 +88,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'building-blocks') {
+                    if (type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
@@ -113,7 +113,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'building-blocks') {
+                    if (type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
@@ -155,7 +155,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (ns: string, type: string) => {
-                    if (type === 'building-blocks') {
+                    if (type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: `${ns}-block`, name: `${ns} Block`, numericId: 1 },
                         ]);
@@ -314,7 +314,7 @@ describe('HubAssetService', () => {
             ]);
             (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
                 (_ns: string, type: string) => {
-                    if (type === 'building-blocks') {
+                    if (type === 'standards') {
                         return Promise.resolve([
                             { uniqueId: 'svc', name: 'Service', numericId: 1 },
                         ]);
@@ -331,6 +331,89 @@ describe('HubAssetService', () => {
 
             expect(namespaces[0].adrs).toHaveLength(0);
             expect(namespaces[0].standardNodes).toHaveLength(1);
+        });
+    });
+
+    describe('controls extraction and version pinning', () => {
+        it('extracts controls from the fetched standard content', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Service', numericId: 1 }]);
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                nodes: [{
+                    'node-type': 'service',
+                    name: 'My Service',
+                    controls: {
+                        'encryption': {
+                            description: 'Encryption',
+                            requirements: [{ 'requirement-url': 'domain:controls:encrypt' }],
+                        },
+                    },
+                }],
+            });
+            // resolveControlId and getRequirementVersions for version pinning
+            (mockClient as any).resolveControlId = vi.fn().mockResolvedValue({ id: 10, domain: 'domain' });
+            (mockClient as any).getRequirementVersions = vi.fn().mockResolvedValue(['v1', 'v2']);
+
+            const namespaces = await service.refresh();
+            const controls = namespaces[0].standardNodes[0].controls as Record<string, any>;
+
+            expect(controls.encryption).toBeDefined();
+            expect(controls.encryption.requirements[0]['requirement-url']).toBe('domain:controls:encrypt@v2');
+        });
+
+        it('keeps unversioned CURIE when version lookup fails', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                nodes: [{
+                    'node-type': 'service',
+                    controls: {
+                        'ctrl': { requirements: [{ 'requirement-url': 'domain:controls:x' }] },
+                    },
+                }],
+            });
+            (mockClient as any).resolveControlId = vi.fn().mockRejectedValue(new Error('not found'));
+
+            const namespaces = await service.refresh();
+            const controls = namespaces[0].standardNodes[0].controls as Record<string, any>;
+            expect(controls.ctrl.requirements[0]['requirement-url']).toBe('domain:controls:x');
+        });
+
+        it('skips already-versioned CURIEs', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                nodes: [{
+                    'node-type': 'service',
+                    controls: {
+                        'ctrl': { requirements: [{ 'requirement-url': 'domain:controls:x@v1' }] },
+                    },
+                }],
+            });
+            (mockClient as any).resolveControlId = vi.fn();
+
+            const namespaces = await service.refresh();
+            const controls = namespaces[0].standardNodes[0].controls as Record<string, any>;
+            expect(controls.ctrl.requirements[0]['requirement-url']).toBe('domain:controls:x@v1');
+            expect((mockClient as any).resolveControlId).not.toHaveBeenCalled();
         });
     });
 });

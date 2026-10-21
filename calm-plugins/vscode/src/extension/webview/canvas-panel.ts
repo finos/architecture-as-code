@@ -60,6 +60,7 @@ export class CanvasPanel {
     private disposed = false;
     private scanReady = false;
     private webviewReady = false;
+    private hubRefreshing = false;
     /** Resolves once the initial local asset scan completes. */
     private scanReadyPromise: Promise<void> = Promise.resolve();
     private hubReadyPromise: Promise<void> = new Promise<void>(() => {});
@@ -106,8 +107,10 @@ export class CanvasPanel {
             this.hubClient = undefined;
             this.hubAssetService = undefined;
             this.hubBaseHash = '';
+            this.hubRefreshing = false;
             this.controlAssetService.setHubClient(undefined);
             this.hubReadyPromise = new Promise<void>(() => {});
+            this.postMessage({ type: 'hubLoading', loading: false });
             this.log.appendLine('[CanvasPanel] Hub connection cleared');
             this.sendAssets();
             return;
@@ -117,6 +120,8 @@ export class CanvasPanel {
         this.hubBaseHash = shortHash(client.getBaseUrl());
         this.hubAssetService = new HubAssetService(client);
         this.controlAssetService.setHubClient(client);
+        this.hubRefreshing = true;
+        this.postMessage({ type: 'hubLoading', loading: true });
         this.hubReadyPromise = this.hubAssetService
             .refresh()
             .then(() => {
@@ -128,6 +133,8 @@ export class CanvasPanel {
                 this.log.appendLine(`[CanvasPanel] Hub asset refresh failed: ${String(err)}`);
             });
         await this.hubReadyPromise;
+        this.hubRefreshing = false;
+        this.postMessage({ type: 'hubLoading', loading: false });
         this.sendAssets();
     }
 
@@ -205,6 +212,9 @@ export class CanvasPanel {
                 this.sendInitialData();
                 if (this.scanReady) {
                     this.sendAssets();
+                }
+                if (this.hubRefreshing) {
+                    this.postMessage({ type: 'hubLoading', loading: true });
                 }
                 break;
             case 'canvasChanged':
@@ -488,7 +498,7 @@ export class CanvasPanel {
 
         const writePath = resolveSafeWritePath(`standard-nodes/${filename}`, workspaceFolder.uri.fsPath);
         if (!writePath) {
-            vscode.window.showErrorMessage(`Invalid building block filename: ${filename}`);
+            vscode.window.showErrorMessage(`Invalid standard node filename: ${filename}`);
             return;
         }
         const fileUri = vscode.Uri.file(writePath);
@@ -509,7 +519,7 @@ export class CanvasPanel {
             Buffer.from(content, 'utf-8')
         );
         vscode.window.showInformationMessage(
-            `Building block saved: standard-nodes/${filename}`
+            `Standard node saved: standard-nodes/${filename}`
         );
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
@@ -732,11 +742,31 @@ export class CanvasPanel {
                 return;
             }
 
+            // Hub resolution: fetch the requirement schema from Hub
+            if (this.hubClient) {
+                try {
+                    const resolved = await this.hubClient.resolveControlId(parts.domain, parts.controlName);
+                    const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
+                    const version = parts.version ?? (versions.length > 0 ? versions[versions.length - 1] : undefined);
+                    if (version) {
+                        const schema = await this.hubClient.getRequirementAtVersion(resolved.domain, resolved.id, version);
+                        if (schema && typeof schema === 'object') {
+                            const fallback = { controlId: parts.controlName, name: parts.controlName, description: parts.controlName };
+                            const result = parseRequirementSchema(schema as Record<string, unknown>, fallback);
+                            this.postResolve(requestId, result);
+                            return;
+                        }
+                    }
+                } catch { /* fall through to error */ }
+            }
+
             this.postMessage({
                 type: 'controlResolveResult',
                 requestId,
                 ok: false,
-                error: `Control "${parts.controlName}" not found locally (Hub not connected)`,
+                error: this.hubClient
+                    ? `Control "${parts.controlName}" not found in domain "${parts.domain}"`
+                    : `Control "${parts.controlName}" not found locally (Hub not connected)`,
             });
         } catch (err) {
             this.postMessage({
@@ -927,8 +957,37 @@ export class CanvasPanel {
         const baseUrl = this.hubClient.getBaseUrl();
         const parsed = parseControlCurie(ref) ?? parseCanonicalControlUrl(ref);
         if (parsed) {
-            const url = `${baseUrl}/calm/domains/${encodeURIComponent(parsed.domain)}/controls/${encodeURIComponent(parsed.controlName)}`;
-            vscode.env.openExternal(vscode.Uri.parse(url));
+            try {
+                const resolved = await this.hubClient.resolveControlId(parsed.domain, parsed.controlName);
+                const url = `${baseUrl}/#/${encodeURIComponent(resolved.domain)}/controls/${resolved.id}/detail`;
+                vscode.env.openExternal(vscode.Uri.parse(url));
+            } catch {
+                const url = `${baseUrl}/#/domain/${encodeURIComponent(parsed.domain)}`;
+                vscode.env.openExternal(vscode.Uri.parse(url));
+            }
+        }
+    }
+
+    private async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
+        if (!this.hubClient) return;
+        for (const ctrl of Object.values(controls)) {
+            if (!ctrl || typeof ctrl !== 'object') continue;
+            const c = ctrl as Record<string, unknown>;
+            const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
+            if (!reqs) continue;
+            for (const req of reqs) {
+                const url = req['requirement-url'];
+                if (typeof url !== 'string' || !url.includes(':controls:') || url.includes('@')) continue;
+                const parsed = parseControlCurie(url);
+                if (!parsed) continue;
+                try {
+                    const resolved = await this.hubClient.resolveControlId(parsed.domain, parsed.controlName);
+                    const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
+                    if (versions.length > 0) {
+                        req['requirement-url'] = `${url}@${versions[versions.length - 1]}`;
+                    }
+                } catch { /* keep unversioned */ }
+            }
         }
     }
 
@@ -939,29 +998,47 @@ export class CanvasPanel {
         }
         try {
             await this.hubReadyPromise;
-            const parts = parseControlCurie(curie);
-            if (!parts) {
+            const atIdx = curie.lastIndexOf('@');
+            if (atIdx === -1) {
+                this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `CURIE missing version: ${curie}` });
+                return;
+            }
+            const version = curie.slice(atIdx + 1);
+            const head = atIdx === -1 ? curie : curie.slice(0, atIdx);
+            const segments = head.split(':');
+            if (segments.length < 3) {
                 this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `Invalid CURIE: ${curie}` });
                 return;
             }
-            const version = parts.version ?? 'latest';
-            const doc = await this.hubClient.getResourceAtVersion(
-                parts.domain,
-                'building-blocks',
-                parts.controlName,
-                version
-            ) as Record<string, unknown>;
-            const nodes = (doc.nodes as Array<Record<string, unknown>>) ?? [];
-            const node = nodes[0];
-            const controls = (node?.controls as Record<string, unknown>) ?? {};
-            this.postMessage({ type: 'definitionResolved', nodeId, controls });
-            this.shaCache.put(curie, JSON.stringify(controls));
-        } catch (err) {
-            const cached = this.shaCache.get(curie);
+            const [namespace, , resourceName] = segments;
+
+            // Cache first — SHA-based versions are immutable, so cached data is always valid.
+            const cached = await this.shaCache.get(namespace, 'standards', resourceName, version);
             if (cached) {
-                this.postMessage({ type: 'definitionResolved', nodeId, controls: JSON.parse(cached) });
+                this.postMessage({ type: 'definitionResolved', nodeId, controls: cached as Record<string, unknown> });
                 return;
             }
+
+            // Look up the numeric Hub ID from the cached namespace data
+            let numericId: string = resourceName;
+            if (this.hubAssetService) {
+                const ns = this.hubAssetService.getNamespaces().find(n => n.name === namespace);
+                const match = ns?.standardNodes.find(sn => sn.id === resourceName);
+                if (match?.hubId) numericId = String(match.hubId);
+            }
+            const doc = await this.hubClient.getResourceAtVersion(
+                namespace,
+                'standards',
+                numericId,
+                version
+            ) as Record<string, unknown>;
+            const docNodes = (doc.nodes as Array<Record<string, unknown>>) ?? [];
+            const docNode = docNodes[0];
+            const controls = (docNode?.controls as Record<string, unknown>) ?? {};
+            await this.pinControlVersions(controls);
+            this.postMessage({ type: 'definitionResolved', nodeId, controls });
+            this.shaCache.put(namespace, 'standards', resourceName, version, controls);
+        } catch (err) {
             this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
         }
     }

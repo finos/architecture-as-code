@@ -24,13 +24,13 @@ are sent back to the canvas.
 - **Visual editing:** add nodes from the palette, connect them, and edit node
   and relationship properties.
 - **Navigation:** pan, zoom, inspect selected elements, and drill into referenced
-  building blocks with breadcrumb navigation.
+  standard nodes with breadcrumb navigation.
 - **Layout:** choose top-to-bottom or left-to-right automatic layout from the
   canvas toolbar.
 - **Validation:** click **Validate** to check the model against the bundled CALM
   schema and semantic rules. Review the results in the canvas validation panel.
-- **Reusable assets:** load building blocks, patterns, templates, standards,
-  and guidelines from the workspace or an external assets folder.
+- **Reusable assets:** load standard nodes, patterns, and controls
+  from the workspace, an external assets folder, or CALM Hub.
 - **SVG export:** click **Export SVG** in the canvas toolbar and choose a file
   in the VS Code save dialog.
 

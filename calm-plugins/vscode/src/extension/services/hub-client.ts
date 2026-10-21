@@ -117,14 +117,14 @@ export class HubClient {
         type: string
     ): Promise<ResourceSummary[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}`
         );
         const data = await res.json();
         const raw = this.unwrapValues<Record<string, unknown>>(data);
         return raw.map((item) => ({
             name: (item.name as string) || (item.customId as string) || '',
             uniqueId: (item.uniqueId as string) || (item.customId as string) || '',
-            numericId: (item.numericId as number) || 0,
+            numericId: (item.id as number) || (item.numericId as number) || 0,
             versionCount: item.versionCount as number | undefined,
         }));
     }
@@ -135,7 +135,7 @@ export class HubClient {
         name: string
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
         );
         const data = await res.json();
         return this.unwrapValues(data);
@@ -148,7 +148,7 @@ export class HubClient {
         version: string
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
         );
         return res.json();
     }

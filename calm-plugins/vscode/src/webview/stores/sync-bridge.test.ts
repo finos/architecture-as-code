@@ -13,6 +13,7 @@ let listeners: Array<(e: { data: unknown }) => void>;
 
 import {
     initBridge,
+    setHubLoadingCallback,
     requestControlBrowse,
     requestControlsForDomain,
     requestControlVersions,
@@ -135,5 +136,16 @@ describe('timeout cleanup', () => {
         expect(cb).not.toHaveBeenCalled();
         dispatch({ type: 'saveControlResult', requestId, ok: true });
         expect(cb).toHaveBeenCalledWith({ ok: true });
+    });
+});
+
+describe('hubLoading callback', () => {
+    it('dispatches hubLoading messages to the registered callback', () => {
+        const cb = vi.fn();
+        setHubLoadingCallback(cb);
+        dispatch({ type: 'hubLoading', loading: true });
+        expect(cb).toHaveBeenCalledWith(true);
+        dispatch({ type: 'hubLoading', loading: false });
+        expect(cb).toHaveBeenCalledWith(false);
     });
 });

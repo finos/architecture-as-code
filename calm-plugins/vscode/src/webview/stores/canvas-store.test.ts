@@ -92,4 +92,15 @@ describe('canvas-store', () => {
         ]);
         expect(useCanvasStore.getState().availableUpdates).toHaveLength(1);
     });
+
+    it('hubLoading defaults to false', () => {
+        expect(useCanvasStore.getState().hubLoading).toBe(false);
+    });
+
+    it('setHubLoading toggles loading state', () => {
+        useCanvasStore.getState().setHubLoading(true);
+        expect(useCanvasStore.getState().hubLoading).toBe(true);
+        useCanvasStore.getState().setHubLoading(false);
+        expect(useCanvasStore.getState().hubLoading).toBe(false);
+    });
 });

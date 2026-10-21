@@ -52,6 +52,9 @@ let definitionResolvedCallback: DefinitionResolvedCallback | undefined;
 let definitionResolutionFailedCallback: DefinitionResolutionFailedCallback | undefined;
 let updatesAvailableCallback: UpdatesAvailableCallback | undefined;
 
+type HubLoadingCallback = (loading: boolean) => void;
+let hubLoadingCallback: HubLoadingCallback | undefined;
+
 type ControlsChangedCallback = () => void;
 let controlsChangedCallback: ControlsChangedCallback | undefined;
 
@@ -119,6 +122,10 @@ export function setUpdatesAvailableCallback(
     updatesAvailableCallback = cb;
 }
 
+export function setHubLoadingCallback(cb: HubLoadingCallback): void {
+    hubLoadingCallback = cb;
+}
+
 export function setControlsChangedCallback(cb: ControlsChangedCallback): void {
     controlsChangedCallback = cb;
 }
@@ -134,6 +141,9 @@ export function initBridge(): void {
                     break;
                 case 'patternsLoaded':
                     patternsLoadedCallback?.(msg.patterns);
+                    break;
+                case 'hubLoading':
+                    hubLoadingCallback?.(msg.loading);
                     break;
                 case 'standardNodesLoaded':
                     standardNodesLoadedCallback?.(msg.nodes);

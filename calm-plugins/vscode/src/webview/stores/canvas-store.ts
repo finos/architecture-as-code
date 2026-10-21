@@ -37,6 +37,7 @@ export interface CanvasState {
     standardNodes: unknown[];
     loadedPatterns: unknown[];
     availableUpdates: UpdateInfo[];
+    hubLoading: boolean;
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -53,6 +54,7 @@ export interface CanvasState {
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
     setAvailableUpdates: (updates: UpdateInfo[]) => void;
+    setHubLoading: (loading: boolean) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -71,6 +73,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     standardNodes: [],
     loadedPatterns: [],
     availableUpdates: [],
+    hubLoading: false,
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -88,4 +91,5 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
     setAvailableUpdates: (updates) => set({ availableUpdates: updates }),
+    setHubLoading: (loading) => set({ hubLoading: loading }),
 }));
