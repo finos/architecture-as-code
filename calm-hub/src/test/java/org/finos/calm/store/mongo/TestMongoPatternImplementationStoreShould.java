@@ -5,6 +5,8 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import org.bson.BsonDocument;
+import org.bson.BsonRegularExpression;
+import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 import org.finos.calm.store.ArchitectureSchema;
@@ -19,6 +21,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 import static com.mongodb.MongoClientSettings.getDefaultCodecRegistry;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -89,7 +92,7 @@ class TestMongoPatternImplementationStoreShould {
     }
 
     private List<ArchitectureSchema> find(Optional<Set<String>> readableNamespaces) {
-        return store.findSchemasContaining(PatternReferenceMatcher.pathPattern("finos", "api-gateway"), readableNamespaces);
+        return store.findSchemasContaining(PatternReferenceMatcher.of("finos", "api-gateway").path(), readableNamespaces);
     }
 
     private String renderedFilter() {
@@ -131,16 +134,33 @@ class TestMongoPatternImplementationStoreShould {
     }
 
     @Test
-    void filter_on_the_quoted_path_of_the_schema_and_never_the_host() {
+    void filter_the_schema_on_the_pattern_path_with_the_type_in_any_case_and_never_the_host() {
         stubFind(List.of());
 
         find(Optional.empty());
 
         String rendered = renderedFilter();
-        assertTrue(rendered.contains("content.$schema"), rendered);
-        assertTrue(rendered.contains("\\\\Q/calm/namespaces/finos/\\\\E(?i:patterns)\\\\Q/api-gateway/versions/\\\\E"),
-                "expected a quoted path with the type in any case, got: " + rendered);
         assertFalse(rendered.contains("http"), "the host must not appear in the filter: " + rendered);
+        Pattern schemaFilter = schemaFilter();
+        assertTrue(schemaFilter.matcher("https://h/calm/namespaces/finos/patterns/api-gateway/versions/1.0.0").find());
+        assertTrue(schemaFilter.matcher("https://h/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0").find());
+        assertFalse(schemaFilter.matcher("https://h/calm/namespaces/finos/patterns/other/versions/1.0.0").find());
+        assertFalse(schemaFilter.matcher("https://h/calm/namespaces/other/patterns/api-gateway/versions/1.0.0").find());
+        assertFalse(schemaFilter.matcher("https://h/calm/namespaces/finosXcalm/patterns/api-gateway/versions/1.0.0").find());
+    }
+
+    /** The regex that the filter applies to {@code content.$schema}. */
+    private Pattern schemaFilter() {
+        ArgumentCaptor<Bson> filter = ArgumentCaptor.forClass(Bson.class);
+        verify(architectureVersions).find(filter.capture());
+        BsonDocument rendered = filter.getValue().toBsonDocument(BsonDocument.class, getDefaultCodecRegistry());
+        BsonRegularExpression regex = rendered.getArray("$and").stream()
+                .map(BsonValue::asDocument)
+                .filter(clause -> clause.containsKey("content.$schema"))
+                .findFirst()
+                .orElseThrow()
+                .getRegularExpression("content.$schema");
+        return Pattern.compile(regex.getPattern());
     }
 
     @Test

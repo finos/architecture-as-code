@@ -91,7 +91,7 @@ class TestPatternImplementationsEndpointShould {
 
     /** A compiled pattern has no equals, so compare its source with the one the matcher builds. */
     private static java.util.regex.Pattern isTheApiGatewayPath() {
-        String expected = PatternReferenceMatcher.pathPattern("finos", "api-gateway").pattern();
+        String expected = PatternReferenceMatcher.of("finos", "api-gateway").path().pattern();
         return argThat(path -> path != null && path.pattern().equals(expected));
     }
 

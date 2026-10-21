@@ -22,40 +22,39 @@ import java.util.regex.Pattern;
  * therefore read {@code 1.0.0}, {@code 1-0-0} or {@code 100} for the same version, and a caller can
  * ask with any of them.</p>
  *
- * <p>The type segment is matched in any case. Before CALM Hub wrote it in lowercase (#3355), it
- * copied the caller's spelling, for example {@code Patterns}, into the pattern's {@code $id}, and
- * {@code calm generate} copied that into {@code $schema}. The namespace and the name must match
- * exactly, as they must in the API.</p>
+ * <p>The type segment is matched in any case, because a pattern {@code $id} written before #3355
+ * can spell it {@code Patterns}, and {@code calm generate} copies the {@code $id} into
+ * {@code $schema}. The namespace and the name must match exactly, as they must in the API.</p>
  */
 public final class PatternReferenceMatcher {
 
-    private PatternReferenceMatcher() {
+    private final Pattern path;
+    private final Pattern lastPath;
+
+    private PatternReferenceMatcher(Pattern path) {
+        this.path = path;
+        this.lastPath = Pattern.compile("(?s).*" + path.pattern());
+    }
+
+    public static PatternReferenceMatcher of(String namespace, String name) {
+        return new PatternReferenceMatcher(Pattern.compile(Pattern.quote("/calm/namespaces/" + namespace + "/")
+                + "(?i:patterns)" + Pattern.quote("/" + name + "/versions/")));
     }
 
     /** Matches the path that every reference to any version of this pattern contains. */
-    public static Pattern pathPattern(String namespace, String name) {
-        return Pattern.compile(Pattern.quote("/calm/namespaces/" + namespace + "/") + "(?i:patterns)"
-                + Pattern.quote("/" + name + "/versions/"));
+    public Pattern path() {
+        return path;
     }
 
-    /**
-     * True when {@code schema} names this pattern version, in any spelling of the version.
-     *
-     * @param path from {@link #pathPattern}
-     */
-    public static boolean references(String schema, Pattern path, String version) {
+    /** True when {@code schema} names this pattern version, in any spelling of the version. */
+    public boolean references(String schema, String version) {
         if (schema == null) {
             return false;
         }
-        Matcher matcher = path.matcher(schema);
-        int end = -1;
-        // Each search starts one character after the last match, so an overlapping match counts, as with lastIndexOf.
-        for (int from = 0; from < schema.length() && matcher.find(from); from = matcher.start() + 1) {
-            end = matcher.end();
-        }
-        if (end < 0 || end >= schema.length()) {
+        Matcher last = lastPath.matcher(schema);
+        if (!last.find() || last.end() >= schema.length()) {
             return false;
         }
-        return CanonicalVersion.of(schema.substring(end)).equals(CanonicalVersion.of(version));
+        return CanonicalVersion.of(schema.substring(last.end())).equals(CanonicalVersion.of(version));
     }
 }

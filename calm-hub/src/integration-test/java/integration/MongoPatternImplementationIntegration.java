@@ -106,6 +106,7 @@ public class MongoPatternImplementationIntegration {
     @Order(6)
     void return_an_architecture_whose_schema_capitalises_the_type() {
         architecture("impl-capitalised", "http://localhost:8080/calm/namespaces/finos/Patterns/impl-pattern/versions/1.0.0");
+        architecture("impl-capitalised-name", "http://localhost:8080/calm/namespaces/finos/Patterns/IMPL-pattern/versions/1.0.0");
 
         given().when().get(IMPLEMENTATIONS)
                 .then().statusCode(200)

@@ -13,7 +13,7 @@ public interface PatternImplementationStore {
      * <p>The result is a superset. The caller decides which rows name the pattern version it
      * asked about, and sorts and pages them, so that every backend gives the same answer.</p>
      *
-     * @param path               from {@code PatternReferenceMatcher.pathPattern}
+     * @param path               from {@code PatternReferenceMatcher.path()}
      * @param readableNamespaces namespaces the caller may read, or empty for unrestricted access.
      *                           The search spans every namespace in that set, because an
      *                           architecture in one namespace can implement a pattern in another.

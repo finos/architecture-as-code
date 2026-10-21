@@ -79,14 +79,14 @@ public class PatternImplementationService {
         String canonicalVersion = CanonicalVersion.of(version);
         // Asked before the version check, so that GitHub mode, whose store refuses, answers 501.
         // Its pattern versions are commit SHAs, so the version check would answer 404 instead.
-        java.util.regex.Pattern path = PatternReferenceMatcher.pathPattern(namespace, patternName);
-        List<ArchitectureSchema> candidates = implementationStore.findSchemasContaining(path, readableNamespaces);
+        PatternReferenceMatcher matcher = PatternReferenceMatcher.of(namespace, patternName);
+        List<ArchitectureSchema> candidates = implementationStore.findSchemasContaining(matcher.path(), readableNamespaces);
         if (!patternVersionExists(namespace, patternName, canonicalVersion)) {
             return Optional.empty();
         }
 
         List<PatternImplementation> implementations = candidates.stream()
-                .filter(candidate -> PatternReferenceMatcher.references(candidate.schema(), path, canonicalVersion))
+                .filter(candidate -> matcher.references(candidate.schema(), canonicalVersion))
                 .map(candidate -> new PatternImplementation(
                         candidate.namespace(), candidate.architectureId(), candidate.version(), null))
                 .sorted(ORDER)

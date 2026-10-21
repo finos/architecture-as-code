@@ -82,7 +82,6 @@ An architecture names its pattern in its own `$schema`, which `calm generate` se
 |---|---|
 | Version | A release such as `1.0.0`, or a snapshot such as `1.0.0-SNAPSHOT`. A version that does not exist returns `404`, not an empty list. |
 | Host | Only the path of the `$schema` is compared, so references keep working after the hub moves. |
-| Type | `patterns` in a `$schema` matches in any case, for example `Patterns`. The namespace and the name must match exactly. |
 | Order | Sorted by namespace, then `architectureId`, then architecture version, so `1.2.0` comes before `1.10.0`. |
 | Paging | `limit` and `offset` are optional. Omit them and you get every match — the endpoint never shortens a list you did not ask to shorten. An `offset` without a `limit` returns every match after the offset. |
 | `customId` | The name on the name-based API. Omitted for an architecture created through the numeric-id API, which never had one; use `architectureId` for those. |

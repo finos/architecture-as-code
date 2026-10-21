@@ -61,7 +61,7 @@ class TestNitritePatternImplementationStoreShould {
     }
 
     private List<ArchitectureSchema> find(Optional<Set<String>> readableNamespaces) {
-        return store.findSchemasContaining(PatternReferenceMatcher.pathPattern("finos", "api-gateway"), readableNamespaces);
+        return store.findSchemasContaining(PatternReferenceMatcher.of("finos", "api-gateway").path(), readableNamespaces);
     }
 
     @Test

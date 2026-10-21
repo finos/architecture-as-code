@@ -13,7 +13,7 @@ class TestPatternReferenceMatcherShould {
     private static final String PATH = "https://h/calm/namespaces/finos/patterns/api-gateway/versions/";
 
     private static boolean references(String schema, String namespace, String version) {
-        return PatternReferenceMatcher.references(schema, PatternReferenceMatcher.pathPattern(namespace, NAME), version);
+        return PatternReferenceMatcher.of(namespace, NAME).references(schema, version);
     }
 
     private static boolean matches(String schema) {
@@ -24,6 +24,12 @@ class TestPatternReferenceMatcherShould {
     void match_the_type_segment_in_any_case() {
         assertTrue(matches("https://h/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0"));
         assertTrue(matches("https://h/calm/namespaces/finos/PATTERNS/api-gateway/versions/1.0.0"));
+    }
+
+    @Test
+    void fold_only_ascii_letters_in_the_type_segment() {
+        // MongoDB folds Unicode, so its pre-filter can return this row. The service still rejects it.
+        assertFalse(matches("https://h/calm/namespaces/finos/pattern\u017F/api-gateway/versions/1.0.0"));
     }
 
     @Test

@@ -16,7 +16,7 @@ class TestNoOpPatternImplementationStoreShould {
     void refuse_rather_than_report_that_nothing_implements_the_pattern() {
         GitHubModeNotSupportedException ex = assertThrows(GitHubModeNotSupportedException.class,
                 () -> new NoOpPatternImplementationStore().findSchemasContaining(
-                        PatternReferenceMatcher.pathPattern("finos", "api-gateway"), Optional.empty()));
+                        PatternReferenceMatcher.of("finos", "api-gateway").path(), Optional.empty()));
         assertThat(ex.getMessage(), containsString("GitHub storage mode"));
     }
 }
