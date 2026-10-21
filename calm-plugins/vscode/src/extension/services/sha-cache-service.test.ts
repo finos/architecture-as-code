@@ -131,7 +131,7 @@ describe('ShaCacheService', () => {
         it('clearHub removes palette and per-standard caches', async () => {
             await service.putPalette('hub1', [{ name: 'ns' }]);
             await service.put('hub1', 'standards', 'svc', 'sha1', { controls: {} });
-            service.clearHub('hub1');
+            await service.clearHub('hub1');
             expect(await service.getPalette('hub1')).toBeNull();
         });
     });

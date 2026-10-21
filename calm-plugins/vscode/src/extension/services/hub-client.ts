@@ -124,7 +124,7 @@ export class HubClient {
         return raw.map((item) => ({
             name: (item.name as string) || (item.customId as string) || '',
             uniqueId: (item.uniqueId as string) || (item.customId as string) || '',
-            numericId: (item.id as number) || (item.numericId as number) || 0,
+            numericId: (item.id as number) ?? (item.numericId as number) ?? 0,
             versionCount: item.versionCount as number | undefined,
         }));
     }

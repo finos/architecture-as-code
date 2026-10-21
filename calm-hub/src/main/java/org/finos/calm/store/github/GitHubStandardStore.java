@@ -29,9 +29,9 @@ import java.util.List;
 
 /**
  * GitHub-mode {@link StandardStore}: standards are read from files under {@code standards/}
- * and {@code building-blocks/} in the namespace's clone (the two directories are merged into
+ * and {@code standard-nodes/} in the namespace's clone (the two directories are merged into
  * one listing - see {@link org.finos.calm.store.github.registry.CalmContentDetector} for why
- * {@code building-blocks/} maps to {@code STANDARD} rather than a separate concept, and for
+ * {@code standard-nodes/} maps to {@code STANDARD} rather than a separate concept, and for
  * the node-catalogue half of that ask this store does not cover - #3102). Id
  * lookup, version listing and version-content resolution all delegate to
  * {@link AbstractReadOnlyGitHubStore} - see its class javadoc for why an unresolvable version

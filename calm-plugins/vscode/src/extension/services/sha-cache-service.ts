@@ -22,7 +22,7 @@ export class ShaCacheService {
     ): Promise<unknown | null> {
         const filePath = this.getCachePath(namespace, type, slug, sha);
         try {
-            const content = fs.readFileSync(filePath, 'utf-8');
+            const content = await fs.promises.readFile(filePath, 'utf-8');
             return JSON.parse(content);
         } catch {
             return null;
@@ -38,11 +38,9 @@ export class ShaCacheService {
     ): Promise<void> {
         const filePath = this.getCachePath(namespace, type, slug, sha);
         const dir = path.dirname(filePath);
-        // Round-trip through JSON to ensure only valid JSON is written
         const serialized = JSON.stringify(content, null, 2);
-        const validated = JSON.parse(serialized) as unknown;
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(filePath, JSON.stringify(validated, null, 2));
+        await fs.promises.mkdir(dir, { recursive: true });
+        await fs.promises.writeFile(filePath, serialized);
     }
 
     has(namespace: string, type: string, slug: string, sha: string): boolean {
@@ -56,7 +54,7 @@ export class ShaCacheService {
     async getPalette(hubHash: string): Promise<unknown | null> {
         const filePath = path.join(this.cacheDir, this.sanitizeSegment(hubHash), 'palette.json');
         try {
-            const content = fs.readFileSync(filePath, 'utf-8');
+            const content = await fs.promises.readFile(filePath, 'utf-8');
             return JSON.parse(content);
         } catch {
             return null;
@@ -66,14 +64,14 @@ export class ShaCacheService {
     async putPalette(hubHash: string, data: unknown): Promise<void> {
         const filePath = path.join(this.cacheDir, this.sanitizeSegment(hubHash), 'palette.json');
         const dir = path.dirname(filePath);
-        fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+        await fs.promises.mkdir(dir, { recursive: true });
+        await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2));
     }
 
-    clearHub(hubHash: string): void {
+    async clearHub(hubHash: string): Promise<void> {
         const dir = path.join(this.cacheDir, this.sanitizeSegment(hubHash));
         try {
-            fs.rmSync(dir, { recursive: true, force: true });
+            await fs.promises.rm(dir, { recursive: true, force: true });
         } catch { /* ignore */ }
     }
 

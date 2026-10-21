@@ -270,7 +270,7 @@ export class HubAssetService {
                             id: pat.uniqueId,
                             name: (content.title as string) || pat.name || humanize(pat.uniqueId),
                             description: (content.description as string) || '',
-                            category: (content.category as string) || ns.name,
+                            category: (content.category as string) || (content['x-category'] as string) || ns.name,
                             schema: content,
                         });
                     } catch { /* skip */ }
@@ -306,7 +306,7 @@ export class HubAssetService {
         return filtered.flatMap((ns) => ns.adrs);
     }
 
-    private async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
+    async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
         const tasks: Array<{ req: Record<string, unknown>; url: string }> = [];
         for (const ctrl of Object.values(controls)) {
             if (!ctrl || typeof ctrl !== 'object') continue;

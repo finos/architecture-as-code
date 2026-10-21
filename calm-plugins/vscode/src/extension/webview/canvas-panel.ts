@@ -122,7 +122,7 @@ export class CanvasPanel {
         this.controlAssetService.setHubClient(client);
 
         if (forceRefresh) {
-            this.shaCache.clearHub(this.hubBaseHash);
+            await this.shaCache.clearHub(this.hubBaseHash);
             this.log.appendLine('[CanvasPanel] Cache cleared for clean refresh');
         }
 
@@ -551,6 +551,9 @@ export class CanvasPanel {
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+
+        await this.assetService?.scanAll();
+        this.sendAssets();
     }
 
     private async handleSavePattern(
@@ -620,60 +623,11 @@ export class CanvasPanel {
             vscode.window.showErrorMessage('Cannot export pattern: invalid document JSON');
             return;
         }
-        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const fileName = `${slug}.pattern.json`;
 
-        const toSchema = (value: unknown): unknown => {
-            if (value === null || value === undefined) return undefined;
-            if (Array.isArray(value)) return { type: 'array', prefixItems: value.map(toSchema) };
-            if (typeof value === 'object') {
-                const props: Record<string, unknown> = {};
-                for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-                    if (k === '$schema' || k === '$id' || k === 'type') continue;
-                    const s = toSchema(v);
-                    if (s !== undefined) props[k] = s;
-                }
-                return { type: 'object', properties: props };
-            }
-            return { const: value };
-        };
-        const itemSchema = (entry: Record<string, unknown>, ref: string) => {
-            const props: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(entry)) {
-                if (k === '$schema' || k === '$id' || k === 'type' || v === undefined) continue;
-                props[k] = toSchema(v);
-            }
-            return { $ref: ref, type: 'object', properties: props };
-        };
+        const { exportAsPattern } = await import('../../webview/panels/pattern-doc');
+        const { json, fileName } = exportAsPattern(doc, name.trim());
 
-        const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
-        const rels = (doc.relationships ?? []) as Record<string, unknown>[];
-        const pattern = {
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
-            $id: `patterns/${fileName}`,
-            type: 'object',
-            title: name.trim(),
-            description: `Pattern derived from architecture: ${name.trim()}`,
-            properties: {
-                nodes: {
-                    type: 'array',
-                    minItems: nodes.length,
-                    prefixItems: nodes.map((n) =>
-                        itemSchema(n, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node')
-                    ),
-                },
-                relationships: {
-                    type: 'array',
-                    minItems: rels.length,
-                    prefixItems: rels.map((r) =>
-                        itemSchema(r, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship')
-                    ),
-                },
-            },
-            required: ['nodes', 'relationships'],
-        };
-
-        await this.handleSavePattern(fileName, JSON.stringify(pattern, null, 2));
+        await this.handleSavePattern(fileName, json);
     }
 
     /** Local controls are always available; Hub domains are fetched lazily per-domain. */
@@ -721,20 +675,21 @@ export class CanvasPanel {
         controlName: string
     ): Promise<void> {
         if (domain === LOCAL_DOMAIN) {
-            this.postMessage({
-                type: 'controlVersionsResult',
-                requestId,
-                ok: true,
-                versions: ['current'],
-            });
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions: ['current'] });
             return;
         }
-        this.postMessage({
-            type: 'controlVersionsResult',
-            requestId,
-            ok: false,
-            error: 'Hub not connected',
-        });
+        if (!this.hubClient) {
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: 'Hub not connected' });
+            return;
+        }
+        try {
+            await this.hubReadyPromise;
+            const resolved = await this.hubClient.resolveControlId(domain, controlName);
+            const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions });
+        } catch (err) {
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: describeError(err) });
+        }
     }
 
     private async handleControlResolve(
@@ -996,25 +951,8 @@ export class CanvasPanel {
     }
 
     private async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
-        if (!this.hubClient) return;
-        for (const ctrl of Object.values(controls)) {
-            if (!ctrl || typeof ctrl !== 'object') continue;
-            const c = ctrl as Record<string, unknown>;
-            const reqs = c.requirements as Array<Record<string, unknown>> | undefined;
-            if (!reqs) continue;
-            for (const req of reqs) {
-                const url = req['requirement-url'];
-                if (typeof url !== 'string' || !url.includes(':controls:') || url.includes('@')) continue;
-                const parsed = parseControlCurie(url);
-                if (!parsed) continue;
-                try {
-                    const resolved = await this.hubClient.resolveControlId(parsed.domain, parsed.controlName);
-                    const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
-                    if (versions.length > 0) {
-                        req['requirement-url'] = `${url}@${versions[versions.length - 1]}`;
-                    }
-                } catch { /* keep unversioned */ }
-            }
+        if (this.hubAssetService) {
+            await this.hubAssetService.pinControlVersions(controls);
         }
     }
 
