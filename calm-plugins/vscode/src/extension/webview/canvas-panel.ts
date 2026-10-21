@@ -5,7 +5,7 @@ import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
-import { HubClient, HubApiError } from '../services/hub-client';
+import { HubClient, describeHubError } from '../services/hub-client';
 import { HubAssetService, type HubNamespace } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
 import { ShaCacheService } from '../services/sha-cache-service';
@@ -31,13 +31,7 @@ function shortHash(input: string): string {
     return crypto.createHash('sha256').update(input.trim().toLowerCase()).digest('hex').slice(0, 8);
 }
 
-function describeError(err: unknown): string {
-    if (err instanceof HubApiError) {
-        if (err.status === 403) return 'Access denied (403)';
-        return `Hub request failed (${err.status})`;
-    }
-    return err instanceof Error ? err.message : String(err);
-}
+const describeError = describeHubError;
 
 export class CanvasPanel {
     private panel: vscode.WebviewPanel | undefined;
@@ -348,7 +342,7 @@ export class CanvasPanel {
             ? allNs.filter(ns => userSelection.includes(ns))
             : allNs;
         const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
-        const hubPatterns = this.hubAssetService?.getAllPatterns?.(selectedNs) ?? [];
+        const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
 
         const allBlocks = [...localBlocks, ...hubBlocks];
         const allPatterns = [...localPatterns, ...hubPatterns];
@@ -683,14 +677,16 @@ export class CanvasPanel {
             this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions: ['current'] });
             return;
         }
-        if (!this.hubClient) {
+        const client = this.hubClient;
+        if (!client) {
             this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: 'Hub not connected' });
             return;
         }
         try {
-            await this.hubReadyPromise;
-            const resolved = await this.hubClient.resolveControlId(domain, controlName);
-            const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
+            const hubReady = this.hubReadyPromise;
+            await hubReady;
+            const resolved = await client.resolveControlId(domain, controlName);
+            const versions = await client.getRequirementVersions(resolved.domain, resolved.id);
             this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions });
         } catch (err) {
             this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: describeError(err) });
@@ -962,12 +958,14 @@ export class CanvasPanel {
     }
 
     private async handleResolveDefinitionId(nodeId: string, curie: string): Promise<void> {
-        if (!this.hubClient) {
+        const client = this.hubClient;
+        if (!client) {
             this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: 'Hub not connected' });
             return;
         }
         try {
-            await this.hubReadyPromise;
+            const hubReady = this.hubReadyPromise;
+            await hubReady;
             const atIdx = curie.lastIndexOf('@');
             if (atIdx === -1) {
                 this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `CURIE missing version: ${curie}` });
@@ -996,7 +994,7 @@ export class CanvasPanel {
                 const match = ns?.standardNodes.find(sn => sn.id === resourceName);
                 if (match?.hubId != null) numericId = String(match.hubId);
             }
-            const doc = await this.hubClient.getResourceAtVersion(
+            const doc = await client.getResourceAtVersion(
                 namespace,
                 'standards',
                 numericId,

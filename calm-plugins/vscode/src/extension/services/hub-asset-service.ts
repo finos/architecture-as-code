@@ -79,16 +79,14 @@ export class HubAssetService {
                 changed = true;
                 updated.push(await this.fetchNamespace(ns.name));
             } else {
-                // Standards unchanged — re-fetch patterns and ADRs (lightweight)
-                const refreshed: HubNamespace = { ...old, patterns: [], adrs: [] };
+                // Standards unchanged — re-fetch patterns and ADRs (lightweight).
+                // Start with old data so partial failures preserve cached content.
+                const refreshed: HubNamespace = { ...old };
                 try {
                     await this.fetchPatternsAndAdrs(refreshed);
-                    if (refreshed.patterns.length !== old.patterns.length || refreshed.adrs.length !== old.adrs.length) {
-                        changed = true;
-                    }
+                    changed = true;
                 } catch {
-                    refreshed.patterns = old.patterns;
-                    refreshed.adrs = old.adrs;
+                    // fetchPatternsAndAdrs only overwrites on success; old data preserved
                 }
                 updated.push(refreshed);
             }
@@ -151,6 +149,7 @@ export class HubAssetService {
 
     private async fetchPatternsAndAdrs(namespace: HubNamespace): Promise<void> {
         const nsName = namespace.name;
+        const newPatterns: typeof namespace.patterns = [];
         try {
             const patterns = await this.client.getResources(nsName, 'patterns');
             const patResults = await Promise.all(
@@ -160,29 +159,29 @@ export class HubAssetService {
                         .catch(() => ({ pat, versions: [] as string[] }))
                 )
             );
-            namespace.patterns = [];
             for (const { pat, versions } of patResults) {
                 const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
                 if (!latestSha) continue;
                 try {
                     const content = await this.client.getResourceAtVersion(nsName, 'patterns', pat.uniqueId, latestSha) as Record<string, unknown>;
-                    namespace.patterns.push({
+                    newPatterns.push({
                         id: pat.uniqueId,
                         name: (content.title as string) || pat.name || humanize(pat.uniqueId),
                         description: (content.description as string) || '',
                         category: (content.category as string) || (content['x-category'] as string) || nsName,
                         schema: content,
                     });
-                } catch { /* skip */ }
+                } catch { /* skip individual pattern */ }
             }
-        } catch { /* namespace may not have patterns */ }
+            namespace.patterns = newPatterns;
+        } catch { /* namespace may not have patterns — keeps existing */ }
 
         try {
             const adrSummaries = await this.client.getAdrs(nsName);
             namespace.adrs = adrSummaries
                 .filter(a => a.id !== null && a.id !== undefined)
                 .map(a => ({ namespace: nsName, id: a.id, title: a.title ?? '', status: (a.status ?? '').toLowerCase() }));
-        } catch { /* namespace may not expose ADRs */ }
+        } catch { /* namespace may not expose ADRs — keeps existing */ }
     }
 
     getAllStandardNodes(selectedNamespaces: string[]): StandardNodeDef[] {

@@ -39,7 +39,6 @@ export type ExtToWebviewMessage =
     | { type: 'hubLoading'; loading: boolean }
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'standardNodesLoaded'; nodes: unknown[] }
-    | { type: 'adrsLoaded'; adrs: AdrEntry[] }
     | {
           type: 'drillResult';
           json: string;

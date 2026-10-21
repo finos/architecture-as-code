@@ -66,6 +66,14 @@ export interface AdrMeta {
     adr: AdrContent;
 }
 
+export function describeHubError(err: unknown): string {
+    if (err instanceof HubApiError) {
+        if (err.status === 403) return 'Access denied (403)';
+        return `Hub request failed (${err.status})`;
+    }
+    return err instanceof Error ? err.message : String(err);
+}
+
 /** Typed HTTP error so callers can branch on `status` (e.g. 403 domain access denied). */
 export class HubApiError extends Error {
     constructor(
