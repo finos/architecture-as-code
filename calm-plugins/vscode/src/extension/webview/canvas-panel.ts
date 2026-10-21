@@ -19,7 +19,6 @@ import {
     isLocalControlPath,
     parseCanonicalControlUrl,
     parseControlCurie,
-    type ControlCurieResult,
 } from '../services/control-curie';
 import { resolveLocalPath, resolveSafeWritePath } from '../services/path-resolver';
 import type {
@@ -141,11 +140,12 @@ export class CanvasPanel {
             ? this.hubAssetService.deltaRefresh()
             : this.hubAssetService.refresh().then(() => ({ changed: true }))
         )
-            .then(({ changed }) => {
-                const total = this.hubAssetService!.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
+            .then(async ({ changed }) => {
+                if (!this.hubAssetService) return;
+                const total = this.hubAssetService.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
                 this.log.appendLine(`[CanvasPanel] Hub sync complete: ${total} nodes${changed ? ' (updated)' : ' (no changes)'}`);
-                this.shaCache.putPalette(this.hubBaseHash, this.hubAssetService!.getNamespaces());
                 if (changed) this.sendAssets();
+                this.shaCache.putPalette(this.hubBaseHash, this.hubAssetService.getNamespaces()).catch(() => {});
             })
             .catch((err) => {
                 this.log.appendLine(`[CanvasPanel] Hub sync failed: ${String(err)}`);
@@ -235,7 +235,7 @@ export class CanvasPanel {
                             this.log.appendLine(`[CanvasPanel] Webview ready — loaded ${(cached as HubNamespace[]).reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
                             this.sendAssets();
                         }
-                    });
+                    }).catch(() => {});
                 }
                 if (this.scanReady) {
                     this.sendAssets();
@@ -341,9 +341,12 @@ export class CanvasPanel {
         const localBlocks = this.assetService.getStandardNodes();
         const localPatterns = this.assetService.getPatterns();
 
-        const selectedNs = this.hubAssetService
-            ? this.hubAssetService.getNamespaces().map(ns => ns.name)
-            : [];
+        const allNs = this.hubAssetService?.getNamespaces().map(ns => ns.name) ?? [];
+        const userSelection = vscode.workspace.getConfiguration('calm.hub').get<string[]>('selectedNamespaces');
+        // null/undefined = not configured → show all; empty array = user deselected all → show none
+        const selectedNs = userSelection != null
+            ? allNs.filter(ns => userSelection.includes(ns))
+            : allNs;
         const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
         const hubPatterns = this.hubAssetService?.getAllPatterns?.(selectedNs) ?? [];
 
@@ -353,13 +356,8 @@ export class CanvasPanel {
         this.log.appendLine(
             `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub), ${allPatterns.length} patterns`
         );
-        const hubAdrs = this.hubAssetService?.getAllAdrs(selectedNs) ?? [];
-
         this.postMessage({ type: 'standardNodesLoaded', nodes: allBlocks });
         this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
-        if (hubAdrs.length > 0) {
-            this.postMessage({ type: 'adrsLoaded', adrs: hubAdrs });
-        }
     }
 
     private async handleDrillUp(
@@ -657,7 +655,14 @@ export class CanvasPanel {
     ): Promise<void> {
         try {
             await this.scanReadyPromise;
-            if (domain !== LOCAL_DOMAIN) await this.hubReadyPromise;
+            if (domain !== LOCAL_DOMAIN) {
+                const hubReady = this.hubReadyPromise;
+                if (!this.hubClient) {
+                    this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: 'Hub not connected' });
+                    return;
+                }
+                await hubReady;
+            }
             const group = await this.controlAssetService.browseControlsForDomain(domain);
             if (group.error) {
                 this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
@@ -969,7 +974,7 @@ export class CanvasPanel {
                 return;
             }
             const version = curie.slice(atIdx + 1);
-            const head = atIdx === -1 ? curie : curie.slice(0, atIdx);
+            const head = curie.slice(0, atIdx);
             const segments = head.split(':');
             if (segments.length < 3) {
                 this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `Invalid CURIE: ${curie}` });
@@ -989,7 +994,7 @@ export class CanvasPanel {
             if (this.hubAssetService) {
                 const ns = this.hubAssetService.getNamespaces().find(n => n.name === namespace);
                 const match = ns?.standardNodes.find(sn => sn.id === resourceName);
-                if (match?.hubId) numericId = String(match.hubId);
+                if (match?.hubId != null) numericId = String(match.hubId);
             }
             const doc = await this.hubClient.getResourceAtVersion(
                 namespace,
@@ -1002,7 +1007,7 @@ export class CanvasPanel {
             const controls = (docNode?.controls as Record<string, unknown>) ?? {};
             await this.pinControlVersions(controls);
             this.postMessage({ type: 'definitionResolved', nodeId, controls });
-            this.shaCache.put(namespace, 'standards', resourceName, version, controls);
+            this.shaCache.put(namespace, 'standards', resourceName, version, controls).catch(() => {});
         } catch (err) {
             this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
         }

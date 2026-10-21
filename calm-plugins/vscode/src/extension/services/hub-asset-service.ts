@@ -19,125 +19,7 @@ export class HubAssetService {
 
     async refresh(): Promise<HubNamespace[]> {
         const nsList: NamespaceSummary[] = await this.client.getNamespaces();
-        this.namespaces = [];
-
-        for (const ns of nsList) {
-            const namespace: HubNamespace = {
-                name: ns.name,
-                standardNodes: [],
-                patterns: [],
-                adrs: [],
-            };
-
-            try {
-                const blocks = await this.client.getResources(
-                    ns.name,
-                    'standards'
-                );
-                const versionResults = await Promise.all(
-                    blocks.map((block) =>
-                        this.client
-                            .getVersions(ns.name, 'standards', String(block.numericId))
-                            .then((versions) => ({ block, versions }))
-                            .catch(() => ({ block, versions: [] as string[] }))
-                    )
-                );
-                const contentResults = await Promise.all(
-                    versionResults.map(async ({ block, versions }) => {
-                        const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
-                        let nodeType = 'service';
-                        let displayName = block.name || humanize(block.uniqueId);
-                        let controls: Record<string, unknown> = {};
-                        if (latestSha) {
-                            try {
-                                const content = await this.client.getResourceAtVersion(
-                                    ns.name, 'standards', String(block.numericId), latestSha
-                                ) as Record<string, unknown>;
-                                const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
-                                if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
-                                if (nodes?.[0]?.name) displayName = nodes[0].name as string;
-                                else if (content?.title) displayName = content.title as string;
-                                if (nodes?.[0]?.controls && typeof nodes[0].controls === 'object') {
-                                    controls = nodes[0].controls as Record<string, unknown>;
-                                    await this.pinControlVersions(controls);
-                                }
-                            } catch { /* fallback */ }
-                        }
-                        return { block, latestSha, nodeType, displayName, controls };
-                    })
-                );
-                for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
-                    namespace.standardNodes.push({
-                        id: block.uniqueId,
-                        name: displayName,
-                        behaviour: 'create-node',
-                        controls,
-                        nodeType,
-                        namespace: ns.name,
-                        sha: latestSha,
-                        hubId: block.numericId,
-                    });
-                }
-            } catch {
-                /* namespace may not have standard-nodes */
-            }
-
-            try {
-                const patterns = await this.client.getResources(
-                    ns.name,
-                    'patterns'
-                );
-                const versionResults = await Promise.all(
-                    patterns.map((pat) =>
-                        this.client
-                            .getVersions(ns.name, 'patterns', pat.uniqueId)
-                            .then((versions) => ({ pat, versions }))
-                            .catch(() => ({ pat, versions: [] as string[] }))
-                    )
-                );
-                for (const { pat, versions } of versionResults) {
-                    const latestSha =
-                        versions.length > 0
-                            ? versions[versions.length - 1]
-                            : undefined;
-                    if (!latestSha) continue;
-                    try {
-                        const content = await this.client.getResourceAtVersion(
-                            ns.name, 'patterns', pat.uniqueId, latestSha
-                        ) as Record<string, unknown>;
-                        namespace.patterns.push({
-                            id: pat.uniqueId,
-                            name: (content.title as string) || pat.name || humanize(pat.uniqueId),
-                            description: (content.description as string) || '',
-                            category: (content.category as string) || (content['x-category'] as string) || ns.name,
-                            schema: content,
-                        });
-                    } catch { /* skip unreadable pattern */ }
-                }
-            } catch {
-                /* namespace may not have patterns */
-            }
-
-            // ADR fetch is isolated in its own try/catch so a failure here never
-            // blocks standard-node / standard / pattern loading for this namespace.
-            try {
-                const adrSummaries = await this.client.getAdrs(ns.name);
-                for (const adr of adrSummaries) {
-                    if (adr.id === null || adr.id === undefined) continue;
-                    namespace.adrs.push({
-                        namespace: ns.name,
-                        id: adr.id,
-                        title: adr.title ?? '',
-                        status: (adr.status ?? '').toLowerCase(),
-                    });
-                }
-            } catch {
-                /* namespace may not expose ADRs, or the caller lacks access */
-            }
-
-            this.namespaces.push(namespace);
-        }
-
+        this.namespaces = await Promise.all(nsList.map(ns => this.fetchNamespace(ns.name)));
         return this.namespaces;
     }
 
@@ -157,138 +39,150 @@ export class HubAssetService {
         const updated: HubNamespace[] = [];
         for (const ns of nsList) {
             const old = oldByName.get(ns.name);
-
-            // Fetch lightweight listing (IDs + version counts) to detect changes
-            let blocks: Array<{ uniqueId: string; name: string; numericId: number; versionCount?: number }> = [];
-            try {
-                blocks = await this.client.getResources(ns.name, 'standards');
-            } catch { /* namespace may not have standards */ }
-
-            const oldNodeMap = new Map((old?.standardNodes ?? []).map(n => [n.id, n]));
-            const newIds = new Set(blocks.map(b => b.uniqueId));
-            const oldIds = new Set(oldNodeMap.keys());
-
-            // Detect adds and changes (new IDs or different version count)
-            const needsFetch: typeof blocks = [];
-            for (const block of blocks) {
-                const existing = oldNodeMap.get(block.uniqueId);
-                if (!existing || !existing.sha) {
-                    needsFetch.push(block);
-                } else {
-                    // Check if latest version changed
-                    try {
-                        const versions = await this.client.getVersions(ns.name, 'standards', String(block.numericId));
-                        const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
-                        if (latestSha !== existing.sha) {
-                            needsFetch.push(block);
-                        }
-                    } catch {
-                        // Can't check — keep cached version
-                    }
-                }
-            }
-
-            if (needsFetch.length > 0 || newIds.size !== oldIds.size || [...oldIds].some(id => !newIds.has(id))) {
+            if (!old) {
                 changed = true;
+                updated.push(await this.fetchNamespace(ns.name));
+                continue;
             }
 
-            // Build the namespace: keep unchanged nodes from cache, fetch only changed ones
-            const namespace: HubNamespace = {
-                name: ns.name,
-                standardNodes: [],
-                patterns: old?.patterns ?? [],
-                adrs: old?.adrs ?? [],
-            };
-
-            // Fetch changed/new standards in parallel
-            const fetchResults = await Promise.all(
-                needsFetch.map(async (block) => {
-                    try {
-                        const versions = await this.client.getVersions(ns.name, 'standards', String(block.numericId));
-                        const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
-                        let nodeType = 'service';
-                        let displayName = block.name || humanize(block.uniqueId);
-                        let controls: Record<string, unknown> = {};
-                        if (latestSha) {
-                            try {
-                                const content = await this.client.getResourceAtVersion(
-                                    ns.name, 'standards', String(block.numericId), latestSha
-                                ) as Record<string, unknown>;
-                                const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
-                                if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
-                                if (nodes?.[0]?.name) displayName = nodes[0].name as string;
-                                else if (content?.title) displayName = content.title as string;
-                                if (nodes?.[0]?.controls && typeof nodes[0].controls === 'object') {
-                                    controls = nodes[0].controls as Record<string, unknown>;
-                                    await this.pinControlVersions(controls);
-                                }
-                            } catch { /* fallback */ }
-                        }
-                        return {
-                            id: block.uniqueId, name: displayName, behaviour: 'create-node' as const,
-                            controls, nodeType, namespace: ns.name, sha: latestSha, hubId: block.numericId,
-                        };
-                    } catch {
-                        return oldNodeMap.get(block.uniqueId) ?? null;
-                    }
-                })
-            );
-
-            const fetchedMap = new Map<string, StandardNodeDef>();
-            for (const r of fetchResults) {
-                if (r) fetchedMap.set(r.id, r);
-            }
-
-            // Assemble: fetched nodes replace old, unchanged nodes kept
-            for (const block of blocks) {
-                const fetched = fetchedMap.get(block.uniqueId);
-                if (fetched) {
-                    namespace.standardNodes.push(fetched);
+            // Check if standards changed by comparing version listings.
+            // NOTE: getVersions is called here to detect changes, and again
+            // inside fetchNamespace for the actual fetch. This is intentional —
+            // only changed namespaces pay the double cost, and caching the
+            // intermediate result would add complexity for little gain.
+            let needsStandardRefresh = false;
+            try {
+                const blocks = await this.client.getResources(ns.name, 'standards');
+                const oldShaMap = new Map(old.standardNodes.map(n => [n.id, n.sha]));
+                if (blocks.length !== old.standardNodes.length) {
+                    needsStandardRefresh = true;
                 } else {
-                    const cached = oldNodeMap.get(block.uniqueId);
-                    if (cached) namespace.standardNodes.push(cached);
+                    const versionChecks = await Promise.all(
+                        blocks.map(async (block) => {
+                            const oldSha = oldShaMap.get(block.uniqueId);
+                            if (!oldSha) return true;
+                            try {
+                                const versions = await this.client.getVersions(ns.name, 'standards', String(block.numericId));
+                                if (versions.length === 0) return true;
+                                return versions[versions.length - 1] !== oldSha;
+                            } catch {
+                                // Assume changed on network error to avoid masking real updates
+                                return true;
+                            }
+                        })
+                    );
+                    needsStandardRefresh = versionChecks.some(Boolean);
                 }
+            } catch { /* keep cached standards */ }
+
+            if (needsStandardRefresh) {
+                changed = true;
+                updated.push(await this.fetchNamespace(ns.name));
+            } else {
+                // Standards unchanged — re-fetch patterns and ADRs (lightweight)
+                const refreshed: HubNamespace = { ...old, patterns: [], adrs: [] };
+                try {
+                    await this.fetchPatternsAndAdrs(refreshed);
+                    if (refreshed.patterns.length !== old.patterns.length || refreshed.adrs.length !== old.adrs.length) {
+                        changed = true;
+                    }
+                } catch {
+                    refreshed.patterns = old.patterns;
+                    refreshed.adrs = old.adrs;
+                }
+                updated.push(refreshed);
             }
-
-            // Refresh patterns + ADRs (lightweight, always fetch)
-            try {
-                const patterns = await this.client.getResources(ns.name, 'patterns');
-                const patResults = await Promise.all(
-                    patterns.map((pat) =>
-                        this.client.getVersions(ns.name, 'patterns', pat.uniqueId)
-                            .then((versions) => ({ pat, versions }))
-                            .catch(() => ({ pat, versions: [] as string[] }))
-                    )
-                );
-                namespace.patterns = [];
-                for (const { pat, versions } of patResults) {
-                    const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
-                    if (!latestSha) continue;
-                    try {
-                        const content = await this.client.getResourceAtVersion(ns.name, 'patterns', pat.uniqueId, latestSha) as Record<string, unknown>;
-                        namespace.patterns.push({
-                            id: pat.uniqueId,
-                            name: (content.title as string) || pat.name || humanize(pat.uniqueId),
-                            description: (content.description as string) || '',
-                            category: (content.category as string) || (content['x-category'] as string) || ns.name,
-                            schema: content,
-                        });
-                    } catch { /* skip */ }
-                }
-            } catch { /* keep cached patterns */ }
-
-            try {
-                const adrSummaries = await this.client.getAdrs(ns.name);
-                namespace.adrs = adrSummaries
-                    .filter(a => a.id !== null && a.id !== undefined)
-                    .map(a => ({ namespace: ns.name, id: a.id, title: a.title ?? '', status: (a.status ?? '').toLowerCase() }));
-            } catch { /* keep cached ADRs */ }
-
-            updated.push(namespace);
         }
+
+        if (updated.length !== this.namespaces.length) changed = true;
 
         this.namespaces = updated;
         return { changed };
+    }
+
+    private async fetchNamespace(nsName: string): Promise<HubNamespace> {
+        const namespace: HubNamespace = { name: nsName, standardNodes: [], patterns: [], adrs: [] };
+
+        try {
+            const blocks = await this.client.getResources(nsName, 'standards');
+            const versionResults = await Promise.all(
+                blocks.map((block) =>
+                    this.client.getVersions(nsName, 'standards', String(block.numericId))
+                        .then((versions) => ({ block, versions }))
+                        .catch(() => ({ block, versions: [] as string[] }))
+                )
+            );
+            const contentResults = await Promise.all(
+                versionResults.map(async ({ block, versions }) => {
+                    const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
+                    let nodeType = 'service';
+                    let displayName = block.name || humanize(block.uniqueId);
+                    let controls: Record<string, unknown> = {};
+                    if (latestSha) {
+                        try {
+                            const content = await this.client.getResourceAtVersion(
+                                nsName, 'standards', String(block.numericId), latestSha
+                            ) as Record<string, unknown>;
+                            const nodes = content?.nodes as Array<Record<string, unknown>> | undefined;
+                            if (nodes?.[0]?.['node-type']) nodeType = nodes[0]['node-type'] as string;
+                            if (nodes?.[0]?.name) displayName = nodes[0].name as string;
+                            else if (content?.title) displayName = content.title as string;
+                            if (nodes?.[0]?.controls && typeof nodes[0].controls === 'object') {
+                                controls = nodes[0].controls as Record<string, unknown>;
+                                await this.pinControlVersions(controls);
+                            }
+                        } catch { /* fallback */ }
+                    }
+                    return { block, latestSha, nodeType, displayName, controls };
+                })
+            );
+            for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
+                namespace.standardNodes.push({
+                    id: block.uniqueId, name: displayName, behaviour: 'create-node',
+                    controls, nodeType, namespace: nsName, sha: latestSha, hubId: block.numericId,
+                });
+            }
+        } catch { /* namespace may not have standards */ }
+
+        await this.fetchPatternsAndAdrs(namespace);
+
+        return namespace;
+    }
+
+    private async fetchPatternsAndAdrs(namespace: HubNamespace): Promise<void> {
+        const nsName = namespace.name;
+        try {
+            const patterns = await this.client.getResources(nsName, 'patterns');
+            const patResults = await Promise.all(
+                patterns.map((pat) =>
+                    this.client.getVersions(nsName, 'patterns', pat.uniqueId)
+                        .then((versions) => ({ pat, versions }))
+                        .catch(() => ({ pat, versions: [] as string[] }))
+                )
+            );
+            namespace.patterns = [];
+            for (const { pat, versions } of patResults) {
+                const latestSha = versions.length > 0 ? versions[versions.length - 1] : undefined;
+                if (!latestSha) continue;
+                try {
+                    const content = await this.client.getResourceAtVersion(nsName, 'patterns', pat.uniqueId, latestSha) as Record<string, unknown>;
+                    namespace.patterns.push({
+                        id: pat.uniqueId,
+                        name: (content.title as string) || pat.name || humanize(pat.uniqueId),
+                        description: (content.description as string) || '',
+                        category: (content.category as string) || (content['x-category'] as string) || nsName,
+                        schema: content,
+                    });
+                } catch { /* skip */ }
+            }
+        } catch { /* namespace may not have patterns */ }
+
+        try {
+            const adrSummaries = await this.client.getAdrs(nsName);
+            namespace.adrs = adrSummaries
+                .filter(a => a.id !== null && a.id !== undefined)
+                .map(a => ({ namespace: nsName, id: a.id, title: a.title ?? '', status: (a.status ?? '').toLowerCase() }));
+        } catch { /* namespace may not expose ADRs */ }
     }
 
     getAllStandardNodes(selectedNamespaces: string[]): StandardNodeDef[] {
@@ -334,7 +228,7 @@ export class HubAssetService {
     }
 }
 
-function humanize(slug: string): string {
+export function humanize(slug: string): string {
     return slug
         .replace(/[-_]/g, ' ')
         .replace(/\b\w/g, (c) => c.toUpperCase());

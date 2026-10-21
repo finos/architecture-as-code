@@ -204,6 +204,9 @@ async function connectToHub(
             return;
         }
 
+        // NOTE: getNamespaces() is called here for the status bar and again
+        // inside HubAssetService.refresh(). The duplication is accepted for
+        // simplicity — piping the result through would add method-signature churn.
         const namespaces = await hubClient.getNamespaces();
         const availableNames = namespaces.map((ns: { name: string }) => ns.name);
 
@@ -268,10 +271,15 @@ async function refreshFromHub(): Promise<void> {
     try {
         hubStatusBar.setState('connecting');
         const namespaces = await hubClient.getNamespaces();
-        hubStatusBar.setState('connected', namespaces.length);
+        const availableNames = namespaces.map(ns => ns.name);
+        const savedSelection = vscode.workspace.getConfiguration('calm.hub')
+            .get<string[]>('selectedNamespaces') ?? [];
+        const validSelection = savedSelection.filter(ns => availableNames.includes(ns));
+        hubStatusBar.setState('connected', availableNames.length);
+        hubStatusBar.setAvailableAndSelected(availableNames, validSelection);
         void canvasPanel?.setHubConnection(hubClient, true);
         outputChannel.appendLine(
-            `[INFO] Refreshed from CalmHub (clean) — ${namespaces.length} namespace(s)`
+            `[INFO] Refreshed from CalmHub (clean) — ${availableNames.length} namespace(s)`
         );
     } catch (err) {
         hubStatusBar.setState('error');

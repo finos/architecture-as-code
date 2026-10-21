@@ -57,7 +57,8 @@ export class HubAuthService {
             }
 
             return false;
-        } catch {
+        } catch (err) {
+            console.error('[HubAuthService] Authentication failed:', err instanceof Error ? err.message : String(err));
             return false;
         }
     }
@@ -128,6 +129,8 @@ export class HubAuthService {
                     }
                     return;
                 }
+                res.writeHead(204);
+                res.end();
             });
 
             server.listen(port, () => {

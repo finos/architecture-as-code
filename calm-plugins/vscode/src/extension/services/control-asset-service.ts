@@ -1,5 +1,6 @@
 import { HubClient, HubApiError } from './hub-client';
 import { buildControlCurie } from './control-curie';
+import { humanize } from './hub-asset-service';
 import type { LocalControlDef } from './workspace-asset-service';
 
 export interface ControlBrowseEntry {
@@ -97,10 +98,6 @@ export class ControlAssetService {
             return { domain, controls: [], error: describeError(err) };
         }
     }
-}
-
-function humanize(slug: string): string {
-    return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function describeError(err: unknown): string {

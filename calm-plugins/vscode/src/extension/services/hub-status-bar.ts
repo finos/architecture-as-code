@@ -8,7 +8,6 @@ export class HubStatusBar {
     private namespaceCount = 0;
     private updatesCount = 0;
     private hubUrl: string | undefined;
-    private namespaceNames: string[] = [];
     private availableNamespaces: string[] = [];
     private selectedNamespaces: string[] = [];
 
@@ -37,20 +36,10 @@ export class HubStatusBar {
         this.update();
     }
 
-    setNamespaceNames(names: string[]): void {
-        this.namespaceNames = names;
-        this.update();
-    }
-
     setAvailableAndSelected(available: string[], selected: string[]): void {
         this.availableNamespaces = available;
         this.selectedNamespaces = selected;
         this.namespaceCount = available.length;
-        this.update();
-    }
-
-    setUpdatesAvailable(count: number): void {
-        this.updatesCount = count;
         this.update();
     }
 

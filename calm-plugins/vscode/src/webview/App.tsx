@@ -282,7 +282,7 @@ function CanvasApp() {
         });
         setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
         setHubLoadingCallback((loading) => useCanvasStore.setState({ hubLoading: loading }));
-        setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any, hubLoading: false }));
+        setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
@@ -320,6 +320,7 @@ function CanvasApp() {
 
         const initialJson = (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
         if (initialJson) { loadArchitecture(initialJson); setInitialized(true); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadArchitecture, setNodes]);
 
     // --- Undo/Redo ---
