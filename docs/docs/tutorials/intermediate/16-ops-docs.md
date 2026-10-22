@@ -294,7 +294,7 @@ Architecture JSON (source of truth)
 ## Resources
 
 - [Handlebars Templating](https://handlebarsjs.com/guide/)
-- [CALM Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
+- [CALM Docify Documentation](../../calm-cli/docify.md)
 - [Google SRE Runbook Best Practices](https://sre.google/sre-book/effective-troubleshooting/)
 
 ## Next Steps
