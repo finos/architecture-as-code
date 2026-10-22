@@ -87,6 +87,14 @@ COPY --chown=185 target/quarkus-app/app/ /deployments/app/
 COPY --chown=185 target/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
+# UBI looks up hosts in /etc/hosts only. Without dns, names on a Docker network
+# (for example mongo) fail with UnknownHostException.
+USER root
+RUN if grep -q '^hosts:' /etc/nsswitch.conf; then \
+      sed -i 's/^hosts:.*/hosts: files dns/' /etc/nsswitch.conf; \
+    else \
+      echo 'hosts: files dns' >> /etc/nsswitch.conf; \
+    fi
 USER 185
 ENV AB_JOLOKIA_OFF=""
 ENV JAVA_OPTS="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
