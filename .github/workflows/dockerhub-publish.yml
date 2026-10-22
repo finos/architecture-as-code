@@ -142,14 +142,18 @@ jobs:
                   docker network create smoke-net
                   docker run -d --name mongo --network smoke-net mongo:8
                   ready=0
-                  for _ in $(seq 1 40); do
-                    if docker exec mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' 2>/dev/null | grep -q '^1'; then
+                  for _ in $(seq 1 60); do
+                    if docker exec mongo mongosh --quiet --eval "db.adminCommand('ping').ok" >/dev/null; then
                       ready=1
                       break
                     fi
                     sleep 2
                   done
-                  test "$ready" = 1
+                  if [ "$ready" != 1 ]; then
+                    docker logs mongo || true
+                    echo "MongoDB did not accept a ping"
+                    exit 1
+                  fi
                   mongo_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongo)"
                   test -n "$mongo_ip"
                   docker run -d --name calmhub --network smoke-net \
@@ -163,7 +167,9 @@ jobs:
 
             - name: Dump container logs on failure
               if: failure()
-              run: docker logs calmhub 2>/dev/null || true
+              run: |
+                  docker logs mongo 2>/dev/null || true
+                  docker logs calmhub 2>/dev/null || true
 
             - name: Cleanup smoke test containers
               if: always()
