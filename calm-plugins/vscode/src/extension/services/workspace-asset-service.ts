@@ -41,6 +41,7 @@ export interface PatternEntry {
     description: string;
     category: string;
     schema: unknown;
+    sha?: string;
 }
 
 export class WorkspaceAssetService {

@@ -40,17 +40,12 @@ type DefinitionResolutionFailedCallback = (
     nodeId: string,
     error: string
 ) => void;
-type UpdatesAvailableCallback = (
-    updates: Array<{ nodeId: string; currentSha: string; latestSha: string }>
-) => void;
-
 let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let standardNodesLoadedCallback: StandardNodesLoadedCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
 let definitionResolvedCallback: DefinitionResolvedCallback | undefined;
 let definitionResolutionFailedCallback: DefinitionResolutionFailedCallback | undefined;
-let updatesAvailableCallback: UpdatesAvailableCallback | undefined;
 
 type HubLoadingCallback = (loading: boolean) => void;
 let hubLoadingCallback: HubLoadingCallback | undefined;
@@ -116,12 +111,6 @@ export function setDefinitionResolutionFailedCallback(
 ): void {
     definitionResolutionFailedCallback = cb;
 }
-export function setUpdatesAvailableCallback(
-    cb: UpdatesAvailableCallback
-): void {
-    updatesAvailableCallback = cb;
-}
-
 export function setHubLoadingCallback(cb: HubLoadingCallback): void {
     hubLoadingCallback = cb;
 }
@@ -162,9 +151,6 @@ export function initBridge(): void {
                     break;
                 case 'definitionResolutionFailed':
                     definitionResolutionFailedCallback?.(msg.nodeId, msg.error);
-                    break;
-                case 'updatesAvailable':
-                    updatesAvailableCallback?.(msg.updates);
                     break;
                 case 'controlsChanged':
                     controlsChangedCallback?.();

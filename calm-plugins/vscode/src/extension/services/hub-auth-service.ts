@@ -47,8 +47,9 @@ export class HubAuthService {
                 try {
                     await this.client.getNamespaces();
                     return true;
-                } catch {
-                    // Token expired, need re-auth
+                } catch (err: unknown) {
+                    const status = (err as { status?: number })?.status;
+                    if (status !== 401 && status !== 403) throw err;
                 }
             }
 
@@ -114,10 +115,8 @@ export class HubAuthService {
                     }
 
                     if (receivedNonce !== nonce) {
-                        res.end('<!DOCTYPE html><html><body><h2>Authentication failed</h2><p>Invalid nonce — possible CSRF attack.</p></body></html>');
-                        clearTimeout(timeout);
-                        server.close();
-                        resolve(undefined);
+                        res.writeHead(400, { 'Content-Type': 'text/html' });
+                        res.end('<!DOCTYPE html><html><body><h2>Bad request</h2><p>Invalid state parameter.</p></body></html>');
                         return;
                     }
 
@@ -138,7 +137,7 @@ export class HubAuthService {
                 res.end();
             });
 
-            server.listen(port, () => {
+            server.listen(port, '127.0.0.1', () => {
                 vscode.env.openExternal(vscode.Uri.parse(loginUrl));
             });
 

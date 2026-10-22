@@ -2,10 +2,12 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+const SNAPSHOT_RE = /-SNAPSHOT$/i;
+
 /**
  * Filesystem-based SHA cache for resolved Hub resources.
- * Stores content at `~/.calm/cache/<namespace>/<type>/<slug>/<sha>.json`.
- * All operations are synchronous for fast reads on cached content.
+ * Stores content at `~/.calm/cache/<hubHash>/<namespace>/<type>/<slug>/<sha>.json`.
+ * Mutable versions (-SNAPSHOT) are never cached.
  */
 export class ShaCacheService {
     private cacheDir: string;
@@ -15,12 +17,14 @@ export class ShaCacheService {
     }
 
     async get(
+        hubHash: string,
         namespace: string,
         type: string,
         slug: string,
         sha: string
     ): Promise<unknown | null> {
-        const filePath = this.getCachePath(namespace, type, slug, sha);
+        if (SNAPSHOT_RE.test(sha)) return null;
+        const filePath = this.getCachePath(hubHash, namespace, type, slug, sha);
         try {
             const content = await fs.promises.readFile(filePath, 'utf-8');
             return JSON.parse(content);
@@ -30,21 +34,24 @@ export class ShaCacheService {
     }
 
     async put(
+        hubHash: string,
         namespace: string,
         type: string,
         slug: string,
         sha: string,
         content: unknown
     ): Promise<void> {
-        const filePath = this.getCachePath(namespace, type, slug, sha);
+        if (SNAPSHOT_RE.test(sha)) return;
+        const filePath = this.getCachePath(hubHash, namespace, type, slug, sha);
         const dir = path.dirname(filePath);
         const serialized = JSON.stringify(content, null, 2);
         await fs.promises.mkdir(dir, { recursive: true });
         await fs.promises.writeFile(filePath, serialized);
     }
 
-    has(namespace: string, type: string, slug: string, sha: string): boolean {
-        return fs.existsSync(this.getCachePath(namespace, type, slug, sha));
+    has(hubHash: string, namespace: string, type: string, slug: string, sha: string): boolean {
+        if (SNAPSHOT_RE.test(sha)) return false;
+        return fs.existsSync(this.getCachePath(hubHash, namespace, type, slug, sha));
     }
 
     getCacheDir(): string {
@@ -80,6 +87,7 @@ export class ShaCacheService {
     }
 
     private getCachePath(
+        hubHash: string,
         namespace: string,
         type: string,
         slug: string,
@@ -87,6 +95,7 @@ export class ShaCacheService {
     ): string {
         const safePath = path.join(
             this.cacheDir,
+            this.sanitizeSegment(hubHash),
             this.sanitizeSegment(namespace),
             this.sanitizeSegment(type),
             this.sanitizeSegment(slug),

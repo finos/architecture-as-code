@@ -131,7 +131,7 @@ export class HubClient {
         const raw = this.unwrapValues<Record<string, unknown>>(data);
         return raw.map((item) => ({
             name: (item.name as string) || (item.customId as string) || '',
-            uniqueId: (item.uniqueId as string) || (item.customId as string) || '',
+            uniqueId: (item.uniqueId as string) || (item.customId as string) || String((item.id as number) ?? ''),
             numericId: (item.id as number) ?? (item.numericId as number) ?? 0,
             versionCount: item.versionCount as number | undefined,
         }));

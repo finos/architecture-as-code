@@ -19,17 +19,6 @@ export interface SolutionMetadata {
     resources?: string;
 }
 
-/**
- * Flattened ADR entry surfaced to the webview. ADR ids are only unique within a
- * namespace, so `namespace` is part of the identity.
- */
-export interface AdrEntry {
-    namespace: string;
-    id: number;
-    title: string;
-    status: string;
-}
-
 export type ExtToWebviewMessage =
     | {
           type: 'modelUpdated';
@@ -56,14 +45,6 @@ export type ExtToWebviewMessage =
           type: 'definitionResolutionFailed';
           nodeId: string;
           error: string;
-      }
-    | {
-          type: 'updatesAvailable';
-          updates: Array<{
-              nodeId: string;
-              currentSha: string;
-              latestSha: string;
-          }>;
       }
     | { type: 'controlsChanged' }
     | { type: 'controlBrowseResult'; requestId: string; ok: true; groups: ControlBrowseGroup[] }

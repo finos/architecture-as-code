@@ -1,12 +1,10 @@
 import { HubClient, type NamespaceSummary } from './hub-client';
 import type { StandardNodeDef, PatternEntry } from './workspace-asset-service';
-import type { AdrEntry } from '../types/messages';
 
 export interface HubNamespace {
     name: string;
     standardNodes: StandardNodeDef[];
     patterns: PatternEntry[];
-    adrs: AdrEntry[];
 }
 
 export class HubAssetService {
@@ -82,12 +80,10 @@ export class HubAssetService {
                 // Standards unchanged — re-fetch patterns and ADRs (lightweight).
                 // Start with old data so partial failures preserve cached content.
                 const refreshed: HubNamespace = { ...old };
-                await this.fetchPatternsAndAdrs(refreshed);
+                await this.fetchPatterns(refreshed);
                 const patternsChanged = refreshed.patterns.length !== old.patterns.length ||
-                    refreshed.patterns.some((p, i) => p.id !== old.patterns[i]?.id);
-                const adrsChanged = refreshed.adrs.length !== old.adrs.length ||
-                    refreshed.adrs.some((a, i) => a.id !== old.adrs[i]?.id);
-                if (patternsChanged || adrsChanged) changed = true;
+                    refreshed.patterns.some((p, i) => p.id !== old.patterns[i]?.id || p.sha !== old.patterns[i]?.sha);
+                if (patternsChanged) changed = true;
                 updated.push(refreshed);
             }
         }
@@ -99,7 +95,7 @@ export class HubAssetService {
     }
 
     private async fetchNamespace(nsName: string): Promise<HubNamespace> {
-        const namespace: HubNamespace = { name: nsName, standardNodes: [], patterns: [], adrs: [] };
+        const namespace: HubNamespace = { name: nsName, standardNodes: [], patterns: [] };
 
         try {
             const blocks = await this.client.getResources(nsName, 'standards');
@@ -136,18 +132,18 @@ export class HubAssetService {
             );
             for (const { block, latestSha, nodeType, displayName, controls } of contentResults) {
                 namespace.standardNodes.push({
-                    id: block.uniqueId, name: displayName, behaviour: 'create-node',
+                    id: block.uniqueId || String(block.numericId), name: displayName, behaviour: 'create-node',
                     controls, nodeType, namespace: nsName, sha: latestSha, hubId: block.numericId,
                 });
             }
         } catch { /* namespace may not have standards */ }
 
-        await this.fetchPatternsAndAdrs(namespace);
+        await this.fetchPatterns(namespace);
 
         return namespace;
     }
 
-    private async fetchPatternsAndAdrs(namespace: HubNamespace): Promise<void> {
+    private async fetchPatterns(namespace: HubNamespace): Promise<void> {
         const nsName = namespace.name;
         const newPatterns: typeof namespace.patterns = [];
         try {
@@ -165,23 +161,17 @@ export class HubAssetService {
                 try {
                     const content = await this.client.getResourceAtVersion(nsName, 'patterns', String(pat.numericId), latestSha) as Record<string, unknown>;
                     newPatterns.push({
-                        id: pat.uniqueId,
+                        id: pat.uniqueId || String(pat.numericId),
                         name: (content.title as string) || pat.name || humanize(pat.uniqueId),
                         description: (content.description as string) || '',
                         category: (content.category as string) || (content['x-category'] as string) || nsName,
                         schema: content,
+                        sha: latestSha,
                     });
                 } catch { /* skip individual pattern */ }
             }
             namespace.patterns = newPatterns;
         } catch { /* namespace may not have patterns — keeps existing */ }
-
-        try {
-            const adrSummaries = await this.client.getAdrs(nsName);
-            namespace.adrs = adrSummaries
-                .filter(a => a.id !== null && a.id !== undefined)
-                .map(a => ({ namespace: nsName, id: a.id, title: a.title ?? '', status: (a.status ?? '').toLowerCase() }));
-        } catch { /* namespace may not expose ADRs — keeps existing */ }
     }
 
     getAllStandardNodes(selectedNamespaces: string[]): StandardNodeDef[] {
@@ -192,11 +182,6 @@ export class HubAssetService {
     getAllPatterns(selectedNamespaces: string[]): PatternEntry[] {
         const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
         return filtered.flatMap((ns) => ns.patterns);
-    }
-
-    getAllAdrs(selectedNamespaces: string[]): AdrEntry[] {
-        const filtered = this.namespaces.filter((ns) => selectedNamespaces.includes(ns.name));
-        return filtered.flatMap((ns) => ns.adrs);
     }
 
     async pinControlVersions(controls: Record<string, unknown>): Promise<void> {

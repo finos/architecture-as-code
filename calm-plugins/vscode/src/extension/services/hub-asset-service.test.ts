@@ -8,7 +8,6 @@ function createMockClient(): HubClient {
         getResources: vi.fn(),
         getVersions: vi.fn(),
         getResourceAtVersion: vi.fn(),
-        getAdrs: vi.fn().mockResolvedValue([]),
     } as unknown as HubClient;
 }
 
@@ -268,69 +267,6 @@ describe('HubAssetService', () => {
 
             const patterns = service.getAllPatterns(['finos']);
             expect(patterns[0].category).toBe('finos');
-        });
-    });
-
-    describe('ADR fetching', () => {
-        it('flattens and normalizes ADR summaries per namespace', async () => {
-            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { name: 'finos' },
-            ]);
-            (mockClient.getResources as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-            (mockClient.getAdrs as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { id: 1, title: 'Use Event Sourcing', status: 'Accepted' },
-                { id: 2, status: 'proposed' },
-            ]);
-
-            await service.refresh();
-
-            const adrs = service.getAllAdrs(['finos']);
-            expect(adrs).toEqual([
-                { namespace: 'finos', id: 1, title: 'Use Event Sourcing', status: 'accepted' },
-                { namespace: 'finos', id: 2, title: '', status: 'proposed' },
-            ]);
-        });
-
-        it('filters out summaries with a null id', async () => {
-            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { name: 'finos' },
-            ]);
-            (mockClient.getResources as ReturnType<typeof vi.fn>).mockResolvedValue([]);
-            (mockClient.getAdrs as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { id: null, title: 'Malformed' },
-                { id: 5, title: 'Good', status: 'draft' },
-            ]);
-
-            await service.refresh();
-
-            const adrs = service.getAllAdrs(['finos']);
-            expect(adrs).toHaveLength(1);
-            expect(adrs[0].id).toBe(5);
-        });
-
-        it('isolates ADR fetch failures from other assets', async () => {
-            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
-                { name: 'finos' },
-            ]);
-            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
-                (_ns: string, type: string) => {
-                    if (type === 'standards') {
-                        return Promise.resolve([
-                            { uniqueId: 'svc', name: 'Service', numericId: 1 },
-                        ]);
-                    }
-                    return Promise.resolve([]);
-                }
-            );
-            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['v1']);
-            (mockClient.getAdrs as ReturnType<typeof vi.fn>).mockRejectedValue(
-                new Error('403 forbidden')
-            );
-
-            const namespaces = await service.refresh();
-
-            expect(namespaces[0].adrs).toHaveLength(0);
-            expect(namespaces[0].standardNodes).toHaveLength(1);
         });
     });
 

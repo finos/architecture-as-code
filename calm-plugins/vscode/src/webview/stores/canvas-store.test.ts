@@ -18,7 +18,6 @@ describe('canvas-store', () => {
             documentControls: {},
             standardNodes: [],
             loadedPatterns: [],
-            availableUpdates: [],
         });
     });
 
@@ -84,13 +83,6 @@ describe('canvas-store', () => {
         ]);
         expect(useCanvasStore.getState().validationIssues).toHaveLength(1);
         expect(useCanvasStore.getState().validationIssues[0].severity).toBe('error');
-    });
-
-    it('setAvailableUpdates stores update info', () => {
-        useCanvasStore.getState().setAvailableUpdates([
-            { nodeId: 'n1', currentSha: 'abc', latestSha: 'def' },
-        ]);
-        expect(useCanvasStore.getState().availableUpdates).toHaveLength(1);
     });
 
     it('hubLoading defaults to false', () => {

@@ -985,10 +985,9 @@ export class CanvasPanel {
                 return;
             }
             const [namespace, , resourceName] = segments;
-            const cacheNs = `${this.hubBaseHash}_${namespace}`;
 
             // Cache first — SHA-based versions are immutable, so cached data is always valid.
-            const cached = await this.shaCache.get(cacheNs, 'standards', resourceName, version);
+            const cached = await this.shaCache.get(this.hubBaseHash, namespace, 'standards', resourceName, version);
             if (cached) {
                 this.postMessage({ type: 'definitionResolved', nodeId, controls: cached as Record<string, unknown> });
                 return;
@@ -1012,7 +1011,7 @@ export class CanvasPanel {
             const controls = (docNode?.controls as Record<string, unknown>) ?? {};
             await this.pinControlVersions(controls);
             this.postMessage({ type: 'definitionResolved', nodeId, controls });
-            this.shaCache.put(cacheNs, 'standards', resourceName, version, controls).catch(() => {});
+            this.shaCache.put(this.hubBaseHash, namespace, 'standards', resourceName, version, controls).catch(() => {});
         } catch (err) {
             this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
         }

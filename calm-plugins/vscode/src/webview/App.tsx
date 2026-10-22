@@ -29,7 +29,6 @@ import {
     setDrillResultCallback,
     setDefinitionResolvedCallback,
     setDefinitionResolutionFailedCallback,
-    setUpdatesAvailableCallback,
     setControlsChangedCallback,
     notifyCanvasChanged,
     notifyDrillInto,
@@ -307,9 +306,6 @@ function CanvasApp() {
         });
         setDefinitionResolutionFailedCallback((nodeId, error) => {
             console.warn(`[CALM Canvas] Failed to resolve definition for node ${nodeId}: ${error}`);
-        });
-        setUpdatesAvailableCallback((updates) => {
-            useCanvasStore.setState({ availableUpdates: updates });
         });
         setControlsChangedCallback(() => {
             // A local requirement file changed — re-resolve all controls.
