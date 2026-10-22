@@ -8,12 +8,15 @@ set -e
 
 # Configuration
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
-# Base URL used to build document $id values for the name-based API. Must equal
-# the server's calm.hub.base-url config property (default http://localhost:8080),
-# which is not necessarily the URL this script reaches the hub on.
-CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
+# Do not default CALM_HUB_BASE_URL here. -u/--url is parsed later, and the
+# name-based $id base must follow that URL unless the caller already set
+# CALM_HUB_BASE_URL or passed --base-url. resolve_calm_hub_base_url runs after
+# argument parsing. The value must equal the server's calm.hub.base-url, which
+# is not necessarily the URL this script uses to reach the hub.
 CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
+CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
+CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-}"
 CALM_STANDARDS_BASE_PATH="${CALM_STANDARDS_BASE_PATH:-}"
 CALM_PATTERNS_BASE_PATH="${CALM_PATTERNS_BASE_PATH:-}"
 CONTENT_TYPE="Content-Type: application/json"
@@ -143,31 +146,62 @@ load_schemas_from_dir() {
     done
 }
 
-# Resolve CALM_SCHEMA_BASE_PATH once (falling back to the calm/ dir beside this
+# Resolve the schema paths once (falling back to the directories beside this
 # script when unset) so every schema-reading function — create_core_schemas,
-# create_standards, create_interfaces — sees the same path.  Without this a bare
-# `bash init-nitrite.sh` (no env var) leaves the var empty, which causes those
+# create_standards — sees the same paths.  Without this a bare
+# `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
 # functions to build absolute paths from '/' that don't exist and silently
-# [WARN]-skip content.  seed-readonly.sh always exports CALM_SCHEMA_BASE_PATH,
-# so the Docker build masks the issue; this fix makes the bare run equally safe.
+# [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
+# Docker build masks the issue; this makes the bare run equally safe.
+#
+# The released meta-schemas come from the @finos/calm-schema npm packages, which
+# `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
+# calm/ in the repository holds only the drafts and the release candidates.
 resolve_schema_base_path() {
+    local script_dir
+    script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
     if [[ -z "$CALM_SCHEMA_BASE_PATH" ]]; then
-        local script_dir
-        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
         CALM_SCHEMA_BASE_PATH=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
     fi
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        CALM_RELEASE_SCHEMA_PATH=$(realpath "$script_dir/../target/calm-schemas/release" 2>/dev/null || echo "")
+    fi
+}
+
+# Name-based seeds build $id from CALM_HUB_BASE_URL. An explicit value (the
+# environment variable or --base-url) wins. Otherwise use CALM_HUB_URL, which
+# already includes -u/--url. The result must equal calm.hub.base-url.
+resolve_calm_hub_base_url() {
+    CALM_HUB_BASE_URL="${CALM_HUB_BASE_URL:-$CALM_HUB_URL}"
+}
+
+# Canonical $id the name-based API requires:
+# {calm.hub.base-url}/calm/namespaces/{namespace}/{resource}/{slug}/versions/{version}
+named_document_canonical_id() {
+    local namespace="$1"
+    local resource="$2"
+    local slug="$3"
+    local version="$4"
+    printf '%s/calm/namespaces/%s/%s/%s/versions/%s' \
+        "$CALM_HUB_BASE_URL" "$namespace" "$resource" "$slug" "$version"
 }
 
 # Function to create core schemas
 create_core_schemas() {
     print_status "Creating core schemas..."
 
+    if [[ -z "$CALM_RELEASE_SCHEMA_PATH" || ! -d "$CALM_RELEASE_SCHEMA_PATH" ]]; then
+        print_error "Released CALM schemas not found. Run './mvnw package' in calm-hub (or 'npm run calm-hub:copy-schemas' at the repository root), or set CALM_RELEASE_SCHEMA_PATH."
+        return 1
+    fi
     if [[ -z "$CALM_SCHEMA_BASE_PATH" || ! -d "$CALM_SCHEMA_BASE_PATH" ]]; then
         print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
         return 1
     fi
 
-    print_status "Loading schemas from: $CALM_SCHEMA_BASE_PATH"
+    print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
+    load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
+    print_status "Loading release candidates and drafts from: $CALM_SCHEMA_BASE_PATH"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
@@ -221,7 +255,8 @@ post_named_document() {
     local version="$4"
     local doc="$5"
 
-    local canonical="${CALM_HUB_BASE_URL}/calm/namespaces/${namespace}/${resource}/${slug}/versions/${version}"
+    local canonical
+    canonical="$(named_document_canonical_id "$namespace" "$resource" "$slug" "$version")"
     local payload
     payload=$(printf '%s' "$doc" | jq --arg id "$canonical" '. + {"$id": $id}')
 
@@ -5290,40 +5325,42 @@ create_standards() {
     fi
 }
 
-# Function to seed CALM interface examples into finos.calm
+# Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
+# document's title. These are not CALM Standards, so the name-based API does not apply.
 create_interfaces() {
-    print_status "Creating interfaces in finos.calm..."
+    print_status "Creating interfaces..."
 
-    local interfaces_dir="${CALM_SCHEMA_BASE_PATH}/interfaces/example"
-    if [[ ! -d "$interfaces_dir" ]]; then
-        print_warning "Interfaces example directory not found at $interfaces_dir, skipping"
+    local base_path="$CALM_INTERFACES_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        local script_dir
+        script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        base_path=$(realpath "$script_dir/../mongo/interfaces" 2>/dev/null || echo "")
+    fi
+    if [[ -z "$base_path" || ! -d "$base_path" ]]; then
+        print_warning "No interfaces directory at ${base_path:-../mongo/interfaces}, skipping interfaces"
         return
     fi
 
-    for f in "$interfaces_dir"/*.json; do
-        [[ -f "$f" ]] || continue
-        local name doc payload http_code
-        # Derive name from the .title field; fall back to the basename without extension
-        name=$(jq -r '.title // empty' "$f")
-        if [[ -z "$name" ]]; then
-            name=$(basename "$f" .json)
+    print_status "Loading interfaces from: $base_path"
+    local namespace_dir
+    for namespace_dir in "$base_path"/*/; do
+        [[ -d "$namespace_dir" ]] || continue
+        local namespace
+        namespace=$(basename "$namespace_dir")
+        if ! create_namespace "$namespace" "$namespace namespace"; then
+            print_error "Cannot seed interfaces into namespace $namespace"
+            exit 1
         fi
-        doc=$(cat "$f")
-        payload=$(jq -n \
-            --arg name "$name" \
-            --arg description "CALM interface example: $name" \
-            --argjson doc "$doc" \
-            '{name: $name, description: $description, interfaceJson: ($doc | tojson)}')
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/interfaces" \
-            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created interface '$name' in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Interface '$name' already exists, skipping"
-        else
-            print_warning "Failed to create interface '$name' (HTTP $http_code)"
-        fi
+        local f
+        for f in "$namespace_dir"*.json; do
+            [[ -f "$f" ]] || continue
+            local name
+            name=$(jq -r '.title // empty' "$f")
+            if [[ -z "$name" ]]; then
+                name=$(basename "$f" .json)
+            fi
+            post_document "$namespace" interfaces interfaceJson "$name" "CALM interface: $name" "$(cat "$f")"
+        done
     done
 }
 
@@ -6261,8 +6298,10 @@ CALMDOC
 }
 
 main() {
+    resolve_calm_hub_base_url
     print_status "Starting CalmHub NitriteDB initialization..."
     print_status "Target URL: $CALM_HUB_URL"
+    print_status "Name-based \$id base: $CALM_HUB_BASE_URL (must equal calm.hub.base-url)"
 
     # Check if CalmHub is running
     check_calmhub_status
@@ -6296,16 +6335,32 @@ show_help() {
     echo ""
     echo "Options:"
     echo "  -h, --help               Show this help message"
-    echo "  -u, --url URL            Set CalmHub URL (default: http://localhost:8080)"
-    echo "  -s, --schema-path PATH   Set the calm/ base path for schema loading"
+    echo "  -u, --url URL            Set the URL this script calls (default: http://localhost:8080)."
+    echo "                           Also used as the name-based \$id base unless -b or"
+    echo "                           CALM_HUB_BASE_URL is set."
+    echo "  -b, --base-url URL       Set the base URL written into name-based document \$id"
+    echo "                           values. Must equal the server's calm.hub.base-url"
+    echo "                           (default: the URL from -u or CALM_HUB_URL)."
+    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft and release-candidate schemas"
+    echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
+    echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
     echo "  -t, --standards-path PATH Set the base path for namespace standards"
     echo "  -p, --patterns-path PATH Set the base path for namespace patterns"
     echo ""
     echo "Environment Variables:"
-    echo "  CALM_HUB_URL            CalmHub base URL (default: http://localhost:8080)"
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing release/ and draft/ subdirectories"
+    echo "  CALM_HUB_URL            URL this script calls (default: http://localhost:8080)"
+    echo "  CALM_HUB_BASE_URL       Base URL for name-based document \$id values. Must equal"
+    echo "                          the server's calm.hub.base-url. When unset, defaults to"
+    echo "                          CALM_HUB_URL after -u/--url is applied."
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ and release-candidate schemas"
     echo "                          (default: auto-detected relative to this script)"
+    echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
+    echo "                          (default: ../target/calm-schemas/release relative to this script,"
+    echo "                          which './mvnw package' copies from the @finos/calm-schema npm packages)"
+    echo "  CALM_INTERFACES_BASE_PATH Path to the interfaces directory containing one subdirectory per namespace,"
+    echo "                          each holding one interface JSON file per document"
+    echo "                          (default: auto-detected as ../mongo/interfaces relative to this script)"
     echo "  CALM_CONTROLS_BASE_PATH Path to the controls directory containing one subdirectory per domain,"
     echo "                          each holding control requirement JSON files"
     echo "                          (default: auto-detected as ../mongo/controls relative to this script)"
@@ -6318,44 +6373,63 @@ show_help() {
     echo ""
     echo "Examples:"
     echo "  $0                                    # Use default URL"
-    echo "  $0 -u http://localhost:9090          # Use custom URL"
-    echo "  CALM_HUB_URL=http://calm.local $0    # Use environment variable"
+    echo "  $0 -u http://localhost:18091          # Call that URL; \$id uses it too"
+    echo "  $0 -u http://localhost:18091 -b http://localhost:8080"
+    echo "                                        # Call 18091; \$id uses calm.hub.base-url"
+    echo "  CALM_HUB_URL=http://calm.local $0     # Use environment variable"
 }
 
-# Parse command line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        -h|--help)
-            show_help
-            exit 0
-            ;;
-        -u|--url)
-            CALM_HUB_URL="$2"
-            shift 2
-            ;;
-        -s|--schema-path)
-            CALM_SCHEMA_BASE_PATH="$2"
-            shift 2
-            ;;
-        -c|--controls-path)
-            CALM_CONTROLS_BASE_PATH="$2"
-            shift 2
-            ;;
-        -t|--standards-path)
-            CALM_STANDARDS_BASE_PATH="$2"
-            shift 2
-            ;;
-        -p|--patterns-path)
-            CALM_PATTERNS_BASE_PATH="$2"
-            shift 2
-            ;;
-        *)
-            print_error "Unknown option: $1"
-            show_help
-            exit 1
-            ;;
-    esac
-done
+# Parse command line arguments. Kept as a function so a regression test can
+# source this script and inspect CALM_HUB_BASE_URL without starting a seed.
+parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            -h|--help)
+                show_help
+                exit 0
+                ;;
+            -u|--url)
+                CALM_HUB_URL="$2"
+                shift 2
+                ;;
+            -b|--base-url)
+                CALM_HUB_BASE_URL="$2"
+                shift 2
+                ;;
+            -s|--schema-path)
+                CALM_SCHEMA_BASE_PATH="$2"
+                shift 2
+                ;;
+            -r|--release-schema-path)
+                CALM_RELEASE_SCHEMA_PATH="$2"
+                shift 2
+                ;;
+            -i|--interfaces-path)
+                CALM_INTERFACES_BASE_PATH="$2"
+                shift 2
+                ;;
+            -c|--controls-path)
+                CALM_CONTROLS_BASE_PATH="$2"
+                shift 2
+                ;;
+            -t|--standards-path)
+                CALM_STANDARDS_BASE_PATH="$2"
+                shift 2
+                ;;
+            -p|--patterns-path)
+                CALM_PATTERNS_BASE_PATH="$2"
+                shift 2
+                ;;
+            *)
+                print_error "Unknown option: $1"
+                show_help
+                exit 1
+                ;;
+        esac
+    done
+}
 
-# Run main function
-main
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+    parse_args "$@"
+    main
+fi

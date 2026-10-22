@@ -15,6 +15,12 @@ export interface DrillEntry {
     readonly?: boolean;
 }
 
+export interface UpdateInfo {
+    nodeId: string;
+    currentSha: string;
+    latestSha: string;
+}
+
 export interface CanvasState {
     nodes: Node[];
     edges: Edge[];
@@ -28,11 +34,10 @@ export interface CanvasState {
     panelWidth: number;
     expandControlKey: string | null;
     documentControls: Record<string, unknown>;
-    buildingBlocks: unknown[];
+    standardNodes: unknown[];
     loadedPatterns: unknown[];
-    loadedTemplates: unknown[];
-    loadedStandards: unknown[];
     packRevision: number;
+    availableUpdates: UpdateInfo[];
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -48,6 +53,7 @@ export interface CanvasState {
     resetDrill: () => void;
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
+    setAvailableUpdates: (updates: UpdateInfo[]) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -63,11 +69,10 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     panelWidth: 280,
     expandControlKey: null,
     documentControls: {},
-    buildingBlocks: [],
+    standardNodes: [],
     loadedPatterns: [],
-    loadedTemplates: [],
-    loadedStandards: [],
     packRevision: 0,
+    availableUpdates: [],
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -84,4 +89,5 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     resetDrill: () => set({ drillStack: [], readonlyMode: false }),
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
+    setAvailableUpdates: (updates) => set({ availableUpdates: updates }),
 }));

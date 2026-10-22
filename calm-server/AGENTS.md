@@ -52,7 +52,7 @@ This builds the TypeScript code and copies the CALM meta schemas into `dist/calm
 ./calm-server/dist/index.js --port 3000 --verbose
 
 # Or with custom schemas
-./calm-server/dist/index.js -s ../calm/release --port 3000 --verbose
+./calm-server/dist/index.js -s path/to/schemas --port 3000 --verbose
 
 # Or using npm
 npm run build:calm-server

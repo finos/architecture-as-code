@@ -13,12 +13,21 @@ import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Handler;
+import java.util.logging.Level;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.hasItem;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
@@ -168,6 +177,53 @@ class TestGitHubStartupInitializerShould {
 
         verify(metrics).recordSyncFailure(any());
         verify(metrics, never()).recordSyncSuccess(any());
+    }
+
+    @Test
+    void warn_at_startup_that_the_audit_trail_is_not_persisted_in_github_mode() {
+        // GitHubAuditLogStore.query() always returns an empty list, so an operator must be
+        // told at startup rather than discover the gap when they go looking for the trail.
+        // Warned even with no namespaces configured: the gap exists regardless.
+        List<String> warnings = captureWarnings(() ->
+                initializerFor(Optional.empty(), "github").onStart(new StartupEvent()));
+
+        assertThat(warnings, hasItem(containsString("audit trail is not persisted")));
+    }
+
+    @Test
+    void not_warn_about_the_audit_trail_outside_github_mode() {
+        List<String> warnings = captureWarnings(() ->
+                initializerFor(Optional.empty(), "mongo").onStart(new StartupEvent()));
+
+        assertThat(warnings, empty());
+    }
+
+    private static List<String> captureWarnings(Runnable action) {
+        Logger logger = Logger.getLogger(GitHubStartupInitializer.class.getName());
+        List<String> warnings = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                if (logRecord.getLevel().intValue() >= Level.WARNING.intValue()) {
+                    warnings.add(logRecord.getMessage());
+                }
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        logger.addHandler(handler);
+        try {
+            action.run();
+        } finally {
+            logger.removeHandler(handler);
+        }
+        return warnings;
     }
 
     @Test

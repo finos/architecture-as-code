@@ -55,9 +55,8 @@ public class MongoPatternImplementationStore implements PatternImplementationSto
     }
 
     @Override
-    public List<ArchitectureSchema> findSchemasContaining(String schemaPath, Optional<Set<String>> readableNamespaces) {
-        Bson filter = Filters.and(readableScope(readableNamespaces),
-                Filters.regex(SCHEMA_FIELD, Pattern.quote(schemaPath)));
+    public List<ArchitectureSchema> findSchemasContaining(Pattern path, Optional<Set<String>> readableNamespaces) {
+        Bson filter = Filters.and(readableScope(readableNamespaces), Filters.regex(SCHEMA_FIELD, path));
         Bson projection = Projections.fields(
                 Projections.include(NAMESPACE_FIELD, ARCHITECTURE_ID_FIELD, VERSION_FIELD),
                 Projections.computed(SCHEMA_VALUE, SCHEMA_EXPRESSION));

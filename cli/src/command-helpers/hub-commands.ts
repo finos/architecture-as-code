@@ -1,5 +1,5 @@
 import { readFile, writeFile } from 'fs/promises';
-import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
+import { CalmHubClient, CalmHubOptions, HubClientError, HubDomainSummary, HubControlSummary, HubDomainCreateResult, DocumentMetadata, extractDocumentMetadata, computeSemVerBump, sortSemVer, latestReleaseVersion, isSnapshotVersion, toReleaseVersion, toSnapshotVersion, ResourceChangeType, ResourceType, updateDocumentMetadata, constructDocumentId, constructControlDocumentId, ControlDocumentMetadata, ControlDocumentKind, extractControlMetadata, updateControlDocumentMetadata, canonicalEqual } from '@finos/calm-shared';
 import { OutputFormat, parseOutputFormat, printError, printJsonSuccess, printTableSuccess } from './hub-output';
 import * as cliConfig from '../cli-config';
 
@@ -226,7 +226,7 @@ export async function pushDocument(
 
     // const resourceTypeString: string = resourceType;
     const mappedResourceVersions = await client.getMappedResourceVersions(namespace, mapping, resourceType);
-    const mappingExists = mappedResourceVersions.length > 0;
+    const hasRelease = mappedResourceVersions.some(version => !isSnapshotVersion(version));
 
     // override name/description if set
     const newDocumentMetadata = {
@@ -234,10 +234,12 @@ export async function pushDocument(
         name,
         description
     };
-    if (mappingExists) {
-        // Sort defensively so the highest version is last, regardless of the order Hub returns them in.
-        const sortedVersions = sortSemVer(mappedResourceVersions);
-        const latestVersion = sortedVersions[sortedVersions.length - 1];
+    if (isSnapshotVersion(metadata.version)) {
+        return pushSnapshot(client, namespace, mappedResourceVersions, newDocumentMetadata, fileContent, options);
+    }
+
+    if (hasRelease) {
+        const latestVersion = latestReleaseVersion(mappedResourceVersions);
 
         if (options.failIfModified) {
             // Strict mode: don't auto-bump. Compare the local document to the latest published
@@ -261,15 +263,62 @@ export async function pushDocument(
         }
 
         const newVersion = computeSemVerBump(latestVersion, changeType);
+        assertNoSnapshotDeleted(mappedResourceVersions, metadata.version, newVersion, mapping, `push ${resourceType} ${options.file}`);
         newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     } else {
-        newDocumentMetadata.version = '1.0.0';
+        // With only snapshots, the first release is the highest snapshot's.
+        const snapshots = sortSemVer(mappedResourceVersions);
+        const newVersion = snapshots.length > 0 ? toReleaseVersion(snapshots[snapshots.length - 1]) : '1.0.0';
+        assertNoSnapshotDeleted(mappedResourceVersions, metadata.version, newVersion, mapping, `push ${resourceType} ${options.file}`);
+        newDocumentMetadata.version = newVersion;
         fileContent = updateDocumentMetadata(fileContent, newDocumentMetadata);
         await client.createMappedResourceVersion(newDocumentMetadata, fileContent);
     }
     return { action: 'created', metadata: newDocumentMetadata };
+}
+
+/**
+ * CalmHub deletes `V-SNAPSHOT` when `V` is published, and cannot restore it. `hub push` picks the
+ * release version itself, so it publishes over a snapshot only when the document declares that
+ * version: that is a deliberate release of the snapshot.
+ */
+function assertNoSnapshotDeleted(existingVersions: string[], localVersion: string, newVersion: string, mapping: string, requestLabel: string): void {
+    const snapshot = toSnapshotVersion(newVersion);
+    if (existingVersions.includes(snapshot) && localVersion !== newVersion) {
+        throw new HubCommandError(
+            0,
+            `Publishing ${newVersion} of '${mapping}' deletes ${snapshot} in CALM Hub. ` +
+            `Set the document version to ${newVersion} to release that snapshot, or use a different --change-type.`,
+            requestLabel
+        );
+    }
+}
+
+/**
+ * A snapshot is mutable, so it is pushed at its own version and never bumped. CalmHub overwrites
+ * an existing snapshot in place; an unchanged one is skipped, as each POST is an audit update.
+ * `--fail-if-modified` does not apply.
+ */
+async function pushSnapshot(
+    client: CalmHubClient,
+    namespace: string,
+    existingVersions: string[],
+    metadata: DocumentMetadata,
+    fileContent: string,
+    options: PushOptions): Promise<PushDocumentResult> {
+
+    const normalised = updateDocumentMetadata(fileContent, metadata);
+    if (existingVersions.includes(metadata.version)) {
+        const published = await client.getMappedResourceByVersion(namespace, metadata.mapping, metadata.version, metadata.type);
+        const requestLabel = `push ${metadata.type} ${options.file}`;
+        if (isUnchangedFromPublished(normalised, published, metadata.mapping, requestLabel)) {
+            return { action: 'skipped', metadata };
+        }
+    }
+    await client.createMappedResourceVersion(metadata, normalised);
+    return { action: 'created', metadata };
 }
 
 /**
@@ -295,6 +344,12 @@ export async function orchestratePush(options: PushOptions, resourceType: Resour
 
     if (!metadata.namespace || !metadata.mapping) {
         printError(0, `Document metadata must include namespace and mapping: ${options.file}`, requestedCommand, format);
+        process.exit(1);
+    }
+    // The version lookup uses `resourceType` but the POST URL comes from the `$id`, so a
+    // mismatch would publish the document under its `$id` type.
+    if (metadata.type !== resourceType) {
+        printError(0, `Document $id is for ${metadata.type}, but this command pushes ${resourceType}: ${options.file}`, requestedCommand, format);
         process.exit(1);
     }
     const namespace = metadata.namespace;
@@ -603,6 +658,36 @@ export async function runPullInterface(options: PullOptions): Promise<void> {
  */
 export async function runListInterfaces(options: ListOptions): Promise<void> {
     return runListMappedResources(options, 'interfaces');
+}
+
+// ── push flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pushes a new flow or a versioned update to CALM Hub.
+ * @param options Command options.
+ */
+export async function runPushFlow(options: PushOptions): Promise<void> {
+    return orchestratePush(options, 'flows');
+}
+
+// ── pull flow ─────────────────────────────────────────────────────────────────
+
+/**
+ * Pulls a flow version from CALM Hub and writes it to stdout or a file.
+ * @param options Command options.
+ */
+export async function runPullFlow(options: PullOptions): Promise<void> {
+    return await pullDocument(options, 'flows');
+}
+
+// ── list flows ────────────────────────────────────────────────────────────────
+
+/**
+ * Lists flows in a namespace.
+ * @param options Command options.
+ */
+export async function runListFlows(options: ListOptions): Promise<void> {
+    return runListMappedResources(options, 'flows');
 }
 
 // ── create domain ───────────────────────────────────────────────────────────
