@@ -69,6 +69,11 @@ const sidebars = {
           link: {type: 'doc', id: 'calm-cli/calm-cli-overview'},
           items: [
             'working-with-calm/cli',
+            'calm-cli/generate',
+            'calm-cli/validate',
+            'calm-cli/docify',
+            'calm-cli/hub',
+            'calm-cli/direct-url-loading',
             'working-with-calm/directurl-auth-plugin',
           ],
         },

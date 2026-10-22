@@ -270,7 +270,7 @@ For example, to offer the cache and the message queue, add this relationship to 
 }
 ```
 
-`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../working-with-calm/cli.md#pattern-options) to give the choices on the command line.
+`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../calm-cli/generate.md#pattern-options) to give the choices on the command line.
 
 **The architecture keeps the decision.** The generated architecture contains the `optional-components` relationship too, with the selected choices in its `options` list. After "Add a cache":
 

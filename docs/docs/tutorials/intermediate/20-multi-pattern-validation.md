@@ -240,7 +240,7 @@ Validate **structure first**, then **standards**. This way:
 ## Resources
 
 - [CALM Pattern Documentation](https://github.com/finos/architecture-as-code/tree/main/calm/pattern)
-- [CALM CLI Validate Command](https://github.com/finos/architecture-as-code/tree/main/cli#validate)
+- [CALM CLI Validate Command](../../calm-cli/validate.md)
 - [JSON Schema Composition](https://json-schema.org/understanding-json-schema/reference/combining)
 
 ## Next Steps
