@@ -26,7 +26,7 @@ const callbacks = {
 };
 
 function Harness() {
-    useResourceFromRoute({ ...callbacks, resourceKey: useResourceNavigationKey(useLocation()) });
+    useResourceFromRoute({ ...callbacks, resourceKey: useResourceNavigationKey(useLocation(), false) });
     return null;
 }
 

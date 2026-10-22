@@ -260,6 +260,20 @@ describe('DiagramSection', () => {
             expect(screen.getByRole('tab', { name: 'Used by' })).toBeInTheDocument();
         });
 
+        it('asks again when the tab opens again after a failed lookup', async () => {
+            implementationServiceMock.fetchImplementations.mockRejectedValueOnce(new Error('boom')).mockResolvedValueOnce(implementations);
+            const user = userEvent.setup();
+            renderPattern();
+
+            await user.click(await screen.findByRole('tab', { name: 'Used by' }));
+            expect(await screen.findByText('Could not load the architectures that use this version.')).toBeInTheDocument();
+            await user.click(screen.getByRole('tab', { name: 'Diagram' }));
+            await user.click(screen.getByRole('tab', { name: 'Used by' }));
+
+            expect(await screen.findByRole('link', { name: /trade-capture/ })).toBeInTheDocument();
+            expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledTimes(2);
+        });
+
         it('sends one request when the tab opens again on the same version', async () => {
             implementationServiceMock.fetchImplementations.mockResolvedValue(implementations);
             const user = userEvent.setup();

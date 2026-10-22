@@ -19,6 +19,7 @@ const LOADING: ImplementationsState = { status: 'loading' };
 /**
  * The lookup scans every architecture version the caller can read, so it waits until `requested`.
  * The response stays until the pattern or version changes, and a return to a version asks again.
+ * An error does not stay, so the next time the tab opens it asks again.
  */
 export function usePatternImplementations(
     service: PatternImplementationService,
@@ -30,6 +31,8 @@ export function usePatternImplementations(
     const key = `${namespace}/${patternName}/${version}`;
     const [lookup, setLookup] = useState<{ key: string; state: ImplementationsState }>({ key, state: IDLE });
     if (lookup.key !== key) {
+        setLookup({ key, state: IDLE });
+    } else if (!requested && lookup.state.status === 'error') {
         setLookup({ key, state: IDLE });
     }
     const start = requested && patternName !== undefined && lookup.key === key && lookup.state === IDLE;

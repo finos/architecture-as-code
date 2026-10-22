@@ -37,6 +37,8 @@ interface CapturedCallbacks {
     onAdrLoad: (adr: Adr) => void;
     onControlLoad: (control: ControlData) => void;
     onInterfaceLoad: (iface: InterfaceData) => void;
+    onLoadError?: (error: unknown) => void;
+    resourceKey: string;
 }
 let captured: CapturedCallbacks | undefined;
 
@@ -522,6 +524,18 @@ describe('Hub', () => {
             // The same path and query again still clears it, so that the route loads it again.
             navigateTo('/finos/patterns/test/1.0?tab=json');
             expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+        });
+
+        it('loads the resource again when only the query changes after the load failed', () => {
+            renderWithNav('/finos/patterns/p/1.0.0?tab=used-by', ['/finos/patterns/p/1.0.0']);
+            act(() => captured?.onLoadError?.(new Error('not found')));
+            expect(screen.getByText('Pattern not found')).toBeInTheDocument();
+            const failedKey = captured?.resourceKey;
+
+            navigateTo('/finos/patterns/p/1.0.0');
+
+            expect(captured?.resourceKey).not.toBe(failedKey);
+            expect(screen.queryByText('Pattern not found')).not.toBeInTheDocument();
         });
 
         it('replaces the domain grid with the full-pane control view and keeps it across a no-nav re-render', () => {

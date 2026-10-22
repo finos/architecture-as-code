@@ -3,12 +3,12 @@ import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from 'r
 import { describe, expect, it } from 'vitest';
 import { useResourceNavigationKey } from './useResourceNavigationKey.js';
 
-function renderKeys(path: string) {
+function renderKeys(path: string, loadFailed = false) {
     const keys: string[] = [];
     let navigate: NavigateFunction = () => {};
     function Probe() {
         navigate = useNavigate();
-        keys.push(useResourceNavigationKey(useLocation()));
+        keys.push(useResourceNavigationKey(useLocation(), loadFailed));
         return null;
     }
     render(
@@ -30,6 +30,15 @@ describe('useResourceNavigationKey', () => {
         go('/finos/patterns/api-gateway/1.0.0?tab=used-by');
 
         expect(last()).toBe(first);
+    });
+
+    it('changes the key when only the query changes after the load failed', () => {
+        const { go, last } = renderKeys('/finos/patterns/api-gateway/1.0.0?tab=used-by', true);
+        const first = last();
+
+        go('/finos/patterns/api-gateway/1.0.0');
+
+        expect(last()).not.toBe(first);
     });
 
     it('changes the key when the path changes', () => {

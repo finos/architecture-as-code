@@ -148,7 +148,7 @@ export default function Hub() {
     // evaluates controlData first). Runs in a layout effect so the clear happens
     // before paint, avoiding a one-frame flash of the stale panel. A change to the
     // query only, such as a diagram tab, keeps the resource (useResourceNavigationKey).
-    const resourceKey = useResourceNavigationKey(location);
+    const resourceKey = useResourceNavigationKey(location, resourceLoadFailed);
     useLayoutEffect(() => {
         setData(undefined);
         setAdrData(undefined);
