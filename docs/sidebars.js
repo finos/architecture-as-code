@@ -76,6 +76,7 @@ const sidebars = {
             'calm-cli/diff',
             'calm-cli/timeline',
             'calm-cli/hub',
+            'calm-cli/workspace',
             'calm-cli/configuration',
             'calm-cli/direct-url-loading',
             'working-with-calm/directurl-auth-plugin',
