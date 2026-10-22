@@ -169,6 +169,12 @@ The tsup configuration:
 - Outputs CommonJS format with tree-shaking enabled
 - Marks external `node_modules` as external (not bundled)
 
+### Releases
+
+The **CALM Server - Automated Release** workflow releases with semantic-release. `release.config.mjs`
+lists the scopes that release the server: `calm-server` and the packages that the build bundles. The
+rules and the changelog format are shared with the CLI, in `scripts/release-notes.mjs`.
+
 ## Linking for Development
 
 After building, you can link the executable globally:

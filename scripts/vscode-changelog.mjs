@@ -14,6 +14,7 @@ import { pathToFileURL } from 'node:url';
 import createPreset from 'conventional-changelog-conventionalcommits';
 import { CommitParser } from 'conventional-commits-parser';
 import { writeChangelogString } from 'conventional-changelog-writer';
+import { finalizeContext, gitIn, isRepoWide, listedCommits, parserOpts, SECTIONS, withPrLink } from './release-notes.mjs';
 
 export const EXTENSION_PATH = 'calm-plugins/vscode';
 export const TAG_PREFIX = 'vscode-v';
@@ -26,26 +27,6 @@ const TITLE = '# Changelog\n\nAll notable changes to the CALM VS Code extension 
     + 'and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n'
     + 'Odd minor versions (e.g. 0.9.x) are published as pre-releases.';
 
-export const presetConfig = {
-    types: [
-        { type: 'feat', section: '🚀 Features' },
-        { type: 'fix', section: '🐛 Bug Fixes' },
-        { type: 'perf', section: '⚡ Performance Improvements' },
-        { type: 'revert', section: '⏪ Reverts' },
-        { type: 'docs', section: '📚 Documentation' },
-        { type: 'refactor', section: '♻️ Code Refactoring' },
-    ],
-};
-
-// GitHub puts the PR title on the line after "Merge pull request #N from ...", so the parser reads the title as the header.
-const parserOptions = {
-    noteKeywords: ['BREAKING CHANGE', 'BREAKING CHANGES'],
-    mergePattern: /^Merge pull request #(\d+) from (\S+)$/,
-    mergeCorrespondence: ['id', 'source'],
-};
-
-const conventionalHeader = /^\w+(\([^)]*\))?!?: /;
-
 export function compareVersions(a, b) {
     const pa = a.split('.').map(Number);
     const pb = b.split('.').map(Number);
@@ -53,10 +34,6 @@ export function compareVersions(a, b) {
         if (pa[i] !== pb[i]) return pa[i] - pb[i];
     }
     return 0;
-}
-
-function gitIn(cwd) {
-    return (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', maxBuffer: 1024 * 1024 * 1024 }).trim();
 }
 
 function lines(output) {
@@ -79,70 +56,24 @@ export function listReleases(git, packageVersion, today) {
     return tagged;
 }
 
-/**
- * The commits of one release that changed the extension: each merge or squash commit on main,
- * or for a PR whose title is not a conventional commit, its branch commits.
- */
+/** The commits of one release that changed the extension. */
 export function releaseCommits(git, from, to) {
-    const range = from ? `${from}..${to}` : to;
-    const hashes = [];
-    for (const hash of lines(git('log', '--first-parent', '--format=%H', range, '--', EXTENSION_PATH))) {
-        const [, mainParent, branchParent] = git('log', '-1', '--format=%H %P', hash).split(' ');
-        const title = lines(git('log', '-1', '--format=%B', hash)).filter(Boolean)[1] ?? '';
-        if (branchParent && !conventionalHeader.test(title)) {
-            hashes.push(...lines(git('log', '--no-merges', '--format=%H', `${mainParent}..${branchParent}`, '--', EXTENSION_PATH)));
-        } else {
-            hashes.push(hash);
-        }
-    }
-    const parser = new CommitParser(parserOptions);
-    return hashes.map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
+    const parser = new CommitParser(parserOpts);
+    return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH])
+        .map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
 }
 
-const UNSCOPED_TYPES = ['feat', 'fix', 'perf', 'revert'];
-
-// Dependency updates stay hidden even with a breaking-change note: those notes are about the
-// dependency. As in the CLI changelog, unscoped changes other than these types are repo-wide.
+// Dependency updates stay hidden even with a breaking-change note: those notes are about the dependency.
 export function keep(commit) {
     if (HIDDEN_SCOPES.has(commit.scope)) return false;
-    return Boolean(commit.scope) || UNSCOPED_TYPES.includes(commit.type) || commit.notes.length > 0;
-}
-
-// A PR's branch can hold the same change twice, e.g. a commit and the squash of a nested PR.
-// Separate PRs can share a subject, so never drop an entry that links its PR.
-function finalizeContext(context) {
-    const prLink = / \(\[#\d+\]\([^)]*\)\)$/;
-    for (const group of context.commitGroups) {
-        const linked = group.commits.filter(commit => prLink.test(commit.subject ?? ''));
-        const key = commit => `${commit.scope}:${(commit.subject ?? '').replace(prLink, '')}`;
-        const seen = new Set(linked.map(key));
-        group.commits = group.commits.filter(commit => {
-            if (linked.includes(commit)) {
-                return true;
-            }
-            if (seen.has(key(commit))) {
-                return false;
-            }
-            seen.add(key(commit));
-            return true;
-        });
-    }
-    return context;
+    return !isRepoWide(commit) || commit.notes.length > 0;
 }
 
 /** Markdown for one release, in the CLI changelog format. */
 export async function renderRelease(release, previous, commits) {
-    const preset = await createPreset(presetConfig);
+    const preset = await createPreset({ types: SECTIONS });
     const presetTransform = preset.writer.transform;
-    const transform = (commit, context) => {
-        if (!keep(commit)) return undefined;
-        return presetTransform({
-            ...commit,
-            subject: commit.merge && commit.subject ? `${commit.subject} (#${commit.id})` : commit.subject,
-            // PR descriptions mention many issues, and the parser reads hex colours as issue numbers.
-            references: commit.references.filter(ref => ref.action && /^\d+$/.test(ref.issue)),
-        }, context);
-    };
+    const transform = (commit, context) => keep(commit) ? presetTransform(withPrLink(commit), context) : undefined;
     const context = {
         ...REPOSITORY,
         version: release.version,

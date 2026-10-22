@@ -310,19 +310,20 @@ jobs:
           
           The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
           and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-          
-          ## [$NEXT_VERSION] - $RELEASE_DATE
-          
+
           EOF
-            
+
+            # The generated notes start with their own version heading
             if [ -s "release-notes.md" ]; then
               cat release-notes.md >> temp_changelog.md
               echo "" >> temp_changelog.md
             else
-              cat >> temp_changelog.md <<'EOF'
+              cat >> temp_changelog.md << EOF
+          ## [$NEXT_VERSION] - $RELEASE_DATE
+
           ### Changed
           - Automated release
-          
+
           EOF
             fi
             
@@ -535,7 +536,7 @@ jobs:
           # Extract changelog for this version
           if [ -f "CHANGELOG.md" ]; then
             # Try to extract the section for this version from CHANGELOG.md
-            RELEASE_NOTES=$(awk '/^## \['${{ steps.version.outputs.version }}'\]/, /^## \[/{//!p}' CHANGELOG.md | sed '/^## \[/d' || echo "")
+            RELEASE_NOTES=$(awk -v heading="## [${{ steps.version.outputs.version }}]" 'index($0, heading) == 1 { found = 1; next } found && /^## \[/ { exit } found' CHANGELOG.md || echo "")
           fi
           
           if [ -z "$RELEASE_NOTES" ]; then
