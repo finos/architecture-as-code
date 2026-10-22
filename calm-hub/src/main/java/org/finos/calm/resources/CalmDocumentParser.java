@@ -10,6 +10,7 @@ import org.finos.calm.domain.ResourceType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Locale;
 import java.util.Map;
 
 import static org.finos.calm.resources.ResourceValidationConstants.*;
@@ -64,7 +65,7 @@ public class CalmDocumentParser {
      * Parsed representation of a fully-qualified versioned canonical {@code $id} for a
      * namespace resource.
      */
-    public record CanonicalId(String namespace, ResourceType resourceType, String type, String name, String version) {}
+    public record CanonicalId(String namespace, ResourceType resourceType, String name, String version) {}
 
     /** Sealed hierarchy for parsed domain-control {@code $id} values. */
     public sealed interface DomainControlId permits ControlRequirementId, ControlConfigId {}
@@ -84,6 +85,16 @@ public class CalmDocumentParser {
     // -------------------------------------------------------------------------
     // Base-URL helpers
     // -------------------------------------------------------------------------
+
+    /**
+     * Returns {@code /calm/namespaces/{namespace}/{type}/{name}}, plus {@code /versions/{version}} when
+     * {@code version} is not null. The type segment is always the lowercase plural, whatever case the
+     * caller used, so one resource has one {@code $id}.
+     */
+    public static String namedResourcePath(String namespace, ResourceType resourceType, String name, String version) {
+        String path = "/calm/namespaces/" + namespace + "/" + TYPE_PLURAL_MAP.get(resourceType) + "/" + name;
+        return version == null ? path : path + "/versions/" + version;
+    }
 
     /** Returns the configured base URL trimmed and without a trailing slash. */
     public String normalizeBase() {
@@ -241,13 +252,13 @@ public class CalmDocumentParser {
         if (!version.matches(SNAPSHOT_VERSION_REGEX)) {
             throw new IllegalArgumentException("Invalid version in $id: " + version);
         }
-        ResourceType resourceType = TYPE_MAP.get(type.toLowerCase());
+        ResourceType resourceType = parseTypePlural(type);
         if (resourceType == null) {
             throw new IllegalArgumentException(
                     "Unsupported resource type in $id: " + type
                             + ". Supported: patterns, architectures, flows, standards, interfaces");
         }
-        return new CanonicalId(namespace, resourceType, type, name, version);
+        return new CanonicalId(namespace, resourceType, name, version);
     }
 
     /**
@@ -301,23 +312,27 @@ public class CalmDocumentParser {
 
     /**
      * Verifies that the document's {@code $id} equals the canonical versioned URL for the
-     * given path parameters.
+     * given path parameters. The type segment may use any case, as it may in the path.
      *
      * @throws IllegalArgumentException if the {@code $id} is missing or does not match.
      * @throws JsonProcessingException  if the body cannot be parsed as JSON.
      */
-    public VersionSpec resolveAndVerify(String json, String namespace, String typePath,
+    public VersionSpec resolveAndVerify(String json, String namespace, ResourceType resourceType,
                                         String name, String pathVersion)
             throws JsonProcessingException {
         String id = readIdField(json);
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("$id is required");
         }
-        String expected = normalizeBase() + "/calm/namespaces/" + namespace + "/" + typePath
-                + "/" + name + "/versions/" + pathVersion;
-        if (!id.equals(expected)) {
-            throw new IllegalArgumentException(
-                    "$id does not match the expected URL. Expected: " + expected);
+        String base = normalizeBase();
+        String prefix = base + "/calm/namespaces/" + namespace + "/";
+        String suffix = "/" + name + "/versions/" + pathVersion;
+        boolean matches = id.length() > prefix.length() + suffix.length()
+                && id.startsWith(prefix) && id.endsWith(suffix)
+                && parseTypePlural(id.substring(prefix.length(), id.length() - suffix.length())) == resourceType;
+        if (!matches) {
+            throw new IllegalArgumentException("$id does not match the expected URL. Expected: "
+                    + base + namedResourcePath(namespace, resourceType, name, pathVersion));
         }
         return new VersionSpec(pathVersion, true);
     }
@@ -332,23 +347,14 @@ public class CalmDocumentParser {
      * @param version {@code null} for the versionless (latest) form; a semver string for the
      *                versioned form.
      */
-    public String rewriteId(String json, String namespace, String typePath, String name, String version) {
-        String configuredBase = baseUrl == null ? null : baseUrl.trim();
-        if (configuredBase == null || configuredBase.isEmpty()) {
+    public String rewriteId(String json, String namespace, ResourceType resourceType, String name, String version) {
+        if (baseUrl == null || baseUrl.isBlank()) {
             return json;
         }
         try {
             JsonNode tree = OBJECT_MAPPER.readTree(json);
             if (tree.isObject()) {
-                String normalizedBase = configuredBase.endsWith("/")
-                        ? configuredBase.substring(0, configuredBase.length() - 1)
-                        : configuredBase;
-                String canonicalUrl = normalizedBase + "/calm/namespaces/" + namespace
-                        + "/" + typePath + "/" + name;
-                if (version != null) {
-                    canonicalUrl = canonicalUrl + "/versions/" + version;
-                }
-                ((ObjectNode) tree).put("$id", canonicalUrl);
+                ((ObjectNode) tree).put("$id", normalizeBase() + namedResourcePath(namespace, resourceType, name, version));
                 return OBJECT_MAPPER.writeValueAsString(tree);
             }
         } catch (JsonProcessingException e) {
@@ -397,7 +403,7 @@ public class CalmDocumentParser {
         if (type == null || type.isBlank()) {
             return null;
         }
-        return TYPE_MAP.get(type.toLowerCase());
+        return TYPE_MAP.get(type.toLowerCase(Locale.ROOT));
     }
 
     // -------------------------------------------------------------------------

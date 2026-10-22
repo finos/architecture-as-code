@@ -411,4 +411,44 @@ describe('validate E2E', () => {
             expect(response.jsonSchemaValidationOutputs.length).toBe(0);
         });
     });
+
+    describe('control config-url document with no $id', () => {
+        function architectureWithConfigUrl(configFile: string) {
+            return {
+                '$schema': 'https://calm.finos.org/release/1.2/meta/calm.json',
+                controls: {
+                    security: {
+                        description: 'Secure communication',
+                        requirements: [{
+                            'requirement-url': 'https://calm.finos.org/release/1.2/meta/control-requirement.json',
+                            'config-url': path.join(validationPath, 'controls', configFile)
+                        }]
+                    }
+                },
+                nodes: [{ 'unique-id': 'svc', 'node-type': 'service', name: 'Service', description: 'A service' }],
+                relationships: []
+            };
+        }
+
+        it('accepts a config that agrees with the requirement schema', async () => {
+            const arch = architectureWithConfigUrl('tls-config.json');
+
+            const response = await validate(arch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeFalsy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(0);
+        });
+
+        it('reports a config that does not agree with the requirement schema', async () => {
+            const arch = architectureWithConfigUrl('tls-config-no-description.json');
+
+            const response = await validate(arch, undefined, undefined, schemaDirectory, false);
+
+            expect(response.hasErrors).toBeTruthy();
+            expect(response.jsonSchemaValidationOutputs).toHaveLength(1);
+            expect(response.jsonSchemaValidationOutputs[0].code).toBe('control-requirement-validation');
+            expect(response.jsonSchemaValidationOutputs[0].path).toBe('/controls/security/requirements/0');
+            expect(response.jsonSchemaValidationOutputs[0].message).toContain('description');
+        });
+    });
 });

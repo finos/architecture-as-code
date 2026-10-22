@@ -218,7 +218,8 @@ npm run build --workspace cli
 - `tsup.config.ts` - Build configuration (entry points, formats)
 - `vitest.config.mts` - Test configuration
 - `eslint.config.mjs` - Linting rules
-- `.releaserc.json` - Semantic release configuration
+- `release.config.mjs` - Semantic release configuration (release rules and changelog filtering)
+- `release-analyzer.mjs` - Gives the commit analyzer only the commits that the changelog lists
 
 ## Release Process
 

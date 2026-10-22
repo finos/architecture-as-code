@@ -22,7 +22,9 @@ function validatableEntries(manifest: Manifest) {
 
 /**
  * Read the same user config as `calm validate`, so that a `$schema` on CalmHub loads with its auth.
- * Call it before the command changes anything, so that a config error stops the command first.
+ * Call it before the command changes anything, so that a config that is not valid stops the command
+ * first. A direct-URL auth module loads only during validation, so a module that cannot load does not
+ * stop the command.
  */
 export async function loadPostBumpValidationOptions(
     bundlePath: string,
