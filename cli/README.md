@@ -670,7 +670,7 @@ Direct URL authentication is configured separately from CalmHub authentication. 
 
 Direct URL auth modules are local JavaScript files. They must export a default class whose constructor accepts an optional `configPath` string and whose instances implement `getAuthHeaders(url, requestBody)`.  See [Direct URL Document Loader - Custom Authentication Plugin](#direct-url-document-loader---custom-authentication-plugin) for details.
 
-The CLI instantiates the module once per process as `new DefaultExport(configPath)` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
+The CLI loads the module the first time a document on an authenticated host needs headers. It instantiates the module once per process as `new DefaultExport(configPath)` and calls `getAuthHeaders` for each protected direct-URL request after host and URL safety checks pass.
 
 Example `~/.calm.json`:
 
@@ -987,7 +987,7 @@ or, if a document fails:
   my-arch (2 error(s)) — run `calm validate -a .calm-workspace/files/my-arch.json` to see full output
 ```
 
-The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication module that cannot load, also stops `check` before it compares the workspace with CalmHub.
+The command exits non-zero if any documents need bumping **or** if any document fails validation. It also exits non-zero if validation cannot run. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `check` before it compares the workspace with CalmHub.
 
 #### `calm workspace bump`
 
@@ -1020,7 +1020,7 @@ Bump is **idempotent**: editing → bumping → editing again → bumping again 
 
 If CalmHub holds a `-SNAPSHOT` of a new version, `bump` warns: pushing that version deletes the snapshot. Use a different increment unless you mean to release it.
 
-After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate` also stops `bump`, before it changes any file.
+After bumping, `bump` validates every architecture and pattern in the workspace and prints the same pass/fail summary as `workspace check`. This is **informational only**: a document that fails validation does not change the exit code. A `~/.calm.json` setting that stops `calm validate`, for example a direct-URL authentication setting that is not valid, also stops `bump` before it changes any file. A direct-URL authentication module that cannot load does not stop `bump`. The module loads only when validation needs it, after `bump` writes the new versions, so each document that needs the module shows `(could not validate)`. A second `bump` does not validate again, because it finds nothing to bump. After you correct the module, run `calm workspace check`.
 
 #### `calm workspace snapshot`
 
@@ -1195,7 +1195,7 @@ For `push` to work, each document must have a namespace recorded in the manifest
 
 Authentication/Authorization: This plugin returns a bearer token to the CLI that will add it as the HTTP Authorization header (Authorization: Bearer <token>). The token can be used to authenticate the request and/or determine authorization.
 
-`directUrlAuthModule` should be a local `.js` file that `export default`s a class. The CLI loads it once and instantiates it as:
+`directUrlAuthModule` should be a local `.js` file that `export default`s a class. The CLI loads it once, when a document on an authenticated host first needs it, and instantiates it as:
 
 ```ts
 new DefaultExport(configPath?)

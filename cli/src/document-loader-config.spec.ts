@@ -175,7 +175,7 @@ describe('parseDocumentLoaderConfig', () => {
         expect(options.authPlugin).toBeUndefined();
     });
 
-    it('loads direct URL auth module from flattened config when configured', async () => {
+    it('sets up the direct URL auth module from flattened config without loading it', async () => {
         cliConfigModule = await import('./cli-config');
         const calmShared = await import('@finos/calm-shared');
         const mockLogger = createMockLogger();
@@ -190,16 +190,12 @@ describe('parseDocumentLoaderConfig', () => {
 
         const options = await parseDocLoaderConfigForTest({});
 
-        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
-            module: '/fake/direct-url-auth.js',
-            configPath: '/configs/direct-url-auth.json',
-            authenticatedHosts: ['schemas.example.com']
-        }, false);
-        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).not.toHaveBeenCalled();
+        expect(options.directUrlAuthPlugin).toBeDefined();
         expect(options.directUrlAuthAuthenticatedHosts).toEqual(['schemas.example.com']);
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             1,
-            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+            'Using direct URL auth module from config file: /fake/direct-url-auth.js'
         );
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             2,
@@ -219,12 +215,11 @@ describe('parseDocumentLoaderConfig', () => {
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
 
-        const options = await parseDocLoaderConfigForTest({});
+        await parseDocLoaderConfigForTest({});
 
-        expect(options.directUrlAuthPlugin).toBe(fakePlugin);
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             1,
-            'Loading direct URL auth module from config file: /fake/direct-url-auth.js'
+            'Using direct URL auth module from config file: /fake/direct-url-auth.js'
         );
         expect(mockLogger.info).toHaveBeenNthCalledWith(
             2,
@@ -242,7 +237,35 @@ describe('parseDocumentLoaderConfig', () => {
             .rejects.toThrow(/Direct URL authentication setup failed: directUrlAuth\.module must be a non-empty string/);
     });
 
-    it('fails when direct URL auth module loading throws', async () => {
+    it('loads the direct URL auth module once, when a document first needs headers', async () => {
+        cliConfigModule = await import('./cli-config');
+        const fakePlugin = { getAuthHeaders: vi.fn().mockResolvedValue({ Authorization: 'Bearer token' }) };
+        vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
+            directUrlAuthModule: '/fake/direct-url-auth.js',
+            directUrlAuthConfigPath: '/configs/direct-url-auth.json',
+            directUrlAuthAuthenticatedHosts: ['schemas.example.com']
+        });
+        vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockResolvedValue(fakePlugin as never);
+
+        const options = await parseDocLoaderConfigForTest({ verbose: true });
+        const plugin = options.directUrlAuthPlugin!;
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).not.toHaveBeenCalled();
+        const headers = await Promise.all([
+            plugin.getAuthHeaders('https://schemas.example.com/a.json', undefined),
+            plugin.getAuthHeaders('https://schemas.example.com/b.json', undefined),
+        ]);
+
+        expect(headers).toEqual([{ Authorization: 'Bearer token' }, { Authorization: 'Bearer token' }]);
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledTimes(1);
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledWith({
+            module: '/fake/direct-url-auth.js',
+            configPath: '/configs/direct-url-auth.json',
+            authenticatedHosts: ['schemas.example.com']
+        }, true);
+        expect(fakePlugin.getAuthHeaders).toHaveBeenCalledWith('https://schemas.example.com/b.json', undefined);
+    });
+
+    it('does not fail setup when the direct URL auth module cannot load, and fails each request for headers', async () => {
         cliConfigModule = await import('./cli-config');
         vi.spyOn(cliConfigModule, 'loadCliConfig').mockResolvedValue({
             directUrlAuthModule: '/bad/direct-url-auth.js',
@@ -250,6 +273,11 @@ describe('parseDocumentLoaderConfig', () => {
         });
         vi.spyOn(cliConfigModule, 'loadDirectUrlAuthPlugin').mockRejectedValue(new Error('module not found'));
 
-        await expect(parseDocLoaderConfigForTest({})).rejects.toThrow(/Direct URL authentication setup failed: module not found/);
+        const options = await parseDocLoaderConfigForTest({});
+        const plugin = options.directUrlAuthPlugin!;
+
+        await expect(plugin.getAuthHeaders('https://schemas.example.com/a.json', undefined)).rejects.toThrow('module not found');
+        await expect(plugin.getAuthHeaders('https://schemas.example.com/b.json', undefined)).rejects.toThrow('module not found');
+        expect(cliConfigModule.loadDirectUrlAuthPlugin).toHaveBeenCalledTimes(1);
     });
 });

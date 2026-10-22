@@ -9,6 +9,7 @@ import org.finos.calm.store.PatternImplementationStore;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Throws rather than returning an empty list, which would read as "nothing implements this
@@ -21,7 +22,7 @@ public class NoOpPatternImplementationStore implements PatternImplementationStor
     private static final String MESSAGE = "Pattern implementations are not available in GitHub storage mode.";
 
     @Override
-    public List<ArchitectureSchema> findSchemasContaining(String schemaPath, Optional<Set<String>> readableNamespaces) {
+    public List<ArchitectureSchema> findSchemasContaining(Pattern path, Optional<Set<String>> readableNamespaces) {
         throw new GitHubModeNotSupportedException(MESSAGE);
     }
 }

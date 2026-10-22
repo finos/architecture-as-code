@@ -5,6 +5,7 @@ import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.DocumentCursor;
 import org.dizitart.no2.collection.NitriteCollection;
 import org.finos.calm.store.ArchitectureSchema;
+import org.finos.calm.store.util.PatternReferenceMatcher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,7 +61,7 @@ class TestNitritePatternImplementationStoreShould {
     }
 
     private List<ArchitectureSchema> find(Optional<Set<String>> readableNamespaces) {
-        return store.findSchemasContaining(PATH, readableNamespaces);
+        return store.findSchemasContaining(PatternReferenceMatcher.of("finos", "api-gateway").path(), readableNamespaces);
     }
 
     @Test
@@ -72,6 +73,14 @@ class TestNitritePatternImplementationStoreShould {
                         new ArchitectureSchema("finos", 7, "1.2.0", REFERENCE),
                         new ArchitectureSchema("finos", 8, "1.0.0", otherVersion)),
                 find(Optional.empty()));
+    }
+
+    @Test
+    void return_a_version_whose_schema_capitalises_the_type() {
+        String capitalised = "https://hub.corp.com/calm/namespaces/finos/Patterns/api-gateway/versions/1.0.0";
+        stubCollection(List.of(version("finos", 7, "1.2.0", capitalised)));
+
+        assertEquals(List.of(new ArchitectureSchema("finos", 7, "1.2.0", capitalised)), find(Optional.empty()));
     }
 
     @Test
