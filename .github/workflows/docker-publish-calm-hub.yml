@@ -29,6 +29,8 @@ concurrency:
 jobs:
     build-and-push:
         name: Build and Push Multi-Arch Docker Image
+        # FINOS registry flow. The fork publishes from dockerhub-publish.yml.
+        if: github.repository == 'finos/architecture-as-code'
         runs-on: ubuntu-latest
 
         steps:

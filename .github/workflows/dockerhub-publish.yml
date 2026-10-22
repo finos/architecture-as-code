@@ -1,0 +1,283 @@
+name: Docker Hub Publish
+
+# Fork publishing for krninsky/calm-hub and krninsky/calm-studio.
+# Nightly: after the matching build workflow succeeds on main.
+# Release: when a release tag is pushed (vX.Y.Z, calm-hub-v*, calm-studio-v*, release-*).
+# cli-v* tags do not publish these images.
+
+permissions:
+    contents: read
+
+on:
+    workflow_run:
+        workflows:
+            - Build Calm Hub with Integration Tests and Coverage
+            - Build CALM Studio
+        types:
+            - completed
+    push:
+        tags:
+            - 'v*.*.*'
+            - 'calm-hub-v*'
+            - 'calm-studio-v*'
+            - 'release-*'
+    workflow_dispatch:
+        inputs:
+            image:
+                description: Image to publish
+                type: choice
+                default: both
+                options:
+                    - both
+                    - calm-hub
+                    - calm-studio
+            channel:
+                description: Tag channel
+                type: choice
+                default: nightly
+                options:
+                    - nightly
+                    - release
+            tag:
+                description: Release tag when channel is release (for example v1.2.3)
+                required: false
+                type: string
+
+concurrency:
+    group: dockerhub-publish-${{ github.event.workflow_run.head_sha || github.sha }}-${{ github.event_name }}
+    cancel-in-progress: false
+
+jobs:
+    calm-hub:
+        name: Publish calm-hub
+        if: >-
+            github.repository == 'krninsky/architecture-as-code' &&
+            (
+              (
+                github.event_name == 'workflow_run' &&
+                github.event.workflow_run.conclusion == 'success' &&
+                github.event.workflow_run.event == 'push' &&
+                github.event.workflow_run.head_branch == 'main' &&
+                github.event.workflow_run.head_repository.full_name == github.repository &&
+                github.event.workflow_run.name == 'Build Calm Hub with Integration Tests and Coverage'
+              ) ||
+              (
+                github.event_name == 'push' &&
+                startsWith(github.ref, 'refs/tags/')
+              ) ||
+              (
+                github.event_name == 'workflow_dispatch' &&
+                (github.event.inputs.image == 'both' || github.event.inputs.image == 'calm-hub')
+              )
+            )
+        runs-on: ubuntu-latest
+        timeout-minutes: 120
+        env:
+            SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              with:
+                  ref: ${{ env.SOURCE_SHA }}
+
+            - name: Check Docker Hub credentials
+              env:
+                  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+                  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+              run: |
+                  if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+                    echo "Repository secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are required."
+                    exit 1
+                  fi
+
+            - name: Resolve image tags
+              id: tags
+              env:
+                  IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/calm-hub
+                  EVENT_NAME: ${{ github.event_name }}
+                  CHANNEL: ${{ github.event.inputs.channel }}
+                  INPUT_TAG: ${{ github.event.inputs.tag }}
+              run: bash .github/workflows/scripts/dockerhub-tags.sh
+
+            - name: Set up JDK
+              uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+              with:
+                  distribution: temurin
+                  java-version: '21'
+
+            - name: Cache Maven dependencies
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ~/.m2
+                  key: ${{ runner.os }}-m2-${{ hashFiles('calm-hub/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-
+
+            - name: Package CALM Hub
+              working-directory: calm-hub
+              run: mvn -DskipTests clean package
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+              with:
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.jvm
+                  platforms: linux/amd64
+                  load: true
+                  tags: calm-hub:smoke
+                  cache-from: type=gha,scope=calm-hub
+                  cache-to: type=gha,scope=calm-hub,mode=max
+
+            - name: Smoke test
+              run: |
+                  docker network create smoke-net
+                  docker run -d --name mongo --network smoke-net mongo:8
+                  docker run -d --name calmhub --network smoke-net \
+                    -p 8080:8080 \
+                    -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017 \
+                    -e CALM_AUTH_ENABLED=false \
+                    -e QUARKUS_OIDC_TENANT_ENABLED=false \
+                    calm-hub:smoke
+                  bash calm-hub/smoke-test.sh http://localhost:8080 readwrite
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs calmhub 2>/dev/null || true
+
+            - name: Cleanup smoke test containers
+              if: always()
+              run: |
+                  docker rm -f calmhub mongo 2>/dev/null || true
+                  docker network rm smoke-net 2>/dev/null || true
+
+            - name: Build and push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: calm-hub
+                  file: calm-hub/src/main/docker/Dockerfile.jvm
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  sbom: true
+                  provenance: mode=max
+                  tags: ${{ steps.tags.outputs.list }}
+                  labels: |
+                      org.opencontainers.image.source=https://github.com/krninsky/architecture-as-code
+                      org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
+                  cache-from: type=gha,scope=calm-hub
+                  cache-to: type=gha,scope=calm-hub,mode=max
+
+    calm-studio:
+        name: Publish calm-studio
+        if: >-
+            github.repository == 'krninsky/architecture-as-code' &&
+            (
+              (
+                github.event_name == 'workflow_run' &&
+                github.event.workflow_run.conclusion == 'success' &&
+                github.event.workflow_run.event == 'push' &&
+                github.event.workflow_run.head_branch == 'main' &&
+                github.event.workflow_run.head_repository.full_name == github.repository &&
+                github.event.workflow_run.name == 'Build CALM Studio'
+              ) ||
+              (
+                github.event_name == 'push' &&
+                startsWith(github.ref, 'refs/tags/')
+              ) ||
+              (
+                github.event_name == 'workflow_dispatch' &&
+                (github.event.inputs.image == 'both' || github.event.inputs.image == 'calm-studio')
+              )
+            )
+        runs-on: ubuntu-latest
+        timeout-minutes: 180
+        env:
+            SOURCE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+              with:
+                  ref: ${{ env.SOURCE_SHA }}
+
+            - name: Check Docker Hub credentials
+              env:
+                  DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
+                  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+              run: |
+                  if [ -z "$DOCKERHUB_USERNAME" ] || [ -z "$DOCKERHUB_TOKEN" ]; then
+                    echo "Repository secrets DOCKERHUB_USERNAME and DOCKERHUB_TOKEN are required."
+                    exit 1
+                  fi
+
+            - name: Resolve image tags
+              id: tags
+              env:
+                  IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/calm-studio
+                  EVENT_NAME: ${{ github.event_name }}
+                  CHANNEL: ${{ github.event.inputs.channel }}
+                  INPUT_TAG: ${{ github.event.inputs.tag }}
+              run: bash .github/workflows/scripts/dockerhub-tags.sh
+
+            - name: Set up Docker Buildx
+              uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
+
+            - name: Login to Docker Hub
+              uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
+              with:
+                  username: ${{ secrets.DOCKERHUB_USERNAME }}
+                  password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+            - name: Build image for smoke test
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: .
+                  file: calm-studio/Dockerfile
+                  platforms: linux/amd64
+                  load: true
+                  tags: calm-studio:smoke
+                  cache-from: type=gha,scope=calm-studio
+                  cache-to: type=gha,scope=calm-studio,mode=max
+
+            - name: Smoke test
+              run: |
+                  docker run -d --name studio -p 8080:80 calm-studio:smoke
+                  for _ in $(seq 1 30); do
+                    if curl -fsS http://127.0.0.1:8080/ >/dev/null; then
+                      exit 0
+                    fi
+                    sleep 2
+                  done
+                  echo "calm-studio did not serve /"
+                  exit 1
+
+            - name: Dump container logs on failure
+              if: failure()
+              run: docker logs studio 2>/dev/null || true
+
+            - name: Cleanup smoke test container
+              if: always()
+              run: docker rm -f studio 2>/dev/null || true
+
+            - name: Build and push
+              uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
+              with:
+                  context: .
+                  file: calm-studio/Dockerfile
+                  platforms: linux/amd64,linux/arm64
+                  push: true
+                  sbom: true
+                  provenance: mode=max
+                  tags: ${{ steps.tags.outputs.list }}
+                  labels: |
+                      org.opencontainers.image.source=https://github.com/krninsky/architecture-as-code
+                      org.opencontainers.image.revision=${{ env.SOURCE_SHA }}
+                  cache-from: type=gha,scope=calm-studio
+                  cache-to: type=gha,scope=calm-studio,mode=max
