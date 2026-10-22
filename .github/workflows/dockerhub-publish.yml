@@ -141,7 +141,19 @@ jobs:
               run: |
                   docker network create smoke-net
                   docker run -d --name mongo --network smoke-net mongo:8
+                  ready=0
+                  for _ in $(seq 1 40); do
+                    if docker exec mongo mongosh --quiet --eval 'db.runCommand({ ping: 1 }).ok' 2>/dev/null | grep -q '^1'; then
+                      ready=1
+                      break
+                    fi
+                    sleep 2
+                  done
+                  test "$ready" = 1
+                  mongo_ip="$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' mongo)"
+                  test -n "$mongo_ip"
                   docker run -d --name calmhub --network smoke-net \
+                    --add-host "mongo:${mongo_ip}" \
                     -p 8080:8080 \
                     -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017 \
                     -e CALM_AUTH_ENABLED=false \
