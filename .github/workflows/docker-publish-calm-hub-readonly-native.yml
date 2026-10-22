@@ -36,6 +36,8 @@ jobs:
     # pushed by digest; the merge job assembles the multi-arch manifest.
     build:
         name: Build ${{ matrix.arch }}
+        # FINOS registry flow. The fork publishes from dockerhub-publish.yml.
+        if: github.repository == 'finos/architecture-as-code'
         runs-on: ${{ matrix.runner }}
         strategy:
             fail-fast: false
