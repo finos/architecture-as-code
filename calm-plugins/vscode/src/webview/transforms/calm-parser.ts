@@ -102,6 +102,7 @@ export function parseCALMData(
                 controls: n.controls,
                 details: n.details,
                 metadata: n.metadata,
+                'definition-id': n['definition-id'],
                 containmentType: containerVariant.get(id),
             },
             ...(parent ? { parentId: parent, extent: 'parent' as const, zIndex: computeDepth(parent, parentMap) } : {}),
@@ -175,7 +176,7 @@ export function parseCALMData(
                         },
                         type: 'tooltip',
                         markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                        style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                        style: { strokeWidth: 1.5 },
                     });
                 }
             }
@@ -213,7 +214,7 @@ export function parseCALMData(
                     },
                     type: 'tooltip',
                     markerEnd: { type: MarkerType.ArrowClosed, width: 15, height: 15 },
-                    style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+                    style: { strokeWidth: 1.5 },
                 });
             }
         }
@@ -254,7 +255,7 @@ export function parseCALMData(
             type: 'tooltip',
             markerEnd,
             markerStart,
-            style: { stroke: '#94a3b8', strokeWidth: 1.5 },
+            style: { strokeWidth: 1.5 },
         });
     }
 

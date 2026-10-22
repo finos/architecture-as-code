@@ -171,7 +171,7 @@ The same relationship can appear multiple times in a flow with different directi
 
 ## Resources
 
-- [CALM Flow Schema](https://github.com/finos/architecture-as-code/blob/main/calm/release/1.2/meta/flow.json)
+- [CALM Flow Schema](https://github.com/finos/calm-schema/blob/v1.2/schema/flow.json)
 - [Flow Examples](https://github.com/finos/architecture-as-code/blob/e0d6b1c2ae363affe2293449d076ca24bb906c27/docs/static/calm-example/trading-system.architecture.json#L669-L699)
 
 ## Next Steps

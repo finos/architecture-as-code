@@ -24,6 +24,13 @@ docker compose --profile readonly-static up
 docker compose --profile readonly-native up
 ```
 
+The `jvm` and `native` profiles seed MongoDB with the released CALM meta-schemas from
+`calm-hub/target/calm-schemas/release`. Make it first, from the repository root:
+
+```shell
+npm ci && npm run calm-hub:copy-schemas
+```
+
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
@@ -125,6 +132,23 @@ java -Dquarkus.profile=standalone -jar target/quarkus-app/quarkus-run.jar
 > (needs Docker). OpenTelemetry stays off until you also set `CALM_OTEL_DISABLED=false`.
 > For production (`java -jar …`) the JVM flag `-Dquarkus.profile=standalone` is passed directly
 > to the process and works as expected.
+
+#### Seeding a standalone instance
+
+`nitrite/init-nitrite.sh` loads namespaces, schemas, and the name-based documents through the REST API.
+
+```shell
+bash nitrite/init-nitrite.sh -u http://localhost:18091
+```
+
+`-u` is the URL the script calls. Name-based document `$id` values use `CALM_HUB_BASE_URL` or `--base-url`. That value must equal the server's `calm.hub.base-url` (default `http://localhost:8080`). When you do not set it, the script uses the `-u` URL. The Hub returns HTTP 400 when a seed `$id` does not match `calm.hub.base-url`.
+
+```shell
+java -Dquarkus.profile=standalone -Dquarkus.http.port=18091 \
+  -Dcalm.hub.base-url=http://localhost:18091 \
+  -jar target/quarkus-app/quarkus-run.jar
+bash nitrite/init-nitrite.sh -u http://localhost:18091
+```
 
 ### Mongo Database Startup
 

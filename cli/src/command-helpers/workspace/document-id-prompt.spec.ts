@@ -117,6 +117,47 @@ describe('promptForDocumentId', () => {
         });
     });
 
+    it('builds the resource type from a known document type without asking for it', async () => {
+        // no selects. inputs: baseUrl, version, namespace, mapping
+        queueAnswers([], ['https://hub.example.com', '1.0.0', 'finos', 'my-flow']);
+
+        const result = await promptForDocumentId({ documentType: 'flow' });
+
+        expect(mocks.select).not.toHaveBeenCalled();
+        expect(result).toEqual({
+            id: 'https://hub.example.com/calm/namespaces/finos/flows/my-flow/versions/1.0.0',
+            namespace: 'finos',
+            slug: 'my-flow',
+        });
+    });
+
+    it('builds a standards $id for a schema document', async () => {
+        queueAnswers([], ['https://hub.example.com', '1.0.0', 'finos', 'sec']);
+
+        const result = await promptForDocumentId({ documentType: 'schema' });
+
+        expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/standards/sec/versions/1.0.0');
+    });
+
+    it('offers only the control scopes for a control document', async () => {
+        queueAnswers(['requirement'], ['https://hub.example.com', '1.0.0', 'security', 'access-control']);
+
+        const result = await promptForDocumentId({ documentType: 'control' });
+
+        expect(mocks.select).toHaveBeenCalledTimes(1);
+        expect(mocks.select.mock.calls[0][0].choices.map((c: { value: string }) => c.value)).toEqual(['requirement', 'configuration']);
+        expect(result.id).toBe('https://hub.example.com/calm/domains/security/controls/access-control/requirement/versions/1.0.0');
+    });
+
+    it('asks for the scope and resource type for a document type with no resource type', async () => {
+        queueAnswers(['namespace', 'architectures'], ['https://hub.example.com', '1.0.0', 'finos', 'my-arch']);
+
+        const result = await promptForDocumentId({ documentType: 'timeline' });
+
+        expect(mocks.select).toHaveBeenCalledTimes(2);
+        expect(result.id).toBe('https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0.0');
+    });
+
     it('rejects empty and slash-containing segments via the input validator', async () => {
         queueAnswers(
             ['namespace', 'architectures'],

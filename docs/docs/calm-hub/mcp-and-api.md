@@ -55,6 +55,8 @@ GET  /calm/namespaces/{namespace}/architectures/{name}/versions/{version}
 GET  /calm/namespaces/{namespace}/architectures
 ```
 
+The type segment is not case-sensitive in a request, so `Architectures` and `architectures` name the same resource. This also applies to the type segment in a `$id` that you send. CALM Hub always writes the type segment in lowercase, in the `$id` of a returned document and in the `Location` header. The CALM CLI reads only the lowercase form.
+
 The full endpoint list with request/response schemas is visible in the Swagger UI at `/q/swagger-ui`.
 
 ### Finding the architectures that implement a pattern

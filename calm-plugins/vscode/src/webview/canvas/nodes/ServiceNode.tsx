@@ -1,36 +1,39 @@
 import React from 'react';
 import { Handle, Position, NodeResizer, type NodeProps } from 'reactflow';
-import { isBuildingBlock, getNodeStyleOverride, CUSTOM_TEXT, CUSTOM_BG, CUSTOM_BORDER } from '../../utils/building-block-style';
+import { isStandardNode, getNodeStyleOverride } from '../../utils/standard-node-style';
+import { theme, blockBorder, readableTextOn } from '../theme-colors';
+import { SERVICE_FILL } from '../node-colours';
 import { ValidationBadge } from './ValidationBadge';
 
 export function ServiceNode({ id, data, selected }: NodeProps) {
-    const isBlock = isBuildingBlock(data as Record<string, unknown>);
+    const isBlock = isStandardNode(data as Record<string, unknown>);
     const override = getNodeStyleOverride(data as Record<string, unknown>);
+    const text = override.text ?? readableTextOn(override.background);
     const errorCount = (data as any).validationErrors ?? 0;
     const warnCount = (data as any).validationWarnings ?? 0;
 
     return (
         <>
-            <Handle type="target" position={Position.Top} style={handleStyle} />
-            <Handle type="source" position={Position.Bottom} style={handleStyle} />
-            <Handle type="target" position={Position.Left} id="left-target" style={handleStyle} />
-            <Handle type="source" position={Position.Right} id="right-source" style={handleStyle} />
+            <Handle type="target" position={Position.Top} />
+            <Handle type="source" position={Position.Bottom} />
+            <Handle type="target" position={Position.Left} id="left-target" />
+            <Handle type="source" position={Position.Right} id="right-source" />
 
-            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: '#6366f1' }} />
+            <NodeResizer isVisible={selected} minWidth={100} minHeight={40} lineStyle={{ borderColor: theme.focus }} />
             <div style={{
                 ...baseStyle,
-                ...(isBlock ? buildingBlockStyle : {}),
+                ...(isBlock ? standardNodeStyle : {}),
                 ...(selected ? selectedStyle : {}),
                 ...(override.background ? { background: override.background } : {}),
             }}>
                 <ValidationBadge errorCount={errorCount} warnCount={warnCount} nodeId={(data as any).calmId ?? id} />
                 <div style={iconStyle}>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={override.text ?? (isBlock ? CUSTOM_TEXT : '#1b7340')} strokeWidth="1.5">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={text ?? (isBlock ? theme.badgeFg : theme.green)} strokeWidth="1.5">
                         <circle cx="12" cy="12" r="3" />
                         <path d="M12 1v2m0 18v2M4.22 4.22l1.42 1.42m12.72 12.72 1.42 1.42M1 12h2m18 0h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" strokeLinecap="round" />
                     </svg>
                 </div>
-                <span style={{ ...labelStyle, ...(isBlock ? labelBlockStyle : {}), ...(override.text ? { color: override.text } : {}) }}>
+                <span style={{ ...labelStyle, ...(isBlock ? labelBlockStyle : {}), ...(text ? { color: text } : {}) }}>
                     {(data as any).label ?? (data as any).calmId}
                 </span>
             </div>
@@ -41,19 +44,18 @@ export function ServiceNode({ id, data, selected }: NodeProps) {
 const baseStyle: React.CSSProperties = {
     position: 'relative', display: 'flex', alignItems: 'center', gap: '7px',
     width: '100%', height: '100%', padding: '8px 10px', boxSizing: 'border-box',
-    background: '#e6f4ea', border: '1.5px solid #1b7340', borderRadius: '10px',
+    background: SERVICE_FILL, border: `1.5px solid ${theme.green}`, borderRadius: '10px',
     cursor: 'default', userSelect: 'none',
 };
-const buildingBlockStyle: React.CSSProperties = {
-    background: CUSTOM_BG, borderColor: CUSTOM_BORDER, borderWidth: '2px', borderRadius: '6px',
+const standardNodeStyle: React.CSSProperties = {
+    background: theme.badgeBg, borderColor: blockBorder, borderWidth: '2px', borderRadius: '6px',
 };
 const selectedStyle: React.CSSProperties = {
-    borderColor: '#6366f1', boxShadow: '0 0 0 1.5px #6366f1',
+    borderColor: theme.focus, boxShadow: `0 0 0 1.5px ${theme.focus}`,
 };
 const iconStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', flexShrink: 0 };
 const labelStyle: React.CSSProperties = {
-    fontSize: '10px', fontWeight: 600, color: '#1e293b',
+    fontSize: '10px', fontWeight: 600, color: theme.text,
     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
 };
-const labelBlockStyle: React.CSSProperties = { color: '#ffffff' };
-const handleStyle: React.CSSProperties = { width: '8px', height: '8px', background: '#94a3b8', border: '1px solid #64748b' };
+const labelBlockStyle: React.CSSProperties = { color: theme.badgeFg };

@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * NitriteDB-backed implementation of {@link PatternImplementationStore}.
@@ -51,7 +52,7 @@ public class NitritePatternImplementationStore implements PatternImplementationS
     }
 
     @Override
-    public List<ArchitectureSchema> findSchemasContaining(String schemaPath, Optional<Set<String>> readableNamespaces) {
+    public List<ArchitectureSchema> findSchemasContaining(Pattern path, Optional<Set<String>> readableNamespaces) {
         List<ArchitectureSchema> candidates = new ArrayList<>();
 
         for (Document versionDocument : architectureVersions.find()) {
@@ -65,7 +66,7 @@ public class NitritePatternImplementationStore implements PatternImplementationS
             if (readableNamespaces.isPresent() && !readableNamespaces.get().contains(documentNamespace)) {
                 continue;
             }
-            String schema = schemaContaining(versionDocument, schemaPath);
+            String schema = schemaContaining(versionDocument, path);
             if (schema != null) {
                 candidates.add(new ArchitectureSchema(documentNamespace, architectureId,
                         versionDocument.get(VERSION_FIELD, String.class), schema));
@@ -75,17 +76,17 @@ public class NitritePatternImplementationStore implements PatternImplementationS
     }
 
     /**
-     * Reads the top-level {@code $schema} of a stored architecture when it contains
-     * {@code schemaPath}, or returns null. Content that will not parse is skipped rather than failing
+     * Reads the top-level {@code $schema} of a stored architecture when it contains a match for
+     * {@code path}, or returns null. Content that will not parse is skipped rather than failing
      * the request. One bad document should not make the whole answer unavailable.
      */
-    private String schemaContaining(Document versionDocument, String schemaPath) {
-        if (!(versionDocument.get(CONTENT_FIELD) instanceof String stored) || !stored.contains(schemaPath)) {
+    private String schemaContaining(Document versionDocument, Pattern path) {
+        if (!(versionDocument.get(CONTENT_FIELD) instanceof String stored) || !path.matcher(stored).find()) {
             return null;
         }
         try {
             JsonNode schema = objectMapper.readTree(stored).path("$schema");
-            return schema.isTextual() && schema.asText().contains(schemaPath) ? schema.asText() : null;
+            return schema.isTextual() && path.matcher(schema.asText()).find() ? schema.asText() : null;
         } catch (Exception e) {
             LOG.debug("Skipping architecture version whose content could not be parsed", e);
             return null;

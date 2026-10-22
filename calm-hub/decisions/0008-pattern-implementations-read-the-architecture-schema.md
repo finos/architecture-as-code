@@ -95,7 +95,8 @@ domain field, write no migration, change no write path.
 generated. Comparing whole URLs would lose every reference as soon as a
 deployment moved. Within one hub the path is unambiguous, because the unique
 index on `resource_mappings` guarantees that namespace, type and name identify
-one resource.
+one resource. The type segment matches in any case. The namespace and the name
+match exactly.
 
 **Pin the match to one pattern version.** The canonical `$id` includes
 `/versions/{v}`, so a version-pinned match is what the data gives. "Any version
