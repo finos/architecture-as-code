@@ -1,7 +1,8 @@
-import { render, waitFor } from '@testing-library/react';
-import { MemoryRouter, Routes, Route } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useResourceFromRoute } from './useResourceFromRoute.js';
+import { useResourceNavigationKey } from './useResourceNavigationKey.js';
 import * as loaders from '../components/tree-navigation/navigation-loaders.js';
 
 const fetchInterfacesForNamespace = vi.fn();
@@ -25,7 +26,7 @@ const callbacks = {
 };
 
 function Harness() {
-    useResourceFromRoute(callbacks);
+    useResourceFromRoute({ ...callbacks, resourceKey: useResourceNavigationKey(useLocation(), false) });
     return null;
 }
 
@@ -165,6 +166,44 @@ describe('useResourceFromRoute', () => {
                 controlTitle: 'Encryption at rest',
             });
         });
+    });
+});
+
+describe('useResourceFromRoute — reloads', () => {
+    function NavigateButton({ to }: { to: string }) {
+        const navigate = useNavigate();
+        return <button onClick={() => navigate(to)}>{to}</button>;
+    }
+
+    const renderWithNavigation = (path: string, to: string) =>
+        render(
+            <MemoryRouter initialEntries={[path]}>
+                <Routes>
+                    <Route path="/:namespace/:type/:id/:version" element={<><Harness /><NavigateButton to={to} /></>} />
+                </Routes>
+            </MemoryRouter>
+        );
+
+    it('does not load the resource again when only the query changes', async () => {
+        const loadResource = vi.spyOn(loaders, 'loadResource').mockImplementation(() => {});
+        renderWithNavigation('/traderx/architectures/1/1.0.0', '/traderx/architectures/1/1.0.0?tab=json');
+        await waitFor(() => expect(loadResource).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByRole('button'));
+
+        expect(loadResource).toHaveBeenCalledTimes(1);
+        loadResource.mockRestore();
+    });
+
+    it('loads the resource again on a navigation to the same path', async () => {
+        const loadResource = vi.spyOn(loaders, 'loadResource').mockImplementation(() => {});
+        renderWithNavigation('/traderx/architectures/1/1.0.0', '/traderx/architectures/1/1.0.0');
+        await waitFor(() => expect(loadResource).toHaveBeenCalledTimes(1));
+
+        fireEvent.click(screen.getByRole('button'));
+
+        await waitFor(() => expect(loadResource).toHaveBeenCalledTimes(2));
+        loadResource.mockRestore();
     });
 });
 
