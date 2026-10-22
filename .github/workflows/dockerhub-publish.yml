@@ -140,7 +140,11 @@ jobs:
             - name: Smoke test
               run: |
                   docker network create smoke-net
-                  docker run -d --name mongo --network smoke-net mongo:8
+                  # mongo:8 exits on GitHub runners: kernel 6.19+ is refused (SERVER-121912).
+                  # 7.0 has no such check. The glibc tunable avoids the related tcmalloc crash.
+                  docker run -d --name mongo --network smoke-net \
+                    -e GLIBC_TUNABLES=glibc.pthread.rseq=1 \
+                    mongo:7.0
                   ready=0
                   for _ in $(seq 1 60); do
                     if docker exec mongo mongosh --quiet --eval "db.adminCommand('ping').ok" >/dev/null; then
