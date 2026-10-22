@@ -28,6 +28,8 @@ If `-c` is omitted, the CLI will look for a `calmHubUrl` property in `~/.calm.js
 }
 ```
 
+See [Configuring the CLI](configuration.md) for the other settings, and for authentication plugins for CALM Hub.
+
 ## Document Identity and Versioning
 
 CALM Hub uses the `$id` field inside each document to determine its addressing: the namespace, resource type, mapping slug, and version are all parsed from `$id`. When you push a document, the CLI reads the current `$id`, computes the next semver version automatically, rewrites `$id` in the local file with the new version, then uploads it. You never need to pass a namespace, ID, or version on the command line for push operations.

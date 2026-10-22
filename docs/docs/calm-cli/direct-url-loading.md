@@ -8,7 +8,7 @@ sidebar_label: Direct URL loading
 
 For an organization that does not require the full functionality of CALM Hub and only needs the ability to store CALM artifacts in a central repository, the CLI's `DirectUrlDocumentLoader` lets `calm validate` and `calm generate` fetch architectures, patterns, and standards directly from any HTTP(S) endpoint — for example a static file server or an internal artifact repository — without going through CALM Hub.
 
-Depending on the authentication/authorization requirements for the non-CALM Hub repositories the following configurations in `~/.calm.json` are supported:
+Depending on the authentication/authorization requirements for the non-CALM Hub repositories the following configurations in `~/.calm.json` are supported. See [Configuring the CLI](configuration.md) for the environment variables and `calm init-config`:
 
 - Public, anonymous access allowed:  
   - **`allowedRemoteHosts`** is an allow-list of hostnames the CLI is permitted to fetch documents.
