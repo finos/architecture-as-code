@@ -32,6 +32,7 @@ conferences
 template-bundles
 brand
 hub-push-testing
-scripts
+scripts/*
+!scripts/copy-calm-schemas.mjs
 *.md
 !calm-studio/README.md

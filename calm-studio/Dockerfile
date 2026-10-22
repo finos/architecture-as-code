@@ -54,6 +54,27 @@ RUN npm pkg delete scripts.prepare \
  && npm install --no-save --no-audit --no-fund json-pointer loglevel \
  && npm explore esbuild -- node install.js
 
+# Released schemas are no longer in the git tree. Studio imports them from calm/release.
+COPY scripts/copy-calm-schemas.mjs scripts/copy-calm-schemas.mjs
+RUN node --input-type=module -e "\
+import { readFileSync } from 'node:fs';\
+import { spawnSync } from 'node:child_process';\
+const pkg = JSON.parse(readFileSync('package.json', 'utf8'));\
+const specs = [];\
+for (const [name, spec] of Object.entries(pkg.devDependencies ?? {})) {\
+  if (name === '@finos/calm-schema' || String(spec).startsWith('npm:@finos/calm-schema@')) {\
+    specs.push(name + '@' + spec);\
+  }\
+}\
+if (specs.length === 0) {\
+  console.error('No @finos/calm-schema devDependencies');\
+  process.exit(1);\
+}\
+const install = spawnSync('npm', ['install', '--no-save', '--no-audit', '--no-fund', ...specs], { stdio: 'inherit' });\
+if (install.status !== 0) process.exit(install.status ?? 1);\
+" \
+ && node scripts/copy-calm-schemas.mjs calm
+
 # Empty serves the SPA at /. The Hub compose file passes /studio.
 ARG BASE_PATH=
 ENV BASE_PATH=${BASE_PATH}
