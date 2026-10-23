@@ -3,6 +3,8 @@ import { Mock } from 'vitest';
 import { getFormattedOutput, validate, ValidationOutcome, validationEnrichmentTest, ChainReferenceResolver, CalmReferenceResolver } from '@finos/calm-shared';
 import { mkdirp } from 'mkdirp';
 import { writeFileSync } from 'fs';
+import { mkdtemp, rm, writeFile } from 'fs/promises';
+import os from 'os';
 import path from 'path';
 import { runValidate, writeOutputFile, checkValidateOptions, exitBasedOffOfValidationOutcome, ValidateOptions } from './validate';
 
@@ -25,6 +27,7 @@ const mocks = vi.hoisted(() => ({
     mkdirpSync: vi.fn(),
     writeFileSync: vi.fn(),
     parseDocumentLoaderConfig: vi.fn(),
+    findWorkspaceManifestPath: vi.fn<() => string | null>(() => null),
     buildDocumentLoader: vi.fn(function () { return {
         loadMissingDocument: mocks.loadMissingDocument
     }; }),
@@ -55,6 +58,10 @@ vi.mock('../document-loader-config', () => ({
     parseDocumentLoaderConfig: mocks.parseDocumentLoaderConfig,
 }));
 
+vi.mock('../workspace-resolver', () => ({
+    findWorkspaceManifestPath: mocks.findWorkspaceManifestPath,
+}));
+
 vi.mock('../cli', async () => ({
     ...(await vi.importActual('../cli')),
     buildSchemaDirectory: vi.fn(function () { return {
@@ -72,6 +79,7 @@ describe('runValidate', () => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         process.exit = mocks.processExit as any;
 
+        mocks.findWorkspaceManifestPath.mockReturnValue(null);
         mocks.parseDocumentLoaderConfig.mockResolvedValue({});
         // Inline mock for loadMissingDocument
         mocks.loadMissingDocument.mockImplementation(function (filePath: string, _: string) {
@@ -133,6 +141,42 @@ describe('runValidate', () => {
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('arch.json'), 'architecture');
         expect(mocks.loadMissingDocument).toHaveBeenCalledWith(path.resolve('patterns/pattern.json'), 'pattern');
         expect(mocks.parseDocumentLoaderConfig).toHaveBeenCalledWith(options, expect.any(Map), path.resolve('patterns'));
+    });
+
+    it('should resolve workspace-tracked document ids before falling back to the working directory', async () => {
+        const bundleDir = await mkdtemp(path.join(os.tmpdir(), 'calm-validate-ws-'));
+        try {
+            const trackedArchPath = path.join(bundleDir, 'tracked-arch.json');
+            const trackedPatternPath = path.join(bundleDir, 'patterns', 'tracked-pattern.json');
+            await writeFile(
+                path.join(bundleDir, 'workspace-manifest.json'),
+                JSON.stringify({
+                    'my-arch': { path: trackedArchPath, type: 'architecture' },
+                    'my-pattern': { path: trackedPatternPath, type: 'pattern' }
+                })
+            );
+            mocks.findWorkspaceManifestPath.mockReturnValue(bundleDir);
+
+            const options: ValidateOptions = {
+                architecturePath: 'my-arch',
+                patternPath: 'my-pattern',
+                metaSchemaPath: 'schemas',
+                verbose: true,
+                outputFormat: 'json',
+                outputPath: 'out.json',
+                strict: false,
+            };
+
+            await runValidate(options);
+
+            expect(mocks.loadMissingDocument).toHaveBeenCalledWith(trackedArchPath, 'architecture');
+            expect(mocks.loadMissingDocument).toHaveBeenCalledWith(trackedPatternPath, 'pattern');
+            expect(mocks.parseDocumentLoaderConfig).toHaveBeenCalledWith(options, expect.any(Map), path.dirname(trackedPatternPath));
+            expect(validate).toHaveBeenCalledWith(dummyArch, dummyPattern, undefined, expect.anything(), true, undefined);
+            expect(mocks.processExit).toHaveBeenCalledWith(0);
+        } finally {
+            await rm(bundleDir, { recursive: true, force: true });
+        }
     });
 
     it('should process validation successfully with architecture only', async () => {

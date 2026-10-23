@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome, isLocalPath, isRelativePath } from '@finos/calm-shared';
+import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome, WorkspaceDocumentLoader, isLocalPath, isRelativePath } from '@finos/calm-shared';
 
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { buildSchemaDirectory } from '../cli';
 import { parseDocumentLoaderConfig } from '../document-loader-config';
+import { findWorkspaceManifestPath } from '../workspace-resolver';
 import { parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
@@ -27,9 +28,11 @@ export async function runValidate(options: ValidateOptions) {
     try {
         const { getUrlToLocalFileMap } = await import('./template');
         const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
-        const architecturePath = options.architecturePath ? resolveLocalPath(options.architecturePath) : undefined;
-        const patternPath = options.patternPath ? resolveLocalPath(options.patternPath) : undefined;
-        const timelinePath = options.timelinePath ? resolveLocalPath(options.timelinePath) : undefined;
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        const workspace = workspaceBundle ? new WorkspaceDocumentLoader(workspaceBundle, options.verbose) : undefined;
+        const architecturePath = options.architecturePath ? resolveLocalPath(options.architecturePath, workspace) : undefined;
+        const patternPath = options.patternPath ? resolveLocalPath(options.patternPath, workspace) : undefined;
+        const timelinePath = options.timelinePath ? resolveLocalPath(options.timelinePath, workspace) : undefined;
         const patternBasePath = patternPath && isLocalPath(patternPath) ? path.dirname(patternPath) : undefined;
         const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
@@ -111,8 +114,8 @@ function getErrorCause(error: unknown): unknown {
         : undefined;
 }
 
-function resolveLocalPath(argPath: string): string {
-    return isRelativePath(argPath) ? path.resolve(argPath) : argPath;
+function resolveLocalPath(argPath: string, workspace?: WorkspaceDocumentLoader): string {
+    return workspace?.resolvePath(argPath) ?? (isRelativePath(argPath) ? path.resolve(argPath) : argPath);
 }
 
 
