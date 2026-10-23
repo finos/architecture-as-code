@@ -97,15 +97,15 @@ export const parseResponseSchema = z.object({
   data: z.object({
     nodes: z.array(z.unknown()),
     relationships: z.array(z.unknown()),
-    controls: z.record(z.unknown()),
+    controls: z.record(z.string(), z.unknown()),
     flows: z.array(z.unknown()),
     metadata: z.object({
       nodeCount: z.number(),
       relationshipCount: z.number(),
       controlCount: z.number(),
       flowCount: z.number(),
-      nodeTypes: z.record(z.number()),
-      relationshipTypes: z.record(z.number()),
+      nodeTypes: z.record(z.string(), z.number()),
+      relationshipTypes: z.record(z.string(), z.number()),
       protocols: z.array(z.string()),
     }),
   }),
