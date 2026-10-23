@@ -70,6 +70,8 @@ export type SelectedItem = {
 export interface SidebarProps {
     selectedData: CalmNodeSchema | CalmRelationshipSchema;
     closeSidebar: () => void;
+    /** Storage instance for persisting the panel width. Defaults to sessionStorage. Inject a fake in tests. */
+    storage?: Storage;
 }
 
 /**
