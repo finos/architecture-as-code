@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { CalmArchitectureSchema, CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 import { useDropzone } from 'react-dropzone';
 import { ReactFlowVisualizer } from '../reactflow/ReactFlowVisualizer.js';
@@ -21,6 +21,21 @@ function isPatternData(data: unknown): boolean {
     const props = obj['properties'] as Record<string, unknown> | undefined;
     const nodes = props?.['nodes'] as Record<string, unknown> | undefined;
     return !!(nodes && typeof nodes === 'object' && (nodes['prefixItems'] || nodes['items']));
+}
+
+/**
+ * The `node` query parameter: the unique-id of a node to open in the details pane when the diagram loads, so a link
+ * can land on it (`#/ns/architectures/1/1.0.0?node=client-ledger`). The hub routes through the hash, so the parameter
+ * sits after the `?` in the hash; a query on the page URL itself is read too.
+ */
+function nodeParam(): string | undefined {
+    try {
+        const { hash, search } = window.location;
+        const hashQuery = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : '';
+        return new URLSearchParams(hashQuery).get('node') ?? new URLSearchParams(search).get('node') ?? undefined;
+    } catch {
+        return undefined;
+    }
 }
 
 function extractId(item: CalmNodeSchema | CalmRelationshipSchema): string {
@@ -195,6 +210,20 @@ export function Drawer({
         onItemSelect?.({ data: toSidebarEdgeData(edgeData as Record<string, unknown>) });
     }, [onItemSelect]);
 
+
+    // Open the node the link names, once per loaded diagram: a later refresh of the same diagram leaves the
+    // presenter's own selection alone.
+    const openedFromLink = useRef<string | undefined>(undefined);
+    useEffect(() => {
+        const id = nodeParam();
+        if (!id || !calmInstance || fileInstance) return;
+        const key = data ? `${data.name}/${data.calmType}/${data.id}/${data.version}/${id}` : id;
+        if (openedFromLink.current === key) return;
+        const node = calmInstance.nodes?.find((n) => n['unique-id'] === id);
+        if (!node) return;
+        openedFromLink.current = key;
+        handleNodeClick(node);
+    }, [calmInstance, fileInstance, data, handleNodeClick]);
 
     const handleControlNodeClick = useCallback(
         (nodeId: string) => {
