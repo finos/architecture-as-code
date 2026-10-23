@@ -337,7 +337,9 @@ describe('DiagramSection', () => {
             );
 
             expect(await screen.findByText('Architectures that use this pattern version')).toBeInTheDocument();
-            expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledWith('pattern-namespace', 'test-pattern', '2.0.0');
+            await waitFor(() =>
+                expect(implementationServiceMock.fetchImplementations).toHaveBeenCalledWith('pattern-namespace', 'test-pattern', '2.0.0')
+            );
         });
 
         it('does not show the panel from a link when the pattern has no name', async () => {
