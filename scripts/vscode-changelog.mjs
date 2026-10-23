@@ -8,9 +8,9 @@
 // and PRs for other packages also change it.
 
 import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 import createPreset from 'conventional-changelog-conventionalcommits';
 import { CommitParser } from 'conventional-commits-parser';
 import { writeChangelogString } from 'conventional-changelog-writer';
@@ -51,6 +51,11 @@ export function listReleases(git, packageVersion, today) {
             return { version, ref, date: git('log', '-1', '--format=%cs', `${ref}^{commit}`) };
         });
     if (packageVersion && !tagged.some(release => release.version === packageVersion)) {
+        const since = tagged.at(-1)?.ref;
+        const merges = lines(git('log', '--first-parent', '--merges', '--format=%s', since ? `${since}..HEAD` : 'HEAD'));
+        if (merges.some(subject => !parserOpts.mergePattern.test(subject))) {
+            throw new Error('This branch merges main. Rebase it on main, then run this again.');
+        }
         tagged.push({ version: packageVersion, ref: 'HEAD', date: today });
     }
     return tagged;
@@ -98,7 +103,8 @@ export async function generateChangelog(repoRoot, today = new Date().toISOString
     return `${TITLE}\n\n${sections.reverse().join('\n\n')}\n`;
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// realpath because argv[1] keeps symlinks but import.meta.url does not.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
     const file = join(repoRoot, EXTENSION_PATH, 'CHANGELOG.md');
     writeFileSync(file, await generateChangelog(repoRoot));

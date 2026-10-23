@@ -137,6 +137,15 @@ describe('generateChangelog', () => {
         }
     });
 
+    it('refuses a version-bump branch that merges main', async () => {
+        git('checkout', '-q', '-b', 'bump');
+        git('checkout', '-q', 'main');
+        mergeBranch('late', 'feat(vscode): the real feature', 'wip attempt one');
+        git('checkout', '-q', 'bump');
+        git('merge', '-q', '--no-ff', '--no-edit', 'main');
+        await assert.rejects(generateChangelog(repo, '2026-01-02'), /Rebase it on main/);
+    });
+
     it('says so when a release has no user-facing changes', async () => {
         git('tag', '-a', 'vscode-v0.2.0', '-m', '0.2.0');
         commit(`${EXTENSION_PATH}/src/c.ts`, 'test(vscode): add a test');

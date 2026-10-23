@@ -248,8 +248,8 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 
 - **type** (required, lowercase): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
   `perf`, `ci`, `build`, `revert`
-- **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
-  `docs`, `vscode`, `deps`, `ci`, `release`
+- **scope** (optional but preferred): `cli`, `shared`, `calm-models`, `calm-ai`, `calm-widgets`,
+  `calm-server`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
 
 Run `npm run commit` for an interactive prompt. Stage your changes first.
 

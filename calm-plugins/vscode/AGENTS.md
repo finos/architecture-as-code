@@ -96,7 +96,7 @@ extension-host logs.
 
 Releases are manual. Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
-1. In a PR, set the version with
+1. In a PR from a branch that you rebase on main (do not merge main into it), set the version with
    `npm version <x.y.z> --workspace calm-plugins/vscode --no-git-tag-version`, then run
    `npm run changelog --workspace calm-plugins/vscode`. The changelog lists changes since the
    last `vscode-v*` tag under the new version. Do not edit `CHANGELOG.md` by hand: the script
