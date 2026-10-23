@@ -1,0 +1,9 @@
+services:
+  login-proxy:
+    image: nginx:1.27-alpine
+    container_name: calm-hub-login-proxy
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./.generated/htpasswd:/etc/nginx/htpasswd:ro

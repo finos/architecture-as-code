@@ -1,0 +1,14 @@
+{
+  "id": "team-services",
+  "hubApi": 0,
+  "name": "Team services",
+  "description": "The services that your team owns",
+  "provider": "Platform Engineering",
+  "backend": { "url": "http://localhost:8091" },
+  "routes": [
+    { "method": "GET", "path": "/screen", "scope": "authenticated", "readOnly": true }
+  ],
+  "contributes": {
+    "screen": { "title": "Team services", "route": "/screen" }
+  }
+}

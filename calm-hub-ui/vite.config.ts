@@ -26,8 +26,8 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '/api/calm': 'http://localhost:8080',
-            '/calm': 'http://localhost:8080',
+            '/api/calm': process.env.CALM_HUB_URL ?? 'http://localhost:8080',
+            '/calm': process.env.CALM_HUB_URL ?? 'http://localhost:8080',
         },
     },
 });

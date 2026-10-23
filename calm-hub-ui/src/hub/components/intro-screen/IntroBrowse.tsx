@@ -5,10 +5,11 @@ import { CountBadge } from '../explore-rail/CountBadge.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
 import { useClampToggle } from '../show-more/useClampToggle.js';
 import { ShowMoreToggle } from '../show-more/ShowMoreToggle.js';
+import { useExtensions } from '../../../components/extensions/ExtensionsContext.js';
 
 interface BrowseCardProps {
     label: string;
-    count: number;
+    count?: number;
     to: string;
     testId: string;
     description?: string;
@@ -21,7 +22,7 @@ function BrowseCard({ label, count, to, testId, description }: BrowseCardProps) 
     const heading = (
         <span className="flex items-center justify-between gap-3">
             <span className="min-w-0 truncate font-medium text-[14px]">{label}</span>
-            <CountBadge count={count} />
+            {count !== undefined && <CountBadge count={count} />}
         </span>
     );
 
@@ -95,7 +96,8 @@ interface IntroBrowseProps {
  * reachable from the hero. Renders nothing when the catalogue is empty.
  */
 export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps) {
-    if (namespaceCounts.length === 0 && domainCounts.length === 0) return null;
+    const screens = useExtensions().filter((e) => e.screen);
+    if (namespaceCounts.length === 0 && domainCounts.length === 0 && screens.length === 0) return null;
 
     return (
         <div className="w-full max-w-[640px] flex flex-col gap-10">
@@ -123,6 +125,20 @@ export function IntroBrowse({ namespaceCounts, domainCounts }: IntroBrowseProps)
                             count={dc.controlCount}
                             to={`/domain/${encodeURIComponent(dc.domain)}`}
                             testId="browse-domain"
+                        />
+                    ))}
+                </BrowseSection>
+            )}
+
+            {screens.length > 0 && (
+                <BrowseSection title="Extensions">
+                    {screens.map((e) => (
+                        <BrowseCard
+                            key={e.id}
+                            label={e.screen?.title ?? e.name}
+                            to={`/ext/${encodeURIComponent(e.id)}`}
+                            testId="browse-extension"
+                            description={e.description}
                         />
                     ))}
                 </BrowseSection>

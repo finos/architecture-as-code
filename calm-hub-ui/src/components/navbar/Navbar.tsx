@@ -11,6 +11,7 @@ import { isAuthServiceEnabled } from '../../authService.js';
 import { useUiConfig } from '../ui-config/UiConfigContext.js';
 import { EnvironmentPill } from './EnvironmentPill.js';
 import { MenuInfo } from './MenuInfo.js';
+import { useExtensions } from '../extensions/ExtensionsContext.js';
 
 /**
  * The navy-and-blue lockup is unreadable on a dark base, so dark gets a white one.
@@ -37,6 +38,7 @@ export function Navbar({ storage }: NavbarProps = {}) {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { theme, toggleTheme } = useTheme(storage);
     const { environment, identity, items } = useUiConfig();
+    const screens = useExtensions().filter((e) => e.screen);
 
     const closeMenu = () => setIsMenuOpen(false);
 
@@ -97,6 +99,16 @@ export function Navbar({ storage }: NavbarProps = {}) {
                             </NavLink>
                         </li>
                     )}
+                    {screens.length > 0 && (
+                        <li className="px-4 pt-4 pb-1 text-xs font-semibold uppercase tracking-wide text-base-content/50">Extensions</li>
+                    )}
+                    {screens.map((e) => (
+                        <li key={e.id}>
+                            <NavLink to={`/ext/${encodeURIComponent(e.id)}`} className={menuNavClass} onClick={closeMenu}>
+                                {e.screen?.title ?? e.name}
+                            </NavLink>
+                        </li>
+                    ))}
                 </ul>
                 <MenuInfo identity={identity} items={items} />
             </div>
