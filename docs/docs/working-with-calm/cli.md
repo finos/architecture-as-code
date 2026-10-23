@@ -110,6 +110,6 @@ CALM CLI includes AI-powered development assistance through the `init-ai` comman
 | [`init-config`](../calm-cli/configuration.md) | Create or update the CLI configuration file (`~/.calm.json`) |
 | [`init-ai`](calm-ai-tools) | Add CALM AI assistance to a git repository |
 | [`hub`](../calm-cli/hub.md) | Push, pull and list documents in CALM Hub |
-| `workspace` | Track a set of related CALM documents, version them and push them to CALM Hub |
+| [`workspace`](../calm-cli/workspace.md) | Track a set of related CALM documents, version them and push them to CALM Hub |
 
 To set your CALM Hub URL and authentication, see [Configuring the CLI](../calm-cli/configuration.md). The CLI can also load documents directly from HTTP(S) servers. See [Direct URL loading](../calm-cli/direct-url-loading.md).
