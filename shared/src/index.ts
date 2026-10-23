@@ -67,7 +67,7 @@ export { ValidationOutcome } from './commands/validate/validation.output.js';
 export { setWidgetLogger, type WidgetLogger } from '@finos/calm-widgets';
 export { DocumentLoader, DocumentLoaderOptions, DocumentLoadError, assertJsonObject, CALM_HUB_PROTOS } from './document-loader/document-loader.js';
 export { buildDocumentLoader } from './document-loader/node-document-loader.js';
-export { FileSystemDocumentLoader } from './document-loader/file-system-document-loader.js';
+export { FileSystemDocumentLoader, isLocalPath, isRelativePath } from './document-loader/file-system-document-loader.js';
 export { WorkspaceDocumentLoader } from './document-loader/workspace-document-loader.js';
 export {
     classifyWorkspaceDocumentType,

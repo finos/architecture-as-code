@@ -77,7 +77,7 @@ export class FileSystemDocumentLoader implements DocumentLoader {
             if (doc) {
                 return doc;
             }
-        } else if (this.isLocalPath(documentId)) {
+        } else if (isLocalPath(documentId)) {
             // A path with no URL scheme is ours: report the missing file rather than
             // letting a URL loader answer "Not a valid absolute URL".
             await this.loadLocalFile(resolvedPath ?? resolve(documentId), type);
@@ -106,10 +106,6 @@ export class FileSystemDocumentLoader implements DocumentLoader {
         }
     }
 
-    private isLocalPath(ref: string): boolean {
-        return isAbsolute(ref) || this.isRelativePath(ref);
-    }
-
     private async loadDocument(schemaPath: string, type: CalmDocumentType): Promise<object | undefined> {
         this.logger.debug('Loading ' + schemaPath);
         const str = await readFile(schemaPath, 'utf-8');
@@ -136,22 +132,26 @@ export class FileSystemDocumentLoader implements DocumentLoader {
     }
 
     resolvePath(reference: string): string | undefined {
-        if (this.basePath && this.isRelativePath(reference)) {
+        if (this.basePath && isRelativePath(reference)) {
             // Resolve against base path
             // Note: join handles relative segments like .. correctly
             return join(this.basePath, reference);
         }
         return undefined;
     }
+}
 
-    /**
-     * Check if a path is relative (not absolute and not a URL)
-     */
-    private isRelativePath(ref: string): boolean {
-        if (isAbsolute(ref)) {
-            return false;
-        }
-        // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
-        return !/^[a-z][a-z0-9+.-]+:/i.test(ref);
+/**
+ * Check if a path is relative (not absolute and not a URL)
+ */
+export function isRelativePath(ref: string): boolean {
+    if (isAbsolute(ref)) {
+        return false;
     }
+    // Any URI scheme, in any case, belongs to another loader. Two or more characters keep a Windows drive letter local.
+    return !/^[a-z][a-z0-9+.-]+:/i.test(ref);
+}
+
+export function isLocalPath(ref: string): boolean {
+    return isAbsolute(ref) || isRelativePath(ref);
 }

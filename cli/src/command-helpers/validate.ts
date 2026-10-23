@@ -1,4 +1,4 @@
-import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome } from '@finos/calm-shared';
+import { getFormattedOutput, validate, ValidationFormattingOptions, loadArchitectureAndPattern, loadTimeline, enrichWithDocumentPositions, ParsedDocumentContext, initLogger, ValidateOutputFormat, buildDocumentLoader, DocumentLoader, Logger, CalmReferenceResolver, ChainReferenceResolver, LocalCurieReferenceResolver, ShaCacheReferenceResolver, CurieReferenceResolver, SchemaDirectoryReferenceResolver, SchemaDirectory, ValidationOutcome, WorkspaceDocumentLoader, isLocalPath, isRelativePath } from '@finos/calm-shared';
 
 import path from 'path';
 import { mkdirp } from 'mkdirp';
@@ -6,6 +6,7 @@ import { readFileSync, writeFileSync } from 'fs';
 import { Command } from 'commander';
 import { buildSchemaDirectory } from '../cli';
 import { parseDocumentLoaderConfig } from '../document-loader-config';
+import { findWorkspaceManifestPath } from '../workspace-resolver';
 import { parseWithPointers } from '@stoplight/json';
 
 export interface ValidateOptions {
@@ -27,7 +28,12 @@ export async function runValidate(options: ValidateOptions) {
     try {
         const { getUrlToLocalFileMap } = await import('./template');
         const urlToLocalMap = getUrlToLocalFileMap(options.urlToLocalFileMapping);
-        const patternBasePath = options.patternPath ? path.dirname(path.resolve(options.patternPath)) : undefined;
+        const workspaceBundle = findWorkspaceManifestPath(process.cwd());
+        const workspace = workspaceBundle ? new WorkspaceDocumentLoader(workspaceBundle, options.verbose) : undefined;
+        const architecturePath = options.architecturePath ? resolveLocalPath(options.architecturePath, workspace) : undefined;
+        const patternPath = options.patternPath ? resolveLocalPath(options.patternPath, workspace) : undefined;
+        const timelinePath = options.timelinePath ? resolveLocalPath(options.timelinePath, workspace) : undefined;
+        const patternBasePath = patternPath && isLocalPath(patternPath) ? path.dirname(patternPath) : undefined;
         const docLoaderOpts = await parseDocumentLoaderConfig(options, urlToLocalMap, patternBasePath);
         const docLoader: DocumentLoader = buildDocumentLoader(docLoaderOpts);
         const schemaDirectory = await buildSchemaDirectory(docLoader, options.verbose);
@@ -37,9 +43,9 @@ export async function runValidate(options: ValidateOptions) {
         let pattern: object | undefined = undefined;
         let timeline: object | undefined = undefined;
 
-        if (options.timelinePath) {
+        if (timelinePath) {
             const result = await loadTimeline(
-                options.timelinePath,
+                timelinePath,
                 docLoader,
                 schemaDirectory,
                 logger
@@ -49,8 +55,8 @@ export async function runValidate(options: ValidateOptions) {
         }
         else {
             const result = await loadArchitectureAndPattern(
-                options.architecturePath ?? '',
-                options.patternPath ?? '',
+                architecturePath ?? '',
+                patternPath ?? '',
                 docLoader,
                 schemaDirectory,
                 logger
@@ -58,7 +64,12 @@ export async function runValidate(options: ValidateOptions) {
             architecture = result.architecture;
             pattern = result.pattern;
         }
-        const documentContexts = buildDocumentContexts(options, logger);
+        const documentContexts = buildDocumentContexts({
+            ...options,
+            architecturePath,
+            patternPath,
+            timelinePath
+        }, logger);
         if (!architecture && !pattern && !timeline) {
             throw new Error('You must provide an architecture, a pattern, or a timeline');
         }
@@ -101,6 +112,10 @@ function getErrorCause(error: unknown): unknown {
     return error instanceof Error && 'cause' in error
         ? error.cause
         : undefined;
+}
+
+function resolveLocalPath(argPath: string, workspace?: WorkspaceDocumentLoader): string {
+    return workspace?.resolvePath(argPath) ?? (isRelativePath(argPath) ? path.resolve(argPath) : argPath);
 }
 
 
