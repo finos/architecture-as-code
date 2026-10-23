@@ -22,6 +22,7 @@ import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
 import { usableColor } from './utils/usableColor.js';
+import { usePresentationMode } from '../../context/presentationMode.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -116,6 +117,15 @@ function CustomNodeComponent({ data }: NodeProps) {
     const controlEntries = Object.entries(nodeControls);
     const controlCount = controlEntries.length;
 
+    // Presentation mode: a wider node and larger text, legible on a projector. Each control is listed on the node in
+    // place of the control count.
+    const presenting = usePresentationMode();
+    const size = presenting
+        ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
+        : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
+    const showControlChips = presenting && controlCount > 0;
+    const showControlBadge = controlCount > 0 && !showControlChips;
+
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
     const color = getNodeTypeColor(nodeType);
@@ -169,7 +179,7 @@ function CustomNodeComponent({ data }: NodeProps) {
       onMouseLeave={() => setIsHovered(false)}
       style={{
         // Fixed width so hover expansion doesn't affect ReactFlow layout/parent bounds
-        width: '220px',
+        width: size.width,
         position: 'relative',
       }}
     >
@@ -180,10 +190,10 @@ function CustomNodeComponent({ data }: NodeProps) {
           // The AIGF risk colour outranks the block style so a risky node stays flagged
           border: `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
-          padding: '16px',
+          padding: size.padding,
           width: '100%',
           color: blockText ?? THEME.colors.foreground,
-          fontSize: '14px',
+          fontSize: size.text,
           fontWeight: 500,
           boxShadow: isHovered ? THEME.shadows.lg : THEME.shadows.sm,
           transition: 'box-shadow 0.3s ease-in-out',
@@ -193,17 +203,18 @@ function CustomNodeComponent({ data }: NodeProps) {
       <Handle type="source" position={Position.Right} id="source" style={{ opacity: 0 }} />
       <Handle type="target" position={Position.Left} id="target" style={{ opacity: 0 }} />
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
-        <div style={{ fontWeight: 600, marginBottom: '4px', flex: 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <NodeIcon style={{ width: '16px', height: '16px', flexShrink: 0, color: nodeTypeStyle.color }} />
+      {/* Presentation mode puts the badges below the label: the larger text leaves no space next to it. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px', flexWrap: presenting ? 'wrap' : undefined }}>
+        <div style={{ fontWeight: 600, marginBottom: '4px', flex: presenting ? '1 0 100%' : 1, display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <NodeIcon style={{ width: size.icon, height: size.icon, flexShrink: 0, color: nodeTypeStyle.color }} />
           <span>{data.label}</span>
           {detailedArchitecture && !isUnknownArch && (
             <div title="Has detailed architecture">
-              <ZoomIn style={{ width: '20px', height: '20px', flexShrink: 0, color: THEME.colors.accentText }} />
+              <ZoomIn style={{ width: size.zoomIcon, height: size.zoomIcon, flexShrink: 0, color: THEME.colors.accentText }} />
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0) && (
+        {(riskCount > 0 || mitigationCount > 0 || showControlBadge) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             {riskCount > 0 && (
               <div
@@ -211,15 +222,15 @@ function CustomNodeComponent({ data }: NodeProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${borderColor}20`,
                   color: borderColor,
                 }}
               >
-                <AlertCircle style={{ width: '12px', height: '12px' }} />
+                <AlertCircle style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{riskCount}</span>
               </div>
             )}
@@ -229,39 +240,65 @@ function CustomNodeComponent({ data }: NodeProps) {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${THEME.colors.success}20`,
                   color: THEME.colors.success,
                 }}
               >
-                <Shield style={{ width: '12px', height: '12px' }} />
+                <Shield style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{mitigationCount}</span>
               </div>
             )}
-            {controlCount > 0 && (
+            {showControlBadge && (
               <div
                 style={{
                   display: 'flex',
                   alignItems: 'center',
                   gap: '2px',
-                  padding: '2px 6px',
+                  padding: size.badgePadding,
                   borderRadius: '4px',
-                  fontSize: '12px',
+                  fontSize: size.badgeText,
                   fontWeight: 500,
                   background: `${THEME.colors.accent}20`,
                   color: THEME.colors.accentText,
                 }}
               >
-                <Shield style={{ width: '12px', height: '12px' }} />
+                <Shield style={{ width: size.badgeIcon, height: size.badgeIcon }} />
                 <span>{controlCount}</span>
               </div>
             )}
           </div>
         )}
       </div>
+      {showControlChips && (
+        <div data-testid="node-control-chips" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', marginTop: '8px' }}>
+          {controlEntries.map(([controlId]) => (
+            <div
+              key={controlId}
+              data-testid="node-control-chip"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                maxWidth: '100%',
+                padding: '3px 8px',
+                borderRadius: '6px',
+                fontSize: '16px',
+                fontWeight: 600,
+                background: `${THEME.colors.accent}20`,
+                color: THEME.colors.accentText,
+                overflowWrap: 'anywhere',
+              }}
+            >
+              <Shield aria-hidden="true" style={{ width: '16px', height: '16px', flexShrink: 0 }} />
+              <span>{controlId}</span>
+            </div>
+          ))}
+        </div>
+      )}
       </div>
 
       {/* Hover details panel - absolutely positioned to float over other elements */}

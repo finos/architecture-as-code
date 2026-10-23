@@ -4,6 +4,7 @@ import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 import { THEME, getRiskLevelColor } from './theme.js';
+import { PRESENTATION_MODE_KEY } from '../../context/presentationMode.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
@@ -255,5 +256,33 @@ describe('CustomNode — external URL support', () => {
 
             expect(styled.style.color).toBe(unstyled.style.color);
         });
+    });
+});
+
+describe('presentation mode', () => {
+    const controls = {
+        'client-ledger-human-approval': { description: 'A human approves changes', requirements: [] },
+        'encryption-at-rest': { description: 'Data is encrypted at rest', requirements: [] },
+    };
+    const textSize = () => screen.getByText('Test Node').parentElement!.parentElement!.parentElement!.style.fontSize;
+
+    afterEach(() => sessionStorage.clear());
+
+    it('keeps the normal size and the control count when presentation mode is off', () => {
+        render(<CustomNode {...makeNodeProps(undefined, { controls })} />);
+        expect(screen.getByTestId('custom-node').style.width).toBe('220px');
+        expect(textSize()).toBe('14px');
+        expect(screen.queryByTestId('node-control-chip')).toBeNull();
+        expect(screen.getByText('2')).toBeTruthy();
+    });
+
+    it('makes the node wider and its text larger, and lists each control in place of the count', () => {
+        sessionStorage.setItem(PRESENTATION_MODE_KEY, '1');
+        render(<CustomNode {...makeNodeProps(undefined, { controls })} />);
+        expect(screen.getByTestId('custom-node').style.width).toBe('320px');
+        expect(textSize()).toBe('24px');
+        expect(screen.getAllByTestId('node-control-chip').map((c) => c.textContent))
+            .toEqual(['client-ledger-human-approval', 'encryption-at-rest']);
+        expect(screen.queryByText('2')).toBeNull();
     });
 });

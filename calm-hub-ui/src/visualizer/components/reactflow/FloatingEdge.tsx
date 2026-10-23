@@ -4,6 +4,8 @@ import { getEdgeParams } from './utils/floatingEdges.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
+import { usePresentationMode } from '../../context/presentationMode.js';
+import { coveredNodeTop } from './utils/labelPlacement.js';
 
 function FloatingEdgeComponent({
     id,
@@ -19,6 +21,9 @@ function FloatingEdgeComponent({
 
     const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
     const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
+    const presenting = usePresentationMode();
+    // All nodes, but only in presentation mode, where a label that covers a node moves above it (see below).
+    const allNodes = useStore(useCallback((store) => (presenting ? store.nodeInternals : undefined), [presenting]));
 
     if (!sourceNode || !targetNode) {
         return null;
@@ -49,6 +54,13 @@ function FloatingEdgeComponent({
         routing === 'straight' ? getStraightPath(pathParams) :
         routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
         getBezierPath(pathParams);
+
+    // The larger presentation label would hide a node it falls on, for example when the edge goes behind that node.
+    // The label moves to just above that node.
+    const coveredTop = allNodes ? coveredNodeTop(allNodes.values(), labelX, labelY, [source, target]) : undefined;
+    const labelTransform = coveredTop === undefined
+        ? `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`
+        : `translate(-50%, -100%) translate(${labelX}px,${coveredTop - 8}px)`;
 
     // Extract edge data
     const description = data?.description || '';
@@ -95,12 +107,14 @@ function FloatingEdgeComponent({
                     <div
                         style={{
                             position: 'absolute',
-                            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                            transform: labelTransform,
                             pointerEvents: 'all',
                             zIndex: 1000,
                             opacity: flowOpacity,
                             transition: 'opacity 0.4s ease',
                             display: 'flex',
+                            // Presentation mode stacks the badge and the label: together they are too wide for one line.
+                            flexDirection: presenting ? 'column' : undefined,
                             alignItems: 'center',
                             gap: '4px',
                         }}
@@ -117,18 +131,19 @@ function FloatingEdgeComponent({
                         {edgeLabel && (
                             <span
                                 style={{
-                                    display: 'inline-block',
-                                    fontSize: '10px',
+                                    fontSize: presenting ? '16px' : '10px',
                                     lineHeight: 1.25,
-                                    padding: '2px 4px',
+                                    padding: presenting ? '3px 8px' : '2px 4px',
                                     borderRadius: '4px',
                                     background: THEME.colors.card,
                                     border: `1px solid ${THEME.colors.border}`,
                                     color: THEME.colors.muted,
-                                    maxWidth: '160px',
+                                    maxWidth: presenting ? '220px' : '160px',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
+                                    ...(presenting
+                                        ? { whiteSpace: 'normal', textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }
+                                        : { whiteSpace: 'nowrap', display: 'inline-block' }),
                                 }}
                             >
                                 {edgeLabel}

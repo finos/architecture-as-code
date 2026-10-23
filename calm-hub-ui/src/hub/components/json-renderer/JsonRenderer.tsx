@@ -1,6 +1,10 @@
 import { Editor } from '@monaco-editor/react';
 import { useResolvedTheme } from '../../../theme/useTheme.js';
 import { CALM_DARK, defineCalmThemes } from '../../../theme/monaco-theme.js';
+import { usePresentationMode } from '../../../visualizer/context/presentationMode.js';
+
+const FONT_SIZE = 12;
+const PRESENTATION_FONT_SIZE = 20;
 
 interface JsonRendererProps {
     json?: object;
@@ -16,6 +20,7 @@ function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineN
     // which theme is active — otherwise its light syntax colours land on our dark
     // surface as near-black text.
     const theme = useResolvedTheme();
+    const presenting = usePresentationMode();
 
     return (
         <Editor
@@ -32,6 +37,7 @@ function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineN
                 overviewRulerLanes: 0,
                 wordWrap: 'on',
                 lineNumbers: showLineNumbers ? 'on' : 'off',
+                fontSize: presenting ? PRESENTATION_FONT_SIZE : FONT_SIZE,
             }}
         />
     );

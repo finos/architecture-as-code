@@ -249,6 +249,60 @@ describe('ArchitectureGraph', () => {
         });
     });
 
+    describe('presentation mode', () => {
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        const presentation = () => screen.getByRole('button', { name: 'Presentation mode' });
+
+        it('starts off, with the minimap shown', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+        });
+
+        it('turns on, hides the minimap and is kept for the session', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
+            expect(sessionStorage.getItem('calmHub.presentationMode')).toBe('1');
+        });
+
+        it('turns off again and brings the minimap back', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            fireEvent.click(presentation());
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+            expect(sessionStorage.getItem('calmHub.presentationMode')).toBe('0');
+        });
+
+        it('restores the mode kept for the session', () => {
+            sessionStorage.setItem('calmHub.presentationMode', '1');
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns on from present=1 in the hash route, and keeps it when the query is dropped', () => {
+            window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
+            const { unmount } = render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            unmount();
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram';
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns a kept mode off from present=0', () => {
+            sessionStorage.setItem('calmHub.presentationMode', '1');
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram&present=0';
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+        });
+    });
+
     describe('animation toggle', () => {
         it('offers a pause-animation control on desktop', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);

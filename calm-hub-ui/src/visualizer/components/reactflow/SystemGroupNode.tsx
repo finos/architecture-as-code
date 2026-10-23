@@ -1,8 +1,10 @@
 import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
+import { usePresentationMode } from '../../context/presentationMode.js';
 
 function SystemGroupNodeComponent({ data }: NodeProps) {
+  const presenting = usePresentationMode();
   return (
     <div
       style={{
@@ -24,10 +26,10 @@ function SystemGroupNodeComponent({ data }: NodeProps) {
           position: 'absolute',
           top: '12px',
           left: '16px',
-          padding: '4px 12px',
+          padding: presenting ? '6px 16px' : '4px 12px',
           borderRadius: '6px',
           fontWeight: 600,
-          fontSize: '12px',
+          fontSize: presenting ? '22px' : '12px',
           background: THEME.colors.backgroundSecondary,
           color: THEME.colors.group.label,
           border: `1px solid ${THEME.colors.border}`,
