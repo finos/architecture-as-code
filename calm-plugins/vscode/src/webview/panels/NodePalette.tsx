@@ -4,22 +4,24 @@ import { theme, tint } from '../canvas/theme-colors';
 
 initAllPacks();
 
-interface BuildingBlock {
+interface StandardNode {
     id: string;
     name: string;
     behaviour: string;
     nodeType: string;
     category?: string;
     description?: string;
+    namespace?: string;
+    sha?: string;
 }
 
 interface NodePaletteProps {
-    buildingBlocks: BuildingBlock[];
+    standardNodes: StandardNode[];
 }
 
-export function NodePalette({ buildingBlocks }: NodePaletteProps) {
+export function NodePalette({ standardNodes }: NodePaletteProps) {
     const [searchQuery, setSearchQuery] = useState('');
-    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, standards: true, guidelines: true });
+    const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, hub: false });
 
     const packs = useMemo(() => {
         const allPacks = getAllPacks().filter((p: PackDefinition) => p.id !== 'internal');
@@ -41,17 +43,15 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
     const lowerQuery = searchQuery.toLowerCase().trim();
     const isSearching = lowerQuery.length > 0;
 
-    const infraNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'create-node'), [buildingBlocks]);
-    const standardNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'apply-controls-on-drop' && n.id.startsWith('standards:')), [buildingBlocks]);
-    const guidelineNodes = useMemo(() => buildingBlocks.filter((n) => n.behaviour === 'apply-controls-on-drop' && n.id.startsWith('guidelines:')), [buildingBlocks]);
+    const infraNodes = useMemo(() => standardNodes.filter((n) => n.behaviour === 'create-node' && !n.namespace), [standardNodes]);
 
     function matchesSearch(name: string, description?: string): boolean {
         if (!isSearching) return true;
         return name.toLowerCase().includes(lowerQuery) || (description?.toLowerCase().includes(lowerQuery) ?? false);
     }
 
-    function groupByCategory(items: BuildingBlock[]): Array<{ name: string; items: BuildingBlock[] }> {
-        const map = new Map<string, BuildingBlock[]>();
+    function groupByCategory(items: StandardNode[]): Array<{ name: string; items: StandardNode[] }> {
+        const map = new Map<string, StandardNode[]>();
         for (const item of items) {
             const cat = item.category ?? 'General';
             if (!map.has(cat)) map.set(cat, []);
@@ -65,15 +65,6 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
         [infraNodes, lowerQuery] // eslint-disable-line
     );
 
-    const filteredStandards = useMemo(() =>
-        groupByCategory(standardNodes).map((g) => ({ ...g, items: g.items.filter((n) => matchesSearch(n.name, n.description)) })).filter((g) => g.items.length > 0),
-        [standardNodes, lowerQuery] // eslint-disable-line
-    );
-
-    const filteredGuidelines = useMemo(() =>
-        groupByCategory(guidelineNodes).map((g) => ({ ...g, items: g.items.filter((n) => matchesSearch(n.name, n.description)) })).filter((g) => g.items.length > 0),
-        [guidelineNodes, lowerQuery] // eslint-disable-line
-    );
 
     const filteredPacks = useMemo(() =>
         packs.map((p: PackDefinition) => ({
@@ -85,9 +76,9 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
 
     const toggleSection = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
 
-    const onDragStart = (e: React.DragEvent, node: BuildingBlock) => {
-        e.dataTransfer.setData('application/building-block-id', node.id);
-        e.dataTransfer.setData('application/building-block-behaviour', node.behaviour);
+    const onDragStart = (e: React.DragEvent, node: StandardNode) => {
+        e.dataTransfer.setData('application/standard-node-id', node.id);
+        e.dataTransfer.setData('application/standard-node-behaviour', node.behaviour);
         e.dataTransfer.setData('application/calm-node-type', node.nodeType);
         e.dataTransfer.setData('application/calm-node-label', node.name);
         e.dataTransfer.effectAllowed = 'move';
@@ -149,34 +140,6 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
                 </Section>
             )}
 
-            {/* Standards */}
-            {filteredStandards.length > 0 && (
-                <Section title={`STANDARDS (${standardNodes.length})`} collapsed={!isSearching && collapsed.standards} onToggle={() => toggleSection('standards')} badge="WS">
-                    {filteredStandards.map((group) => (
-                        <React.Fragment key={group.name}>
-                            <div style={subgroupStyle}>{group.name} ({group.items.length})</div>
-                            {group.items.map((node) => (
-                                <PaletteItem key={node.id} icon="📄" label={node.name} onDragStart={(e) => onDragStart(e, node)} title={node.description} />
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </Section>
-            )}
-
-            {/* Guidelines */}
-            {filteredGuidelines.length > 0 && (
-                <Section title={`GUIDELINES (${guidelineNodes.length})`} collapsed={!isSearching && collapsed.guidelines} onToggle={() => toggleSection('guidelines')} badge="WS">
-                    {filteredGuidelines.map((group) => (
-                        <React.Fragment key={group.name}>
-                            <div style={subgroupStyle}>{group.name} ({group.items.length})</div>
-                            {group.items.map((node) => (
-                                <PaletteItem key={node.id} icon="📖" label={node.name} onDragStart={(e) => onDragStart(e, node)} title={node.description} />
-                            ))}
-                        </React.Fragment>
-                    ))}
-                </Section>
-            )}
-
             {/* Extension Packs */}
             {filteredPacks.map((pack) => (
                 <Section
@@ -204,9 +167,9 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
             ))}
 
             {/* Empty state */}
-            {buildingBlocks.length === 0 && filteredPacks.length === 0 && !isSearching && (
+            {standardNodes.length === 0 && filteredPacks.length === 0 && !isSearching && (
                 <div style={{ padding: '12px', fontSize: '11px', color: 'var(--calm-fg-muted)', lineHeight: 1.4 }}>
-                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>building-blocks/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.calm.json</code> files.
+                    No components found. Ensure your workspace contains a <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>standard-nodes/</code> folder with <code style={{ background: 'var(--calm-bg-input)', padding: '1px 4px', borderRadius: '3px', fontSize: '10px' }}>.calm.json</code> files.
                 </div>
             )}
         </aside>
@@ -214,6 +177,7 @@ export function NodePalette({ buildingBlocks }: NodePaletteProps) {
 }
 
 function Section({ title, collapsed, onToggle, badge, borderColor, children }: { title: string; collapsed: boolean; onToggle: () => void; badge?: string; borderColor?: string; children: React.ReactNode }) {
+    const isHub = badge === 'Hub';
     const sectionStyle: React.CSSProperties = {
         marginBottom: '4px',
         ...(badge ? { borderLeft: `2px solid ${theme.green}`, marginLeft: '4px', background: tint(theme.green, 12) } : {}),
@@ -223,7 +187,7 @@ function Section({ title, collapsed, onToggle, badge, borderColor, children }: {
         <div style={sectionStyle}>
             <button onClick={onToggle} style={groupNameStyle}>
                 <span style={{ fontSize: '10px', display: 'inline-block', transition: 'transform 0.15s', transform: collapsed ? 'rotate(-90deg)' : 'none' }}>▾</span>
-                {badge && <span style={wsBadgeStyle}>{badge}</span>}
+                {badge && <span style={isHub ? hubBadgeStyle : wsBadgeStyle}>{badge}</span>}
                 {borderColor && !badge && <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: borderColor, flexShrink: 0 }} />}
                 {title}
             </button>
@@ -249,5 +213,6 @@ const searchInputStyle: React.CSSProperties = { width: '100%', height: '28px', p
 const clearBtnStyle: React.CSSProperties = { position: 'absolute', right: '14px', top: '4px', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--calm-fg-muted)', fontSize: '14px' };
 const groupNameStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', padding: '4px 12px', fontSize: '10px', fontWeight: 700, letterSpacing: '0.3px', color: 'var(--calm-fg-muted)', background: 'none', border: 'none', width: '100%', cursor: 'pointer', textAlign: 'left' };
 const wsBadgeStyle: React.CSSProperties = { fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '3px', background: theme.green, color: theme.bg, letterSpacing: '0.5px' };
+const hubBadgeStyle: React.CSSProperties = { fontSize: '8px', fontWeight: 800, padding: '1px 4px', borderRadius: '3px', background: theme.green, color: theme.bg, letterSpacing: '0.5px' };
 const subgroupStyle: React.CSSProperties = { padding: '3px 12px 3px 20px', fontSize: '9px', fontWeight: 600, color: 'var(--calm-fg-muted)', textTransform: 'capitalize' };
 const itemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', cursor: 'grab', borderRadius: '4px', margin: '1px 6px' };

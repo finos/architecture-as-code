@@ -501,4 +501,29 @@ public class MongoMappingControllerIntegration {
                 .statusCode(200)
                 .body("values.find { it.id == " + id + " }.customId", nullValue());
     }
+
+    @Test
+    @Order(37)
+    void create_a_pattern_through_a_capitalised_type_and_return_a_lowercase_location() {
+        String payload = "{\"title\": \"Capitalised Type\", "
+                + "\"$id\": \"http://localhost:8080/calm/namespaces/finos/Patterns/capitalised-type/versions/1.0.0\"}";
+
+        given()
+                .body(payload)
+                .header("Content-Type", "application/json")
+                .when().post("/calm/namespaces/finos/Patterns/capitalised-type/versions/1.0.0")
+                .then()
+                .statusCode(201)
+                .header("Location", containsString("/calm/namespaces/finos/patterns/capitalised-type/versions/1.0.0"));
+    }
+
+    @Test
+    @Order(38)
+    void read_a_pattern_written_through_a_capitalised_type_with_a_lowercase_id() {
+        given()
+                .when().get("/calm/namespaces/finos/PATTERNS/capitalised-type/versions/1.0.0")
+                .then()
+                .statusCode(200)
+                .body(containsString("\"$id\":\"http://localhost:8080/calm/namespaces/finos/patterns/capitalised-type/versions/1.0.0\""));
+    }
 }

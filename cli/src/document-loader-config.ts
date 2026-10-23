@@ -1,4 +1,4 @@
-import { AuthPlugin, DocumentLoaderOptions, initLogger, Logger } from '@finos/calm-shared';
+import { AuthPlugin, DirectUrlAuthPlugin, DocumentLoaderOptions, initLogger, Logger } from '@finos/calm-shared';
 import * as cliConfig from './cli-config';
 import { findWorkspaceManifestPath } from './workspace-resolver';
 
@@ -51,20 +51,18 @@ export async function parseDocumentLoaderConfig(
     if (directUrlAuthConfig) {
         try {
             cliConfig.validateDirectUrlAuthConfig(directUrlAuthConfig);
-            const directUrlAuthConfigPath = directUrlAuthConfig.configPath !== undefined
-                ? directUrlAuthConfig.configPath
-                : 'not specified';
-            logger.info('Loading direct URL auth module from config file: ' + directUrlAuthConfig.module);
-            logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
-            const directUrlAuthPlugin = await cliConfig.loadDirectUrlAuthPlugin(directUrlAuthConfig, !!options.verbose);
-            docLoaderOpts.directUrlAuthPlugin = directUrlAuthPlugin;
-            docLoaderOpts.directUrlAuthAuthenticatedHosts = directUrlAuthConfig.authenticatedHosts;
-            logger.debug('Direct URL auth module loaded successfully');
         } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             logger.error('Direct URL authentication setup failed: ' + message);
             throw new Error('Direct URL authentication setup failed: ' + message);
         }
+        const directUrlAuthConfigPath = directUrlAuthConfig.configPath !== undefined
+            ? directUrlAuthConfig.configPath
+            : 'not specified';
+        logger.info('Using direct URL auth module from config file: ' + directUrlAuthConfig.module);
+        logger.info('Direct URL auth configPath: ' + directUrlAuthConfigPath);
+        docLoaderOpts.directUrlAuthPlugin = loadOnFirstUse(directUrlAuthConfig, !!options.verbose);
+        docLoaderOpts.directUrlAuthAuthenticatedHosts = directUrlAuthConfig.authenticatedHosts;
     }
 
     // If a CALM workspace bundle is present in the repository, prefer it for resolving documents.
@@ -83,6 +81,20 @@ export async function parseDocumentLoaderConfig(
         docLoaderOpts.allowedRemoteHosts = userConfig.allowedRemoteHosts;
     }
     return docLoaderOpts;
+}
+
+/**
+ * A module can need the network or a login when it loads. The CLI loads it only when a document on an
+ * authenticated host first needs headers. A failed load fails each such document and is not tried again.
+ */
+function loadOnFirstUse(config: cliConfig.DirectUrlAuthConfig, verbose: boolean): DirectUrlAuthPlugin {
+    let plugin: Promise<DirectUrlAuthPlugin> | undefined;
+    return {
+        getAuthHeaders(url, requestBody) {
+            plugin ??= cliConfig.loadDirectUrlAuthPlugin(config, verbose);
+            return plugin.then(loaded => loaded.getAuthHeaders(url, requestBody));
+        }
+    };
 }
 
 function findWorkspaceBundle(logger: Logger): string | undefined {

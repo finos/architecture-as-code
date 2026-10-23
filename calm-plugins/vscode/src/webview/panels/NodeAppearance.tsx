@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { NodeStyleOverride } from '../utils/building-block-style';
+import type { NodeStyleOverride } from '../utils/standard-node-style';
 import { THEME_BG_FALLBACK, THEME_TEXT_FALLBACK, cssColorToHex } from '../canvas/theme-colors';
 import type { NodeColours } from '../canvas/node-colours';
 
@@ -31,7 +31,7 @@ function useResolvedHex(cssColor: string, fallback: string): string {
 }
 
 interface NodeAppearanceProps {
-    /** Current overrides from the node's `metadata['building-block-style']` (undefined = defaults). */
+    /** Current overrides from the node's `metadata['standard-node-style']` (undefined = defaults). */
     style: NodeStyleOverride | undefined;
     /** Persist new overrides, or `undefined` to reset the node to its default look. */
     onUpdate: (style: NodeStyleOverride | undefined) => void;

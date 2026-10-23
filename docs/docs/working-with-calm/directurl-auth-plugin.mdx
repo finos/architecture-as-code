@@ -73,7 +73,7 @@ This illustrative code example assumes the following infrastructure services are
 
 #### How the Module Works
 
-The module is loaded by the CALM CLI when direct URL authentication is configured. The CLI dynamically imports the JavaScript module, creates an instance, and passes `directUrlAuthConfigPath` as the constructor argument. The module stores this path and reads the configuration file when it first needs to create an access token.
+The CALM CLI loads the module the first time a document on an authenticated host needs it. The CLI dynamically imports the JavaScript module, creates an instance, and passes `directUrlAuthConfigPath` as the constructor argument. The module stores this path and reads the configuration file when it first needs to create an access token.
 
 The runtime flow is:
 

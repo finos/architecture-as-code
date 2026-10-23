@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.63.0",
+    "version": "1.65.0",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -51,6 +51,7 @@
         "ts-node": "10.9.2"
     },
     "devDependencies": {
+        "@semantic-release/commit-analyzer": "^13.0.1",
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/exec": "^7.1.0",
         "@semantic-release/git": "^10.0.1",

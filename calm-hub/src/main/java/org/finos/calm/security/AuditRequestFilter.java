@@ -40,6 +40,7 @@ import org.slf4j.LoggerFactory;
 import java.net.URI;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -444,7 +445,7 @@ public class AuditRequestFilter implements ContainerResponseFilter {
             return null;
         }
         org.finos.calm.domain.ResourceType resourceType =
-                org.finos.calm.resources.CalmDocumentParser.TYPE_MAP.get(pathType.toLowerCase());
+                org.finos.calm.resources.CalmDocumentParser.TYPE_MAP.get(pathType.toLowerCase(Locale.ROOT));
         if (resourceType == null) {
             return null;
         }
