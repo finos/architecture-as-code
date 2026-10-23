@@ -63,3 +63,12 @@ reason = "postcss-selector-parser 6.1.4 (cssnano under Docusaurus) parses only t
 id = "GHSA-238p-pmpm-9mq7"
 ignoreUntil = 2026-12-31
 reason = "katex is reachable only through mermaid's inlined copy in the CLI diagram renderer, and only when a mermaid diagram contains math. The read-side gadget needs an already-polluted Object.prototype, which no CALM component provides. Remove when mermaid moves to katex >= 0.18.2."
+
+# ip-address 10.7.2 is bundled inside npm 11.21.1, which comes in only through
+# @semantic-release/npm for the CLI release job. npm overrides cannot change a bundled
+# dependency, and no npm release bundles the fix (10.7.4) yet. The other copy in the
+# lockfile is already 10.7.4. npm parses only registry and proxy hosts from its own config.
+[[IgnoredVulns]]
+id = "GHSA-rxp7-6hxx-x8q5"
+ignoreUntil = 2026-12-31
+reason = "ip-address 10.7.2 is bundled in npm under @semantic-release/npm, used only by the CLI release job; it parses only registry and proxy hosts from CI config, never user input. Not shipped. Remove when an npm release bundles ip-address >= 10.7.4."

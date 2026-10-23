@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-18T00:00:00Z",
-  "version": 9,
+  "timestamp": "2026-10-22T00:00:00Z",
+  "version": 10,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -183,7 +183,29 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
       "impact_statement": "katex is pulled in only by mermaid, which pins ^0.16.45 (still the pin at mermaid 12.1.0); the fix is in 0.18.2, outside that range. The only place katex code runs is the CLI --export-diagrams renderer, which serves mermaid's self-contained ESM bundle with its own inlined katex copy, so an npm override cannot reach the code that executes. mermaid loads katex only when a diagram contains a math block. The advisory describes a read-side prototype pollution gadget: it needs an already-polluted Object.prototype plus attacker-controlled math input, and no CALM component pollutes the prototype or renders untrusted math."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-rxp7-6hxx-x8q5",
+        "aliases": [
+          "CVE-2026-111997"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/ip-address@10.7.2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "impact_statement": "ip-address 10.7.2 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (10.7.4) yet. Inside npm, socks passes Address6 only the registry and proxy hosts from npm config, which the release workflow sets, so an attacker cannot supply the long zone identifier that causes the slow parse. The other ip-address copy in the lockfile is 10.7.4."
     }
   ],
-  "last_updated": "2026-10-18T00:00:00Z"
+  "last_updated": "2026-10-22T00:00:00Z"
 }
