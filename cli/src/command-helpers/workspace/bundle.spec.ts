@@ -689,6 +689,57 @@ describe('bundle', () => {
             expect(graph.edges['child']).toEqual([]);
         });
 
+        describe('CalmHub $id references', () => {
+            const patternId = 'http://localhost:8080/calm/namespaces/finos/patterns/payments/versions/1.0.0';
+
+            async function writePatternAndArchitecture(schemaRef: string): Promise<void> {
+                await writeFile(path.join(filesPath, 'payments.pattern.json'), JSON.stringify({
+                    '$id': patternId,
+                    'properties': { 'nodes': { '$ref': `${patternId}#/defs/nodes` } }
+                }));
+                await writeFile(path.join(filesPath, 'payments.arch.json'), JSON.stringify({
+                    '$schema': schemaRef,
+                    'nodes': []
+                }));
+                await saveManifest(bundlePath, {
+                    'payments-pattern': { path: 'files/payments.pattern.json', type: 'pattern' },
+                    'payments-gateway': { path: 'files/payments.arch.json', type: 'architecture' }
+                });
+            }
+
+            it('should detect a reference by the exact $id URL', async () => {
+                await writePatternAndArchitecture(patternId);
+
+                const graph = await buildDependencyGraph(bundlePath);
+
+                expect(graph.edges['payments-gateway']).toEqual(['payments-pattern']);
+            });
+
+            it('should detect a reference to another version of the $id', async () => {
+                await writePatternAndArchitecture(patternId.replace('1.0.0', '0.9.0'));
+
+                const graph = await buildDependencyGraph(bundlePath);
+
+                expect(graph.edges['payments-gateway']).toEqual(['payments-pattern']);
+            });
+
+            it('should not detect a reference to the same path on another host', async () => {
+                await writePatternAndArchitecture(patternId.replace('localhost:8080', 'calm.example.com'));
+
+                const graph = await buildDependencyGraph(bundlePath);
+
+                expect(graph.edges['payments-gateway']).toEqual([]);
+            });
+
+            it('should not add an edge for a reference to the document itself', async () => {
+                await writePatternAndArchitecture(patternId);
+
+                const graph = await buildDependencyGraph(bundlePath);
+
+                expect(graph.edges['payments-pattern']).toEqual([]);
+            });
+        });
+
         it('should detect requirement-url edges', async () => {
             await writeFile(path.join(filesPath, 'parent.json'), JSON.stringify({
                 '$id': 'parent',
