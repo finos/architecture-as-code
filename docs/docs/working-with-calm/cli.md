@@ -104,12 +104,12 @@ CALM CLI includes AI-powered development assistance through the `init-ai` comman
 | [`generate`](../calm-cli/generate.md) | Generate an architecture from a CALM pattern |
 | [`validate`](../calm-cli/validate.md) | Validate an architecture, pattern or timeline |
 | [`docify`](../calm-cli/docify.md) | Generate a documentation website or report from an architecture |
-| `template` | Generate files from an architecture with a template bundle, file or directory |
-| `diff` | Compare two CALM documents, or the moments of a timeline |
-| `timeline` | Make a CALM timeline from a set of versioned architecture files |
-| `init-config` | Create or update the CLI configuration file (`~/.calm.json`) |
+| [`template`](../calm-cli/template.md) | Generate files from an architecture with a template bundle, file or directory |
+| [`diff`](../calm-cli/diff.md) | Compare two CALM documents, or the moments of a timeline |
+| [`timeline`](../calm-cli/timeline.md) | Make a CALM timeline from a set of versioned architecture files |
+| [`init-config`](../calm-cli/configuration.md) | Create or update the CLI configuration file (`~/.calm.json`) |
 | [`init-ai`](calm-ai-tools) | Add CALM AI assistance to a git repository |
 | [`hub`](../calm-cli/hub.md) | Push, pull and list documents in CALM Hub |
 | `workspace` | Track a set of related CALM documents, version them and push them to CALM Hub |
 
-The CLI can also load documents directly from HTTP(S) servers. See [Direct URL loading](../calm-cli/direct-url-loading.md).
+To set your CALM Hub URL and authentication, see [Configuring the CLI](../calm-cli/configuration.md). The CLI can also load documents directly from HTTP(S) servers. See [Direct URL loading](../calm-cli/direct-url-loading.md).

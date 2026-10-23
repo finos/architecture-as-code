@@ -553,5 +553,5 @@ You should see no errors and no warnings.
 ## Resources
 
 - [CALM Schema Reference](https://calm.finos.org/release/1.2/meta/calm.json)
-- [CALM CLI Documentation](https://github.com/finos/architecture-as-code/tree/main/cli)
+- [CALM CLI Documentation](../../working-with-calm/cli.md)
 - [FINOS Community Discussions](https://github.com/finos/architecture-as-code/discussions)
