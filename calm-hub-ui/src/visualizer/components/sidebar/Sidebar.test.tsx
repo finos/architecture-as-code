@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { Sidebar } from './Sidebar.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { CalmNodeSchema, CalmRelationshipSchema } from '@finos/calm-models/types';
 
 vi.mock('@monaco-editor/react', () => ({
@@ -102,12 +103,11 @@ describe('Sidebar Component', () => {
     });
 
     describe('resizing', () => {
-        beforeEach(() => sessionStorage.clear());
-
         const panelWidth = (container: HTMLElement) => (container.firstChild as HTMLElement).style.getPropertyValue('--details-width');
 
         it('widens the panel when its handle is dragged left, and keeps the width when it is opened again', () => {
-            const { container, unmount } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+            const storage = createMemoryStorage();
+            const { container, unmount } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} storage={storage} />);
             const handle = screen.getByRole('separator', { name: 'Resize details panel' });
             fireEvent.pointerDown(handle, { clientX: 900, pointerId: 1 });
             fireEvent.pointerMove(handle, { clientX: 800, pointerId: 1 });
@@ -115,12 +115,12 @@ describe('Sidebar Component', () => {
             expect(panelWidth(container)).toBe('484px');
             unmount();
 
-            const reopened = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+            const reopened = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} storage={storage} />);
             expect(panelWidth(reopened.container)).toBe('484px');
         });
 
         it('does not shrink below its minimum, and moving the pointer without a drag does nothing', () => {
-            const { container } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+            const { container } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} storage={createMemoryStorage()} />);
             const handle = screen.getByRole('separator', { name: 'Resize details panel' });
             fireEvent.pointerMove(handle, { clientX: 100, pointerId: 1 });
             expect(panelWidth(container)).toBe('384px');
@@ -130,7 +130,7 @@ describe('Sidebar Component', () => {
         });
 
         it('resizes with the arrow keys', () => {
-            const { container } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} />);
+            const { container } = render(<Sidebar selectedData={mockNodeData} closeSidebar={mockCloseSidebar} storage={createMemoryStorage()} />);
             const handle = screen.getByRole('separator', { name: 'Resize details panel' });
             fireEvent.keyDown(handle, { key: 'ArrowLeft' });
             expect(panelWidth(container)).toBe('416px');

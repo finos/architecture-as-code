@@ -17,26 +17,26 @@ const KEY_STEP = 32;
 const maxWidth = () => Math.max(MIN_WIDTH, Math.round(window.innerWidth * 0.6));
 const clampWidth = (width: number) => Math.min(maxWidth(), Math.max(MIN_WIDTH, Math.round(width)));
 
-function readWidth(): number {
+function readWidth(storage: Storage): number {
     try {
-        const stored = Number(sessionStorage.getItem(WIDTH_KEY));
+        const stored = Number(storage.getItem(WIDTH_KEY));
         return stored ? clampWidth(stored) : DEFAULT_WIDTH;
     } catch {
         return DEFAULT_WIDTH;
     }
 }
 
-function saveWidth(width: number) {
+function saveWidth(width: number, storage: Storage) {
     try {
-        sessionStorage.setItem(WIDTH_KEY, String(width));
+        storage.setItem(WIDTH_KEY, String(width));
     } catch {
         // Storage can be unavailable (private mode); the width then lasts only as long as the panel.
     }
 }
 
-export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
+export function Sidebar({ selectedData, closeSidebar, storage = sessionStorage }: SidebarProps) {
     const [activeTab, setActiveTab] = useState<'details' | 'json'>('details');
-    const [width, setWidth] = useState(readWidth);
+    const [width, setWidth] = useState(() => readWidth(storage));
     const drag = useRef<{ startX: number; startWidth: number } | null>(null);
     const isNode = isCALMNode(selectedData);
     const isRelationship = isCALMRelationship(selectedData);
@@ -44,8 +44,8 @@ export function Sidebar({ selectedData, closeSidebar }: SidebarProps) {
     const resize = useCallback((next: number) => {
         const clamped = clampWidth(next);
         setWidth(clamped);
-        saveWidth(clamped);
-    }, []);
+        saveWidth(clamped, storage);
+    }, [storage]);
 
     // The panel sits on the right, so dragging its left edge leftwards makes it wider.
     const onPointerDown = (e: PointerEvent<HTMLDivElement>) => {
