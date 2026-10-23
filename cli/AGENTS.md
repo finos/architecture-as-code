@@ -157,6 +157,9 @@ npm run test:smoke --workspace cli
 
 The suite starts one shared hub via `cli/smoke/global-setup.ts`; each flow uses
 its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`, `smoke-workspace-documents`, `smoke-flows`).
+`generate-validate.smoke.spec.ts` also serves control documents from a second origin,
+`http://smoke-controls.localhost:8090` (`cli/smoke/harness/cross-host-origin.ts`), so that
+`DirectUrlDocumentLoader` is tested against a host other than `-c`. Port 8090 must be free.
 
 ### Common Test Patterns
 - Use `test_helpers/` for shared test utilities
