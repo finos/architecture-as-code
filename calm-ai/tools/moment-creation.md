@@ -17,7 +17,7 @@ Moments represent the "major stages" an architecture progresses through over tim
 
 ## Official JSON Schema Definition
 
-The complete moment schema from the FINOS CALM v1.2 specification:
+The complete moment schema from the FINOS CALM v1.3 specification:
 
 ```json
 {
