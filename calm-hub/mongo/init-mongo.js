@@ -6666,7 +6666,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(1),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment",
                         "type": "deployment",
                         "target": [
@@ -6691,7 +6691,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(2),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment-v2",
                         "type": "deployment",
                         "target": [
@@ -6714,7 +6714,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(3),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment-v3",
                         "type": "deployment",
                         "target": [
@@ -6735,30 +6735,6 @@ if (db.decorators.countDocuments() === 0) {
                             "notes": "Third production deployment is currently rolling out with updated Helm chart values"
                         }
                     }
-                },
-                {
-                    decoratorId: NumberInt(4),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
-                        "unique-id": "finos-pattern-1-deployment",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/finos/patterns/1/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "pattern"
-                        ],
-                        "applies-to": [
-                            "node-a", "relationship-x"
-                        ],
-                        "data": {
-                            "start-time": "2026-02-15T09:30:00Z",
-                            "end-time": "2026-02-15T09:35:20Z",
-                            "status": "completed",
-                            "deployment-url": "https://github.com/finos/actions/runs/987654321",
-                            "notes": "Pattern deployment via GitHub Actions"
-                        }
-                    }
                 }
             ]
         },
@@ -6768,7 +6744,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(1),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "workshop-conference-deployment",
                         "type": "deployment",
                         "target": [
@@ -6793,7 +6769,6 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(2),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/observability/observability.decorator.schema.json",
                         "unique-id": "workshop-conference-monitoring",
                         "type": "observability",
                         "target": [

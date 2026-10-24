@@ -146,8 +146,8 @@ load_schemas_from_dir() {
 }
 
 # Resolve the schema paths once (falling back to the directories beside this
-# script when unset) so every schema-reading function — create_core_schemas,
-# create_standards — sees the same paths.  Without this a bare
+# script when unset) so every schema-reading function — create_core_schemas —
+# sees the same paths.  Without this a bare
 # `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
 # functions to build absolute paths from '/' that don't exist and silently
 # [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
@@ -5294,34 +5294,47 @@ create_user_access() {
     done
 }
 
-# Function to create standards
+# Copies of the decorator standards that calm-schema publishes, with their calm.finos.org $id.
+# The name-based API needs a hub $id, so they go through the numeric API. They sit in a
+# subdirectory of mongo/standards/finos.calm/, which the name-based seed does not read.
 create_standards() {
     print_status "Creating standards..."
 
-    # Create the CALM Deployment Decorator Standard in finos.calm
-    local f="${CALM_SCHEMA_BASE_PATH}/draft/2026-03/standards/deployment/deployment.decorator.standard.json"
-    if [[ -f "$f" ]]; then
-        local doc payload
-        doc=$(cat "$f")
-        payload=$(jq -n \
-            --arg name "CALM Deployment Decorator Standard" \
-            --arg description "Deployment decorator standard for architectures" \
-            --argjson doc "$doc" \
-            '{name: $name, description: $description, standardJson: ($doc | tojson)}')
-        local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
-            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created deployment standard in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Deployment standard already exists, skipping"
-        else
-            print_warning "Failed to create deployment standard (HTTP $http_code)"
-        fi
-    else
-        print_warning "Deployment standard not found at $f"
+    local base_path="$CALM_STANDARDS_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        base_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../mongo/standards"
     fi
+    local namespace_dir="$base_path/finos.calm"
+    # One directory per released standard. Deployment first, so that the deployment standard
+    # keeps standard id 1.
+    local dirs=("$namespace_dir/deployment")
+    local dir
+    for dir in "$namespace_dir"/*/; do
+        dir="${dir%/}"
+        [[ -d "$dir" && "$dir" != "$namespace_dir/deployment" ]] && dirs+=("$dir")
+    done
+    local f
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            print_warning "No standards directory at $dir"
+            continue
+        fi
+        for f in "$dir"/*.json; do
+            [[ -f "$f" ]] || continue
+            local payload http_code
+            payload=$(jq '{name: .title, description: .description, standardJson: tojson}' "$f")
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
+                -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
+            if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+                print_status "Created standard $(basename "$f") in finos.calm"
+            elif [[ "$http_code" == "409" ]]; then
+                print_warning "Standard $(basename "$f") already exists, skipping"
+            else
+                print_warning "Failed to create standard $(basename "$f") (HTTP $http_code)"
+            fi
+        done
+    done
 }
 
 # Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
