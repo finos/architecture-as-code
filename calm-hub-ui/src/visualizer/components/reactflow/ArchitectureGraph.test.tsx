@@ -5,6 +5,8 @@ import type { Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
+import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -246,6 +248,70 @@ describe('ArchitectureGraph', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
             expect(screen.getByRole('button', { name: /show minimap/i })).toBeInTheDocument();
+        });
+    });
+
+    describe('presentation mode', () => {
+        let storage: Storage;
+        let store: PresentationModeStore;
+
+        beforeEach(() => {
+            storage = createMemoryStorage();
+            store = createPresentationModeStore(storage);
+        });
+
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        const renderGraph = () => render(<ArchitectureGraph jsonData={mockCalmData} presentationStore={store} />);
+        const presentation = () => screen.getByRole('button', { name: 'Presentation mode' });
+
+        it('starts off, with the minimap shown', () => {
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+        });
+
+        it('turns on, hides the minimap and is kept for the session', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
+            expect(storage.getItem(PRESENTATION_MODE_KEY)).toBe('1');
+        });
+
+        it('turns off again and brings the minimap back', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+            expect(storage.getItem(PRESENTATION_MODE_KEY)).toBe('0');
+        });
+
+        it('restores the mode kept for the session', () => {
+            storage.setItem(PRESENTATION_MODE_KEY, '1');
+            store = createPresentationModeStore(storage);
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns on from present=1 in the hash route, and keeps it when the query is dropped', () => {
+            window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
+            const { unmount } = renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            unmount();
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram';
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns a kept mode off from present=0', () => {
+            store.set(true);
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram&present=0';
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
         });
     });
 

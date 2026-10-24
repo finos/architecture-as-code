@@ -59,6 +59,16 @@ function getEdgePosition(node: Node, intersectionPoint: { x: number; y: number }
   }, Position.Top) as Position;
 }
 
+/** Equal when the fields getEdgeParams reads are equal, so a change to another field does not move the edge. */
+export function sameNodeGeometry(a: Node | undefined, b: Node | undefined): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  return a.width === b.width
+    && a.height === b.height
+    && a.positionAbsolute?.x === b.positionAbsolute?.x
+    && a.positionAbsolute?.y === b.positionAbsolute?.y;
+}
+
 // Main function to calculate edge parameters for floating edges
 export function getEdgeParams(source: Node, target: Node) {
   const sourceIntersectionPoint = getNodeIntersection(source, target);

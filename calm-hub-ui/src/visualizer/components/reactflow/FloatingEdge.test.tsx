@@ -3,8 +3,11 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatingEdge } from './FloatingEdge.js';
 import { THEME } from './theme.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
-const { bezier, smoothStep, straight, edgeParams } = vi.hoisted(() => ({
+const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
+    storeNodes: new Map<string, object>(),
     bezier: vi.fn(() => ['M bezier', 11, 12]),
     smoothStep: vi.fn(() => ['M smoothstep', 21, 22]),
     straight: vi.fn(() => ['M straight', 31, 32]),
@@ -17,10 +20,13 @@ vi.mock('reactflow', () => ({
     getStraightPath: straight,
     EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <div data-testid="label-renderer">{children}</div>,
     useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) =>
-        selector({ nodeInternals: new Map([['a', { id: 'a' }], ['b', { id: 'b' }]]) }),
+        selector({ nodeInternals: new Map([['a', { id: 'a' }], ['b', { id: 'b' }], ...storeNodes]) }),
 }));
 
-vi.mock('./utils/floatingEdges.js', () => ({ getEdgeParams: edgeParams }));
+vi.mock('./utils/floatingEdges.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('./utils/floatingEdges.js')>()),
+    getEdgeParams: edgeParams,
+}));
 
 vi.mock('./edge-components/index.js', () => ({
     EdgeBadge: () => <span data-testid="edge-badge" />,
@@ -164,5 +170,42 @@ describe('FloatingEdge', () => {
             fireEvent.mouseLeave(label.parentElement as HTMLElement);
             expect(screen.queryByTestId('edge-tooltip')).toBeNull();
         });
+    });
+});
+
+describe('FloatingEdge in presentation mode', () => {
+    beforeEach(() => {
+        edgeParams.mockReturnValue(FLOATING);
+        storeNodes.clear();
+    });
+
+    const renderEdge = (presenting: boolean) => {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        return render(
+            <svg>
+                <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
+            </svg>
+        );
+    };
+    const labelBox = () => screen.getByText('writes').parentElement as HTMLElement;
+
+    it('makes the label larger and stacks it under the badge', () => {
+        renderEdge(true);
+        expect(screen.getByText('writes').style.fontSize).toBe('16px');
+        expect(labelBox().style.flexDirection).toBe('column');
+    });
+
+    it('moves the label above a node it would cover, only in presentation mode', () => {
+        // The mocked bezier puts the label at (11, 12), inside this node.
+        storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
+
+        const { unmount } = renderEdge(false);
+        expect(screen.getByText('writes').style.fontSize).toBe('10px');
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
+        unmount();
+
+        renderEdge(true);
+        expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
     });
 });

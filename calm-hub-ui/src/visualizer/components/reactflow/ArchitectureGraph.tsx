@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -12,13 +12,14 @@ import ReactFlow, {
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Map as MapIcon } from 'lucide-react';
+import { Map as MapIcon, Presentation as PresentationIcon } from 'lucide-react';
 import { MotionToggleButton } from './MotionToggleButton.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
+import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
@@ -77,6 +78,7 @@ export function ArchitectureGraph({
     layoutEpoch,
     onPositionsChange,
     fitToPane,
+    presentationStore,
 }: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
 
@@ -146,6 +148,14 @@ export function ArchitectureGraph({
             return next;
         });
     };
+
+    // `?present=1` in a link turns presentation mode on, and `?present=0` off. It is saved for the session, because a
+    // switch between diagram tabs rewrites the query.
+    const { presenting, setPresenting } = usePresentationMode(presentationStore);
+    useLayoutEffect(() => {
+        const param = presentParam();
+        if (param !== undefined) setPresenting(param);
+    }, [setPresenting]);
 
     const {
         onNodesChange,
@@ -345,6 +355,17 @@ export function ArchitectureGraph({
                             />
                         </ControlButton>
                         <MotionToggleButton />
+                        <ControlButton
+                            onClick={() => setPresenting(!presenting)}
+                            title="Presentation mode"
+                            aria-label="Presentation mode"
+                            aria-pressed={presenting}
+                        >
+                            <PresentationIcon
+                                size={14}
+                                color={presenting ? colors.redesign.primaryText : THEME.colors.muted}
+                            />
+                        </ControlButton>
                     </Controls>
                 )}
                 {isMobile && (
@@ -362,7 +383,8 @@ export function ArchitectureGraph({
                         fitViewOptions={CONTAIN_FIT_VIEW_OPTIONS}
                     />
                 )}
-                {!isMobile && !minimapHidden && (
+                {/* Presentation mode hides the minimap: on a projector it is clutter. */}
+                {!isMobile && !minimapHidden && !presenting && (
                     <MiniMap
                         data-testid="diagram-minimap"
                         className="calm-minimap-mask-surface"

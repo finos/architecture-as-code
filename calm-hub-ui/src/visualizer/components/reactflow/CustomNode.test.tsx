@@ -4,6 +4,8 @@ import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 import { THEME, getRiskLevelColor } from './theme.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
@@ -255,5 +257,33 @@ describe('CustomNode — external URL support', () => {
 
             expect(styled.style.color).toBe(unstyled.style.color);
         });
+    });
+});
+
+describe('presentation mode', () => {
+    const controls = {
+        'client-ledger-human-approval': { description: 'A human approves changes', requirements: [] },
+        'encryption-at-rest': { description: 'Data is encrypted at rest', requirements: [] },
+    };
+    const textSize = () => screen.getByText('Test Node').parentElement!.parentElement!.parentElement!.style.fontSize;
+    const controlBadge = () => screen.getByText('2').parentElement!;
+    const renderNode = (presenting: boolean) => {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        render(<CustomNode {...makeNodeProps(undefined, { controls })} presentationStore={store} />);
+    };
+
+    it('keeps the normal size when presentation mode is off', () => {
+        renderNode(false);
+        expect(screen.getByTestId('custom-node').style.width).toBe('220px');
+        expect(textSize()).toBe('14px');
+        expect(controlBadge().style.fontSize).toBe('12px');
+    });
+
+    it('makes the node wider and its text and control count larger', () => {
+        renderNode(true);
+        expect(screen.getByTestId('custom-node').style.width).toBe('320px');
+        expect(textSize()).toBe('24px');
+        expect(controlBadge().style.fontSize).toBe('18px');
     });
 });

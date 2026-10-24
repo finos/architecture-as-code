@@ -2,6 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { JsonRenderer } from './JsonRenderer.js';
 import { CALM_DARK } from '../../../theme/monaco-theme.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('react-router-dom', async () => {
@@ -23,7 +26,7 @@ vi.mock('@monaco-editor/react', () => ({
         beforeMount,
     }: {
         value: string;
-        options?: { lineNumbers?: 'on' | 'off' };
+        options?: { lineNumbers?: 'on' | 'off'; fontSize?: number };
         theme?: string;
         beforeMount?: (monaco: unknown) => void;
     }) => {
@@ -34,6 +37,7 @@ vi.mock('@monaco-editor/react', () => ({
                 readOnly
                 data-testid="monaco-editor"
                 data-line-numbers={options?.lineNumbers}
+                data-font-size={options?.fontSize}
                 data-theme={theme}
             />
         );
@@ -151,6 +155,20 @@ describe('JsonRenderer', () => {
                 </MemoryRouter>
             );
             expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-theme', 'light');
+        });
+    });
+
+    describe('presentation mode', () => {
+        it('uses a larger font in presentation mode, and follows each switch', () => {
+            const store = createPresentationModeStore(createMemoryStorage());
+            render(<JsonRenderer json={{ a: 1 }} presentationStore={store} />);
+            expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '12');
+
+            act(() => store.set(true));
+            expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '20');
+
+            act(() => store.set(false));
+            expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '12');
         });
     });
 });
