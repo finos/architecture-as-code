@@ -132,9 +132,9 @@ For extending CALM components directly:
 Common `$ref` patterns for extending CALM components:
 
 - **Nodes**: `https://calm.finos.org/release/1.3/meta/core.json#/defs/node`
-- **Interfaces**: `https://calm.finos.org/release/1.3/meta/core.json#/defs/interface`
+- **Interfaces**: `https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type`
 - **Relationships**: `https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship`
-- **Controls**: `https://calm.finos.org/release/1.3/meta/core.json#/defs/control`
+- **Controls**: `https://calm.finos.org/release/1.3/meta/control.json#/defs/control-detail`
 
 **Note**: Exact URLs may vary based on CALM schema hosting.
 Always verify current schema locations.
