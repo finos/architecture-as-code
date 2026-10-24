@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 INIT="${ROOT}/init-nitrite.sh"
-PATTERN_ID="http://localhost:18091/calm/namespaces/finos.agentic-sdlc/patterns/governed-service/versions/1.0.0"
+STANDARD_ID="http://localhost:18091/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0"
 
 fail() {
     echo "FAIL: $*" >&2
@@ -28,7 +28,7 @@ resolve() {
         resolve_calm_hub_base_url
         printf "url=%s\n" "$CALM_HUB_URL"
         printf "base=%s\n" "$CALM_HUB_BASE_URL"
-        printf "id=%s\n" "$(named_document_canonical_id finos.agentic-sdlc patterns governed-service 1.0.0)"
+        printf "id=%s\n" "$(named_document_canonical_id finos.sdlc-common-controls standards sdlc-control-requirement 1.0.0)"
     ' _ "$env_script" "$INIT" "$@"
 }
 
@@ -45,7 +45,7 @@ expect() {
     id="$(sed -n 's/^id=//p' <<<"$output")"
     [[ "$url" == "$expected_url" ]] || fail "$label url: expected $expected_url, got $url"
     [[ "$base" == "$expected_base" ]] || fail "$label base: expected $expected_base, got $base"
-    [[ "$id" == "${expected_base}/calm/namespaces/finos.agentic-sdlc/patterns/governed-service/versions/1.0.0" ]] \
+    [[ "$id" == "${expected_base}/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0" ]] \
         || fail "$label id: got $id"
     echo "PASS: $label"
     echo "  id=$id"
@@ -58,9 +58,9 @@ expect "-u flag" \
     "http://localhost:18091" "http://localhost:18091" "" \
     -u http://localhost:18091
 
-[[ "$(resolve "" -u http://localhost:18091 | sed -n 's/^id=//p')" == "$PATTERN_ID" ]] \
-    || fail "-u canonical id did not match the name-based pattern id"
-echo "PASS: -u canonical id is ${PATTERN_ID}"
+[[ "$(resolve "" -u http://localhost:18091 | sed -n 's/^id=//p')" == "$STANDARD_ID" ]] \
+    || fail "-u canonical id did not match the name-based standard id"
+echo "PASS: -u canonical id is ${STANDARD_ID}"
 
 expect "--url flag" \
     "http://localhost:18091" "http://localhost:18091" "" \
