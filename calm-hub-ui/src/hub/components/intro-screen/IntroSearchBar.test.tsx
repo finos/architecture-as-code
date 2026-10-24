@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { vi, describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { IntroSearchBar } from './IntroSearchBar.js';
@@ -20,6 +20,11 @@ const emptyResults: GroupedSearchResults = {
 const controlResults: GroupedSearchResults = {
     ...emptyResults,
     controls: [{ namespace: 'security', id: 7, name: 'PCI-DSS', description: 'Encryption at rest' }],
+};
+
+const groupedResults: GroupedSearchResults = {
+    ...controlResults,
+    standards: [{ namespace: 'security', id: 8, name: 'Encryption Standard', description: 'AES-256' }],
 };
 
 function createMockSearchService(searchFn: (q: string) => Promise<GroupedSearchResults>) {
@@ -95,5 +100,75 @@ describe('IntroSearchBar', () => {
         fireEvent.mouseDown(screen.getByText('PCI-DSS'));
 
         expect(screen.getByTestId('location')).toHaveTextContent('/security/controls/PCI-DSS/detail');
+    });
+
+    it('points the combobox at the listbox and at the highlighted option', async () => {
+        renderBar(createMockSearchService(vi.fn().mockResolvedValue(groupedResults)));
+
+        const input = screen.getByRole('combobox');
+        expect(input).not.toHaveAttribute('aria-controls');
+
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'enc' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        const listbox = screen.getByRole('listbox');
+        expect(listbox.id).not.toBe('');
+        expect(input).toHaveAttribute('aria-controls', listbox.id);
+        expect(input).not.toHaveAttribute('aria-activedescendant');
+
+        const options = screen.getAllByRole('option');
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        expect(options[0].id).not.toBe('');
+        expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
+    });
+
+    it('drops the active descendant when the dropdown closes', async () => {
+        renderBar(createMockSearchService(vi.fn().mockResolvedValue(groupedResults)));
+
+        const input = screen.getByRole('combobox');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'enc' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Escape' });
+        });
+
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(input).not.toHaveAttribute('aria-activedescendant');
+        expect(input).not.toHaveAttribute('aria-controls');
+    });
+
+    it('groups options under their result type', async () => {
+        renderBar(createMockSearchService(vi.fn().mockResolvedValue(groupedResults)));
+
+        const input = screen.getByRole('combobox');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'enc' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        const standards = screen.getByRole('group', { name: 'Standards' });
+        expect(within(standards).getByRole('option')).toHaveTextContent('Encryption Standard');
+        const controls = screen.getByRole('group', { name: 'Controls' });
+        expect(within(controls).getByRole('option')).toHaveTextContent('PCI-DSS');
     });
 });

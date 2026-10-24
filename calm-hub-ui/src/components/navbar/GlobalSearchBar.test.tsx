@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent, act, within } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { GlobalSearchBar } from './GlobalSearchBar.js';
 import { SearchService } from '../../service/search-service.js';
@@ -214,6 +214,76 @@ describe('GlobalSearchBar', () => {
 
         const firstOption = screen.getAllByRole('option')[0];
         expect(firstOption).toHaveAttribute('aria-selected', 'true');
+    });
+
+    it('points the combobox at the listbox and at the highlighted option', async () => {
+        renderSearchBar(createMockSearchService(vi.fn().mockResolvedValue(mockResults)));
+
+        const input = screen.getByRole('combobox');
+        expect(input).not.toHaveAttribute('aria-controls');
+
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'test' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        const listbox = screen.getByRole('listbox');
+        expect(listbox.id).not.toBe('');
+        expect(input).toHaveAttribute('aria-controls', listbox.id);
+        expect(input).not.toHaveAttribute('aria-activedescendant');
+
+        const options = screen.getAllByRole('option');
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        expect(options[0].id).not.toBe('');
+        expect(input).toHaveAttribute('aria-activedescendant', options[0].id);
+
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        expect(input).toHaveAttribute('aria-activedescendant', options[1].id);
+    });
+
+    it('drops the active descendant when the dropdown closes', async () => {
+        renderSearchBar(createMockSearchService(vi.fn().mockResolvedValue(mockResults)));
+
+        const input = screen.getByRole('combobox');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'test' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'ArrowDown' });
+        });
+        await act(async () => {
+            fireEvent.keyDown(input, { key: 'Escape' });
+        });
+
+        expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+        expect(input).not.toHaveAttribute('aria-activedescendant');
+        expect(input).not.toHaveAttribute('aria-controls');
+    });
+
+    it('groups options under their result type', async () => {
+        renderSearchBar(createMockSearchService(vi.fn().mockResolvedValue(mockResults)));
+
+        const input = screen.getByRole('combobox');
+        await act(async () => {
+            fireEvent.change(input, { target: { value: 'test' } });
+        });
+        await act(async () => {
+            await vi.advanceTimersByTimeAsync(300);
+        });
+
+        const architectures = screen.getByRole('group', { name: 'Architectures' });
+        expect(within(architectures).getByRole('option')).toHaveTextContent('Test Architecture');
+        const patterns = screen.getByRole('group', { name: 'Patterns' });
+        expect(within(patterns).getByRole('option')).toHaveTextContent('Test Pattern');
     });
 
     it('navigates to the results page when Enter is pressed with no result highlighted', () => {
