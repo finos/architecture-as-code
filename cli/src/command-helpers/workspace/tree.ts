@@ -1,6 +1,14 @@
 import path from 'path';
 import { printTree } from 'tree-dump';
-import type { DependencyGraph } from './bundle';
+import { readFile } from 'fs/promises';
+import { extractAllReferences, loadManifest, resolveFilePath } from './bundle';
+import { buildRefRulesFromDiskIds, findRuleForRef } from './ref-rewrite';
+
+export type DependencyGraph = {
+    nodes: string[]; // ids
+    edges: Record<string, string[]>; // id -> referenced ids
+    idToPath: Record<string, string>;
+};
 
 interface TreeNode {
     [key: string]: TreeNode;
@@ -71,4 +79,77 @@ export function renderGraphAsTree(graph: DependencyGraph, bundlePath: string): s
 export function printBundleTreeFromGraph(graph: DependencyGraph, bundlePath: string): void {
     const out = renderGraphAsTree(graph, bundlePath);
     console.log(out);
+}
+
+/**
+ * Build a dependency graph for the bundle where edges point from a document id to other document ids it references.
+ * Only references that resolve to ids present in the bundle manifest are included as edges.
+ * A CalmHub `$id` at any version matches, as for `bump`.
+ */
+export async function buildDependencyGraph(bundlePath: string): Promise<DependencyGraph> {
+    const manifest = await loadManifest(bundlePath);
+    const idToPath: Record<string, string> = {};
+    for (const [id, entry] of Object.entries(manifest)) {
+        idToPath[id] = resolveFilePath(bundlePath, entry.path);
+    }
+
+    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
+    const edges: Record<string, string[]> = {};
+
+    for (const id of Object.keys(manifest)) {
+        const filePath = idToPath[id];
+        let json: object;
+        try {
+            const raw = await readFile(filePath, 'utf8');
+            json = JSON.parse(raw) as object;
+        } catch (_) {
+            // skip unreadable files
+            continue;
+        }
+
+        const refs = extractAllReferences(json);
+
+        const targets = new Set<string>();
+        for (const ref of refs) {
+            const refBase = ref.split('#')[0];
+            // direct id match
+            if (manifest[ref]) {
+                targets.add(ref);
+                continue;
+            }
+            // match by base (strip fragment)
+            if (manifest[refBase]) {
+                targets.add(refBase);
+                continue;
+            }
+            const rule = findRuleForRef(ref, rules);
+            if (rule) {
+                targets.add(rule.bareId);
+                continue;
+            }
+            if (refBase.startsWith('http://') || refBase.startsWith('https://')) {
+                continue;
+            }
+            // resolve relative to bundlePath
+            const candidatePath: string = path.resolve(bundlePath, refBase);
+            const match = Object.entries(idToPath).find(([, p]) => path.resolve(p) === candidatePath);
+            if (match) {
+                targets.add(match[0]);
+            }
+        }
+        // A document can $ref its own $id (e.g. "<$id>#/defs/..."); that is not a dependency.
+        targets.delete(id);
+        edges[id] = [...targets];
+    }
+
+    return { nodes: Object.keys(manifest), edges, idToPath };
+}
+
+/**
+ * Print the dependency tree for the bundle to stdout.
+ * Starts from nodes with no incoming edges by default.
+ */
+export async function printBundleTree(bundlePath: string): Promise<void> {
+    const graph = await buildDependencyGraph(bundlePath);
+    printBundleTreeFromGraph(graph, bundlePath);
 }

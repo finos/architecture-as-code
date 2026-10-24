@@ -66,8 +66,11 @@ vi.mock('./workspace', () => ({
 
 vi.mock('./bundle', () => ({
     addFileToBundle: mocks.addFileToBundle,
-    printBundleTree: mocks.printBundleTree,
     loadManifest: mocks.loadManifest,
+}));
+
+vi.mock('./tree', () => ({
+    printBundleTree: mocks.printBundleTree,
 }));
 
 vi.mock('./rm', () => ({

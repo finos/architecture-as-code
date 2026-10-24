@@ -2,11 +2,9 @@ import path from 'path';
 import { mkdir, copyFile, readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { JSONPath } from 'jsonpath-plus';
-import { printBundleTreeFromGraph } from './tree';
 import { isNarrativeDocumentType, type CalmDocumentType, type NarrativeDocumentType } from '@finos/calm-models/types';
 import { validateNarrativeDocumentLocation, validateNarrativeNamespace } from './narrative-document';
 import { isNarrativeWorkspaceManifestEntry } from './document-kind';
-import { buildRefRulesFromDiskIds, findRuleForRef } from './ref-rewrite';
 
 export { isNarrativeWorkspaceManifestEntry } from './document-kind';
 
@@ -116,12 +114,6 @@ export type NarrativeWorkspaceManifestEntry =
 export type WorkspaceManifestEntry = MappingWorkspaceManifestEntry | NarrativeWorkspaceManifestEntry;
 
 export type WorkspaceManifest = Record<string, WorkspaceManifestEntry>;
-
-export type DependencyGraph = {
-    nodes: string[]; // ids
-    edges: Record<string, string[]>; // id -> referenced ids
-    idToPath: Record<string, string>;
-};
 
 export const MANIFEST_FILENAME = 'workspace-manifest.json';
 const FILES_DIRNAME = 'files';
@@ -401,77 +393,4 @@ export async function addFileToBundle(
     await saveManifest(bundlePath, manifest);
 
     return { id, destPath, rel };
-}
-
-/**
- * Build a dependency graph for the bundle where edges point from a document id to other document ids it references.
- * Only references that resolve to ids present in the bundle manifest are included as edges.
- * A CalmHub `$id` at any version matches, as for `bump` and the workspace document loader.
- */
-export async function buildDependencyGraph(bundlePath: string): Promise<DependencyGraph> {
-    const manifest = await loadManifest(bundlePath);
-    const idToPath: Record<string, string> = {};
-    for (const [id, entry] of Object.entries(manifest)) {
-        idToPath[id] = resolveFilePath(bundlePath, entry.path);
-    }
-
-    const rules = await buildRefRulesFromDiskIds(manifest, bundlePath);
-    const edges: Record<string, string[]> = {};
-
-    for (const id of Object.keys(manifest)) {
-        const filePath = idToPath[id];
-        let json: object;
-        try {
-            const raw = await readFile(filePath, 'utf8');
-            json = JSON.parse(raw) as object;
-        } catch (_) {
-            // skip unreadable files
-            continue;
-        }
-
-        const refs = extractAllReferences(json);
-
-        const targets = new Set<string>();
-        for (const ref of refs) {
-            const refBase = ref.split('#')[0];
-            // direct id match
-            if (manifest[ref]) {
-                targets.add(ref);
-                continue;
-            }
-            // match by base (strip fragment)
-            if (manifest[refBase]) {
-                targets.add(refBase);
-                continue;
-            }
-            const rule = findRuleForRef(ref, rules);
-            if (rule) {
-                targets.add(rule.bareId);
-                continue;
-            }
-            if (refBase.startsWith('http://') || refBase.startsWith('https://')) {
-                continue;
-            }
-            // resolve relative to bundlePath
-            const candidatePath: string = path.resolve(bundlePath, refBase);
-            const match = Object.entries(idToPath).find(([, p]) => path.resolve(p) === candidatePath);
-            if (match) {
-                targets.add(match[0]);
-            }
-        }
-        // A document can $ref its own $id (e.g. "<$id>#/defs/..."); that is not a dependency.
-        targets.delete(id);
-        edges[id] = [...targets];
-    }
-
-    return { nodes: Object.keys(manifest), edges, idToPath };
-}
-
-/**
- * Print the dependency tree for the bundle to stdout.
- * Starts from nodes with no incoming edges by default.
- */
-export async function printBundleTree(bundlePath: string): Promise<void> {
-    const graph = await buildDependencyGraph(bundlePath);
-    printBundleTreeFromGraph(graph, bundlePath);
 }
