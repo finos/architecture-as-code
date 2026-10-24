@@ -72,3 +72,26 @@ reason = "katex is reachable only through mermaid's inlined copy in the CLI diag
 id = "GHSA-rxp7-6hxx-x8q5"
 ignoreUntil = 2026-12-31
 reason = "ip-address 10.7.2 is bundled in npm under @semantic-release/npm, used only by the CLI release job; it parses only registry and proxy hosts from CI config, never user input. Not shipped. Remove when an npm release bundles ip-address >= 10.7.4."
+
+# undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm comes in only through
+# @semantic-release/npm for the CLI release job, which runs npm version and npm publish but
+# never node-gyp. npm overrides cannot change a bundled dependency, and no npm 11.x release
+# bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1.
+[[IgnoredVulns]]
+id = "GHSA-4qv8-2p9j-2685"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-xjj6-f33q-929c"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+# @azure/msal-node 6.0.1 comes in only through @azure/identity under @vscode/vsce, which
+# packages and publishes the VS Code extension. The fix is in 7.1.0, and @azure/identity
+# 4.14.0 (latest) still requires ^6.0.0. The release job publishes with VSCE_PAT, and the
+# credential chain behind vsce --azure-credential has no authorization code flow.
+[[IgnoredVulns]]
+id = "GHSA-xcx6-jx8p-x3h5"
+ignoreUntil = 2026-12-31
+reason = "@azure/msal-node 6.0.1 is used only by vsce through @azure/identity. CI publishes with a PAT, and vsce's --azure-credential chain has no authorization code flow. Not shipped. Remove when @azure/identity accepts @azure/msal-node >= 7.1.0."

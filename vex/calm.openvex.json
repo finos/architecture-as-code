@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-22T00:00:00Z",
-  "version": 10,
+  "timestamp": "2026-10-24T00:00:00Z",
+  "version": 11,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -205,7 +205,73 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
       "impact_statement": "ip-address 10.7.2 is bundled inside npm 11.21.1, which is pulled in only by @semantic-release/npm for the CLI release job. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm release bundles the fix (10.7.4) yet. Inside npm, socks passes Address6 only the registry and proxy hosts from npm config, which the release workflow sets, so an attacker cannot supply the long zone identifier that causes the slow parse. The other ip-address copy in the lockfile is 10.7.4."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-4qv8-2p9j-2685",
+        "aliases": [
+          "CVE-2026-109924"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.29.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-xjj6-f33q-929c",
+        "aliases": [
+          "CVE-2026-109869"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.29.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-xcx6-jx8p-x3h5",
+        "aliases": [
+          "CVE-2026-109461"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-plugins/vscode",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/%40azure/msal-node@6.0.1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "@azure/msal-node 6.0.1 is pulled in only by @azure/identity under @vscode/vsce, which packages and publishes the VS Code extension. It is not part of the published extension. The release job publishes with VSCE_PAT. The credential chain behind vsce --azure-credential (environment, Azure CLI, managed identity, Azure PowerShell, Azure Developer CLI) has no authorization code flow. The fix is in 7.1.0, and @azure/identity 4.14.0 still requires ^6.0.0."
     }
   ],
-  "last_updated": "2026-10-22T00:00:00Z"
+  "last_updated": "2026-10-24T00:00:00Z"
 }
