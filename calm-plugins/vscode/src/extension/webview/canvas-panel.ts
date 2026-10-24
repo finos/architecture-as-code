@@ -18,6 +18,7 @@ import {
     type ControlCurieResult,
 } from '../services/control-curie';
 import { resolveLocalPath, resolveSafeWritePath } from '../services/path-resolver';
+import { CALM_META_SCHEMA_BASE_URL } from '../../core/calm-schema-release';
 import type {
     ExtToWebviewMessage,
     WebviewToExtMessage,
@@ -549,7 +550,7 @@ export class CanvasPanel {
         const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
         const rels = (doc.relationships ?? []) as Record<string, unknown>[];
         const pattern = {
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+            $schema: `${CALM_META_SCHEMA_BASE_URL}/calm.json`,
             $id: `patterns/${fileName}`,
             type: 'object',
             title: name.trim(),
@@ -559,14 +560,14 @@ export class CanvasPanel {
                     type: 'array',
                     minItems: nodes.length,
                     prefixItems: nodes.map((n) =>
-                        itemSchema(n, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node')
+                        itemSchema(n, `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`)
                     ),
                 },
                 relationships: {
                     type: 'array',
                     minItems: rels.length,
                     prefixItems: rels.map((r) =>
-                        itemSchema(r, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship')
+                        itemSchema(r, `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`)
                     ),
                 },
             },

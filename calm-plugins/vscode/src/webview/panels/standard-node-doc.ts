@@ -5,6 +5,7 @@
 import { makeControlMapKey } from '../../extension/services/control-curie';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
 import { slugify as generateId } from './control-doc';
+import { CALM_META_SCHEMA_BASE_URL } from '../../core/calm-schema-release';
 
 /** A control attached via the control picker — a Hub CURIE or local path ref plus its parsed requirement. */
 export interface AttachedControl {
@@ -46,7 +47,7 @@ export function buildStandardNodeDoc(
     }
 
     const doc = {
-        $schema: 'https://calm.finos.org/release/1.2/meta/core.json',
+        $schema: `${CALM_META_SCHEMA_BASE_URL}/core.json`,
         nodes: [
             {
                 'unique-id': `standard-node-${nodeId}`,

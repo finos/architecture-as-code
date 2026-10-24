@@ -113,7 +113,9 @@ that changes the extension is listed too. Dependency updates, and unscoped chang
 
 `src/core/validation.ts` imports the CALM meta-schemas from the `@finos/calm-schema` npm package,
 and the build inlines them. The root `package.json` sets the version. A new schema release comes in
-through the PR that updates `@finos/calm-schema`.
+through the PR that updates `@finos/calm-schema`. Documents that the extension writes take the
+release in their `$schema` and `$ref` URLs from `src/core/calm-schema-release.ts`, which reads the
+version of that package. Do not write a release number into these URLs.
 
 ## Common pitfalls
 

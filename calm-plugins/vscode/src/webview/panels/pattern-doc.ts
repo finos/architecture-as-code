@@ -3,6 +3,7 @@
 // each relationship becomes a prefixItem with const-constrained endpoints.
 
 import { slugify as generateId } from './control-doc';
+import { CALM_META_SCHEMA_BASE_URL } from '../../core/calm-schema-release';
 
 interface PatternNode {
     'unique-id': string;
@@ -25,9 +26,9 @@ interface CalmDocument {
     [key: string]: unknown;
 }
 
-const CALM_CORE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
-const CALM_REL_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
-const CALM_PATTERN_SCHEMA = 'https://calm.finos.org/release/1.2/meta/calm.json';
+const CALM_CORE_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`;
+const CALM_REL_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`;
+const CALM_PATTERN_SCHEMA = `${CALM_META_SCHEMA_BASE_URL}/calm.json`;
 
 const SKIP_KEYS = new Set(['$schema', '$id', 'type']);
 

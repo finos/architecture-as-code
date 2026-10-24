@@ -71,14 +71,16 @@ export type CalmRelationshipVariant =
 // ─── CalmStudio-only extensions (not in calm-models) ────────────────────────
 
 /**
- * A CALM 1.2 decorator — architecture-wide overlay for cross-cutting concerns
+ * A CALM 1.3 decorator — architecture-wide overlay for cross-cutting concerns
  * such as AIGF governance summaries, regulatory mappings, threat models, or
  * security posture. Not yet in @finos/calm-models; lives locally until
  * upstreamed.
  */
 export interface CalmDecorator {
+  $schema?: string;
   'unique-id': string;
   type: string;
+  'target-type'?: 'architecture'[];
   target: string[];
   'applies-to': string[];
   data: Record<string, unknown>;
