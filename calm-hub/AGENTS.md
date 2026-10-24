@@ -433,6 +433,10 @@ All four workflows:
   repository holds only the drafts and the release candidates, which are seeded as before. The
   seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
   or namespace
+- The name-based seed reads only the JSON files at the top of each `mongo/standards/<namespace>/`
+  directory, and requires a hub `$id`. `mongo/standards/finos.calm/deployment/` holds copies of the
+  decorator standards that calm-schema releases, with their calm.finos.org `$id`, so
+  `create_standards` seeds them through the numeric API instead
 
 ### Integration Tests
 - Located in `src/integration-test/java/`
