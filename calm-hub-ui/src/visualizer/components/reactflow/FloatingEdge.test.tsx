@@ -5,6 +5,8 @@ import { FloatingEdge } from './FloatingEdge.js';
 import { THEME } from './theme.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import type { ElementEvaluation } from '../../contracts/contracts.js';
 
 const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
     storeNodes: new Map<string, object>(),
@@ -60,6 +62,26 @@ function renderEdge(data?: Record<string, unknown>) {
         <svg>
             <FloatingEdge {...edgeProps({ data })} />
         </svg>
+    );
+}
+
+function evaluationFor(status: 'met' | 'not-met'): ElementEvaluation {
+    return {
+        status,
+        latest: [{
+            schema: 's', uniqueId: 'eval-1', type: 'control-evaluation', target: ['t'], appliesTo: ['rel-1'],
+            data: { control: { 'unique-id': 'client-ledger-human-approval', 'requirement-url': 'https://example.org/r' }, status, 'evaluated-at': '2026-11-04T15:00:00Z' },
+        }],
+    };
+}
+
+function renderEdgeWithEvaluation(status: 'met' | 'not-met', style: Record<string, unknown>, extra: Record<string, unknown> = {}) {
+    return render(
+        <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor(status)]])}>
+            <svg>
+                <FloatingEdge {...edgeProps({ style, data: { 'unique-id': 'rel-1', description: 'writes' }, ...extra })} />
+            </svg>
+        </ControlEvaluationContext.Provider>
     );
 }
 
@@ -171,6 +193,94 @@ describe('FloatingEdge', () => {
             expect(screen.queryByTestId('edge-tooltip')).toBeNull();
         });
     });
+
+    describe('control evaluations', () => {
+        const STROKE = '#123456';
+        // jsdom reads a stroke back in its normalised form, such as rgb(...), not as it was set.
+        const css = (colour: string) => {
+            const el = document.createElement('div');
+            el.style.stroke = colour;
+            return el.style.stroke;
+        };
+
+        it('draws a not-met relationship red, with a Not met label', () => {
+            const { container } = renderEdgeWithEvaluation('not-met', { stroke: STROKE });
+            const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
+
+            expect(path.style.stroke).toBe(css(THEME.colors.error));
+            expect(screen.getByTestId('edge-evaluation-badge').textContent).toContain('Not met');
+        });
+
+        it('leaves a met relationship as it was', () => {
+            const { container } = renderEdgeWithEvaluation('met', { stroke: STROKE });
+            const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
+
+            expect(path.style.stroke).toBe(css(STROKE));
+            expect(screen.queryByTestId('edge-evaluation-badge')).toBeNull();
+        });
+
+        it('labels a not-met relationship at 11px, with the glyph hidden from assistive technology', () => {
+            renderEdgeWithEvaluation('not-met', { stroke: STROKE });
+            const badge = screen.getByTestId('edge-evaluation-badge');
+
+            expect(badge.style.fontSize).toBe('11px');
+            expect(badge.style.color).toBe(THEME.colors.errorText);
+            expect(screen.getByText('✗').getAttribute('aria-hidden')).toBe('true');
+        });
+
+        it('points a not-met relationship\'s arrowheads at its own red marker', () => {
+            const { container } = renderEdgeWithEvaluation('not-met', { stroke: STROKE }, { markerEnd: 'url(#default-end)', markerStart: 'url(#default-start)' });
+            const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
+            const marker = container.querySelector('marker#control-evaluation-arrow-e1') as SVGMarkerElement;
+
+            expect(marker).not.toBeNull();
+            expect(marker.querySelector('polyline')?.getAttribute('fill')).toBe(THEME.colors.error);
+            expect(path.getAttribute('marker-end')).toBe('url(#control-evaluation-arrow-e1)');
+            expect(path.getAttribute('marker-start')).toBe('url(#control-evaluation-arrow-e1)');
+        });
+
+        it('keeps a met relationship\'s arrowheads, and adds no marker', () => {
+            const { container } = renderEdgeWithEvaluation('met', { stroke: STROKE }, { markerEnd: 'url(#default-end)' });
+            const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
+
+            expect(container.querySelector('marker')).toBeNull();
+            expect(path.getAttribute('marker-end')).toBe('url(#default-end)');
+            expect(path.hasAttribute('marker-start')).toBe(false);
+        });
+
+        it('adds no arrowhead to a not-met relationship drawn without one', () => {
+            const { container } = renderEdgeWithEvaluation('not-met', { stroke: STROKE });
+            const path = container.querySelector('path.react-flow__edge-path') as SVGPathElement;
+
+            expect(path.hasAttribute('marker-end')).toBe(false);
+            expect(path.hasAttribute('marker-start')).toBe(false);
+        });
+
+        it('gives a not-met relationship with only an end arrowhead no start arrowhead, as ReactFlow passes an unset start as url(\'#\')', () => {
+            const { container } = render(
+                <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor('not-met')]])}>
+                    <svg>
+                        <FloatingEdge {...edgeProps({
+                            style: { stroke: STROKE },
+                            markerEnd: "url('#default-end')",
+                            markerStart: "url('#')",
+                            data: { 'unique-id': 'rel-1', description: 'writes', flowActive: true },
+                        })} />
+                    </svg>
+                </ControlEvaluationContext.Provider>
+            );
+            const paths = Array.from(container.querySelectorAll('path'));
+            const redMarker = 'url(#control-evaluation-arrow-e1)';
+
+            expect(paths.length).toBe(2);
+            expect(paths.some((p) => p.getAttribute('marker-end') === redMarker)).toBe(true);
+            paths.forEach((p) => {
+                expect(p.hasAttribute('marker-start')).toBe(false);
+                const references = Array.from(p.attributes).filter((a) => a.value === redMarker).map((a) => a.name);
+                expect(references.every((name) => name === 'marker-end')).toBe(true);
+            });
+        });
+    });
 });
 
 describe('FloatingEdge in presentation mode', () => {
@@ -194,6 +304,19 @@ describe('FloatingEdge in presentation mode', () => {
         renderEdge(true);
         expect(screen.getByText('writes').style.fontSize).toBe('16px');
         expect(labelBox().style.flexDirection).toBe('column');
+    });
+
+    it('enlarges a not-met badge', () => {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(true);
+        render(
+            <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluationFor('not-met')]])}>
+                <svg>
+                    <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
+                </svg>
+            </ControlEvaluationContext.Provider>
+        );
+        expect(screen.getByTestId('edge-evaluation-badge').style.fontSize).toBe('18px');
     });
 
     it('moves the label above a node it would cover, only in presentation mode', () => {
