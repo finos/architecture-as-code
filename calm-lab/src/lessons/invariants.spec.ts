@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest';
 import { DEFAULT_LESSON_ID, LESSONS, endFiles, findLesson } from './index';
 import { startReplay, unexpectedResult } from './replay';
-import { commandText, HOME_DIR, type Lesson } from './types';
+import { commandText, hintContent, HOME_DIR, type Lesson } from './types';
 import { LAB_COMMANDS } from '../cli/help';
 import { PATTERN_LESSON } from '../test-support/pattern-lesson';
+import { CALM_SCHEMA_RELEASE } from '../schemas';
 
 /** The `calm` subcommands the lab runs; `help` may name one of them. */
 const LAB_SUBCOMMANDS: readonly string[] = LAB_COMMANDS;
@@ -20,6 +21,26 @@ describe('lesson registry', () => {
     it.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('%s names the tutorial page it follows', (_, lesson) => {
         expect(lesson.tutorial?.title).toMatch(/\S/);
         expect(lesson.tutorial?.url).toMatch(/^https:\/\/calm\.finos\.org\/tutorials\/(beginner|intermediate)\/[a-z0-9-]+\/$/);
+    });
+
+    it.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('%s uses only the pinned CALM release', async (_, lesson) => {
+        const replay = startReplay(lesson);
+        const texts = [...Object.values(lesson.seedFiles), lesson.completion.message];
+        for (const step of lesson.steps) {
+            texts.push(step.title, step.body);
+            texts.push(...(step.hint.kind === 'file'
+                ? [hintContent(step.hint, { files: replay.vfs.toJSON().files })]
+                : step.hint.commands.map(commandText)));
+            await replay.runHint(step);
+        }
+        // Files that a command wrote, such as `calm generate -o`.
+        texts.push(...Object.values(replay.vfs.toJSON().files));
+        const text = texts.join('\n');
+        const releases = [
+            ...[...text.matchAll(/https:\/\/calm\.finos\.org\/release\/([^/]+)\//g)].map((match) => match[1]),
+            ...[...text.matchAll(/\bCALM v?(\d+\.\d+)\b/g)].map((match) => match[1]),
+        ];
+        expect(releases.filter((release) => release !== CALM_SCHEMA_RELEASE)).toEqual([]);
     });
 });
 

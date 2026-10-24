@@ -2,12 +2,13 @@ import type { Lesson } from '../types';
 import { connectsRelationshipsBetween, hasMetadata, nodesOfType, validatedEditorFile } from '../checks';
 import { BEGINNER_05 } from '../beginner-05/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const EDITOR_FILE = BEGINNER_05.editorFile;
 
 // Paste-safe hints: each is the complete target file, building on the previous step.
 const STEP_1_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "payments-team@example.com",
         "version": "1.0.0",
@@ -90,7 +91,7 @@ const STEP_1_TARGET_FILE = `{
 `;
 
 const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "payments-team@example.com",
         "version": "1.0.0",
@@ -177,7 +178,7 @@ const STEP_2_TARGET_FILE = `{
 `;
 
 const STEP_3_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "payments-team@example.com",
         "version": "1.0.0",

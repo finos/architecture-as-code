@@ -1,10 +1,11 @@
 import { HOME_DIR, type Lesson } from '../types';
 import { completeNodes, validatedEditorFile } from '../checks';
+import { CALM_META_SCHEMA_BASE_URL, CALM_SCHEMA_RELEASE } from '../../schemas';
 
 const EDITOR_FILE = `${HOME_DIR}/architectures/my-first-architecture.json`;
 
 const SEED_ARCHITECTURE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [],
     "relationships": []
 }
@@ -12,7 +13,7 @@ const SEED_ARCHITECTURE = `{
 
 // Paste-safe hint: the complete target file, so paste-replace-save always produces a valid result.
 const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "payment-service",
@@ -44,7 +45,7 @@ export const BEGINNER_02: Lesson = {
                 'Your workspace has an empty architecture file. In the terminal, run ' +
                 '`cat architectures/my-first-architecture.json` to read it, then ' +
                 '`calm validate -a architectures/my-first-architecture.json -f pretty` to check it against ' +
-                'the real CALM 1.2 schemas. An empty model is valid.',
+                `the real CALM ${CALM_SCHEMA_RELEASE} schemas. An empty model is valid.`,
             hint: {
                 kind: 'commands',
                 commands: [

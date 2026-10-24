@@ -5,6 +5,7 @@ import {QUICK_START} from '../test-support/quick-start-lesson';
 import {fileText, markdownSection, nodes, validatedEditorFile} from '../lessons/checks';
 import {HOME_DIR, type Lesson} from '../lessons/types';
 import {workspaceKey} from './storage';
+import {CALM_SCHEMA_RELEASE} from '../schemas';
 
 // ReactFlow needs a measured canvas; the diagram is not what these tests are about.
 // It echoes its input so a test can see which file it was given.
@@ -88,12 +89,12 @@ describe('Lab', () => {
         await waitFor(() => expect(stepOneCompleted()).toBe(true));
     });
 
-    it('shows the CLI version in the status bar, as `calm --version` prints it', async () => {
+    it('shows the pinned CALM release and the CLI version in the status bar, as `calm --version` prints it', async () => {
         await act(async () => {
             renderLab();
         });
 
-        expect(screen.getByText('CALM 1.2 · CALM CLI 9.9.9-test')).toBeInTheDocument();
+        expect(screen.getByText(`CALM ${CALM_SCHEMA_RELEASE} · CALM CLI 9.9.9-test`)).toBeInTheDocument();
     });
 
     it('lists a parse error without claiming the list was truncated', async () => {

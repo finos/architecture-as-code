@@ -6,6 +6,7 @@ import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import { hintContent, type LessonState } from '../types';
 import { hasPlaceholder } from '../checks';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const [GENERATED, PATTERN, BROKEN] = INTERMEDIATE_17.editableFiles!;
 
@@ -16,7 +17,7 @@ const connects = (id: string, source: string, destination: string) =>
 
 /** A pattern with the learner's own ids; `over` replaces parts of `properties`. */
 const pattern = (ids: string[], over: Record<string, unknown> = {}) => JSON.stringify({
-    $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+    $schema: `${CALM_META_SCHEMA_BASE_URL}/calm.json`,
     $id: 'https://example.com/patterns/mine.json',
     type: 'object',
     properties: {

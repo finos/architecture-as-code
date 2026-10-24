@@ -1,11 +1,12 @@
 // A small three-step lesson the lab's tests use as a fixture. It is not registered, so learners never see it.
 import { HOME_DIR, type CalmDocLike, type Lesson } from '../lessons/types';
 import { connectsNodes, nodeById, validatedEditorFile } from '../lessons/checks';
+import { CALM_META_SCHEMA_BASE_URL, CALM_SCHEMA_RELEASE } from '../schemas';
 
 const EDITOR_FILE = `${HOME_DIR}/architecture/trading-system.architecture.json`;
 
 const SEED_ARCHITECTURE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "trading-ui",
@@ -23,7 +24,7 @@ const SEED_ARCHITECTURE = `{
  * target file, so paste-replace-save always produces a valid result.
  */
 const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "trading-ui",
@@ -43,7 +44,7 @@ const STEP_2_TARGET_FILE = `{
 `;
 
 const STEP_3_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "trading-ui",
@@ -98,7 +99,7 @@ export const QUICK_START: Lesson = {
                 'A CALM architecture is just a file. In the terminal, run `ls` to see the workspace, ' +
                 '`cat architecture/trading-system.architecture.json` to read the model, then ' +
                 '`calm validate -a architecture/trading-system.architecture.json -f pretty` to check it against ' +
-                'the real CALM 1.2 schemas.',
+                `the real CALM ${CALM_SCHEMA_RELEASE} schemas.`,
             hint: {
                 kind: 'commands',
                 commands: [

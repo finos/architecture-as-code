@@ -5,9 +5,10 @@ import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import type { LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const FIRST_ARCHITECTURE = '/workspace/architectures/my-first-architecture.json';
-const SCHEMA = 'https://calm.finos.org/release/1.2/meta/calm.json';
+const SCHEMA = `${CALM_META_SCHEMA_BASE_URL}/calm.json`;
 
 const node = (id: string, type: string) => ({ 'unique-id': id, 'node-type': type, name: id, description: 'y' });
 const connects = (id: string, source: string, destination: string) => ({

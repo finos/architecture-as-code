@@ -5,8 +5,9 @@ import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import { hintContent, type LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
-const SCHEMA = 'https://calm.finos.org/release/1.2/meta/calm.json';
+const SCHEMA = `${CALM_META_SCHEMA_BASE_URL}/calm.json`;
 
 const node = (id: string, type: string, extra: Record<string, unknown> = {}) => ({
     'unique-id': id, 'node-type': type, name: id, description: 'y', ...extra,
