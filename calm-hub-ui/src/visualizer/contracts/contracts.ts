@@ -58,6 +58,11 @@ export type {
     DeploymentDecoratorData,
     DeploymentDecorator,
     DeploymentPanelProps,
+    ControlEvaluationStatus,
+    ControlEvaluationFinding,
+    ControlEvaluationDecoratorData,
+    ControlEvaluationDecorator,
+    ElementEvaluation,
 } from './decorator-contracts.js';
 
 export type HubParams = {

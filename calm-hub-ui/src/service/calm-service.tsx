@@ -422,12 +422,23 @@ export class CalmService {
 
     /**
      * Fetch decorator values for a given namespace with optional target and type filters.
+     * Returns an empty array when the fetch fails.
     */
     public async fetchDecoratorValues(
         namespace: string,
         target?: string,
         type?: string
     ): Promise<Decorator[]> {
+        return this.requestDecoratorValues(namespace, target, type).catch((error) => {
+            const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
+            // arg1 is %s to prevent format string injection from `namespace`.
+            console.error('%s', errorMessage, error);
+            return [];
+        });
+    }
+
+    /** Requests decorator values, rejecting when the request fails. */
+    private async requestDecoratorValues(namespace: string, target?: string, type?: string): Promise<Decorator[]> {
         const headers = await getAuthHeaders();
         const params = new URLSearchParams();
         if (target) params.set('target', target);
@@ -435,37 +446,51 @@ export class CalmService {
         const query = params.toString() ? `?${params.toString()}` : '';
         return this.ax
             .get(`/api/calm/namespaces/${encodeURIComponent(namespace)}/decorators/values${query}`, { headers })
-            .then((res) => res.data.values ?? [])
-            .catch((error) => {
-                const errorMessage = `Error fetching decorator values for namespace ${namespace}:`;
-                // arg1 is %s to prevent format string injection from `namespace`.
-                console.error('%s', errorMessage, error);
-                return [];
-            });
+            .then((res) => res.data.values ?? []);
     }
 
     /**
-     * Fetches deployment decorators for a given architecture version.
+     * Builds the exact-match decorator target for one architecture version.
      *
-     * Resolves slug identifiers to their numeric ID via the mapping API before
-     * building the exact-match target string used for decorator filtering.
-     * Returns an empty array when the slug cannot be resolved or the fetch fails.
+     * Resolves a slug identifier to its numeric ID via the mapping API. Returns undefined when the slug cannot be
+     * resolved (including when the mappings cannot be fetched).
      */
-    public async fetchDeploymentDecoratorsForArchitecture(
-        namespace: string,
-        id: string,
-        version: string
-    ): Promise<Decorator[]> {
+    public async resolveArchitectureVersionTarget(namespace: string, id: string, version: string): Promise<string | undefined> {
         const versionPath = version.replace(/\./g, '-');
         let numericId = id;
         if (isSlug(id)) {
             const mappings = await this.fetchMappings(namespace, 'Architectures');
             const match = mappings.find((m) => m.customId === id);
-            if (!match) return []; // cannot resolve slug — skip decorator fetch
+            if (!match) return undefined;
             numericId = String(match.numericId);
         }
-        const target = `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+        return `/api/calm/namespaces/${namespace}/architectures/${numericId}/versions/${versionPath}`;
+    }
+
+    /**
+     * Fetches the deployment decorators recorded against one architecture version.
+     *
+     * Resolves a slug id to its numeric id first. Returns an empty array when the slug cannot be resolved or the
+     * fetch fails.
+     */
+    public async fetchDeploymentDecoratorsForArchitecture(namespace: string, id: string, version: string): Promise<Decorator[]> {
+        const target = await this.resolveArchitectureVersionTarget(namespace, id, version);
+        if (!target) return []; // cannot resolve slug — skip decorator fetch
         return this.fetchDecoratorValues(namespace, target, 'deployment');
+    }
+
+    /**
+     * Fetches the control-evaluation decorators recorded against one architecture version, given the target from
+     * `resolveArchitectureVersionTarget`.
+     *
+     * Unlike `fetchDecoratorValues` this rejects when the request fails, so a caller that refreshes can tell a failed
+     * refresh from a version with no evaluations and keep what it last showed. It does not log: a caller polling an
+     * unreachable hub would otherwise log every few seconds, so logging is left to the caller.
+     */
+    public async fetchControlEvaluationDecorators(namespace: string, target: string): Promise<Decorator[]> {
+        return this.requestDecoratorValues(namespace, target, 'control-evaluation').catch(() =>
+            Promise.reject(new Error(`Error fetching control-evaluation decorators for namespace ${namespace}`))
+        );
     }
 
     // --- Front Controller API (name-based / slug-based access) ---

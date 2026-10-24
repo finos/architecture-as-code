@@ -9,7 +9,14 @@ import { CalmService } from '../../../service/calm-service.js';
 import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
-import type { DrawerProps, Control, Decorator } from '../../contracts/contracts.js';
+import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { evaluationsByElement } from '../reactflow/utils/controlEvaluations.js';
+import type { DrawerProps, Control, Decorator, ControlEvaluationDecorator } from '../../contracts/contracts.js';
+
+const EVALUATION_REFRESH_MS = 5000;
+/** After this many failed refreshes in a row, refresh every EVALUATION_BACKOFF_MS until one succeeds. */
+const EVALUATION_FAILURES_BEFORE_BACKOFF = 3;
+const EVALUATION_BACKOFF_MS = 30000;
 
 /**
  * A pattern declares its nodes under `properties.nodes`, as `prefixItems` or `items`.
@@ -113,6 +120,85 @@ export function Drawer({
 
     const decorators = decoratorsProp ?? decoratorsState;
 
+    const [evaluations, setEvaluations] = useState<ControlEvaluationDecorator[]>([]);
+
+    // Control evaluations change while the diagram is open (a merge gateway records each decision), so they are
+    // re-read every few seconds rather than once. State changes only when the list does, so an unchanged refresh
+    // does not re-render the diagram. A failed refresh keeps what was last shown; a hidden tab is not polled.
+    useEffect(() => {
+        if (!data || data.calmType !== 'Architectures' || fileInstance) {
+            setEvaluations((prev) => (prev.length === 0 ? prev : []));
+            return;
+        }
+        // Another version's evaluations must not show on this one while its first fetch is in flight.
+        setEvaluations((prev) => (prev.length === 0 ? prev : []));
+        const { name, id, version } = data;
+        let cancelled = false;
+        // Polls can overlap on a slow network; a response older than one already applied is dropped.
+        let requested = 0;
+        let applied = 0;
+        // A slug is resolved to the version's target once, not on every poll. An unresolved one is retried.
+        let target: Promise<string | undefined> | undefined;
+        let failures = 0;
+        let ticksToSkip = 0;
+
+        const update = (seq: number, next: ControlEvaluationDecorator[]) => {
+            if (cancelled || seq < applied) return;
+            applied = seq;
+            failures = 0;
+            ticksToSkip = 0;
+            setEvaluations((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+        };
+        const fail = (seq: number, error: unknown) => {
+            if (cancelled || seq < applied) return;
+            failures += 1;
+            if (failures === 1) {
+                console.error('%s', `Could not refresh control evaluations for ${name}/${id}/${version}:`, error);
+            }
+            if (failures >= EVALUATION_FAILURES_BEFORE_BACKOFF) {
+                ticksToSkip = EVALUATION_BACKOFF_MS / EVALUATION_REFRESH_MS - 1;
+            }
+        };
+        const resolveTarget = async () => {
+            target ??= calmService.resolveArchitectureVersionTarget(name, id, version);
+            const resolved = await target;
+            if (!resolved) {
+                target = undefined;
+                throw new Error(`Could not resolve architecture ${id}`);
+            }
+            return resolved;
+        };
+        const load = () => {
+            if (document.visibilityState === 'hidden') return;
+            const seq = ++requested;
+            resolveTarget()
+                .then((resolved) => calmService.fetchControlEvaluationDecorators(name, resolved))
+                .then((values) => update(seq, values as ControlEvaluationDecorator[]))
+                .catch((error) => fail(seq, error));
+        };
+        const tick = () => {
+            if (ticksToSkip > 0) {
+                ticksToSkip -= 1;
+                return;
+            }
+            load();
+        };
+        const onVisibilityChange = () => {
+            if (document.visibilityState === 'visible') load();
+        };
+
+        load();
+        const timer = setInterval(tick, EVALUATION_REFRESH_MS);
+        document.addEventListener('visibilitychange', onVisibilityChange);
+        return () => {
+            cancelled = true;
+            clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisibilityChange);
+        };
+    }, [data, fileInstance, calmService]);
+
+    const evaluationMap = useMemo(() => evaluationsByElement(evaluations), [evaluations]);
+
 
     const adrs = useMemo((): string[] => {
         const calmData = calmInstance as CalmArchitectureSchema & { adrs?: unknown };
@@ -171,7 +257,8 @@ export function Drawer({
         return { ...nodeControls, ...relationshipControls, ...rootControls };
     }, [calmInstance]);
 
-    const hasMetadata = Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0;
+    const hasMetadata =
+        Object.keys(controls).length > 0 || decorators.length > 0 || adrs.length > 0 || evaluations.length > 0;
 
     const hasContent = !!(calmInstance || patternInstance);
 
@@ -226,41 +313,43 @@ export function Drawer({
                             {dropError}
                         </div>
                     )}
-                    <div
-                        style={{
-                            flex: 1,
-                            minHeight: 0,
-                            ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
-                        }}
-                    >
-                        {patternInstance ? (
-                            <PatternVisualizer
-                                patternData={patternInstance}
-                                onNodeClick={handlePatternNodeClick}
-                                onEdgeClick={handlePatternEdgeClick}
-                                onBackgroundClick={closeSidebar}
-                                viewportKey={viewportKey}
-                                defaultLayout={effectiveDefaultLayout}
-                                layoutEpoch={effectiveLayoutEpoch}
-                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
-                            />
-                        ) : calmInstance ? (
-                            <ReactFlowVisualizer
-                                calmData={calmInstance}
-                                onNodeClick={handleNodeClick}
-                                onEdgeClick={handleEdgeClick}
-                                onBackgroundClick={closeSidebar}
-                                viewportKey={viewportKey}
-                                defaultLayout={effectiveDefaultLayout}
-                                layoutEpoch={effectiveLayoutEpoch}
-                                // Withheld for a dropped file. This feeds DiagramSection's
-                                // "Save as default layout", which is scoped to the loaded
-                                // architecture, so passing it through would save a dropped
-                                // file's positions as that architecture's shared default.
-                                onPositionsChange={fileInstance ? undefined : onPositionsChange}
-                            />
-                        ) : null}
-                    </div>
+                    <ControlEvaluationContext.Provider value={evaluationMap}>
+                        <div
+                            style={{
+                                flex: 1,
+                                minHeight: 0,
+                                ...(hasMetadata && !isMetadataCollapsed ? { height: `calc(100% - ${metadataPanelHeight}px)` } : {}),
+                            }}
+                        >
+                            {patternInstance ? (
+                                <PatternVisualizer
+                                    patternData={patternInstance}
+                                    onNodeClick={handlePatternNodeClick}
+                                    onEdgeClick={handlePatternEdgeClick}
+                                    onBackgroundClick={closeSidebar}
+                                    viewportKey={viewportKey}
+                                    defaultLayout={effectiveDefaultLayout}
+                                    layoutEpoch={effectiveLayoutEpoch}
+                                    onPositionsChange={fileInstance ? undefined : onPositionsChange}
+                                />
+                            ) : calmInstance ? (
+                                <ReactFlowVisualizer
+                                    calmData={calmInstance}
+                                    onNodeClick={handleNodeClick}
+                                    onEdgeClick={handleEdgeClick}
+                                    onBackgroundClick={closeSidebar}
+                                    viewportKey={viewportKey}
+                                    defaultLayout={effectiveDefaultLayout}
+                                    layoutEpoch={effectiveLayoutEpoch}
+                                    // Withheld for a dropped file. This feeds DiagramSection's
+                                    // "Save as default layout", which is scoped to the loaded
+                                    // architecture, so passing it through would save a dropped
+                                    // file's positions as that architecture's shared default.
+                                    onPositionsChange={fileInstance ? undefined : onPositionsChange}
+                                />
+                            ) : null}
+                        </div>
+                    </ControlEvaluationContext.Provider>
                     {hasMetadata && !patternInstance && (
                         <div
                             style={{
@@ -272,6 +361,7 @@ export function Drawer({
                                 controls={controls}
                                 decorators={decorators}
                                 adrs={adrs}
+                                evaluations={evaluations}
                                 onNodeClick={handleControlNodeClick}
                                 isCollapsed={isMetadataCollapsed}
                                 onToggleCollapse={() => setIsMetadataCollapsed(!isMetadataCollapsed)}

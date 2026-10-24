@@ -40,6 +40,8 @@ export interface Risk {
  */
 export interface EdgeData {
     id: string;
+    /** The relationship's CALM unique-id, used to look up its control evaluation. */
+    'unique-id'?: string;
     label?: string;
     source: string;
     target: string;
