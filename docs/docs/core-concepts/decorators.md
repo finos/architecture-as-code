@@ -247,3 +247,7 @@ This decorator:
 - Satisfies the base decorator schema (has `unique-id`, `type`, `target`, `applies-to`, `data`)
 - Satisfies the deployment schema (`deployment-start-time`, `deployment-status` are present)
 - Satisfies the Kubernetes schema (`helm-chart`, `cluster` are present inside the `kubernetes` sub-object)
+
+## Control Evaluation Decorators
+
+The [control evaluation decorator Standard](https://github.com/finos/calm-schema/tree/main/standards/control-evaluation) extends the base decorator to record the result of evaluating one control from an architecture, for example by a policy engine that checks a change before it merges. It constrains `type` to `"control-evaluation"`. Its `data` names the control, gives a `status` of `met`, `not-met` or `not-applicable`, and, for `not-met`, lists the `findings` that say why. CALM Hub draws these results on the architecture diagram: see [Control Evaluations](../working-with-calm/calm-hub.md#control-evaluations).
