@@ -139,6 +139,45 @@ describe('buildArchitecturePattern', () => {
         });
     });
 
+    it('keeps the control requirements of a node', () => {
+        const doc = {
+            nodes: [
+                {
+                    'unique-id': 'svc',
+                    controls: {
+                        'platform--resiliency-tier': {
+                            requirements: [{ 'requirement-url': 'platform:controls:resiliency-tier' }],
+                        },
+                    },
+                },
+            ],
+        };
+
+        const pattern = JSON.parse(buildArchitecturePattern(doc, 'Controls').json);
+
+        expect(pattern.properties.nodes.prefixItems[0].properties.controls).toEqual({
+            type: 'object',
+            properties: {
+                'platform--resiliency-tier': {
+                    type: 'object',
+                    properties: {
+                        requirements: {
+                            type: 'array',
+                            prefixItems: [
+                                {
+                                    type: 'object',
+                                    properties: {
+                                        'requirement-url': { const: 'platform:controls:resiliency-tier' },
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                },
+            },
+        });
+    });
+
     it('builds an empty pattern for an empty canvas', () => {
         const { fileName, json } = buildArchitecturePattern({}, 'Empty');
         const pattern = JSON.parse(json);
