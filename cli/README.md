@@ -1069,11 +1069,11 @@ calm workspace tree
 ```
 
 ```
-payment-service (architecture)
-├── payment-pattern (pattern)
-│   └── https://calm.finos.org/draft/2025-03/meta/core.json (schema)
-└── https://calm.finos.org/draft/2025-03/meta/interface.json (schema)
+└─ payment-service (./../../../architectures/payment-service.json)
+   └─ payment-pattern (./../../../patterns/payment-pattern.json)
 ```
+
+A reference can be a manifest ID, a path relative to the bundle, or the `$id` of a tracked document at any version. The tree does not show references to documents that the workspace does not track.
 
 #### `calm workspace list`
 

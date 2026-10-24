@@ -18,6 +18,7 @@ describe('startServer', () => {
         if (serverInstance) {
             serverInstance.close();
         }
+        vi.restoreAllMocks();
     });
 
     it('should start the server and respond to /health', async () => {
@@ -30,5 +31,15 @@ describe('startServer', () => {
         expect(response.status).toBe(200);
         const data = (await response.json()) as { status: string };
         expect(data.status).toBe('OK');
+    });
+
+    it('should exit with code 1 when the port is already in use', async () => {
+        const exitSpy = vi.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+        serverInstance = startServer(port, host, schemaDirectory, false, 900000, 100);
+        await new Promise((resolve) => serverInstance.once('listening', resolve));
+
+        const secondServer = startServer(port, host, schemaDirectory, false, 900000, 100);
+        await vi.waitFor(() => expect(exitSpy).toHaveBeenCalledWith(1));
+        expect(secondServer.listening).toBe(false);
     });
 });

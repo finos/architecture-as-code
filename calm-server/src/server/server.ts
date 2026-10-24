@@ -23,8 +23,14 @@ export function startServer(
     app.use(express.json());
     app.use('/', allRoutes);
 
-    return app.listen(parseInt(port), host, () => {
+    // Express 5 passes listen errors, such as EADDRINUSE, to this callback instead of emitting them.
+    return app.listen(parseInt(port), host, (error?: Error) => {
         const logger = initLogger(verbose, 'calm-server');
+        if (error) {
+            logger.error(`CALM Server failed to start on http://${host}:${port}: ${error.message}`);
+            process.exit(1);
+            return;
+        }
         logger.info(`CALM Server is running on http://${host}:${port}`);
     });
 }
