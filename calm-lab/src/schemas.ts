@@ -26,7 +26,11 @@ export function calmRelease(id: unknown): string {
     return release;
 }
 
-/** The `<major>.<minor>` of the pinned `@finos/calm-schema`, so a schema bump moves the lessons too. */
+/**
+ * The `<major>.<minor>` of the pinned `@finos/calm-schema`, so a schema bump moves the lessons too.
+ * Read from the bundled calm.json `$id`, not the package version: `src/` imports no manifests (see
+ * `vite.config.ts`), and the `$id` makes `${CALM_META_SCHEMA_BASE_URL}/calm.json` a key in `SCHEMAS`.
+ */
 export const CALM_SCHEMA_RELEASE = calmRelease(releases['../../node_modules/@finos/calm-schema/schema/calm.json']?.$id);
 
 export const CALM_META_SCHEMA_BASE_URL = `https://calm.finos.org/release/${CALM_SCHEMA_RELEASE}/meta`;

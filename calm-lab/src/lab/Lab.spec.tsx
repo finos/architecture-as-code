@@ -89,7 +89,7 @@ describe('Lab', () => {
         await waitFor(() => expect(stepOneCompleted()).toBe(true));
     });
 
-    it('shows the bundled CALM release and the CLI version in the status bar, as `calm --version` prints it', async () => {
+    it('shows the pinned CALM release and the CLI version in the status bar, as `calm --version` prints it', async () => {
         await act(async () => {
             renderLab();
         });

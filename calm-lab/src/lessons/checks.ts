@@ -247,7 +247,7 @@ export function patternConnects(json: CalmDocLike | null | undefined): ({ source
     });
 }
 
-// Any release, so a Standard written for an older or newer CALM release still counts.
+// Any release, so a Standard written for an older CALM release still counts.
 const CORE_DEF_REF: Record<'node' | 'relationship', RegExp> = {
     node: /^https:\/\/calm\.finos\.org\/release\/\d+\.\d+\/meta\/core\.json#\/defs\/node$/,
     relationship: /^https:\/\/calm\.finos\.org\/release\/\d+\.\d+\/meta\/core\.json#\/defs\/relationship$/,

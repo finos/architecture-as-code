@@ -84,7 +84,7 @@ the lab has no lesson picker.
 files live under `/workspace`, editable files are seeded or written by a hint and include the
 editor file, file hints write only to editable files, no step is complete before its hint, each hint
 completes its step and each command does what the hint expects, the end state validates, each CALM
-release URL in the files and step copy is the latest bundled release, every
+release in the files, hints and copy is the pinned CALM release, every
 `calm` command in the copy runs in the lab's shell after all the hints, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
 state.
 
