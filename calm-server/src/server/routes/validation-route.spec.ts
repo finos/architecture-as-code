@@ -76,6 +76,18 @@ describe('ValidationRouter', () => {
         });
     });
 
+    test('should return 400 when the request has no JSON body', async () => {
+        const response = await request(app)
+            .post('/calm/validate')
+            .set('Content-Type', 'text/plain')
+            .send('not json');
+
+        expect(response.status).toBe(400);
+        expect(response.body).toEqual({
+            error: 'Invalid JSON format for architecture'
+        });
+    });
+
     test('should return 400 when architecture JSON is invalid', async () => {
         const requestBody = {
             architecture: 'not valid json {'
