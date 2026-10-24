@@ -221,8 +221,8 @@ npm run build --workspace cli
 - `tsup.config.ts` - Build configuration (entry points, formats)
 - `vitest.config.mts` - Test configuration
 - `eslint.config.mjs` - Linting rules
-- `release.config.mjs` - Semantic release configuration (release rules and changelog filtering)
-- `release-analyzer.mjs` - Gives the commit analyzer only the commits that the changelog lists
+- `release.config.mjs` - Semantic release configuration: the scopes that release the CLI. The rules
+  are in `scripts/release-notes.mjs`, which the CALM Server and VS Code extension changelogs also use
 
 ## Release Process
 

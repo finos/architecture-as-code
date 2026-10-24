@@ -248,16 +248,17 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 
 - **type** (required, lowercase): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
   `perf`, `ci`, `build`, `revert`
-- **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
-  `docs`, `vscode`, `deps`, `ci`, `release`
+- **scope** (optional but preferred): `cli`, `shared`, `calm-models`, `calm-ai`, `calm-widgets`,
+  `calm-server`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
 
 Run `npm run commit` for an interactive prompt. Stage your changes first.
 
 Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
-also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. Check that file before assuming a
-commit is release-neutral. A merged PR with a conventional title is released on its title alone, so
-give the PR the type and scope of its most significant change. A plain `git revert` does not release.
+also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
+does the same for its own scopes. Check these files before assuming a commit is release-neutral. A
+merged PR with a conventional title is released on its title alone, so give the PR the type and scope
+of its most significant change. A plain `git revert` does not release.
 
 ## Pre-Commit Checklist
 

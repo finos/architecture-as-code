@@ -92,6 +92,23 @@ profile and open a synthetic CALM model. Use **Developer: Open Webview Developer
 Tools** to inspect the React webview and the **CALM Canvas** output channel for
 extension-host logs.
 
+## Releasing
+
+Releases are manual. Odd minor versions (e.g. 0.9.x) are published as pre-releases.
+
+1. In a PR from a branch that you rebase on main (do not merge main into it), set the version with
+   `npm version <x.y.z> --workspace calm-plugins/vscode --no-git-tag-version`, then run
+   `npm run changelog --workspace calm-plugins/vscode`. The changelog lists changes since the
+   last `vscode-v*` tag under the new version. Do not edit `CHANGELOG.md` by hand: the script
+   writes the whole file again from the tags.
+2. After the PR merges, run the **Build VS Code Extension** workflow on `main` with
+   `publish_to_marketplace: true`.
+3. Tag the published commit `vscode-v<x.y.z>` and push the tag.
+
+The changelog takes the changes that touched `calm-plugins/vscode`, so a PR for another package
+that changes the extension is listed too. Dependency updates, and unscoped changes other than
+`feat`, `fix`, `perf` and `revert`, are not listed.
+
 ## Bundled Schemas
 
 `src/core/validation.ts` imports the CALM meta-schemas from the `@finos/calm-schema` npm package,
