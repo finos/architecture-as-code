@@ -37,9 +37,9 @@ services:
     #
     # The Hub sets the $id of each name-based document (/calm/namespaces/...)
     # from CALM_HUB_BASE_URL when it serves the document, so this value must be
-    # the public URL. The image default is http://localhost:8080.
+    # the public URL. Without it, the Hub uses http://localhost:8080.
     environment:
-      CALM_HUB_BASE_URL: ${CALM_HUB_BASE_URL:-https://hub.calm.finos.org}
+      - "CALM_HUB_BASE_URL=${CALM_HUB_BASE_URL:-https://hub.calm.finos.org}"
     #
     # calm.audit.store.enabled/calm.audit.log.enabled default to true, but that's
     # a no-op on this instance: ReadOnlyRequestFilter rejects every mutating verb
