@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useMemo, useRef } from 'react';
+import { useEffect, useCallback, useId, useMemo, useRef } from 'react';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../service/search-service.js';
 import { CalmService } from '../../service/calm-service.js';
@@ -39,6 +39,7 @@ export function ExplorerSearch({
     } = useCatalogueSearch(searchService);
 
     const inputRef = useRef<HTMLInputElement>(null);
+    const listboxId = useId();
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
     const { navigateToResult: goToResult } = useSearchNavigation({ calmService, adrService });
@@ -46,6 +47,8 @@ export function ExplorerSearch({
     // Results render inline while a query is present, so this keys off the query
     // rather than the hook's `open` (dropdown) flag.
     const active = query.trim().length > 0;
+    const optionId = (index: number) => `${listboxId}-option-${index}`;
+    const activeDescendant = active && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
 
     useEffect(() => {
         onSearchingChange?.(active);
@@ -100,8 +103,11 @@ export function ExplorerSearch({
         let globalIndex = 0;
 
         return groups.map(([type, items]) => (
-            <div key={type}>
-                <div className="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200">
+            <div key={type} role="group" aria-labelledby={`${listboxId}-group-${type}`}>
+                <div
+                    id={`${listboxId}-group-${type}`}
+                    className="px-3 py-1 text-xs font-semibold text-base-content/50 uppercase tracking-wide bg-base-200"
+                >
                     {TYPE_LABELS[type] ?? type}
                 </div>
                 {(items as SearchResult[]).map((item) => {
@@ -109,6 +115,7 @@ export function ExplorerSearch({
                     return (
                         <button
                             key={`${type}-${item.namespace}-${item.id}`}
+                            id={optionId(currentIndex)}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''
                             }`}
@@ -143,6 +150,8 @@ export function ExplorerSearch({
                     role="combobox"
                     aria-expanded={active}
                     aria-haspopup="listbox"
+                    aria-controls={active ? listboxId : undefined}
+                    aria-activedescendant={activeDescendant}
                 />
                 {loading && <span className="loading loading-spinner loading-xs text-base-content/50" />}
                 {query && (
@@ -156,7 +165,7 @@ export function ExplorerSearch({
                 )}
             </div>
             {active && (
-                <div className="flex-1 min-h-0 overflow-y-auto" role="listbox">
+                <div id={listboxId} className="flex-1 min-h-0 overflow-y-auto" role="listbox">
                     {renderGroupedResults()}
                 </div>
             )}
