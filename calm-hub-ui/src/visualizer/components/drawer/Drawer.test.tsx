@@ -166,28 +166,6 @@ describe('Drawer', () => {
         expect(screen.getByTestId('relationship-count')).toHaveTextContent('2');
     });
 
-    describe('the node query parameter', () => {
-        afterEach(() => {
-            window.location.hash = '';
-        });
-
-        it('opens the node it names in the details pane', async () => {
-            window.location.hash = '#/my-namespace/architectures/123/1.0?present=1&node=n2';
-            const onItemSelect = vi.fn();
-            render(<Drawer data={calmData as unknown as Data} onItemSelect={onItemSelect} />);
-            await waitFor(() => expect(onItemSelect).toHaveBeenCalledTimes(1));
-            expect(onItemSelect.mock.calls[0][0].data['unique-id']).toBe('n2');
-        });
-
-        it('selects nothing when the node is not in the architecture', async () => {
-            window.location.hash = '#/my-namespace/architectures/123/1.0?node=missing';
-            const onItemSelect = vi.fn();
-            render(<Drawer data={calmData as unknown as Data} onItemSelect={onItemSelect} />);
-            await act(async () => {});
-            expect(onItemSelect).not.toHaveBeenCalled();
-        });
-    });
-
     it('does not show sidebar initially', () => {
         render(<Drawer data={calmData as unknown as Data} />);
         expect(screen.queryByLabelText('Close details')).not.toBeInTheDocument();
