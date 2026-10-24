@@ -38,6 +38,9 @@ chmod +x install.sh
 # 4. Verify
 curl -fsS http://localhost/q/swagger-ui >/dev/null && echo "CALM Hub is up"
 sudo docker compose ps
+# The $id must start with the public URL, not http://localhost:8080
+curl -fsS http://localhost/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 \
+  | grep -o '"\$id":"[^"]*"'
 ```
 
 `install.sh` is idempotent — re-run it any time (e.g. after a reboot) and it will skip steps that
@@ -144,3 +147,6 @@ sudo docker compose down
   on port 80. There is no TLS termination on the box itself.
 - The `latest-read-only-native` image is self-contained: no external database or auth provider is
   required.
+- The public URL of the Hub is `https://hub.calm.finos.org`. The Hub uses `CALM_HUB_BASE_URL` as the
+  base of the `$id` of each name-based document that it serves. If the Hub has a different public
+  URL, set `CALM_HUB_BASE_URL` in `.env`.
