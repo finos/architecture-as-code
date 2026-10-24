@@ -25,7 +25,10 @@ import {
     setModelUpdateCallback,
     setPatternsLoadedCallback,
     setStandardNodesLoadedCallback,
+    setHubLoadingCallback,
     setDrillResultCallback,
+    setDefinitionResolvedCallback,
+    setDefinitionResolutionFailedCallback,
     setControlsChangedCallback,
     notifyCanvasChanged,
     notifyDrillInto,
@@ -252,6 +255,13 @@ function CanvasApp() {
             setNodes(layoutedNodes);
             setEdges(parsedEdges);
             lastEmittedJson.current = json;
+            // Request resolution for any nodes with definition-id references
+            for (const node of layoutedNodes) {
+                const defId = (node.data as Record<string, unknown>)?.['definition-id'] as string | undefined;
+                if (defId) {
+                    postMessage({ type: 'resolveDefinitionId', nodeId: node.id, curie: defId });
+                }
+            }
             // Enrich controls with resolved requirement metadata (covers initial
             // load, drill, file-watcher, SVG import, undo/redo). Both node-level and
             // document-level controls are scanned; local refs always re-resolve.
@@ -270,11 +280,32 @@ function CanvasApp() {
             setInitialized(true);
         });
         setPatternsLoadedCallback((p) => useCanvasStore.setState({ loadedPatterns: p as any }));
+        setHubLoadingCallback((loading) => useCanvasStore.setState({ hubLoading: loading }));
         setStandardNodesLoadedCallback((n) => useCanvasStore.setState({ standardNodes: n as any }));
         setDrillResultCallback((json, label, _filePath, readonly) => {
             store.pushDrill({ label, filePath: _filePath, readonly });
             store.setReadonlyMode(readonly ?? false);
             loadArchitecture(json);
+        });
+        setDefinitionResolvedCallback((nodeId, controls) => {
+            setNodes((nds) => nds.map((n) => {
+                if (n.id !== nodeId) return n;
+                const data = n.data as Record<string, unknown>;
+                // Only set controls if node doesn't already have them (from saved file)
+                const existingControls = data.controls as Record<string, unknown> | undefined;
+                const hasExisting = existingControls && Object.keys(existingControls).length > 0;
+                return { ...n, data: { ...data, controls: hasExisting ? existingControls : controls, _resolvedControls: controls } };
+            }));
+            // Enrich the freshly-resolved controls once React has committed them.
+            const generation = loadGeneration.current;
+            setTimeout(() => {
+                if (generation !== loadGeneration.current) return;
+                const n = reactFlowInstance.getNodes().find((x) => x.id === nodeId);
+                if (n) enrichNodeControls([n], generation);
+            }, 0);
+        });
+        setDefinitionResolutionFailedCallback((nodeId, error) => {
+            console.warn(`[CALM Canvas] Failed to resolve definition for node ${nodeId}: ${error}`);
         });
         setControlsChangedCallback(() => {
             // A local requirement file changed — re-resolve all controls.
@@ -285,6 +316,7 @@ function CanvasApp() {
 
         const initialJson = (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
         if (initialJson) { loadArchitecture(initialJson); setInitialized(true); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadArchitecture, setNodes]);
 
     // --- Undo/Redo ---
@@ -559,10 +591,10 @@ function CanvasApp() {
         const position = reactFlowInstance.screenToFlowPosition({ x: e.clientX, y: e.clientY });
 
         if (standardNodeId && behaviour) {
-            // Building block / standard drop
+            // Standard node / standard drop
             const standardNode = (store.standardNodes as any[]).find((n: any) => n.id === standardNodeId);
             if (!standardNode) return;
-            const isHubSourced = !!(standardNode.namespace && standardNode.sha);
+            const isHubSourced = !!standardNode.namespace;
             const controlsCopy = JSON.parse(JSON.stringify(standardNode.controls ?? {})) as Record<string, unknown>;
 
             if (behaviour === 'apply-controls-on-drop') {
@@ -677,9 +709,7 @@ function CanvasApp() {
             }
 
             const id = `${standardNode.nodeType}-${Date.now()}`;
-            const curieType = standardNode.behaviour === 'apply-controls-on-drop'
-                ? (standardNode.id?.startsWith?.('guidelines:') ? 'guidelines' : 'standards')
-                : 'standard-nodes';
+            const curieType = 'standards';
             const newNode: Node = {
                 id,
                 type: resolveFlowNodeType(standardNode.nodeType),
@@ -691,7 +721,8 @@ function CanvasApp() {
                         calmType: standardNode.nodeType,
                         description: standardNode.description ?? '',
                         interfaces: [],
-                        'definition-id': `${standardNode.namespace}:${curieType}:${standardNode.id}@${standardNode.sha}`,
+                        controls: controlsCopy,
+                        ...(standardNode.sha ? { 'definition-id': `${standardNode.namespace}:${curieType}:${standardNode.id}@${standardNode.sha}` } : {}),
                     }
                     : {
                         label: standardNode.name,
@@ -704,8 +735,11 @@ function CanvasApp() {
                     },
             };
             setNodes((nds) => [...nds, newNode]);
+            // Request resolution for Hub-sourced blocks so the webview can render controls
+            if (isHubSourced) {
+                postMessage({ type: 'resolveDefinitionId', nodeId: id, curie: newNode.data['definition-id'] as string });
+            }
             setTimeout(() => emitChange(true), 0);
-            // Local standard-node controls may carry local requirement refs — enrich them.
             setTimeout(() => enrichNodeControls(reactFlowInstance.getNodes(), loadGeneration.current), 0);
             return;
         }
@@ -764,7 +798,7 @@ function CanvasApp() {
             issues.push({
                 severity: 'info',
                 message: controlCount === 0
-                    ? `Valid — ${arch.nodes.length} node(s), but 0 controls found. Drop a building block that defines controls (e.g. "Microservice") onto a node, then Validate.`
+                    ? `Valid — ${arch.nodes.length} node(s), but 0 controls found. Drop a standard node that defines controls (e.g. "Microservice") onto a node, then Validate.`
                     : `Valid — checked ${arch.nodes.length} node(s) and ${controlCount} control(s); all requirements satisfied.`,
             });
         }
@@ -970,7 +1004,8 @@ function CanvasApp() {
                 if (n.id !== target.nodeId) return n;
                 const data = n.data as Record<string, unknown>;
                 const existing = (data.controls as Record<string, ControlEntry>) ?? {};
-                if (key in existing) return n;
+                const prev = existing[key];
+                if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return n;
                 return { ...n, data: { ...data, controls: { ...existing, [key]: entry } } };
             }));
             setTimeout(() => {
@@ -980,7 +1015,8 @@ function CanvasApp() {
             }, 0);
         } else if (target.type === 'document') {
             const existing = (useCanvasStore.getState().documentControls as Record<string, ControlEntry>) ?? {};
-            if (key in existing) return;
+            const prev = existing[key];
+            if (prev && getRequirementUrl(prev) === getRequirementUrl(entry)) return;
             useCanvasStore.setState({ documentControls: { ...existing, [key]: entry } });
             setTimeout(() => {
                 emitChange(true);
@@ -1081,11 +1117,11 @@ function CanvasApp() {
             )}
 
             {/* Readonly banner */}
-            {store.readonlyMode && <div style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 600 }}>Building Block — Read Only</div>}
+            {store.readonlyMode && <div style={{ background: 'var(--vscode-editorWarning-foreground, #fbbf24)', color: 'var(--calm-bg)', textAlign: 'center', padding: '4px', fontSize: '11px', fontWeight: 600 }}>Standard Node — Read Only</div>}
 
             {/* Main area */}
             <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-                {!store.readonlyMode && <NodePalette standardNodes={store.standardNodes as any[]} />}
+                {!store.readonlyMode && <NodePalette standardNodes={store.standardNodes as any[]} hubLoading={store.hubLoading} />}
 
                 <div style={{ flex: 1, position: 'relative' }} onDragOver={handleDragOver} onDrop={handleDrop}>
                     <ReactFlow

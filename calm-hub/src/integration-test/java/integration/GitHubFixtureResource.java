@@ -19,7 +19,7 @@ import java.util.Map;
  * {@link IntegrationTestGithubProfile} for how these feed calm.github.namespaces, and
  * GitHubUserAccessDomainReadIntegration for what this fixture is proving.
  *
- * <p>"finos-repo" also carries a {@code building-blocks/rate-limit-policy.json} file -
+ * <p>"finos-repo" also carries a {@code standard-nodes/rate-limit-policy.json} file -
  * see {@link GitHubReworkBehaviorIntegration} for what that proves (the Building
  * Block-to-Standard alias, and the "latest" removal, end to end against a real local clone
  * rather than a mock). Each repo also carries one {@code standards/searchable-*.json} file so
@@ -40,7 +40,7 @@ public class GitHubFixtureResource implements QuarkusTestResourceLifecycleManage
 
             createRepo(originRoot.resolve("finos-repo.git"), Map.of(
                     "controls/security/access-control.json", "{}",
-                    "building-blocks/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}",
+                    "standard-nodes/rate-limit-policy.json", "{\"name\":\"Rate Limit Policy\"}",
                     "standards/searchable-standard.json", "{\"name\":\"Searchable Standard\"}"
             ));
             createRepo(originRoot.resolve("other-repo.git"), Map.of(

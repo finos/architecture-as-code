@@ -155,5 +155,56 @@ describe('flowToCalm - definition-id handling', () => {
             'detailed-architecture': 'sub-arch.calm.json',
         });
     });
+
+    it('stripResolvedNoise preserves description and config-url on controls', () => {
+        const nodes: Node[] = [{
+            id: 'svc-hub',
+            type: 'service',
+            position: { x: 0, y: 0 },
+            data: {
+                calmId: 'svc-hub',
+                calmType: 'service',
+                label: 'Hub Service',
+                description: 'From Hub',
+                'definition-id': 'finos:standard-nodes:svc@abc',
+                controls: {
+                    'platform--encryption': {
+                        description: 'Data at rest encryption',
+                        requirements: [{
+                            'requirement-url': 'platform:controls:encryption@1.0.0',
+                            'config-url': 'https://hub/config.json',
+                        }],
+                        metadata: { validation: { identity: { controlId: 'encryption' }, properties: {} } },
+                    },
+                },
+            },
+        }];
+
+        const arch = flowToCalm(nodes, []);
+        const ctrl = arch.nodes[0].controls as Record<string, any>;
+        expect(ctrl['platform--encryption'].description).toBe('Data at rest encryption');
+        expect(ctrl['platform--encryption'].requirements[0]['config-url']).toBe('https://hub/config.json');
+        expect(ctrl['platform--encryption'].requirements[0]['requirement-url']).toBe('platform:controls:encryption@1.0.0');
+        expect(ctrl['platform--encryption'].metadata).toBeUndefined();
+    });
+
+    it('preserves metadata on definition-id nodes', () => {
+        const nodes: Node[] = [{
+            id: 'svc-meta',
+            type: 'service',
+            position: { x: 0, y: 0 },
+            data: {
+                calmId: 'svc-meta',
+                calmType: 'service',
+                label: 'Styled Hub Node',
+                description: '',
+                'definition-id': 'finos:standard-nodes:svc@abc',
+                metadata: { 'standard-node-style': { background: '#1c4587' } },
+            },
+        }];
+
+        const arch = flowToCalm(nodes, []);
+        expect(arch.nodes[0].metadata).toEqual({ 'standard-node-style': { background: '#1c4587' } });
+    });
 });
 

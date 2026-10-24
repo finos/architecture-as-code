@@ -173,6 +173,25 @@ describe('needsEnrichment', () => {
     });
 });
 
+describe('enrichControlWithRequirement — config-url', () => {
+    it('does not add inline config when config-url is present', () => {
+        const control: ControlEntry = {
+            requirements: [{ 'requirement-url': 'domain:controls:ctrl', 'config-url': 'https://hub/config.json' }],
+        };
+        const enriched = enrichControlWithRequirement(control, parsed);
+        expect(enriched.requirements![0]['config-url']).toBe('https://hub/config.json');
+        expect(enriched.requirements![0].config).toBeUndefined();
+    });
+
+    it('adds inline config when no config-url is present', () => {
+        const control: ControlEntry = {
+            requirements: [{ 'requirement-url': 'domain:controls:ctrl' }],
+        };
+        const enriched = enrichControlWithRequirement(control, parsed);
+        expect(enriched.requirements![0].config).toBeDefined();
+    });
+});
+
 describe('latestVersion', () => {
     it('returns the last (latest) element', () => {
         expect(latestVersion(['1.0.0', '1.1.0', '2.0.0'])).toBe('2.0.0');

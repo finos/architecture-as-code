@@ -66,6 +66,14 @@ export interface AdrMeta {
     adr: AdrContent;
 }
 
+export function describeHubError(err: unknown): string {
+    if (err instanceof HubApiError) {
+        if (err.status === 403) return 'Access denied (403)';
+        return `Hub request failed (${err.status})`;
+    }
+    return err instanceof Error ? err.message : String(err);
+}
+
 /** Typed HTTP error so callers can branch on `status` (e.g. 403 domain access denied). */
 export class HubApiError extends Error {
     constructor(
@@ -117,14 +125,14 @@ export class HubClient {
         type: string
     ): Promise<ResourceSummary[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}`
         );
         const data = await res.json();
         const raw = this.unwrapValues<Record<string, unknown>>(data);
         return raw.map((item) => ({
             name: (item.name as string) || (item.customId as string) || '',
-            uniqueId: (item.uniqueId as string) || (item.customId as string) || '',
-            numericId: (item.numericId as number) || 0,
+            uniqueId: (item.uniqueId as string) || (item.customId as string) || String((item.id as number) ?? ''),
+            numericId: (item.id as number) ?? (item.numericId as number) ?? 0,
             versionCount: item.versionCount as number | undefined,
         }));
     }
@@ -135,7 +143,7 @@ export class HubClient {
         name: string
     ): Promise<string[]> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions`
         );
         const data = await res.json();
         return this.unwrapValues(data);
@@ -148,7 +156,7 @@ export class HubClient {
         version: string
     ): Promise<unknown> {
         const res = await this.authenticatedFetch(
-            `/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
+            `/api/calm/namespaces/${encodeURIComponent(namespace)}/${encodeURIComponent(type)}/${encodeURIComponent(name)}/versions/${encodeURIComponent(version)}`
         );
         return res.json();
     }

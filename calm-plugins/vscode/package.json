@@ -2,7 +2,7 @@
   "name": "calm-vscode-plugin",
   "displayName": "CALM Canvas",
   "description": "Visual architecture editor for CALM models using ReactFlow",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "publisher": "FINOS",
   "license": "Apache-2.0",
   "repository": {
@@ -37,6 +37,18 @@
           "light": "media/calm-canvas.svg",
           "dark": "media/calm-canvas.svg"
         }
+      },
+      {
+        "command": "calm.connectToHub",
+        "title": "CALM: Connect to Hub"
+      },
+      {
+        "command": "calm.disconnectFromHub",
+        "title": "CALM: Disconnect from Hub"
+      },
+      {
+        "command": "calm.refreshFromHub",
+        "title": "CALM: Refresh from Hub"
       },
       {
         "command": "calm.importSvg",
@@ -103,6 +115,21 @@
           },
           "default": [],
           "markdownDescription": "List of node type IDs to hide from the palette (e.g. `[\"core:ldap\", \"aws:s3\"]`). Use the `packId:nodeType` format."
+        },
+        "calm.hub.url": {
+          "type": "string",
+          "default": "",
+          "description": "CalmHub endpoint URL (e.g. https://calmhub.example.com)"
+        },
+        "calm.hub.autoConnect": {
+          "type": "boolean",
+          "default": true,
+          "description": "Automatically connect to CalmHub on startup when URL is configured"
+        },
+        "calm.hub.selectedNamespaces": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Selected Hub namespaces to show in the palette (not set = show all)"
         }
       }
     }

@@ -12,8 +12,8 @@ export interface ControlCurieResult {
     version?: string;
 }
 
-// Hub version scheme — three numeric parts separated by dot or dash (VERSION_REGEX).
-const VERSION_RE = /^(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)$/;
+// Hub version scheme — semver (three numeric parts) or a git SHA (7+ hex chars).
+const VERSION_RE = /^(?:(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)[-.]?(0|[1-9][0-9]*)|[0-9a-f]{7,40})$/;
 // Control slug — lowercase kebab (CUSTOM_ID_REGEX).
 const SLUG_RE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
 // Domain — mixed-case alphanumeric with hyphens (DOMAIN_REGEX).

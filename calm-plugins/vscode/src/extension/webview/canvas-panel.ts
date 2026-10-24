@@ -1,10 +1,14 @@
 import * as vscode from 'vscode';
+import * as crypto from 'crypto';
 import * as nodePath from 'path';
 import { getWebviewHtml } from './html-provider';
 import { SyncCoordinator } from '../services/sync-coordinator';
 import { WorkspaceAssetService } from '../services/workspace-asset-service';
 import { DiagramExportService } from '../services/diagram-export-service';
+import { HubClient, describeHubError } from '../services/hub-client';
+import { HubAssetService, type HubNamespace } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
+import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
 import {
     parseRequirementSchema,
@@ -15,7 +19,6 @@ import {
     isLocalControlPath,
     parseCanonicalControlUrl,
     parseControlCurie,
-    type ControlCurieResult,
 } from '../services/control-curie';
 import { resolveLocalPath, resolveSafeWritePath } from '../services/path-resolver';
 import type {
@@ -24,10 +27,11 @@ import type {
 } from '../types/messages';
 
 
-/** Human-readable message for a caught error. */
-function describeError(err: unknown): string {
-    return err instanceof Error ? err.message : String(err);
+function shortHash(input: string): string {
+    return crypto.createHash('sha256').update(input.trim().toLowerCase()).digest('hex').slice(0, 8);
 }
+
+const describeError = describeHubError;
 
 export class CanvasPanel {
     private panel: vscode.WebviewPanel | undefined;
@@ -37,7 +41,11 @@ export class CanvasPanel {
     private syncCoordinator = new SyncCoordinator();
     private assetService: WorkspaceAssetService | undefined;
     private exportService = new DiagramExportService();
+    private hubClient: HubClient | undefined;
+    private hubAssetService: HubAssetService | undefined;
     private controlAssetService: ControlAssetService;
+    private shaCache = new ShaCacheService();
+    private hubBaseHash = '';
     private importService: SvgImportService | undefined;
     private fileWatcher: vscode.FileSystemWatcher | undefined;
     private log: vscode.OutputChannel;
@@ -45,8 +53,10 @@ export class CanvasPanel {
     private disposed = false;
     private scanReady = false;
     private webviewReady = false;
+    private hubRefreshing = false;
     /** Resolves once the initial local asset scan completes. */
     private scanReadyPromise: Promise<void> = Promise.resolve();
+    private hubReadyPromise: Promise<void> = new Promise<void>(() => {});
 
     constructor(
         private readonly context: vscode.ExtensionContext,
@@ -83,6 +93,66 @@ export class CanvasPanel {
             this.sendAssets();
             this.postMessage({ type: 'controlsChanged' });
         });
+    }
+
+    async setHubConnection(client?: HubClient, forceRefresh = false): Promise<void> {
+        if (!client) {
+            this.hubClient = undefined;
+            this.hubAssetService = undefined;
+            this.hubBaseHash = '';
+            this.hubRefreshing = false;
+            this.controlAssetService.setHubClient(undefined);
+            this.hubReadyPromise = new Promise<void>(() => {});
+            this.postMessage({ type: 'hubLoading', loading: false });
+            this.log.appendLine('[CanvasPanel] Hub connection cleared');
+            this.sendAssets();
+            return;
+        }
+
+        this.hubClient = client;
+        const hubHash = shortHash(client.getBaseUrl());
+        this.hubBaseHash = hubHash;
+        const service = new HubAssetService(client);
+        this.hubAssetService = service;
+        this.controlAssetService.setHubClient(client);
+        this.hubRefreshing = true;
+        this.postMessage({ type: 'hubLoading', loading: true });
+
+        // Assign hubReadyPromise immediately so handlers that fire during
+        // cache load / sync don't get the old never-resolving promise.
+        this.hubReadyPromise = (async () => {
+            if (forceRefresh) {
+                await this.shaCache.clearHub(hubHash);
+                this.log.appendLine('[CanvasPanel] Cache cleared for clean refresh');
+            }
+
+            // Phase 1: Load from cache instantly
+            const cached = await this.shaCache.getPalette(hubHash) as HubNamespace[] | null;
+            if (cached && cached.length > 0 && !forceRefresh) {
+                service.loadFromCache(cached);
+                this.log.appendLine(`[CanvasPanel] Loaded ${cached.reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
+                this.sendAssets();
+            }
+
+            // Phase 2: Delta sync from Hub
+            const { changed } = cached && !forceRefresh
+                ? await service.deltaRefresh()
+                : await service.refresh().then(() => ({ changed: true }));
+
+            // Guard: if a second setHubConnection replaced the service, bail
+            if (this.hubAssetService !== service) return;
+
+            const total = service.getNamespaces().reduce((n, ns) => n + ns.standardNodes.length, 0);
+            this.log.appendLine(`[CanvasPanel] Hub sync complete: ${total} nodes${changed ? ' (updated)' : ' (no changes)'}`);
+            if (changed) this.sendAssets();
+            this.shaCache.putPalette(hubHash, service.getNamespaces()).catch(() => {});
+        })().catch((err) => {
+            this.log.appendLine(`[CanvasPanel] Hub sync failed: ${String(err)}`);
+        });
+
+        await this.hubReadyPromise;
+        this.hubRefreshing = false;
+        this.postMessage({ type: 'hubLoading', loading: false });
     }
 
     reveal(document: vscode.TextDocument): void {
@@ -157,8 +227,21 @@ export class CanvasPanel {
                     `[CanvasPanel] Webview ready. scanReady=${this.scanReady}`
                 );
                 this.sendInitialData();
+                // Load Hub cache on ready so palette appears instantly
+                if (this.hubClient && this.hubAssetService && this.hubBaseHash) {
+                    this.shaCache.getPalette(this.hubBaseHash).then((cached) => {
+                        if (cached && this.hubAssetService && this.hubAssetService.getNamespaces().length === 0) {
+                            this.hubAssetService.loadFromCache(cached as HubNamespace[]);
+                            this.log.appendLine(`[CanvasPanel] Webview ready — loaded ${(cached as HubNamespace[]).reduce((n, ns) => n + ns.standardNodes.length, 0)} nodes from cache`);
+                            this.sendAssets();
+                        }
+                    }).catch(() => {});
+                }
                 if (this.scanReady) {
                     this.sendAssets();
+                }
+                if (this.hubRefreshing) {
+                    this.postMessage({ type: 'hubLoading', loading: true });
                 }
                 break;
             case 'canvasChanged':
@@ -234,6 +317,9 @@ export class CanvasPanel {
             case 'openControlInHub':
                 void this.handleOpenControlInHub(message.ref);
                 break;
+            case 'resolveDefinitionId':
+                void this.handleResolveDefinitionId(message.nodeId, message.curie);
+                break;
         }
     }
 
@@ -255,11 +341,23 @@ export class CanvasPanel {
         const localBlocks = this.assetService.getStandardNodes();
         const localPatterns = this.assetService.getPatterns();
 
+        const allNs = this.hubAssetService?.getNamespaces().map(ns => ns.name) ?? [];
+        const userSelection = vscode.workspace.getConfiguration('calm.hub').get<string[]>('selectedNamespaces');
+        // VS Code defaults unset arrays to []. Treat null/undefined/[] as "show all".
+        const selectedNs = (userSelection && userSelection.length > 0)
+            ? allNs.filter(ns => userSelection.includes(ns))
+            : allNs;
+        const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
+        const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
+
+        const allBlocks = [...localBlocks, ...hubBlocks];
+        const allPatterns = [...localPatterns, ...hubPatterns];
+
         this.log.appendLine(
-            `[CanvasPanel] Sending assets to webview: ${localBlocks.length} blocks, ${localPatterns.length} patterns`
+            `[CanvasPanel] Sending assets to webview: ${allBlocks.length} nodes (${localBlocks.length} local + ${hubBlocks.length} hub), ${allPatterns.length} patterns`
         );
-        this.postMessage({ type: 'standardNodesLoaded', nodes: localBlocks });
-        this.postMessage({ type: 'patternsLoaded', patterns: localPatterns });
+        this.postMessage({ type: 'standardNodesLoaded', nodes: allBlocks });
+        this.postMessage({ type: 'patternsLoaded', patterns: allPatterns });
     }
 
     private async handleDrillUp(
@@ -425,7 +523,7 @@ export class CanvasPanel {
 
         const writePath = resolveSafeWritePath(`standard-nodes/${filename}`, workspaceFolder.uri.fsPath);
         if (!writePath) {
-            vscode.window.showErrorMessage(`Invalid building block filename: ${filename}`);
+            vscode.window.showErrorMessage(`Invalid standard node filename: ${filename}`);
             return;
         }
         const fileUri = vscode.Uri.file(writePath);
@@ -446,11 +544,14 @@ export class CanvasPanel {
             Buffer.from(content, 'utf-8')
         );
         vscode.window.showInformationMessage(
-            `Building block saved: standard-nodes/${filename}`
+            `Standard node saved: standard-nodes/${filename}`
         );
 
         const doc = await vscode.workspace.openTextDocument(fileUri);
         await vscode.window.showTextDocument(doc, vscode.ViewColumn.One);
+
+        await this.assetService?.scanAll();
+        this.sendAssets();
     }
 
     private async handleSavePattern(
@@ -520,60 +621,11 @@ export class CanvasPanel {
             vscode.window.showErrorMessage('Cannot export pattern: invalid document JSON');
             return;
         }
-        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const fileName = `${slug}.pattern.json`;
 
-        const toSchema = (value: unknown): unknown => {
-            if (value === null || value === undefined) return undefined;
-            if (Array.isArray(value)) return { type: 'array', prefixItems: value.map(toSchema) };
-            if (typeof value === 'object') {
-                const props: Record<string, unknown> = {};
-                for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-                    if (k === '$schema' || k === '$id' || k === 'type') continue;
-                    const s = toSchema(v);
-                    if (s !== undefined) props[k] = s;
-                }
-                return { type: 'object', properties: props };
-            }
-            return { const: value };
-        };
-        const itemSchema = (entry: Record<string, unknown>, ref: string) => {
-            const props: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(entry)) {
-                if (k === '$schema' || k === '$id' || k === 'type' || v === undefined) continue;
-                props[k] = toSchema(v);
-            }
-            return { $ref: ref, type: 'object', properties: props };
-        };
+        const { exportAsPattern } = await import('../../webview/panels/pattern-doc');
+        const { json, fileName } = exportAsPattern(doc, name.trim());
 
-        const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
-        const rels = (doc.relationships ?? []) as Record<string, unknown>[];
-        const pattern = {
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
-            $id: `patterns/${fileName}`,
-            type: 'object',
-            title: name.trim(),
-            description: `Pattern derived from architecture: ${name.trim()}`,
-            properties: {
-                nodes: {
-                    type: 'array',
-                    minItems: nodes.length,
-                    prefixItems: nodes.map((n) =>
-                        itemSchema(n, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node')
-                    ),
-                },
-                relationships: {
-                    type: 'array',
-                    minItems: rels.length,
-                    prefixItems: rels.map((r) =>
-                        itemSchema(r, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship')
-                    ),
-                },
-            },
-            required: ['nodes', 'relationships'],
-        };
-
-        await this.handleSavePattern(fileName, JSON.stringify(pattern, null, 2));
+        await this.handleSavePattern(fileName, json);
     }
 
     /** Local controls are always available; Hub domains are fetched lazily per-domain. */
@@ -603,6 +655,14 @@ export class CanvasPanel {
     ): Promise<void> {
         try {
             await this.scanReadyPromise;
+            if (domain !== LOCAL_DOMAIN) {
+                const hubReady = this.hubReadyPromise;
+                if (!this.hubClient) {
+                    this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: 'Hub not connected' });
+                    return;
+                }
+                await hubReady;
+            }
             const group = await this.controlAssetService.browseControlsForDomain(domain);
             if (group.error) {
                 this.postMessage({ type: 'controlDomainResult', requestId, ok: false, error: group.error });
@@ -620,20 +680,23 @@ export class CanvasPanel {
         controlName: string
     ): Promise<void> {
         if (domain === LOCAL_DOMAIN) {
-            this.postMessage({
-                type: 'controlVersionsResult',
-                requestId,
-                ok: true,
-                versions: ['current'],
-            });
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions: ['current'] });
             return;
         }
-        this.postMessage({
-            type: 'controlVersionsResult',
-            requestId,
-            ok: false,
-            error: 'Hub not connected',
-        });
+        const client = this.hubClient;
+        if (!client) {
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: 'Hub not connected' });
+            return;
+        }
+        try {
+            const hubReady = this.hubReadyPromise;
+            await hubReady;
+            const resolved = await client.resolveControlId(domain, controlName);
+            const versions = await client.getRequirementVersions(resolved.domain, resolved.id);
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: true, versions });
+        } catch (err) {
+            this.postMessage({ type: 'controlVersionsResult', requestId, ok: false, error: describeError(err) });
+        }
     }
 
     private async handleControlResolve(
@@ -668,11 +731,31 @@ export class CanvasPanel {
                 return;
             }
 
+            // Hub resolution: fetch the requirement schema from Hub
+            if (this.hubClient) {
+                try {
+                    const resolved = await this.hubClient.resolveControlId(parts.domain, parts.controlName);
+                    const versions = await this.hubClient.getRequirementVersions(resolved.domain, resolved.id);
+                    const version = parts.version ?? (versions.length > 0 ? versions[versions.length - 1] : undefined);
+                    if (version) {
+                        const schema = await this.hubClient.getRequirementAtVersion(resolved.domain, resolved.id, version);
+                        if (schema && typeof schema === 'object') {
+                            const fallback = { controlId: parts.controlName, name: parts.controlName, description: parts.controlName };
+                            const result = parseRequirementSchema(schema as Record<string, unknown>, fallback);
+                            this.postResolve(requestId, result);
+                            return;
+                        }
+                    }
+                } catch { /* fall through to error */ }
+            }
+
             this.postMessage({
                 type: 'controlResolveResult',
                 requestId,
                 ok: false,
-                error: `Control "${parts.controlName}" not found locally (Hub not connected)`,
+                error: this.hubClient
+                    ? `Control "${parts.controlName}" not found in domain "${parts.domain}"`
+                    : `Control "${parts.controlName}" not found locally (Hub not connected)`,
             });
         } catch (err) {
             this.postMessage({
@@ -856,7 +939,82 @@ export class CanvasPanel {
     }
 
     private async handleOpenControlInHub(ref: string): Promise<void> {
-        vscode.window.showWarningMessage('Hub not connected');
+        if (!this.hubClient) {
+            vscode.window.showWarningMessage('Hub not connected');
+            return;
+        }
+        const baseUrl = this.hubClient.getBaseUrl();
+        const parsed = parseControlCurie(ref) ?? parseCanonicalControlUrl(ref);
+        if (parsed) {
+            try {
+                const resolved = await this.hubClient.resolveControlId(parsed.domain, parsed.controlName);
+                const url = `${baseUrl}/#/${encodeURIComponent(resolved.domain)}/controls/${resolved.id}/detail`;
+                vscode.env.openExternal(vscode.Uri.parse(url));
+            } catch {
+                const url = `${baseUrl}/#/domain/${encodeURIComponent(parsed.domain)}`;
+                vscode.env.openExternal(vscode.Uri.parse(url));
+            }
+        }
+    }
+
+    private async pinControlVersions(controls: Record<string, unknown>): Promise<void> {
+        if (this.hubAssetService) {
+            await this.hubAssetService.pinControlVersions(controls);
+        }
+    }
+
+    private async handleResolveDefinitionId(nodeId: string, curie: string): Promise<void> {
+        const client = this.hubClient;
+        if (!client) {
+            this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: 'Hub not connected' });
+            return;
+        }
+        try {
+            const hubReady = this.hubReadyPromise;
+            await hubReady;
+            const atIdx = curie.lastIndexOf('@');
+            if (atIdx === -1) {
+                this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `CURIE missing version: ${curie}` });
+                return;
+            }
+            const version = curie.slice(atIdx + 1);
+            const head = curie.slice(0, atIdx);
+            const segments = head.split(':');
+            if (segments.length < 3) {
+                this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: `Invalid CURIE: ${curie}` });
+                return;
+            }
+            const [namespace, , resourceName] = segments;
+
+            // Cache first — SHA-based versions are immutable, so cached data is always valid.
+            const cached = await this.shaCache.get(this.hubBaseHash, namespace, 'standards', resourceName, version);
+            if (cached) {
+                this.postMessage({ type: 'definitionResolved', nodeId, controls: cached as Record<string, unknown> });
+                return;
+            }
+
+            // Look up the numeric Hub ID from the cached namespace data
+            let numericId: string = resourceName;
+            if (this.hubAssetService) {
+                const ns = this.hubAssetService.getNamespaces().find(n => n.name === namespace);
+                const match = ns?.standardNodes.find(sn => sn.id === resourceName);
+                if (match?.hubId != null) numericId = String(match.hubId);
+            }
+            const doc = await client.getResourceAtVersion(
+                namespace,
+                'standards',
+                numericId,
+                version
+            ) as Record<string, unknown>;
+            const docNodes = (doc.nodes as Array<Record<string, unknown>>) ?? [];
+            const docNode = docNodes[0];
+            const controls = (docNode?.controls as Record<string, unknown>) ?? {};
+            await this.pinControlVersions(controls);
+            this.postMessage({ type: 'definitionResolved', nodeId, controls });
+            this.shaCache.put(this.hubBaseHash, namespace, 'standards', resourceName, version, controls).catch(() => {});
+        } catch (err) {
+            this.postMessage({ type: 'definitionResolutionFailed', nodeId, error: describeError(err) });
+        }
     }
 
     private async handleImportSvg(): Promise<void> {

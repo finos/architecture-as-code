@@ -123,9 +123,26 @@ describe('HubClient', () => {
 
             await client.getResources('finos', 'architectures');
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/calm/namespaces/finos/architectures',
+                'https://hub.example.com/api/calm/namespaces/finos/architectures',
                 expect.any(Object)
             );
+        });
+
+        it('maps item.id to numericId', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: [{ name: 'svc', customId: 'my-svc', id: 42, versionCount: 3 }] })
+            );
+            const result = await client.getResources('finos', 'standards');
+            expect(result[0].numericId).toBe(42);
+            expect(result[0].uniqueId).toBe('my-svc');
+        });
+
+        it('falls back to numericId when id is absent', async () => {
+            mockFetch.mockResolvedValueOnce(
+                jsonResponse({ values: [{ name: 'svc', numericId: 7 }] })
+            );
+            const result = await client.getResources('finos', 'standards');
+            expect(result[0].numericId).toBe(7);
         });
     });
 
@@ -142,7 +159,7 @@ describe('HubClient', () => {
             );
             expect(result).toEqual(['1.0', '2.0']);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions',
+                'https://hub.example.com/api/calm/namespaces/finos/architectures/my-arch/versions',
                 expect.any(Object)
             );
         });
@@ -161,7 +178,7 @@ describe('HubClient', () => {
             );
             expect(result).toEqual(resource);
             expect(mockFetch).toHaveBeenCalledWith(
-                'https://hub.example.com/calm/namespaces/finos/architectures/my-arch/versions/1.0',
+                'https://hub.example.com/api/calm/namespaces/finos/architectures/my-arch/versions/1.0',
                 expect.any(Object)
             );
         });

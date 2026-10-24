@@ -15,12 +15,6 @@ export interface DrillEntry {
     readonly?: boolean;
 }
 
-export interface UpdateInfo {
-    nodeId: string;
-    currentSha: string;
-    latestSha: string;
-}
-
 export interface CanvasState {
     nodes: Node[];
     edges: Edge[];
@@ -36,7 +30,7 @@ export interface CanvasState {
     documentControls: Record<string, unknown>;
     standardNodes: unknown[];
     loadedPatterns: unknown[];
-    availableUpdates: UpdateInfo[];
+    hubLoading: boolean;
 
     // Actions
     setNodes: (nodes: Node[]) => void;
@@ -52,7 +46,7 @@ export interface CanvasState {
     resetDrill: () => void;
     setPanelWidth: (width: number) => void;
     setExpandControlKey: (key: string | null) => void;
-    setAvailableUpdates: (updates: UpdateInfo[]) => void;
+    setHubLoading: (loading: boolean) => void;
 }
 
 export const useCanvasStore = create<CanvasState>((set) => ({
@@ -70,7 +64,7 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     documentControls: {},
     standardNodes: [],
     loadedPatterns: [],
-    availableUpdates: [],
+    hubLoading: false,
 
     setNodes: (nodes) => set({ nodes }),
     setEdges: (edges) => set({ edges }),
@@ -87,5 +81,5 @@ export const useCanvasStore = create<CanvasState>((set) => ({
     resetDrill: () => set({ drillStack: [], readonlyMode: false }),
     setPanelWidth: (width) => set({ panelWidth: width }),
     setExpandControlKey: (key) => set({ expandControlKey: key }),
-    setAvailableUpdates: (updates) => set({ availableUpdates: updates }),
+    setHubLoading: (loading) => set({ hubLoading: loading }),
 }));
