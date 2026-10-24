@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide provides instructions for creating complete CALM architecture timeline documents that comply with the FINOS CALM v1.2 schema.
+This guide provides instructions for creating complete CALM architecture timeline documents that comply with the FINOS CALM v1.3 schema.
 
 ## Required Schema Structure
 
@@ -10,7 +10,7 @@ Every CALM architecture timeline MUST include:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
     "moments": []
 }
 ```
@@ -28,7 +28,7 @@ The `current-moment` property can be used to indicate the active moment in the t
 
 ## Architecture Timeline Creation Checklist
 
-- [ ] Include required $schema reference to CALM v1.2
+- [ ] Include required $schema reference to CALM v1.3
 - [ ] Name file with `.timeline.json` suffix
 - [ ] Add moments array (even if empty initially)
 - [ ] Include metadata array for operational info
@@ -53,7 +53,7 @@ The `current-moment` property can be used to indicate the active moment in the t
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
     "metadata": [
         {
             "version": "1.0.0",

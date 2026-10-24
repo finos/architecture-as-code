@@ -12,23 +12,27 @@ Decorators attach supplementary information to nodes, relationships, and other a
 **Key Principles:**
 
 - **Separation of Concerns**: The architecture file stays clean and focused; contextual data is layered on top via decorators
-- **Targeting**: Each decorator references one or more CALM documents (patterns, architectures, or controls) via `target` and specific elements within those documents via `applies-to`
+- **Targeting**: Each decorator references one or more CALM architectures via `target` and specific elements within those architectures via `applies-to`
 - **Typed Data**: The `type` field categorizes the decorator, and the `data` object holds the payload whose shape is determined by the decorator type
 - **Schema Inheritance**: Decorator types can extend the base schema, creating composable inheritance chains
 
 ## Official JSON Schema Definition
 
-The complete base decorator schema from the FINOS CALM v1.2 specification:
+The complete base decorator schema from the FINOS CALM v1.3 specification:
 
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/decorators.json",
+    "$id": "https://calm.finos.org/release/1.3/meta/decorators.json",
     "title": "Common Architecture Language Model Decorators",
     "defs": {
         "decorator": {
             "type": "object",
             "properties": {
+                "$schema": {
+                    "type": "string",
+                    "description": "URI of the schema that this decorator conforms to, for example a decorator standard"
+                },
                 "unique-id": {
                     "type": "string",
                     "description": "Unique identifier for this decorator"
@@ -37,13 +41,25 @@ The complete base decorator schema from the FINOS CALM v1.2 specification:
                     "type": "string",
                     "description": "Type of decorator - a free-form string identifying the decorator category"
                 },
+                "target-type": {
+                    "type": "array",
+                    "items": {
+                        "type": "string",
+                        "enum": [
+                            "architecture"
+                        ]
+                    },
+                    "minItems": 1,
+                    "uniqueItems": true,
+                    "description": "Optional array of the types of CALM document that this decorator can target. The only type is architecture, because applies-to holds the unique-ids of architecture elements."
+                },
                 "target": {
                     "type": "array",
                     "items": {
                         "type": "string"
                     },
                     "minItems": 1,
-                    "description": "Array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets"
+                    "description": "Array of file paths or URLs referencing the CALM architectures this decorator targets"
                 },
                 "applies-to": {
                     "type": "array",
@@ -78,11 +94,18 @@ The complete base decorator schema from the FINOS CALM v1.2 specification:
 |---|---|---|
 | `unique-id` | string | Unique identifier for this decorator instance |
 | `type` | string | A free-form string identifying the decorator category (e.g. `guide`, `business`, `threat-model`, `deployment`). Not an enum — any value is valid |
-| `target` | array of strings | File paths or URLs referencing the CALM documents this decorator targets (min 1 item) |
-| `applies-to` | array of strings | `unique-id` values of the architecture elements within the targeted documents (min 1 item) |
+| `target` | array of strings | File paths or URLs referencing the CALM architectures this decorator targets (min 1 item) |
+| `applies-to` | array of strings | `unique-id` values of the architecture elements within the targeted architectures (min 1 item) |
 | `data` | object | JSON payload whose shape is determined by the decorator type (min 1 property) |
 
-⚠️ **`additionalProperties: false`** — The top-level decorator object only allows the five properties above. All custom data goes inside the `data` object.
+## Optional Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `$schema` | string | URI of the schema that the decorator conforms to (e.g. `decorators.json#/defs/decorator` or a decorator standard) |
+| `target-type` | array of strings | Types of CALM document that the decorator can target (min 1 item, unique). The only allowed value is `architecture` |
+
+⚠️ **`additionalProperties: false`** — The top-level decorator object only allows the five required and two optional properties above. All custom data goes inside the `data` object.
 
 ## Decorator Types
 
@@ -122,7 +145,7 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "trading-system-business-context",
     "type": "business",
     "target": ["trading-system.architecture.json"],
@@ -139,7 +162,7 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "api-security-context",
     "type": "security",
     "target": ["api-gateway.architecture.json"],
@@ -157,7 +180,7 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
     "target": ["aks-architecture.json"],
@@ -176,7 +199,7 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "adr-event-sourcing",
     "type": "guide",
     "target": ["order-management.architecture.json"],
@@ -198,7 +221,7 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "trading-api-observability",
     "type": "observability",
     "target": ["trading-system.architecture.json"],
@@ -219,9 +242,10 @@ Decorators can target multiple architecture files:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
     "unique-id": "platform-on-call-rotation",
     "type": "operational",
+    "target-type": ["architecture"],
     "target": [
         "trading-system.architecture.json",
         "settlement-system.architecture.json"
@@ -254,7 +278,7 @@ To create a reusable decorator type with a defined schema for the `data` field:
     "title": "My Custom Decorator Schema",
     "allOf": [
         {
-            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+            "$ref": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator"
         },
         {
             "type": "object",
@@ -305,9 +329,10 @@ Use **custom decorator schemas** when:
 2. `target` must contain at least one file path or URL
 3. `applies-to` must contain at least one `unique-id` reference
 4. `data` must contain at least one property (`minProperties: 1`)
-5. No additional top-level properties are allowed (`additionalProperties: false`)
-6. The `unique-id` values in `applies-to` must correspond to elements that exist in the targeted documents
-7. For typed decorators using custom schemas, `type` must match the schema constraint
+5. The only other top-level properties allowed are the optional `$schema` and `target-type` (`additionalProperties: false`)
+6. If present, `target-type` must contain only `architecture`
+7. The `unique-id` values in `applies-to` must correspond to elements that exist in the targeted architectures
+8. For typed decorators using custom schemas, `type` must match the schema constraint
 
 ## Decorator vs Other CALM Concepts
 
