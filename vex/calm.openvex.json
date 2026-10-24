@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-24T00:00:00Z",
-  "version": 11,
+  "version": 12,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -147,7 +147,7 @@
           "@id": "pkg:npm/%40finos/calm-docusaurus-plugin",
           "subcomponents": [
             {
-              "@id": "pkg:npm/postcss-selector-parser@6.1.4"
+              "@id": "pkg:npm/postcss-selector-parser@6.1.5"
             }
           ]
         },
@@ -155,15 +155,13 @@
           "@id": "pkg:github/finos/architecture-as-code#docs",
           "subcomponents": [
             {
-              "@id": "pkg:npm/postcss-selector-parser@6.1.4"
+              "@id": "pkg:npm/postcss-selector-parser@6.1.5"
             }
           ]
         }
       ],
-      "status": "not_affected",
-      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
-      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
-      "impact_statement": "postcss-selector-parser 6.1.4 is used only by the cssnano plugins that Docusaurus uses to minify CSS at build time. cssnano parses only the project's own CSS, so an attacker cannot supply the selectors that cause the slow parse. No published CALM package includes postcss-selector-parser at runtime. The fix is only in 7.1.6, and there is no 6.x fix."
+      "status": "fixed",
+      "status_notes": "postcss-selector-parser 6.1.5 has the fix, backported from 7.1.6. The advisory still gives \"< 7.1.6\" as the vulnerable range, so scanners report 6.1.5 until the advisory lists it as patched. osv-scanner.toml suppresses the finding until then."
     },
     {
       "vulnerability": {
