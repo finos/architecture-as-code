@@ -76,14 +76,13 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating namespace: $namespace"
         local description
         case "$namespace" in
             # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
             finos.fluxnova) description="FluxNova BPM example architectures" ;;
             finos.sdlc-common-controls) description="The Standard the SDLC Common Controls Catalog control requirements conform to" ;;
-            finos.agentic-sdlc) description="Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" ;;
             *) description="$namespace namespace" ;;
         esac
         create_namespace "$namespace" "$description" || true
@@ -5282,7 +5281,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \

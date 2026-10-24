@@ -532,10 +532,9 @@ if (db.namespaces.countDocuments() === 0) {
         { name: "ai-governance-v2", description: "AI Governance v2 namespace" },
         { name: "qcon", description: "QCon scenario 3 namespace" },
         { name: "finos.fluxnova", description: "FluxNova BPM example architectures" },
-        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" },
-        { name: "finos.agentic-sdlc", description: "Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" }
+        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" }
     ]);
-    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls, finos.agentic-sdlc");
+    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls");
 } else {
     logSkip("Namespaces already exist, no initialization needed");
 }

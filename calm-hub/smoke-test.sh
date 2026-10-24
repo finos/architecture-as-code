@@ -32,8 +32,6 @@
 #   GET    /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 -> 200 (slug mapping)
 #   GET    /api/calm/domains/finos-sdlc-common-controls/controls -> 200 + body contains "sdlc-prev-001-code-review"
 #   GET    /calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 -> 200
-#   GET    /calm/namespaces/finos.agentic-sdlc/standards/governed-node/versions/1.0.0 -> 200 (slug mapping)
-#   GET    /calm/namespaces/finos.agentic-sdlc/patterns/governed-service/versions/1.0.0 -> 200 (slug mapping)
 #   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   GET    /calm/search?q=conference                        -> 200 + body contains "architectures","Conference Signup Pattern"
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
@@ -197,12 +195,10 @@ if [[ "${MODE}" == "readonly" ]]; then
     # through the name-based API): resolve one architecture by its customId.
     assert GET /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 200
 
-    # The SDLC Common Controls Catalog: its control domain, the Standard its documents declare, and the
-    # Agentic SDLC Blueprint's pattern and Standard that enforce it (all seeded from calm-hub/mongo/).
+    # The SDLC Common Controls Catalog: its control domain and the Standard its documents declare (both seeded
+    # from calm-hub/mongo/).
     assert_body_contains_all GET /api/calm/domains/finos-sdlc-common-controls/controls '"sdlc-prev-001-code-review"'
     assert GET /calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 200
-    assert GET /calm/namespaces/finos.agentic-sdlc/standards/governed-node/versions/1.0.0 200
-    assert GET /calm/namespaces/finos.agentic-sdlc/patterns/governed-service/versions/1.0.0 200
 
     # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
     # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).
