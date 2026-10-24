@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { exportAsPattern, generateId } from './pattern-doc';
+import { CALM_META_SCHEMA_BASE_URL } from '../../core/calm-schema-release';
 
 describe('generateId', () => {
     it('lowercases and kebab-cases', () => {
@@ -35,12 +36,14 @@ describe('exportAsPattern', () => {
         const pattern = JSON.parse(json);
 
         expect(fileName).toBe('my-app-pattern.pattern.json');
+        expect(pattern.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/calm.json`);
         expect(pattern.title).toBe('My App Pattern');
         expect(pattern.type).toBe('object');
         expect(pattern.required).toEqual(['nodes', 'relationships']);
 
         const nodeItems = pattern.properties.nodes.prefixItems;
         expect(nodeItems).toHaveLength(2);
+        expect(nodeItems[0].$ref).toBe(`${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`);
         expect(nodeItems[0].properties['unique-id'].const).toBe('web-app');
         expect(nodeItems[0].properties.name.const).toBe('Web App');
         expect(nodeItems[0].properties['node-type'].const).toBe('webclient');
@@ -48,6 +51,7 @@ describe('exportAsPattern', () => {
 
         const relItems = pattern.properties.relationships.prefixItems;
         expect(relItems).toHaveLength(1);
+        expect(relItems[0].$ref).toBe(`${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`);
         expect(relItems[0].properties['unique-id'].const).toBe('web-to-api');
         const relType = relItems[0].properties['relationship-type'];
         expect(relType.properties.connects.properties.source.properties.node.const).toBe('web-app');

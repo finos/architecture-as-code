@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { buildCalmJson } from './calm-builder';
 import type { ParsedSvgGraph } from './types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../../core/calm-schema-release';
 
 describe('buildCalmJson', () => {
     it('produces valid CALM JSON for a simple graph', () => {
@@ -18,7 +19,7 @@ describe('buildCalmJson', () => {
         const result = buildCalmJson(graph);
         const doc = JSON.parse(result.json);
 
-        expect(doc.$schema).toBe('https://calm.finos.org/release/1.2/meta/calm.json');
+        expect(doc.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/calm.json`);
         expect(doc.nodes).toHaveLength(2);
         expect(doc.relationships).toHaveLength(1);
         expect(result.nodeCount).toBe(2);

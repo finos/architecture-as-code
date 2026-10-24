@@ -18,6 +18,7 @@ import {
     type ControlCurieResult,
 } from '../services/control-curie';
 import { resolveLocalPath, resolveSafeWritePath } from '../services/path-resolver';
+import { buildArchitecturePattern } from '../services/pattern-export';
 import type {
     ExtToWebviewMessage,
     WebviewToExtMessage,
@@ -520,60 +521,8 @@ export class CanvasPanel {
             vscode.window.showErrorMessage('Cannot export pattern: invalid document JSON');
             return;
         }
-        const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-        const fileName = `${slug}.pattern.json`;
-
-        const toSchema = (value: unknown): unknown => {
-            if (value === null || value === undefined) return undefined;
-            if (Array.isArray(value)) return { type: 'array', prefixItems: value.map(toSchema) };
-            if (typeof value === 'object') {
-                const props: Record<string, unknown> = {};
-                for (const [k, v] of Object.entries(value as Record<string, unknown>)) {
-                    if (k === '$schema' || k === '$id' || k === 'type') continue;
-                    const s = toSchema(v);
-                    if (s !== undefined) props[k] = s;
-                }
-                return { type: 'object', properties: props };
-            }
-            return { const: value };
-        };
-        const itemSchema = (entry: Record<string, unknown>, ref: string) => {
-            const props: Record<string, unknown> = {};
-            for (const [k, v] of Object.entries(entry)) {
-                if (k === '$schema' || k === '$id' || k === 'type' || v === undefined) continue;
-                props[k] = toSchema(v);
-            }
-            return { $ref: ref, type: 'object', properties: props };
-        };
-
-        const nodes = (doc.nodes ?? []) as Record<string, unknown>[];
-        const rels = (doc.relationships ?? []) as Record<string, unknown>[];
-        const pattern = {
-            $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
-            $id: `patterns/${fileName}`,
-            type: 'object',
-            title: name.trim(),
-            description: `Pattern derived from architecture: ${name.trim()}`,
-            properties: {
-                nodes: {
-                    type: 'array',
-                    minItems: nodes.length,
-                    prefixItems: nodes.map((n) =>
-                        itemSchema(n, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node')
-                    ),
-                },
-                relationships: {
-                    type: 'array',
-                    minItems: rels.length,
-                    prefixItems: rels.map((r) =>
-                        itemSchema(r, 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship')
-                    ),
-                },
-            },
-            required: ['nodes', 'relationships'],
-        };
-
-        await this.handleSavePattern(fileName, JSON.stringify(pattern, null, 2));
+        const { fileName, json } = buildArchitecturePattern(doc, name);
+        await this.handleSavePattern(fileName, json);
     }
 
     /** Local controls are always available; Hub domains are fetched lazily per-domain. */

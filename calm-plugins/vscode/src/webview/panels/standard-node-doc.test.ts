@@ -5,6 +5,7 @@ import {
     type AttachedControl,
 } from './standard-node-doc';
 import type { ParsedRequirement } from '../../extension/services/requirement-parser';
+import { CALM_META_SCHEMA_BASE_URL } from '../../core/calm-schema-release';
 
 const parsed: ParsedRequirement = {
     identity: {
@@ -36,7 +37,7 @@ describe('buildStandardNodeDoc', () => {
 
         expect(fileName).toBe('api-gateway.calm.json');
         const doc = JSON.parse(json);
-        expect(doc.$schema).toContain('calm.finos.org');
+        expect(doc.$schema).toBe(`${CALM_META_SCHEMA_BASE_URL}/core.json`);
         expect(doc.nodes).toHaveLength(1);
         expect(doc.nodes[0]).toMatchObject({
             'unique-id': 'standard-node-api-gateway',
