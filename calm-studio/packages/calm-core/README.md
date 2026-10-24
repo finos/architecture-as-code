@@ -134,9 +134,9 @@ if (isAINode(nodeType)) {
 
 ---
 
-## CALM 1.2 Quick Reference
+## CALM 1.3 Quick Reference
 
-All types follow the [CALM 1.2 specification](https://calm.finos.org/release/1.2/).
+All types follow the [CALM 1.3 specification](https://github.com/finos/calm-schema/tree/v1.3/schema).
 
 - Controls are attached directly to nodes/relationships (not at document level)
 - Control keys use domain-oriented kebab-case (`edge-protection`, `mcp-security`)
@@ -153,7 +153,7 @@ Full documentation at [CalmStudio Docs](https://calm.finos.org/calm-studio/intro
 
 ## Part of the FINOS CALM Ecosystem
 
-- [CALM Specification](https://calm.finos.org/release/1.2/)
+- [CALM Specification](https://github.com/finos/calm-schema/tree/v1.3/schema)
 - [architecture-as-code](https://github.com/finos/architecture-as-code)
 - [FINOS AI Governance Framework (AIGF)](https://air-governance-framework.finos.org/)
 - [CalmStudio](https://github.com/finos/calmstudio) — visual CALM architecture editor
