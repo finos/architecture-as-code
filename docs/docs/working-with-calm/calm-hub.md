@@ -121,6 +121,31 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)
 
+### Control Evaluations
+
+When a tool checks an architecture's controls, for example a policy engine that checks a change before it merges, it can record each result in CALM Hub as a **control evaluation decorator**. Each decorator says which control was evaluated, whether it was `met`, `not-met` or `not-applicable`, and, when not met, which checks failed. The format is the [control evaluation decorator Standard](https://github.com/finos/calm-schema/tree/main/standards/control-evaluation). The decorator's `target` is the architecture version, in the form `/api/calm/namespaces/{namespace}/architectures/{id}/versions/{major-minor-patch}`, and its `applies-to` lists the nodes and relationships the result is about. Create it with `POST /api/calm/namespaces/{namespace}/decorators`.
+
+The diagram shows the latest result for each node and relationship of the version on screen:
+
+* **Not met:** The node gets a red border and a **Not met** badge. Hover over it to see its latest evaluations, not met first, and what each failed check requires. A relationship is drawn red, arrowheads included, with a **Not met** label.
+* **Met:** The node gets a **Met** badge. Hover over it to see who approved the change, when an approver is recorded.
+* **Evaluations panel:** The metadata panel below the diagram lists every evaluation of the version, newest first, with the elements it applies to and its findings.
+
+While the architecture is open, the results refresh every 5 seconds, so a new decision appears without reloading the page.
+
+![CALM Hub Control Evaluations](/img/hub-ui/control-evaluations.png)
+
+#### Decision Overlay
+
+The **Show decisions** control (the gavel icon in the bottom-left diagram controls) draws each element's latest decision on the diagram, so it can be read without hovering. This is useful when you present the diagram or share your screen.
+
+* Below each evaluated node, a callout says **Blocked**, with each control that was not met, what it requires and the element it is about; **Approved by** someone, with the control and the short commit; or **Met**, with the reviewer when one is recorded.
+* A relationship that was not met says what it requires beside its **Not met** label.
+
+The overlay turns on and off with **presentation mode** (the presentation icon beside it), which makes the diagram text larger for a projector. You can also switch the overlay on or off by itself. The choice is kept for the browser session.
+
+![CALM Hub Decision Overlay in Presentation Mode](/img/hub-ui/decision-overlay.png)
+
 ---
 
 ## Timeline
