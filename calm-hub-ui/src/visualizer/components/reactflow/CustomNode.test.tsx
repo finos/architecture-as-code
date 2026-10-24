@@ -7,6 +7,7 @@ import { createPresentationModeStore } from '../../../theme/usePresentationMode.
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 vi.mock('reactflow', () => ({
@@ -391,5 +392,74 @@ describe('control evaluations', () => {
         expect(screen.getByTestId('control-evaluation-badge').textContent).toContain('Met');
         fireEvent.mouseEnter(screen.getByTestId('custom-node'));
         expect(screen.getByText(/approved by alice/)).toBeTruthy();
+    });
+});
+
+describe('decision overlay', () => {
+    function renderOverlay(showDecisions: boolean, map: Map<string, ElementEvaluation> = new Map(), presenting = false) {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        return render(
+            <DecisionOverlayContext.Provider
+                value={{ showDecisions, subjectLabels: new Map([['trade-api-to-client-ledger', 'Trade API → Client Ledger']]) }}
+            >
+                <ControlEvaluationContext.Provider value={map}>
+                    <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
+                </ControlEvaluationContext.Provider>
+            </DecisionOverlayContext.Provider>
+        );
+    }
+
+    const notMet = () => new Map([['node-1', evaluation('not-met', {
+        findings: [{ subject: 'trade-api-to-client-ledger', description: 'A human approved this change', cause: 'absent' }],
+    })]]);
+
+    it('shows no callout while the overlay is off', () => {
+        renderOverlay(false, notMet(), true);
+        expect(screen.queryByTestId('decision-callout')).toBeNull();
+    });
+
+    it('shows no callout for a node without an evaluation', () => {
+        renderOverlay(true);
+        expect(screen.queryByTestId('decision-callout')).toBeNull();
+    });
+
+    it('shows a blocked callout naming the control, what it requires and the relationship it is about', () => {
+        renderOverlay(true, notMet());
+        const callout = screen.getByTestId('decision-callout');
+        expect(callout.dataset.outcome).toBe('blocked');
+        expect(callout.textContent).toBe('✗ Blockedclient-ledger-human-approvalRequires: A human approved this changeon Trade API → Client Ledger');
+        expect(callout.style.pointerEvents).toBe('none');
+    });
+
+    it('shows who approved a met decision, with the control and short commit', () => {
+        renderOverlay(true, new Map([['node-1', evaluation('met', {
+            actors: { reviewer: 'review-bot', approver: 'alice' },
+            change: { commit: '07009cb5f2c80af21ea569baf2049b216eee2692' },
+        })]]));
+        const callout = screen.getByTestId('decision-callout');
+        expect(callout.dataset.outcome).toBe('approved');
+        expect(callout.textContent).toBe('✓ Approved by aliceclient-ledger-human-approvalcommit 07009cb');
+    });
+
+    it('shows a met decision with its reviewer', () => {
+        renderOverlay(true, new Map([['node-1', evaluation('met', { actors: { reviewer: 'review-bot' } })]]));
+        expect(screen.getByTestId('decision-callout').textContent).toBe('✓ Met · reviewed by review-bot');
+    });
+
+    it('hides the callout while the hover card is open', () => {
+        renderOverlay(true, notMet());
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+        expect(screen.queryByTestId('decision-callout')).toBeNull();
+        fireEvent.mouseLeave(screen.getByTestId('custom-node'));
+        expect(screen.getByTestId('decision-callout')).toBeTruthy();
+    });
+
+    it('sizes the callout text with presentation mode', () => {
+        const { unmount } = renderOverlay(true, notMet());
+        expect(screen.getByTestId('decision-callout').style.fontSize).toBe('12px');
+        unmount();
+        renderOverlay(true, notMet(), true);
+        expect(screen.getByTestId('decision-callout').style.fontSize).toBe('16px');
     });
 });

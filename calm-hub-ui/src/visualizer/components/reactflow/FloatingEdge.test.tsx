@@ -6,6 +6,7 @@ import { THEME } from './theme.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
 
 const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
@@ -330,5 +331,57 @@ describe('FloatingEdge in presentation mode', () => {
 
         renderEdge(true);
         expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
+    });
+});
+
+describe('FloatingEdge with the decision overlay', () => {
+    beforeEach(() => {
+        edgeParams.mockReturnValue(FLOATING);
+        storeNodes.clear();
+    });
+
+    const notMetWithFinding = (): ElementEvaluation => ({
+        status: 'not-met',
+        latest: [{
+            schema: 's', uniqueId: 'eval-1', type: 'control-evaluation', target: ['t'], appliesTo: ['rel-1'],
+            data: {
+                control: { 'unique-id': 'client-ledger-human-approval', 'requirement-url': 'https://example.org/r' },
+                status: 'not-met',
+                'evaluated-at': '2026-11-04T15:00:00Z',
+                findings: [{ subject: 'rel-1', description: 'A human approved this change', cause: 'absent' }],
+            },
+        }],
+    });
+
+    function renderOverlay(showDecisions: boolean, evaluation: ElementEvaluation, presenting = false) {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        return render(
+            <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map() }}>
+                <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluation]])}>
+                    <svg>
+                        <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
+                    </svg>
+                </ControlEvaluationContext.Provider>
+            </DecisionOverlayContext.Provider>
+        );
+    }
+
+    it('says what a not-met relationship requires only while the overlay is on', () => {
+        const { unmount } = renderOverlay(false, notMetWithFinding());
+        expect(screen.queryByTestId('edge-decision-finding')).toBeNull();
+        unmount();
+        renderOverlay(true, notMetWithFinding());
+        expect(screen.getByTestId('edge-decision-finding').textContent).toBe('Requires: A human approved this change');
+    });
+
+    it('adds nothing to a met relationship', () => {
+        renderOverlay(true, evaluationFor('met'));
+        expect(screen.queryByTestId('edge-decision-finding')).toBeNull();
+    });
+
+    it('enlarges the finding in presentation mode', () => {
+        renderOverlay(true, notMetWithFinding(), true);
+        expect(screen.getByTestId('edge-decision-finding').style.fontSize).toBe('16px');
     });
 });

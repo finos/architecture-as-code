@@ -7,6 +7,7 @@ import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -27,8 +28,15 @@ let reactFlowMountCount = 0;
 function MockReactFlow(props: Record<string, unknown>) {
     reactFlowProps.current = props;
     const [instanceId] = useState(() => ++reactFlowMountCount);
+    // The nodes and edges ReactFlow draws read the decision overlay from this context.
+    const { showDecisions, subjectLabels } = useDecisionOverlay();
     return (
-        <div data-testid="react-flow" data-instance={instanceId}>
+        <div
+            data-testid="react-flow"
+            data-instance={instanceId}
+            data-show-decisions={showDecisions}
+            data-relationship-label={subjectLabels.get('rel-1')}
+        >
             {props.children as ReactNode}
         </div>
     );
@@ -312,6 +320,82 @@ describe('ArchitectureGraph', () => {
             window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram&present=0';
             renderGraph();
             expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+        });
+    });
+
+    describe('decision overlay', () => {
+        let storage: Storage;
+        let store: PresentationModeStore;
+
+        beforeEach(() => {
+            storage = createMemoryStorage();
+            store = createPresentationModeStore(createMemoryStorage());
+        });
+
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        const renderGraph = () =>
+            render(<ArchitectureGraph jsonData={mockCalmData} presentationStore={store} storage={storage} />);
+        const presentation = () => screen.getByRole('button', { name: 'Presentation mode' });
+        const decisions = () => screen.getByRole('button', { name: 'Show decisions' });
+        const shown = () => screen.getByTestId('react-flow').getAttribute('data-show-decisions');
+
+        it('starts off', () => {
+            renderGraph();
+            expect(decisions()).toHaveAttribute('aria-pressed', 'false');
+            expect(shown()).toBe('false');
+        });
+
+        it('switches on and off with presentation mode', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            expect(decisions()).toHaveAttribute('aria-pressed', 'true');
+            expect(shown()).toBe('true');
+            fireEvent.click(presentation());
+            expect(decisions()).toHaveAttribute('aria-pressed', 'false');
+            expect(shown()).toBe('false');
+        });
+
+        it('switches on its own, leaving presentation mode and the minimap alone, and is kept for the session', () => {
+            renderGraph();
+            fireEvent.click(decisions());
+            expect(shown()).toBe('true');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+            expect(storage.getItem('calmHub.diagramDecisionsShown')).toBe('1');
+        });
+
+        it('can be switched off while presenting, and follows presentation mode again when that is switched', () => {
+            store.set(true);
+            renderGraph();
+            fireEvent.click(decisions());
+            expect(shown()).toBe('false');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            fireEvent.click(presentation());
+            fireEvent.click(presentation());
+            expect(shown()).toBe('true');
+            expect(storage.getItem('calmHub.diagramDecisionsShown')).toBeNull();
+        });
+
+        it('restores the choice kept for the session', () => {
+            storage.setItem('calmHub.diagramDecisionsShown', '1');
+            renderGraph();
+            expect(shown()).toBe('true');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+        });
+
+        it('turns on with present=1, over a choice kept for the session', () => {
+            storage.setItem('calmHub.diagramDecisionsShown', '0');
+            window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
+            renderGraph();
+            expect(shown()).toBe('true');
+        });
+
+        it('gives the diagram the elements\' display names, a relationship by its nodes', () => {
+            renderGraph();
+            expect(screen.getByTestId('react-flow')).toHaveAttribute('data-relationship-label', 'Service A → Database B');
         });
     });
 
