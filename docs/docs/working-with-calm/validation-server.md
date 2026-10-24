@@ -114,7 +114,7 @@ Validate a CALM architecture document against the appropriate schema.
 
 ```json
 {
-  "architecture": "{\"$schema\":\"https://calm.finos.org/release/1.2/meta/calm.json\",\"nodes\":[]}"
+  "architecture": "{\"$schema\":\"https://calm.finos.org/release/1.3/meta/calm.json\",\"nodes\":[]}"
 }
 ```
 
@@ -126,7 +126,7 @@ The `architecture` field should contain a **stringified JSON** representation of
 curl -X POST http://localhost:3000/calm/validate \
   -H "Content-Type: application/json" \
   -d '{
-    "architecture": "{\"$schema\":\"https://calm.finos.org/release/1.2/meta/calm.json\",\"nodes\":[],\"relationships\":[]}"
+    "architecture": "{\"$schema\":\"https://calm.finos.org/release/1.3/meta/calm.json\",\"nodes\":[],\"relationships\":[]}"
   }'
 ```
 

@@ -108,7 +108,7 @@ Flows appear in the CALM Model Elements view and can be visualized as sequence d
 
 ### 6. Add Flow Controls (Optional Advanced)
 
-Flows can have their own controls. This example uses CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json), which requires `control-id`, `name`, and `description`. The logging and retention targets are illustrative. Validation checks this documentation; it does not enforce logging or retention in the running system.
+Flows can have their own controls. This example uses CALM's published [control requirement schema](https://calm.finos.org/release/1.3/meta/control-requirement.json), which requires `control-id`, `name`, and `description`. The logging and retention targets are illustrative. Validation checks this documentation; it does not enforce logging or retention in the running system.
 
 **Prompt:**
 ```text
@@ -117,7 +117,7 @@ Add a controls section to the order-processing-flow in architectures/ecommerce-p
 Add an "audit" control with:
 - description: "All order processing steps must be logged for audit compliance"
 - requirements:
-  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  - requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
     config (inline): { "control-id": "AUDIT-001", "name": "Transaction logging", "description": "Log all order processing steps in detail and retain logs for 365 days" }
 ```
 
@@ -171,7 +171,7 @@ The same relationship can appear multiple times in a flow with different directi
 
 ## Resources
 
-- [CALM Flow Schema](https://github.com/finos/calm-schema/blob/v1.2/schema/flow.json)
+- [CALM Flow Schema](https://github.com/finos/calm-schema/blob/v1.3/schema/flow.json)
 - [Flow Examples](https://github.com/finos/architecture-as-code/blob/e0d6b1c2ae363affe2293449d076ca24bb906c27/docs/static/calm-example/trading-system.architecture.json#L669-L699)
 
 ## Next Steps

@@ -7,11 +7,13 @@ sidebar_position: 8
 # Decorators
 
 :::info Schema Version
-Decorators were introduced in **CALM schema version 1.2**. To use decorators, reference the following schema in your decorator document:
+Decorators were introduced in **CALM schema version 1.2**. Version 1.3 adds the optional `$schema` and `target-type` properties. To use decorators, reference the following schema in your decorator document:
 
 ```json
-"$schema": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+"$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator"
 ```
+
+In 1.2, a decorator that has `$schema` fails validation.
 :::
 
 Decorators attach supplementary information to nodes, relationships, and other architecture elements without modifying the core architecture definition. They enable cross-cutting concerns — such as deployment tracking, security context, business metadata, and operational information — to be managed separately from the architecture itself.
@@ -22,9 +24,11 @@ A decorator is a standalone object that references one or more architecture elem
 
 ### Key Properties
 
+- **$schema** (optional): The URI of the schema this decorator conforms to, for example a decorator standard
 - **unique-id**: A unique identifier for this decorator instance
 - **type**: A string identifying the category of decorator (e.g. `guide`, `business`, `threat-model`, `deployment`). This is a free-form string, not an enum — any value is valid
-- **target**: An array of file paths or URLs referencing the CALM documents (patterns, architectures, or controls) this decorator targets
+- **target-type** (optional): An array of the types of CALM document this decorator can target. The only type is `architecture`, because `applies-to` holds the unique-ids of architecture elements
+- **target**: An array of file paths or URLs referencing the CALM architectures this decorator targets
 - **applies-to**: An array of `unique-id` values referencing the architecture elements within the targeted documents this decorator relates to
 - **data**: A JSON object containing the decorator's payload, whose shape is determined by the decorator type
 
@@ -35,17 +39,26 @@ The base decorator schema defines the top-level structure that all decorators mu
 ```json
 {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://calm.finos.org/release/1.2/meta/decorators.json",
+    "$id": "https://calm.finos.org/release/1.3/meta/decorators.json",
     "title": "Common Architecture Language Model Decorators",
     "defs": {
         "decorator": {
             "type": "object",
             "properties": {
+                "$schema": {
+                    "type": "string"
+                },
                 "unique-id": {
                     "type": "string"
                 },
                 "type": {
                     "type": "string"
+                },
+                "target-type": {
+                    "type": "array",
+                    "items": { "type": "string", "enum": ["architecture"] },
+                    "minItems": 1,
+                    "uniqueItems": true
                 },
                 "target": {
                     "type": "array",
@@ -96,7 +109,7 @@ A deployment decorator schema could constrain `type` to `"deployment"` and defin
     "title": "CALM Deployment Decorator Schema",
     "allOf": [
         {
-            "$ref": "https://calm.finos.org/release/1.2/meta/decorators.json#/defs/decorator"
+            "$ref": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator"
         },
         {
             "type": "object",
@@ -206,7 +219,7 @@ Given a simple architecture with a single AKS cluster node:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "nodes": [
         {
             "unique-id": "aks-cluster",

@@ -116,7 +116,7 @@ When you select an **Architecture** or **Pattern** artifact, CALM Hub renders th
 ### Tab Views
 
 * **Diagram Tab:** The interactive visual representation of the model.
-* **JSON Tab:** The raw, validated CALM 1.2 JSON schema backing the diagram.
+* **JSON Tab:** The raw, validated CALM JSON backing the diagram.
 * **Deployments Tab:** Overlays deployment decorators (environments, hosts, and instance settings) on top of the base architecture.
 
 ![CALM Hub Raw JSON Viewer](/img/hub-ui/json-view.png)

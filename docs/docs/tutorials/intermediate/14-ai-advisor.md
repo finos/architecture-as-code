@@ -123,14 +123,14 @@ Should pass! ✅
 
 ### 8. Add Resilience Controls
 
-These examples use CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json). Each inline configuration requires `control-id`, `name`, and `description`. The uptime, recovery, and failure thresholds are illustrative targets. Validation checks the documented configuration; it does not enforce runtime availability, failover, or circuit breaking.
+These examples use CALM's published [control requirement schema](https://calm.finos.org/release/1.3/meta/control-requirement.json). Each inline configuration requires `control-id`, `name`, and `description`. The uptime, recovery, and failure thresholds are illustrative targets. Validation checks the documented configuration; it does not enforce runtime availability, failover, or circuit breaking.
 
 **Prompt:**
 ```text
 Add an architecture-level "high-availability" control in architectures/ecommerce-platform.json with:
 - description: "System-wide uptime requirement"
 - requirements:
-  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  - requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
     config (inline): { "control-id": "RES-001", "name": "High availability", "description": "The platform targets 99.9% uptime" }
 ```
 
@@ -139,7 +139,7 @@ Add an architecture-level "high-availability" control in architectures/ecommerce
 Add a "failover" control to the order-database-cluster node in architectures/ecommerce-platform.json with:
 - description: "Database recovery targets"
 - requirements:
-  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  - requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
     config (inline): { "control-id": "RES-002", "name": "Database failover", "description": "Target a recovery time objective (RTO) of 60 seconds and a recovery point objective (RPO) of 5 seconds" }
 ```
 
@@ -148,7 +148,7 @@ Add a "failover" control to the order-database-cluster node in architectures/eco
 Add a "circuit-breaker" control to the order-service node in architectures/ecommerce-platform.json with:
 - description: "Failure isolation thresholds"
 - requirements:
-  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  - requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
     config (inline): { "control-id": "RES-003", "name": "Circuit breaking", "description": "Open the circuit after 5 consecutive failures and retry after 30 seconds" }
 ```
 
@@ -189,7 +189,7 @@ After implementing improvements, formalize the requirements as controls:
       "description": "System-wide uptime requirement",
       "requirements": [
         {
-          "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+          "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
           "config": { "control-id": "RES-001", "name": "High availability", "description": "The platform targets 99.9% uptime" }
         }
       ]
