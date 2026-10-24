@@ -16,6 +16,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -39,6 +41,8 @@ public class TestArchitectureTimelineServiceShould {
 
     private static final String NAMESPACE = "finos";
     private static final int ARCHITECTURE_ID = 42;
+    private static final Path BUNDLED_RELEASES_INDEX =
+            Path.of("src", "main", "resources", "META-INF", "calm-schemas", "versions.txt");
 
     @BeforeEach
     void setup() {
@@ -67,6 +71,17 @@ public class TestArchitectureTimelineServiceShould {
         assertThat(timeline.get("moments").size(), is(0));
         // current-moment must be omitted when there are no moments
         assertThat(timeline.has("current-moment"), is(false));
+    }
+
+    @Test
+    void use_the_latest_bundled_calm_release_for_the_timeline_schema() throws Exception {
+        // Read the source file: a test fixture shadows this resource on the test classpath.
+        List<String> releases = Files.readAllLines(BUNDLED_RELEASES_INDEX).stream()
+                .filter(line -> !line.isBlank())
+                .toList();
+
+        assertThat(ArchitectureTimelineService.TIMELINE_SCHEMA,
+                is("https://calm.finos.org/release/" + releases.getLast() + "/meta/calm-timeline.json"));
     }
 
     @Test

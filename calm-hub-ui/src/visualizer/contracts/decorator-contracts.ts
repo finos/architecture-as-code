@@ -11,7 +11,7 @@ export interface DeploymentDecoratorData extends DecoratorData {
 }
 
 export interface Decorator {
-    schema: string;
+    schema?: string;
     uniqueId: string;
     type: string;
     target: string[];

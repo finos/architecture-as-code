@@ -47,7 +47,7 @@ import java.util.List;
 @ApplicationScoped
 public class ArchitectureTimelineService {
 
-    public static final String TIMELINE_SCHEMA = "https://calm.finos.org/release/1.2/meta/calm-timeline.json";
+    public static final String TIMELINE_SCHEMA = "https://calm.finos.org/release/1.3/meta/calm-timeline.json";
 
     private final ArchitectureStore architectureStore;
     private final TimelineStore timelineStore;
