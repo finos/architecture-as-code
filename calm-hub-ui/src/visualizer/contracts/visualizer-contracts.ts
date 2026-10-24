@@ -115,6 +115,8 @@ export interface ArchitectureGraphProps {
     fitToPane?: boolean;
     /** Injected for tests; defaults to the app-wide store. */
     presentationStore?: PresentationModeStore;
+    /** Where the decision overlay choice is kept for the session. Injected for tests; defaults to `sessionStorage`. */
+    storage?: Storage;
 }
 
 /**
