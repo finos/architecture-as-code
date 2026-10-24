@@ -217,7 +217,7 @@ Remember to baseline your work using git. Committing at this point gives you a c
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
   "adrs": [
     "docs/adr/0001-use-message-queue-for-async-processing.md",
     "docs/adr/0002-use-oauth2-for-api-authentication.md"

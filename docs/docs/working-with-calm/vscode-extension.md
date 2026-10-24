@@ -156,7 +156,7 @@ A minimal `calm-timeline.json` document looks like this:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
     "current-moment": "initial",
     "moments": [
         {
