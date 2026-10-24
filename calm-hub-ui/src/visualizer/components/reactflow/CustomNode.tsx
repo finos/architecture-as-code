@@ -22,7 +22,7 @@ import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
 import { usableColor } from './utils/usableColor.js';
-import { usePresentationMode } from '../../context/presentationMode.js';
+import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -74,7 +74,12 @@ function PanelButton({
   );
 }
 
-function CustomNodeComponent({ data }: NodeProps) {
+interface CustomNodeProps extends NodeProps {
+  /** Injected for tests; defaults to the app-wide store. */
+  presentationStore?: PresentationModeStore;
+}
+
+function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { onNavigateToDetailedArch } = useDiagramActions();
 
@@ -117,14 +122,11 @@ function CustomNodeComponent({ data }: NodeProps) {
     const controlEntries = Object.entries(nodeControls);
     const controlCount = controlEntries.length;
 
-    // Presentation mode: a wider node and larger text, legible on a projector. Each control is listed on the node in
-    // place of the control count.
-    const presenting = usePresentationMode();
+    // Presentation mode: a wider node and larger text, legible on a projector.
+    const { presenting } = usePresentationMode(presentationStore);
     const size = presenting
         ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
         : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
-    const showControlChips = presenting && controlCount > 0;
-    const showControlBadge = controlCount > 0 && !showControlChips;
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -214,7 +216,7 @@ function CustomNodeComponent({ data }: NodeProps) {
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || showControlBadge) && (
+        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             {riskCount > 0 && (
               <div
@@ -252,7 +254,7 @@ function CustomNodeComponent({ data }: NodeProps) {
                 <span>{mitigationCount}</span>
               </div>
             )}
-            {showControlBadge && (
+            {controlCount > 0 && (
               <div
                 style={{
                   display: 'flex',
@@ -273,32 +275,6 @@ function CustomNodeComponent({ data }: NodeProps) {
           </div>
         )}
       </div>
-      {showControlChips && (
-        <div data-testid="node-control-chips" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', marginTop: '8px' }}>
-          {controlEntries.map(([controlId]) => (
-            <div
-              key={controlId}
-              data-testid="node-control-chip"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                maxWidth: '100%',
-                padding: '3px 8px',
-                borderRadius: '6px',
-                fontSize: '16px',
-                fontWeight: 600,
-                background: `${THEME.colors.accent}20`,
-                color: THEME.colors.accentText,
-                overflowWrap: 'anywhere',
-              }}
-            >
-              <Shield aria-hidden="true" style={{ width: '16px', height: '16px', flexShrink: 0 }} />
-              <span>{controlId}</span>
-            </div>
-          ))}
-        </div>
-      )}
       </div>
 
       {/* Hover details panel - absolutely positioned to float over other elements */}

@@ -7,6 +7,7 @@ import type { Control } from './control-contracts.js';
 import type { Decorator } from './decorator-contracts.js';
 import { Data } from '../../model/calm.js';
 import type { StoredNodePosition } from '../services/node-position-service.js';
+import type { PresentationModeStore } from '../../theme/usePresentationMode.js';
 
 //These types and interfaces are used in the top-level visualizer components e.g. Drawer, Sidebar, ReactFlowVisualizer.
 
@@ -112,6 +113,8 @@ export interface ArchitectureGraphProps {
      * Do not use it where a viewport is persisted: it discards saved pan and zoom.
      */
     fitToPane?: boolean;
+    /** Injected for tests; defaults to the app-wide store. */
+    presentationStore?: PresentationModeStore;
 }
 
 /**

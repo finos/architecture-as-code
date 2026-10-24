@@ -1,7 +1,7 @@
 import { Editor } from '@monaco-editor/react';
 import { useResolvedTheme } from '../../../theme/useTheme.js';
 import { CALM_DARK, defineCalmThemes } from '../../../theme/monaco-theme.js';
-import { usePresentationMode } from '../../../visualizer/context/presentationMode.js';
+import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 
 const FONT_SIZE = 12;
 const PRESENTATION_FONT_SIZE = 20;
@@ -9,18 +9,20 @@ const PRESENTATION_FONT_SIZE = 20;
 interface JsonRendererProps {
     json?: object;
     showLineNumbers?: boolean;
+    /** Injected for tests; defaults to the app-wide store. */
+    presentationStore?: PresentationModeStore;
 }
 
 function NoData() {
     return <div className="text-center w-full h-full">Please select a document to load.</div>;
 }
 
-function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineNumbers?: boolean }) {
+function JsonDisplay({ data, showLineNumbers = true, presentationStore }: { data: object } & Omit<JsonRendererProps, 'json'>) {
     // Monaco paints its own colours and ignores our stylesheet, so it needs telling
     // which theme is active — otherwise its light syntax colours land on our dark
     // surface as near-black text.
     const theme = useResolvedTheme();
-    const presenting = usePresentationMode();
+    const { presenting } = usePresentationMode(presentationStore);
 
     return (
         <Editor
@@ -43,8 +45,10 @@ function JsonDisplay({ data, showLineNumbers = true }: { data: object; showLineN
     );
 }
 
-export function JsonRenderer({ json, showLineNumbers = true }: JsonRendererProps) {
-    const content = json ? <JsonDisplay data={json} showLineNumbers={showLineNumbers} /> : <NoData />;
+export function JsonRenderer({ json, showLineNumbers = true, presentationStore }: JsonRendererProps) {
+    const content = json
+        ? <JsonDisplay data={json} showLineNumbers={showLineNumbers} presentationStore={presentationStore} />
+        : <NoData />;
 
     return <div className="h-full" data-cy={"json-renderer-wrapper"}>{content}</div>;
 }

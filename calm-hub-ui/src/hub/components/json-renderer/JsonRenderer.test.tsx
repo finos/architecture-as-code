@@ -2,7 +2,8 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter, useNavigate } from 'react-router-dom';
 import { JsonRenderer } from './JsonRenderer.js';
 import { CALM_DARK } from '../../../theme/monaco-theme.js';
-import { setPresentationMode } from '../../../visualizer/context/presentationMode.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 import { act } from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
@@ -158,16 +159,15 @@ describe('JsonRenderer', () => {
     });
 
     describe('presentation mode', () => {
-        afterEach(() => sessionStorage.clear());
-
         it('uses a larger font in presentation mode, and follows each switch', () => {
-            render(<JsonRenderer json={{ a: 1 }} />);
+            const store = createPresentationModeStore(createMemoryStorage());
+            render(<JsonRenderer json={{ a: 1 }} presentationStore={store} />);
             expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '12');
 
-            act(() => setPresentationMode(true));
+            act(() => store.set(true));
             expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '20');
 
-            act(() => setPresentationMode(false));
+            act(() => store.set(false));
             expect(screen.getByTestId('monaco-editor')).toHaveAttribute('data-font-size', '12');
         });
     });

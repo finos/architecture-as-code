@@ -3,7 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatingEdge } from './FloatingEdge.js';
 import { THEME } from './theme.js';
-import { PRESENTATION_MODE_KEY } from '../../context/presentationMode.js';
+import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
 
 const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
     storeNodes: new Map<string, object>(),
@@ -22,7 +23,10 @@ vi.mock('reactflow', () => ({
         selector({ nodeInternals: new Map([['a', { id: 'a' }], ['b', { id: 'b' }], ...storeNodes]) }),
 }));
 
-vi.mock('./utils/floatingEdges.js', () => ({ getEdgeParams: edgeParams }));
+vi.mock('./utils/floatingEdges.js', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('./utils/floatingEdges.js')>()),
+    getEdgeParams: edgeParams,
+}));
 
 vi.mock('./edge-components/index.js', () => ({
     EdgeBadge: () => <span data-testid="edge-badge" />,
@@ -173,19 +177,21 @@ describe('FloatingEdge in presentation mode', () => {
     beforeEach(() => {
         edgeParams.mockReturnValue(FLOATING);
         storeNodes.clear();
-        sessionStorage.clear();
     });
 
-    const renderEdge = () => render(
-        <svg>
-            <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} />
-        </svg>
-    );
+    const renderEdge = (presenting: boolean) => {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        return render(
+            <svg>
+                <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
+            </svg>
+        );
+    };
     const labelBox = () => screen.getByText('writes').parentElement as HTMLElement;
 
     it('makes the label larger and stacks it under the badge', () => {
-        sessionStorage.setItem(PRESENTATION_MODE_KEY, '1');
-        renderEdge();
+        renderEdge(true);
         expect(screen.getByText('writes').style.fontSize).toBe('16px');
         expect(labelBox().style.flexDirection).toBe('column');
     });
@@ -194,13 +200,12 @@ describe('FloatingEdge in presentation mode', () => {
         // The mocked bezier puts the label at (11, 12), inside this node.
         storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
 
-        const { unmount } = renderEdge();
+        const { unmount } = renderEdge(false);
         expect(screen.getByText('writes').style.fontSize).toBe('10px');
         expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
         unmount();
 
-        sessionStorage.setItem(PRESENTATION_MODE_KEY, '1');
-        renderEdge();
+        renderEdge(true);
         expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
     });
 });

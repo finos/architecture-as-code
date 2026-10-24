@@ -1,10 +1,10 @@
 import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
-import { usePresentationMode } from '../../context/presentationMode.js';
+import { usePresentationMode } from '../../../theme/usePresentationMode.js';
 
 function SystemGroupNodeComponent({ data }: NodeProps) {
-  const presenting = usePresentationMode();
+  const { presenting } = usePresentationMode();
   return (
     <div
       style={{

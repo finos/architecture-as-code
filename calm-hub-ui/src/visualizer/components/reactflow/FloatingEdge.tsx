@@ -1,11 +1,16 @@
 import { memo, useState, useCallback } from 'react';
-import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
-import { getEdgeParams } from './utils/floatingEdges.js';
+import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore, type Node } from 'reactflow';
+import { getEdgeParams, sameNodeGeometry } from './utils/floatingEdges.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
-import { usePresentationMode } from '../../context/presentationMode.js';
+import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { coveredNodeTop } from './utils/labelPlacement.js';
+
+interface FloatingEdgeProps extends EdgeProps<EdgeData> {
+    /** Injected for tests; defaults to the app-wide store. */
+    presentationStore?: PresentationModeStore;
+}
 
 function FloatingEdgeComponent({
     id,
@@ -15,49 +20,37 @@ function FloatingEdgeComponent({
     markerEnd,
     markerStart,
     data,
-}: EdgeProps<EdgeData>) {
+    presentationStore,
+}: FloatingEdgeProps) {
     const [isHovered, setIsHovered] = useState(false);
-    const routing = data?.metadata?.routing;
+    const direction = data?.direction;
 
-    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
-    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
-    const presenting = usePresentationMode();
-    // All nodes, but only in presentation mode, where a label that covers a node moves above it (see below).
-    const allNodes = useStore(useCallback((store) => (presenting ? store.nodeInternals : undefined), [presenting]));
+    // reactflow gives every node a new object on each node change, for example the z-index change on a hover. Only
+    // the geometry is compared, so such a change does not render every edge again.
+    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]), sameNodeGeometry);
+    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]), sameNodeGeometry);
+    const { presenting } = usePresentationMode(presentationStore);
+    const path = sourceNode && targetNode
+        ? getFloatingEdgePath(sourceNode, targetNode, direction, data?.metadata?.routing)
+        : undefined;
 
-    if (!sourceNode || !targetNode) {
+    // The larger presentation label would hide a node it falls on, for example when the edge goes behind that node,
+    // so the label moves to just above that node. The hit test is in the selector: it gives a number, which a hover
+    // does not change.
+    const hitX = presenting ? path?.labelX : undefined;
+    const hitY = presenting ? path?.labelY : undefined;
+    const coveredTop = useStore(useCallback(
+        (store) => (hitX === undefined || hitY === undefined
+            ? undefined
+            : coveredNodeTop(store.nodeInternals.values(), hitX, hitY, [source, target])),
+        [hitX, hitY, source, target],
+    ));
+
+    if (!path) {
         return null;
     }
 
-    // Every routing attaches at the node border nearest the other node. A native handle
-    // position is fixed per handle, so it cannot do that.
-    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
-
-    // Calculate perpendicular offset for bidirectional edges
-    const direction = data?.direction;
-    const offset = direction ? 20 : 0;
-
-    const { adjustedSourceX, adjustedSourceY, adjustedTargetX, adjustedTargetY } = calculateOffsetPositions(
-        sx, sy, tx, ty, offset, direction
-    );
-
-    const pathParams = {
-        sourceX: adjustedSourceX,
-        sourceY: adjustedSourceY,
-        sourcePosition: sourcePos,
-        targetX: adjustedTargetX,
-        targetY: adjustedTargetY,
-        targetPosition: targetPos,
-    };
-
-    const [edgePath, labelX, labelY] =
-        routing === 'straight' ? getStraightPath(pathParams) :
-        routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
-        getBezierPath(pathParams);
-
-    // The larger presentation label would hide a node it falls on, for example when the edge goes behind that node.
-    // The label moves to just above that node.
-    const coveredTop = allNodes ? coveredNodeTop(allNodes.values(), labelX, labelY, [source, target]) : undefined;
+    const { edgePath, labelX, labelY } = path;
     const labelTransform = coveredTop === undefined
         ? `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`
         : `translate(-50%, -100%) translate(${labelX}px,${coveredTop - 8}px)`;
@@ -172,6 +165,40 @@ function FloatingEdgeComponent({
 }
 
 export const FloatingEdge = memo(FloatingEdgeComponent);
+
+function getFloatingEdgePath(
+    sourceNode: Node,
+    targetNode: Node,
+    direction: EdgeData['direction'],
+    routing: NonNullable<EdgeData['metadata']>['routing'],
+) {
+    // Every routing attaches at the node border nearest the other node. A native handle
+    // position is fixed per handle, so it cannot do that.
+    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
+
+    // Calculate perpendicular offset for bidirectional edges
+    const offset = direction ? 20 : 0;
+
+    const { adjustedSourceX, adjustedSourceY, adjustedTargetX, adjustedTargetY } = calculateOffsetPositions(
+        sx, sy, tx, ty, offset, direction
+    );
+
+    const pathParams = {
+        sourceX: adjustedSourceX,
+        sourceY: adjustedSourceY,
+        sourcePosition: sourcePos,
+        targetX: adjustedTargetX,
+        targetY: adjustedTargetY,
+        targetPosition: targetPos,
+    };
+
+    const [edgePath, labelX, labelY] =
+        routing === 'straight' ? getStraightPath(pathParams) :
+        routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
+        getBezierPath(pathParams);
+
+    return { edgePath, labelX, labelY };
+}
 
 /**
  * Calculate offset positions for bidirectional edges

@@ -19,7 +19,7 @@ import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
-import { presentParam, setPresentationMode, usePresentationMode } from '../../context/presentationMode.js';
+import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
@@ -78,6 +78,7 @@ export function ArchitectureGraph({
     layoutEpoch,
     onPositionsChange,
     fitToPane,
+    presentationStore,
 }: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
 
@@ -150,11 +151,11 @@ export function ArchitectureGraph({
 
     // `?present=1` in a link turns presentation mode on, and `?present=0` off. It is saved for the session, because a
     // switch between diagram tabs rewrites the query.
-    const presenting = usePresentationMode();
+    const { presenting, setPresenting } = usePresentationMode(presentationStore);
     useLayoutEffect(() => {
         const param = presentParam();
-        if (param !== undefined) setPresentationMode(param);
-    }, []);
+        if (param !== undefined) setPresenting(param);
+    }, [setPresenting]);
 
     const {
         onNodesChange,
@@ -355,7 +356,7 @@ export function ArchitectureGraph({
                         </ControlButton>
                         <MotionToggleButton />
                         <ControlButton
-                            onClick={() => setPresentationMode(!presenting)}
+                            onClick={() => setPresenting(!presenting)}
                             title="Presentation mode"
                             aria-label="Presentation mode"
                             aria-pressed={presenting}

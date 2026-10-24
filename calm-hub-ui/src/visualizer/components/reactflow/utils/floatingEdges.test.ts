@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Node, Position } from 'reactflow';
-import { getEdgeParams } from './floatingEdges';
+import { getEdgeParams, sameNodeGeometry } from './floatingEdges';
 
 // Helper to create a mock node with required properties
 function createMockNode(
@@ -170,5 +170,25 @@ describe('getEdgeParams', () => {
         expect(result.sourcePos).toBe(Position.Top);
         // Target intersection should be on the bottom
         expect(result.targetPos).toBe(Position.Bottom);
+    });
+});
+
+describe('sameNodeGeometry', () => {
+    it('is equal for a new object with the same geometry and another z-index', () => {
+        const node = createMockNode('a', 10, 20);
+        expect(sameNodeGeometry(node, { ...node, style: { zIndex: 1000 } })).toBe(true);
+    });
+
+    it('is not equal when the node moves or changes size', () => {
+        const node = createMockNode('a', 10, 20);
+        expect(sameNodeGeometry(node, createMockNode('a', 11, 20))).toBe(false);
+        expect(sameNodeGeometry(node, createMockNode('a', 10, 21))).toBe(false);
+        expect(sameNodeGeometry(node, createMockNode('a', 10, 20, 151))).toBe(false);
+        expect(sameNodeGeometry(node, createMockNode('a', 10, 20, 150, 51))).toBe(false);
+    });
+
+    it('is equal for two missing nodes, and not equal when only one is missing', () => {
+        expect(sameNodeGeometry(undefined, undefined)).toBe(true);
+        expect(sameNodeGeometry(createMockNode('a', 0, 0), undefined)).toBe(false);
     });
 });
