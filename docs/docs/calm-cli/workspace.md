@@ -303,11 +303,12 @@ calm workspace tree
 
 ```
 ├─ payments-gateway (./../../../architectures/payments.arch.json)
+│  └─ payments-pattern (./../../../patterns/payments.pattern.json)
 └─ local-arch (./../../../architectures/local.arch.json)
    └─ payments-pattern (./../../../patterns/payments.pattern.json)
 ```
 
-Each line shows the manifest ID and the path relative to the bundle, or `pulled` for a copied file. The tree shows a reference only when it is a manifest ID or a relative file path.
+Each line shows the manifest ID and the path relative to the bundle, or `pulled` for a copied file. A reference can be a manifest ID, a path relative to the bundle, or the `$id` of a tracked document at any version. The tree does not show references to documents that the workspace does not track.
 
 ### list
 
