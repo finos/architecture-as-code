@@ -4,6 +4,7 @@ import { startReplay, unexpectedResult } from './replay';
 import { commandText, HOME_DIR, type Lesson } from './types';
 import { LAB_COMMANDS } from '../cli/help';
 import { PATTERN_LESSON } from '../test-support/pattern-lesson';
+import { CALM_SCHEMA_RELEASE } from '../schemas';
 
 /** The `calm` subcommands the lab runs; `help` may name one of them. */
 const LAB_SUBCOMMANDS: readonly string[] = LAB_COMMANDS;
@@ -20,6 +21,12 @@ describe('lesson registry', () => {
     it.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('%s names the tutorial page it follows', (_, lesson) => {
         expect(lesson.tutorial?.title).toMatch(/\S/);
         expect(lesson.tutorial?.url).toMatch(/^https:\/\/calm\.finos\.org\/tutorials\/(beginner|intermediate)\/[a-z0-9-]+\/$/);
+    });
+
+    it.each(LESSONS.map((lesson) => [lesson.id, lesson] as const))('%s uses only the latest bundled CALM release', (_, lesson) => {
+        const text = [...Object.values(lesson.seedFiles), ...Object.values(endFiles(lesson)), ...lesson.steps.map((step) => step.body)].join('\n');
+        const releases = [...text.matchAll(/https:\/\/calm\.finos\.org\/release\/([^/]+)\//g)].map((match) => match[1]);
+        expect(releases.filter((release) => release !== CALM_SCHEMA_RELEASE)).toEqual([]);
     });
 });
 

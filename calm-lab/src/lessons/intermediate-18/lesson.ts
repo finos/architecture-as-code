@@ -2,6 +2,7 @@ import { HOME_DIR, type Lesson } from '../types';
 import { fileJson, standardRequires } from '../checks';
 import { INTERMEDIATE_17 } from '../intermediate-17/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 export const NODE_STD = `${HOME_DIR}/standards/company-node-standard.json`;
 export const RELATIONSHIP_STD = `${HOME_DIR}/standards/company-relationship-standard.json`;
@@ -25,7 +26,7 @@ const NODE_STD_FILE = `{
     "$id": "https://example.com/standards/company-node-standard.json",
     "title": "Company Node Standard",
     "allOf": [
-        { "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node" },
+        { "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node" },
         {
             "type": "object",
             "properties": {
@@ -55,7 +56,7 @@ const RELATIONSHIP_STD_FILE = `{
     "$id": "https://example.com/standards/company-relationship-standard.json",
     "title": "Company Relationship Standard",
     "allOf": [
-        { "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship" },
+        { "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship" },
         {
             "type": "object",
             "properties": {

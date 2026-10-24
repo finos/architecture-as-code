@@ -2,12 +2,13 @@ import type { CalmDocLike, Lesson } from '../types';
 import { controlsIn, nodesOfType, validatedEditorFile } from '../checks';
 import { BEGINNER_07 } from '../beginner-07/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const EDITOR_FILE = BEGINNER_07.editorFile;
 
 // Paste-safe hints: each is the complete target file, building on the previous step.
 const STEP_1_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "platform-team@example.com",
         "version": "1.0.0",
@@ -19,7 +20,7 @@ const STEP_1_TARGET_FILE = `{
             "description": "Data encryption and secure communication requirements",
             "requirements": [
                 {
-                    "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                    "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                     "config": {
                         "control-id": "SEC-001",
                         "name": "Encryption at rest",
@@ -256,7 +257,7 @@ const STEP_2_TARGET_FILE = STEP_1_TARGET_FILE.replace(
             "description": "Data encryption and secure communication requirements",
             "requirements": [
                 {
-                    "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                    "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                     "config": {
                         "control-id": "SEC-001",
                         "name": "Encryption at rest",
@@ -271,7 +272,7 @@ const STEP_2_TARGET_FILE = STEP_1_TARGET_FILE.replace(
             "description": "Data encryption and secure communication requirements",
             "requirements": [
                 {
-                    "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                    "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                     "config": {
                         "control-id": "SEC-001",
                         "name": "Encryption at rest",
@@ -284,7 +285,7 @@ const STEP_2_TARGET_FILE = STEP_1_TARGET_FILE.replace(
             "description": "System-wide performance and scalability requirements",
             "requirements": [
                 {
-                    "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                    "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                     "config": {
                         "control-id": "PERF-001",
                         "name": "Response time SLA",
@@ -335,7 +336,7 @@ const STEP_3_TARGET_FILE = STEP_2_TARGET_FILE.replace(
                     "description": "PCI-DSS compliance for payment processing",
                     "requirements": [
                         {
-                            "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                            "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                             "config": {
                                 "control-id": "PCI-001",
                                 "name": "PCI-DSS compliance",
@@ -389,7 +390,7 @@ const STEP_4_TARGET_FILE = STEP_3_TARGET_FILE.replace(
                     "description": "API Gateway rate limiting and caching requirements",
                     "requirements": [
                         {
-                            "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+                            "requirement-url": "${CALM_META_SCHEMA_BASE_URL}/control-requirement.json",
                             "config": {
                                 "control-id": "PERF-002",
                                 "name": "Rate limiting and caching",
@@ -428,7 +429,7 @@ export const INTERMEDIATE_08: Lesson = {
                 'Add a `controls` section at the top level with a `security` domain. Give it a ' +
                 '`description` and a `requirements` array. Each requirement has a `requirement-url` that ' +
                 'names the schema its config must satisfy, plus an inline `config` or an external `config-url`. ' +
-                'Use `https://calm.finos.org/release/1.2/meta/control-requirement.json` as the requirement-url ' +
+                `Use \`${CALM_META_SCHEMA_BASE_URL}/control-requirement.json\` as the requirement-url ` +
                 'and a `config` with a `control-id`, a `name` and a `description`, then save your change.',
             hint: { kind: 'file', content: STEP_1_TARGET_FILE },
             check: (state) => hasSecurityControl(state.doc) && state.validation.ok,

@@ -59,6 +59,10 @@ the lab has no lesson picker.
      command must run and every error must be in the architecture. A missing file, a `$ref` that
      does not load or an error in the pattern does not count. The learner sees only the command text.
 
+   Write a CALM release URL as `${CALM_META_SCHEMA_BASE_URL}/calm.json` and the release number as
+   `CALM_SCHEMA_RELEASE`, both from `src/schemas.ts`, not as a literal release. Then a schema bump
+   moves the lesson too.
+
 3. Write each `check(state)` with the helpers in `src/lessons/checks.ts`. A check reads state, not
    history: `state.doc` (the saved editor file), `state.validation.ok`, and `state.commands` (the
    commands whose files have not changed since they ran). Check what the step asked for, not the
@@ -79,7 +83,8 @@ the lab has no lesson picker.
 `src/lessons/invariants.spec.ts` runs every registered lesson through the real shell and engine:
 files live under `/workspace`, editable files are seeded or written by a hint and include the
 editor file, file hints write only to editable files, no step is complete before its hint, each hint
-completes its step and each command does what the hint expects, the end state validates, every
+completes its step and each command does what the hint expects, the end state validates, each CALM
+release URL in the files and step copy is the latest bundled release, every
 `calm` command in the copy runs in the lab's shell after all the hints, lesson links name registered lessons, and a chained lesson starts from its predecessor's end
 state.
 

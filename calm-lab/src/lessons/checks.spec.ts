@@ -593,12 +593,29 @@ describe('standardRequires', () => {
             required: ['owner'],
         };
         expect(standardRequires(wrongDef, 'node')).toEqual([]);
-        const wrongUrl = { allOf: [{ $ref: 'https://calm.finos.org/release/1.1/meta/core.json#/defs/node' }, { required: ['costCenter'] }] };
-        expect(standardRequires(wrongUrl, 'node')).toEqual([]);
+    });
+
+    it.each(['1.2', '1.3'])('reads a Standard on the core definitions of the %s release', (release) => {
+        const core = `https://calm.finos.org/release/${release}/meta/core.json#/defs`;
+        expect(standardRequires({ allOf: [{ $ref: `${core}/node` }, { required: ['costCenter'] }] }, 'node')).toEqual(['costCenter']);
+        expect(standardRequires({ allOf: [{ $ref: `${core}/relationship` }, { required: ['encrypted'] }] }, 'relationship')).toEqual(['encrypted']);
+    });
+
+    it.each([
+        ['another host', 'https://example.com/release/1.3/meta/core.json#/defs/node'],
+        ['the draft core schema', 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node'],
+        ['another meta-schema', 'https://calm.finos.org/release/1.3/meta/calm.json#/defs/node'],
+        ['a release with no minor version', 'https://calm.finos.org/release/1/meta/core.json#/defs/node'],
+        ['another core definition', 'https://calm.finos.org/release/1.3/meta/core.json#/defs/node-type-definition'],
+        ['a path inside the node definition', 'https://calm.finos.org/release/1.3/meta/core.json#/defs/node/properties'],
+        ['a relative core.json', 'core.json#/defs/node'],
+        ['an organisation Standard', 'https://example.com/standards/company-node-standard.json'],
+    ])('gives [] when the allOf $ref is %s', (_, ref) => {
+        expect(standardRequires({ allOf: [{ $ref: ref }, { required: ['costCenter'] }] }, 'node')).toEqual([]);
     });
 
     it('never throws on a partial or wrong-shaped document', () => {
-        for (const bad of [null, undefined, {}, { allOf: null }, { allOf: [null, 3, 'x'] }, { allOf: [{ $ref: NODE_REF, required: 'x' }] }, { allOf: [{ $ref: NODE_REF }], required: 'x' }]) {
+        for (const bad of [null, undefined, {}, { allOf: null }, { allOf: [null, 3, 'x'] }, { allOf: [{ $ref: 1.3 }, { required: ['x'] }] }, { allOf: [{ $ref: NODE_REF, required: 'x' }] }, { allOf: [{ $ref: NODE_REF }], required: 'x' }]) {
             expect(standardRequires(bad as never, 'node')).toEqual([]);
             expect(standardRequires(bad as never, 'relationship')).toEqual([]);
         }

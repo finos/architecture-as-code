@@ -4,9 +4,10 @@ import { INTERMEDIATE_17 } from '../intermediate-17/lesson';
 import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
-const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
-const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
+const NODE_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`;
+const RELATIONSHIP_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`;
 
 /** A standard whose `allOf` $refs `ref` and requires `required` in the second `allOf` entry. */
 const standard = (ref: string, required: string[]) => JSON.stringify({
@@ -80,6 +81,18 @@ describe('intermediate-18 lesson', () => {
         expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, []) } }))).toBe(false);
         // A half-edited file: must not tick, must not throw.
         expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(RELATIONSHIP_REF, ['encrypted']).slice(0, 30) } }))).toBe(false);
+    });
+
+    it.each(['1.2', '1.3'])('accepts Standards on the core definitions of the %s release', (release) => {
+        const core = `https://calm.finos.org/release/${release}/meta/core.json#/defs`;
+        expect(nodeStandard.check(state({ files: { [NODE_STD]: standard(`${core}/node`, ['costCenter']) } }))).toBe(true);
+        expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(`${core}/relationship`, ['encrypted']) } }))).toBe(true);
+    });
+
+    it('rejects Standards whose $ref is not a CALM core definition', () => {
+        const ref = 'https://example.com/standards/base.json';
+        expect(nodeStandard.check(state({ files: { [NODE_STD]: standard(ref, ['costCenter']) } }))).toBe(false);
+        expect(relationshipStandard.check(state({ files: { [RELATIONSHIP_STD]: standard(ref, ['encrypted']) } }))).toBe(false);
     });
 
     it('completes every step by following the hints in order, and no step sooner', async () => {

@@ -247,21 +247,22 @@ export function patternConnects(json: CalmDocLike | null | undefined): ({ source
     });
 }
 
-const CORE_DEF_REF: Record<'node' | 'relationship', string> = {
-    node: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node',
-    relationship: 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship',
+// Any release, so a Standard written for an older or newer CALM release still counts.
+const CORE_DEF_REF: Record<'node' | 'relationship', RegExp> = {
+    node: /^https:\/\/calm\.finos\.org\/release\/\d+\.\d+\/meta\/core\.json#\/defs\/node$/,
+    relationship: /^https:\/\/calm\.finos\.org\/release\/\d+\.\d+\/meta\/core\.json#\/defs\/relationship$/,
 };
 
 /**
  * The `required` property names a Standard adds on top of a CALM core definition: the union of
  * every `allOf` entry's `required` array, plus the document's own top-level `required` array
  * (both are valid JSON Schema and have the same effect), when at least one `allOf` entry `$ref`s
- * the core definition named by `coreDef` (`'node'` or `'relationship'`). `[]` when no entry has
- * that `$ref`, or the document is not shaped like a Standard.
+ * the core definition named by `coreDef` (`'node'` or `'relationship'`) of a CALM release. `[]`
+ * when no entry has that `$ref`, or the document is not shaped like a Standard.
  */
 export function standardRequires(json: CalmDocLike | null | undefined, coreDef: 'node' | 'relationship'): string[] {
     const allOf = items(json?.['allOf']);
-    if (!allOf.some((entry) => entry['$ref'] === CORE_DEF_REF[coreDef])) {
+    if (!allOf.some((entry) => typeof entry['$ref'] === 'string' && CORE_DEF_REF[coreDef].test(entry['$ref']))) {
         return [];
     }
     const required = new Set<string>();

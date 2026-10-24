@@ -5,6 +5,7 @@ import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import { hintContent, type LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const relationship = (id: string, kind: string, detail: Record<string, unknown>) => ({
     'unique-id': id, 'relationship-type': { [kind]: detail },
@@ -16,7 +17,7 @@ const baseRelationships = [
     relationship('gateway-to-inventory', 'connects', { source: { node: 'api-gateway' }, destination: { node: 'inventory-service' } }),
 ];
 const doc = (flows?: unknown[]) => ({
-    $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+    $schema: `${CALM_META_SCHEMA_BASE_URL}/calm.json`,
     nodes: [],
     relationships: baseRelationships,
     ...(flows ? { flows } : {}),

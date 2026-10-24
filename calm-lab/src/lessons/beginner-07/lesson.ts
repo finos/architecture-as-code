@@ -2,12 +2,13 @@ import { HOME_DIR, type CalmDocLike, type Lesson } from '../types';
 import { composedOf, connectsBetween, connectsRelationshipsBetween, interactsWith, nodeInterfaces, nodesOfType, ranOk, validatedEditorFile } from '../checks';
 import { BEGINNER_06 } from '../beginner-06/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const EDITOR_FILE = `${HOME_DIR}/architectures/ecommerce-platform.json`;
 const FIRST_ARCHITECTURE = BEGINNER_06.editorFile;
 
 const SEED_ARCHITECTURE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [],
     "relationships": []
 }
@@ -15,7 +16,7 @@ const SEED_ARCHITECTURE = `{
 
 // Paste-safe hints: each is the complete target file, building on the previous step.
 const STEP_1_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "platform-team@example.com",
         "version": "1.0.0",
@@ -80,7 +81,7 @@ const STEP_1_TARGET_FILE = `{
 `;
 
 const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "platform-team@example.com",
         "version": "1.0.0",
@@ -233,7 +234,7 @@ const STEP_2_TARGET_FILE = `{
 `;
 
 const STEP_3_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "metadata": {
         "owner": "platform-team@example.com",
         "version": "1.0.0",

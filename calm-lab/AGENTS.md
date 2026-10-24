@@ -118,6 +118,8 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
   imported from `src/lessons/chain.ts` (importing it from `index.ts` creates a circular import back
   through the registry). Never copy the previous lesson's JSON.
 - Never rename a released lesson id: it is the URL and the storage key.
+- Write CALM release URLs with `CALM_META_SCHEMA_BASE_URL` from `src/schemas.ts`, never a literal
+  release. The invariants spec fails on any other release.
 
 ## The diagram renders untrusted input
 
