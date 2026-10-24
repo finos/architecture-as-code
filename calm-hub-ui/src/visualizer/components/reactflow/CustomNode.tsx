@@ -26,6 +26,9 @@ import { usableColor } from './utils/usableColor.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { FindingText } from './FindingText.js';
 import { EvaluationBadge } from './EvaluationBadge.js';
+import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { decisionSummary } from './utils/decisionSummary.js';
+import { DecisionCallout } from './DecisionCallout.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -132,6 +135,10 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
         : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
     const evaluation = useElementEvaluation(data['unique-id']);
     const evaluationNotMet = evaluation?.status === 'not-met';
+    const { showDecisions, subjectLabels } = useDecisionOverlay();
+    const summary = showDecisions && evaluation
+        ? decisionSummary(evaluation, { elementId: data['unique-id'], subjectLabel: (id) => subjectLabels.get(id) })
+        : undefined;
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -284,6 +291,8 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
         )}
       </div>
       </div>
+
+      {summary && !isHovered && <DecisionCallout summary={summary} presenting={presenting} />}
 
       {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (
