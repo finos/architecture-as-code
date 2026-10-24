@@ -133,6 +133,12 @@
     --calm-status-completed-fg: #15803d;
     --calm-status-failed-bg: #fee2e2;
     --calm-status-failed-fg: #b91c1c;
+
+    /* Control-evaluation status as text (`colors.status.errorText` / `successText`).
+       Error stays the hex it replaces; success uses green-700, because green-600 is
+       3.3:1 on white and these are 11–13px labels. */
+    --calm-status-error-text: #dc2626;
+    --calm-status-success-text: #15803d;
     --calm-status-inprogress-bg: #dbeafe;
     --calm-status-inprogress-fg: #1d4ed8;
     --calm-status-pending-bg: #f3f4f6;
@@ -288,6 +294,10 @@
     --calm-status-completed-fg: #4ADE80;
     --calm-status-failed-bg: #2E1414;
     --calm-status-failed-fg: #F87171;
+
+    /* Control-evaluation status as text — lifted so it reads on dark cards. */
+    --calm-status-error-text: #F87171;
+    --calm-status-success-text: #4ADE80;
     --calm-status-inprogress-bg: #1B2942;
     --calm-status-inprogress-fg: #93B4FF;
     --calm-status-pending-bg: #1E293B;

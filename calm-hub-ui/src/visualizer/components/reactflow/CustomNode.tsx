@@ -16,13 +16,17 @@ import {
     ZoomIn,
     ExternalLink,
     Info,
+    CheckCircle2,
+    XCircle,
 } from 'lucide-react';
 import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitecture } from './utils/calmHelpers.js';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
 import type { RiskItem, MitigationItem, ControlItem } from '../../contracts/contracts.js';
 import { useDiagramActions } from '../../context/DiagramActionsContext.js';
+import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 import { usableColor } from './utils/usableColor.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { FindingText } from './FindingText.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -127,6 +131,12 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
     const size = presenting
         ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
         : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
+    const evaluation = useElementEvaluation(data['unique-id']);
+    const evaluationNotMet = evaluation?.status === 'not-met';
+    // Hex for the tint, the text token for the label: see the contrast note in src/theme/colors.ts.
+    const evaluationColor = evaluationNotMet ? THEME.colors.error : THEME.colors.success;
+    const evaluationTextColor = evaluationNotMet ? THEME.colors.errorText : THEME.colors.successText;
+    const evaluationLabel = evaluationNotMet ? 'Not met' : 'Met';
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -190,7 +200,9 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
         style={{
           background: blockBackground ?? THEME.colors.card,
           // The AIGF risk colour outranks the block style so a risky node stays flagged
-          border: `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
+          border: evaluationNotMet
+            ? `3px solid ${THEME.colors.error}`
+            : `2px solid ${riskLevel ? borderColor : (blockBackground ?? borderColor)}`,
           borderRadius: '12px',
           padding: size.padding,
           width: '100%',
@@ -216,8 +228,33 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0) && (
+        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+            {evaluation && (
+              <div
+                data-testid="control-evaluation-badge"
+                data-status={evaluation.status}
+                // role="img" so the label is announced: aria-label is not allowed on a plain div.
+                role="img"
+                aria-label={`Control evaluation: ${evaluationLabel}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: size.badgePadding,
+                  borderRadius: '4px',
+                  fontSize: size.badgeText,
+                  fontWeight: 600,
+                  background: `${evaluationColor}20`,
+                  color: evaluationTextColor,
+                }}
+              >
+                {evaluationNotMet
+                  ? <XCircle aria-hidden="true" style={{ width: size.badgeIcon, height: size.badgeIcon }} />
+                  : <CheckCircle2 aria-hidden="true" style={{ width: size.badgeIcon, height: size.badgeIcon }} />}
+                <span>{evaluationLabel}</span>
+              </div>
+            )}
             {riskCount > 0 && (
               <div
                 style={{
@@ -373,6 +410,38 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
                   );
                 })}
               </div>
+            </div>
+          )}
+          {evaluation && (
+            <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>
+              <div style={{ fontSize: '12px', color: THEME.colors.muted, marginBottom: '4px' }}>Latest control evaluations:</div>
+              {evaluation.latest.map((d) => {
+                const notMet = d.data.status === 'not-met';
+                const controlId = d.data.control['control-id'];
+                const finding = notMet ? d.data.findings?.[0] : undefined;
+                return (
+                  <div key={d.uniqueId} style={{ fontSize: '12px', marginBottom: '6px' }}>
+                    <div>
+                      <span aria-hidden="true" style={{ fontWeight: 600, color: notMet ? THEME.colors.errorText : THEME.colors.successText }}>
+                        {notMet ? '✗' : '✓'}
+                      </span>{' '}
+                      {controlId && <span style={{ fontWeight: 600, color: THEME.colors.foreground }}>{controlId}</span>}
+                      {controlId && ' '}
+                      <span style={controlId ? { color: THEME.colors.muted } : { fontWeight: 600, color: THEME.colors.foreground }}>
+                        {d.data.control['unique-id']}
+                      </span>
+                    </div>
+                    {finding && (
+                      <div data-testid="evaluation-finding" style={{ color: THEME.colors.foreground, marginLeft: '14px' }}>
+                        <FindingText finding={finding} elementId={data['unique-id']} />
+                      </div>
+                    )}
+                    {d.data.actors?.approver && (
+                      <div style={{ color: THEME.colors.muted, marginLeft: '14px' }}>approved by {d.data.actors.approver}</div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
           <div style={{ borderTop: `1px solid ${THEME.colors.border}`, paddingTop: '8px', marginTop: '8px' }}>

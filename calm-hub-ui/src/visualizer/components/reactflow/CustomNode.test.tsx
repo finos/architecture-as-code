@@ -3,9 +3,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { CustomNode } from './CustomNode.js';
 import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
-import { THEME, getRiskLevelColor } from './theme.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
+import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 vi.mock('reactflow', () => ({
     Handle: () => null,
@@ -285,5 +287,109 @@ describe('presentation mode', () => {
         expect(screen.getByTestId('custom-node').style.width).toBe('320px');
         expect(textSize()).toBe('24px');
         expect(controlBadge().style.fontSize).toBe('18px');
+    });
+});
+
+const toRgb = (hex: string) => {
+    const n = parseInt(hex.replace('#', ''), 16);
+    return `rgb(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255})`;
+};
+
+const evaluation = (status: 'met' | 'not-met', extra: Partial<ControlEvaluationDecorator['data']> = {}): ElementEvaluation => ({
+    status,
+    latest: [{
+        schema: 's', uniqueId: 'eval-1', type: 'control-evaluation', target: ['t'], appliesTo: ['node-1'],
+        data: { control: { 'unique-id': 'client-ledger-human-approval', 'control-id': 'SDLC-PREV-001', 'requirement-url': 'https://example.org/r' }, status, 'evaluated-at': '2026-11-04T15:00:00Z', ...extra },
+    }],
+});
+
+function renderWithEvaluation(map: Map<string, ElementEvaluation>) {
+    return render(
+        <ControlEvaluationContext.Provider value={map}>
+            <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} />
+        </ControlEvaluationContext.Provider>
+    );
+}
+
+describe('control evaluations', () => {
+    const nodeBorder = (container: HTMLElement) => (container.querySelector('[data-testid="custom-node"] > div') as HTMLElement).style.border;
+
+    it('shows no badge without an evaluation', () => {
+        renderWithEvaluation(new Map());
+        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+    });
+
+    it('keeps its normal border without an evaluation', () => {
+        const { container } = renderWithEvaluation(new Map());
+        expect(nodeBorder(container)).toBe(`2px solid ${toRgb(getNodeTypeColor('service'))}`);
+    });
+
+    it('shows no badge when the evaluations name other elements only', () => {
+        const { container } = renderWithEvaluation(new Map([['other-node', evaluation('not-met')]]));
+        expect(screen.queryByTestId('control-evaluation-badge')).toBeNull();
+        expect(nodeBorder(container)).toBe(`2px solid ${toRgb(getNodeTypeColor('service'))}`);
+    });
+
+    it('shows Not met in the error text colour, with a red border', () => {
+        const { container } = renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
+        const badge = screen.getByTestId('control-evaluation-badge');
+        expect(badge.textContent).toContain('Not met');
+        expect(badge.style.color).toBe(THEME.colors.errorText);
+        expect(nodeBorder(container)).toBe(`3px solid ${toRgb(THEME.colors.error)}`);
+    });
+
+    it('shows Met in the success text colour', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('met')]]));
+        const badge = screen.getByTestId('control-evaluation-badge');
+        expect(badge.textContent).toContain('Met');
+        expect(badge.style.color).toBe(THEME.colors.successText);
+    });
+
+    it('labels the badge for assistive technology, hides its icon, and has no native tooltip', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
+        const badge = screen.getByTestId('control-evaluation-badge');
+        expect(badge.getAttribute('aria-label')).toBe('Control evaluation: Not met');
+        expect(badge.hasAttribute('title')).toBe(false);
+        expect(badge.querySelector('svg')?.getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('frames the first finding as what the control requires, with its cause, on hover', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('not-met', { findings: [{ subject: 'node-1', description: 'A human approved this change', cause: 'absent' }] })]]));
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+        expect(screen.getByTestId('evaluation-finding').textContent).toBe('Requires: A human approved this change (absent)');
+    });
+
+    it('names the finding\'s subject when it is another element', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('not-met', { findings: [{ subject: 'trade-api-to-client-ledger', description: 'A human approved this change' }] })]]));
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+        expect(screen.getByTestId('evaluation-finding').textContent).toBe('trade-api-to-client-ledger — Requires: A human approved this change');
+    });
+
+    it('shows the control id, then the control unique-id muted, with the status glyph hidden from assistive technology', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('not-met')]]));
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+        expect(screen.getByText('SDLC-PREV-001')).toBeTruthy();
+        const uniqueId = screen.getByText('client-ledger-human-approval');
+        expect(uniqueId.style.color).toBe(THEME.colors.muted);
+        expect(uniqueId.style.fontWeight).not.toBe('600');
+        expect(screen.getByText('✗').getAttribute('aria-hidden')).toBe('true');
+    });
+
+    it('enlarges the badge in presentation mode', () => {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(true);
+        render(
+            <ControlEvaluationContext.Provider value={new Map([['node-1', evaluation('met')]])}>
+                <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
+            </ControlEvaluationContext.Provider>
+        );
+        expect(screen.getByTestId('control-evaluation-badge').style.fontSize).toBe('18px');
+    });
+
+    it('shows Met and the approver on hover', () => {
+        renderWithEvaluation(new Map([['node-1', evaluation('met', { actors: { approver: 'alice' } })]]));
+        expect(screen.getByTestId('control-evaluation-badge').textContent).toContain('Met');
+        fireEvent.mouseEnter(screen.getByTestId('custom-node'));
+        expect(screen.getByText(/approved by alice/)).toBeTruthy();
     });
 });

@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { MetadataPanel } from './MetadataPanel';
+import type { ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 // Mock child components
 
@@ -238,5 +239,54 @@ describe('MetadataPanel', () => {
 
         expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
         expect(screen.queryByTestId('adrs-panel')).not.toBeInTheDocument();
+    });
+
+    describe('control evaluations', () => {
+        const evaluations: ControlEvaluationDecorator[] = [
+            {
+                schema: 's',
+                uniqueId: 'eval-1',
+                type: 'control-evaluation',
+                target: ['t'],
+                appliesTo: ['trade-api'],
+                data: {
+                    control: { 'unique-id': 'client-ledger-human-approval', 'requirement-url': 'https://example.org/r' },
+                    status: 'met',
+                    'evaluated-at': '2026-11-04T15:00:00Z',
+                },
+            },
+        ];
+        const onlyEvaluations = { ...defaultProps, controls: {}, decorators: [], adrs: [], evaluations };
+
+        it('counts evaluations in the collapsed bar', () => {
+            render(<MetadataPanel {...onlyEvaluations} isCollapsed={true} />);
+
+            expect(screen.getByText('Evaluations (1)')).toBeInTheDocument();
+        });
+
+        it('opens on the evaluations tab when there are evaluations', () => {
+            render(<MetadataPanel {...onlyEvaluations} />);
+
+            expect(screen.getByTestId('control-evaluation-row')).toBeInTheDocument();
+        });
+
+        it('switches to the evaluations tab when evaluations arrive after mount', () => {
+            const { rerender } = render(<MetadataPanel {...defaultProps} isCollapsed={true} />);
+            rerender(<MetadataPanel {...defaultProps} evaluations={evaluations} isCollapsed={true} />);
+            rerender(<MetadataPanel {...defaultProps} evaluations={evaluations} isCollapsed={false} />);
+
+            expect(screen.getByTestId('control-evaluation-row')).toBeInTheDocument();
+            expect(screen.queryByTestId('controls-panel')).not.toBeInTheDocument();
+        });
+
+        it('keeps the tab the user chose when evaluations update later', () => {
+            const { rerender } = render(<MetadataPanel {...defaultProps} evaluations={evaluations} />);
+            fireEvent.click(screen.getByRole('button', { name: /Controls \(1\)/ }));
+            const updated = [...evaluations, { ...evaluations[0], uniqueId: 'eval-2' }];
+            rerender(<MetadataPanel {...defaultProps} evaluations={updated} />);
+
+            expect(screen.getByTestId('controls-panel')).toBeInTheDocument();
+            expect(screen.queryByTestId('control-evaluation-row')).not.toBeInTheDocument();
+        });
     });
 });
