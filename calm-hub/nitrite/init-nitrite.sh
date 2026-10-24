@@ -5304,26 +5304,36 @@ create_standards() {
     if [[ -z "$base_path" ]]; then
         base_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../mongo/standards"
     fi
-    local dir="$base_path/finos.calm/deployment"
+    local namespace_dir="$base_path/finos.calm"
+    # One directory per released standard. Deployment first, so that the deployment standard
+    # keeps standard id 1.
+    local dirs=("$namespace_dir/deployment")
+    local dir
+    for dir in "$namespace_dir"/*/; do
+        dir="${dir%/}"
+        [[ -d "$dir" && "$dir" != "$namespace_dir/deployment" ]] && dirs+=("$dir")
+    done
     local f
-    # The deployment standard first, so that it keeps standard id 1.
-    for f in "$dir/deployment.decorator.standard.json" "$dir/kubernetes.decorator.standard.json"; do
-        if [[ ! -f "$f" ]]; then
-            print_warning "Standard not found at $f"
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            print_warning "No standards directory at $dir"
             continue
         fi
-        local payload http_code
-        payload=$(jq '{name: .title, description: .description, standardJson: tojson}' "$f")
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
-            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created standard $(basename "$f") in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Standard $(basename "$f") already exists, skipping"
-        else
-            print_warning "Failed to create standard $(basename "$f") (HTTP $http_code)"
-        fi
+        for f in "$dir"/*.json; do
+            [[ -f "$f" ]] || continue
+            local payload http_code
+            payload=$(jq '{name: .title, description: .description, standardJson: tojson}' "$f")
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
+                -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
+            if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+                print_status "Created standard $(basename "$f") in finos.calm"
+            elif [[ "$http_code" == "409" ]]; then
+                print_warning "Standard $(basename "$f") already exists, skipping"
+            else
+                print_warning "Failed to create standard $(basename "$f") (HTTP $http_code)"
+            fi
+        done
     done
 }
 
