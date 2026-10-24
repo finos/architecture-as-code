@@ -5,6 +5,16 @@ All notable changes to the CALM Server will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.5.0...calm-server-v0.6.0) (2026-10-24)
+
+### 🚀 Features
+
+* move the tools to CALM schema 1.3 ([#3437](https://github.com/finos/architecture-as-code/issues/3437)) ([b142fd9](https://github.com/finos/architecture-as-code/commit/b142fd9e2ce0cea01fbc4ea142d892364c96e09f))
+
+### 🐛 Bug Fixes
+
+* upgrade to Express 5 ([#3424](https://github.com/finos/architecture-as-code/issues/3424)) ([1cc02d8](https://github.com/finos/architecture-as-code/commit/1cc02d85e81db91eda423082d9ac3abb6fc375d0))
+
 ## [0.5.0](https://github.com/finos/architecture-as-code/compare/calm-server-v0.4.0...calm-server-v0.5.0) (2026-10-21)
 
 ### ⚠ BREAKING CHANGES
