@@ -37,7 +37,7 @@ services:
     #
     # The Hub sets the $id of each name-based document (/calm/namespaces/...)
     # from CALM_HUB_BASE_URL when it serves the document, so this value must be
-    # the public URL. Without it, the Hub uses http://localhost:8080.
+    # the public URL. The image has the same default.
     environment:
       - "CALM_HUB_BASE_URL=${CALM_HUB_BASE_URL:-https://hub.calm.finos.org}"
     #

@@ -83,6 +83,8 @@ curl -s -o /dev/null -w "%{http_code}" \
 # → 405
 ```
 
+The read-only images serve the `$id` of each name-based document under `https://hub.calm.finos.org`, because the seeded documents belong to that Hub. To use a different base, add `-e CALM_HUB_BASE_URL=<url>` to `docker run`.
+
 ### How the Read-Only Data Image Layer Works
 
 The read-only images use a **two-stage Docker build** to pre-seed the embedded NitriteDB with the full CALM schema dataset at *build time*:

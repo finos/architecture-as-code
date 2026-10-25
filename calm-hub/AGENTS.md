@@ -266,6 +266,7 @@ All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are bui
 CALM_READONLY=true
 QUARKUS_PROFILE=standalone
 CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 ### How the Read-Only Data Image Layer is Built
