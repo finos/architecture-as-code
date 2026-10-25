@@ -1,5 +1,5 @@
 /// <reference types="vitest" />
-import { defineConfig } from 'vitest/config';
+import { configDefaults, defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -32,6 +32,7 @@ export default defineConfig({
         include: ['reactflow'],
     },
     test: {
+        exclude: [...configDefaults.exclude, 'e2e/**'],
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./vitest.setup.ts'],
