@@ -85,7 +85,7 @@ interface CustomNodeProps extends NodeProps {
   presentationStore?: PresentationModeStore;
 }
 
-function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
+function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { onNavigateToDetailedArch } = useDiagramActions();
 
@@ -292,7 +292,7 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
       </div>
       </div>
 
-      {summary && !isHovered && <DecisionCallout summary={summary} presenting={presenting} />}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} />}
 
       {/* Hover details panel - absolutely positioned to float over other elements */}
       {isHovered && (

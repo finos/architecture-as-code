@@ -8,7 +8,7 @@ import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { decisionSummary } from './utils/decisionSummary.js';
 import { DecisionCallout } from './DecisionCallout.js';
 
-function SystemGroupNodeComponent({ data }: NodeProps) {
+function SystemGroupNodeComponent({ id, data }: NodeProps) {
   const { presenting } = usePresentationMode();
   // A container's own controls, and those of the deployed-in and composed-of relationships it draws.
   const evaluation = useElementEvaluation(data['unique-id']);
@@ -55,11 +55,7 @@ function SystemGroupNodeComponent({ data }: NodeProps) {
         {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
       </div>
       {/* Below the container, as below a node, so the callout does not cover the nodes inside it. */}
-      {summary && (
-        <div style={{ position: 'absolute', top: '100%', left: 0, width: presenting ? '320px' : '220px' }}>
-          <DecisionCallout summary={summary} presenting={presenting} />
-        </div>
-      )}
+      {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} width={presenting ? 320 : 220} />}
     </div>
   );
 }

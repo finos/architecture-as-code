@@ -1,12 +1,14 @@
 import type { ComponentProps } from 'react';
+import { createPortal } from 'react-dom';
 import { render, screen, fireEvent } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { FloatingEdge } from './FloatingEdge.js';
 import { THEME } from './theme.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
-import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
+import { DecisionOverlayContext, type CalloutSize } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
 
 const { bezier, smoothStep, straight, edgeParams, storeNodes } = vi.hoisted(() => ({
@@ -21,7 +23,9 @@ vi.mock('reactflow', () => ({
     getBezierPath: bezier,
     getSmoothStepPath: smoothStep,
     getStraightPath: straight,
-    EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <div data-testid="label-renderer">{children}</div>,
+    // Like React Flow's, a portal out of the edge's SVG, so the label is HTML and has a layout size.
+    EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) =>
+        createPortal(<div data-testid="label-renderer">{children}</div>, document.body),
     useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) =>
         selector({ nodeInternals: new Map([['a', { id: 'a' }], ['b', { id: 'b' }], ...storeNodes]) }),
 }));
@@ -357,7 +361,7 @@ describe('FloatingEdge with the decision overlay', () => {
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(presenting);
         return render(
-            <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map() }}>
+            <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map(), calloutSizes: new Map(), reportCalloutSize: () => {} }}>
                 <ControlEvaluationContext.Provider value={new Map([['rel-1', evaluation]])}>
                     <svg>
                         <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
@@ -383,5 +387,72 @@ describe('FloatingEdge with the decision overlay', () => {
     it('enlarges the finding in presentation mode', () => {
         renderOverlay(true, notMetWithFinding(), true);
         expect(screen.getByTestId('edge-decision-finding').style.fontSize).toBe('16px');
+    });
+});
+
+describe('FloatingEdge clearing the decision callouts', () => {
+    // The mocked bezier puts the label's centre at (11, 12). At 40 by 20 it spans y 2 to 22, so the callout below
+    // this node, from y 0, covers its top.
+    const blocked = { id: 'blocked', type: 'custom', width: 50, height: 30, positionAbsolute: { x: 0, y: -30 } };
+    const callout = (height = 20): Map<string, CalloutSize> => new Map([['blocked', { width: 100, height }]]);
+
+    beforeEach(() => {
+        edgeParams.mockReturnValue(FLOATING);
+        storeNodes.clear();
+        storeNodes.set('blocked', blocked);
+        mockOffsetSize(40, 20);
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    function edge({ presenting = true, showDecisions = true, calloutSizes = callout() } = {}) {
+        const store = createPresentationModeStore(createMemoryStorage());
+        store.set(presenting);
+        return (
+            <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map(), calloutSizes, reportCalloutSize: () => {} }}>
+                <svg>
+                    <FloatingEdge {...edgeProps({ data: { 'unique-id': 'rel-1', description: 'writes' } })} presentationStore={store} />
+                </svg>
+            </DecisionOverlayContext.Provider>
+        );
+    }
+    const labelBox = () => screen.getByText('writes').parentElement as HTMLElement;
+
+    it('moves the label down to 8px below a callout it would cover', () => {
+        render(edge());
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,38px)');
+    });
+
+    it('leaves a label that covers no callout where it is', () => {
+        storeNodes.set('blocked', { ...blocked, positionAbsolute: { x: 200, y: -30 } });
+        render(edge());
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
+    });
+
+    it('moves the label only in presentation mode, with the overlay on', () => {
+        const { unmount } = render(edge({ presenting: false }));
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
+        unmount();
+        render(edge({ showDecisions: false }));
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
+    });
+
+    it('moves the label again when a callout appears or grows, with no node change', () => {
+        const { rerender } = render(edge({ calloutSizes: new Map() }));
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,12px)');
+        rerender(edge());
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,38px)');
+        rerender(edge({ calloutSizes: callout(40) }));
+        expect(labelBox().style.transform).toBe('translate(-50%, -50%) translate(11px,58px)');
+    });
+
+    it('does not move a label lifted above a node it would cover, though a callout hangs into the gap above it', () => {
+        // The lifted label spans y -24 to -4, and the callout below this node spans y -30 to -5.
+        storeNodes.set('blocked', { ...blocked, positionAbsolute: { x: 0, y: -60 } });
+        storeNodes.set('middle', { id: 'middle', type: 'custom', width: 50, height: 50, positionAbsolute: { x: 0, y: 4 } });
+        render(edge({ calloutSizes: callout(25) }));
+        expect(labelBox().style.transform).toBe('translate(-50%, -100%) translate(11px,-4px)');
     });
 });

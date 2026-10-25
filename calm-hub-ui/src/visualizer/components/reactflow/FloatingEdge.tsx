@@ -1,13 +1,14 @@
-import { memo, useState, useCallback, useLayoutEffect, useRef, type RefObject } from 'react';
+import { memo, useState, useCallback } from 'react';
 import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore, type Node } from 'reactflow';
 import { getEdgeParams, sameNodeGeometry } from './utils/floatingEdges.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
-import { coveredNodeTop } from './utils/labelPlacement.js';
+import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlacement.js';
 import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { useElementSize } from './hooks/useElementSize.js';
 
 interface FloatingEdgeProps extends EdgeProps<EdgeData> {
     /** Injected for tests; defaults to the app-wide store. */
@@ -51,15 +52,21 @@ function FloatingEdgeComponent({
     ));
 
     // In presentation mode the decision callouts below nodes are large enough to cover an edge label, which then moves
-    // down to clear them. The node map is selected only then, to measure again when a node moves.
-    const { showDecisions } = useDecisionOverlay();
-    const shiftForCallouts = presenting && showDecisions;
-    const nodesWhileShifting = useStore(useCallback(
-        (store) => (shiftForCallouts ? store.nodeInternals : undefined),
-        [shiftForCallouts],
+    // down to clear them. A label already moved above a node it would cover stays there. Like the hit test, the shift
+    // is calculated in the selector from the label's own position, so it changes only when a node or a callout does.
+    const { showDecisions, calloutSizes } = useDecisionOverlay();
+    const shiftForCallouts = presenting && showDecisions && coveredTop === undefined;
+    const [labelElement, setLabelElement] = useState<HTMLDivElement | null>(null);
+    const labelSize = useElementSize(labelElement);
+    const labelShift = useStore(useCallback(
+        (store) => (!shiftForCallouts || hitX === undefined || hitY === undefined || !labelSize
+            ? 0
+            : calloutShift(
+                { x: hitX - labelSize.width / 2, y: hitY - labelSize.height / 2, ...labelSize },
+                calloutRects(store.nodeInternals.values(), calloutSizes),
+            )),
+        [shiftForCallouts, hitX, hitY, labelSize, calloutSizes],
     ));
-    const labelRef = useRef<HTMLDivElement>(null);
-    const calloutShift = useCalloutShift(labelRef, shiftForCallouts, nodesWhileShifting);
 
     if (!path) {
         return null;
@@ -67,7 +74,7 @@ function FloatingEdgeComponent({
 
     const { edgePath, labelX, labelY } = path;
     const labelTransform = coveredTop === undefined
-        ? `translate(-50%, -50%) translate(${labelX}px,${labelY + calloutShift}px)`
+        ? `translate(-50%, -50%) translate(${labelX}px,${labelY + labelShift}px)`
         : `translate(-50%, -100%) translate(${labelX}px,${coveredTop - 8}px)`;
 
     // Extract edge data
@@ -153,7 +160,8 @@ function FloatingEdgeComponent({
             {hasIndicator && (
                 <EdgeLabelRenderer>
                     <div
-                        ref={labelRef}
+                        // Held only while it can move, as holding it renders the edge again.
+                        ref={shiftForCallouts ? setLabelElement : undefined}
                         style={{
                             position: 'absolute',
                             transform: labelTransform,
@@ -255,35 +263,6 @@ function FloatingEdgeComponent({
 }
 
 export const FloatingEdge = memo(FloatingEdgeComponent);
-
-/**
- * How far, in flow units, to move an edge label down so it clears the decision callouts it would cover. Callouts hang
- * below their nodes outside React Flow's node bounds, so only the drawn page knows where they are: the label and the
- * callouts are measured whenever a node changes (`nodes` is the store's node map, replaced on every change), from the
- * label's unshifted position so the result does not feed back on itself. Zero when `active` is false.
- */
-function useCalloutShift(labelRef: RefObject<HTMLDivElement | null>, active: boolean, nodes: unknown): number {
-    const [shift, setShift] = useState(0);
-    useLayoutEffect(() => {
-        const label = labelRef.current;
-        let next = 0;
-        if (active && label && label.offsetHeight) {
-            const rect = label.getBoundingClientRect();
-            const zoom = rect.height / label.offsetHeight;
-            const top = rect.top - shift * zoom;
-            const bottom = rect.bottom - shift * zoom;
-            const callouts = label.closest('.react-flow')?.querySelectorAll('[data-testid="decision-callout"]') ?? [];
-            for (const callout of callouts) {
-                const c = callout.getBoundingClientRect();
-                if (rect.left < c.right && rect.right > c.left && top < c.bottom && bottom > c.top) {
-                    next = Math.max(next, (c.bottom + 8 - top) / zoom);
-                }
-            }
-        }
-        if (Math.abs(next - shift) > 0.5) setShift(next);
-    }, [labelRef, active, shift, nodes]);
-    return shift;
-}
 
 function getFloatingEdgePath(
     sourceNode: Node,

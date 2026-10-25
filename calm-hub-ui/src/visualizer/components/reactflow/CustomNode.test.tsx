@@ -5,14 +5,20 @@ import { DiagramActionsContext } from '../../context/DiagramActionsContext.js';
 import { restoreLocation, setHostname } from '../../../test-support/window-location.js';
 import { createPresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { mockOffsetSize } from '../../../test-support/layout-mocks.js';
 import { THEME, getRiskLevelColor, getNodeTypeColor } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
 import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
+const { storeNodes } = vi.hoisted(() => ({ storeNodes: new Map<string, object>() }));
+
 vi.mock('reactflow', () => ({
     Handle: () => null,
     Position: { Right: 'right', Left: 'left' },
+    // The decision callout is drawn in the edge-label layer, from its node's bounds in the store.
+    EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <div data-testid="label-renderer">{children}</div>,
+    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) => selector({ nodeInternals: storeNodes }),
 }));
 
 function makeNodeProps(details?: Record<string, unknown>, extraData: Record<string, unknown> = {}) {
@@ -396,12 +402,29 @@ describe('control evaluations', () => {
 });
 
 describe('decision overlay', () => {
+    const reportCalloutSize = vi.fn();
+
+    beforeEach(() => {
+        reportCalloutSize.mockClear();
+        storeNodes.clear();
+        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 } });
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
     function renderOverlay(showDecisions: boolean, map: Map<string, ElementEvaluation> = new Map(), presenting = false) {
         const store = createPresentationModeStore(createMemoryStorage());
         store.set(presenting);
         return render(
             <DecisionOverlayContext.Provider
-                value={{ showDecisions, subjectLabels: new Map([['trade-api-to-client-ledger', 'Trade API → Client Ledger']]) }}
+                value={{
+                    showDecisions,
+                    subjectLabels: new Map([['trade-api-to-client-ledger', 'Trade API → Client Ledger']]),
+                    calloutSizes: new Map(),
+                    reportCalloutSize,
+                }}
             >
                 <ControlEvaluationContext.Provider value={map}>
                     <CustomNode {...makeNodeProps(undefined, { 'unique-id': 'node-1' })} presentationStore={store} />
@@ -447,12 +470,39 @@ describe('decision overlay', () => {
         expect(screen.getByTestId('decision-callout').textContent).toBe('✓ Met · reviewed by review-bot');
     });
 
-    it('hides the callout while the hover card is open', () => {
+    it('keeps the callout while the hover card is open, so the labels it moved stay where they are', () => {
         renderOverlay(true, notMet());
         fireEvent.mouseEnter(screen.getByTestId('custom-node'));
-        expect(screen.queryByTestId('decision-callout')).toBeNull();
-        fireEvent.mouseLeave(screen.getByTestId('custom-node'));
         expect(screen.getByTestId('decision-callout')).toBeTruthy();
+    });
+
+    it('hangs the callout below the node in the edge-label layer, above the other nodes', () => {
+        renderOverlay(true, notMet());
+        const callout = screen.getByTestId('decision-callout');
+        expect(callout.parentElement).toBe(screen.getByTestId('label-renderer'));
+        expect(callout.style.transform).toBe('translate(10px, 106px)');
+        expect(callout.style.width).toBe('220px');
+        expect(callout.style.zIndex).toBe('500');
+    });
+
+    it('is dimmed with its node', () => {
+        storeNodes.set('node-1', { id: 'node-1', width: 220, height: 80, positionAbsolute: { x: 10, y: 20 }, style: { opacity: 0.15 } });
+        renderOverlay(true, notMet());
+        expect(screen.getByTestId('decision-callout').style.opacity).toBe('0.15');
+    });
+
+    it('waits for the node to be measured', () => {
+        storeNodes.set('node-1', { id: 'node-1', positionAbsolute: { x: 10, y: 20 } });
+        renderOverlay(true, notMet());
+        expect(screen.queryByTestId('decision-callout')).toBeNull();
+    });
+
+    it('reports how far the callout reaches below the node, and withdraws it when the callout goes', () => {
+        mockOffsetSize(220, 90);
+        const { unmount } = renderOverlay(true, notMet(), true);
+        expect(reportCalloutSize).toHaveBeenLastCalledWith('node-1', { width: 220, height: 100 });
+        unmount();
+        expect(reportCalloutSize).toHaveBeenLastCalledWith('node-1', undefined);
     });
 
     it('sizes the callout text with presentation mode', () => {

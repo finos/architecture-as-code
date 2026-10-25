@@ -8,6 +8,10 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    getBoundsOfRects,
+    getNodesBounds,
+    getViewportForBounds,
+    type FitViewOptions,
     type ReactFlowInstance,
     type Viewport,
 } from 'reactflow';
@@ -20,8 +24,9 @@ import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
 import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
-import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
+import { DecisionOverlayContext, useCalloutSizes } from '../../context/DecisionOverlayContext.js';
 import { subjectLabelsFor } from './utils/decisionSummary.js';
+import { calloutRects } from './utils/labelPlacement.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
@@ -59,6 +64,10 @@ const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
  * back width. maxZoom matches desktop, so a sparse graph is not enlarged.
  */
 const CONTAIN_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
+
+/** The pane's zoom range, which also bounds a fit that sets no range of its own. */
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 2;
 
 /** Persist the minimap show/hide choice so it survives a refresh. */
 const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
@@ -196,7 +205,11 @@ export function ArchitectureGraph({
     };
     // Set with the parsed graph, not derived from node state, which changes on every drag.
     const [subjectLabels, setSubjectLabels] = useState<Map<string, string>>(() => new Map());
-    const decisionOverlay = useMemo(() => ({ showDecisions, subjectLabels }), [showDecisions, subjectLabels]);
+    const { calloutSizes, reportCalloutSize, currentCalloutSizes } = useCalloutSizes();
+    const decisionOverlay = useMemo(
+        () => ({ showDecisions, subjectLabels, calloutSizes, reportCalloutSize }),
+        [showDecisions, subjectLabels, calloutSizes, reportCalloutSize],
+    );
 
     useLayoutEffect(() => {
         const param = presentParam();
@@ -293,6 +306,29 @@ export function ArchitectureGraph({
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
+    // fitView takes in React Flow's node bounds only. The decision callouts hang below the nodes, outside those bounds,
+    // so while any are drawn a fit takes in their area too. False when there are none, as fitView alone is then right.
+    const fitWithCallouts = useCallback((options: FitViewOptions = {}) => {
+        const instance = flowInstanceRef.current;
+        const container = containerRef.current;
+        const callouts = currentCalloutSizes();
+        if (!instance || !container || callouts.size === 0) return false;
+        const shown = instance.getNodes().filter((node) => !node.hidden);
+        const bounds = calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
+        instance.setViewport(getViewportForBounds(
+            bounds,
+            container.clientWidth,
+            container.clientHeight,
+            options.minZoom ?? MIN_ZOOM,
+            options.maxZoom ?? MAX_ZOOM,
+            options.padding ?? 0.1,
+        ));
+        return true;
+    }, [currentCalloutSizes]);
+    const refit = useCallback((options: FitViewOptions) => {
+        if (!fitWithCallouts(options)) flowInstanceRef.current?.fitView(options);
+    }, [fitWithCallouts]);
+
     // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
     // AND immediately when the app first crosses into mobile — fitView only auto-runs
     // on ReactFlow's initial mount, so a discrete breakpoint crossing (window snap,
@@ -300,11 +336,11 @@ export function ArchitectureGraph({
     // graph un-fit (redesign problem #10). refit() is a no-op until onInit has run.
     useEffect(() => {
         if (!isMobile) return;
-        const refit = () => flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
-        refit();
-        window.addEventListener('resize', refit);
-        return () => window.removeEventListener('resize', refit);
-    }, [isMobile]);
+        const fit = () => refit(CONTAIN_FIT_VIEW_OPTIONS);
+        fit();
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, [isMobile, refit]);
 
     // fitView otherwise runs only at ReactFlow's initial mount. An embedded pane that
     // sibling UI resizes later then keeps a viewport scaled for its old size. Watch
@@ -318,7 +354,7 @@ export function ArchitectureGraph({
         const observer = new ResizeObserver(() => {
             cancelAnimationFrame(frame);
             frame = requestAnimationFrame(() => {
-                flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
+                refit(CONTAIN_FIT_VIEW_OPTIONS);
             });
         });
         observer.observe(container);
@@ -326,7 +362,7 @@ export function ArchitectureGraph({
             cancelAnimationFrame(frame);
             observer.disconnect();
         };
-    }, [fitToPane, nodes.length]);
+    }, [fitToPane, nodes.length, refit]);
 
     if (awaitingDefaultLayout) {
         return <EmptyGraphState message="Loading saved layout…" />;
@@ -377,7 +413,8 @@ export function ArchitectureGraph({
                     // fit config so the props always agree.
                     onInit={(instance) => { flowInstanceRef.current = instance; }}
                     {...flowConfig}
-                    minZoom={0.1}
+                    minZoom={MIN_ZOOM}
+                    maxZoom={MAX_ZOOM}
                     attributionPosition="bottom-left"
                     style={{ background: THEME.colors.background }}
                 >
@@ -387,6 +424,8 @@ export function ArchitectureGraph({
                     <Background gap={16} />
                     {!isMobile && (
                         <Controls
+                            // The button's own fit runs first, and this one replaces it while callouts are drawn.
+                            onFitView={() => fitWithCallouts()}
                             style={{
                                 background: THEME.colors.card,
                                 border: `1px solid ${THEME.colors.border}`,
@@ -442,6 +481,7 @@ export function ArchitectureGraph({
                             // Match the on-load fit cap so the "fit" button doesn't
                             // over-zoom a sparse graph (reactflow's default maxZoom is 2).
                             fitViewOptions={CONTAIN_FIT_VIEW_OPTIONS}
+                            onFitView={() => fitWithCallouts(CONTAIN_FIT_VIEW_OPTIONS)}
                         />
                     )}
                     {/* Presentation mode hides the minimap: on a projector it is clutter. */}

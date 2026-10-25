@@ -1,13 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import type { Node } from 'reactflow';
+import { getViewportForBounds, type Node } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
 import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { createMemoryStorage } from '../../../test-support/memory-storage.js';
-import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { useDecisionOverlay, type DecisionOverlay } from '../../context/DecisionOverlayContext.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -17,6 +17,8 @@ import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
  */
 const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
 const miniMapProps: { current: Record<string, unknown> | null } = { current: null };
+const controlsProps: { current: Record<string, unknown> | null } = { current: null };
+const decisionOverlay: { current: DecisionOverlay | null } = { current: null };
 // React strips `key` from the props a component receives, so a remount can't be
 // observed by reading reactFlowProps — instead, a lazily-initialised bit of
 // state (set once per mount, never again) doubles as a per-instance identity.
@@ -29,7 +31,9 @@ function MockReactFlow(props: Record<string, unknown>) {
     reactFlowProps.current = props;
     const [instanceId] = useState(() => ++reactFlowMountCount);
     // The nodes and edges ReactFlow draws read the decision overlay from this context.
-    const { showDecisions, subjectLabels } = useDecisionOverlay();
+    const overlay = useDecisionOverlay();
+    decisionOverlay.current = overlay;
+    const { showDecisions, subjectLabels } = overlay;
     return (
         <div
             data-testid="react-flow"
@@ -52,9 +56,10 @@ vi.mock('reactflow', async () => {
         __esModule: true,
         default: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
-        Controls: ({ children }: { children?: ReactNode }) => (
-            <div data-testid="rf-controls">{children}</div>
-        ),
+        Controls: (props: { children?: ReactNode }) => {
+            controlsProps.current = props;
+            return <div data-testid="rf-controls">{props.children}</div>;
+        },
         ControlButton: ({
             children,
             ...rest
@@ -87,10 +92,29 @@ const mockCalmData: CalmArchitectureSchema = {
     ],
 };
 
+// Two nodes span x 0 to 300 and y 0 to 100. A callout that reaches 160 below node-1 takes the content down to y 260.
+const measuredNodes = [
+    { id: 'node-1', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 200, height: 100 },
+    { id: 'node-2', position: { x: 100, y: 0 }, positionAbsolute: { x: 100, y: 0 }, width: 200, height: 100 },
+];
+const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
+
+/** A flow instance with measured nodes, handed to the graph as ReactFlow's onInit would, in an 800 by 600 pane. */
+function initMeasuredFlow() {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
+    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, setViewport: vi.fn() };
+    (reactFlowProps.current?.onInit as (i: unknown) => void)(instance);
+    return instance;
+}
+
+const reportCallout = () => act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 160 }));
+
 describe('ArchitectureGraph', () => {
     beforeEach(() => {
         reactFlowProps.current = null;
         miniMapProps.current = null;
+        controlsProps.current = null;
         reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
@@ -169,6 +193,7 @@ describe('ArchitectureGraph', () => {
             globalThis.ResizeObserver = originalResizeObserver;
             globalThis.requestAnimationFrame = originalRaf;
             globalThis.cancelAnimationFrame = originalCancelRaf;
+            vi.restoreAllMocks();
         });
 
         /** Hands the graph a flow instance the way ReactFlow's onInit would. */
@@ -204,6 +229,17 @@ describe('ArchitectureGraph', () => {
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
         });
 
+        it('takes in the decision callouts when it re-fits the pane', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} fitToPane />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+
+            triggerResize?.();
+
+            expect(instance.fitView).not.toHaveBeenCalled();
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.1));
+        });
+
         it('does not observe the pane when disabled, so a saved viewport survives a resize', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             const fitView = initFlow();
@@ -211,6 +247,33 @@ describe('ArchitectureGraph', () => {
             // No observer was constructed at all, so there is nothing to trigger.
             expect(triggerResize).toBeNull();
             expect(fitView).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fit button', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('takes in the decision callouts, after React Flow\'s own fit of the nodes', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+
+            (controlsProps.current?.onFitView as () => void)();
+
+            // The button's own fit has the pane's zoom range and React Flow's default padding.
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 2, 0.1));
+        });
+
+        it('leaves the fit to React Flow while no callout is drawn', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+
+            (controlsProps.current?.onFitView as () => void)();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+            expect(instance.fitView).not.toHaveBeenCalled();
         });
     });
 
@@ -424,6 +487,7 @@ describe('ArchitectureGraph', () => {
         afterEach(() => {
             // Restore the default (desktop) matchMedia so later tests aren't left mobile.
             window.matchMedia = originalMatchMedia;
+            vi.restoreAllMocks();
         });
 
         it('omits the minimap on mobile (Frame F shows no minimap)', () => {
@@ -482,6 +546,22 @@ describe('ArchitectureGraph', () => {
             // fitting 390px after rotation / iOS chrome collapse.
             window.dispatchEvent(new Event('resize'));
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
+        });
+
+        it('takes in the decision callouts when it re-fits on a resize, and with its fit button', () => {
+            mockMobileViewport();
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+            const fit = getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.1);
+
+            window.dispatchEvent(new Event('resize'));
+            expect(instance.setViewport).toHaveBeenLastCalledWith(fit);
+
+            instance.setViewport.mockClear();
+            (controlsProps.current?.onFitView as () => void)();
+            expect(instance.setViewport).toHaveBeenCalledWith(fit);
+            expect(instance.fitView).not.toHaveBeenCalled();
         });
     });
 

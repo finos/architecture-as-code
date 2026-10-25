@@ -10,6 +10,10 @@ import type { ElementEvaluation } from '../../contracts/contracts.js';
 vi.mock('reactflow', () => ({
     Handle: () => null,
     Position: { Left: 'left', Right: 'right' },
+    EdgeLabelRenderer: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    useStore: (selector: (store: { nodeInternals: Map<string, object> }) => unknown) => selector({
+        nodeInternals: new Map([['cluster', { id: 'cluster', width: 600, height: 400, positionAbsolute: { x: 40, y: 50 } }]]),
+    }),
 }));
 
 const evaluation = (status: 'met' | 'not-met'): ElementEvaluation => ({
@@ -34,7 +38,7 @@ const css = (colour: string) => {
 function renderGroup(map: Map<string, ElementEvaluation>, showDecisions = false) {
     const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
     const { container } = render(
-        <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map() }}>
+        <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map(), calloutSizes: new Map(), reportCalloutSize: () => {} }}>
             <ControlEvaluationContext.Provider value={map}>
                 <SystemGroupNode {...props} />
             </ControlEvaluationContext.Provider>
@@ -75,6 +79,7 @@ describe('SystemGroupNode decision overlay', () => {
         const callout = screen.getByTestId('decision-callout');
         expect(callout.dataset.outcome).toBe('blocked');
         expect(callout.textContent).toContain('residency');
-        expect((callout.parentElement as HTMLElement).style.top).toBe('100%');
+        expect(callout.style.transform).toBe('translate(40px, 456px)');
+        expect(callout.style.width).toBe('220px');
     });
 });
