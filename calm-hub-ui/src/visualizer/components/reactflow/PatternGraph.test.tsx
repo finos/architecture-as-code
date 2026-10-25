@@ -13,11 +13,12 @@ import { saveNodePositions, clearStoredNodePositions } from '../../services/node
  * DOM-measuring view components. PatternGraph renders two <Panel>s (decision
  * selector + search bar), so Panel must be stubbed too.
  */
-const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
+const onReactFlowRender = vi.fn<(props: Record<string, unknown>) => void>();
+const reactFlowProps = () => onReactFlowRender.mock.lastCall?.[0];
 let reactFlowMountCount = 0;
 
 function MockReactFlow(props: Record<string, unknown>) {
-    reactFlowProps.current = props;
+    onReactFlowRender(props);
     const [instanceId] = useState(() => ++reactFlowMountCount);
     return (
         <div data-testid="react-flow" data-instance={instanceId}>
@@ -72,7 +73,6 @@ const mockPatternData = makePattern([
 
 describe('PatternGraph', () => {
     beforeEach(() => {
-        reactFlowProps.current = null;
         reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
@@ -87,7 +87,7 @@ describe('PatternGraph', () => {
         const key = 'ns/id';
 
         function nodePosition(id: string) {
-            const nodes = reactFlowProps.current?.nodes as Node[] | undefined;
+            const nodes = reactFlowProps()?.nodes as Node[] | undefined;
             return nodes?.find((n) => n.id === id)?.position;
         }
 
