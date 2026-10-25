@@ -126,4 +126,9 @@ ENV CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
 # Read-only mode: opens NitriteDB with readOnly(true) and rejects mutating HTTP verbs
 ENV CALM_READONLY=true
 
+# Base of the $id of each name-based document (/calm/namespaces/...). The seeded
+# documents belong to hub.calm.finos.org. To serve them from a different URL,
+# set CALM_HUB_BASE_URL when you run the image.
+ENV CALM_HUB_BASE_URL=https://hub.calm.finos.org
+
 ENTRYPOINT ["/deployments/calm-hub-runner", "-Dquarkus.http.host=0.0.0.0"]

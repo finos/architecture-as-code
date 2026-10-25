@@ -178,6 +178,7 @@ This is how the published `latest-read-only-static` and `latest-read-only-native
 |:---------|:---------------------|:--------|:------------|
 | `calm.database.mode` | `CALM_DATABASE_MODE` | `mongo` | Storage backend: `mongo` or `standalone` |
 | `calm.readonly` | `CALM_READONLY` | `false` | Enable read-only mode |
+| `calm.hub.base-url` | `CALM_HUB_BASE_URL` | `http://localhost:8080` (`https://hub.calm.finos.org` in the read-only images) | Base of the `$id` of each name-based document |
 | `calm.standalone.data-directory` | `CALM_STANDALONE_DATA_DIRECTORY` | `~/.calm-hub/data` | NitriteDB file location |
 | `calm.standalone.database-name` | `CALM_STANDALONE_DATABASE_NAME` | `calmSchemas` | NitriteDB database filename |
 | `calm.mcp.enabled` | `CALM_MCP_ENABLED` | `false` | Enable MCP tool invocations |

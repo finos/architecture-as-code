@@ -266,6 +266,7 @@ All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are bui
 CALM_READONLY=true
 QUARKUS_PROFILE=standalone
 CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 ### How the Read-Only Data Image Layer is Built
@@ -286,6 +287,7 @@ Stage 2 — runtime (minimal base)
   chmod 0444                              ← filesystem-level immutability
   ENV CALM_READONLY=true
   ENV QUARKUS_PROFILE=standalone
+  ENV CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 **Why native read-only uses JVM for seeding:** GraalVM native binaries cannot reliably *write* (commit) the H2 MVStore backing NitriteDB due to Java serialisation requirements not fully supported in native. The JVM seed stage writes the database; the native binary only reads it. Serialisation metadata for the read path is registered in `META-INF/native-image/org.finos/calm-hub/serialization-config.json`.
