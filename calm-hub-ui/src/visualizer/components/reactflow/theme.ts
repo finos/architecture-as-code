@@ -38,10 +38,13 @@ export const THEME = {
         // Risk level colors
         risk: colors.risk,
 
-        // Status colors
+        // Status colors. `success` and `error` stay hex for borders, strokes and
+        // `${color}20` tints; `successText` and `errorText` are their text roles.
         success: colors.status.success,
+        successText: colors.status.successText,
         warning: colors.status.warning,
         error: colors.status.error,
+        errorText: colors.status.errorText,
         info: colors.status.info,
 
         // Edge colors

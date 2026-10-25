@@ -6,6 +6,7 @@ import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.j
 import type { EdgeData } from '../../contracts/contracts.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { coveredNodeTop } from './utils/labelPlacement.js';
+import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
 
 interface FloatingEdgeProps extends EdgeProps<EdgeData> {
     /** Injected for tests; defaults to the app-wide store. */
@@ -24,6 +25,8 @@ function FloatingEdgeComponent({
 }: FloatingEdgeProps) {
     const [isHovered, setIsHovered] = useState(false);
     const direction = data?.direction;
+    const evaluation = useElementEvaluation(data?.['unique-id']);
+    const notMet = evaluation?.status === 'not-met';
 
     // reactflow gives every node a new object on each node change, for example the z-index change on a hover. Only
     // the geometry is compared, so such a change does not render every edge again.
@@ -76,23 +79,59 @@ function FloatingEdgeComponent({
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
     const badgeStyle = getBadgeStyle(hasFlowInfo);
-    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF;
+    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF || notMet;
+    const pathStyle = notMet ? { ...style, stroke: THEME.colors.error, strokeWidth: 3.5 } : style;
+    // A not-met relationship's arrowheads turn red with it. The shared markers are coloured per edge type, so this
+    // edge draws its own, with an id unique to the edge, and points only the ends that already had one at it.
+    const notMetMarkerId = `control-evaluation-arrow-${id}`;
+    const notMetMarker = `url(#${notMetMarkerId})`;
+    // ReactFlow passes an end with no marker as an empty reference, url('#'), which is truthy but draws nothing.
+    const endMarker = referencedMarker(markerEnd);
+    const startMarker = referencedMarker(markerStart);
+    const pathMarkerEnd = notMet && endMarker ? notMetMarker : endMarker;
+    const pathMarkerStart = notMet && startMarker ? notMetMarker : startMarker;
 
     return (
         <>
+            {notMet && (endMarker || startMarker) && (
+                <defs>
+                    {/* ReactFlow's ArrowClosed geometry, sized in user space to match the 25-wide marker on a
+                        2.5px edge, since this edge is drawn thicker. */}
+                    <marker
+                        id={notMetMarkerId}
+                        className="react-flow__arrowhead"
+                        viewBox="-10 -10 20 20"
+                        refX="0"
+                        refY="0"
+                        markerWidth="62.5"
+                        markerHeight="62.5"
+                        markerUnits="userSpaceOnUse"
+                        orient="auto-start-reverse"
+                    >
+                        <polyline
+                            points="-5,-4 0,0 -5,4 -5,-4"
+                            fill={THEME.colors.error}
+                            stroke={THEME.colors.error}
+                            strokeWidth="1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </marker>
+                </defs>
+            )}
             <path
                 id={id}
-                style={style}
+                style={pathStyle}
                 className="react-flow__edge-path"
                 d={edgePath}
-                markerEnd={markerEnd}
-                markerStart={markerStart}
+                markerEnd={pathMarkerEnd}
+                markerStart={pathMarkerStart}
             />
             {isFlowActive && (
                 <path
                     d={edgePath}
                     className="flow-dash-overlay"
-                    markerEnd={markerEnd}
+                    markerEnd={pathMarkerEnd}
                 />
             )}
             {hasIndicator && (
@@ -120,6 +159,22 @@ function FloatingEdgeComponent({
                                 hasFlowInfo={hasFlowInfo}
                                 badgeStyle={badgeStyle}
                             />
+                        )}
+                        {notMet && (
+                            <span
+                                data-testid="edge-evaluation-badge"
+                                style={{
+                                    fontSize: presenting ? '18px' : '11px',
+                                    fontWeight: 600,
+                                    padding: presenting ? '3px 8px' : '2px 4px',
+                                    borderRadius: '4px',
+                                    background: THEME.colors.card,
+                                    border: `1px solid ${THEME.colors.error}`,
+                                    color: THEME.colors.errorText,
+                                }}
+                            >
+                                <span aria-hidden="true">✗</span> Not met
+                            </span>
                         )}
                         {edgeLabel && (
                             <span
@@ -198,6 +253,17 @@ function getFloatingEdgePath(
         getBezierPath(pathParams);
 
     return { edgePath, labelX, labelY };
+}
+
+/**
+ * The marker reference for one end of the edge, or undefined when that end has none: ReactFlow
+ * hands an unset marker to the edge as url('#').
+ */
+function referencedMarker(marker: string | undefined): string | undefined {
+    if (!marker || /^url\(\s*['"]?#['"]?\s*\)$/.test(marker)) {
+        return undefined;
+    }
+    return marker;
 }
 
 /**
