@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { evaluationsByElement, newestFirst } from './controlEvaluations.js';
+import { containersOfContainment, evaluationsByElement, newestFirst } from './controlEvaluations.js';
 import type { ControlEvaluationDecorator } from '../../../contracts/contracts.js';
 
 const d = (id: string, control: string, status: 'met' | 'not-met' | 'not-applicable', at: string, appliesTo: string[], extra = {}): ControlEvaluationDecorator => ({
@@ -86,6 +86,40 @@ describe('evaluationsByElement', () => {
         const b = d('b', 'c', 'met', '2026-11-04T15:00:00.000Z', ['n']);
         expect(evaluationsByElement([a, b]).get('n')?.latest.map((x) => x.uniqueId)).toEqual(['b']);
         expect(evaluationsByElement([b, a]).get('n')?.latest.map((x) => x.uniqueId)).toEqual(['b']);
+    });
+});
+
+describe('containment relationships', () => {
+    const relationships = [
+        { 'unique-id': 'api-in-cluster', 'relationship-type': { 'deployed-in': { container: 'cluster', nodes: ['trade-api'] } } },
+        { 'unique-id': 'system-has-ledger', 'relationship-type': { 'composed-of': { container: 'trade-system', nodes: ['client-ledger'] } } },
+        { 'unique-id': 'api-to-ledger', 'relationship-type': { connects: { source: { node: 'trade-api' }, destination: { node: 'client-ledger' } } } },
+    ];
+
+    it('maps each deployed-in and composed-of relationship to its container, and nothing else', () => {
+        expect([...containersOfContainment(relationships)]).toEqual([
+            ['api-in-cluster', 'cluster'],
+            ['system-has-ledger', 'trade-system'],
+        ]);
+        expect(containersOfContainment(undefined).size).toBe(0);
+    });
+
+    it('counts a containment relationship\'s evaluation for its container, which draws it', () => {
+        const map = evaluationsByElement(
+            [d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['api-in-cluster'])],
+            containersOfContainment(relationships),
+        );
+        expect(map.get('cluster')?.status).toBe('not-met');
+        expect(map.has('api-in-cluster')).toBe(false);
+    });
+
+    it('counts one evaluation once when it names both the container and its relationship', () => {
+        const map = evaluationsByElement(
+            [d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['cluster', 'api-in-cluster', 'trade-api'])],
+            containersOfContainment(relationships),
+        );
+        expect(map.get('cluster')?.latest.map((x) => x.uniqueId)).toEqual(['a']);
+        expect(map.get('trade-api')?.status).toBe('not-met');
     });
 });
 

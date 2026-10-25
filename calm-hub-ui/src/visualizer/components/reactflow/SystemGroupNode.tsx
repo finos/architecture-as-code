@@ -2,14 +2,19 @@ import { memo } from 'react';
 import { NodeProps, Handle, Position } from 'reactflow';
 import { THEME } from './theme';
 import { usePresentationMode } from '../../../theme/usePresentationMode.js';
+import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { EvaluationBadge } from './EvaluationBadge.js';
 
 function SystemGroupNodeComponent({ data }: NodeProps) {
   const { presenting } = usePresentationMode();
+  // A container's own controls, and those of the deployed-in and composed-of relationships it draws.
+  const evaluation = useElementEvaluation(data['unique-id']);
+  const notMet = evaluation?.status === 'not-met';
   return (
     <div
       style={{
         background: THEME.colors.group.background,
-        border: `2px dashed ${THEME.colors.group.border}`,
+        border: notMet ? `3px solid ${THEME.colors.error}` : `2px dashed ${THEME.colors.group.border}`,
         borderRadius: '12px',
         padding: '24px',
         width: '100%',
@@ -26,6 +31,9 @@ function SystemGroupNodeComponent({ data }: NodeProps) {
           position: 'absolute',
           top: '12px',
           left: '16px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
           padding: presenting ? '6px 16px' : '4px 12px',
           borderRadius: '6px',
           fontWeight: 600,
@@ -36,7 +44,8 @@ function SystemGroupNodeComponent({ data }: NodeProps) {
           pointerEvents: 'auto', // Re-enable pointer events for the label so it's clickable
         }}
       >
-        {data.label}
+        <span>{data.label}</span>
+        {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
       </div>
     </div>
   );

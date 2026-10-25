@@ -10,7 +10,7 @@ import { buildViewportKey } from '../../services/node-position-service.js';
 import { DropzoneEmptyState } from './DropzoneEmptyState.js';
 import { colors } from '../../../theme/colors.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
-import { evaluationsByElement } from '../reactflow/utils/controlEvaluations.js';
+import { containersOfContainment, evaluationsByElement } from '../reactflow/utils/controlEvaluations.js';
 import type { DrawerProps, Control, Decorator, ControlEvaluationDecorator } from '../../contracts/contracts.js';
 
 const EVALUATION_REFRESH_MS = 5000;
@@ -197,7 +197,10 @@ export function Drawer({
         };
     }, [data, fileInstance, calmService]);
 
-    const evaluationMap = useMemo(() => evaluationsByElement(evaluations), [evaluations]);
+    const evaluationMap = useMemo(
+        () => evaluationsByElement(evaluations, containersOfContainment(calmInstance?.relationships)),
+        [evaluations, calmInstance],
+    );
 
 
     const adrs = useMemo((): string[] => {

@@ -16,8 +16,6 @@ import {
     ZoomIn,
     ExternalLink,
     Info,
-    CheckCircle2,
-    XCircle,
 } from 'lucide-react';
 import { extractId, extractNodeType, isNavigableArch, resolveDetailedArchitecture } from './utils/calmHelpers.js';
 import { THEME, getNodeTypeColor, getRiskLevelColor } from './theme.js';
@@ -27,6 +25,7 @@ import { useElementEvaluation } from '../../context/ControlEvaluationContext.js'
 import { usableColor } from './utils/usableColor.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { FindingText } from './FindingText.js';
+import { EvaluationBadge } from './EvaluationBadge.js';
 
 /**
  * Shared style for the hover-panel action buttons ("Show Details", "Explore
@@ -133,10 +132,6 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
         : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
     const evaluation = useElementEvaluation(data['unique-id']);
     const evaluationNotMet = evaluation?.status === 'not-met';
-    // Hex for the tint, the text token for the label: see the contrast note in src/theme/colors.ts.
-    const evaluationColor = evaluationNotMet ? THEME.colors.error : THEME.colors.success;
-    const evaluationTextColor = evaluationNotMet ? THEME.colors.errorText : THEME.colors.successText;
-    const evaluationLabel = evaluationNotMet ? 'Not met' : 'Met';
 
   // Get icon and color for node type
   const getNodeTypeStyle = () => {
@@ -230,31 +225,7 @@ function CustomNodeComponent({ data, presentationStore }: CustomNodeProps) {
         </div>
         {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
-            {evaluation && (
-              <div
-                data-testid="control-evaluation-badge"
-                data-status={evaluation.status}
-                // role="img" so the label is announced: aria-label is not allowed on a plain div.
-                role="img"
-                aria-label={`Control evaluation: ${evaluationLabel}`}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: size.badgePadding,
-                  borderRadius: '4px',
-                  fontSize: size.badgeText,
-                  fontWeight: 600,
-                  background: `${evaluationColor}20`,
-                  color: evaluationTextColor,
-                }}
-              >
-                {evaluationNotMet
-                  ? <XCircle aria-hidden="true" style={{ width: size.badgeIcon, height: size.badgeIcon }} />
-                  : <CheckCircle2 aria-hidden="true" style={{ width: size.badgeIcon, height: size.badgeIcon }} />}
-                <span>{evaluationLabel}</span>
-              </div>
-            )}
+            {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
             {riskCount > 0 && (
               <div
                 style={{

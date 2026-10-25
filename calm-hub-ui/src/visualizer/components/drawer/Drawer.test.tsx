@@ -43,8 +43,14 @@ vi.mock('../reactflow/ReactFlowVisualizer.js', async () => {
     const { useElementEvaluation } = await vi.importActual<typeof import('../../context/ControlEvaluationContext.js')>(
         '../../context/ControlEvaluationContext.js'
     );
-    // Reads node n1's evaluation from the context the Drawer provides, as CustomNode does.
-    const EvaluationProbe = () => <div data-testid="evaluation-n1">{useElementEvaluation('n1')?.status ?? '(none)'}</div>;
+    // Reads node n1's and container sys's evaluations from the context the Drawer provides, as CustomNode and
+    // SystemGroupNode do.
+    const EvaluationProbe = () => (
+        <>
+            <div data-testid="evaluation-n1">{useElementEvaluation('n1')?.status ?? '(none)'}</div>
+            <div data-testid="evaluation-sys">{useElementEvaluation('sys')?.status ?? '(none)'}</div>
+        </>
+    );
     return {
         ReactFlowVisualizer: ({ calmData, viewportKey, defaultLayout, layoutEpoch, onPositionsChange }: ReactFlowVisualizerProps) => {
             visualizerRenders.count += 1;
@@ -531,6 +537,27 @@ describe('Drawer — control evaluations', () => {
 
         expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('not-met');
         expect(screen.getByTestId('metadata-panel')).toHaveTextContent('evaluations:1');
+    });
+
+    it('hands a containment relationship\'s evaluation to its container, which draws it', async () => {
+        const architectureWithContainer: Data = {
+            ...architectureData,
+            data: {
+                nodes: [
+                    { 'unique-id': 'sys', name: 'System', description: 'd', 'node-type': 'system' },
+                    { 'unique-id': 'n1', name: 'Node 1', description: 'd', 'node-type': 'service' },
+                ],
+                relationships: [
+                    { 'unique-id': 'sys-has-n1', 'relationship-type': { 'composed-of': { container: 'sys', nodes: ['n1'] } } },
+                ],
+            },
+        };
+        mockFetchControlEvaluationDecorators.mockResolvedValue([{ ...evaluation('not-met'), appliesTo: ['sys-has-n1'] }]);
+        render(<Drawer data={architectureWithContainer} />);
+        await flush();
+
+        expect(screen.getByTestId('evaluation-sys')).toHaveTextContent('not-met');
+        expect(screen.getByTestId('evaluation-n1')).toHaveTextContent('(none)');
     });
 
     it('shows a new evaluation picked up by a refresh', async () => {
