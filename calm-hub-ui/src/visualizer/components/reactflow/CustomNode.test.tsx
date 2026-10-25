@@ -282,18 +282,25 @@ describe('presentation mode', () => {
         render(<CustomNode {...makeNodeProps(undefined, { controls })} presentationStore={store} />);
     };
 
-    it('keeps the normal size when presentation mode is off', () => {
+    it('keeps the normal size and the control count when presentation mode is off', () => {
         renderNode(false);
         expect(screen.getByTestId('custom-node').style.width).toBe('220px');
         expect(textSize()).toBe('14px');
         expect(controlBadge().style.fontSize).toBe('12px');
+        expect(screen.queryByText('client-ledger-human-approval')).not.toBeInTheDocument();
     });
 
-    it('makes the node wider and its text and control count larger', () => {
+    it('makes the node wider and its text larger', () => {
         renderNode(true);
         expect(screen.getByTestId('custom-node').style.width).toBe('320px');
         expect(textSize()).toBe('24px');
-        expect(controlBadge().style.fontSize).toBe('18px');
+    });
+
+    it('names each control on the node in place of the count, as an audience cannot hover', () => {
+        renderNode(true);
+        const chips = screen.getAllByTestId('node-control-chip');
+        expect(chips.map((chip) => chip.textContent)).toEqual(['client-ledger-human-approval', 'encryption-at-rest']);
+        expect(screen.queryByText('2')).not.toBeInTheDocument();
     });
 });
 

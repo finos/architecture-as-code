@@ -26,6 +26,7 @@ import { usableColor } from './utils/usableColor.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
 import { FindingText } from './FindingText.js';
 import { EvaluationBadge } from './EvaluationBadge.js';
+import { NodeControlChips } from './NodeControlChips.js';
 import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
 import { decisionSummary } from './utils/decisionSummary.js';
 import { DecisionCallout } from './DecisionCallout.js';
@@ -133,6 +134,8 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
     const size = presenting
         ? { width: '320px', padding: '20px', text: '24px', icon: '24px', zoomIcon: '26px', badgeText: '18px', badgeIcon: '18px', badgePadding: '3px 8px' }
         : { width: '220px', padding: '16px', text: '14px', icon: '16px', zoomIcon: '20px', badgeText: '12px', badgeIcon: '12px', badgePadding: '2px 6px' };
+    // Presentation mode names each control on the node in place of the count.
+    const showControlCount = controlCount > 0 && !presenting;
     const evaluation = useElementEvaluation(data['unique-id']);
     const evaluationNotMet = evaluation?.status === 'not-met';
     const { showDecisions, subjectLabels } = useDecisionOverlay();
@@ -230,7 +233,7 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
             </div>
           )}
         </div>
-        {(riskCount > 0 || mitigationCount > 0 || controlCount > 0 || evaluation) && (
+        {(riskCount > 0 || mitigationCount > 0 || showControlCount || evaluation) && (
           <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
             {evaluation && <EvaluationBadge status={evaluation.status} presenting={presenting} />}
             {riskCount > 0 && (
@@ -269,7 +272,7 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
                 <span>{mitigationCount}</span>
               </div>
             )}
-            {controlCount > 0 && (
+            {showControlCount && (
               <div
                 style={{
                   display: 'flex',
@@ -290,6 +293,7 @@ function CustomNodeComponent({ id, data, presentationStore }: CustomNodeProps) {
           </div>
         )}
       </div>
+      {presenting && controlCount > 0 && <NodeControlChips controlIds={controlEntries.map(([controlId]) => controlId)} />}
       </div>
 
       {summary && <DecisionCallout nodeId={id} summary={summary} presenting={presenting} />}
