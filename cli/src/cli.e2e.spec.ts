@@ -942,7 +942,7 @@ describe('CLI Integration Tests', () => {
         patchJson(outputArchitecture, (arch) => {
             arch['flows'] = [
                 {
-                    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/flow.json',
+                    $schema: 'https://calm.finos.org/release/1.3/meta/flow.json',
                     $id: flowUrl,
                     'unique-id': 'flow-conference-signup',
                     name: 'Conference Signup Flow',

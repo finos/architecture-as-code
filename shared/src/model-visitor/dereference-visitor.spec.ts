@@ -7,7 +7,7 @@ import { CalmCoreCanonicalModel } from '@finos/calm-models/canonical';
 
 // Use the same architecture as in the LoggingVisitor test
 const testArch = {
-    '$schema': 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+    '$schema': 'https://calm.finos.org/release/1.3/meta/calm.json',
     'unique-id': 'core-001',
     'name': 'Conference Signup Architecture',
     'description': 'Core architecture for conference signup system.',
@@ -75,7 +75,7 @@ const testArch = {
 
 const derefData = {
     'http://example.com/arch-detail': {
-        '$schema': 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+        '$schema': 'https://calm.finos.org/release/1.3/meta/calm.json',
         'unique-id': 'arch-detail-001',
         'name': 'Detailed Architecture',
         'nodes': [

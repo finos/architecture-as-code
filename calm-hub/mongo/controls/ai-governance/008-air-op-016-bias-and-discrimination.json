@@ -4,7 +4,7 @@
   "description": "Controls to detect, prevent and remediate bias and discrimination in AI systems used in financial services, ensuring fairness and compliance with anti-discrimination regulations.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-016",
       "name": "Bias and Discrimination",
       "category": "Operational",

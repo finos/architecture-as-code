@@ -4,7 +4,7 @@
   "description": "Controls to manage instability and unpredictable behavioural changes arising from foundation model version updates, silent model changes, and provider-side modifications.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-005",
       "name": "Foundation Model Versioning",
       "category": "Operational",

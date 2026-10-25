@@ -7,7 +7,7 @@ import { CalmCoreSchema } from '@finos/calm-models/types';
 describe('LoggingVisitor', () => {
 
     const testArch = {
-        '$schema': 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+        '$schema': 'https://calm.finos.org/release/1.3/meta/calm.json',
         'unique-id': 'core-001',
         'name': 'Conference Signup Architecture',
         'description': 'Core architecture for conference signup system.',
@@ -92,7 +92,7 @@ describe('LoggingVisitor', () => {
 
         const expectedLogLines = [
             '[Object] originalJson',
-            '[Primitive] originalJson.$schema = https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+            '[Primitive] originalJson.$schema = https://calm.finos.org/release/1.3/meta/calm.json',
             '[Primitive] originalJson.unique-id = core-001',
             '[Primitive] originalJson.name = Conference Signup Architecture',
             '[Primitive] originalJson.description = Core architecture for conference signup system.',

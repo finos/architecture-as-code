@@ -4,7 +4,7 @@
   "description": "Controls to detect, mitigate and monitor LLM hallucinations and inaccurate outputs in AI systems deployed in financial services.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-004",
       "name": "Hallucination and Inaccurate Outputs",
       "category": "Operational",

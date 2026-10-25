@@ -324,7 +324,7 @@ class TestNitriteDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-deployment-1")
                 .put("type", "deployment")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
@@ -345,7 +345,7 @@ class TestNitriteDecoratorStoreShould {
         // Then
         assertTrue(result.isPresent());
         Decorator decorator = result.get();
-        assertEquals("https://calm.finos.org/draft/2025-03/meta/decorator.json", decorator.getSchema());
+        assertEquals("https://calm.finos.org/release/1.3/meta/decorators.json", decorator.getSchema());
         assertEquals("finos-deployment-1", decorator.getUniqueId());
         assertEquals("deployment", decorator.getType());
         assertEquals(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"), decorator.getTarget());
@@ -409,11 +409,11 @@ class TestNitriteDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc1 = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc1 = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-deployment-1")
                 .put("type", "deployment")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        Document decoratorDoc2 = Document.createDocument("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc2 = Document.createDocument("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .put("unique-id", "finos-observability-1")
                 .put("type", "observability")
                 .put("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));

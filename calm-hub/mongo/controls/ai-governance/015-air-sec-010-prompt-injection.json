@@ -4,7 +4,7 @@
   "description": "Controls to detect and prevent prompt injection attacks that attempt to manipulate AI system behaviour through malicious inputs embedded in user queries or retrieved content.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-SEC-010",
       "name": "Prompt Injection",
       "category": "Security",

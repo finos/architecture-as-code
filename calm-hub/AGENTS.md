@@ -408,8 +408,8 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts and
-  release candidates, controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts,
+  controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
 
 ### Bundled CALM Meta-Schemas
 - GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
@@ -430,7 +430,7 @@ All four workflows:
   parsing (`resolve_calm_hub_base_url`); defaulting it at the top ignores `-u`
 - The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
   `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
-  repository holds only the drafts and the release candidates, which are seeded as before. The
+  repository holds only the drafts, and the scripts seed them from there. The
   seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
   or namespace
 - The name-based seed reads only the JSON files at the top of each `mongo/standards/<namespace>/`
