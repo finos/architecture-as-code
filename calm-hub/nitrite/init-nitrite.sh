@@ -91,7 +91,7 @@ create_namespaces() {
 
 # Function to load schemas from a directory (release or draft)
 # Usage: load_schemas_from_dir <base_dir> <prefix>
-# e.g. load_schemas_from_dir /calm/release release
+# e.g. load_schemas_from_dir /calm-schemas/release release
 load_schemas_from_dir() {
     local base_dir="$1"
     local prefix="$2"
@@ -155,7 +155,7 @@ load_schemas_from_dir() {
 #
 # The released meta-schemas come from the @finos/calm-schema npm packages, which
 # `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
-# calm/ in the repository holds only the drafts and the release candidates.
+# calm/ in the repository holds only the drafts.
 resolve_schema_base_path() {
     local script_dir
     script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -200,8 +200,7 @@ create_core_schemas() {
 
     print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
     load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
-    print_status "Loading release candidates and drafts from: $CALM_SCHEMA_BASE_PATH"
-    load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
+    print_status "Loading drafts from: $CALM_SCHEMA_BASE_PATH"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
 
@@ -1863,7 +1862,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "nodes": [
                 {
                     "unique-id": "traderx-system",
@@ -5484,7 +5483,7 @@ create_ai_governance_architecture() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-    "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "unique-id": "mcp-api-pipeline",
     "name": "MCP Server API Pipeline",
     "description": "User \u2192 MCP Server (cloud-hosted) \u2192 API Service \u2192 Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
@@ -6353,7 +6352,7 @@ show_help() {
     echo "  -b, --base-url URL       Set the base URL written into name-based document \$id"
     echo "                           values. Must equal the server's calm.hub.base-url"
     echo "                           (default: the URL from -u or CALM_HUB_URL)."
-    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft and release-candidate schemas"
+    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft schemas"
     echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
     echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
@@ -6365,7 +6364,7 @@ show_help() {
     echo "  CALM_HUB_BASE_URL       Base URL for name-based document \$id values. Must equal"
     echo "                          the server's calm.hub.base-url. When unset, defaults to"
     echo "                          CALM_HUB_URL after -u/--url is applied."
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ and release-candidate schemas"
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ schemas"
     echo "                          (default: auto-detected relative to this script)"
     echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
     echo "                          (default: ../target/calm-schemas/release relative to this script,"

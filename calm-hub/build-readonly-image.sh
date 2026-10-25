@@ -71,7 +71,7 @@ mkdir -p "${SCRIPT_DIR}/target/readonly-seed/patterns"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/calm-schemas"
 mkdir -p "${SCRIPT_DIR}/target/readonly-seed/interfaces"
 # The released meta-schemas come from the @finos/calm-schema npm packages; the Maven build
-# copies them to target/calm-schemas/release. calm/ holds only the drafts and release candidates.
+# copies them to target/calm-schemas/release. calm/ holds only the drafts.
 if [[ ! -d "${SCRIPT_DIR}/target/calm-schemas/release" ]]; then
     echo "[build] ERROR: target/calm-schemas/release is missing. Run the Maven build first (or 'npm run calm-hub:copy-schemas' at the repository root)." >&2
     exit 1

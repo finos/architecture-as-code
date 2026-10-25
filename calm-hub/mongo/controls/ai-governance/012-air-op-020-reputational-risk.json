@@ -4,7 +4,7 @@
   "description": "Controls to proactively manage and mitigate reputational risks arising from AI failures, inappropriate outputs, or misuse in customer-facing and decision-critical financial services applications.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-020",
       "name": "Reputational Risk",
       "category": "Operational",

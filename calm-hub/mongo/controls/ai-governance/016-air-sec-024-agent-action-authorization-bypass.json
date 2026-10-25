@@ -4,7 +4,7 @@
   "description": "Controls to prevent AI agent actions from being executed without proper authorisation, mitigating risks from agentic systems performing unauthorised operations in financial services environments.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-SEC-024",
       "name": "Agent Action Authorization Bypass",
       "category": "Security",

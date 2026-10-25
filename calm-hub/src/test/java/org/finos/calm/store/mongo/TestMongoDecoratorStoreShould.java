@@ -296,7 +296,7 @@ class TestMongoDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-deployment-1")
                 .append("type", "deployment")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"))
@@ -317,7 +317,7 @@ class TestMongoDecoratorStoreShould {
         // Then
         assertTrue(result.isPresent());
         Decorator decorator = result.get();
-        assertEquals("https://calm.finos.org/draft/2025-03/meta/decorator.json", decorator.getSchema());
+        assertEquals("https://calm.finos.org/release/1.3/meta/decorators.json", decorator.getSchema());
         assertEquals("finos-deployment-1", decorator.getUniqueId());
         assertEquals("deployment", decorator.getType());
         assertEquals(List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"), decorator.getTarget());
@@ -381,11 +381,11 @@ class TestMongoDecoratorStoreShould {
         String namespace = "finos";
         when(namespaceStore.namespaceExists(namespace)).thenReturn(true);
 
-        Document decoratorDoc1 = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc1 = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-deployment-1")
                 .append("type", "deployment")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));
-        Document decoratorDoc2 = new Document("$schema", "https://calm.finos.org/draft/2025-03/meta/decorator.json")
+        Document decoratorDoc2 = new Document("$schema", "https://calm.finos.org/release/1.3/meta/decorators.json")
                 .append("unique-id", "finos-observability-1")
                 .append("type", "observability")
                 .append("target", List.of("/calm/namespaces/finos/architectures/1/versions/1-0-0"));

@@ -4,7 +4,7 @@
   "description": "Controls to ensure AI systems deployed in financial services comply with applicable regulations, maintain required oversight mechanisms, and satisfy regulatory reporting and audit obligations.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-RC-022",
       "name": "Regulatory Compliance and Oversight",
       "category": "Regulatory and Compliance",

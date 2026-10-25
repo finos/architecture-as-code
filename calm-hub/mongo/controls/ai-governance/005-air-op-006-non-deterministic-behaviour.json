@@ -4,7 +4,7 @@
   "description": "Controls to manage the risks arising from non-deterministic LLM behaviour, where identical inputs may produce differing outputs due to probabilistic sampling.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-006",
       "name": "Non-Deterministic Behaviour",
       "category": "Operational",

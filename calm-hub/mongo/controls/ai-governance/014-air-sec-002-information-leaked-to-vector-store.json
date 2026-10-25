@@ -4,7 +4,7 @@
   "description": "Controls to prevent sensitive data leakage through vector stores, embeddings, prompt logs, and other AI pipeline components in LLM-powered applications.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-SEC-002",
       "name": "Information Leaked to Vector Store",
       "category": "Security",
