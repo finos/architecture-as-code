@@ -5,7 +5,7 @@ import Terminal from './Terminal';
 import Editor from './Editor';
 import HubDiagram from './HubDiagram';
 import ErrorBoundary from '../ErrorBoundary';
-import {createVfs, type Vfs} from './vfs';
+import {createVfs} from './vfs';
 import {clearProgress, loadProgress, loadUiPrefs, saveProgress, saveUiPrefs, workspaceKey} from './storage';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
 import {CALM_SCHEMA_RELEASE} from '../schemas';
@@ -186,11 +186,14 @@ export default function Lab({lesson}: LabProps) {
     const {editorFile, seedFiles, steps, completion} = lesson;
     const editableFiles = lesson.editableFiles ?? [editorFile];
     const editorLabel = relativeToHome(editorFile);
-    const vfsRef = useRef<Vfs | null>(null);
-    if (!vfsRef.current) {
-        vfsRef.current = createVfs(seedFiles, workspaceKey(lesson.id));
-    }
-    const vfs = vfsRef.current;
+    const [vfs] = useState(() => createVfs(seedFiles, workspaceKey(lesson.id)));
+    // The vfs does not notify on change, so render reads this snapshot, refreshed after each write.
+    const [files, setFiles] = useState(() => vfs.toJSON().files);
+    const syncFiles = () => {
+        const next = vfs.toJSON().files;
+        setFiles(next);
+        return next;
+    };
 
     const outcomesRef = useRef<CommandOutcome[]>([]);
     // Validation is async now, so results can arrive out of order — only the
@@ -214,11 +217,10 @@ export default function Lab({lesson}: LabProps) {
     // completedRef mirrors the completed state so progress can be
     // computed and persisted synchronously inside event handlers (a
     // reload right after completing a step must never lose the tick).
-    const completedRef = useRef<Set<string> | null>(null);
-    if (completedRef.current === null) {
-        completedRef.current = loadProgress(lesson.id, steps.map((step) => step.id));
-    }
-    const [completed, setCompleted] = useState<Set<string>>(() => completedRef.current!);
+    const [completed, setCompleted] = useState<Set<string>>(
+        () => loadProgress(lesson.id, steps.map((step) => step.id)),
+    );
+    const completedRef = useRef(completed);
     const [terminalNonce, setTerminalNonce] = useState(0);
 
     // Pane tabs.
@@ -371,8 +373,9 @@ export default function Lab({lesson}: LabProps) {
         completeCommand(input, cursor, {vfs, getCwd: () => vfs.getCwd()});
 
     // The diagram draws the open file when it is an architecture, else the editor file.
-    const drawnFile = (path: string) => (path !== editorFile && isArchitecture(vfs.read(path)) ? path : editorFile);
-    const diagramFile = drawnFile(openFile);
+    const drawnFile = (path: string, saved: Record<string, string>) =>
+        path !== editorFile && isArchitecture(saved[path] ?? null) ? path : editorFile;
+    const diagramFile = drawnFile(openFile, files);
     useEffect(() => {
         uiRef.current = {dirty, openFile, diagramFile, topTab};
     });
@@ -380,12 +383,13 @@ export default function Lab({lesson}: LabProps) {
     /** A command can write workspace files (`calm generate -o`); show what changed. */
     const showWrittenFiles = (before: Record<string, string>) => {
         const ui = uiRef.current;
-        const wrote = (path: string) => vfs.read(path) !== (before[path] ?? null);
+        const after = syncFiles();
+        const wrote = (path: string) => (after[path] ?? null) !== (before[path] ?? null);
         // Unsaved edits win, as in any editor: Save writes them over the command's output.
         if (wrote(ui.openFile) && !ui.dirty) {
-            setEditorText(vfs.read(ui.openFile) ?? '');
+            setEditorText(after[ui.openFile] ?? '');
         }
-        if ((wrote(ui.diagramFile) || wrote(drawnFile(ui.openFile))) && ui.topTab !== 'diagram') {
+        if ((wrote(ui.diagramFile) || wrote(drawnFile(ui.openFile, after))) && ui.topTab !== 'diagram') {
             setDiagramStale(true);
         }
     };
@@ -396,6 +400,7 @@ export default function Lab({lesson}: LabProps) {
         // is needed then.
         const changed = vfs.read(openFile) !== editorText;
         vfs.write(openFile, editorText);
+        syncFiles();
         const nextDiagramFile = openFile !== editorFile && isArchitecture(editorText) ? openFile : editorFile;
         if (changed && (diagramFile === openFile || nextDiagramFile === openFile) && topTab !== 'diagram') {
             setDiagramStale(true);
@@ -421,6 +426,7 @@ export default function Lab({lesson}: LabProps) {
     const handleReset = () => {
         sessionEpoch.current += 1;
         vfs.seed(seedFiles);
+        syncFiles();
         clearProgress(lesson.id);
         outcomesRef.current = [];
         completedRef.current = new Set();
@@ -439,7 +445,6 @@ export default function Lab({lesson}: LabProps) {
     const effectiveExpanded =
         expandedId === AUTO_EXPAND ? (currentStep?.id ?? null) : expandedId;
     const allDone = completed.size === steps.length;
-    const savedFiles = vfs.toJSON().files;
     // The uncapped total: the Problems tab lists at most 20, the badge must
     // still report every error the engine found.
     const errorCount = validation?.errorCount ?? 0;
@@ -451,9 +456,9 @@ export default function Lab({lesson}: LabProps) {
     // Warnings are informational — they are listed but never make a step fail.
     const warnings = validation?.issues?.filter((issue) => issue.severity === 'warning') ?? [];
     const lineCount = editorText.split('\n').length;
-    const savedArchitecture = vfs.read(diagramFile) ?? '';
+    const savedArchitecture = files[diagramFile] ?? '';
     // A saved workspace from an older lesson version may lack a file.
-    const fileOptions = editableFiles.filter((path) => vfs.exists(path));
+    const fileOptions = editableFiles.filter((path) => path in files);
     const cssVars =
         termHeight != null
             ? ({'--lab-term-height': `${termHeight}px`} as CSSProperties)
@@ -508,7 +513,7 @@ export default function Lab({lesson}: LabProps) {
                                         done={completed.has(step.id)}
                                         current={currentStep?.id === step.id}
                                         open={effectiveExpanded === step.id}
-                                        files={savedFiles}
+                                        files={files}
                                         onToggle={() =>
                                             setExpandedId(
                                                 effectiveExpanded === step.id ? null : step.id,
