@@ -560,7 +560,7 @@ describe('CalmService', () => {
         it('should retrieve decorator values for a namespace', async () => {
             const decorators = [
                 {
-                    schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                    schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                     uniqueId: 'dec-1',
                     type: 'deployment',
                     target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -572,7 +572,7 @@ describe('CalmService', () => {
                     },
                 },
                 {
-                    schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                    schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                     uniqueId: 'dec-2',
                     type: 'deployment',
                     target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -593,7 +593,7 @@ describe('CalmService', () => {
 
         it('should pass target and type query params when provided', async () => {
             const decorators = [{
-                schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                 uniqueId: 'dec-1',
                 type: 'deployment',
                 target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
