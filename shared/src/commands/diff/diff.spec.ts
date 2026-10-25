@@ -61,7 +61,7 @@ const architectureWithLevelFields = (
 });
 
 const makePattern = (nodeName: string) => ({
-    $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+    $schema: 'https://calm.finos.org/release/1.3/meta/calm.json',
     type: 'object',
     properties: {
         nodes: {
@@ -163,7 +163,7 @@ describe('runDiff', () => {
 
     it('warns about undiffable pattern items and treats them as changes', async () => {
         const undiffablePattern = {
-            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+            $schema: 'https://calm.finos.org/release/1.3/meta/calm.json',
             type: 'object',
             properties: {
                 nodes: {
@@ -230,7 +230,7 @@ describe('detectDocumentType', () => {
 
     it('classifies a pattern wrapped in allOf as a pattern', () => {
         const allOfPattern = {
-            $schema: 'https://calm.finos.org/release/1.0-rc2/meta/calm.json',
+            $schema: 'https://calm.finos.org/release/1.3/meta/calm.json',
             allOf: [{ properties: { nodes: { type: 'array', prefixItems: [] } } }],
         };
         expect(detectDocumentType(allOfPattern)).toBe('pattern');
