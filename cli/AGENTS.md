@@ -12,7 +12,6 @@ This guide helps AI assistants work efficiently with the CALM CLI codebase.
 - **Dependencies**: 
   - `@finos/calm-shared` - Shared utilities
   - `@finos/calm-widgets` - Widget framework for visualizations
-  - JSON Schema validation via `@apidevtools/json-schema-ref-parser`
 
 ## Key Commands
 

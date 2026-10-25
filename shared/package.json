@@ -39,7 +39,6 @@
     "license": "ISC",
     "type": "module",
     "dependencies": {
-        "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@finos/calm-models": "file:../calm-models",
         "@finos/calm-widgets": "file:../calm-widgets",
         "@mermaid-js/layout-elk": "^0.2.1",
