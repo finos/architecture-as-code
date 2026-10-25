@@ -61,7 +61,7 @@ describe('extractPatternRules', () => {
     it('ignores CALM meta-schema and local $refs', () => {
         const rules = extractPatternRules({
             properties: {
-                nodes: { items: { allOf: [{ $ref: 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node' }, { $ref: '#/$defs/x' }] } },
+                nodes: { items: { allOf: [{ $ref: 'https://calm.finos.org/draft/2026-03/meta/core.json#/defs/node' }, { $ref: '#/$defs/x' }] } },
                 relationships: { items: { $ref: 'https://calm.finos.org/release/1.2/meta/core.json' } },
             },
         });
