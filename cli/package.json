@@ -42,7 +42,7 @@
         "@mermaid-js/layout-elk": "^0.2.1",
         "@stoplight/json": "^3.21.7",
         "commander": "^14.0.0",
-        "execa": "^9.6.0",
+        "execa": "^10.2.1",
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
