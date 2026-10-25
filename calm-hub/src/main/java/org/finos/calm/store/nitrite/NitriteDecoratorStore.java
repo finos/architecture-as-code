@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.locks.Lock;
@@ -279,11 +280,27 @@ public class NitriteDecoratorStore implements DecoratorStore {
         return decoratorType != null && decoratorType.equals(type);
     }
 
+    // Nitrite only deserializes its own and JDK types, so no org.bson value may reach the store.
     Document parseJsonToNitriteDocument(String json) {
-        return org.bson.Document.parse(json).entrySet().stream()
-                .reduce(Document.createDocument(),
-                        (doc, entry) -> doc.put(entry.getKey(), entry.getValue()),
-                        (d1, d2) -> d1);
+        return toNitriteDocument(org.bson.Document.parse(json));
+    }
+
+    private static Document toNitriteDocument(Map<?, ?> map) {
+        Document doc = Document.createDocument();
+        map.forEach((key, value) -> doc.put(key.toString(), toNitriteValue(value)));
+        return doc;
+    }
+
+    private static Object toNitriteValue(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            return toNitriteDocument(map);
+        }
+        if (value instanceof List<?> list) {
+            List<Object> values = new ArrayList<>(list.size());
+            list.forEach(item -> values.add(toNitriteValue(item)));
+            return values;
+        }
+        return value;
     }
 
     Decorator documentToDecorator(Document doc) {
