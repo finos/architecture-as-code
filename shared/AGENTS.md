@@ -20,7 +20,7 @@ Also include all rules from [the root level AGENTS.md](../AGENTS.md).
 ### 2. Testing
 Because this is a shared library, rigorous testing is mandatory.
 
-In tests, read released meta-schemas with `calmSchemaDir(release?)` from `src/test/test-utils.ts`, not from `calm/release`.
+In tests, read released meta-schemas with `calmSchemaDir(release?)` from `src/test/test-utils.ts`.
 
 **IMPORTANT**: Always run npm commands from the **repository root** using workspaces.
 

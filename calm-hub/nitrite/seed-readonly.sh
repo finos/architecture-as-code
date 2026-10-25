@@ -13,7 +13,7 @@
 # Environment variables:
 #   DATA_DIR                - directory where the .db file will be written (default: /data)
 #   CALM_HUB_URL            - base URL for readiness checks and seeder (default: http://localhost:8080)
-#   CALM_SCHEMA_BASE_PATH   - path to the calm/ directory with the draft/ and release-candidate schemas (default: /calm)
+#   CALM_SCHEMA_BASE_PATH   - path to the calm/ directory with the draft/ schemas (default: /calm)
 #   CALM_RELEASE_SCHEMA_PATH - path to the released schemas, <version>/meta per release (default: /calm-schemas/release)
 #   CALM_INTERFACES_BASE_PATH - path to the interfaces/ directory (default: /interfaces)
 #   CALM_CONTROLS_BASE_PATH - path to the controls/ directory (default: /controls)

@@ -52,6 +52,7 @@
     "diff": "^9.0.0"
   },
   "devDependencies": {
+    "@finos/calm-schema": "*",
     "rimraf": "^6.1.3"
   }
 }

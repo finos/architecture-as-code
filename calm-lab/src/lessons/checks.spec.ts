@@ -603,7 +603,7 @@ describe('standardRequires', () => {
 
     it.each([
         ['another host', 'https://example.com/release/1.3/meta/core.json#/defs/node'],
-        ['the draft core schema', 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node'],
+        ['the draft core schema', 'https://calm.finos.org/draft/2026-03/meta/core.json#/defs/node'],
         ['another meta-schema', 'https://calm.finos.org/release/1.3/meta/calm.json#/defs/node'],
         ['a release with no minor version', 'https://calm.finos.org/release/1/meta/core.json#/defs/node'],
         ['another core definition', 'https://calm.finos.org/release/1.3/meta/core.json#/defs/node-type-definition'],

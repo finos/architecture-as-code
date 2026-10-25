@@ -1,5 +1,5 @@
 {
-  "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
   "nodes": [
     {
       "unique-id": "web-client",

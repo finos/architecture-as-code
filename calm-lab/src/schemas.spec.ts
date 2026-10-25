@@ -74,7 +74,7 @@ describe('CALM_SCHEMA_RELEASE', () => {
 
     it.each([
         undefined,
-        'https://calm.finos.org/draft/2025-03/meta/calm.json',
+        'https://calm.finos.org/draft/2026-03/meta/calm.json',
         'https://calm.finos.org/release/1.3/meta/core.json',
     ])('throws for %s', (id) => {
         expect(() => calmRelease(id)).toThrow('is not a CALM release calm.json $id');

@@ -44,7 +44,7 @@ calm-server/
 npm run build:calm-server
 ```
 
-This builds the TypeScript code and copies the CALM meta schemas into `dist/calm/`. Released versions come from the `@finos/calm-schema` npm packages that the root `package.json` pins (copied by `scripts/copy-calm-schemas.mjs`). Release candidates and drafts still come from `calm/release` and `calm/draft`.
+This builds the TypeScript code and copies the CALM meta schemas into `dist/calm/`. Released versions come from the `@finos/calm-schema` npm packages that the root `package.json` pins (copied by `scripts/copy-calm-schemas.mjs`). Drafts come from `calm/draft`.
 
 ### Run the server locally
 ```bash

@@ -181,13 +181,13 @@ describe('setCalmSchema', () => {
             const arch = {
                 properties: {
                     nodes: {
-                        $ref: 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node'
+                        $ref: 'https://calm.finos.org/draft/2026-03/meta/core.json#/defs/node'
                     }
                 }
             };
             const result = setCalmSchema(arch, '1.1');
             // Draft references should remain unchanged since replacement pattern only handles release
-            expect(result.properties.nodes.$ref).toBe('https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node');
+            expect(result.properties.nodes.$ref).toBe('https://calm.finos.org/draft/2026-03/meta/core.json#/defs/node');
         });
     });
 

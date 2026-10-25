@@ -4,7 +4,7 @@ import {
     CalmRelationshipSchema,
 } from '@finos/calm-models/types';
 import type { Control } from './control-contracts.js';
-import type { Decorator } from './decorator-contracts.js';
+import type { ControlEvaluationDecorator, Decorator } from './decorator-contracts.js';
 import { Data } from '../../model/calm.js';
 import type { StoredNodePosition } from '../services/node-position-service.js';
 import type { PresentationModeStore } from '../../theme/usePresentationMode.js';
@@ -115,6 +115,8 @@ export interface ArchitectureGraphProps {
     fitToPane?: boolean;
     /** Injected for tests; defaults to the app-wide store. */
     presentationStore?: PresentationModeStore;
+    /** Where the decision overlay choice is kept for the session. Injected for tests; defaults to `sessionStorage`. */
+    storage?: Storage;
 }
 
 /**
@@ -124,6 +126,8 @@ export interface MetadataPanelProps {
     controls: Record<string, Control>;
     decorators: Decorator[];
     adrs: string[];
+    /** Control-evaluation decorators for the architecture version; listed in their own tab. */
+    evaluations?: ControlEvaluationDecorator[];
     onNodeClick?: (nodeId: string) => void;
     onControlClick?: (controlId: string) => void;
     isCollapsed: boolean;
@@ -135,7 +139,7 @@ export interface MetadataPanelProps {
 /**
  * Tab type for MetadataPanel
  */
-export type MetadataPanelTabType = 'controls' | 'deployment' | 'adrs';
+export type MetadataPanelTabType = 'evaluations' | 'controls' | 'deployment' | 'adrs';
 
 /**
  * Props for AdrsPanel component

@@ -38,3 +38,28 @@ jobs:
 
             - name: Run tests with coverage for Calm Models
               run: npm run test --workspace=calm-models
+
+    java:
+        name: Build and Test Calm Models Java Module
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout PR Branch
+              uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+            - name: Set up JDK
+              uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5
+              with:
+                  distribution: 'temurin'
+                  java-version: '21'
+
+            - name: Cache Maven Dependencies
+              uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+              with:
+                  path: ~/.m2
+                  key: ${{ runner.os }}-m2-calm-models-${{ hashFiles('pom.xml', 'calm-models/pom.xml') }}
+                  restore-keys: |
+                      ${{ runner.os }}-m2-calm-models-
+
+            - name: Build and Test
+              run: ./mvnw -B -pl calm-models verify

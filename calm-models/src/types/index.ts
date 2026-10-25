@@ -8,6 +8,7 @@ export * from './adr-types.js';
 export * from './control-requirement-types.js';
 export * from './units-types.js';
 export * from './timeline-types.js';
+export * from './decorator-types.js';
 
 export const CALM_DOCUMENT_TYPES_LIST = [
     'pattern',

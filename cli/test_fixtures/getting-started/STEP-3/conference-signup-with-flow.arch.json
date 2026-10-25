@@ -179,7 +179,7 @@
   "$schema": "https://calm.finos.org/getting-started/conference-signup.pattern.json",
   "flows": [
     {
-      "$schema": "https://calm.finos.org/release/1.0-rc2/meta/flow.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/flow.json",
       "$id": "https://calm.finos.org/getting-started/flows/conference-signup.flow.json",
       "unique-id": "flow-conference-signup",
       "name": "Conference Signup Flow",

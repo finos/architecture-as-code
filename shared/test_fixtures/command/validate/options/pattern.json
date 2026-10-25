@@ -1,6 +1,6 @@
 {
     "$schema": "https://calm.finos.org/release/1.1/meta/calm.json",
-    "$id": "https://calm.finos.org/draft/2025-03/prototype/anyof/pattern.json",
+    "$id": "https://calm.finos.org/test/anyof/pattern.json",
     "title": "Pattern Options Issue",
     "type": "object",
     "properties": {
