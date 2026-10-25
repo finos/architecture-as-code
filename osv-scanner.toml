@@ -27,15 +27,6 @@ id = "RUSTSEC-2026-0369"
 ignoreUntil = 2026-12-31
 reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the vulnerable Unix permission code is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
 
-# braces 3.0.3 comes in only through build and dev tooling: micromatch (semantic-release,
-# stylelint, eslint-config-next, Docusaurus) and chokidar 3 (Docusaurus and
-# webpack-dev-server). Every pattern it expands comes from project or tool config,
-# never from user input. No patched braces release exists yet.
-[[IgnoredVulns]]
-id = "GHSA-vfj7-8cjw-p6xm"
-ignoreUntil = 2026-12-31
-reason = "braces 3.0.3 is used only by build and dev tooling (semantic-release, stylelint, eslint-config-next, Docusaurus, webpack-dev-server) and only expands patterns from project config, never user input. Remove when a patched braces release is available."
-
 # http-cache-semantics 4.2.0 comes in through Docusaurus's update-notifier (got,
 # cacheable-request), which uses it only as a private client cache. The attack needs a
 # shared cache that serves responses to other users, which no CALM component runs. No
