@@ -33,7 +33,7 @@ describe('MetadataPanel', () => {
 
     const mockDecorators = [
         {
-            schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+            schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
             uniqueId: 'dec-1',
             type: 'deployment',
             target: ['/api/calm/namespaces/ns/architectures/arch/versions/1-0-0'],
