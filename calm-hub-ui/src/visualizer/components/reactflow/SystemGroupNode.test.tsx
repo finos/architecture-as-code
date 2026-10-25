@@ -4,6 +4,7 @@ import type { NodeProps } from 'reactflow';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { THEME } from './theme.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
+import { DecisionOverlayContext } from '../../context/DecisionOverlayContext.js';
 import type { ElementEvaluation } from '../../contracts/contracts.js';
 
 vi.mock('reactflow', () => ({
@@ -30,12 +31,14 @@ const css = (colour: string) => {
     return el.style.borderColor;
 };
 
-function renderGroup(map: Map<string, ElementEvaluation>) {
+function renderGroup(map: Map<string, ElementEvaluation>, showDecisions = false) {
     const props = { id: 'cluster', data: { label: 'Cluster', 'unique-id': 'cluster' } } as unknown as NodeProps;
     const { container } = render(
-        <ControlEvaluationContext.Provider value={map}>
-            <SystemGroupNode {...props} />
-        </ControlEvaluationContext.Provider>
+        <DecisionOverlayContext.Provider value={{ showDecisions, subjectLabels: new Map() }}>
+            <ControlEvaluationContext.Provider value={map}>
+                <SystemGroupNode {...props} />
+            </ControlEvaluationContext.Provider>
+        </DecisionOverlayContext.Provider>
     );
     return container.firstElementChild as HTMLElement;
 }
@@ -58,5 +61,20 @@ describe('SystemGroupNode control evaluations', () => {
         const box = renderGroup(new Map([['cluster', evaluation('met')]]));
         expect(screen.getByTestId('control-evaluation-badge').textContent).toBe('Met');
         expect(borderOf(box)).toContain('2px dashed');
+    });
+});
+
+describe('SystemGroupNode decision overlay', () => {
+    it('shows no callout while the overlay is off', () => {
+        renderGroup(new Map([['cluster', evaluation('not-met')]]));
+        expect(screen.queryByTestId('decision-callout')).toBeNull();
+    });
+
+    it('hangs a Blocked callout below a not-met container while the overlay is on', () => {
+        renderGroup(new Map([['cluster', evaluation('not-met')]]), true);
+        const callout = screen.getByTestId('decision-callout');
+        expect(callout.dataset.outcome).toBe('blocked');
+        expect(callout.textContent).toContain('residency');
+        expect((callout.parentElement as HTMLElement).style.top).toBe('100%');
     });
 });
