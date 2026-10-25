@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import { getViewportForBounds, type Node } from 'reactflow';
+import { getViewportForBounds, type Node, type Viewport } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
@@ -274,6 +274,91 @@ describe('ArchitectureGraph', () => {
 
             expect(instance.setViewport).not.toHaveBeenCalled();
             expect(instance.fitView).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fit on load', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        // React Flow reports every move through onMove, with no event for a move made from code.
+        const move = (viewport: Viewport) => act(() => (reactFlowProps.current?.onMove as (e: null, v: Viewport) => void)(null, viewport));
+        // Where React Flow's own fit puts the two nodes (x 0 to 300, y 0 to 100), with the desktop load options.
+        const nodesFit = getViewportForBounds({ x: 0, y: 0, width: 300, height: 100 }, 800, 600, 0.6, 1.2, 0.2);
+        const calloutFit = getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.2);
+        // Anywhere else: a drag or wheel, or a move the zoom buttons, the minimap or auto-pan make from code.
+        const viewersMove = { x: 12, y: 34, zoom: 0.9 };
+
+        it('takes in the callouts drawn before React Flow hands over its instance', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            reportCallout();
+
+            const instance = initMeasuredFlow();
+
+            expect(instance.setViewport).toHaveBeenCalledWith(calloutFit);
+        });
+
+        it('keeps following through React Flow\'s own fit and its callout fits landing', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            move(nodesFit);
+            reportCallout();
+            move(calloutFit);
+
+            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 300 }));
+
+            expect(instance.setViewport).toHaveBeenLastCalledWith(
+                getViewportForBounds({ x: 0, y: 0, width: 300, height: 400 }, 800, 600, 0.1, 1.2, 0.2),
+            );
+        });
+
+        it('zooms out past the desktop floor when the callouts would not otherwise fit, as on a small screen', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+
+            // A callout reaching 2000 below node-1 takes the content down to y 2100, more than 600 / 0.6.
+            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 2000 }));
+
+            const viewport = instance.setViewport.mock.lastCall?.[0] as Viewport;
+            expect(viewport).toEqual(getViewportForBounds({ x: 0, y: 0, width: 300, height: 2100 }, 800, 600, 0.1, 1.2, 0.2));
+            expect(viewport.zoom).toBeLessThan(0.6);
+        });
+
+        it('stops following after any move a fit did not make', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            move(viewersMove);
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+        });
+
+        it('saves only the viewer\'s view, so a refresh fits again until they move the diagram', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
+            initMeasuredFlow();
+            move(nodesFit);
+            reportCallout();
+            move(calloutFit);
+            expect(sessionStorage.getItem('calm-hub:diagram-viewport')).toBeNull();
+
+            move(viewersMove);
+
+            expect(JSON.parse(sessionStorage.getItem('calm-hub:diagram-viewport')!)).toEqual({ key: 'desktop:ns/id', viewport: viewersMove });
+        });
+
+        it('leaves a restored viewport alone', () => {
+            sessionStorage.setItem(
+                'calm-hub:diagram-viewport',
+                JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
+            );
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
+            const instance = initMeasuredFlow();
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
         });
     });
 
