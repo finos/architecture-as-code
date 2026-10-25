@@ -277,6 +277,69 @@ describe('ArchitectureGraph', () => {
         });
     });
 
+    describe('fit on load', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        const moveStart = (event: unknown) => act(() => (reactFlowProps.current?.onMoveStart as (e: unknown) => void)(event));
+
+        it('takes in the callouts drawn before React Flow hands over its instance, with the load fit\'s options', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            // React Flow calls onInit after its own fit, by when the first callouts can be drawn.
+            reportCallout();
+
+            const instance = initMeasuredFlow();
+
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.2));
+        });
+
+        it('takes in callouts that arrive later, past React Flow\'s own moves', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            moveStart(null);
+
+            reportCallout();
+
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.2));
+        });
+
+        it('zooms out past the desktop floor when the callouts would not otherwise fit, as on a small screen', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+
+            // A callout reaching 2000 below node-1 takes the content down to y 2100, more than 600 / 0.6.
+            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 2000 }));
+
+            const viewport = instance.setViewport.mock.lastCall?.[0] as { zoom: number };
+            expect(viewport).toEqual(getViewportForBounds({ x: 0, y: 0, width: 300, height: 2100 }, 800, 600, 0.1, 1.2, 0.2));
+            expect(viewport.zoom).toBeLessThan(0.6);
+        });
+
+        it('leaves the viewport alone once the viewer has panned or zoomed', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            moveStart(new WheelEvent('wheel'));
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+        });
+
+        it('leaves a restored viewport alone', () => {
+            sessionStorage.setItem(
+                'calm-hub:diagram-viewport',
+                JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
+            );
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
+            const instance = initMeasuredFlow();
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+        });
+    });
+
     describe('minimap (#5)', () => {
         it('renders the minimap at a fixed compact size on desktop', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);

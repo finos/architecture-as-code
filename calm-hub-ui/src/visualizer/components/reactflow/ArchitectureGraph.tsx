@@ -329,6 +329,30 @@ export function ArchitectureGraph({
         if (!fitWithCallouts(options)) flowInstanceRef.current?.fitView(options);
     }, [fitWithCallouts]);
 
+    // One derived config, so the fit props stay in agreement. Mobile and an embedded
+    // pane always fit on load and ignore a persisted viewport, because the user does
+    // not size either one. Desktop restores its saved viewport, or fits if it has none.
+    const flowConfig = fitToPane || isMobile
+        ? { fitView: true, defaultViewport: undefined, fitViewOptions: CONTAIN_FIT_VIEW_OPTIONS }
+        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
+
+    // React Flow's fit on load takes in the nodes only, and control evaluations can arrive after it. Fit the decision
+    // callouts in when React Flow hands over its instance and as they come and go, until the viewer pans or zooms. A
+    // restored viewport is left as it was. Like the fit button, a fit that takes in callouts may zoom out past the
+    // desktop floor: on a small screen the callouts would otherwise stay cut off.
+    const followsFit = useRef(flowConfig.fitView);
+    useEffect(() => {
+        followsFit.current = flowConfig.fitView;
+    }, [viewportKey, flowConfig.fitView]);
+    const { fitViewOptions } = flowConfig;
+    const calloutFitOptions = useMemo(
+        () => ({ ...fitViewOptions, minZoom: CONTAIN_FIT_VIEW_OPTIONS.minZoom }),
+        [fitViewOptions],
+    );
+    useEffect(() => {
+        if (followsFit.current && !fitWithCallouts(calloutFitOptions)) flowInstanceRef.current?.fitView(fitViewOptions);
+    }, [calloutSizes, calloutFitOptions, fitViewOptions, fitWithCallouts]);
+
     // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
     // AND immediately when the app first crosses into mobile — fitView only auto-runs
     // on ReactFlow's initial mount, so a discrete breakpoint crossing (window snap,
@@ -372,13 +396,6 @@ export function ArchitectureGraph({
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
 
-    // One derived config, so the fit props stay in agreement. Mobile and an embedded
-    // pane always fit on load and ignore a persisted viewport, because the user does
-    // not size either one. Desktop restores its saved viewport, or fits if it has none.
-    const flowConfig = fitToPane || isMobile
-        ? { fitView: true, defaultViewport: undefined, fitViewOptions: CONTAIN_FIT_VIEW_OPTIONS }
-        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
-
     return (
         <div ref={containerRef} style={{ height: '100%', width: '100%' }}>
             <DecisionOverlayContext.Provider value={decisionOverlay}>
@@ -405,13 +422,21 @@ export function ArchitectureGraph({
                     onNodeMouseEnter={handleNodeMouseEnter}
                     onNodeMouseLeave={handleNodeMouseLeave}
                     onEdgeClick={handleEdgeClick}
+                    // React Flow passes the user's event, or null for a move of its own such as a fit.
+                    onMoveStart={(event: MouseEvent | TouchEvent | null) => {
+                        if (event) followsFit.current = false;
+                    }}
                     onMove={(_, viewport) => {
                         if (storageKey) saveViewportForKey(storageKey, viewport);
                     }}
                     // Capture the instance on both devices so a later desktop→mobile
                     // crossing can re-fit (the effect above), then spread the device-derived
-                    // fit config so the props always agree.
-                    onInit={(instance) => { flowInstanceRef.current = instance; }}
+                    // fit config so the props always agree. React Flow has fitted the nodes by now, and callouts
+                    // may already be drawn, so the fit takes them in.
+                    onInit={(instance) => {
+                        flowInstanceRef.current = instance;
+                        if (followsFit.current) fitWithCallouts(calloutFitOptions);
+                    }}
                     {...flowConfig}
                     minZoom={MIN_ZOOM}
                     maxZoom={MAX_ZOOM}
