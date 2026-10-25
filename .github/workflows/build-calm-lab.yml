@@ -61,3 +61,9 @@ jobs:
 
             - name: Test calm-lab
               run: npm run test --workspace=calm-lab
+
+            - name: Install Playwright browsers
+              run: npm exec --workspace=calm-lab -- playwright install --with-deps chromium
+
+            - name: Browser-test calm-lab
+              run: npm run test:e2e --workspace=calm-lab

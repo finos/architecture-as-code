@@ -32,6 +32,7 @@ export default defineConfig({
         include: ['reactflow'],
     },
     test: {
+        include: ['src/**/*.spec.{ts,tsx}'],
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./vitest.setup.ts'],

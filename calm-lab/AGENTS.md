@@ -8,7 +8,7 @@ block sites that accept free-text input can allow-list it separately from the do
 
 - **Build**: Vite 8 + `@vitejs/plugin-react`
 - **Framework**: React 19
-- **Testing**: Vitest + jsdom + React Testing Library
+- **Testing**: Vitest + jsdom + React Testing Library; Playwright for layout (`e2e/`)
 - **Engine**: `@finos/calm-shared/browser`
 - **Diagram**: `reactflow` + `@dagrejs/dagre`
 
@@ -25,6 +25,7 @@ editor buffer rather than schema-valid documents.
 npm run calm-lab:run                  # Dev server
 npm run build:calm-lab                # models → widgets → shared → lab
 npm test --workspace calm-lab         # Unit tests
+npm run test:e2e --workspace calm-lab # Browser layout tests (Playwright) — build first
 npm run lint --workspace calm-lab     # ESLint
 npm run typecheck --workspace calm-lab  # tsc --noEmit (CI runs this after lint)
 ```
