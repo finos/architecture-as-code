@@ -25,6 +25,7 @@ The complete base decorator schema from the FINOS CALM v1.3 specification:
     "$schema": "https://json-schema.org/draft/2020-12/schema",
     "$id": "https://calm.finos.org/release/1.3/meta/decorators.json",
     "title": "Common Architecture Language Model Decorators",
+    "description": "Decorators attach supplementary information to multiple nodes and relationships simultaneously, enabling cross-cutting concerns like guides, threat models, business context, and deployment information",
     "defs": {
         "decorator": {
             "type": "object",
@@ -132,10 +133,12 @@ Decorator types can define their own schema for the `data` field by inheriting f
 ### Schema Inheritance Chain
 
 ```
-decorators.json (base: unique-id, type, target, applies-to, data)
-  └── deployment.decorator.schema.json (type="deployment", deployment attributes in data)
-        └── kubernetes.decorator.schema.json (kubernetes sub-object in data)
+decorators.json (base: unique-id, type, target, applies-to, data; optional $schema, target-type)
+  └── deployment.decorator.standard.json (type="deployment", target-type required, deployment attributes in data)
+        └── kubernetes.decorator.standard.json (kubernetes sub-object in data)
 ```
+
+The deployment and Kubernetes decorator standards are released by FINOS, with the `$id` values `https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json` and `https://calm.finos.org/standards/deployment/1.0/kubernetes.decorator.standard.json`.
 
 Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pattern — extend the deployment schema and add their own sub-object inside `data`.
 
@@ -176,21 +179,28 @@ Other deployment targets (e.g. AWS ECS, Azure Container Apps) follow the same pa
 }
 ```
 
-### Deployment Decorator
+### Deployment Decorator (Decorator Standard)
+
+Set `$schema` to a decorator standard to validate `data` against it. This decorator uses the Kubernetes deployment standard, so it must also have `target-type`, the deployment `start-time` and `status`, and a `kubernetes` object with `cluster` and `namespace`:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.3/meta/decorators.json#/defs/decorator",
+    "$schema": "https://calm.finos.org/standards/deployment/1.0/kubernetes.decorator.standard.json",
     "unique-id": "aks-cluster-deployment-001",
     "type": "deployment",
+    "target-type": ["architecture"],
     "target": ["aks-architecture.json"],
     "applies-to": ["aks-cluster"],
     "data": {
-        "deployment-start-time": "2026-02-12T09:30:00Z",
-        "deployment-status": "completed",
-        "deployment-observability": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
-        "cluster": "prod-uksouth-aks-01",
-        "namespace": "trading-system"
+        "start-time": "2026-02-12T09:30:00Z",
+        "end-time": "2026-02-12T09:42:10Z",
+        "status": "completed",
+        "deployment-details": "https://grafana.example.com/d/aks-prod/aks-cluster-overview",
+        "kubernetes": {
+            "cluster": "prod-uksouth-aks-01",
+            "namespace": "trading-system",
+            "helm-chart-version": "2.4.1"
+        }
     }
 }
 ```
