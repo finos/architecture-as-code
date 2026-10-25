@@ -113,6 +113,41 @@ describe('containment relationships', () => {
         expect(map.has('api-in-cluster')).toBe(false);
     });
 
+    it('keeps a not-met result on one relationship when another relationship in the container is met later', () => {
+        const map = evaluationsByElement(
+            [
+                d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['api-in-cluster']),
+                d('b', 'residency', 'met', '2026-11-04T15:01:00.000Z', ['db-in-cluster']),
+            ],
+            new Map([['api-in-cluster', 'cluster'], ['db-in-cluster', 'cluster']]),
+        );
+        expect(map.get('cluster')?.status).toBe('not-met');
+        expect(map.get('cluster')?.latest.map((x) => x.uniqueId)).toEqual(['a', 'b']);
+    });
+
+    it('keeps a not-met result on a relationship when the container itself is met later', () => {
+        const map = evaluationsByElement(
+            [
+                d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['api-in-cluster']),
+                d('b', 'residency', 'met', '2026-11-04T15:01:00.000Z', ['cluster']),
+            ],
+            containersOfContainment(relationships),
+        );
+        expect(map.get('cluster')?.status).toBe('not-met');
+    });
+
+    it('lets a newer result on the same relationship replace its older one', () => {
+        const map = evaluationsByElement(
+            [
+                d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['api-in-cluster']),
+                d('b', 'residency', 'met', '2026-11-04T15:01:00.000Z', ['api-in-cluster']),
+            ],
+            containersOfContainment(relationships),
+        );
+        expect(map.get('cluster')?.status).toBe('met');
+        expect(map.get('cluster')?.latest.map((x) => x.uniqueId)).toEqual(['b']);
+    });
+
     it('counts one evaluation once when it names both the container and its relationship', () => {
         const map = evaluationsByElement(
             [d('a', 'residency', 'not-met', '2026-11-04T15:00:00.000Z', ['cluster', 'api-in-cluster', 'trade-api'])],

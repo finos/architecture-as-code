@@ -37,7 +37,9 @@ export function containersOfContainment(relationships: CalmRelationshipSchema[] 
  * evaluations are all not applicable are left out, so they show nothing.
  *
  * An element that is not drawn on its own counts for the element that draws it, given in `drawnAs`: a containment
- * relationship counts for its container (see {@link containersOfContainment}).
+ * relationship counts for its container (see {@link containersOfContainment}). The newest evaluation per control is
+ * chosen for each element first, and only then folded into the element that draws it, so a newer result on one
+ * element never hides a not-met result on another. An evaluation that names several of those elements counts once.
  *
  * Decorators are skipped entirely, before the newest is chosen, when they have no control, an `evaluated-at` that
  * does not parse, or a status other than met, not-met or not-applicable. So an unknown status never makes an
@@ -51,19 +53,27 @@ export function evaluationsByElement(
     for (const d of decorators) {
         const key = control(d);
         if (!key || Number.isNaN(time(d)) || !counted(d)) continue;
-        const elements = new Set((d.appliesTo ?? []).map((id) => drawnAs.get(id) ?? id));
-        for (const element of elements) {
+        for (const element of new Set(d.appliesTo ?? [])) {
             const byControl = newest.get(element) ?? new Map<string, ControlEvaluationDecorator>();
             newest.set(element, byControl);
             const current = byControl.get(key);
             if (!current || newerFirst(d, current) < 0) byControl.set(key, d);
         }
     }
-    const result = new Map<string, ElementEvaluation>();
+    // Each drawn element's evaluations, by uniqueId: its own newest per control, and those of the elements it draws.
+    const drawn = new Map<string, Map<string, ControlEvaluationDecorator>>();
     for (const [element, byControl] of newest) {
-        const latest = [...byControl.values()]
+        const target = drawnAs.get(element) ?? element;
+        const byId = drawn.get(target) ?? new Map<string, ControlEvaluationDecorator>();
+        drawn.set(target, byId);
+        for (const d of byControl.values()) byId.set(d.uniqueId, d);
+    }
+    const result = new Map<string, ElementEvaluation>();
+    for (const [element, byId] of drawn) {
+        const latest = [...byId.values()]
             .filter((d) => d.data.status !== 'not-applicable')
-            .sort((a, b) => (a.data.status === b.data.status ? control(a)!.localeCompare(control(b)!) : a.data.status === 'not-met' ? -1 : 1));
+            .sort((a, b) => (a.data.status !== b.data.status ? (a.data.status === 'not-met' ? -1 : 1)
+                : control(a)!.localeCompare(control(b)!) || newerFirst(a, b)));
         if (!latest.length) continue;
         result.set(element, { status: latest.some((d) => d.data.status === 'not-met') ? 'not-met' : 'met', latest });
     }
