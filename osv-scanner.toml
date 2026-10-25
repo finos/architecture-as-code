@@ -86,3 +86,18 @@ reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic
 id = "GHSA-xcx6-jx8p-x3h5"
 ignoreUntil = 2026-12-31
 reason = "@azure/msal-node 6.0.1 is used only by vsce through @azure/identity. CI publishes with a PAT, and vsce's --azure-credential chain has no authorization code flow. Not shipped. Remove when @azure/identity accepts @azure/msal-node >= 7.1.0."
+
+# @sveltejs/kit 2.70.2 comes in only through the CALM Studio app (calm-studio/apps/studio).
+# It is a single-page app built with adapter-static: ssr = false, prerender = false, an
+# index.html fallback, only the root route, and no server routes, form actions or setHeaders
+# calls. Both advisories need one of those features. The fix is only in kit 3, which needs
+# TypeScript 6, and CALM Studio is to be retired.
+[[IgnoredVulns]]
+id = "GHSA-27mw-82g8-phjj"
+ignoreUntil = 2026-12-31
+reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with prerender = false. It prerenders no pages and never calls setHeaders, so an untrusted cache-control header cannot reach a prerendered page. Remove when CALM Studio is retired or moves to kit 3."
+
+[[IgnoredVulns]]
+id = "GHSA-pfhg-q3qv-9q6r"
+ignoreUntil = 2026-12-31
+reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."

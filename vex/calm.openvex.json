@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-25T00:00:00Z",
-  "version": 12,
+  "version": 13,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -233,6 +233,50 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "@azure/msal-node 6.0.1 is pulled in only by @azure/identity under @vscode/vsce, which packages and publishes the VS Code extension. It is not part of the published extension. The release job publishes with VSCE_PAT. The credential chain behind vsce --azure-credential (environment, Azure CLI, managed identity, Azure PowerShell, Azure Developer CLI) has no authorization code flow. The fix is in 7.1.0, and @azure/identity 4.14.0 still requires ^6.0.0."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-27mw-82g8-phjj",
+        "aliases": [
+          "CVE-2026-114061"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/%40sveltejs/kit@2.70.2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static for the web and the desktop app (ssr = false, prerender = false, index.html fallback). The flaw is in prerendered pages that set a cache-control header from an untrusted source with setHeaders. CALM Studio prerenders no pages, has no server routes and does not call setHeaders. The fix is only in kit 3, which needs TypeScript 6."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-pfhg-q3qv-9q6r",
+        "aliases": [
+          "CVE-2026-114060"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/%40sveltejs/kit@2.70.2"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static. The flaw is an open redirect in enhanced form actions (use:enhance) on routes that accept paths that begin with //. CALM Studio has only the root route, no form actions and no use:enhance. The fix is only in kit 3, which needs TypeScript 6."
     }
   ],
   "last_updated": "2026-10-25T00:00:00Z"

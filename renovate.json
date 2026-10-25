@@ -193,6 +193,20 @@
       "matchManagers": ["maven"],
       "matchPackageNames": ["io.quarkus:*", "io.quarkus.platform:*"],
       "allowedVersions": "/^(3\\.40|4\\.3)\\./"
+    },
+    {
+      "description": "CALM Studio is to be retired: no major upgrades of its Svelte stack. This also stops vulnerability fixes that need a major upgrade, which are triaged in osv-scanner.toml instead",
+      "matchFileNames": ["calm-studio/**"],
+      "matchPackageNames": [
+        "svelte",
+        "svelte-*",
+        "@sveltejs/*",
+        "@svelte-put/*",
+        "@xyflow/svelte",
+        "@testing-library/svelte"
+      ],
+      "matchUpdateTypes": ["major"],
+      "enabled": false
     }
   ]
 }
