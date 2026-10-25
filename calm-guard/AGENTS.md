@@ -10,7 +10,7 @@ Built for the DTCC/FINOS Innovate.DTCC AI Hackathon (Feb 23-27, 2026).
 
 | Layer | Choice | Notes |
 |-------|--------|-------|
-| Framework | Next.js 15 (App Router, Turbopack) | `src/app/` routing, API routes for SSE |
+| Framework | Next.js 16 (App Router, Turbopack) | `src/app/` routing, API routes for SSE |
 | Package Manager | npm (workspaces) | CalmGuard is a workspace of the monorepo root. Run `npm` commands from the repo root or use `--workspace=calmguard`. The docs sub-package is `calmguard-docs`. |
 | Language | TypeScript (strict mode) | No `any` types. Use Zod for runtime validation |
 | LLM SDK | Vercel AI SDK (`ai`) | `generateObject` with Zod schemas for all agent outputs |
