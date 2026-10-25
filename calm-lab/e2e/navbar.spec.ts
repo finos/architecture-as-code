@@ -29,11 +29,14 @@ for (const width of [320, 360, 375, 414]) {
 
         const docs = await box(docsLink);
         const title = navbar.getByText('CALM', { exact: true });
-        // Below 360px the CSS hides the title; the count stops a renamed title from skipping the check.
+        // Below 360px the CSS hides the title. `toBeHidden` also passes when nothing matches, so count it.
         await expect(title).toHaveCount(1);
-        if (await title.isVisible()) {
+        if (width >= 360) {
+            await expect(title).toBeVisible();
             const titleBox = await box(title);
             expect(titleBox.x + titleBox.width, 'title right edge').toBeLessThanOrEqual(docs.x);
+        } else {
+            await expect(title).toBeHidden();
         }
 
         const hub = await box(navbar.getByRole('link', { name: 'CALM Hub' }));
