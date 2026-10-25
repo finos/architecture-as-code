@@ -5,13 +5,13 @@ title: System Overview
 
 # System Overview
 
-CALMGuard is built on Next.js 15 with a multi-agent AI architecture. This page covers the technical stack, system design, and key architectural decisions.
+CALMGuard is built on Next.js 16 with a multi-agent AI architecture. This page covers the technical stack, system design, and key architectural decisions.
 
 ## Tech Stack
 
 | Layer | Technology | Notes |
 |-------|------------|-------|
-| Framework | Next.js 15 (App Router) | Server Components, API Routes, SSE streaming |
+| Framework | Next.js 16 (App Router) | Server Components, API Routes, SSE streaming |
 | Language | TypeScript (strict mode) | No `any` types. Zod for all runtime validation |
 | LLM SDK | Vercel AI SDK v6 | `generateObject` with Zod schemas for structured output |
 | Default LLM | Google Gemini | `@ai-sdk/google`. Multi-provider support |

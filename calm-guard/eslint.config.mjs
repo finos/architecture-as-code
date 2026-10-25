@@ -1,30 +1,24 @@
-import { FlatCompat } from '@eslint/eslintrc';
-import { fileURLToPath } from 'url';
-import path from 'path';
+import { defineConfig, globalIgnores } from 'eslint/config';
+import nextVitals from 'eslint-config-next/core-web-vitals';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
-const config = [
-  {
-    ignores: [
-      '.next/**',
-      'node_modules/**',
-      'docs/**',
-      'scripts/**',
-      '.planning/**',
-    ],
-  },
+export default defineConfig([
+  globalIgnores([
+    '.next/**',
+    'node_modules/**',
+    'docs/**',
+    'scripts/**',
+    '.planning/**',
+  ]),
+  ...nextVitals,
   {
     rules: {
       'object-curly-spacing': ['error', 'always'],
+      // React Compiler rules from eslint-plugin-react-hooks 7. Existing code does not conform yet.
+      'react-hooks/immutability': 'off',
+      'react-hooks/purity': 'off',
+      'react-hooks/refs': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      'react-hooks/static-components': 'off',
     },
   },
-  ...compat.extends('next/core-web-vitals'),
-];
-
-export default config;
+]);
