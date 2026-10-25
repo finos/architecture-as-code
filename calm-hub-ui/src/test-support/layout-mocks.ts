@@ -26,3 +26,9 @@ export function mockHeights(scrollHeight: number, clientHeight: number) {
     vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(scrollHeight);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(clientHeight);
 }
+
+/** jsdom has no layout, so give every element this layout size. Restore with `vi.restoreAllMocks()`. */
+export function mockOffsetSize(width: number, height: number) {
+    vi.spyOn(HTMLElement.prototype, 'offsetWidth', 'get').mockReturnValue(width);
+    vi.spyOn(HTMLElement.prototype, 'offsetHeight', 'get').mockReturnValue(height);
+}

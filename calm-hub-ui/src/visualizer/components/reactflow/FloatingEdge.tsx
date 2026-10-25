@@ -5,8 +5,10 @@ import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
 import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
-import { coveredNodeTop } from './utils/labelPlacement.js';
+import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlacement.js';
 import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { useElementSize } from './hooks/useElementSize.js';
 
 interface FloatingEdgeProps extends EdgeProps<EdgeData> {
     /** Injected for tests; defaults to the app-wide store. */
@@ -49,13 +51,30 @@ function FloatingEdgeComponent({
         [hitX, hitY, source, target],
     ));
 
+    // In presentation mode the decision callouts below nodes are large enough to cover an edge label, which then moves
+    // down to clear them. A label already moved above a node it would cover stays there. Like the hit test, the shift
+    // is calculated in the selector from the label's own position, so it changes only when a node or a callout does.
+    const { showDecisions, calloutSizes } = useDecisionOverlay();
+    const shiftForCallouts = presenting && showDecisions && coveredTop === undefined;
+    const [labelElement, setLabelElement] = useState<HTMLDivElement | null>(null);
+    const labelSize = useElementSize(labelElement);
+    const labelShift = useStore(useCallback(
+        (store) => (!shiftForCallouts || hitX === undefined || hitY === undefined || !labelSize
+            ? 0
+            : calloutShift(
+                { x: hitX - labelSize.width / 2, y: hitY - labelSize.height / 2, ...labelSize },
+                calloutRects(store.nodeInternals.values(), calloutSizes),
+            )),
+        [shiftForCallouts, hitX, hitY, labelSize, calloutSizes],
+    ));
+
     if (!path) {
         return null;
     }
 
     const { edgePath, labelX, labelY } = path;
     const labelTransform = coveredTop === undefined
-        ? `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`
+        ? `translate(-50%, -50%) translate(${labelX}px,${labelY + labelShift}px)`
         : `translate(-50%, -100%) translate(${labelX}px,${coveredTop - 8}px)`;
 
     // Extract edge data
@@ -90,6 +109,10 @@ function FloatingEdgeComponent({
     const startMarker = referencedMarker(markerStart);
     const pathMarkerEnd = notMet && endMarker ? notMetMarker : endMarker;
     const pathMarkerStart = notMet && startMarker ? notMetMarker : startMarker;
+    // The decision overlay says what a not-met relationship requires, beside its badge.
+    const requirement = showDecisions && notMet
+        ? evaluation?.latest.find((d) => d.data.status === 'not-met' && d.data.findings?.length)?.data.findings?.[0]?.description
+        : undefined;
 
     return (
         <>
@@ -137,6 +160,8 @@ function FloatingEdgeComponent({
             {hasIndicator && (
                 <EdgeLabelRenderer>
                     <div
+                        // Held only while it can move, as holding it renders the edge again.
+                        ref={shiftForCallouts ? setLabelElement : undefined}
                         style={{
                             position: 'absolute',
                             transform: labelTransform,
@@ -145,7 +170,7 @@ function FloatingEdgeComponent({
                             opacity: flowOpacity,
                             transition: 'opacity 0.4s ease',
                             display: 'flex',
-                            // Presentation mode stacks the badge and the label: together they are too wide for one line.
+                            // Presentation mode stacks the badges and the label: together they are too wide for one line.
                             flexDirection: presenting ? 'column' : undefined,
                             alignItems: 'center',
                             gap: '4px',
@@ -174,6 +199,24 @@ function FloatingEdgeComponent({
                                 }}
                             >
                                 <span aria-hidden="true">✗</span> Not met
+                            </span>
+                        )}
+                        {requirement && (
+                            <span
+                                data-testid="edge-decision-finding"
+                                style={{
+                                    fontSize: presenting ? '16px' : '11px',
+                                    fontWeight: 600,
+                                    padding: presenting ? '3px 8px' : '2px 4px',
+                                    borderRadius: '4px',
+                                    background: THEME.colors.card,
+                                    border: `1px solid ${THEME.colors.error}`,
+                                    color: THEME.colors.foreground,
+                                    maxWidth: presenting ? '220px' : '180px',
+                                    textAlign: 'center',
+                                }}
+                            >
+                                Requires: {requirement}
                             </span>
                         )}
                         {edgeLabel && (
