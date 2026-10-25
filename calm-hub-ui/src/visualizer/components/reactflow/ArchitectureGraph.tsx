@@ -24,7 +24,7 @@ import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
 import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
-import { DecisionOverlayContext, useCalloutSizes } from '../../context/DecisionOverlayContext.js';
+import { DecisionOverlayContext, useCalloutSizes, type CalloutSize } from '../../context/DecisionOverlayContext.js';
 import { subjectLabelsFor } from './utils/decisionSummary.js';
 import { calloutRects } from './utils/labelPlacement.js';
 import { THEME } from './theme.js';
@@ -64,6 +64,12 @@ const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
  * back width. maxZoom matches desktop, so a sparse graph is not enlarged.
  */
 const CONTAIN_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
+
+const NO_CALLOUTS: ReadonlyMap<string, CalloutSize> = new Map();
+
+/** Whether a move landed on a fit's viewport: within half a pixel, as the pane's size is measured in whole pixels. */
+const sameViewport = (a: Viewport, b: Viewport) =>
+    Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.zoom - b.zoom) < 0.001;
 
 /** The pane's zoom range, which also bounds a fit that sets no range of its own. */
 const MIN_ZOOM = 0.1;
@@ -306,25 +312,38 @@ export function ArchitectureGraph({
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
-    // fitView takes in React Flow's node bounds only. The decision callouts hang below the nodes, outside those bounds,
-    // so while any are drawn a fit takes in their area too. False when there are none, as fitView alone is then right.
-    const fitWithCallouts = useCallback((options: FitViewOptions = {}) => {
+    // The viewport that takes in the shown nodes and the given callouts, as fitView would for the nodes alone.
+    // Undefined until React Flow hands over its instance.
+    const viewportToFit = useCallback((options: FitViewOptions, callouts: ReadonlyMap<string, CalloutSize>) => {
         const instance = flowInstanceRef.current;
         const container = containerRef.current;
-        const callouts = currentCalloutSizes();
-        if (!instance || !container || callouts.size === 0) return false;
+        if (!instance || !container) return undefined;
         const shown = instance.getNodes().filter((node) => !node.hidden);
         const bounds = calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
-        instance.setViewport(getViewportForBounds(
+        return getViewportForBounds(
             bounds,
             container.clientWidth,
             container.clientHeight,
             options.minZoom ?? MIN_ZOOM,
             options.maxZoom ?? MAX_ZOOM,
             options.padding ?? 0.1,
-        ));
+        );
+    }, []);
+
+    // Where the fits that take in callouts last sent the viewport. setViewport lands on a later tick, so a move is
+    // matched against these to tell a fit from the viewer.
+    const calloutFitTargets = useRef<Viewport[]>([]);
+
+    // fitView takes in React Flow's node bounds only. The decision callouts hang below the nodes, outside those bounds,
+    // so while any are drawn a fit takes in their area too. False when there are none, as fitView alone is then right.
+    const fitWithCallouts = useCallback((options: FitViewOptions = {}) => {
+        const callouts = currentCalloutSizes();
+        const viewport = callouts.size > 0 ? viewportToFit(options, callouts) : undefined;
+        if (!viewport) return false;
+        calloutFitTargets.current = [...calloutFitTargets.current.slice(-3), viewport];
+        flowInstanceRef.current?.setViewport(viewport);
         return true;
-    }, [currentCalloutSizes]);
+    }, [currentCalloutSizes, viewportToFit]);
     const refit = useCallback((options: FitViewOptions) => {
         if (!fitWithCallouts(options)) flowInstanceRef.current?.fitView(options);
     }, [fitWithCallouts]);
@@ -337,8 +356,8 @@ export function ArchitectureGraph({
         : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
 
     // React Flow's fit on load takes in the nodes only, and control evaluations can arrive after it. Fit the decision
-    // callouts in when React Flow hands over its instance and as they come and go, until the viewer pans or zooms. A
-    // restored viewport is left as it was. Like the fit button, a fit that takes in callouts may zoom out past the
+    // callouts in when React Flow hands over its instance and as they come and go, until the viewer moves the diagram.
+    // A restored viewport is left as it was. Like the fit button, a fit that takes in callouts may zoom out past the
     // desktop floor: on a small screen the callouts would otherwise stay cut off.
     const followsFit = useRef(flowConfig.fitView);
     useEffect(() => {
@@ -352,6 +371,15 @@ export function ArchitectureGraph({
     useEffect(() => {
         if (followsFit.current && !fitWithCallouts(calloutFitOptions)) flowInstanceRef.current?.fitView(fitViewOptions);
     }, [calloutSizes, calloutFitOptions, fitViewOptions, fitWithCallouts]);
+
+    // React Flow reports every move through onMove: its own fits, and the moves the controls, the minimap and auto-pan
+    // make as well as the viewer's drags. A fit lands where React Flow fits the nodes with the load options, or where a
+    // callout fit was sent; a move anywhere else is the viewer's. Before React Flow hands over its instance, only its
+    // own fit moves the diagram.
+    const isFitMove = (viewport: Viewport) => {
+        const nodesFit = viewportToFit(fitViewOptions, NO_CALLOUTS);
+        return !nodesFit || [nodesFit, ...calloutFitTargets.current].some((fit) => sameViewport(fit, viewport));
+    };
 
     // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
     // AND immediately when the app first crosses into mobile — fitView only auto-runs
@@ -422,17 +450,15 @@ export function ArchitectureGraph({
                     onNodeMouseEnter={handleNodeMouseEnter}
                     onNodeMouseLeave={handleNodeMouseLeave}
                     onEdgeClick={handleEdgeClick}
-                    // React Flow passes the user's event, or null for a move of its own such as a fit.
-                    onMoveStart={(event: MouseEvent | TouchEvent | null) => {
-                        if (event) followsFit.current = false;
-                    }}
+                    // Only the viewer's view is saved, so a refresh fits afresh until they move the diagram.
                     onMove={(_, viewport) => {
-                        if (storageKey) saveViewportForKey(storageKey, viewport);
+                        if (followsFit.current && !isFitMove(viewport)) followsFit.current = false;
+                        if (!followsFit.current && storageKey) saveViewportForKey(storageKey, viewport);
                     }}
                     // Capture the instance on both devices so a later desktop→mobile
                     // crossing can re-fit (the effect above), then spread the device-derived
-                    // fit config so the props always agree. React Flow has fitted the nodes by now, and callouts
-                    // may already be drawn, so the fit takes them in.
+                    // fit config so the props always agree. Callouts are drawn once the nodes are measured, after
+                    // React Flow's own fit, and may be drawn by now, so the fit takes them in.
                     onInit={(instance) => {
                         flowInstanceRef.current = instance;
                         if (followsFit.current) fitWithCallouts(calloutFitOptions);
