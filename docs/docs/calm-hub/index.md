@@ -103,6 +103,7 @@ Stage 2 — runtime (minimal base image)
   chmod 0444                              ← immutable at filesystem level
   ENV CALM_READONLY=true
   ENV QUARKUS_PROFILE=standalone
+  ENV CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 The resulting image carries the seeded database as a read-only filesystem layer. At runtime the process opens the file in read-only mode, serves the pre-loaded content, and rejects all write requests.

@@ -37,7 +37,9 @@ services:
     #
     # The Hub sets the $id of each name-based document (/calm/namespaces/...)
     # from CALM_HUB_BASE_URL when it serves the document, so this value must be
-    # the public URL. The image has the same default.
+    # the public URL. The image has the same default. The host can run an older
+    # copy of this file, because a change here takes effect only when someone
+    # runs `docker compose up -d` on the host.
     environment:
       - "CALM_HUB_BASE_URL=${CALM_HUB_BASE_URL:-https://hub.calm.finos.org}"
     #
