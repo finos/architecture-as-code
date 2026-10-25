@@ -5,7 +5,7 @@ This guide helps AI assistants work efficiently with the CALM CLI codebase.
 ## Tech Stack
 
 - **Language**: TypeScript 5.8+
-- **CLI Framework**: Commander.js 14
+- **CLI Framework**: Commander.js 15
 - **Build Tool**: tsup (esbuild-based)
 - **Test Framework**: Vitest
 - **Package Manager**: npm (workspace package)
