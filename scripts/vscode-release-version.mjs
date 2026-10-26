@@ -76,6 +76,9 @@ export function planRelease(repoRoot, force) {
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const forceIndex = process.argv.indexOf('--force');
     const force = forceIndex === -1 ? undefined : process.argv[forceIndex + 1];
+    if (forceIndex !== -1 && !FORCED_KINDS.includes(force)) {
+        throw new Error(`--force needs a release kind: ${FORCED_KINDS.join(', ')}.`);
+    }
     const repoRoot = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
     const plan = planRelease(repoRoot, force);
     console.log(`current-version=${plan.current}`);

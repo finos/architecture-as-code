@@ -298,6 +298,6 @@ jobs:
           PRE_RELEASE_FLAG: ${{ steps.version.outputs.pre-release == 'true' && '--pre-release' || '' }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          npx vsce publish $PRE_RELEASE_FLAG --packagePath ./*.vsix
+          npx @vscode/vsce publish $PRE_RELEASE_FLAG --packagePath ./*.vsix
 
           echo "✅ Successfully published CALM VS Code extension $VERSION to the VS Code Marketplace" >> $GITHUB_STEP_SUMMARY
