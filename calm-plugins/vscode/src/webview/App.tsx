@@ -88,13 +88,17 @@ function isInputDOMNode(e: KeyboardEvent): boolean {
     return tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement)?.isContentEditable === true;
 }
 
+function getInitialCalmJson(): string | undefined {
+    return (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
+}
+
 function CanvasApp() {
     const containerRef = useRef<HTMLDivElement>(null);
     const store = useCanvasStore();
     const reactFlowInstance = useReactFlow();
     const [nodes, setNodes, onNodesChangeBase] = useNodesState([]);
     const [edges, setEdges, onEdgesChangeBase] = useEdgesState([]);
-    const [initialized, setInitialized] = useState(false);
+    const [initialized, setInitialized] = useState(() => !!getInitialCalmJson());
     const [selectedNode, setSelectedNode] = useState<Node | null>(null);
     const [selectedEdge, setSelectedEdge] = useState<Edge | null>(null);
     const [panelWidth, setPanelWidth] = useState(280);
@@ -314,10 +318,16 @@ function CanvasApp() {
         });
         initBridge();
 
-        const initialJson = (window as unknown as { __INITIAL_CALM_JSON__?: string }).__INITIAL_CALM_JSON__;
-        if (initialJson) { loadArchitecture(initialJson); setInitialized(true); }
+        const initialJson = getInitialCalmJson();
+        if (initialJson) loadArchitecture(initialJson);
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loadArchitecture, setNodes]);
+
+    // --- Unparent ---
+    const unparentNode = useCallback((nodeId: string) => {
+        setNodes((nds) => removeContainment(nodeId, nds));
+        setTimeout(() => emitChange(true), 0);
+    }, [setNodes, emitChange]);
 
     // --- Undo/Redo ---
     useEffect(() => {
@@ -391,7 +401,7 @@ function CanvasApp() {
         };
         window.addEventListener('keydown', handleKeydown);
         return () => window.removeEventListener('keydown', handleKeydown);
-    }, [loadArchitecture, selectedNode, nodes, setNodes, emitChange, store]);
+    }, [loadArchitecture, selectedNode, nodes, setNodes, emitChange, store, unparentNode]);
 
     // --- Node changes (position, dimension, remove) ---
     const onNodesChange = useCallback((changes: NodeChange[]) => {
@@ -541,12 +551,6 @@ function CanvasApp() {
         });
         setTimeout(() => emitChange(true), 0);
     }, [setNodes, emitChange, store.readonlyMode]);
-
-    // --- Unparent ---
-    const unparentNode = useCallback((nodeId: string) => {
-        setNodes((nds) => removeContainment(nodeId, nds));
-        setTimeout(() => emitChange(true), 0);
-    }, [setNodes, emitChange]);
 
     // --- Node update (from properties panel) ---
     const onNodeUpdate = useCallback((nodeId: string, field: string, value: unknown) => {
