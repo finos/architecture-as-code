@@ -160,8 +160,8 @@ export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
 
             {/* Hub Loading */}
             {hubLoading && (
-                <div style={{ padding: '6px 12px', fontSize: '11px', color: '#4caf50', display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid var(--calm-border)' }}>
-                    <span style={{ display: 'inline-block', width: '10px', height: '10px', border: '2px solid #4caf50', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                <div style={{ padding: '6px 12px', fontSize: '11px', color: theme.green, display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid var(--calm-border)' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', border: `2px solid ${theme.green}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
                     Loading Standard Nodes from Hub...
                 </div>
             )}
@@ -170,7 +170,7 @@ export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
             {filteredHub.length > 0 && (
                 <Section title={`HUB (${hubNodes.length})`} collapsed={!isSearching && collapsed.hub} onToggle={() => toggleSection('hub')} badge="Hub">
                     {filteredHub.map((group) => (
-                        <CollapsibleSub key={group.name} label={`${humanizeNs(group.name)} — Standard Nodes (${group.items.length})`} color="#2e7d32">
+                        <CollapsibleSub key={group.name} label={`${humanizeNs(group.name)} — Standard Nodes (${group.items.length})`} color={theme.green}>
                             {group.items.map((node) => (
                                 <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubBlockIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
                             ))}
@@ -246,7 +246,7 @@ function PaletteItem({ icon, iconHtml, label, onDragStart, title }: { icon?: str
     );
 }
 
-const hubBlockIcon = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>';
+const hubBlockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>`;
 
 function humanizeNs(slug: string): string {
     return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
