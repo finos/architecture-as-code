@@ -103,6 +103,13 @@ describe('generateChangelog', () => {
         assert.doesNotMatch(changelog, /wip/);
     });
 
+    it('lists a PR with a ! in its title as a breaking change', async () => {
+        mergeBranch('breaking', 'feat(vscode)!: remove an old setting', 'wip');
+        const changelog = await generateChangelog(repo, '2026-01-02');
+        assert.match(changelog, /\*\*vscode:\*\* remove an old setting/);
+        assert.match(changelog, /BREAKING CHANGES/);
+    });
+
     it('lists the branch commits of a PR with a free-text title', async () => {
         const changelog = await generateChangelog(repo, '2026-01-02');
         assert.match(changelog, /\*\*vscode:\*\* fix from a free-text PR/);
@@ -135,15 +142,6 @@ describe('generateChangelog', () => {
         for (const hidden of ['outside the extension', 'update a dependency', 'repo-wide guide', 'bump version']) {
             assert.doesNotMatch(changelog, new RegExp(hidden));
         }
-    });
-
-    it('refuses a version-bump branch that merges main', async () => {
-        git('checkout', '-q', '-b', 'bump');
-        git('checkout', '-q', 'main');
-        mergeBranch('late', 'feat(vscode): the real feature', 'wip attempt one');
-        git('checkout', '-q', 'bump');
-        git('merge', '-q', '--no-ff', '--no-edit', 'main');
-        await assert.rejects(generateChangelog(repo, '2026-01-02'), /Rebase it on main/);
     });
 
     it('says so when a release has no user-facing changes', async () => {

@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Writes calm-plugins/vscode/CHANGELOG.md from the vscode-v* tags, in the CLI changelog format.
-// Run it in the version-bump PR: a package.json version with no tag yet gets a section for the
-// changes since the last tag. The whole file is generated again each time, so do not edit it.
+// The release workflow runs it in the version-bump PR: a package.json version with no tag yet gets a
+// section for the changes since the last tag. The whole file is generated again each time, so do not
+// edit it.
 //
-// The extension is released by hand, so this does not use semantic-release. A change belongs to
-// a release when it touched calm-plugins/vscode: the extension's history uses many scope spellings,
-// and PRs for other packages also change it.
+// This does not use semantic-release, which selects changes by scope. A change belongs to a release
+// when it touched calm-plugins/vscode: the extension's history uses many scope spellings, and PRs for
+// other packages also change it.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
@@ -51,11 +52,6 @@ export function listReleases(git, packageVersion, today) {
             return { version, ref, date: git('log', '-1', '--format=%cs', `${ref}^{commit}`) };
         });
     if (packageVersion && !tagged.some(release => release.version === packageVersion)) {
-        const since = tagged.at(-1)?.ref;
-        const merges = lines(git('log', '--first-parent', '--merges', '--format=%s', since ? `${since}..HEAD` : 'HEAD'));
-        if (merges.some(subject => !parserOpts.mergePattern.test(subject))) {
-            throw new Error('This branch merges main. Rebase it on main, then run this again.');
-        }
         tagged.push({ version: packageVersion, ref: 'HEAD', date: today });
     }
     return tagged;
@@ -63,7 +59,8 @@ export function listReleases(git, packageVersion, today) {
 
 /** The commits of one release that changed the extension. */
 export function releaseCommits(git, from, to) {
-    const parser = new CommitParser(parserOpts);
+    // The preset's parser options read a `!` in the header as a breaking change.
+    const parser = new CommitParser({ ...createPreset().parser, ...parserOpts });
     return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH])
         .map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
 }
