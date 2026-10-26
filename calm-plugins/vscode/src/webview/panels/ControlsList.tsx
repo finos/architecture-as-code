@@ -39,14 +39,14 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
     const valueTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
     const controlsRef = useRef(controls);
     useEffect(() => { controlsRef.current = controls; }, [controls]);
-    const lastExpand = useRef<string | null>(null);
+    const [lastExpand, setLastExpand] = useState<string | null>(null);
 
-    if (expandControl && expandControl !== lastExpand.current) {
-        lastExpand.current = expandControl;
-        setSectionExpanded(true);
-        setExpandedControls(new Set([expandControl]));
-    } else if (!expandControl && lastExpand.current) {
-        lastExpand.current = null;
+    if (expandControl !== lastExpand) {
+        setLastExpand(expandControl);
+        if (expandControl) {
+            setSectionExpanded(true);
+            setExpandedControls(new Set([expandControl]));
+        }
     }
 
     const entries = Object.entries(controls ?? {});
@@ -178,7 +178,8 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
                                                         def={def}
                                                         value={getPropertyValue(control, propName)}
                                                         readonly={readonly || configUrlLocked}
-                                                        onChange={(raw, immediate) => handlePropInput(key, propName, def, raw, immediate)}
+                                                        controlKey={key}
+                                                        onPropInput={handlePropInput}
                                                     />
                                                 ))
                                             )
@@ -229,13 +230,16 @@ export function ControlsList({ controls, onUpdate, readonly = false, expandContr
 }
 
 /** Renders the correct input for a single requirement property by its declared type. */
-function PropertyField({ propName, def, value, readonly, onChange }: Readonly<{
+function PropertyField({ controlKey, propName, def, value, readonly, onPropInput }: Readonly<{
+    controlKey: string;
     propName: string;
     def: RequirementPropertyDef;
     value: unknown;
     readonly: boolean;
-    onChange: (raw: string, immediate: boolean) => void;
+    // The parent's memoized handler. A per-render closure over it fails react-hooks/refs.
+    onPropInput: (key: string, propName: string, def: RequirementPropertyDef, raw: string, immediate: boolean) => void;
 }>) {
+    const onChange = (raw: string, immediate: boolean) => onPropInput(controlKey, propName, def, raw, immediate);
     const display = value === undefined || value === null ? '' : String(value);
 
     let input: React.ReactNode;

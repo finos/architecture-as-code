@@ -43,10 +43,15 @@ export function ControlPicker({
     const [expandedDomains, setExpandedDomains] = useState<Set<string>>(new Set());
     const [domainStatus, setDomainStatus] = useState<Record<string, DomainStatus>>({});
     const [search, setSearch] = useState('');
+    const [wasVisible, setWasVisible] = useState(visible);
+
+    if (visible !== wasVisible) {
+        setWasVisible(visible);
+        if (visible) setBrowseError(null);
+    }
 
     useEffect(() => {
         if (!visible) return;
-        setBrowseError(null);
         requestControlBrowse((result) => {
             if (result.ok) {
                 setGroups(result.groups);

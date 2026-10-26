@@ -23,11 +23,6 @@ export default tseslint.config(
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
-            // React Compiler rules from eslint-plugin-react-hooks 7. Existing code does not conform yet.
-            'react-hooks/immutability': 'off',
-            'react-hooks/preserve-manual-memoization': 'off',
-            'react-hooks/refs': 'off',
-            'react-hooks/set-state-in-effect': 'off',
             // The canvas transforms lean on `any` for the loosely-typed CALM JSON.
             '@typescript-eslint/no-explicit-any': 'off',
             '@typescript-eslint/no-unused-vars': [
