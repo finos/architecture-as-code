@@ -2077,28 +2077,44 @@ if (isEmptyDatabase && db.flows.countDocuments() === 0) {
                 {
                     flowId: NumberInt(1),
                     name: "Flow 1",
-                    description: "This is a non-compliant flow document. Just creating something to simulate",
+                    description: "A placeholder flow document for testing",
                     versions:
                     {
                         "1.0.0": {
-                            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                            "$schema": "https://calm.finos.org/release/1.3/meta/flow.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-1",
-                            "title": "Flow 1",
-                            "description": "This is a non-compliant flow document. Just creating something to simulate"
+                            "unique-id": "flow-1",
+                            "name": "Flow 1",
+                            "description": "A placeholder flow document for testing",
+                            "transitions": [
+                                {
+                                    "relationship-unique-id": "placeholder-relationship",
+                                    "sequence-number": 1,
+                                    "description": "A placeholder transition"
+                                }
+                            ]
                         }
                     }
                 },
                 {
                     flowId: NumberInt(2),
                     name: "Flow 2",
-                    description: "This is a non-compliant flow document. Just creating something to simulate",
+                    description: "A placeholder flow document for testing",
                     versions:
                     {
                         "1.0.0": {
-                            "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                            "$schema": "https://calm.finos.org/release/1.3/meta/flow.json",
                             "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/flow/flow-2",
-                            "title": "Flow 2",
-                            "description": "This is a non-compliant flow document. Just creating something to simulate"
+                            "unique-id": "flow-2",
+                            "name": "Flow 2",
+                            "description": "A placeholder flow document for testing",
+                            "transitions": [
+                                {
+                                    "relationship-unique-id": "placeholder-relationship",
+                                    "sequence-number": 1,
+                                    "description": "A placeholder transition"
+                                }
+                            ]
 
 
                         }
@@ -2224,14 +2240,14 @@ if (isEmptyDatabase && db.architectures.countDocuments() === 0) {
             architectures: [{
                 architectureId: NumberInt(1),
                 name: "Architecture 1",
-                description: "This is a non-compliant arch document. Just creating something to simulate",
+                description: "A placeholder architecture document for testing",
                 versions:
                 {
                     "1.0.0": {
-                        "$schema": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/draft/2024-04/meta/calm.json",
+                        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
                         "$id": "https://raw.githubusercontent.com/finos/architecture-as-code/main/calm/arch-1",
                         "title": "Architecture 1",
-                        "description": "This is a non-compliant arch document. Just creating something to simulate"
+                        "description": "A placeholder architecture document for testing"
                     }
                 }
             }]
