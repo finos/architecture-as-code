@@ -1,6 +1,5 @@
 // Environment variables:
 // - CALM_DB_NAME: Name of the MongoDB database to use (default: calmSchemas)
-// - CALM_SCHEMA_BASE_PATH: Base path of the draft schemas (default: /calm)
 // - CALM_RELEASE_SCHEMA_PATH: Path of the released schemas, <version>/meta per release
 //   (default: /calm-schemas/release). The compose files mount calm-hub/target/calm-schemas/release,
 //   which `npm run calm-hub:copy-schemas` fills from the @finos/calm-schema npm packages.
@@ -439,12 +438,8 @@ if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 0) {
 }
 
 logSection("Schemas");
-// Load the released schemas from the npm copy, and the drafts from calm/.
-// Set CALM_RELEASE_SCHEMA_PATH and CALM_SCHEMA_BASE_PATH to override the defaults.
+// Load the released schemas from the npm copy. Set CALM_RELEASE_SCHEMA_PATH to override the default.
 const fs = require('fs');
-const basePath = (typeof process !== 'undefined' && process.env.CALM_SCHEMA_BASE_PATH)
-    ? process.env.CALM_SCHEMA_BASE_PATH
-    : '/calm';
 const releaseSchemaPath = (typeof process !== 'undefined' && process.env.CALM_RELEASE_SCHEMA_PATH)
     ? process.env.CALM_RELEASE_SCHEMA_PATH
     : '/calm-schemas/release';
@@ -458,7 +453,7 @@ const controlsBasePath = (typeof process !== 'undefined' && process.env.CALM_CON
 function loadSchemasFromDir(baseDir, prefix) {
     if (!fs.existsSync(baseDir)) {
         logFail(`Schema directory not found at ${baseDir}, skipping`);
-        logFail(`Set CALM_SCHEMA_BASE_PATH or CALM_RELEASE_SCHEMA_PATH to load schemas from a different location`);
+        logFail(`Set CALM_RELEASE_SCHEMA_PATH to load schemas from a different location`);
         return;
     }
     const versions = fs.readdirSync(baseDir).filter(f =>
@@ -489,7 +484,6 @@ function loadSchemasFromDir(baseDir, prefix) {
 }
 
 loadSchemasFromDir(releaseSchemaPath, 'release');
-loadSchemasFromDir(`${basePath}/draft`, 'draft');
 
 function loadControlsFromDir(baseDir) {
     if (!fs.existsSync(baseDir)) {

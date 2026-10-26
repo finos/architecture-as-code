@@ -27,7 +27,6 @@
 #   • calm-hub Maven native build:
 #       ./mvnw package -Dnative -Dquarkus.native.container-build=true -DskipITs
 #     → target/*-runner (native binary) and target/quarkus-app/ (JVM app) populated
-#   • calm/ schemas staged:   target/readonly-seed/calm/
 #   • released meta-schemas:  target/readonly-seed/calm-schemas/release/
 #   • controls staged:        target/readonly-seed/controls/
 #
@@ -59,8 +58,7 @@ COPY nitrite/seed-readonly.sh /nitrite/seed-readonly.sh
 COPY nitrite/init-nitrite.sh  /nitrite/init-nitrite.sh
 RUN chmod +x /nitrite/seed-readonly.sh /nitrite/init-nitrite.sh
 
-# CALM schema content, controls, standards, patterns, released meta-schemas and interfaces staged by the build script into target/readonly-seed/
-COPY target/readonly-seed/calm/     /calm/
+# Controls, standards, patterns, released meta-schemas and interfaces staged by the build script into target/readonly-seed/
 COPY target/readonly-seed/controls/ /controls/
 COPY target/readonly-seed/standards/ /standards/
 COPY target/readonly-seed/patterns/ /patterns/
@@ -76,7 +74,6 @@ COPY target/readonly-seed/interfaces/ /interfaces/
 # 0444 to the parent directory, stripping the execute bit and making the
 # directory non-traversable at runtime).
 RUN DATA_DIR=/data \
-    CALM_SCHEMA_BASE_PATH=/calm \
     CALM_CONTROLS_BASE_PATH=/controls \
     CALM_STANDARDS_BASE_PATH=/standards \
     CALM_PATTERNS_BASE_PATH=/patterns \

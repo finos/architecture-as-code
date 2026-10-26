@@ -20,7 +20,6 @@ on:
             - 'shared/**'
             - 'calm-models/**'
             - 'calm-widgets/**'
-            - 'calm/**'
             - 'package.json'
             - 'package-lock.json'
 

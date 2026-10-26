@@ -3,7 +3,7 @@ import { containersOfContainment, evaluationsByElement, newestFirst } from './co
 import type { ControlEvaluationDecorator } from '../../../contracts/contracts.js';
 
 const d = (id: string, control: string, status: 'met' | 'not-met' | 'not-applicable', at: string, appliesTo: string[], extra = {}): ControlEvaluationDecorator => ({
-    schema: 'https://calm.finos.org/draft/2026-03/standards/compliance/control-evaluation.decorator.standard.json',
+    schema: 'https://calm.finos.org/standards/control-evaluation/1.0/control-evaluation.decorator.standard.json',
     uniqueId: id,
     type: 'control-evaluation',
     target: ['/api/calm/namespaces/ns/architectures/1/versions/1-0-0'],

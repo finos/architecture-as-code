@@ -13,7 +13,6 @@
 # Environment variables:
 #   DATA_DIR                - directory where the .db file will be written (default: /data)
 #   CALM_HUB_URL            - base URL for readiness checks and seeder (default: http://localhost:8080)
-#   CALM_SCHEMA_BASE_PATH   - path to the calm/ directory with the draft/ schemas (default: /calm)
 #   CALM_RELEASE_SCHEMA_PATH - path to the released schemas, <version>/meta per release (default: /calm-schemas/release)
 #   CALM_INTERFACES_BASE_PATH - path to the interfaces/ directory (default: /interfaces)
 #   CALM_CONTROLS_BASE_PATH - path to the controls/ directory (default: /controls)
@@ -27,7 +26,6 @@ set -euo pipefail
 
 DATA_DIR="${DATA_DIR:-/data}"
 CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
-CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-/calm}"
 CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-/calm-schemas/release}"
 CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-/interfaces}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-/controls}"
@@ -86,7 +84,6 @@ echo "[seed] calm-hub is ready."
 
 echo "[seed] Running init-nitrite.sh..."
 CALM_HUB_URL="${CALM_HUB_URL}" \
-CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH}" \
 CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH}" \
 CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH}" \
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH}" \
