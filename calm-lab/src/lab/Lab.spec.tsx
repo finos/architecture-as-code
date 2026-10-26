@@ -362,6 +362,13 @@ describe('Lab with more than one editable file', () => {
         expect(screen.getByTestId('diagram').textContent).toBe(SECOND_TEXT);
     });
 
+    it('draws the saved text after a save', async () => {
+        await act(async () => { renderLab({lesson: multi}); });
+        await saveEditor(SECOND_TEXT);
+        fireEvent.click(screen.getByRole('tab', {name: /Diagram/}));
+        expect(screen.getByTestId('diagram').textContent).toBe(SECOND_TEXT);
+    });
+
     it('returns to the editor file on reset', async () => {
         await act(async () => { renderLab({lesson: multi}); });
         openFile(ADR);
@@ -387,6 +394,14 @@ describe('Lab with more than one editable file', () => {
             await waitFor(() => expect(screen.getByRole('option', {name: 'architecture/generated.json'})).toBeInTheDocument());
             openFile(GENERATED);
             expect(screen.getByLabelText('Edit architecture/generated.json')).toHaveValue(GENERATED_TEXT);
+        });
+
+        it('drops a file the command created on reset', async () => {
+            await act(async () => { renderLab({lesson: withPattern}); });
+            await generate(GENERATED);
+            await waitFor(() => expect(screen.getByRole('option', {name: 'architecture/generated.json'})).toBeInTheDocument());
+            await act(async () => { fireEvent.click(screen.getByRole('button', {name: 'Reset lesson'})); });
+            expect(screen.queryByRole('option', {name: 'architecture/generated.json'})).toBeNull();
         });
 
         it('shows the new content of the open file', async () => {
