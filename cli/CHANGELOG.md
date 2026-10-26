@@ -5,6 +5,22 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.66.0](https://github.com/finos/architecture-as-code/compare/cli-v1.65.0...cli-v1.66.0) (2026-10-26)
+
+### 🚀 Features
+
+* model the CALM decorator ([#3458](https://github.com/finos/architecture-as-code/issues/3458)) ([d9489e5](https://github.com/finos/architecture-as-code/commit/d9489e591aac21a54b92aa4e8737d5ad329cbff3))
+* move the tools to CALM schema 1.3 ([#3437](https://github.com/finos/architecture-as-code/issues/3437)) ([b142fd9](https://github.com/finos/architecture-as-code/commit/b142fd9e2ce0cea01fbc4ea142d892364c96e09f))
+* remove the CALM 1.0 release candidates and the 2025-03 draft ([#3468](https://github.com/finos/architecture-as-code/issues/3468)) ([4dabad5](https://github.com/finos/architecture-as-code/commit/4dabad5e9242f09a419bf0ad8f6aae54ab5bbef2))
+
+### 🐛 Bug Fixes
+
+* correct the decorator, control and metadata guide examples ([#3456](https://github.com/finos/architecture-as-code/issues/3456)) ([fa5e3c4](https://github.com/finos/architecture-as-code/commit/fa5e3c453875c050ee8164bd5cb3de5b5d72eb29))
+* load the direct URL auth module when a document first needs it ([#3354](https://github.com/finos/architecture-as-code/issues/3354)) ([683c38c](https://github.com/finos/architecture-as-code/commit/683c38c161be8902ae8fe1d77d0d49501706cc79))
+* resolve validate -a/-p/-t paths against working directory ([#3380](https://github.com/finos/architecture-as-code/issues/3380)) ([6dc4efb](https://github.com/finos/architecture-as-code/commit/6dc4efbd5633ae7613c5cef883738a19970cf15a))
+* show CALM Hub $id references in workspace tree ([#3421](https://github.com/finos/architecture-as-code/issues/3421)) ([4c1f00a](https://github.com/finos/architecture-as-code/commit/4c1f00a51fc32e1e6324f3ca58885879db4585bb))
+* tell AI agents to write CALM 1.3 documents ([#3442](https://github.com/finos/architecture-as-code/issues/3442)) ([6b27851](https://github.com/finos/architecture-as-code/commit/6b27851c4900e3770021abf778d4802b7b769bf2))
+
 ## [1.65.0](https://github.com/finos/architecture-as-code/compare/cli-v1.64.0...cli-v1.65.0) (2026-10-21)
 
 ### 🚀 Features

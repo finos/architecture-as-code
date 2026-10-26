@@ -1,5 +1,6 @@
-import { HubClient, HubApiError } from './hub-client';
+import { HubClient, describeHubError } from './hub-client';
 import { buildControlCurie } from './control-curie';
+import { humanize } from './hub-asset-service';
 import type { LocalControlDef } from './workspace-asset-service';
 
 export interface ControlBrowseEntry {
@@ -99,14 +100,4 @@ export class ControlAssetService {
     }
 }
 
-function humanize(slug: string): string {
-    return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
-function describeError(err: unknown): string {
-    if (err instanceof HubApiError) {
-        if (err.status === 403) return 'Access denied (403)';
-        return `Failed to load controls (${err.status})`;
-    }
-    return err instanceof Error ? err.message : String(err);
-}
+const describeError = describeHubError;

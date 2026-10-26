@@ -17,7 +17,7 @@ describe('defaultNodeColours', () => {
         expect(defaultNodeColours('container', false).text).toBe(theme.text);
     });
 
-    it('uses the badge colours for building blocks of the box-shaped types', () => {
+    it('uses the badge colours for standard nodes of the box-shaped types', () => {
         expect(defaultNodeColours('service', true)).toEqual({ background: theme.badgeBg, text: theme.badgeFg });
         expect(defaultNodeColours('system', true)).toEqual({ background: theme.badgeBg, text: theme.badgeFg });
     });

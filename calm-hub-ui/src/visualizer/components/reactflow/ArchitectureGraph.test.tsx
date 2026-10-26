@@ -15,10 +15,14 @@ import { useDecisionOverlay, type DecisionOverlay } from '../../context/Decision
  * ReactFlow is heavy and DOM-measurement dependent, so we stub it but keep the
  * props we assert on observable.
  */
-const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
-const miniMapProps: { current: Record<string, unknown> | null } = { current: null };
-const controlsProps: { current: Record<string, unknown> | null } = { current: null };
-const decisionOverlay: { current: DecisionOverlay | null } = { current: null };
+const onReactFlowRender = vi.fn<(props: Record<string, unknown>) => void>();
+const onMiniMapRender = vi.fn<(props: Record<string, unknown>) => void>();
+const onControlsRender = vi.fn<(props: Record<string, unknown>) => void>();
+const onDecisionOverlay = vi.fn<(overlay: DecisionOverlay) => void>();
+const reactFlowProps = () => onReactFlowRender.mock.lastCall?.[0];
+const miniMapProps = () => onMiniMapRender.mock.lastCall?.[0];
+const controlsProps = () => onControlsRender.mock.lastCall?.[0];
+const decisionOverlay = () => onDecisionOverlay.mock.lastCall?.[0];
 // React strips `key` from the props a component receives, so a remount can't be
 // observed by reading reactFlowProps — instead, a lazily-initialised bit of
 // state (set once per mount, never again) doubles as a per-instance identity.
@@ -28,11 +32,11 @@ let reactFlowMountCount = 0;
 // as a component (an inline arrow assigned to a lowercase `default:` property
 // doesn't look like one to the rule, even though React treats it as one).
 function MockReactFlow(props: Record<string, unknown>) {
-    reactFlowProps.current = props;
+    onReactFlowRender(props);
     const [instanceId] = useState(() => ++reactFlowMountCount);
     // The nodes and edges ReactFlow draws read the decision overlay from this context.
     const overlay = useDecisionOverlay();
-    decisionOverlay.current = overlay;
+    onDecisionOverlay(overlay);
     const { showDecisions, subjectLabels } = overlay;
     return (
         <div
@@ -57,7 +61,7 @@ vi.mock('reactflow', async () => {
         default: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
         Controls: (props: { children?: ReactNode }) => {
-            controlsProps.current = props;
+            onControlsRender(props);
             return <div data-testid="rf-controls">{props.children}</div>;
         },
         ControlButton: ({
@@ -67,7 +71,7 @@ vi.mock('reactflow', async () => {
             <button {...(rest as Record<string, unknown>)}>{children}</button>
         ),
         MiniMap: (props: Record<string, unknown>) => {
-            miniMapProps.current = props;
+            onMiniMapRender(props);
             return <div data-testid="diagram-minimap" />;
         },
         Panel: ({ children }: { children?: ReactNode }) => (
@@ -104,17 +108,14 @@ function initMeasuredFlow() {
     vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
     vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
     const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, setViewport: vi.fn() };
-    (reactFlowProps.current?.onInit as (i: unknown) => void)(instance);
+    (reactFlowProps()?.onInit as (i: unknown) => void)(instance);
     return instance;
 }
 
-const reportCallout = () => act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 160 }));
+const reportCallout = () => act(() => decisionOverlay()?.reportCalloutSize('node-1', { width: 200, height: 160 }));
 
 describe('ArchitectureGraph', () => {
     beforeEach(() => {
-        reactFlowProps.current = null;
-        miniMapProps.current = null;
-        controlsProps.current = null;
         reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
@@ -124,13 +125,13 @@ describe('ArchitectureGraph', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
         // minZoom floor keeps a dense graph from shrinking below readability;
         // maxZoom caps fit-to-view so a sparse graph isn't oversized.
-        expect(reactFlowProps.current?.fitViewOptions).toEqual({
+        expect(reactFlowProps()?.fitViewOptions).toEqual({
             padding: 0.2,
             minZoom: 0.6,
             maxZoom: 1.2,
         });
         // The pane-level minZoom still lets the user pinch out past the fit floor.
-        expect(reactFlowProps.current?.minZoom).toBe(0.1);
+        expect(reactFlowProps()?.minZoom).toBe(0.1);
     });
 
     it('restores a saved viewport (no fit) on desktop — unchanged by the mobile branch', () => {
@@ -142,9 +143,9 @@ describe('ArchitectureGraph', () => {
             JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
         );
         render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
-        expect(reactFlowProps.current?.fitView).toBe(false);
-        expect(reactFlowProps.current?.defaultViewport).toEqual({ x: 5, y: 6, zoom: 0.8 });
-        expect(reactFlowProps.current?.fitViewOptions).toEqual({
+        expect(reactFlowProps()?.fitView).toBe(false);
+        expect(reactFlowProps()?.defaultViewport).toEqual({ x: 5, y: 6, zoom: 0.8 });
+        expect(reactFlowProps()?.fitViewOptions).toEqual({
             padding: 0.2,
             minZoom: 0.6,
             maxZoom: 1.2,
@@ -153,7 +154,7 @@ describe('ArchitectureGraph', () => {
 
     it('wires onInit on desktop too, so a later desktop→mobile crossing can re-fit', () => {
         render(<ArchitectureGraph jsonData={mockCalmData} />);
-        expect(typeof reactFlowProps.current?.onInit).toBe('function');
+        expect(typeof reactFlowProps()?.onInit).toBe('function');
     });
 
     describe('fitToPane', () => {
@@ -199,7 +200,7 @@ describe('ArchitectureGraph', () => {
         /** Hands the graph a flow instance the way ReactFlow's onInit would. */
         function initFlow() {
             const fitView = vi.fn();
-            const onInit = reactFlowProps.current?.onInit as (i: unknown) => void;
+            const onInit = reactFlowProps()?.onInit as (i: unknown) => void;
             onInit({ fitView });
             return fitView;
         }
@@ -208,14 +209,14 @@ describe('ArchitectureGraph', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} fitToPane />);
             // The 0.6 desktop floor cannot fit this graph into a pane narrowed by
             // the commentary panel, so it overflows left/right at exactly scale 0.6.
-            expect(reactFlowProps.current?.fitViewOptions).toEqual({
+            expect(reactFlowProps()?.fitViewOptions).toEqual({
                 padding: 0.1,
                 minZoom: 0.1,
                 maxZoom: 1.2,
             });
             // Always fit, never restore. Siblings size the pane, not the user.
-            expect(reactFlowProps.current?.fitView).toBe(true);
-            expect(reactFlowProps.current?.defaultViewport).toBeUndefined();
+            expect(reactFlowProps()?.fitView).toBe(true);
+            expect(reactFlowProps()?.defaultViewport).toBeUndefined();
         });
 
         it('re-fits the pane on resize when enabled', () => {
@@ -260,7 +261,7 @@ describe('ArchitectureGraph', () => {
             const instance = initMeasuredFlow();
             reportCallout();
 
-            (controlsProps.current?.onFitView as () => void)();
+            (controlsProps()?.onFitView as () => void)();
 
             // The button's own fit has the pane's zoom range and React Flow's default padding.
             expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 2, 0.1));
@@ -270,7 +271,7 @@ describe('ArchitectureGraph', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             const instance = initMeasuredFlow();
 
-            (controlsProps.current?.onFitView as () => void)();
+            (controlsProps()?.onFitView as () => void)();
 
             expect(instance.setViewport).not.toHaveBeenCalled();
             expect(instance.fitView).not.toHaveBeenCalled();
@@ -283,7 +284,7 @@ describe('ArchitectureGraph', () => {
         });
 
         // React Flow reports every move through onMove, with no event for a move made from code.
-        const move = (viewport: Viewport) => act(() => (reactFlowProps.current?.onMove as (e: null, v: Viewport) => void)(null, viewport));
+        const move = (viewport: Viewport) => act(() => (reactFlowProps()?.onMove as (e: null, v: Viewport) => void)(null, viewport));
         // Where React Flow's own fit puts the two nodes (x 0 to 300, y 0 to 100), with the desktop load options.
         const nodesFit = getViewportForBounds({ x: 0, y: 0, width: 300, height: 100 }, 800, 600, 0.6, 1.2, 0.2);
         const calloutFit = getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.2);
@@ -306,7 +307,7 @@ describe('ArchitectureGraph', () => {
             reportCallout();
             move(calloutFit);
 
-            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 300 }));
+            act(() => decisionOverlay()?.reportCalloutSize('node-1', { width: 200, height: 300 }));
 
             expect(instance.setViewport).toHaveBeenLastCalledWith(
                 getViewportForBounds({ x: 0, y: 0, width: 300, height: 400 }, 800, 600, 0.1, 1.2, 0.2),
@@ -318,7 +319,7 @@ describe('ArchitectureGraph', () => {
             const instance = initMeasuredFlow();
 
             // A callout reaching 2000 below node-1 takes the content down to y 2100, more than 600 / 0.6.
-            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 2000 }));
+            act(() => decisionOverlay()?.reportCalloutSize('node-1', { width: 200, height: 2000 }));
 
             const viewport = instance.setViewport.mock.lastCall?.[0] as Viewport;
             expect(viewport).toEqual(getViewportForBounds({ x: 0, y: 0, width: 300, height: 2100 }, 800, 600, 0.1, 1.2, 0.2));
@@ -366,7 +367,7 @@ describe('ArchitectureGraph', () => {
         it('renders the minimap at a fixed compact size on desktop', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
-            const style = miniMapProps.current?.style as Record<string, unknown>;
+            const style = miniMapProps()?.style as Record<string, unknown>;
             expect(style.width).toBe(132);
             expect(style.height).toBe(84);
             expect(style.overflow).toBe('hidden');
@@ -374,13 +375,13 @@ describe('ArchitectureGraph', () => {
 
         it('gives the minimap a primary-blue viewport rect and a themed mask', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
-            expect(miniMapProps.current?.maskStrokeColor).toBe('#2563EB');
-            expect(miniMapProps.current?.maskStrokeWidth).toBe(1.5);
+            expect(miniMapProps()?.maskStrokeColor).toBe('#2563EB');
+            expect(miniMapProps()?.maskStrokeWidth).toBe(1.5);
             // The mask is no longer a prop: ReactFlow writes `maskColor` into an SVG
             // `fill` attribute, which `var()` cannot reach. It opts into the themed
             // veil in index.css by class instead.
-            expect(miniMapProps.current?.maskColor).toBeUndefined();
-            expect(miniMapProps.current?.className).toBe('calm-minimap-mask-surface');
+            expect(miniMapProps()?.maskColor).toBeUndefined();
+            expect(miniMapProps()?.className).toBe('calm-minimap-mask-surface');
         });
 
         it('hides the minimap when toggled off and persists the choice', () => {
@@ -603,11 +604,11 @@ describe('ArchitectureGraph', () => {
             );
             mockMobileViewport();
             render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
-            expect(reactFlowProps.current?.fitView).toBe(true);
-            expect(reactFlowProps.current?.defaultViewport).toBeUndefined();
+            expect(reactFlowProps()?.fitView).toBe(true);
+            expect(reactFlowProps()?.defaultViewport).toBeUndefined();
             // Floor drops to the pane minZoom (0.1) + tighter padding so even a wide
             // dense graph (e.g. TraderX fits 390px only at ~0.16) isn't clipped.
-            expect(reactFlowProps.current?.fitViewOptions).toEqual({
+            expect(reactFlowProps()?.fitViewOptions).toEqual({
                 padding: 0.1,
                 minZoom: 0.1,
                 maxZoom: 1.2,
@@ -619,7 +620,7 @@ describe('ArchitectureGraph', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
 
             // onInit is wired on both devices (captured here on mobile) so a resize can re-fit.
-            const onInit = reactFlowProps.current?.onInit as
+            const onInit = reactFlowProps()?.onInit as
                 | ((i: { fitView: (o?: unknown) => void }) => void)
                 | undefined;
             expect(typeof onInit).toBe('function');
@@ -644,7 +645,7 @@ describe('ArchitectureGraph', () => {
             expect(instance.setViewport).toHaveBeenLastCalledWith(fit);
 
             instance.setViewport.mockClear();
-            (controlsProps.current?.onFitView as () => void)();
+            (controlsProps()?.onFitView as () => void)();
             expect(instance.setViewport).toHaveBeenCalledWith(fit);
             expect(instance.fitView).not.toHaveBeenCalled();
         });
@@ -654,7 +655,7 @@ describe('ArchitectureGraph', () => {
         const key = 'ns/id';
 
         function nodePosition(id: string) {
-            const nodes = reactFlowProps.current?.nodes as Node[] | undefined;
+            const nodes = reactFlowProps()?.nodes as Node[] | undefined;
             return nodes?.find((n) => n.id === id)?.position;
         }
 

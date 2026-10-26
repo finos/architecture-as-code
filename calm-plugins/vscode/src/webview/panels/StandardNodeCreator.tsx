@@ -20,7 +20,7 @@ interface StandardNodeCreatorProps {
 const NODE_TYPES = ['service', 'database', 'network', 'webclient', 'actor', 'system', 'ecosystem', 'ldap', 'data-asset'];
 
 /**
- * Authoring modal for governed building blocks ("building blocks"). Collects a
+ * Authoring modal for governed standard nodes ("standard nodes"). Collects a
  * node definition plus controls attached via the shared control picker, and
  * emits a CALM document that the extension writes to `standard-nodes/`.
  */
@@ -64,10 +64,10 @@ export function StandardNodeCreator({ visible, onClose, onSave, onRequestBrowseC
     };
 
     return (
-        <div style={overlayStyle} role="dialog" aria-label="Create Building Block">
+        <div style={overlayStyle} role="dialog" aria-label="Create Standard Node">
             <div style={modalStyle}>
                 <div style={headerStyle}>
-                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--calm-fg)' }}>Create Building Block</h3>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600, color: 'var(--calm-fg)' }}>Create Standard Node</h3>
                     <button onClick={onClose} style={closeBtnStyle}>&times;</button>
                 </div>
 
@@ -116,7 +116,7 @@ export function StandardNodeCreator({ visible, onClose, onSave, onRequestBrowseC
 
                 <div style={footerStyle}>
                     <button onClick={onClose} style={cancelBtnStyle}>Cancel</button>
-                    <button onClick={handleSave} disabled={!nodeName.trim()} style={{ ...saveBtnStyle, opacity: nodeName.trim() ? 1 : 0.5 }}>Save Building Block</button>
+                    <button onClick={handleSave} disabled={!nodeName.trim()} style={{ ...saveBtnStyle, opacity: nodeName.trim() ? 1 : 0.5 }}>Save Standard Node</button>
                 </div>
             </div>
         </div>

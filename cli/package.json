@@ -1,6 +1,6 @@
 {
     "name": "@finos/calm-cli",
-    "version": "1.65.0",
+    "version": "1.66.0",
     "description": "A set of tools for interacting with the Common Architecture Language Model (CALM)",
     "homepage": "https://calm.finos.org",
     "repository": {
@@ -42,7 +42,6 @@
         "@mermaid-js/layout-elk": "^0.2.1",
         "@stoplight/json": "^3.21.7",
         "commander": "^14.0.0",
-        "execa": "^9.6.0",
         "mermaid": "^11.16.1",
         "mkdirp": "^3.0.1",
         "playwright-core": "^1.56.0",
@@ -56,6 +55,7 @@
         "@semantic-release/github": "^12.0.0",
         "@types/xml2js": "^0.4.14",
         "chokidar": "^4.0.3",
+        "execa": "^10.2.1",
         "native-copyfiles": "^2.0.0",
         "semantic-release": "^25.0.0",
         "tsup": "^8.4.0",

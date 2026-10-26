@@ -1,5 +1,5 @@
 /**
- * Solution metadata surfaced when drilling into a governed building block that
+ * Solution metadata surfaced when drilling into a governed standard node that
  * links to a CALM solution. Shape matches calm-hub-ui's
  * `visualizer/contracts/editor-contracts.ts` `SolutionMetadata` so the two
  * editors stay protocol-compatible.
@@ -19,23 +19,13 @@ export interface SolutionMetadata {
     resources?: string;
 }
 
-/**
- * Flattened ADR entry surfaced to the webview. ADR ids are only unique within a
- * namespace, so `namespace` is part of the identity.
- */
-export interface AdrEntry {
-    namespace: string;
-    id: number;
-    title: string;
-    status: string;
-}
-
 export type ExtToWebviewMessage =
     | {
           type: 'modelUpdated';
           json: string;
           source: 'file' | 'ai' | 'text-editor' | 'import';
       }
+    | { type: 'hubLoading'; loading: boolean }
     | { type: 'patternsLoaded'; patterns: unknown[] }
     | { type: 'standardNodesLoaded'; nodes: unknown[] }
     | {
@@ -45,6 +35,16 @@ export type ExtToWebviewMessage =
           filePath: string;
           readonly?: boolean;
           solution?: SolutionMetadata;
+      }
+    | {
+          type: 'definitionResolved';
+          nodeId: string;
+          controls: Record<string, unknown>;
+      }
+    | {
+          type: 'definitionResolutionFailed';
+          nodeId: string;
+          error: string;
       }
     | { type: 'controlsChanged' }
     | { type: 'controlBrowseResult'; requestId: string; ok: true; groups: ControlBrowseGroup[] }
@@ -72,6 +72,7 @@ export type WebviewToExtMessage =
     | { type: 'requestGenerateSpec' }
     | { type: 'saveStandardNode'; filename: string; content: string }
     | { type: 'exportDiagram'; format: 'svg' | 'png'; data: string }
+    | { type: 'resolveDefinitionId'; nodeId: string; curie: string }
     | { type: 'requestImportSvg' }
     | { type: 'requestControlBrowse'; requestId: string }
     | { type: 'requestControlsForDomain'; requestId: string; domain: string }

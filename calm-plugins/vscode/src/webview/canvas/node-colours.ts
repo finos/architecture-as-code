@@ -4,7 +4,7 @@ export const SERVICE_FILL = onSurface(theme.green, 22);
 export const WEBCLIENT_FILL = onSurface(theme.blue, 22);
 export const DATABASE_FILL = onSurface(theme.green, 28);
 
-/** Node types that draw a building block in the badge colours. */
+/** Node types that draw a standard node in the badge colours. */
 const BLOCK_TYPES = new Set(['service', 'webclient', 'system', 'ecosystem', 'network', 'ldap', 'data-asset', 'extension']);
 
 export interface NodeColours {
