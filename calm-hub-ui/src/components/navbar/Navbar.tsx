@@ -42,7 +42,10 @@ export function Navbar({ storage }: NavbarProps = {}) {
 
     return (
         <div className="navbar relative bg-base-100 border-b-2 border-base-200 text-primary-content gap-1">
-            <div className="navbar-start flex items-center gap-1 min-w-0">
+            {/* Below lg the logo stays in the flex flow: equal flex-1 sides keep it
+                centred, but neither side can shrink under its content, so page
+                actions in #navbar-actions push the logo aside instead of covering it. */}
+            <div className="navbar-start flex items-center gap-1 max-lg:flex-1 lg:min-w-0">
                 <button
                     // Narrower on mobile with a pill, which must fit beside the centred logo.
                     className={`btn btn-ghost gap-2 text-primary shrink-0${environment ? ' px-2 lg:px-4' : ''}`}
@@ -53,12 +56,12 @@ export function Navbar({ storage }: NavbarProps = {}) {
                 </button>
                 {environment && <EnvironmentPill environment={environment} />}
             </div>
-            <div className="navbar-center absolute left-1/2 -translate-x-1/2">
-                <Link to="/" className="btn btn-ghost min-w-0 px-1" aria-label="CALM Hub home">
-                    <img src={LOGO_SRC[theme]} alt="CALM Logo" className="h-10 logo" />
+            <div className="navbar-center min-w-0 max-lg:shrink lg:absolute lg:left-1/2 lg:-translate-x-1/2">
+                <Link to="/" className="btn btn-ghost min-w-0 px-1 max-lg:shrink" aria-label="CALM Hub home">
+                    <img src={LOGO_SRC[theme]} alt="CALM Logo" className="h-10 logo min-w-0 object-contain" />
                 </Link>
             </div>
-            <div className="navbar-end flex items-center gap-1 min-w-0 shrink-0">
+            <div className="navbar-end flex items-center gap-1 shrink-0 max-lg:flex-1 lg:min-w-0">
                 {/* Portal target for page-level actions (e.g. the diagram's
                     view-options menu), always visible across breakpoints. */}
                 <div id="navbar-actions" className="flex items-center" />
