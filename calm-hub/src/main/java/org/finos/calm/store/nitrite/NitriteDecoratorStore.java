@@ -1,8 +1,11 @@
 package org.finos.calm.store.nitrite;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Typed;
 import jakarta.inject.Inject;
+import org.bson.json.JsonParseException;
 import org.dizitart.no2.Nitrite;
 import org.dizitart.no2.collection.Document;
 import org.dizitart.no2.collection.NitriteCollection;
@@ -48,6 +51,7 @@ public class NitriteDecoratorStore implements DecoratorStore {
     private final NitriteNamespaceStore namespaceStore;
     private final NitriteCounterStore counterStore;
     private final Lock lock = new ReentrantLock();
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Inject
     public NitriteDecoratorStore(@StandaloneQualifier Nitrite db, NitriteNamespaceStore namespaceStore, NitriteCounterStore counterStore) {
@@ -281,8 +285,18 @@ public class NitriteDecoratorStore implements DecoratorStore {
     }
 
     // Nitrite only deserializes its own and JDK types, so no org.bson value may reach the store.
+    // Jackson gives only JDK types and keeps extended-JSON keys such as $numberDecimal as plain data.
     Document parseJsonToNitriteDocument(String json) {
-        return toNitriteDocument(org.bson.Document.parse(json));
+        Map<?, ?> map;
+        try {
+            map = objectMapper.readValue(json, Map.class);
+        } catch (JsonProcessingException e) {
+            throw new JsonParseException(e.getOriginalMessage());
+        }
+        if (map == null) {
+            throw new JsonParseException("Decorator JSON must be an object");
+        }
+        return toNitriteDocument(map);
     }
 
     private static Document toNitriteDocument(Map<?, ?> map) {

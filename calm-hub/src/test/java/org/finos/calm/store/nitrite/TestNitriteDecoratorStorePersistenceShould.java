@@ -28,7 +28,8 @@ class TestNitriteDecoratorStorePersistenceShould {
               "data": {
                 "status": "completed",
                 "kubernetes": {"cluster": "prod-01", "replicas": 3},
-                "steps": [{"name": "rollout", "ok": true}, "verify"]
+                "steps": [{"name": "rollout", "ok": true}, "verify"],
+                "cost": {"$numberDecimal": "1.5"}
               }
             }
             """;

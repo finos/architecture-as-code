@@ -2,6 +2,8 @@ package org.finos.calm.config;
 
 import io.quarkus.test.junit.QuarkusTest;
 import org.dizitart.no2.Nitrite;
+import org.dizitart.no2.collection.Document;
+import org.dizitart.no2.mvstore.MVStoreModule;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -154,6 +156,25 @@ public class NitriteDBConfigTest {
 
         assertTrue(exception.getMessage().contains("Read-only mode requires a pre-seeded database file"),
                 "Exception should explain that a pre-seeded .db is required");
+    }
+
+    @Test
+    public void testWritableModeReadsDecoratorsWrittenBeforeNitrite5() {
+        org.bson.Document legacyData = new org.bson.Document("status", "completed");
+        try (Nitrite legacyDb = Nitrite.builder()
+                .loadModule(MVStoreModule.withConfig()
+                        .filePath(tempDir.resolve("testdb.db").toString())
+                        .allowedClasses("org.bson.Document")
+                        .build())
+                .openOrCreate("testuser", "testpass")) {
+            legacyDb.getCollection("decorators").insert(Document.createDocument("data", legacyData));
+        }
+
+        nitriteDBConfig.initialize();
+
+        Document stored = nitriteDBConfig.getNitriteDb().getCollection("decorators").find().firstOrNull();
+        assertEquals(legacyData, stored.get("data"));
+        nitriteDBConfig.shutdown();
     }
 
     @Test

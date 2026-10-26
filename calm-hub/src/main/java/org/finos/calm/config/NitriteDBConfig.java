@@ -75,9 +75,11 @@ public class NitriteDBConfig {
                     if (!Files.exists(dataPath)) {
                         Files.createDirectories(dataPath);
                     }
+                    // Decorators written before Nitrite 5 hold org.bson.Document values.
                     MVStoreModule storeModule = MVStoreModule.withConfig()
                             .filePath(dbFilePath.toString())
                             .autoCommit(true)
+                            .allowedClasses("org.bson.Document")
                             .build();
                     db = Nitrite.builder()
                             .loadModule(storeModule)
