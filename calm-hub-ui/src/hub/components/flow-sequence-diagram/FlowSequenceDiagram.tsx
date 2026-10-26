@@ -138,7 +138,21 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
 
     const maxStep = data ? data.seqNumbers.length - 1 : 0;
     const playback = useFlowPlayback({ maxStep }, flowJson);
-    const zoom = useSvgZoomPan();
+    const {
+        containerRef,
+        contentRef,
+        transform,
+        isPanning,
+        isInteractive,
+        viewport,
+        panHandlers,
+        panIntoView,
+        panToFraction,
+        toggleInteractive,
+        zoomIn,
+        zoomOut,
+        reset,
+    } = useSvgZoomPan();
     const motionPaused = useMotion().motion === 'reduced';
     const [minimapHidden, setMinimapHidden] = useState(readMinimapHidden);
 
@@ -156,7 +170,6 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
 
     // At high zoom a long diagram moves the active step off-screen and the animation
     // becomes invisible. Follow the step as playback continues.
-    const { panIntoView } = zoom;
     const currentStep = playback.step;
     useEffect(() => {
         panIntoView('[data-active-step]');
@@ -193,21 +206,21 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
             <div className="flex-1 flex min-h-0">
                 <div className="flex-1 px-6 pb-2 min-w-0 min-h-0">
                     <div
-                        ref={zoom.containerRef}
-                        {...zoom.panHandlers}
+                        ref={containerRef}
+                        {...panHandlers}
                         className={`relative touch-none ${DIAGRAM_CARD_CLASS}`}
-                        style={{ cursor: zoom.isPanning ? 'grabbing' : 'grab' }}
+                        style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
                     >
                         {/* The padding stays outside the transform, so the border does not scale. */}
                         <div
                             className="w-full h-full p-6"
                             style={{
-                                transform: `translate(${zoom.transform.x}px, ${zoom.transform.y}px) scale(${zoom.transform.scale})`,
+                                transform: `translate(${transform.x}px, ${transform.y}px) scale(${transform.scale})`,
                                 transformOrigin: '0 0',
                             }}
                         >
                             <svg
-                                ref={zoom.contentRef}
+                                ref={contentRef}
                                 viewBox={`0 0 ${totalW} ${totalH}`}
                                 preserveAspectRatio="xMinYMin meet"
                                 className="w-full h-full"
@@ -338,11 +351,11 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                         </div>
 
                         <ZoomControls
-                            onZoomIn={zoom.zoomIn}
-                            onZoomOut={zoom.zoomOut}
-                            onReset={zoom.reset}
-                            isInteractive={zoom.isInteractive}
-                            onToggleInteractive={zoom.toggleInteractive}
+                            onZoomIn={zoomIn}
+                            onZoomOut={zoomOut}
+                            onReset={reset}
+                            isInteractive={isInteractive}
+                            onToggleInteractive={toggleInteractive}
                             minimapHidden={minimapHidden}
                             onToggleMinimap={toggleMinimap}
                         />
@@ -355,8 +368,8 @@ export function FlowSequenceDiagram({ flowJson, architecture }: FlowSequenceDiag
                                 totalH={totalH}
                                 activeSeq={activeSeqNum}
                                 visitedSeqs={visitedSeqNums}
-                                viewport={zoom.viewport}
-                                onJump={zoom.panToFraction}
+                                viewport={viewport}
+                                onJump={panToFraction}
                             />
                         )}
                     </div>

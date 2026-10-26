@@ -24,19 +24,26 @@ const SIGN_PALETTE: Record<VersionChange['kind'], { bg: string; fg: string; sign
  * list derived from a diff against the predecessor version.
  */
 export function VersionDetail({ moment, loadChanges }: VersionDetailProps) {
-    const [changes, setChanges] = useState<VersionChange[] | null>(null);
-    const [error, setError] = useState<string | null>(null);
+    // Kept with the loader it came from, so a new moment shows the loading state at once.
+    const [result, setResult] = useState<{
+        loader: VersionDetailProps['loadChanges'];
+        changes: VersionChange[] | null;
+        error: string | null;
+    } | null>(null);
+    const current = result?.loader === loadChanges ? result : null;
+    const changes = current?.changes ?? null;
+    const error = current?.error ?? null;
 
     useEffect(() => {
         let cancelled = false;
-        setChanges(null);
-        setError(null);
         loadChanges()
             .then((list) => {
-                if (!cancelled) setChanges(list);
+                if (!cancelled) setResult({ loader: loadChanges, changes: list, error: null });
             })
             .catch(() => {
-                if (!cancelled) setError('Could not load changes for this version');
+                if (!cancelled) {
+                    setResult({ loader: loadChanges, changes: null, error: 'Could not load changes for this version' });
+                }
             });
         return () => {
             cancelled = true;

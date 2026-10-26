@@ -59,9 +59,12 @@ export function useResourceFromRoute({
     const { namespace, type, id, version } = useParams<HubParams>();
 
     const onControlLoadRef = useRef(onControlLoad);
-    onControlLoadRef.current = onControlLoad;
     const onInterfaceLoadRef = useRef(onInterfaceLoad);
-    onInterfaceLoadRef.current = onInterfaceLoad;
+    // Declared before the load effect, so the refs are current when it runs.
+    useEffect(() => {
+        onControlLoadRef.current = onControlLoad;
+        onInterfaceLoadRef.current = onInterfaceLoad;
+    });
 
     const calmService = useMemo(() => new CalmService(), []);
     const controlService = useMemo(() => new ControlService(), []);

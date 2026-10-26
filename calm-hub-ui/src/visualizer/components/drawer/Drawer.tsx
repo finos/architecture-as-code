@@ -12,11 +12,14 @@ import { colors } from '../../../theme/colors.js';
 import { ControlEvaluationContext } from '../../context/ControlEvaluationContext.js';
 import { containersOfContainment, evaluationsByElement } from '../reactflow/utils/controlEvaluations.js';
 import type { DrawerProps, Control, Decorator, ControlEvaluationDecorator } from '../../contracts/contracts.js';
+import type { Data } from '../../../model/calm.js';
 
 const EVALUATION_REFRESH_MS = 5000;
 /** After this many failed refreshes in a row, refresh every EVALUATION_BACKOFF_MS until one succeeds. */
 const EVALUATION_FAILURES_BEFORE_BACKOFF = 3;
 const EVALUATION_BACKOFF_MS = 30000;
+const NO_DECORATORS: Decorator[] = [];
+const NO_EVALUATIONS: ControlEvaluationDecorator[] = [];
 
 /**
  * A pattern declares its nodes under `properties.nodes`, as `prefixItems` or `items`.
@@ -44,11 +47,10 @@ export function Drawer({
     onPositionsChange,
 }: DrawerProps) {
     const calmService = useMemo(() => new CalmService(), []);
-    const [calmInstance, setCALMInstance] = useState<CalmArchitectureSchema | undefined>(undefined);
-    const [patternInstance, setPatternInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [fileInstance, setFileInstance] = useState<Record<string, unknown> | undefined>(undefined);
     const [dropError, setDropError] = useState<string | undefined>(undefined);
-    const [decoratorsState, setDecoratorsState] = useState<Decorator[]>([]);
+    // Fetched lists are kept with the `data` they belong to, so another resource never shows them.
+    const [loadedDecorators, setLoadedDecorators] = useState<{ source: Data; values: Decorator[] } | null>(null);
     const [isMetadataCollapsed, setIsMetadataCollapsed] = useState(true);
     const [metadataPanelHeight, setMetadataPanelHeight] = useState(250);
 
@@ -94,45 +96,44 @@ export function Drawer({
     const effectiveDefaultLayout = fileInstance ? undefined : defaultLayout;
     const effectiveLayoutEpoch = fileInstance ? undefined : layoutEpoch;
 
-    useEffect(() => {
-        const source = fileInstance ?? data?.data;
-        const isPattern = !!source && (isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns'));
+    const source = fileInstance ?? data?.data;
+    const isPattern = !!source && (isPatternData(source) || (!fileInstance && data?.calmType === 'Patterns'));
+    const patternInstance = isPattern ? (source as Record<string, unknown>) : undefined;
+    const calmInstance = isPattern ? undefined : (source as CalmArchitectureSchema | undefined);
 
-        setPatternInstance(isPattern ? (source as Record<string, unknown>) : undefined);
-        setCALMInstance(isPattern ? undefined : (source as CalmArchitectureSchema | undefined));
-    }, [fileInstance, data]);
+    // Decorators and evaluations exist only for a loaded architecture, never for a dropped file.
+    const architectureData = data && data.calmType === 'Architectures' && !fileInstance ? data : undefined;
 
     useEffect(() => {
-        if (decoratorsProp !== undefined) return; // controlled externally — skip fetch
-        if (!data || data.calmType !== 'Architectures' || fileInstance) {
-            setDecoratorsState([]);
-            return;
-        }
+        if (decoratorsProp !== undefined || !architectureData) return; // controlled externally — skip fetch
         let cancelled = false;
 
         calmService
-            .fetchDeploymentDecoratorsForArchitecture(data.name, data.id, data.version)
-            .then((values) => { if (!cancelled) setDecoratorsState(values); })
-            .catch(() => { if (!cancelled) setDecoratorsState([]); });
+            .fetchDeploymentDecoratorsForArchitecture(architectureData.name, architectureData.id, architectureData.version)
+            .catch((): Decorator[] => [])
+            .then((values) => { if (!cancelled) setLoadedDecorators({ source: architectureData, values }); });
 
         return () => { cancelled = true; };
-    }, [data, fileInstance, decoratorsProp, calmService]);
+    }, [architectureData, decoratorsProp, calmService]);
 
-    const decorators = decoratorsProp ?? decoratorsState;
+    const decorators =
+        decoratorsProp ??
+        (architectureData && loadedDecorators?.source === architectureData ? loadedDecorators.values : NO_DECORATORS);
 
-    const [evaluations, setEvaluations] = useState<ControlEvaluationDecorator[]>([]);
+    const [loadedEvaluations, setLoadedEvaluations] = useState<{
+        source: Data;
+        values: ControlEvaluationDecorator[];
+    } | null>(null);
+    // Another version's evaluations must not show on this one while its first fetch is in flight.
+    const evaluations =
+        architectureData && loadedEvaluations?.source === architectureData ? loadedEvaluations.values : NO_EVALUATIONS;
 
     // Control evaluations change while the diagram is open (a merge gateway records each decision), so they are
     // re-read every few seconds rather than once. State changes only when the list does, so an unchanged refresh
     // does not re-render the diagram. A failed refresh keeps what was last shown; a hidden tab is not polled.
     useEffect(() => {
-        if (!data || data.calmType !== 'Architectures' || fileInstance) {
-            setEvaluations((prev) => (prev.length === 0 ? prev : []));
-            return;
-        }
-        // Another version's evaluations must not show on this one while its first fetch is in flight.
-        setEvaluations((prev) => (prev.length === 0 ? prev : []));
-        const { name, id, version } = data;
+        if (!architectureData) return;
+        const { name, id, version } = architectureData;
         let cancelled = false;
         // Polls can overlap on a slow network; a response older than one already applied is dropped.
         let requested = 0;
@@ -147,7 +148,11 @@ export function Drawer({
             applied = seq;
             failures = 0;
             ticksToSkip = 0;
-            setEvaluations((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+            setLoadedEvaluations((prev) =>
+                prev?.source === architectureData && JSON.stringify(prev.values) === JSON.stringify(next)
+                    ? prev
+                    : { source: architectureData, values: next }
+            );
         };
         const fail = (seq: number, error: unknown) => {
             if (cancelled || seq < applied) return;
@@ -195,7 +200,7 @@ export function Drawer({
             clearInterval(timer);
             document.removeEventListener('visibilitychange', onVisibilityChange);
         };
-    }, [data, fileInstance, calmService]);
+    }, [architectureData, calmService]);
 
     const evaluationMap = useMemo(
         () => evaluationsByElement(evaluations, containersOfContainment(calmInstance?.relationships)),

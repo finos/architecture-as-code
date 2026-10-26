@@ -24,6 +24,8 @@ type ArchitectureViewState =
     | { status: 'error'; message: string };
 
 const DEFAULT_ARCHITECTURE_VERSION = '1.0.0';
+const ARCHITECTURE_LOADING: ArchitectureViewState = { status: 'loading' };
+const NO_VERSIONS: string[] = [];
 
 interface DocumentDetailSectionProps {
     data?: Data;
@@ -51,13 +53,17 @@ function calmTypeToUrlSegment(calmType: string): string {
 export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     const navigate = useNavigate();
     const calmService = useMemo(() => new CalmService(), []);
-    const [versions, setVersions] = useState<string[]>([]);
     const [flowView, setFlowView] = useState<FlowViewMode>('sequence');
-    const [architectureViewState, setArchitectureViewState] = useState<ArchitectureViewState>({ status: 'loading' });
+    // Results are kept with the document they were fetched for, so a new document
+    // starts from the loading state during render.
+    const [loadedVersions, setLoadedVersions] = useState<{ source: Data; versions: string[] } | null>(null);
+    const [loadedArchitecture, setLoadedArchitecture] = useState<{ source: Data; state: ArchitectureViewState } | null>(null);
+    const versions = data && loadedVersions?.source === data ? loadedVersions.versions : NO_VERSIONS;
+    const architectureViewState =
+        data && loadedArchitecture?.source === data ? loadedArchitecture.state : ARCHITECTURE_LOADING;
 
     useEffect(() => {
         if (!data) return;
-        setVersions([]);
         let cancelled = false;
         let fetchPromise: Promise<string[]>;
         if (isSlug(data.id)) {
@@ -70,8 +76,9 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
             return;
         }
         fetchPromise
-            .then((list) => { if (!cancelled) setVersions(sortVersionsDescending(list)); })
-            .catch(() => { if (!cancelled) setVersions([]); });
+            .then(sortVersionsDescending)
+            .catch((): string[] => [])
+            .then((list) => { if (!cancelled) setLoadedVersions({ source: data, versions: list }); });
         return () => { cancelled = true; };
     }, [calmService, data]);
 
@@ -81,8 +88,9 @@ export function DocumentDetailSection({ data }: DocumentDetailSectionProps) {
     // heuristic and can select the wrong architecture. See #2950 for the schema work.
     useEffect(() => {
         if (!data || data.calmType !== 'Flows') return;
-        setArchitectureViewState({ status: 'loading' });
         let cancelled = false;
+        const setArchitectureViewState = (state: ArchitectureViewState) =>
+            setLoadedArchitecture({ source: data, state });
         (async () => {
             try {
                 const archs = await calmService.fetchArchitectureSummaries(data.name);

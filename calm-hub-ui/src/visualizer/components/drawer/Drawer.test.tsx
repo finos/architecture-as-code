@@ -407,6 +407,19 @@ describe('Drawer — decorator fetching', () => {
         });
     });
 
+    it('does not show the previous version\'s decorators while the next version loads', async () => {
+        mockFetchDeploymentDecoratorsForArchitecture.mockResolvedValue([{ uniqueId: 'dec-1' }]);
+        const { rerender } = render(<Drawer data={architectureData} />);
+        await waitFor(() => {
+            expect(screen.getByTestId('metadata-panel')).toHaveTextContent('decorators:1');
+        });
+
+        mockFetchDeploymentDecoratorsForArchitecture.mockImplementation(() => new Promise(() => {}));
+        rerender(<Drawer data={{ ...architectureData, version: '2.0.0' }} />);
+
+        expect(screen.queryByTestId('metadata-panel')?.textContent ?? '').not.toContain('decorators:1');
+    });
+
     it('passes externally provided decorators to MetadataPanel without fetching', async () => {
         const decorators = [{
             schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',

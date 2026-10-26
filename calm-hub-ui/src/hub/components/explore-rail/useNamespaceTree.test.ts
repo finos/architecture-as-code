@@ -99,6 +99,18 @@ describe('useNamespaceTree', () => {
         expect(JSON.parse(storage.getItem(COLLAPSED_KEY)!)).toEqual([]);
     });
 
+    it('keeps an ancestor collapsed by the user after the navigation that revealed it', () => {
+        const storage = createMemoryStorage();
+        const { result, rerender } = renderHook(
+            ({ activeNamespace }) => useNamespaceTree({ namespaceCounts, needle: '', activeNamespace, storage }),
+            { initialProps: { activeNamespace: 'finos.calm' as string | undefined } }
+        );
+
+        act(() => result.current.toggleCollapsed('finos'));
+        rerender({ activeNamespace: 'finos.calm' });
+        expect(result.current.rows.map((r) => r.node.path)).toEqual(['finos', 'traderx']);
+    });
+
     it('does not clear the saved collapsed set while namespaceCounts is still empty (loading window)', () => {
         const storage = createMemoryStorage();
         storage.setItem(COLLAPSED_KEY, JSON.stringify(['finos']));

@@ -1,5 +1,5 @@
 import { render, screen, fireEvent, act, waitFor } from '@testing-library/react';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { MemoryRouter, useLocation, useNavigate } from 'react-router-dom';
 import { vi, describe, it, expect } from 'vitest';
 import { SearchResultsPage } from './SearchResultsPage.js';
 import { SearchService } from '../../../service/search-service.js';
@@ -88,5 +88,30 @@ describe('SearchResultsPage', () => {
     it('shows an error state when the search fails', async () => {
         renderPage('/search?q=boom', createMockSearchService(vi.fn().mockRejectedValue(new Error('nope'))));
         expect(await screen.findByText(/Search failed/i)).toBeInTheDocument();
+    });
+
+    it('shows only the results for the current query when an earlier search settles late', async () => {
+        const pending: Record<string, (r: GroupedSearchResults) => void> = {};
+        const service = createMockSearchService(
+            (q) => new Promise<GroupedSearchResults>((resolve) => { pending[q] = resolve; })
+        );
+        function SearchFor({ q }: { q: string }) {
+            const navigate = useNavigate();
+            return <button onClick={() => navigate(`/search?q=${q}`)}>search {q}</button>;
+        }
+        render(
+            <MemoryRouter initialEntries={['/search?q=old']}>
+                <SearchResultsPage searchService={service} />
+                <SearchFor q="pci" />
+            </MemoryRouter>
+        );
+
+        fireEvent.click(screen.getByRole('button', { name: 'search pci' }));
+        await act(async () => pending.old(controlResults));
+        expect(screen.getByText('Searching…')).toBeInTheDocument();
+        expect(screen.queryByText('PCI-DSS')).not.toBeInTheDocument();
+
+        await act(async () => pending.pci(emptyResults));
+        expect(screen.getByText(/No results found/i)).toBeInTheDocument();
     });
 });

@@ -317,6 +317,26 @@ describe('DocumentDetailSection', () => {
         expect(screen.getByRole('button', { name: 'Moment 1.0.0' })).toBeInTheDocument();
     });
 
+    it('drops the previous version timeline when the document changes', async () => {
+        mockFetchStandardVersions.mockResolvedValue(['2.0.0', '1.0.0']);
+        const standard: Data = { id: '42', version: '2.0.0', name: 'test-ns', calmType: 'Standards', data: undefined };
+        const pattern: Data = { id: '7', version: '1.0.0', name: 'test-ns', calmType: 'Patterns', data: {} };
+
+        const { rerender } = render(
+            <MemoryRouter>
+                <DocumentDetailSection data={standard} />
+            </MemoryRouter>
+        );
+        expect(await screen.findByRole('button', { name: 'Moment 2.0.0' })).toBeInTheDocument();
+
+        rerender(
+            <MemoryRouter>
+                <DocumentDetailSection data={pattern} />
+            </MemoryRouter>
+        );
+        expect(screen.queryByRole('button', { name: 'Moment 2.0.0' })).not.toBeInTheDocument();
+    });
+
     it('uses fetchVersionsByCustomId when the resource ID is a slug', async () => {
         mockFetchVersionsByCustomId.mockResolvedValue(['2.0.0', '1.0.0']);
 

@@ -22,23 +22,17 @@ interface DomainPageProps {
  */
 export function DomainPage({ domain, controlCount }: DomainPageProps) {
     const controlService = useMemo(() => new ControlService(), []);
-    const [controls, setControls] = useState<ControlDetail[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loaded, setLoaded] = useState<{ domain: string; controls: ControlDetail[] } | null>(null);
+    const loading = loaded?.domain !== domain;
+    const controls = loading ? [] : loaded.controls;
 
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
-        setControls([]);
         controlService
             .fetchControlsForDomain(domain)
+            .catch((): ControlDetail[] => [])
             .then((result) => {
-                if (!cancelled) setControls(result);
-            })
-            .catch(() => {
-                if (!cancelled) setControls([]);
-            })
-            .finally(() => {
-                if (!cancelled) setLoading(false);
+                if (!cancelled) setLoaded({ domain, controls: result });
             });
         return () => {
             cancelled = true;

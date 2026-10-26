@@ -885,6 +885,15 @@ describe('Hub', () => {
             expect(screen.getByTestId('location-search')).toBeEmptyDOMElement();
         });
 
+        it('closes a node the user selected when the query changes', () => {
+            renderWithNav('/', ['/?tab=json']);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n1'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            navigateTo('/?tab=json');
+            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+        });
+
         it('ignores a node query on the page URL outside the hash route', () => {
             window.history.replaceState(null, '', '/?node=n2');
             renderAt('/');

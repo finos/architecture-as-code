@@ -9,22 +9,23 @@ import { useSvgZoomPan, MIN_SCALE, MAX_SCALE } from './useSvgZoomPan.js';
 const PANE = { left: 100, top: 50, width: 400, height: 300 };
 
 function Harness() {
-    const zoom = useSvgZoomPan();
+    const { containerRef, panHandlers, transform, isPanning, isInteractive, zoomIn, zoomOut, reset, toggleInteractive } =
+        useSvgZoomPan();
     return (
         <div
             data-testid="pane"
-            ref={zoom.containerRef}
-            {...zoom.panHandlers}
-            data-scale={zoom.transform.scale}
-            data-x={zoom.transform.x}
-            data-y={zoom.transform.y}
-            data-panning={String(zoom.isPanning)}
-            data-interactive={String(zoom.isInteractive)}
+            ref={containerRef}
+            {...panHandlers}
+            data-scale={transform.scale}
+            data-x={transform.x}
+            data-y={transform.y}
+            data-panning={String(isPanning)}
+            data-interactive={String(isInteractive)}
         >
-            <button onClick={zoom.zoomIn}>in</button>
-            <button onClick={zoom.zoomOut}>out</button>
-            <button onClick={zoom.reset}>reset</button>
-            <button onClick={zoom.toggleInteractive}>lock</button>
+            <button onClick={zoomIn}>in</button>
+            <button onClick={zoomOut}>out</button>
+            <button onClick={reset}>reset</button>
+            <button onClick={toggleInteractive}>lock</button>
         </div>
     );
 }
@@ -211,19 +212,19 @@ describe('useSvgZoomPan', () => {
             boxes: Array<[number, number, number?, number?]>;
             content?: string;
         }) {
-            const zoom = useSvgZoomPan();
+            const { containerRef, contentRef, transform, panIntoView } = useSvgZoomPan();
             return (
                 <div
                     data-testid="pane"
-                    ref={zoom.containerRef}
-                    data-x={zoom.transform.x}
-                    data-y={zoom.transform.y}
+                    ref={containerRef}
+                    data-x={transform.x}
+                    data-y={transform.y}
                 >
-                    <svg ref={zoom.contentRef} data-box={content} />
+                    <svg ref={contentRef} data-box={content} />
                     {boxes.map(([left, top, w = 100, h = 20], i) => (
                         <span key={i} data-active-step="" data-box={`${left},${top},${w},${h}`} />
                     ))}
-                    <button onClick={() => zoom.panIntoView('[data-active-step]')}>follow</button>
+                    <button onClick={() => panIntoView('[data-active-step]')}>follow</button>
                 </div>
             );
         }

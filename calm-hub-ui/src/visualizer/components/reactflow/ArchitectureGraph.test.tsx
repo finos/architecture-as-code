@@ -540,6 +540,7 @@ describe('ArchitectureGraph', () => {
             window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
             renderGraph();
             expect(shown()).toBe('true');
+            expect(storage.getItem('calmHub.diagramDecisionsShown')).toBeNull();
         });
 
         it('gives the diagram the elements\' display names, a relationship by its nodes', () => {

@@ -21,8 +21,6 @@ export function useCurrentUserAccess(service?: UserAccessService): CurrentUserAc
     const svc = useMemo(() => service ?? new UserAccessService(), [service]);
 
     useEffect(() => {
-        setLoading(true);
-        setError(null);
         svc.getCurrentUserAccess()
             .then(setGrants)
             .catch(() => setError('Failed to load your access permissions.'))

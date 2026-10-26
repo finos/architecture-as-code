@@ -93,7 +93,6 @@ export function PatternGraph({
     const sourceNodesRef = useRef<Node[]>([]);
     const sourceEdgesRef = useRef<Edge[]>([]);
 
-    const [decisionPoints, setDecisionPoints] = useState<ReturnType<typeof extractDecisionPoints>>([]);
     const isMobile = useIsMobile();
 
     const {
@@ -125,6 +124,7 @@ export function PatternGraph({
     // below are decided on the first frame instead of after node state fills.
     const parsed = useMemo(() => parsePatternData(patternData), [patternData]);
     const rules = useMemo(() => extractPatternRules(patternData), [patternData]);
+    const decisionPoints = useMemo(() => extractDecisionPoints(parsed.nodes), [parsed]);
 
     useEffect(() => {
         if (awaitingDefaultLayout) return;
@@ -142,7 +142,6 @@ export function PatternGraph({
         setNodes(positionedNodes);
         setEdges(parsedEdges);
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
-        setDecisionPoints(extractDecisionPoints(parsedNodes));
         reportPositions(toStoredPositions(positionedNodes));
     }, [
         parsed,

@@ -14,46 +14,58 @@ interface InterfaceDetailSectionProps {
 export function InterfaceDetailSection({ interfaceData }: InterfaceDetailSectionProps) {
     const interfaceService = useMemo(() => new InterfaceService(), []);
 
-    const [versions, setVersions] = useState<string[]>([]);
-    const [selectedVersion, setSelectedVersion] = useState<string>('');
-    const [interfaceJson, setInterfaceJson] = useState<object | undefined>();
+    const { namespace, interfaceId } = interfaceData;
+    const interfaceKey = `${namespace}|${interfaceId}`;
     const [viewMode, setViewMode] = useState<ViewMode>('readable');
 
-    const handleVersionClick = useCallback((version: string) => {
-        setSelectedVersion(version);
-        interfaceService.fetchInterfaceForVersion(
-            interfaceData.namespace,
-            interfaceData.interfaceId,
-            version
-        ).then((data) => {
-            setInterfaceJson(data as object | undefined);
-        }).catch((error) => {
-            console.error('Failed to fetch interface version', error);
-            setInterfaceJson(undefined);
-        });
-    }, [interfaceService, interfaceData.namespace, interfaceData.interfaceId]);
+    // Each result is kept with the interface (and version) it was fetched for, so a
+    // change of interface resets the view during render.
+    const [loadedVersions, setLoadedVersions] = useState<{ key: string; versions: string[] } | null>(null);
+    const [chosenVersion, setChosenVersion] = useState<{ key: string; version: string } | null>(null);
+    const [loadedJson, setLoadedJson] = useState<{ key: string; json: object | undefined } | null>(null);
 
-    // When the interface changes, load versions
+    const versions = loadedVersions?.key === interfaceKey ? loadedVersions.versions : [];
+    // The first version is selected until the user picks another.
+    const selectedVersion = chosenVersion?.key === interfaceKey ? chosenVersion.version : (versions[0] ?? '');
+    const jsonKey = `${interfaceKey}|${selectedVersion}`;
+    const interfaceJson = loadedJson?.key === jsonKey ? loadedJson.json : undefined;
+
+    const handleVersionClick = useCallback(
+        (version: string) => setChosenVersion({ key: interfaceKey, version }),
+        [interfaceKey]
+    );
+
     useEffect(() => {
-        setVersions([]);
-        setSelectedVersion('');
-        setInterfaceJson(undefined);
+        let cancelled = false;
+        interfaceService.fetchInterfaceVersions(namespace, interfaceId)
+            .catch((error) => {
+                console.error('Failed to fetch interface versions', error);
+                return [];
+            })
+            .then((list) => {
+                if (!cancelled) setLoadedVersions({ key: interfaceKey, versions: list });
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [interfaceService, namespace, interfaceId, interfaceKey]);
 
-        interfaceService.fetchInterfaceVersions(
-            interfaceData.namespace,
-            interfaceData.interfaceId,
-        ).then(setVersions).catch((error) => {
-            console.error('Failed to fetch interface versions', error);
-            setVersions([]);
-        });
-    }, [interfaceService, interfaceData.namespace, interfaceData.interfaceId]);
-
-    // Auto-select first version when versions load
     useEffect(() => {
-        if (versions.length > 0 && !selectedVersion) {
-            handleVersionClick(versions[0]);
-        }
-    }, [versions, selectedVersion, handleVersionClick]);
+        if (!selectedVersion) return;
+        let cancelled = false;
+        interfaceService.fetchInterfaceForVersion(namespace, interfaceId, selectedVersion)
+            .then((data) => data as object | undefined)
+            .catch((error) => {
+                console.error('Failed to fetch interface version', error);
+                return undefined;
+            })
+            .then((json) => {
+                if (!cancelled) setLoadedJson({ key: jsonKey, json });
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [interfaceService, namespace, interfaceId, selectedVersion, jsonKey]);
 
     return (
         <div className="w-full h-full py-4 pl-2 pr-4 flex flex-col gap-4">

@@ -409,4 +409,57 @@ describe('useDefaultLayout', () => {
             );
         });
     });
+
+    describe('route change', () => {
+        it('reloads for the new id and ignores the previous layout', async () => {
+            layoutServiceMock.getDefaultLayout.mockImplementation((_ns: string, id: number) =>
+                Promise.resolve({ nodes: { [`node-${id}`]: { x: id, y: id } } })
+            );
+            const { result, rerender } = renderHook(({ id }) => useDefaultLayout(namespace, id, 'Architectures'), {
+                initialProps: { id: '5' },
+            });
+            await waitFor(() =>
+                expect(result.current.defaultLayout).toEqual([{ id: 'node-5', position: { x: 5, y: 5 } }])
+            );
+
+            rerender({ id: '6' });
+            expect(result.current.defaultLayout).toBeUndefined();
+            await waitFor(() =>
+                expect(result.current.defaultLayout).toEqual([{ id: 'node-6', position: { x: 6, y: 6 } }])
+            );
+        });
+
+        it('ignores a slug resolution that settles after the route has moved on', async () => {
+            let resolveFirst: (value: unknown) => void = () => undefined;
+            calmServiceMock.fetchMappings
+                .mockReturnValueOnce(new Promise((resolve) => { resolveFirst = resolve; }))
+                .mockResolvedValueOnce([{ customId: 'second', numericId: 8 }]);
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+
+            const { result, rerender } = renderHook(({ id }) => useDefaultLayout(namespace, id, 'Architectures'), {
+                initialProps: { id: 'first' },
+            });
+            rerender({ id: 'second' });
+            await waitFor(() => expect(result.current.viewportKey).toContain('8'));
+
+            await act(async () => resolveFirst([{ customId: 'first', numericId: 7 }]));
+            expect(result.current.viewportKey).toContain('8');
+            expect(layoutServiceMock.getDefaultLayout).not.toHaveBeenCalledWith(namespace, 7, 'architectures');
+        });
+
+        it('restores the layout source saved for each viewportKey', async () => {
+            layoutServiceMock.getDefaultLayout.mockResolvedValue(null);
+            const { result, rerender } = renderHook(({ id }) => useDefaultLayout(namespace, id, 'Architectures'), {
+                initialProps: { id: '5' },
+            });
+            act(() => result.current.setLayoutSource('server'));
+            expect(result.current.layoutSource).toBe('server');
+
+            rerender({ id: '6' });
+            expect(result.current.layoutSource).toBe('auto');
+
+            rerender({ id: '5' });
+            expect(result.current.layoutSource).toBe('server');
+        });
+    });
 });

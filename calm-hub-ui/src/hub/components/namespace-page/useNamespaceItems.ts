@@ -40,13 +40,11 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
     const interfaceService = useMemo(() => new InterfaceService(), []);
     const adrService = useMemo(() => new AdrService(), []);
 
-    const [groups, setGroups] = useState<NamespaceItemGroup[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loaded, setLoaded] = useState<{ namespace: string; groups: NamespaceItemGroup[] } | null>(null);
+    const loading = loaded?.namespace !== namespace;
 
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
-        setGroups([]);
 
         Promise.all([
             calmService.fetchArchitectureSummaries(namespace).catch(() => []),
@@ -55,9 +53,8 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
             calmService.fetchStandardSummaries(namespace).catch(() => []),
             adrService.fetchAdrSummaries(namespace).catch(() => []),
             interfaceService.fetchInterfacesForNamespace(namespace).catch(() => []),
-        ]).then(([architectures, patterns, flows, standards, adrs, interfaces]) => {
-            if (cancelled) return;
-            setGroups([
+        ])
+            .then(([architectures, patterns, flows, standards, adrs, interfaces]): NamespaceItemGroup[] => [
                 { type: 'Architectures', items: architectures.map(summaryToItem) },
                 { type: 'Patterns', items: patterns.map(summaryToItem) },
                 { type: 'Flows', items: flows.map(summaryToItem) },
@@ -75,16 +72,17 @@ export function useNamespaceItems(namespace: string): { groups: NamespaceItemGro
                         customId: i.customId,
                     })),
                 },
-            ]);
-        }).finally(() => {
-            // Runs even if a summaryToItem mapping throws, so the spinner can never hang.
-            if (!cancelled) setLoading(false);
-        });
+            ])
+            // A summaryToItem mapping that throws must not leave the spinner on.
+            .catch((): NamespaceItemGroup[] => [])
+            .then((groups) => {
+                if (!cancelled) setLoaded({ namespace, groups });
+            });
 
         return () => {
             cancelled = true;
         };
     }, [namespace, calmService, interfaceService, adrService]);
 
-    return { groups, loading };
+    return { groups: loading ? [] : loaded.groups, loading };
 }

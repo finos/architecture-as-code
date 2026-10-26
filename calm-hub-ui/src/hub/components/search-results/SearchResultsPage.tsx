@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { SearchService } from '../../../service/search-service.js';
 import { GroupedSearchResults, SearchResult } from '../../../model/search.js';
@@ -18,48 +18,35 @@ export function SearchResultsPage({ searchService }: SearchResultsPageProps) {
     const [searchParams] = useSearchParams();
     const query = searchParams.get('q')?.trim() ?? '';
 
-    const [results, setResults] = useState<GroupedSearchResults | null>(null);
-    // Init true when a query is already present, so the first paint shows "Searching…"
-    // rather than flashing "No results found" before the fetch effect runs.
-    const [loading, setLoading] = useState(() => query !== '');
-    const [error, setError] = useState(false);
+    // Kept with its query, so a new query shows "Searching…" at once rather than the
+    // previous results or a flash of "No results found".
+    const [response, setResponse] = useState<{
+        query: string;
+        results: GroupedSearchResults | null;
+        error: boolean;
+    } | null>(null);
+    const current = query !== '' && response?.query === query ? response : null;
+    const loading = query !== '' && current === null;
+    const results = current?.results ?? null;
+    const error = current?.error ?? false;
 
     const service = useMemo(() => searchService ?? new SearchService(), [searchService]);
     const { navigateToResult } = useSearchNavigation();
-    const abortControllerRef = useRef<AbortController | null>(null);
 
     useEffect(() => {
-        if (!query) {
-            setResults(null);
-            setError(false);
-            setLoading(false);
-            return;
-        }
-
-        if (abortControllerRef.current) {
-            abortControllerRef.current.abort();
-        }
-        const controller = new AbortController();
-        abortControllerRef.current = controller;
-
-        setLoading(true);
-        setError(false);
+        if (!query) return;
+        let cancelled = false;
         service
             .search(query)
             .then((data) => {
-                if (controller.signal.aborted) return;
-                setResults(data);
+                if (!cancelled) setResponse({ query, results: data, error: false });
             })
             .catch(() => {
-                if (controller.signal.aborted) return;
-                setResults(null);
-                setError(true);
-            })
-            .finally(() => {
-                if (!controller.signal.aborted) setLoading(false);
+                if (!cancelled) setResponse({ query, results: null, error: true });
             });
-
-        return () => controller.abort();
+        return () => {
+            cancelled = true;
+        };
     }, [query, service]);
 
     const groups = results
