@@ -6,6 +6,47 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
+## [0.9.1](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.0...vscode-v0.9.1) (2026-10-26)
+
+### 🚀 Features
+
+* **calm-models:** model the CALM decorator ([#3458](https://github.com/finos/architecture-as-code/issues/3458)) ([d9489e5](https://github.com/finos/architecture-as-code/commit/d9489e591aac21a54b92aa4e8737d5ad329cbff3))
+* **shared:** add CURIE resolver chain and --assets-path for validate ([#3287](https://github.com/finos/architecture-as-code/issues/3287)) ([c32042f](https://github.com/finos/architecture-as-code/commit/c32042f731b554670908ec4adb59e3d7f6028397))
+* **vscode plugin:** Address Rveview Comments ([d49e1c4](https://github.com/finos/architecture-as-code/commit/d49e1c450c1436d2b5a783a6e818e3c7295b4559))
+* **vscode-plugin:** bug fix requirment url to be shown for free text controls ([#3000](https://github.com/finos/architecture-as-code/issues/3000)) ([86113ec](https://github.com/finos/architecture-as-code/commit/86113ec509c5c16f6600afcc7ff874ba4382489a))
+* **vscode:** CALM Canvas VS Code Plugin - CALM Hub Integration ([#3376](https://github.com/finos/architecture-as-code/issues/3376)) ([4f26674](https://github.com/finos/architecture-as-code/commit/4f26674bb71eebd1bc2d055e3930694a296d35cc))
+* **vscode:** import SVG diagrams as CALM architecture ([2b7f00e](https://github.com/finos/architecture-as-code/commit/2b7f00e337f86ce05a01c12d6a41f578fd0217ed))
+* **vscode:** import SVG to calm json file ([249b2f1](https://github.com/finos/architecture-as-code/commit/249b2f1331b7c209b4e3e2bb0d1e0d88116a183e))
+* **vscode:** replace standards/guidelines with structured controls system ([#3375](https://github.com/finos/architecture-as-code/issues/3375)) ([8d90242](https://github.com/finos/architecture-as-code/commit/8d90242a33d9c5f2cf4565144cc35cde4d10139d))
+* **vscode:** resize VS Code Calm Canvas Icon ([#3498](https://github.com/finos/architecture-as-code/issues/3498)) ([6a44394](https://github.com/finos/architecture-as-code/commit/6a4439403db37ae6280bfc4376c103ce3e6ff411))
+* **vscode:** write new documents with the release of @finos/calm-schema ([#3438](https://github.com/finos/architecture-as-code/issues/3438)) ([5ed1462](https://github.com/finos/architecture-as-code/commit/5ed1462d50effbabf9c2de6f9ea9b77e77e5119e))
+
+### 🐛 Bug Fixes
+
+* **vscode:** address medium and low SVG import review items ([172df33](https://github.com/finos/architecture-as-code/commit/172df330f1b8bba505537d9197e0cd6971de707c))
+* **vscode:** address PR [#3003](https://github.com/finos/architecture-as-code/issues/3003) review feedback for SVG import ([ab246c0](https://github.com/finos/architecture-as-code/commit/ab246c025d046bebcfe8bba6161ae22bfe4080d7))
+* **vscode:** address review feedback on PR [#3374](https://github.com/finos/architecture-as-code/issues/3374) ([8c48be2](https://github.com/finos/architecture-as-code/commit/8c48be2e403369d4ab0012c87aee27cadd564698))
+* **vscode:** build relationships that name the nodes the picker built ([#3113](https://github.com/finos/architecture-as-code/issues/3113)) ([431e853](https://github.com/finos/architecture-as-code/commit/431e853f97f265ee161e582058300dadc4de4ff4))
+* **vscode:** keep canvas container outlines visible ([#3364](https://github.com/finos/architecture-as-code/issues/3364)) ([4e20f6c](https://github.com/finos/architecture-as-code/commit/4e20f6cf783497806782a1764c17ed6769cb752e))
+* **vscode:** merge SVG import review fixes from feat/import-svg-to-calm ([06a240b](https://github.com/finos/architecture-as-code/commit/06a240b8024cc8c588792113bc61189825a20438)), closes [#3003](https://github.com/finos/architecture-as-code/issues/3003)
+* **vscode:** resolve merge conflict in drawio-parser lenient decode ([c65ebd3](https://github.com/finos/architecture-as-code/commit/c65ebd34cc1703c91fba25c86454722858b00a07))
+* **vscode:** use theme colours for canvas edges ([#3359](https://github.com/finos/architecture-as-code/issues/3359)) ([9e507cb](https://github.com/finos/architecture-as-code/commit/9e507cb5d381927ed7eafdfd4745ceb556d1a128))
+* **vscode:** use theme colours for canvas nodes and handles ([#3361](https://github.com/finos/architecture-as-code/issues/3361)) ([796dd34](https://github.com/finos/architecture-as-code/commit/796dd34cda0e05a621b1223375760802184c3364))
+* **vscode:** use theme colours for the canvas minimap ([#3358](https://github.com/finos/architecture-as-code/issues/3358)) ([3519156](https://github.com/finos/architecture-as-code/commit/3519156f3fc75304ec5cc1dda0f122627e2f46f8))
+* **vscode:** use theme colours for the canvas toolbar and panels ([#3362](https://github.com/finos/architecture-as-code/issues/3362)) ([f6abd1c](https://github.com/finos/architecture-as-code/commit/f6abd1c66e19a89c751c01a98a7b6238564f3df9))
+* **vscode:** use theme colours in the canvas preview ([#3331](https://github.com/finos/architecture-as-code/issues/3331)) ([afd0752](https://github.com/finos/architecture-as-code/commit/afd07523ae3de71c3aa98289a292136a2d9b7c91))
+
+### 📚 Documentation
+
+* **vscode:** update CALM Canvas contributor and user guides ([#3237](https://github.com/finos/architecture-as-code/issues/3237)) ([c2e1203](https://github.com/finos/architecture-as-code/commit/c2e120366a06a73c25c24ae12fdc315bc09329c0))
+
+### ♻️ Code Refactoring
+
+* **vscode:** point canvas theme colours at the canvas.css tokens ([#3363](https://github.com/finos/architecture-as-code/issues/3363)) ([56f10df](https://github.com/finos/architecture-as-code/commit/56f10df271b71a55f48186ab009122ebd252cfab))
+* **vscode:** remove the dead pattern-doc builder ([#3449](https://github.com/finos/architecture-as-code/issues/3449)) ([031037d](https://github.com/finos/architecture-as-code/commit/031037d6aaa80f6c6fa1a530aea7cdbbf701d503))
+* **vscode:** rename extensions/ to packs/ ([#3212](https://github.com/finos/architecture-as-code/issues/3212)) ([d389a56](https://github.com/finos/architecture-as-code/commit/d389a56bbe20325583ceb38262c7a398f1c9101f))
+* **vscode:** rename extensions/ to packs/, add definition-id, simplify patterns ([c43276b](https://github.com/finos/architecture-as-code/commit/c43276b998be5c24a0a786537da4841594c9f1e8))
+
 ## [0.9.0](https://github.com/finos/architecture-as-code/compare/vscode-v0.6.0...vscode-v0.9.0) (2026-08-10)
 
 ### 🚀 Features

@@ -13,21 +13,6 @@ on:
             - 'main'
             - 'release*'
     workflow_dispatch:
-        inputs:
-            publish_to_marketplace:
-                description: 'Publish to VS Code Marketplace'
-                required: false
-                default: false
-                type: boolean
-            pre_release:
-                description: 'Publish as pre-release (auto = on for odd minor versions, e.g. 0.1.x, 0.3.x)'
-                required: false
-                default: 'auto'
-                type: choice
-                options:
-                    - auto
-                    - 'true'
-                    - 'false'
 
 jobs:
     build-and-test:
@@ -52,8 +37,8 @@ jobs:
             - name: Build and Test VS Code Extension
               run: npm run test:vscode
 
-    package-and-publish:
-        name: Package and Publish VS Code Extension
+    package:
+        name: Package VS Code Extension
         runs-on: ubuntu-latest
         needs: [build-and-test]
 
@@ -73,34 +58,16 @@ jobs:
               id: prerelease
               working-directory: ./calm-plugins/vscode
               run: |
-                  case "${{ github.event.inputs.pre_release }}" in
-                    true)
-                      echo "flag=--pre-release" >> "$GITHUB_OUTPUT"
-                      ;;
-                    false)
-                      echo "flag=" >> "$GITHUB_OUTPUT"
-                      ;;
-                    *)
-                      MINOR=$(node -p "require('./package.json').version.split('.')[1]")
-                      if [ $((MINOR % 2)) -eq 1 ]; then
-                        echo "flag=--pre-release" >> "$GITHUB_OUTPUT"
-                      else
-                        echo "flag=" >> "$GITHUB_OUTPUT"
-                      fi
-                      ;;
-                  esac
+                  # Odd minor versions are pre-releases. The automated release workflow publishes.
+                  MINOR=$(node -p "require('./package.json').version.split('.')[1]")
+                  if [ $((MINOR % 2)) -eq 1 ]; then
+                    echo "flag=--pre-release" >> "$GITHUB_OUTPUT"
+                  else
+                    echo "flag=" >> "$GITHUB_OUTPUT"
+                  fi
 
             - name: Package VS Code Extension
               run: |
                   npm run build:shared
                   npm run build --workspace calm-plugins/vscode
                   (cd calm-plugins/vscode && npx @vscode/vsce package ${{ steps.prerelease.outputs.flag }} --no-dependencies)
-
-            - name: Publish to VS Code Marketplace
-              if: github.event.inputs.publish_to_marketplace == 'true'
-              working-directory: ./calm-plugins/vscode
-              run: npx vsce publish ${{ steps.prerelease.outputs.flag }} --packagePath *.vsix
-              env:
-                  VSCE_PAT: ${{ secrets.VSCE_PAT }}
-
-

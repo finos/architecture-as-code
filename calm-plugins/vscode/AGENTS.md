@@ -94,20 +94,25 @@ extension-host logs.
 
 ## Releasing
 
-Releases are manual. Odd minor versions (e.g. 0.9.x) are published as pre-releases.
+The **VS Code Extension - Automated Release** workflow releases the extension, as the CLI and CALM
+Server workflows do. Do not change the version or `CHANGELOG.md` by hand.
 
-1. In a PR from a branch that you rebase on main (do not merge main into it), set the version with
-   `npm version <x.y.z> --workspace calm-plugins/vscode --no-git-tag-version`, then run
-   `npm run changelog --workspace calm-plugins/vscode`. The changelog lists changes since the
-   last `vscode-v*` tag under the new version. Do not edit `CHANGELOG.md` by hand: the script
-   writes the whole file again from the tags.
-2. After the PR merges, run the **Build VS Code Extension** workflow on `main` with
-   `publish_to_marketplace: true`.
-3. Tag the published commit `vscode-v<x.y.z>` and push the tag.
+1. Each Thursday, or when run by hand, the workflow finds the changes since the last `vscode-v*`
+   tag (`scripts/vscode-release-version.mjs`). If one releases the extension, it opens a
+   `ci(vscode): release version <x.y.z>` PR that sets the version and writes the changelog.
+2. When that PR merges, the workflow tags the merge commit `vscode-v<x.y.z>`, creates a GitHub
+   release with the `.vsix`, and publishes to the VS Code Marketplace.
 
-The changelog takes the changes that touched `calm-plugins/vscode`, so a PR for another package
-that changes the extension is listed too. Dependency updates, and unscoped changes other than
-`feat`, `fix`, `perf` and `revert`, are not listed.
+Odd minor versions (e.g. 0.9.x) are published as pre-releases, so an automatic bump does not change
+the parity of the minor. A preview gets a patch for each release. A stable `feat` skips the odd minor
+(1.2.x → 1.4.0). To start a new line, run the workflow with `force-release` and a `release-type`:
+`preview` (next odd minor), `stable` (next even minor), `major` or `patch`.
+
+A change releases the extension when it touched `calm-plugins/vscode` and is a `feat`, `fix`,
+`perf` or `revert`, or has a breaking-change note. A PR for another package that changes the
+extension counts too. Dependency updates do not. The changelog lists the same changes, plus scoped
+`docs` and `refactor` changes. `npm run changelog --workspace calm-plugins/vscode` writes the whole
+file again from the tags.
 
 ## Bundled Schemas
 

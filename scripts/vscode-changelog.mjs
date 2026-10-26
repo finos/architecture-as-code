@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 // Writes calm-plugins/vscode/CHANGELOG.md from the vscode-v* tags, in the CLI changelog format.
-// Run it in the version-bump PR: a package.json version with no tag yet gets a section for the
-// changes since the last tag. The whole file is generated again each time, so do not edit it.
+// The release workflow runs it in the version-bump PR: a package.json version with no tag yet gets a
+// section for the changes since the last tag. The whole file is generated again each time, so do not
+// edit it.
 //
-// The extension is released by hand, so this does not use semantic-release. A change belongs to
-// a release when it touched calm-plugins/vscode: the extension's history uses many scope spellings,
-// and PRs for other packages also change it.
+// This does not use semantic-release, which selects changes by scope. A change belongs to a release
+// when it touched calm-plugins/vscode: the extension's history uses many scope spellings, and PRs for
+// other packages also change it.
 
 import { execFileSync } from 'node:child_process';
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs';
