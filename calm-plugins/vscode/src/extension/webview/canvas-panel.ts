@@ -21,6 +21,7 @@ import {
     parseControlCurie,
 } from '../services/control-curie';
 import { resolveLocalPath, resolveSafeWritePath } from '../services/path-resolver';
+import { buildArchitecturePattern } from '../services/pattern-export';
 import type {
     ExtToWebviewMessage,
     WebviewToExtMessage,
@@ -621,10 +622,7 @@ export class CanvasPanel {
             vscode.window.showErrorMessage('Cannot export pattern: invalid document JSON');
             return;
         }
-
-        const { exportAsPattern } = await import('../../webview/panels/pattern-doc');
-        const { json, fileName } = exportAsPattern(doc, name.trim());
-
+        const { fileName, json } = buildArchitecturePattern(doc, name);
         await this.handleSavePattern(fileName, json);
     }
 

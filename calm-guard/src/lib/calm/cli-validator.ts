@@ -40,6 +40,8 @@ interface CalmCliIssue {
  * bundled CLI dist and fails on transitive deps (uri-js submodules) that npm
  * hoists differently than pnpm. `serverExternalPackages` alone is insufficient
  * because the static `require.resolve(<literal>)` triggers tracing during build.
+ * Turbopack still resolves the literal fallback, so `turbopackIgnore` leaves the
+ * lookup to Node at runtime.
  *
  * `CALM_CLI_MODULE` is also a useful escape hatch: deployments can point
  * `require.resolve` at an alternate copy of the CLI without code changes.
@@ -47,7 +49,7 @@ interface CalmCliIssue {
 function resolveCalmCliPath(): string {
   const require = createRequire(import.meta.url);
   const moduleId = process.env.CALM_CLI_MODULE ?? '@finos/calm-cli/dist/index.js';
-  return require.resolve(moduleId);
+  return require.resolve(/* turbopackIgnore: true */ moduleId);
 }
 
 /**

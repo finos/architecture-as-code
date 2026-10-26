@@ -37,6 +37,8 @@ interface CapturedCallbacks {
     onAdrLoad: (adr: Adr) => void;
     onControlLoad: (control: ControlData) => void;
     onInterfaceLoad: (iface: InterfaceData) => void;
+    onLoadError?: (error: unknown) => void;
+    resourceKey: string;
 }
 let captured: CapturedCallbacks | undefined;
 
@@ -325,7 +327,12 @@ const renderAt = (path: string) =>
 // navigation landed. Accepts entry objects so a test can seed history state.
 function LocationProbe() {
     const location = useLocation();
-    return <div data-testid="location-pathname">{location.pathname}</div>;
+    return (
+        <>
+            <div data-testid="location-pathname">{location.pathname}</div>
+            <div data-testid="location-search">{location.search}</div>
+        </>
+    );
 }
 
 const renderWithLocation = (entries: React.ComponentProps<typeof MemoryRouter>['initialEntries']) =>
@@ -509,6 +516,31 @@ describe('Hub', () => {
             navigateTo('/namespace/finos');
             expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
             expect(await screen.findByTestId('namespace-page')).toHaveTextContent('Namespace: finos (1)');
+        });
+
+        it('keeps the loaded diagram when only the tab in the query changes', () => {
+            renderWithNav('/finos/patterns/test/1.0', ['/finos/patterns/test/1.0?tab=json']);
+            loadData();
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            navigateTo('/finos/patterns/test/1.0?tab=json');
+            expect(screen.getByTestId('diagram-section')).toBeInTheDocument();
+
+            // The same path and query again still clears it, so that the route loads it again.
+            navigateTo('/finos/patterns/test/1.0?tab=json');
+            expect(screen.queryByTestId('diagram-section')).not.toBeInTheDocument();
+        });
+
+        it('loads the resource again when only the query changes after the load failed', () => {
+            renderWithNav('/finos/patterns/p/1.0.0?tab=used-by', ['/finos/patterns/p/1.0.0']);
+            act(() => captured?.onLoadError?.(new Error('not found')));
+            expect(screen.getByText('Pattern not found')).toBeInTheDocument();
+            const failedKey = captured?.resourceKey;
+
+            navigateTo('/finos/patterns/p/1.0.0');
+
+            expect(captured?.resourceKey).not.toBe(failedKey);
+            expect(screen.queryByText('Pattern not found')).not.toBeInTheDocument();
         });
 
         it('replaces the domain grid with the full-pane control view and keeps it across a no-nav re-render', () => {
@@ -794,6 +826,71 @@ describe('Hub', () => {
         expect(screen.queryByTestId('node-sheet')).not.toBeInTheDocument();
         // The desktop Sidebar renders the node title in its drawer.
         expect(screen.getByText('Node One')).toBeInTheDocument();
+    });
+
+    describe('the node query parameter', () => {
+        afterEach(() => {
+            window.history.replaceState(null, '', '/');
+        });
+
+        it('opens the node the link names when the diagram loads', () => {
+            renderAt('/?node=n2');
+            loadArchitectureWithNodes();
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('selects nothing when the node is not in the diagram', () => {
+            renderAt('/?node=missing');
+            loadArchitectureWithNodes();
+            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+        });
+
+        it('opens the other node when the link changes to name it', () => {
+            renderWithNav('/?node=n1', ['/?node=n2']);
+            loadArchitectureWithNodes();
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            navigateTo('/?node=n2');
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.queryByText('Node One')).not.toBeInTheDocument();
+        });
+
+        it('keeps the node open after a query change that keeps it in the URL', () => {
+            renderWithNav('/?node=n2', ['/?node=n2&tab=json']);
+            loadArchitectureWithNodes();
+            navigateTo('/?node=n2&tab=json');
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+        });
+
+        it('keeps a node the user selects, and stops naming the linked node in the URL', () => {
+            renderWithLocation(['/?tab=json&node=n2']);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n1'));
+            expect(screen.getByText('Node One')).toBeInTheDocument();
+            expect(screen.getByTestId('location-search')).toHaveTextContent(/^\?tab=json$/);
+        });
+
+        it('keeps the URL when the user selects the node it names', () => {
+            renderWithLocation(['/?node=n2']);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByTestId('select-n2'));
+            expect(screen.getByText('Node Two')).toBeInTheDocument();
+            expect(screen.getByTestId('location-search')).toHaveTextContent('?node=n2');
+        });
+
+        it('stops naming the node in the URL when the user closes the panel', () => {
+            renderWithLocation(['/?node=n2']);
+            loadArchitectureWithNodes();
+            fireEvent.click(screen.getByRole('button', { name: 'Close details' }));
+            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+            expect(screen.getByTestId('location-search')).toBeEmptyDOMElement();
+        });
+
+        it('ignores a node query on the page URL outside the hash route', () => {
+            window.history.replaceState(null, '', '/?node=n2');
+            renderAt('/');
+            loadArchitectureWithNodes();
+            expect(screen.queryByRole('button', { name: 'Close details' })).not.toBeInTheDocument();
+        });
     });
 
     describe('auth error clears content', () => {

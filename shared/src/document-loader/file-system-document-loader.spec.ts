@@ -1,6 +1,6 @@
 import { SchemaDirectory } from '../schema-directory';
 import { fs, vol } from 'memfs';
-import { FileSystemDocumentLoader } from './file-system-document-loader';
+import { FileSystemDocumentLoader, isLocalPath, isRelativePath } from './file-system-document-loader';
 import { DocumentLoadError } from './document-loader';
 
 vi.mock('fs/promises', async () => {
@@ -119,5 +119,36 @@ describe('file-system-document-loader', () => {
         vol.fromJSON({ '/no-id.json': JSON.stringify({ type: 'object' }) });
         const thrown = await fileSystemDocumentLoader.loadMissingDocument('no-id.json', 'schema').catch((e) => e);
         expect(thrown).toMatchObject({ recoverable: true, name: 'OPERATION_NOT_IMPLEMENTED' });
+    });
+
+    describe('isRelativePath', () => {
+        it('returns true for relative paths', () => {
+            expect(isRelativePath('foo/bar.json')).toBe(true);
+            expect(isRelativePath('./foo/bar.json')).toBe(true);
+            expect(isRelativePath('../foo/bar.json')).toBe(true);
+        });
+
+        it('returns false for absolute paths', () => {
+            expect(isRelativePath('/foo/bar.json')).toBe(false);
+        });
+
+        it('returns false for URLs', () => {
+            expect(isRelativePath('https://example.com/foo.json')).toBe(false);
+            expect(isRelativePath('file:///foo/bar.json')).toBe(false);
+            expect(isRelativePath('calm:/namespaces/x')).toBe(false);
+        });
+    });
+
+    describe('isLocalPath', () => {
+        it('returns true for relative and absolute paths', () => {
+            expect(isLocalPath('foo/bar.json')).toBe(true);
+            expect(isLocalPath('/foo/bar.json')).toBe(true);
+        });
+
+        it('returns false for URLs', () => {
+            expect(isLocalPath('https://example.com/foo.json')).toBe(false);
+            expect(isLocalPath('file:///foo/bar.json')).toBe(false);
+            expect(isLocalPath('calm:/namespaces/x')).toBe(false);
+        });
     });
 });

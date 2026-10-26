@@ -76,14 +76,13 @@ create_namespaces() {
     print_status "Creating namespaces..."
     
     # Create required namespaces (the API requires both a name and a description)
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating namespace: $namespace"
         local description
         case "$namespace" in
             # Keep in sync with the namespace descriptions in calm-hub/mongo/init-mongo.js
             finos.fluxnova) description="FluxNova BPM example architectures" ;;
             finos.sdlc-common-controls) description="The Standard the SDLC Common Controls Catalog control requirements conform to" ;;
-            finos.agentic-sdlc) description="Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" ;;
             *) description="$namespace namespace" ;;
         esac
         create_namespace "$namespace" "$description" || true
@@ -92,7 +91,7 @@ create_namespaces() {
 
 # Function to load schemas from a directory (release or draft)
 # Usage: load_schemas_from_dir <base_dir> <prefix>
-# e.g. load_schemas_from_dir /calm/release release
+# e.g. load_schemas_from_dir /calm-schemas/release release
 load_schemas_from_dir() {
     local base_dir="$1"
     local prefix="$2"
@@ -147,8 +146,8 @@ load_schemas_from_dir() {
 }
 
 # Resolve the schema paths once (falling back to the directories beside this
-# script when unset) so every schema-reading function — create_core_schemas,
-# create_standards — sees the same paths.  Without this a bare
+# script when unset) so every schema-reading function — create_core_schemas —
+# sees the same paths.  Without this a bare
 # `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
 # functions to build absolute paths from '/' that don't exist and silently
 # [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
@@ -156,7 +155,7 @@ load_schemas_from_dir() {
 #
 # The released meta-schemas come from the @finos/calm-schema npm packages, which
 # `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
-# calm/ in the repository holds only the drafts and the release candidates.
+# calm/ in the repository holds only the drafts.
 resolve_schema_base_path() {
     local script_dir
     script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
@@ -201,8 +200,7 @@ create_core_schemas() {
 
     print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
     load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
-    print_status "Loading release candidates and drafts from: $CALM_SCHEMA_BASE_PATH"
-    load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/release" "release"
+    print_status "Loading drafts from: $CALM_SCHEMA_BASE_PATH"
     load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
 
@@ -1864,7 +1862,7 @@ CALMDOC
     local doc
     doc=$(cat <<'CALMDOC'
 {
-            "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+            "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
             "nodes": [
                 {
                     "unique-id": "traderx-system",
@@ -5282,7 +5280,7 @@ create_user_access() {
     print_status "Creating user access entries..."
     
     # Create sample user access for different namespaces
-    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls finos.agentic-sdlc; do
+    for namespace in finos finos.calm finos.traderx workshop finos.fluxnova finos.sdlc-common-controls; do
         print_status "Creating user access for namespace: $namespace"
         curl -s -X POST "$CALM_HUB_URL/api/calm/namespaces/$namespace/user-access" \
             -H "$CONTENT_TYPE" \
@@ -5295,34 +5293,47 @@ create_user_access() {
     done
 }
 
-# Function to create standards
+# Copies of the decorator standards that calm-schema publishes, with their calm.finos.org $id.
+# The name-based API needs a hub $id, so they go through the numeric API. They sit in a
+# subdirectory of mongo/standards/finos.calm/, which the name-based seed does not read.
 create_standards() {
     print_status "Creating standards..."
 
-    # Create the CALM Deployment Decorator Standard in finos.calm
-    local f="${CALM_SCHEMA_BASE_PATH}/draft/2026-03/standards/deployment/deployment.decorator.standard.json"
-    if [[ -f "$f" ]]; then
-        local doc payload
-        doc=$(cat "$f")
-        payload=$(jq -n \
-            --arg name "CALM Deployment Decorator Standard" \
-            --arg description "Deployment decorator standard for architectures" \
-            --argjson doc "$doc" \
-            '{name: $name, description: $description, standardJson: ($doc | tojson)}')
-        local http_code
-        http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
-            "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
-            -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
-        if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
-            print_status "Created deployment standard in finos.calm"
-        elif [[ "$http_code" == "409" ]]; then
-            print_warning "Deployment standard already exists, skipping"
-        else
-            print_warning "Failed to create deployment standard (HTTP $http_code)"
-        fi
-    else
-        print_warning "Deployment standard not found at $f"
+    local base_path="$CALM_STANDARDS_BASE_PATH"
+    if [[ -z "$base_path" ]]; then
+        base_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/../mongo/standards"
     fi
+    local namespace_dir="$base_path/finos.calm"
+    # One directory per released standard. Deployment first, so that the deployment standard
+    # keeps standard id 1.
+    local dirs=("$namespace_dir/deployment")
+    local dir
+    for dir in "$namespace_dir"/*/; do
+        dir="${dir%/}"
+        [[ -d "$dir" && "$dir" != "$namespace_dir/deployment" ]] && dirs+=("$dir")
+    done
+    local f
+    for dir in "${dirs[@]}"; do
+        if [[ ! -d "$dir" ]]; then
+            print_warning "No standards directory at $dir"
+            continue
+        fi
+        for f in "$dir"/*.json; do
+            [[ -f "$f" ]] || continue
+            local payload http_code
+            payload=$(jq '{name: .title, description: .description, standardJson: tojson}' "$f")
+            http_code=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "$CALM_HUB_URL/api/calm/namespaces/finos.calm/standards" \
+                -H "$CONTENT_TYPE" --data-binary @- <<< "$payload")
+            if [[ "$http_code" == "200" || "$http_code" == "201" ]]; then
+                print_status "Created standard $(basename "$f") in finos.calm"
+            elif [[ "$http_code" == "409" ]]; then
+                print_warning "Standard $(basename "$f") already exists, skipping"
+            else
+                print_warning "Failed to create standard $(basename "$f") (HTTP $http_code)"
+            fi
+        done
+    done
 }
 
 # Interfaces, one directory per namespace under calm-hub/mongo/interfaces/. The name is the
@@ -5472,7 +5483,7 @@ create_ai_governance_architecture() {
     local doc
     doc=$(cat <<'CALMDOC'
 {
-    "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "unique-id": "mcp-api-pipeline",
     "name": "MCP Server API Pipeline",
     "description": "User \u2192 MCP Server (cloud-hosted) \u2192 API Service \u2192 Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
@@ -6341,7 +6352,7 @@ show_help() {
     echo "  -b, --base-url URL       Set the base URL written into name-based document \$id"
     echo "                           values. Must equal the server's calm.hub.base-url"
     echo "                           (default: the URL from -u or CALM_HUB_URL)."
-    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft and release-candidate schemas"
+    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft schemas"
     echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
     echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
@@ -6353,7 +6364,7 @@ show_help() {
     echo "  CALM_HUB_BASE_URL       Base URL for name-based document \$id values. Must equal"
     echo "                          the server's calm.hub.base-url. When unset, defaults to"
     echo "                          CALM_HUB_URL after -u/--url is applied."
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ and release-candidate schemas"
+    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ schemas"
     echo "                          (default: auto-detected relative to this script)"
     echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
     echo "                          (default: ../target/calm-schemas/release relative to this script,"

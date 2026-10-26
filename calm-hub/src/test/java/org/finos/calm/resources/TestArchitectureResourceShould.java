@@ -14,6 +14,7 @@ import org.finos.calm.domain.exception.ArchitectureNotFoundException;
 import org.finos.calm.domain.exception.ArchitectureVersionExistsException;
 import org.finos.calm.domain.exception.ArchitectureVersionNotFoundException;
 import org.finos.calm.domain.exception.NamespaceNotFoundException;
+import org.finos.calm.services.ArchitectureTimelineService;
 import org.finos.calm.store.ArchitectureStore;
 import org.finos.calm.store.ResourceMappingStore;
 import org.finos.calm.store.PageRequest;
@@ -623,7 +624,7 @@ public class TestArchitectureResourceShould {
                 .get("/api/calm/namespaces/finos/architectures/42/timeline")
                 .then()
                 .statusCode(200)
-                .body("'$schema'", equalTo("https://calm.finos.org/release/1.2/meta/calm-timeline.json"))
+                .body("'$schema'", equalTo(ArchitectureTimelineService.TIMELINE_SCHEMA))
                 .body("'current-moment'", equalTo("1.1.0"))
                 .body("moments[0].'unique-id'", equalTo("1.0.0"))
                 .body("moments[0].'node-type'", equalTo("moment"))

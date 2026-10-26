@@ -55,7 +55,7 @@ Update architectures/my-first-architecture.json to add:
 
 The relationship should use the "connects" relationship type with source and destination properties.
 
-Ensure the file still validates against CALM 1.2.
+Ensure the file still validates against CALM 1.3.
 ```
 
 **Review the output:**
@@ -214,7 +214,7 @@ Each relationship can have only **one** type. This is enforced by JSON Schema's 
 
 ## Resources
 
-- [CALM Relationship Types](https://github.com/finos/calm-schema/blob/v1.2/schema/core.json)
+- [CALM Relationship Types](https://github.com/finos/calm-schema/blob/v1.3/schema/core.json)
 - [Understanding oneOf in JSON Schema](https://json-schema.org/understanding-json-schema/reference/combining#oneOf)
 
 ## Tips

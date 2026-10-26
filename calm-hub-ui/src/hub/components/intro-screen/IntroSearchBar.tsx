@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useId, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../../service/search-service.js';
@@ -34,6 +34,9 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
 
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const listboxId = useId();
+    const optionId = (index: number) => `${listboxId}-option-${index}`;
+    const activeDescendant = open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const { navigateToResult: goToResult } = useSearchNavigation();
     const navigate = useNavigate();
 
@@ -109,8 +112,9 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
         let globalIndex = 0;
 
         return groups.map(([type, items]) => (
-            <div key={type}>
+            <div key={type} role="group" aria-labelledby={`${listboxId}-group-${type}`}>
                 <div
+                    id={`${listboxId}-group-${type}`}
                     className="px-4 py-1.5 font-mono-jb text-[10px] uppercase tracking-[0.1em]"
                     style={{ color: colors.redesign.faintAlt, backgroundColor: colors.redesign.surface }}
                 >
@@ -121,6 +125,7 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                     return (
                         <button
                             key={`${type}-${item.namespace}-${item.id}`}
+                            id={optionId(currentIndex)}
                             className={`w-full text-left px-4 py-2.5 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''
                             }`}
@@ -171,6 +176,8 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
                     role="combobox"
                     aria-expanded={open}
                     aria-haspopup="listbox"
+                    aria-controls={open ? listboxId : undefined}
+                    aria-activedescendant={activeDescendant}
                     autoFocus
                 />
                 {loading && <span className="loading loading-spinner loading-sm text-base-content/50" />}
@@ -194,6 +201,7 @@ export function IntroSearchBar({ searchService }: IntroSearchBarProps) {
             </div>
             {open && (
                 <div
+                    id={listboxId}
                     className="absolute left-0 right-0 top-full mt-2 max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-xl shadow-lg z-50"
                     role="listbox"
                 >

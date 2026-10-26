@@ -202,6 +202,36 @@ describe('CALM 1.2 type definitions', () => {
     expect(decorator.data).toEqual({ score: 75 });
   });
 
+  it('CalmDecorator accepts the optional CALM 1.3 $schema and target-type fields', () => {
+    const decorator: CalmDecorator = {
+      $schema: 'https://example.com/standards/aigf-decorator.json',
+      'unique-id': 'd1',
+      type: 'aigf-governance',
+      'target-type': ['architecture'],
+      target: ['architecture.calm.json'],
+      'applies-to': ['n1'],
+      data: { score: 75 },
+    };
+
+    expectTypeOf<CalmDecorator['target-type']>().toEqualTypeOf<'architecture'[] | undefined>();
+    expect(decorator.$schema).toBe('https://example.com/standards/aigf-decorator.json');
+    expect(decorator['target-type']).toEqual(['architecture']);
+  });
+
+  it('CalmDecorator target-type rejects document types other than architecture', () => {
+    const decorator: CalmDecorator = {
+      'unique-id': 'd1',
+      type: 'aigf-governance',
+      // @ts-expect-error CALM 1.3 decorators can only target architectures
+      'target-type': ['pattern'],
+      target: ['architecture.calm.json'],
+      'applies-to': ['n1'],
+      data: { score: 75 },
+    };
+
+    expect(decorator['target-type']).toEqual(['pattern']);
+  });
+
   it('CalmEvidence has required fields (unique-id, evidence-paths, control-config-url)', () => {
     const evidence: CalmEvidence = {
       'unique-id': 'ev1',

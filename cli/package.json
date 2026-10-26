@@ -17,7 +17,7 @@
     "scripts": {
         "build": "tsup && npm run copy-calm-schema && npm run copy-docify-templates && npm run copy-widgets && npm run copy-ai-tools && npm run copy-workspace-templates",
         "watch": "node watch.mjs",
-        "copy-calm-schema": "copyfiles \"../calm/release/1.0-rc*/meta/*\" \"../calm/draft/**/meta/*\" dist/calm/ && node ../scripts/copy-calm-schemas.mjs dist/calm",
+        "copy-calm-schema": "copyfiles \"../calm/draft/**/meta/*\" dist/calm/ && node ../scripts/copy-calm-schemas.mjs dist/calm",
         "copy-docify-templates": "copyfiles \"../shared/dist/template-bundles/**/*\" dist --up 3",
         "copy-widgets": "copyfiles \"../calm-widgets/dist/cli/widgets/**/*\" dist --up 4",
         "copy-ai-tools": "copyfiles \"../calm-ai/tools/**/*\" \"../calm-ai/ai-assistants/**/*\" \"../calm-ai/templates/**/*\" dist/calm-ai/ --up 2",
@@ -38,7 +38,6 @@
     "author": "",
     "license": "Apache-2.0",
     "dependencies": {
-        "@apidevtools/json-schema-ref-parser": "^14.0.0",
         "@inquirer/prompts": "^7.4.1",
         "@mermaid-js/layout-elk": "^0.2.1",
         "@stoplight/json": "^3.21.7",
@@ -51,7 +50,6 @@
         "ts-node": "10.9.2"
     },
     "devDependencies": {
-        "@semantic-release/commit-analyzer": "^13.0.1",
         "@semantic-release/changelog": "^6.0.3",
         "@semantic-release/exec": "^7.1.0",
         "@semantic-release/git": "^10.0.1",

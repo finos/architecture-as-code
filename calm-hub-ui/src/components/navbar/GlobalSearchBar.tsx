@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoSearchOutline, IoCloseOutline } from 'react-icons/io5';
 import { SearchService } from '../../service/search-service.js';
@@ -32,6 +32,9 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
 
     const inputRef = useRef<HTMLInputElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
+    const listboxId = useId();
+    const optionId = (index: number) => `${listboxId}-option-${index}`;
+    const activeDescendant = open && flatResults[selectedIndex] ? optionId(selectedIndex) : undefined;
     const calmService = useMemo(() => calmServiceProp ?? new CalmService(), [calmServiceProp]);
     const adrService = useMemo(() => adrServiceProp ?? new AdrService(), [adrServiceProp]);
     const { navigateToResult: goToResult } = useSearchNavigation({ calmService, adrService });
@@ -112,8 +115,9 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
         let globalIndex = 0;
 
         return groups.map(([type, items]) => (
-            <div key={type}>
+            <div key={type} role="group" aria-labelledby={`${listboxId}-group-${type}`}>
                 <div
+                    id={`${listboxId}-group-${type}`}
                     className="px-3 py-1 font-mono-jb text-[10px] uppercase tracking-[0.1em]"
                     style={{ color: colors.redesign.faintAlt, backgroundColor: colors.redesign.surface }}
                 >
@@ -124,6 +128,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     return (
                         <button
                             key={`${type}-${item.namespace}-${item.id}`}
+                            id={optionId(currentIndex)}
                             className={`w-full text-left px-3 py-2 text-sm hover:bg-base-200 cursor-pointer ${
                                 currentIndex === selectedIndex ? 'bg-base-200' : ''
                             }`}
@@ -184,6 +189,8 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
                     role="combobox"
                     aria-expanded={open}
                     aria-haspopup="listbox"
+                    aria-controls={open ? listboxId : undefined}
+                    aria-activedescendant={activeDescendant}
                 />
                 {query && (
                     <button
@@ -200,6 +207,7 @@ export function GlobalSearchBar({ searchService, calmService: calmServiceProp, a
             </div>
             {open && (
                 <div
+                    id={listboxId}
                     className="absolute right-0 top-full mt-1 w-80 max-w-[calc(100vw-2rem)] max-h-96 overflow-y-auto bg-base-100 border border-base-300 rounded-lg shadow-lg z-50"
                     role="listbox"
                 >

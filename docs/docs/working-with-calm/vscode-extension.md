@@ -156,7 +156,7 @@ A minimal `calm-timeline.json` document looks like this:
 
 ```json
 {
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
     "current-moment": "initial",
     "moments": [
         {
@@ -322,7 +322,7 @@ my-architecture/
 }
 ```
 
-With this setup, clicking the **Payment Service** node in the preview of `system.json` opens `services/payment-service.json` in a new editor column. The same mapping is also used by the CALM CLI's `docify` command (see [`calm docify`](cli#documenting-architectures-docify)) — so authoring once works for both interactive and batch documentation generation.
+With this setup, clicking the **Payment Service** node in the preview of `system.json` opens `services/payment-service.json` in a new editor column. The same mapping is also used by the CALM CLI's `docify` command (see [`calm docify`](../calm-cli/docify.md)) — so authoring once works for both interactive and batch documentation generation.
 
 ### Troubleshooting
 
@@ -349,7 +349,7 @@ The Docify tab is what most users mean when they say "the preview":
 To produce static documentation outside the preview, use either of:
 
 - **CALM: Create Documentation Website** (`calm.createWebsite`) — runs the docify pipeline against the workspace and writes an HTML site to disk.
-- The equivalent CLI command — see [`calm docify`](cli#documenting-architectures-docify) — for batch generation in CI or scripts.
+- The equivalent CLI command — see [`calm docify`](../calm-cli/docify.md) — for batch generation in CI or scripts.
 
 Both consume the same `calm.urlMapping` configuration (see [Multi-Document Navigation](#multi-document-navigation)), so authoring once works for interactive, batch, and CI documentation flows.
 

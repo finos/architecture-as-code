@@ -27,7 +27,7 @@ const schemaRequirement = {
 };
 
 const proseRequirement = {
-    $schema: 'https://calm.finos.org/draft/2025-03/meta/control-requirement.json',
+    $schema: 'https://calm.finos.org/release/1.3/meta/control-requirement.json',
     id: 'AIR-SEC-010',
     name: 'Prompt Injection',
     category: 'Security',

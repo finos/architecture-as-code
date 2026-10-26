@@ -32,7 +32,7 @@ This is the **FINOS Architecture as Code** monorepo. It holds the tools for the 
 | Repository | Owns | Send here |
 |---|---|---|
 | [architecture-as-code](https://github.com/finos/architecture-as-code) | This repository: the tools, the docs site and CALM Lab. The tools get the schema from the `@finos/calm-schema` npm package (see [CALM Schema Updates](#calm-schema-updates)) | Tool changes, the documentation site, examples that the tools use |
-| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only the drafts and release candidates until [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes them, and CALM's own architecture |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only CALM's own architecture and the 2026-03 draft, which [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes |
 | [calm-governance](https://github.com/finos/calm-governance) | Project-wide governance, the Maintainer roster, contribution guidelines, the Code of Conduct. No code | Governance and roster changes |
 
 Clone the three repositories side by side, with the same parent directory. Start the agent here and
@@ -46,7 +46,7 @@ against `finos/<repo>`.
 
 ```
 architecture-as-code/
-├── calm/                      # CALM's own architecture; schema drafts and release candidates until #3240 step 6
+├── calm/                      # CALM's own architecture and the 2026-03 schema draft
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
@@ -248,16 +248,17 @@ time. Format is `<type>(<scope>): <subject>`, subject with no trailing period.
 
 - **type** (required, lowercase): `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `chore`,
   `perf`, `ci`, `build`, `revert`
-- **scope** (optional but preferred): `cli`, `shared`, `calm-widgets`, `calm-hub`, `calm-hub-ui`,
-  `docs`, `vscode`, `deps`, `ci`, `release`
+- **scope** (optional but preferred): `cli`, `shared`, `calm-models`, `calm-ai`, `calm-widgets`,
+  `calm-server`, `calm-hub`, `calm-hub-ui`, `docs`, `vscode`, `deps`, `ci`, `release`
 
 Run `npm run commit` for an interactive prompt. Stage your changes first.
 
 Type and scope drive the automated release, so neither is cosmetic: `cli/release.config.mjs` releases
 on the `cli`, `shared`, `calm-models`, `calm-ai` and `calm-widgets` scopes, and its fallback rule
-also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. Check that file before assuming a
-commit is release-neutral. A merged PR with a conventional title is released on its title alone, so
-give the PR the type and scope of its most significant change. A plain `git revert` does not release.
+also releases any *unscoped* `feat`, `fix`, `perf` or `revert`. `calm-server/release.config.mjs`
+does the same for its own scopes. Check these files before assuming a commit is release-neutral. A
+merged PR with a conventional title is released on its title alone, so give the PR the type and scope
+of its most significant change. A plain `git revert` does not release.
 
 ## Pre-Commit Checklist
 

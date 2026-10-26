@@ -229,7 +229,7 @@ The template includes:
 ### 2. Prompt Management
 - Provides modular, focused guidance for specific CALM tasks
 - Enforces validation requirements and best practices
-- References CALM schema v1.2 for accuracy
+- References CALM schema v1.3 for accuracy
 - Includes working examples and common pitfall warnings
 
 ### 3. Multi-provider Support
@@ -304,7 +304,7 @@ When editing `templates/CALM.chatmode_template.md`:
 ## Validation Requirements
 
 All tool prompts must:
-- Reference CALM schema v1.2
+- Reference CALM schema v1.3
 - Include mandatory validation steps
 - Provide `calm validate` commands
 - Emphasize `hasErrors: false` requirement
@@ -314,6 +314,6 @@ All tool prompts must:
 ## Related Documentation
 
 - **CALM CLI**: See `cli/AGENTS.md` for CLI command details
-- **CALM Schema**: https://calm.finos.org/release/1.2/meta/calm.json
+- **CALM Schema**: https://calm.finos.org/release/1.3/meta/calm.json
 - **User Docs**: https://calm.finos.org
 - **VSCode Extension**: See `calm-plugins/vscode/AGENTS.md`

@@ -1,10 +1,13 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { act, render, screen, fireEvent } from '@testing-library/react';
 import { useState, type ReactNode } from 'react';
-import type { Node } from 'reactflow';
+import { getViewportForBounds, type Node, type Viewport } from 'reactflow';
 import { CalmArchitectureSchema } from '@finos/calm-models/types';
 import { ArchitectureGraph } from './ArchitectureGraph';
 import { saveNodePositions, clearStoredNodePositions } from '../../services/node-position-service.js';
+import { createPresentationModeStore, PRESENTATION_MODE_KEY, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { createMemoryStorage } from '../../../test-support/memory-storage.js';
+import { useDecisionOverlay, type DecisionOverlay } from '../../context/DecisionOverlayContext.js';
 
 /**
  * Capture the props ReactFlow and MiniMap are rendered with, and render
@@ -14,6 +17,8 @@ import { saveNodePositions, clearStoredNodePositions } from '../../services/node
  */
 const reactFlowProps: { current: Record<string, unknown> | null } = { current: null };
 const miniMapProps: { current: Record<string, unknown> | null } = { current: null };
+const controlsProps: { current: Record<string, unknown> | null } = { current: null };
+const decisionOverlay: { current: DecisionOverlay | null } = { current: null };
 // React strips `key` from the props a component receives, so a remount can't be
 // observed by reading reactFlowProps — instead, a lazily-initialised bit of
 // state (set once per mount, never again) doubles as a per-instance identity.
@@ -25,8 +30,17 @@ let reactFlowMountCount = 0;
 function MockReactFlow(props: Record<string, unknown>) {
     reactFlowProps.current = props;
     const [instanceId] = useState(() => ++reactFlowMountCount);
+    // The nodes and edges ReactFlow draws read the decision overlay from this context.
+    const overlay = useDecisionOverlay();
+    decisionOverlay.current = overlay;
+    const { showDecisions, subjectLabels } = overlay;
     return (
-        <div data-testid="react-flow" data-instance={instanceId}>
+        <div
+            data-testid="react-flow"
+            data-instance={instanceId}
+            data-show-decisions={showDecisions}
+            data-relationship-label={subjectLabels.get('rel-1')}
+        >
             {props.children as ReactNode}
         </div>
     );
@@ -42,9 +56,10 @@ vi.mock('reactflow', async () => {
         __esModule: true,
         default: MockReactFlow,
         Background: () => <div data-testid="rf-background" />,
-        Controls: ({ children }: { children?: ReactNode }) => (
-            <div data-testid="rf-controls">{children}</div>
-        ),
+        Controls: (props: { children?: ReactNode }) => {
+            controlsProps.current = props;
+            return <div data-testid="rf-controls">{props.children}</div>;
+        },
         ControlButton: ({
             children,
             ...rest
@@ -77,10 +92,29 @@ const mockCalmData: CalmArchitectureSchema = {
     ],
 };
 
+// Two nodes span x 0 to 300 and y 0 to 100. A callout that reaches 160 below node-1 takes the content down to y 260.
+const measuredNodes = [
+    { id: 'node-1', position: { x: 0, y: 0 }, positionAbsolute: { x: 0, y: 0 }, width: 200, height: 100 },
+    { id: 'node-2', position: { x: 100, y: 0 }, positionAbsolute: { x: 100, y: 0 }, width: 200, height: 100 },
+];
+const contentWithCallout = { x: 0, y: 0, width: 300, height: 260 };
+
+/** A flow instance with measured nodes, handed to the graph as ReactFlow's onInit would, in an 800 by 600 pane. */
+function initMeasuredFlow() {
+    vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(800);
+    vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
+    const instance = { fitView: vi.fn(), getNodes: () => measuredNodes, setViewport: vi.fn() };
+    (reactFlowProps.current?.onInit as (i: unknown) => void)(instance);
+    return instance;
+}
+
+const reportCallout = () => act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 160 }));
+
 describe('ArchitectureGraph', () => {
     beforeEach(() => {
         reactFlowProps.current = null;
         miniMapProps.current = null;
+        controlsProps.current = null;
         reactFlowMountCount = 0;
         sessionStorage.clear();
         vi.clearAllMocks();
@@ -159,6 +193,7 @@ describe('ArchitectureGraph', () => {
             globalThis.ResizeObserver = originalResizeObserver;
             globalThis.requestAnimationFrame = originalRaf;
             globalThis.cancelAnimationFrame = originalCancelRaf;
+            vi.restoreAllMocks();
         });
 
         /** Hands the graph a flow instance the way ReactFlow's onInit would. */
@@ -194,6 +229,17 @@ describe('ArchitectureGraph', () => {
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
         });
 
+        it('takes in the decision callouts when it re-fits the pane', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} fitToPane />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+
+            triggerResize?.();
+
+            expect(instance.fitView).not.toHaveBeenCalled();
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.1));
+        });
+
         it('does not observe the pane when disabled, so a saved viewport survives a resize', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
             const fitView = initFlow();
@@ -201,6 +247,118 @@ describe('ArchitectureGraph', () => {
             // No observer was constructed at all, so there is nothing to trigger.
             expect(triggerResize).toBeNull();
             expect(fitView).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fit button', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        it('takes in the decision callouts, after React Flow\'s own fit of the nodes', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+
+            (controlsProps.current?.onFitView as () => void)();
+
+            // The button's own fit has the pane's zoom range and React Flow's default padding.
+            expect(instance.setViewport).toHaveBeenCalledWith(getViewportForBounds(contentWithCallout, 800, 600, 0.1, 2, 0.1));
+        });
+
+        it('leaves the fit to React Flow while no callout is drawn', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+
+            (controlsProps.current?.onFitView as () => void)();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+            expect(instance.fitView).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('fit on load', () => {
+        afterEach(() => {
+            vi.restoreAllMocks();
+        });
+
+        // React Flow reports every move through onMove, with no event for a move made from code.
+        const move = (viewport: Viewport) => act(() => (reactFlowProps.current?.onMove as (e: null, v: Viewport) => void)(null, viewport));
+        // Where React Flow's own fit puts the two nodes (x 0 to 300, y 0 to 100), with the desktop load options.
+        const nodesFit = getViewportForBounds({ x: 0, y: 0, width: 300, height: 100 }, 800, 600, 0.6, 1.2, 0.2);
+        const calloutFit = getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.2);
+        // Anywhere else: a drag or wheel, or a move the zoom buttons, the minimap or auto-pan make from code.
+        const viewersMove = { x: 12, y: 34, zoom: 0.9 };
+
+        it('takes in the callouts drawn before React Flow hands over its instance', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            reportCallout();
+
+            const instance = initMeasuredFlow();
+
+            expect(instance.setViewport).toHaveBeenCalledWith(calloutFit);
+        });
+
+        it('keeps following through React Flow\'s own fit and its callout fits landing', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            move(nodesFit);
+            reportCallout();
+            move(calloutFit);
+
+            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 300 }));
+
+            expect(instance.setViewport).toHaveBeenLastCalledWith(
+                getViewportForBounds({ x: 0, y: 0, width: 300, height: 400 }, 800, 600, 0.1, 1.2, 0.2),
+            );
+        });
+
+        it('zooms out past the desktop floor when the callouts would not otherwise fit, as on a small screen', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+
+            // A callout reaching 2000 below node-1 takes the content down to y 2100, more than 600 / 0.6.
+            act(() => decisionOverlay.current?.reportCalloutSize('node-1', { width: 200, height: 2000 }));
+
+            const viewport = instance.setViewport.mock.lastCall?.[0] as Viewport;
+            expect(viewport).toEqual(getViewportForBounds({ x: 0, y: 0, width: 300, height: 2100 }, 800, 600, 0.1, 1.2, 0.2));
+            expect(viewport.zoom).toBeLessThan(0.6);
+        });
+
+        it('stops following after any move a fit did not make', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            move(viewersMove);
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
+        });
+
+        it('saves only the viewer\'s view, so a refresh fits again until they move the diagram', () => {
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
+            initMeasuredFlow();
+            move(nodesFit);
+            reportCallout();
+            move(calloutFit);
+            expect(sessionStorage.getItem('calm-hub:diagram-viewport')).toBeNull();
+
+            move(viewersMove);
+
+            expect(JSON.parse(sessionStorage.getItem('calm-hub:diagram-viewport')!)).toEqual({ key: 'desktop:ns/id', viewport: viewersMove });
+        });
+
+        it('leaves a restored viewport alone', () => {
+            sessionStorage.setItem(
+                'calm-hub:diagram-viewport',
+                JSON.stringify({ key: 'desktop:ns/id', viewport: { x: 5, y: 6, zoom: 0.8 } })
+            );
+            render(<ArchitectureGraph jsonData={mockCalmData} viewportKey="ns/id" defaultLayout={null} />);
+            const instance = initMeasuredFlow();
+
+            reportCallout();
+
+            expect(instance.setViewport).not.toHaveBeenCalled();
         });
     });
 
@@ -249,6 +407,146 @@ describe('ArchitectureGraph', () => {
         });
     });
 
+    describe('presentation mode', () => {
+        let storage: Storage;
+        let store: PresentationModeStore;
+
+        beforeEach(() => {
+            storage = createMemoryStorage();
+            store = createPresentationModeStore(storage);
+        });
+
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        const renderGraph = () => render(<ArchitectureGraph jsonData={mockCalmData} presentationStore={store} />);
+        const presentation = () => screen.getByRole('button', { name: 'Presentation mode' });
+
+        it('starts off, with the minimap shown', () => {
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+        });
+
+        it('turns on, hides the minimap and is kept for the session', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            expect(screen.queryByTestId('diagram-minimap')).not.toBeInTheDocument();
+            expect(storage.getItem(PRESENTATION_MODE_KEY)).toBe('1');
+        });
+
+        it('turns off again and brings the minimap back', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            fireEvent.click(presentation());
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+            expect(storage.getItem(PRESENTATION_MODE_KEY)).toBe('0');
+        });
+
+        it('restores the mode kept for the session', () => {
+            storage.setItem(PRESENTATION_MODE_KEY, '1');
+            store = createPresentationModeStore(storage);
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns on from present=1 in the hash route, and keeps it when the query is dropped', () => {
+            window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
+            const { unmount } = renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            unmount();
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram';
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+        });
+
+        it('turns a kept mode off from present=0', () => {
+            store.set(true);
+            window.location.hash = '#/finos/architectures/33/1.1.0?tab=diagram&present=0';
+            renderGraph();
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+        });
+    });
+
+    describe('decision overlay', () => {
+        let storage: Storage;
+        let store: PresentationModeStore;
+
+        beforeEach(() => {
+            storage = createMemoryStorage();
+            store = createPresentationModeStore(createMemoryStorage());
+        });
+
+        afterEach(() => {
+            window.location.hash = '';
+        });
+
+        const renderGraph = () =>
+            render(<ArchitectureGraph jsonData={mockCalmData} presentationStore={store} storage={storage} />);
+        const presentation = () => screen.getByRole('button', { name: 'Presentation mode' });
+        const decisions = () => screen.getByRole('button', { name: 'Show decisions' });
+        const shown = () => screen.getByTestId('react-flow').getAttribute('data-show-decisions');
+
+        it('starts off', () => {
+            renderGraph();
+            expect(decisions()).toHaveAttribute('aria-pressed', 'false');
+            expect(shown()).toBe('false');
+        });
+
+        it('switches on and off with presentation mode', () => {
+            renderGraph();
+            fireEvent.click(presentation());
+            expect(decisions()).toHaveAttribute('aria-pressed', 'true');
+            expect(shown()).toBe('true');
+            fireEvent.click(presentation());
+            expect(decisions()).toHaveAttribute('aria-pressed', 'false');
+            expect(shown()).toBe('false');
+        });
+
+        it('switches on its own, leaving presentation mode and the minimap alone, and is kept for the session', () => {
+            renderGraph();
+            fireEvent.click(decisions());
+            expect(shown()).toBe('true');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+            expect(screen.getByTestId('diagram-minimap')).toBeInTheDocument();
+            expect(storage.getItem('calmHub.diagramDecisionsShown')).toBe('1');
+        });
+
+        it('can be switched off while presenting, and follows presentation mode again when that is switched', () => {
+            store.set(true);
+            renderGraph();
+            fireEvent.click(decisions());
+            expect(shown()).toBe('false');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'true');
+            fireEvent.click(presentation());
+            fireEvent.click(presentation());
+            expect(shown()).toBe('true');
+            expect(storage.getItem('calmHub.diagramDecisionsShown')).toBeNull();
+        });
+
+        it('restores the choice kept for the session', () => {
+            storage.setItem('calmHub.diagramDecisionsShown', '1');
+            renderGraph();
+            expect(shown()).toBe('true');
+            expect(presentation()).toHaveAttribute('aria-pressed', 'false');
+        });
+
+        it('turns on with present=1, over a choice kept for the session', () => {
+            storage.setItem('calmHub.diagramDecisionsShown', '0');
+            window.location.hash = '#/finos/architectures/33/1.1.0?present=1';
+            renderGraph();
+            expect(shown()).toBe('true');
+        });
+
+        it('gives the diagram the elements\' display names, a relationship by its nodes', () => {
+            renderGraph();
+            expect(screen.getByTestId('react-flow')).toHaveAttribute('data-relationship-label', 'Service A → Database B');
+        });
+    });
+
     describe('animation toggle', () => {
         it('offers a pause-animation control on desktop', () => {
             render(<ArchitectureGraph jsonData={mockCalmData} />);
@@ -274,6 +572,7 @@ describe('ArchitectureGraph', () => {
         afterEach(() => {
             // Restore the default (desktop) matchMedia so later tests aren't left mobile.
             window.matchMedia = originalMatchMedia;
+            vi.restoreAllMocks();
         });
 
         it('omits the minimap on mobile (Frame F shows no minimap)', () => {
@@ -332,6 +631,22 @@ describe('ArchitectureGraph', () => {
             // fitting 390px after rotation / iOS chrome collapse.
             window.dispatchEvent(new Event('resize'));
             expect(fitView).toHaveBeenCalledWith({ padding: 0.1, minZoom: 0.1, maxZoom: 1.2 });
+        });
+
+        it('takes in the decision callouts when it re-fits on a resize, and with its fit button', () => {
+            mockMobileViewport();
+            render(<ArchitectureGraph jsonData={mockCalmData} />);
+            const instance = initMeasuredFlow();
+            reportCallout();
+            const fit = getViewportForBounds(contentWithCallout, 800, 600, 0.1, 1.2, 0.1);
+
+            window.dispatchEvent(new Event('resize'));
+            expect(instance.setViewport).toHaveBeenLastCalledWith(fit);
+
+            instance.setViewport.mockClear();
+            (controlsProps.current?.onFitView as () => void)();
+            expect(instance.setViewport).toHaveBeenCalledWith(fit);
+            expect(instance.fitView).not.toHaveBeenCalled();
         });
     });
 

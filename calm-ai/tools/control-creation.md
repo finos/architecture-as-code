@@ -6,7 +6,7 @@
 
 ## Official JSON Schema Definition
 
-The complete control schema from the FINOS CALM v1.2 specification:
+The complete control schema from the FINOS CALM v1.3 specification:
 
 ```json
 {
@@ -118,8 +118,7 @@ Applied to the entire architecture document - affects all components:
 
 ```json
 {
-    "calm-version": "1.2.0",
-    "architecture-version": "1.0.0",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "controls": {
         "data-residency": {
             "description": "All data must remain within EU boundaries",

@@ -45,7 +45,7 @@ Standards extend core CALM definitions using `allOf` composition:
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Company Node Standard",
   "allOf": [
-    { "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node" },
+    { "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node" },
     {
       "type": "object",
       "properties": {
@@ -158,7 +158,7 @@ Standards use `allOf` to extend CALM schemas rather than replace them:
 ```json
 {
   "allOf": [
-    { "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node" },
+    { "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node" },
     { "required": ["costCenter", "owner"] }
   ]
 }

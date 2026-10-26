@@ -6,7 +6,7 @@
 
 ## Official JSON Schema Definition
 
-The complete metadata schema from the FINOS CALM v1.2 specification:
+The complete metadata schema from the FINOS CALM v1.3 specification:
 
 ```json
 {
@@ -73,8 +73,7 @@ Metadata at the document level describes the overall architecture:
 
 ```json
 {
-    "calm-version": "1.2.0",
-    "architecture-version": "1.0.0",
+    "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
     "metadata": {
         "title": "Trading Platform Architecture",
         "version": "2.1.0",

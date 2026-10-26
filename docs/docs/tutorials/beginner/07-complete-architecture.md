@@ -93,7 +93,7 @@ Each node should have:
 - At least one interface where appropriate (services and databases)
 - Metadata (owner, repository placeholder, deployment-type, etc.)
 
-Use the CALM 1.2 schema and ensure it validates.
+Use the CALM 1.3 schema and ensure it validates.
 ```
 
 :::note
@@ -260,7 +260,7 @@ Here's a complete, validated e-commerce architecture you can use as a reference:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
   "metadata": {
     "owner": "platform-team@example.com",
     "version": "1.0.0",
@@ -552,6 +552,6 @@ You should see no errors and no warnings.
 
 ## Resources
 
-- [CALM Schema Reference](https://calm.finos.org/release/1.2/meta/calm.json)
-- [CALM CLI Documentation](https://github.com/finos/architecture-as-code/tree/main/cli)
+- [CALM Schema Reference](https://calm.finos.org/release/1.3/meta/calm.json)
+- [CALM CLI Documentation](../../working-with-calm/cli.md)
 - [FINOS Community Discussions](https://github.com/finos/architecture-as-code/discussions)

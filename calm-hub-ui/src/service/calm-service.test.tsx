@@ -560,7 +560,7 @@ describe('CalmService', () => {
         it('should retrieve decorator values for a namespace', async () => {
             const decorators = [
                 {
-                    schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                    schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                     uniqueId: 'dec-1',
                     type: 'deployment',
                     target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -572,7 +572,7 @@ describe('CalmService', () => {
                     },
                 },
                 {
-                    schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                    schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                     uniqueId: 'dec-2',
                     type: 'deployment',
                     target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -593,7 +593,7 @@ describe('CalmService', () => {
 
         it('should pass target and type query params when provided', async () => {
             const decorators = [{
-                schema: 'https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json',
+                schema: 'https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json',
                 uniqueId: 'dec-1',
                 type: 'deployment',
                 target: ['/api/calm/namespaces/my-namespace/architectures/my-arch/versions/1-0-0'],
@@ -734,6 +734,40 @@ describe('CalmService', () => {
             const actual = await calmService.fetchDeploymentDecoratorsForArchitecture(namespace, '5', '2.3.1');
 
             expect(actual).toEqual([]);
+        });
+    });
+
+    describe('resolveArchitectureVersionTarget', () => {
+        it('builds the exact version target from a numeric id without calling mappings', async () => {
+            expect(await calmService.resolveArchitectureVersionTarget(namespace, '7', '1.1.0'))
+                .toBe(`/api/calm/namespaces/${namespace}/architectures/7/versions/1-1-0`);
+            expect(mock.history.get).toHaveLength(0);
+        });
+
+        it('resolves a slug to its numeric id through the mappings', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [{ namespace, customId: 'my-arch', resourceType: 'ARCHITECTURE', numericId: 42 }] });
+            expect(await calmService.resolveArchitectureVersionTarget(namespace, 'my-arch', '1.0.0'))
+                .toBe(`/api/calm/namespaces/${namespace}/architectures/42/versions/1-0-0`);
+        });
+
+        it('returns undefined when the slug cannot be resolved', async () => {
+            mock.onGet(`/calm/namespaces/${namespace}/architectures`).reply(200, { values: [] });
+            expect(await calmService.resolveArchitectureVersionTarget(namespace, 'unknown-slug', '1.0.0')).toBeUndefined();
+        });
+    });
+
+    describe('fetchControlEvaluationDecorators', () => {
+        const target = `/api/calm/namespaces/${namespace}/architectures/7/versions/1-1-0`;
+
+        it('fetches control-evaluation decorators for an exact version target', async () => {
+            const values = [{ uniqueId: 'eval-1', type: 'control-evaluation', target: [target], appliesTo: ['trade-api'], data: { status: 'not-met' } }];
+            mock.onGet(`/api/calm/namespaces/${namespace}/decorators/values?target=${encodeURIComponent(target)}&type=control-evaluation`).reply(200, { values });
+            expect(await calmService.fetchControlEvaluationDecorators(namespace, target)).toEqual(values);
+        });
+
+        it('rejects when the hub fails, so a failed refresh is not mistaken for no evaluations', async () => {
+            mock.onGet(new RegExp('/decorators/values')).reply(500);
+            await expect(calmService.fetchControlEvaluationDecorators(namespace, target)).rejects.toThrow(/control-evaluation/);
         });
     });
 });

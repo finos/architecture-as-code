@@ -142,7 +142,8 @@
     "package": "npm run build && npx @vscode/vsce package --no-dependencies",
     "vscode:prepublish": "npm run build",
     "test": "vitest run",
-    "lint": "eslint src/"
+    "lint": "eslint src/",
+    "changelog": "node ../../scripts/vscode-changelog.mjs"
   },
   "dependencies": {
     "@finos/calm-models": "file:../../calm-models",
@@ -166,6 +167,7 @@
     "@tailwindcss/vite": "^4.1.0",
     "tailwindcss": "^4.1.0",
     "esbuild": "^0.25.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
     "@types/vscode": "^1.88.0",
     "@types/react": "^19.1.0",
     "@types/react-dom": "^19.1.0",

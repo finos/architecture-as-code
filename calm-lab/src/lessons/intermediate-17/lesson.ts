@@ -6,6 +6,7 @@ import {
 } from '../checks';
 import { INTERMEDIATE_10 } from '../intermediate-10/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const PATTERN = `${HOME_DIR}/patterns/web-app-pattern.json`;
 const GENERATED = `${HOME_DIR}/architectures/generated-webapp.json`;
@@ -17,7 +18,7 @@ const VALIDATE = 'calm validate -p patterns/web-app-pattern.json -a architecture
 const VALIDATE_BROKEN = 'calm validate -p patterns/web-app-pattern.json -a architectures/broken-webapp.json -f pretty';
 
 const PATTERN_SEED = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "$id": "https://example.com/patterns/web-app-pattern.json",
     "title": "Web Application Pattern",
     "type": "object",
@@ -27,14 +28,14 @@ const PATTERN_SEED = `{
 
 // The file `calm generate` overwrites; seeded so the editor has a file to open.
 const GENERATED_SEED = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [],
     "relationships": []
 }
 `;
 
 const PATTERN_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "$id": "https://example.com/patterns/web-app-pattern.json",
     "title": "Web Application Pattern",
     "description": "A 3-tier web application: a web frontend, an API service and a database.",
@@ -46,7 +47,7 @@ const PATTERN_FILE = `{
             "maxItems": 3,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "web-frontend" },
@@ -55,7 +56,7 @@ const PATTERN_FILE = `{
                     }
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "api-service" },
@@ -64,7 +65,7 @@ const PATTERN_FILE = `{
                     }
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+                    "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "app-database" },
@@ -80,7 +81,7 @@ const PATTERN_FILE = `{
             "maxItems": 2,
             "prefixItems": [
                 {
-                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "frontend-to-api" },
@@ -95,7 +96,7 @@ const PATTERN_FILE = `{
                     }
                 },
                 {
-                    "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+                    "$ref": "${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship",
                     "type": "object",
                     "properties": {
                         "unique-id": { "const": "api-to-database" },

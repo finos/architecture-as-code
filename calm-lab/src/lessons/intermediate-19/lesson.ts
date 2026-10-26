@@ -5,6 +5,7 @@ import {
 } from '../checks';
 import { INTERMEDIATE_18, NODE_STD, RELATIONSHIP_STD } from '../intermediate-18/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const COMPLIANT = `${HOME_DIR}/architectures/compliant-test.json`;
 const ECOMMERCE = `${HOME_DIR}/architectures/ecommerce-platform.json`;
@@ -19,7 +20,7 @@ const MAPPING_SEED = `{}
 `;
 
 const BASE_SEED = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "$id": "https://example.com/patterns/company-base-pattern.json",
     "title": "Company Base Pattern",
     "type": "object",
@@ -28,14 +29,14 @@ const BASE_SEED = `{
 `;
 
 const COMPLIANT_SEED = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [],
     "relationships": []
 }
 `;
 
 const BASE_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "$id": "https://example.com/patterns/company-base-pattern.json",
     "title": "Company Base Pattern",
     "description": "Enforces the company Node and Relationship Standards on every node and relationship of an architecture.",
@@ -59,7 +60,7 @@ const BASE_FILE = `{
 `;
 
 const COMPLIANT_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "test-service",

@@ -4,7 +4,7 @@
   "description": "Controls to maintain the accuracy, freshness and integrity of data used in AI systems, preventing performance degradation and compliance failures due to data drift and stale training data.",
   "requirement": {
     "1-0-0": {
-      "$schema": "https://calm.finos.org/draft/2025-03/meta/control-requirement.json",
+      "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "id": "AIR-OP-019",
       "name": "Data Quality and Drift",
       "category": "Operational",

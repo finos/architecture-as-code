@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactFlow, {
     Node,
     Background,
@@ -8,17 +8,25 @@ import ReactFlow, {
     Panel,
     useNodesState,
     useEdgesState,
+    getBoundsOfRects,
+    getNodesBounds,
+    getViewportForBounds,
+    type FitViewOptions,
     type ReactFlowInstance,
     type Viewport,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Map as MapIcon } from 'lucide-react';
+import { Gavel, Map as MapIcon, Presentation as PresentationIcon } from 'lucide-react';
 import { MotionToggleButton } from './MotionToggleButton.js';
 import { readViewportForKey, saveViewportForKey } from './utils/viewportStore.js';
 import { FloatingEdge } from './FloatingEdge.js';
 import { CustomNode } from './CustomNode.js';
 import { SystemGroupNode } from './SystemGroupNode.js';
 import { SearchBar } from './SearchBar.js';
+import { presentParam, usePresentationMode } from '../../../theme/usePresentationMode.js';
+import { DecisionOverlayContext, useCalloutSizes, type CalloutSize } from '../../context/DecisionOverlayContext.js';
+import { subjectLabelsFor } from './utils/decisionSummary.js';
+import { calloutRects } from './utils/labelPlacement.js';
 import { THEME } from './theme.js';
 import { colors } from '../../../theme/colors.js';
 import { EmptyGraphState } from './EmptyGraphState.js';
@@ -57,6 +65,16 @@ const FIT_VIEW_OPTIONS = { padding: 0.2, minZoom: 0.6, maxZoom: 1.2 } as const;
  */
 const CONTAIN_FIT_VIEW_OPTIONS = { padding: 0.1, minZoom: 0.1, maxZoom: FIT_VIEW_OPTIONS.maxZoom } as const;
 
+const NO_CALLOUTS: ReadonlyMap<string, CalloutSize> = new Map();
+
+/** Whether a move landed on a fit's viewport: within half a pixel, as the pane's size is measured in whole pixels. */
+const sameViewport = (a: Viewport, b: Viewport) =>
+    Math.abs(a.x - b.x) < 0.5 && Math.abs(a.y - b.y) < 0.5 && Math.abs(a.zoom - b.zoom) < 0.001;
+
+/** The pane's zoom range, which also bounds a fit that sets no range of its own. */
+const MIN_ZOOM = 0.1;
+const MAX_ZOOM = 2;
+
 /** Persist the minimap show/hide choice so it survives a refresh. */
 const MINIMAP_HIDDEN_KEY = 'calmHub.diagramMinimapHidden';
 
@@ -65,6 +83,27 @@ function readMinimapHidden(): boolean {
         return sessionStorage.getItem(MINIMAP_HIDDEN_KEY) === '1';
     } catch {
         return false;
+    }
+}
+
+/** Persist the decision overlay choice for the session. With no choice made, the overlay follows presentation mode. */
+const DECISIONS_SHOWN_KEY = 'calmHub.diagramDecisionsShown';
+
+/** Reading the `sessionStorage` global itself throws when site data is blocked. */
+function defaultSessionStorage(): Storage | undefined {
+    try {
+        return sessionStorage;
+    } catch {
+        return undefined;
+    }
+}
+
+function readDecisionsShown(storage: Storage | undefined): boolean | undefined {
+    try {
+        const value = storage?.getItem(DECISIONS_SHOWN_KEY);
+        return value === '1' ? true : value === '0' ? false : undefined;
+    } catch {
+        return undefined;
     }
 }
 
@@ -77,6 +116,8 @@ export function ArchitectureGraph({
     layoutEpoch,
     onPositionsChange,
     fitToPane,
+    presentationStore,
+    storage = defaultSessionStorage(),
 }: ArchitectureGraphProps) {
     const isMobile = useIsMobile();
 
@@ -147,6 +188,42 @@ export function ArchitectureGraph({
         });
     };
 
+    // `?present=1` in a link turns presentation mode on, and `?present=0` off. It is saved for the session, because a
+    // switch between diagram tabs rewrites the query.
+    const { presenting, setPresenting } = usePresentationMode(presentationStore);
+
+    // The decision overlay draws each element's latest decision on the diagram. It follows presentation mode until it
+    // is switched on its own, and switching presentation mode hands it back.
+    const [decisionsShown, setDecisionsShownState] = useState<boolean | undefined>(() => readDecisionsShown(storage));
+    const setDecisionsShown = useCallback((on: boolean | undefined) => {
+        try {
+            if (on === undefined) storage?.removeItem(DECISIONS_SHOWN_KEY);
+            else storage?.setItem(DECISIONS_SHOWN_KEY, on ? '1' : '0');
+        } catch {
+            /* ignore unavailable storage */
+        }
+        setDecisionsShownState(on);
+    }, [storage]);
+    const showDecisions = decisionsShown ?? presenting;
+    const switchPresentation = (on: boolean) => {
+        setPresenting(on);
+        setDecisionsShown(undefined);
+    };
+    // Set with the parsed graph, not derived from node state, which changes on every drag.
+    const [subjectLabels, setSubjectLabels] = useState<Map<string, string>>(() => new Map());
+    const { calloutSizes, reportCalloutSize, currentCalloutSizes } = useCalloutSizes();
+    const decisionOverlay = useMemo(
+        () => ({ showDecisions, subjectLabels, calloutSizes, reportCalloutSize }),
+        [showDecisions, subjectLabels, calloutSizes, reportCalloutSize],
+    );
+
+    useLayoutEffect(() => {
+        const param = presentParam();
+        if (param === undefined) return;
+        setPresenting(param);
+        setDecisionsShown(undefined);
+    }, [setPresenting, setDecisionsShown]);
+
     const {
         onNodesChange,
         handleNodeClick,
@@ -189,6 +266,7 @@ export function ArchitectureGraph({
 
         setNodes(positionedNodes);
         setEdges(parsedEdges);
+        setSubjectLabels(subjectLabelsFor(parsedNodes, parsedEdges));
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         reportPositions(toStoredPositions(positionedNodes));
         // layoutEpoch has no direct use in the body — it exists purely as a
@@ -234,6 +312,75 @@ export function ArchitectureGraph({
         );
     }, [searchTerm, typeFilter, isSearchActive, setNodes, setEdges]);
 
+    // The viewport that takes in the shown nodes and the given callouts, as fitView would for the nodes alone.
+    // Undefined until React Flow hands over its instance.
+    const viewportToFit = useCallback((options: FitViewOptions, callouts: ReadonlyMap<string, CalloutSize>) => {
+        const instance = flowInstanceRef.current;
+        const container = containerRef.current;
+        if (!instance || !container) return undefined;
+        const shown = instance.getNodes().filter((node) => !node.hidden);
+        const bounds = calloutRects(shown, callouts).reduce(getBoundsOfRects, getNodesBounds(shown));
+        return getViewportForBounds(
+            bounds,
+            container.clientWidth,
+            container.clientHeight,
+            options.minZoom ?? MIN_ZOOM,
+            options.maxZoom ?? MAX_ZOOM,
+            options.padding ?? 0.1,
+        );
+    }, []);
+
+    // Where the fits that take in callouts last sent the viewport. setViewport lands on a later tick, so a move is
+    // matched against these to tell a fit from the viewer.
+    const calloutFitTargets = useRef<Viewport[]>([]);
+
+    // fitView takes in React Flow's node bounds only. The decision callouts hang below the nodes, outside those bounds,
+    // so while any are drawn a fit takes in their area too. False when there are none, as fitView alone is then right.
+    const fitWithCallouts = useCallback((options: FitViewOptions = {}) => {
+        const callouts = currentCalloutSizes();
+        const viewport = callouts.size > 0 ? viewportToFit(options, callouts) : undefined;
+        if (!viewport) return false;
+        calloutFitTargets.current = [...calloutFitTargets.current.slice(-3), viewport];
+        flowInstanceRef.current?.setViewport(viewport);
+        return true;
+    }, [currentCalloutSizes, viewportToFit]);
+    const refit = useCallback((options: FitViewOptions) => {
+        if (!fitWithCallouts(options)) flowInstanceRef.current?.fitView(options);
+    }, [fitWithCallouts]);
+
+    // One derived config, so the fit props stay in agreement. Mobile and an embedded
+    // pane always fit on load and ignore a persisted viewport, because the user does
+    // not size either one. Desktop restores its saved viewport, or fits if it has none.
+    const flowConfig = fitToPane || isMobile
+        ? { fitView: true, defaultViewport: undefined, fitViewOptions: CONTAIN_FIT_VIEW_OPTIONS }
+        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
+
+    // React Flow's fit on load takes in the nodes only, and control evaluations can arrive after it. Fit the decision
+    // callouts in when React Flow hands over its instance and as they come and go, until the viewer moves the diagram.
+    // A restored viewport is left as it was. Like the fit button, a fit that takes in callouts may zoom out past the
+    // desktop floor: on a small screen the callouts would otherwise stay cut off.
+    const followsFit = useRef(flowConfig.fitView);
+    useEffect(() => {
+        followsFit.current = flowConfig.fitView;
+    }, [viewportKey, flowConfig.fitView]);
+    const { fitViewOptions } = flowConfig;
+    const calloutFitOptions = useMemo(
+        () => ({ ...fitViewOptions, minZoom: CONTAIN_FIT_VIEW_OPTIONS.minZoom }),
+        [fitViewOptions],
+    );
+    useEffect(() => {
+        if (followsFit.current && !fitWithCallouts(calloutFitOptions)) flowInstanceRef.current?.fitView(fitViewOptions);
+    }, [calloutSizes, calloutFitOptions, fitViewOptions, fitWithCallouts]);
+
+    // React Flow reports every move through onMove: its own fits, and the moves the controls, the minimap and auto-pan
+    // make as well as the viewer's drags. A fit lands where React Flow fits the nodes with the load options, or where a
+    // callout fit was sent; a move anywhere else is the viewer's. Before React Flow hands over its instance, only its
+    // own fit moves the diagram.
+    const isFitMove = (viewport: Viewport) => {
+        const nodesFit = viewportToFit(fitViewOptions, NO_CALLOUTS);
+        return !nodesFit || [nodesFit, ...calloutFitTargets.current].some((fit) => sameViewport(fit, viewport));
+    };
+
     // Mobile: re-fit the graph on a viewport resize (rotation, iOS chrome collapsing)
     // AND immediately when the app first crosses into mobile — fitView only auto-runs
     // on ReactFlow's initial mount, so a discrete breakpoint crossing (window snap,
@@ -241,11 +388,11 @@ export function ArchitectureGraph({
     // graph un-fit (redesign problem #10). refit() is a no-op until onInit has run.
     useEffect(() => {
         if (!isMobile) return;
-        const refit = () => flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
-        refit();
-        window.addEventListener('resize', refit);
-        return () => window.removeEventListener('resize', refit);
-    }, [isMobile]);
+        const fit = () => refit(CONTAIN_FIT_VIEW_OPTIONS);
+        fit();
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, [isMobile, refit]);
 
     // fitView otherwise runs only at ReactFlow's initial mount. An embedded pane that
     // sibling UI resizes later then keeps a viewport scaled for its old size. Watch
@@ -259,7 +406,7 @@ export function ArchitectureGraph({
         const observer = new ResizeObserver(() => {
             cancelAnimationFrame(frame);
             frame = requestAnimationFrame(() => {
-                flowInstanceRef.current?.fitView(CONTAIN_FIT_VIEW_OPTIONS);
+                refit(CONTAIN_FIT_VIEW_OPTIONS);
             });
         });
         observer.observe(container);
@@ -267,7 +414,7 @@ export function ArchitectureGraph({
             cancelAnimationFrame(frame);
             observer.disconnect();
         };
-    }, [fitToPane, nodes.length]);
+    }, [fitToPane, nodes.length, refit]);
 
     if (awaitingDefaultLayout) {
         return <EmptyGraphState message="Loading saved layout…" />;
@@ -277,133 +424,161 @@ export function ArchitectureGraph({
         return <EmptyGraphState message="No architecture data to display. Load a CALM architecture to visualize." />;
     }
 
-    // One derived config, so the fit props stay in agreement. Mobile and an embedded
-    // pane always fit on load and ignore a persisted viewport, because the user does
-    // not size either one. Desktop restores its saved viewport, or fits if it has none.
-    const flowConfig = fitToPane || isMobile
-        ? { fitView: true, defaultViewport: undefined, fitViewOptions: CONTAIN_FIT_VIEW_OPTIONS }
-        : { fitView: !savedViewport, defaultViewport: savedViewport, fitViewOptions: FIT_VIEW_OPTIONS };
-
     return (
         <div ref={containerRef} style={{ height: '100%', width: '100%' }}>
-            <ReactFlow
-                // Remount when the diagram (resource) changes so a new architecture fits
-                // afresh; switching versions/moments keeps the same key and preserves the
-                // view. layoutEpoch is deliberately NOT folded in here — it used to be, to
-                // force a remount on "reset to default layout", but savedViewport is only
-                // recomputed from storageKey (unchanged by an epoch bump), so a remount
-                // restored defaultViewport from whatever was read at mount time rather than
-                // the user's current pan/zoom: pan, zoom, drag a node, Save, and the canvas
-                // snapped back to the load-time view (worse on mobile, which re-fits
-                // unconditionally). The remount was never load-bearing for reset — the parse
-                // effect below already has layoutEpoch in its deps and re-applies positions
-                // on its own, which is all reset needs.
-                key={viewportKey}
-                nodes={nodes}
-                edges={edges}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
-                onNodesChange={onNodesChange}
-                onEdgesChange={onEdgesChange}
-                onNodeClick={handleNodeClick}
-                onNodeMouseEnter={handleNodeMouseEnter}
-                onNodeMouseLeave={handleNodeMouseLeave}
-                onEdgeClick={handleEdgeClick}
-                onMove={(_, viewport) => {
-                    if (storageKey) saveViewportForKey(storageKey, viewport);
-                }}
-                // Capture the instance on both devices so a later desktop→mobile
-                // crossing can re-fit (the effect above), then spread the device-derived
-                // fit config so the props always agree.
-                onInit={(instance) => { flowInstanceRef.current = instance; }}
-                {...flowConfig}
-                minZoom={0.1}
-                attributionPosition="bottom-left"
-                style={{ background: THEME.colors.background }}
-            >
-                {/* The dot colour is set in index.css, not here: ReactFlow writes this
-                    prop into an SVG `fill` presentation attribute, where `var()` does
-                    not resolve. */}
-                <Background gap={16} />
-                {!isMobile && (
-                    <Controls
-                        style={{
-                            background: THEME.colors.card,
-                            border: `1px solid ${THEME.colors.border}`,
-                            borderRadius: '8px',
-                        }}
-                    >
-                        <ControlButton
-                            onClick={toggleMinimap}
-                            title={minimapHidden ? 'Show minimap' : 'Hide minimap'}
-                            aria-label={minimapHidden ? 'Show minimap' : 'Hide minimap'}
-                            aria-pressed={!minimapHidden}
+            <DecisionOverlayContext.Provider value={decisionOverlay}>
+                <ReactFlow
+                    // Remount when the diagram (resource) changes so a new architecture fits
+                    // afresh; switching versions/moments keeps the same key and preserves the
+                    // view. layoutEpoch is deliberately NOT folded in here — it used to be, to
+                    // force a remount on "reset to default layout", but savedViewport is only
+                    // recomputed from storageKey (unchanged by an epoch bump), so a remount
+                    // restored defaultViewport from whatever was read at mount time rather than
+                    // the user's current pan/zoom: pan, zoom, drag a node, Save, and the canvas
+                    // snapped back to the load-time view (worse on mobile, which re-fits
+                    // unconditionally). The remount was never load-bearing for reset — the parse
+                    // effect below already has layoutEpoch in its deps and re-applies positions
+                    // on its own, which is all reset needs.
+                    key={viewportKey}
+                    nodes={nodes}
+                    edges={edges}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onNodeClick={handleNodeClick}
+                    onNodeMouseEnter={handleNodeMouseEnter}
+                    onNodeMouseLeave={handleNodeMouseLeave}
+                    onEdgeClick={handleEdgeClick}
+                    // Only the viewer's view is saved, so a refresh fits afresh until they move the diagram.
+                    onMove={(_, viewport) => {
+                        if (followsFit.current && !isFitMove(viewport)) followsFit.current = false;
+                        if (!followsFit.current && storageKey) saveViewportForKey(storageKey, viewport);
+                    }}
+                    // Capture the instance on both devices so a later desktop→mobile
+                    // crossing can re-fit (the effect above), then spread the device-derived
+                    // fit config so the props always agree. Callouts are drawn once the nodes are measured, after
+                    // React Flow's own fit, and may be drawn by now, so the fit takes them in.
+                    onInit={(instance) => {
+                        flowInstanceRef.current = instance;
+                        if (followsFit.current) fitWithCallouts(calloutFitOptions);
+                    }}
+                    {...flowConfig}
+                    minZoom={MIN_ZOOM}
+                    maxZoom={MAX_ZOOM}
+                    attributionPosition="bottom-left"
+                    style={{ background: THEME.colors.background }}
+                >
+                    {/* The dot colour is set in index.css, not here: ReactFlow writes this
+                        prop into an SVG `fill` presentation attribute, where `var()` does
+                        not resolve. */}
+                    <Background gap={16} />
+                    {!isMobile && (
+                        <Controls
+                            // The button's own fit runs first, and this one replaces it while callouts are drawn.
+                            onFitView={() => fitWithCallouts()}
+                            style={{
+                                background: THEME.colors.card,
+                                border: `1px solid ${THEME.colors.border}`,
+                                borderRadius: '8px',
+                            }}
                         >
-                            <MapIcon
-                                size={14}
-                                color={minimapHidden ? THEME.colors.muted : colors.redesign.primaryText}
-                            />
-                        </ControlButton>
-                        <MotionToggleButton />
-                    </Controls>
-                )}
-                {isMobile && (
-                    // Mobile gets visible zoom controls (redesign problem #11) —
-                    // larger touch cells, bottom-right per Frame F, no minimap
-                    // toggle (mobile has no minimap) and no lock cell. Sized via the
-                    // scoped `calm-mobile-controls` CSS class so the desktop Controls
-                    // styling above is untouched.
-                    <Controls
-                        className="calm-mobile-controls"
-                        position="bottom-right"
-                        showInteractive={false}
-                        // Match the on-load fit cap so the "fit" button doesn't
-                        // over-zoom a sparse graph (reactflow's default maxZoom is 2).
-                        fitViewOptions={CONTAIN_FIT_VIEW_OPTIONS}
-                    />
-                )}
-                {!isMobile && !minimapHidden && (
-                    <MiniMap
-                        data-testid="diagram-minimap"
-                        className="calm-minimap-mask-surface"
-                        pannable
-                        zoomable
-                        // Fixed compact panel so the minimap can't overflow the canvas
-                        // or collide with the drawer/timeline (redesign problem #5). The
-                        // bottom offset clears the timeline bar pinned below the canvas.
-                        style={{
-                            width: 132,
-                            height: 84,
-                            bottom: 16,
-                            background: colors.redesign.surface,
-                            border: `1px solid ${colors.redesign.borderStrong}`,
-                            borderRadius: 8,
-                            overflow: 'hidden',
-                            boxShadow: '0 2px 6px rgba(16,24,40,.06)',
-                        }}
-                        // Faint tinted node chips so the map reads as a soft field,
-                        // not solid accent on every node.
-                        nodeColor={`${colors.redesign.primary}40`}
-                        nodeStrokeColor={`${colors.redesign.primary}66`}
-                        // The ~25% mask that keeps the surrounding field faint is applied
-                        // in index.css via `.calm-minimap-mask-surface`: `maskColor` lands
-                        // in an SVG `fill` attribute, which `var()` cannot reach.
-                        maskStrokeColor={colors.redesign.primary}
-                        maskStrokeWidth={1.5}
-                    />
-                )}
-                {!externalSearch && (
-                    <Panel position="top-right">
-                        <SearchBar
-                            searchTerm={searchTerm}
-                            onSearchChange={setSearchTerm}
-                            typeFilter={typeFilter}
-                            onTypeFilterChange={setTypeFilter}
-                            nodeTypes={availableNodeTypes}
+                            <ControlButton
+                                onClick={toggleMinimap}
+                                title={minimapHidden ? 'Show minimap' : 'Hide minimap'}
+                                aria-label={minimapHidden ? 'Show minimap' : 'Hide minimap'}
+                                aria-pressed={!minimapHidden}
+                            >
+                                <MapIcon
+                                    size={14}
+                                    color={minimapHidden ? THEME.colors.muted : colors.redesign.primaryText}
+                                />
+                            </ControlButton>
+                            <MotionToggleButton />
+                            <ControlButton
+                                onClick={() => switchPresentation(!presenting)}
+                                title="Presentation mode"
+                                aria-label="Presentation mode"
+                                aria-pressed={presenting}
+                            >
+                                <PresentationIcon
+                                    size={14}
+                                    color={presenting ? colors.redesign.primaryText : THEME.colors.muted}
+                                />
+                            </ControlButton>
+                            <ControlButton
+                                onClick={() => setDecisionsShown(!showDecisions)}
+                                title="Show decisions"
+                                aria-label="Show decisions"
+                                aria-pressed={showDecisions}
+                            >
+                                <Gavel
+                                    size={14}
+                                    color={showDecisions ? colors.redesign.primaryText : THEME.colors.muted}
+                                />
+                            </ControlButton>
+                        </Controls>
+                    )}
+                    {isMobile && (
+                        // Mobile gets visible zoom controls (redesign problem #11) —
+                        // larger touch cells, bottom-right per Frame F, no minimap
+                        // toggle (mobile has no minimap) and no lock cell. Sized via the
+                        // scoped `calm-mobile-controls` CSS class so the desktop Controls
+                        // styling above is untouched.
+                        <Controls
+                            className="calm-mobile-controls"
+                            position="bottom-right"
+                            showInteractive={false}
+                            // Match the on-load fit cap so the "fit" button doesn't
+                            // over-zoom a sparse graph (reactflow's default maxZoom is 2).
+                            fitViewOptions={CONTAIN_FIT_VIEW_OPTIONS}
+                            onFitView={() => fitWithCallouts(CONTAIN_FIT_VIEW_OPTIONS)}
                         />
-                    </Panel>
-                )}
-            </ReactFlow>
+                    )}
+                    {/* Presentation mode hides the minimap: on a projector it is clutter. */}
+                    {!isMobile && !minimapHidden && !presenting && (
+                        <MiniMap
+                            data-testid="diagram-minimap"
+                            className="calm-minimap-mask-surface"
+                            pannable
+                            zoomable
+                            // Fixed compact panel so the minimap can't overflow the canvas
+                            // or collide with the drawer/timeline (redesign problem #5). The
+                            // bottom offset clears the timeline bar pinned below the canvas.
+                            style={{
+                                width: 132,
+                                height: 84,
+                                bottom: 16,
+                                background: colors.redesign.surface,
+                                border: `1px solid ${colors.redesign.borderStrong}`,
+                                borderRadius: 8,
+                                overflow: 'hidden',
+                                boxShadow: '0 2px 6px rgba(16,24,40,.06)',
+                            }}
+                            // Faint tinted node chips so the map reads as a soft field,
+                            // not solid accent on every node.
+                            nodeColor={`${colors.redesign.primary}40`}
+                            nodeStrokeColor={`${colors.redesign.primary}66`}
+                            // The ~25% mask that keeps the surrounding field faint is applied
+                            // in index.css via `.calm-minimap-mask-surface`: `maskColor` lands
+                            // in an SVG `fill` attribute, which `var()` cannot reach.
+                            maskStrokeColor={colors.redesign.primary}
+                            maskStrokeWidth={1.5}
+                        />
+                    )}
+                    {!externalSearch && (
+                        <Panel position="top-right">
+                            <SearchBar
+                                searchTerm={searchTerm}
+                                onSearchChange={setSearchTerm}
+                                typeFilter={typeFilter}
+                                onTypeFilterChange={setTypeFilter}
+                                nodeTypes={availableNodeTypes}
+                            />
+                        </Panel>
+                    )}
+                </ReactFlow>
+            </DecisionOverlayContext.Provider>
         </div>
     );
 }

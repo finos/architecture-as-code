@@ -1,6 +1,6 @@
 // Environment variables:
 // - CALM_DB_NAME: Name of the MongoDB database to use (default: calmSchemas)
-// - CALM_SCHEMA_BASE_PATH: Base path of the draft and release-candidate schemas (default: /calm)
+// - CALM_SCHEMA_BASE_PATH: Base path of the draft schemas (default: /calm)
 // - CALM_RELEASE_SCHEMA_PATH: Path of the released schemas, <version>/meta per release
 //   (default: /calm-schemas/release). The compose files mount calm-hub/target/calm-schemas/release,
 //   which `npm run calm-hub:copy-schemas` fills from the @finos/calm-schema npm packages.
@@ -439,7 +439,7 @@ if (db.counters.countDocuments({ _id: "interfaceStoreCounter" }) === 0) {
 }
 
 logSection("Schemas");
-// Load the released schemas from the npm copy, and the release candidates and drafts from calm/.
+// Load the released schemas from the npm copy, and the drafts from calm/.
 // Set CALM_RELEASE_SCHEMA_PATH and CALM_SCHEMA_BASE_PATH to override the defaults.
 const fs = require('fs');
 const basePath = (typeof process !== 'undefined' && process.env.CALM_SCHEMA_BASE_PATH)
@@ -489,7 +489,6 @@ function loadSchemasFromDir(baseDir, prefix) {
 }
 
 loadSchemasFromDir(releaseSchemaPath, 'release');
-loadSchemasFromDir(`${basePath}/release`, 'release');
 loadSchemasFromDir(`${basePath}/draft`, 'draft');
 
 function loadControlsFromDir(baseDir) {
@@ -532,10 +531,9 @@ if (db.namespaces.countDocuments() === 0) {
         { name: "ai-governance-v2", description: "AI Governance v2 namespace" },
         { name: "qcon", description: "QCon scenario 3 namespace" },
         { name: "finos.fluxnova", description: "FluxNova BPM example architectures" },
-        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" },
-        { name: "finos.agentic-sdlc", description: "Agentic SDLC Blueprint: the pattern and Standards that enforce the SDLC Common Controls on its estate" }
+        { name: "finos.sdlc-common-controls", description: "The Standard the SDLC Common Controls Catalog control requirements conform to" }
     ]);
-    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls, finos.agentic-sdlc");
+    logSuccess("Initialized namespaces: finos, workshop, traderx, ai-governance-v2, qcon, finos.fluxnova, finos.sdlc-common-controls");
 } else {
     logSkip("Namespaces already exist, no initialization needed");
 }
@@ -2407,7 +2405,7 @@ if (isEmptyDatabase && db.architectures.countDocuments() === 0) {
                 versions:
                 {
                     "1.0.0": {
-                        "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+                        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
                         "nodes": [
                             {
                                 "unique-id": "traderx-system",
@@ -2874,7 +2872,7 @@ if (isEmptyDatabase && db.architectures.countDocuments() === 0) {
                 description: "User → MCP Server (cloud-hosted) → API Service → Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
                 versions: {
                     "1.0.0": {
-                        "$schema": "https://calm.finos.org/draft/2025-03/meta/calm.json",
+                        "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
                         "unique-id": "mcp-api-pipeline",
                         "name": "MCP Server API Pipeline",
                         "description": "User → MCP Server (cloud-hosted) → API Service → Database. FINOS AIR AI Governance controls applied directly on nodes and relationships.",
@@ -6667,7 +6665,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(1),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment",
                         "type": "deployment",
                         "target": [
@@ -6692,7 +6690,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(2),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment-v2",
                         "type": "deployment",
                         "target": [
@@ -6715,7 +6713,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(3),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "finos-architecture-1-deployment-v3",
                         "type": "deployment",
                         "target": [
@@ -6736,30 +6734,6 @@ if (db.decorators.countDocuments() === 0) {
                             "notes": "Third production deployment is currently rolling out with updated Helm chart values"
                         }
                     }
-                },
-                {
-                    decoratorId: NumberInt(4),
-                    decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
-                        "unique-id": "finos-pattern-1-deployment",
-                        "type": "deployment",
-                        "target": [
-                            "/calm/namespaces/finos/patterns/1/versions/1-0-0"
-                        ],
-                        "target-type": [
-                            "pattern"
-                        ],
-                        "applies-to": [
-                            "node-a", "relationship-x"
-                        ],
-                        "data": {
-                            "start-time": "2026-02-15T09:30:00Z",
-                            "end-time": "2026-02-15T09:35:20Z",
-                            "status": "completed",
-                            "deployment-url": "https://github.com/finos/actions/runs/987654321",
-                            "notes": "Pattern deployment via GitHub Actions"
-                        }
-                    }
                 }
             ]
         },
@@ -6769,7 +6743,7 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(1),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.schema.json",
+                        "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                         "unique-id": "workshop-conference-deployment",
                         "type": "deployment",
                         "target": [
@@ -6794,7 +6768,6 @@ if (db.decorators.countDocuments() === 0) {
                 {
                     decoratorId: NumberInt(2),
                     decorator: {
-                        "$schema": "https://calm.finos.org/draft/2026-03/standards/observability/observability.decorator.schema.json",
                         "unique-id": "workshop-conference-monitoring",
                         "type": "observability",
                         "target": [

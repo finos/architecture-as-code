@@ -6,14 +6,15 @@ import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import type { LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const GENERATED = INTERMEDIATE_20.editorFile;
 const WEB_APP = '/workspace/patterns/web-app-pattern.json';
 const BASE = '/workspace/patterns/company-base-pattern.json';
 const MAPPING = '/workspace/url-mapping.json';
 
-const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
-const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
+const NODE_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`;
+const RELATIONSHIP_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`;
 
 /** The learner's own standards: other required property names than the hint. */
 const standard = (ref: string, required: string[]) => JSON.stringify({ allOf: [{ $ref: ref }, { type: 'object', required }] });

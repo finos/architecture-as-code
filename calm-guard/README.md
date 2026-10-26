@@ -181,7 +181,7 @@ graph TB
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| **Framework** | Next.js 15 (App Router) | Full-stack React with API routes |
+| **Framework** | Next.js 16 (App Router) | Full-stack React with API routes |
 | **Language** | TypeScript (strict) | Type-safe codebase, zero `any` |
 | **AI** | Vercel AI SDK | Structured output via `generateObject` + Zod |
 | **LLM Providers** | Gemini, Claude, GPT, Grok | Multi-provider with configurable default |

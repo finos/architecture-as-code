@@ -141,7 +141,7 @@ The `calm docify` website is functionally equivalent to the VSCode extension pre
 
 ## Resources
 
-- [Docify Documentation](https://github.com/finos/architecture-as-code/tree/main/cli#docify)
+- [Docify Documentation](../../calm-cli/docify.md)
 
 ## Next Steps
 

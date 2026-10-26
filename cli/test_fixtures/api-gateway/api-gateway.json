@@ -31,12 +31,22 @@
               "minItems": 1,
               "prefixItems": [
                 {
-                  "$ref": "https://calm.finos.org/release/1.0-rc1/meta/interface.json#/defs/host-port-interface",
+                  "$ref": "https://calm.finos.org/release/1.2/meta/interface.json#/defs/interface-type",
                   "properties": {
                     "unique-id": {
                       "const": "api-gateway-ingress"
+                    },
+                    "host": {
+                      "type": "string"
+                    },
+                    "port": {
+                      "type": "integer"
                     }
-                  }
+                  },
+                  "required": [
+                    "host",
+                    "port"
+                  ]
                 }
               ]
             }

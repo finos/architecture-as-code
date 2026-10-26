@@ -10,7 +10,7 @@ Look for the parameters `root_dir` and `arch_file`in the incoming request, promp
 
 If either `root_dir` or `arch_file` is missing or empty, ask a single concise clarifying question requesting the value for the missing parameter.
 
-Scan all subdirectories of `root_dir` to identify potential CALM nodes and relationships for a FINOS CALM architecture model (schema version 1.2).
+Scan all subdirectories of `root_dir` to identify potential CALM nodes and relationships for a FINOS CALM architecture model (schema version 1.3).
 
 Present the discovered nodes and relationships as described in the `Output format` section below, along with any key observations about the architecture.
 
@@ -112,9 +112,9 @@ Then list key observations:
 
 ### Save nodes and relationships
 
-Display the following message: "Saving the discovered nodes and relationships to a CALM architecture model in JSON format, adhering to the CALM schema version 1.2.to `arch_file`."
+Display the following message: "Saving the discovered nodes and relationships to a CALM architecture model in JSON format, adhering to the CALM schema version 1.3 to `arch_file`."
 
-Create a CALM architecture model in JSON format containing only the discovered nodes and relationships, adhering to the CALM schema version 1.2. 
+Create a CALM architecture model in JSON format containing only the discovered nodes and relationships, adhering to the CALM schema version 1.3. 
 
 Form `key-obs-file` name by replacing ".json" ending of `arch-file` with "-key-observations.md"
 

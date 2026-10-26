@@ -266,6 +266,7 @@ All images are multi-arch (`linux/amd64` + `linux/arm64`). Native images are bui
 CALM_READONLY=true
 QUARKUS_PROFILE=standalone
 CALM_STANDALONE_DATA_DIRECTORY=/deployments/data
+CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 ### How the Read-Only Data Image Layer is Built
@@ -286,6 +287,7 @@ Stage 2 — runtime (minimal base)
   chmod 0444                              ← filesystem-level immutability
   ENV CALM_READONLY=true
   ENV QUARKUS_PROFILE=standalone
+  ENV CALM_HUB_BASE_URL=https://hub.calm.finos.org
 ```
 
 **Why native read-only uses JVM for seeding:** GraalVM native binaries cannot reliably *write* (commit) the H2 MVStore backing NitriteDB due to Java serialisation requirements not fully supported in native. The JVM seed stage writes the database; the native binary only reads it. Serialisation metadata for the read path is registered in `META-INF/native-image/org.finos/calm-hub/serialization-config.json`.
@@ -408,8 +410,8 @@ All four workflows:
   `ReadOnlyRequestFilter`, which rejects mutating verbs (POST/PUT/PATCH/DELETE)
   on `/calm/*` with `405 Method Not Allowed`
 - `build-readonly-image.sh` packages a static, pre-seeded read-only Docker image
-  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts and
-  release candidates, controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
+  (Maven package + stage the released meta-schemas from `target/calm-schemas`, the `calm/` drafts,
+  controls, standards, patterns and interfaces + build `Dockerfile.readonly-static`)
 
 ### Bundled CALM Meta-Schemas
 - GitHub mode serves `/calm/schemas` from `META-INF/calm-schemas/` on the classpath (`ClasspathCoreSchemaStore`)
@@ -430,9 +432,13 @@ All four workflows:
   parsing (`resolve_calm_hub_base_url`); defaulting it at the top ignores `-u`
 - The released meta-schemas come from `target/calm-schemas/release`, the npm copy that
   `./mvnw package` makes (`npm run calm-hub:copy-schemas` makes it without Maven). `calm/` in the
-  repository holds only the drafts and the release candidates, which are seeded as before. The
+  repository holds only the drafts, and the scripts seed them from there. The
   seed data under `mongo/` (controls, standards, patterns, interfaces) is one directory per domain
   or namespace
+- The name-based seed reads only the JSON files at the top of each `mongo/standards/<namespace>/`
+  directory, and requires a hub `$id`. Each subdirectory of `mongo/standards/finos.calm/` holds copies
+  of the decorator standards of one calm-schema release, with their calm.finos.org `$id`, so
+  `create_standards` seeds them through the numeric API instead, `deployment/` first
 
 ### Integration Tests
 - Located in `src/integration-test/java/`

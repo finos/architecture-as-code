@@ -2,6 +2,7 @@ import { HOME_DIR, type Lesson, type LessonState } from '../types';
 import { fileText, filledAdr, linkedAdrs, validatedEditorFile } from '../checks';
 import { INTERMEDIATE_09 } from '../intermediate-09/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const EDITOR_FILE = INTERMEDIATE_09.editorFile;
 const BASE_FILE = endFiles(INTERMEDIATE_09)[EDITOR_FILE];
@@ -88,8 +89,8 @@ must implement token refresh, and revoking a token before it expires needs extra
 `;
 
 const STEP_3_TARGET_FILE = BASE_FILE.replace(
-    '"$schema": "https://calm.finos.org/release/1.2/meta/calm.json",\n    "metadata": {',
-    '"$schema": "https://calm.finos.org/release/1.2/meta/calm.json",\n    "adrs": [\n' +
+    `"$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",\n    "metadata": {`,
+    `"$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",\n    "adrs": [\n` +
         '        "docs/adr/0001-use-message-queue-for-async-processing.md",\n' +
         '        "docs/adr/0002-use-oauth2-for-api-authentication.md"\n' +
         '    ],\n    "metadata": {',

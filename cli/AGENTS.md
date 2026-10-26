@@ -12,7 +12,6 @@ This guide helps AI assistants work efficiently with the CALM CLI codebase.
 - **Dependencies**: 
   - `@finos/calm-shared` - Shared utilities
   - `@finos/calm-widgets` - Widget framework for visualizations
-  - JSON Schema validation via `@apidevtools/json-schema-ref-parser`
 
 ## Key Commands
 
@@ -108,8 +107,7 @@ Note: `copy-calm-schema` only bundles meta schemas into `dist/calm/` (see Schema
 
 ### Schema Handling
 - Released CALM schemas come from the `@finos/calm-schema` npm package. The root `package.json` pins each released version by alias (`calm-schema-1.0`, `calm-schema-1.1`, ...) and the latest version as `@finos/calm-schema`
-- Release candidates and drafts live in `../calm/release/1.0-rc*/` and `../calm/draft/` until
-  [#3240](https://github.com/finos/architecture-as-code/issues/3240) step 6 deletes them
+- Drafts live in `../calm/draft/`
 - Default schema directory: the bundled `dist/calm` (`CALM_META_SCHEMA_DIRECTORY` in `shared`)
 - CLI accepts `-s, --schema-directory` to override
 - Schemas are copied during build, not at runtime
@@ -157,6 +155,9 @@ npm run test:smoke --workspace cli
 
 The suite starts one shared hub via `cli/smoke/global-setup.ts`; each flow uses
 its own namespace (`smoke-crud`, `smoke-genval`, `smoke-workspace`, `smoke-workspace-documents`, `smoke-flows`).
+`generate-validate.smoke.spec.ts` also serves control documents from a second origin,
+`http://smoke-controls.localhost:8090` (`cli/smoke/harness/cross-host-origin.ts`), so that
+`DirectUrlDocumentLoader` is tested against a host other than `-c`. Port 8090 must be free.
 
 ### Common Test Patterns
 - Use `test_helpers/` for shared test utilities
@@ -218,8 +219,8 @@ npm run build --workspace cli
 - `tsup.config.ts` - Build configuration (entry points, formats)
 - `vitest.config.mts` - Test configuration
 - `eslint.config.mjs` - Linting rules
-- `release.config.mjs` - Semantic release configuration (release rules and changelog filtering)
-- `release-analyzer.mjs` - Gives the commit analyzer only the commits that the changelog lists
+- `release.config.mjs` - Semantic release configuration: the scopes that release the CLI. The rules
+  are in `scripts/release-notes.mjs`, which the CALM Server and VS Code extension changelogs also use
 
 ## Release Process
 

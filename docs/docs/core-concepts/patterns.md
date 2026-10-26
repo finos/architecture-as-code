@@ -41,7 +41,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm.json",
   "$id": "https://example.com/patterns/web-app-pattern.json",
   "title": "Web Application Pattern",
   "description": "A reusable 3-tier web application pattern (frontend, API service, database).",
@@ -53,7 +53,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
       "maxItems": 5,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": { "const": "web-frontend" },
@@ -64,7 +64,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
           "required": ["description"]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": { "const": "api-service" },
@@ -75,7 +75,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
           "required": ["description"]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+          "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
           "type": "object",
           "properties": {
             "unique-id": { "const": "app-database" },
@@ -89,7 +89,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
       "items": {
         "anyOf": [
           {
-            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
             "type": "object",
             "properties": {
               "unique-id": { "const": "app-cache" },
@@ -100,7 +100,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
             "required": ["description"]
           },
           {
-            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/node",
+            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/node",
             "type": "object",
             "properties": {
               "unique-id": { "const": "message-queue" },
@@ -119,7 +119,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
       "maxItems": 4,
       "prefixItems": [
         {
-          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": { "const": "frontend-to-api" },
@@ -137,7 +137,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
           "required": ["description"]
         },
         {
-          "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+          "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
           "type": "object",
           "properties": {
             "unique-id": { "const": "api-to-database" },
@@ -158,7 +158,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
       "items": {
         "anyOf": [
           {
-            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
             "type": "object",
             "properties": {
               "unique-id": { "const": "api-to-cache" },
@@ -176,7 +176,7 @@ Below is a small **3-tier web application** pattern template (frontend â†’ API â
             "required": ["description"]
           },
           {
-            "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+            "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
             "type": "object",
             "properties": {
               "unique-id": { "const": "api-to-queue" },
@@ -232,7 +232,7 @@ For example, to offer the cache and the message queue, add this relationship to 
 
 ```json
 {
-  "$ref": "https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship",
+  "$ref": "https://calm.finos.org/release/1.3/meta/core.json#/defs/relationship",
   "type": "object",
   "properties": {
     "unique-id": { "const": "optional-components" },
@@ -270,7 +270,7 @@ For example, to offer the cache and the message queue, add this relationship to 
 }
 ```
 
-`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../working-with-calm/cli.md#pattern-options) to give the choices on the command line.
+`calm generate` then asks which components to add. "Add a cache" builds `app-cache` and `api-to-cache`. Because the choice uses `anyOf`, it can select both. See [Pattern Options](../calm-cli/generate.md#pattern-options) to give the choices on the command line.
 
 **The architecture keeps the decision.** The generated architecture contains the `optional-components` relationship too, with the selected choices in its `options` list. After "Add a cache":
 

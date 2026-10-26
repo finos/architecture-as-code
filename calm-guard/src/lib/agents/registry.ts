@@ -41,7 +41,7 @@ export function loadAgentConfig(name: string): AgentConfig {
   // Validate against schema
   const result = agentConfigSchema.safeParse(rawConfig);
   if (!result.success) {
-    const errors = result.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
+    const errors = result.error.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', ');
     throw new Error(`Invalid agent config in ${path}: ${errors}`);
   }
 

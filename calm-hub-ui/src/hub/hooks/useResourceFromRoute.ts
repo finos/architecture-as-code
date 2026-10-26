@@ -22,6 +22,8 @@ type HubParams = {
 };
 
 interface UseResourceFromRouteOptions {
+    /** From useResourceNavigationKey. The resource loads again each time this key changes. */
+    resourceKey: string;
     onDataLoad: (data: Data) => void;
     onAdrLoad: (adr: Adr) => void;
     onControlLoad: (control: ControlData) => void;
@@ -47,13 +49,14 @@ interface UseResourceFromRouteOptions {
  * are expected to be stable (memoised by the caller).
  */
 export function useResourceFromRoute({
+    resourceKey,
     onDataLoad,
     onAdrLoad,
     onControlLoad,
     onInterfaceLoad,
     onLoadError,
 }: UseResourceFromRouteOptions) {
-    const params = useParams<HubParams>();
+    const { namespace, type, id, version } = useParams<HubParams>();
 
     const onControlLoadRef = useRef(onControlLoad);
     onControlLoadRef.current = onControlLoad;
@@ -66,9 +69,8 @@ export function useResourceFromRoute({
     const adrService = useMemo(() => new AdrService(), []);
 
     useEffect(() => {
-        if (!(params.namespace && params.type && params.id && params.version)) return;
-        const uiType = mapTypeInUrlToTypeInUI(params.type);
-        const namespace = params.namespace;
+        if (!(namespace && type && id && version)) return;
+        const uiType = mapTypeInUrlToTypeInUI(type);
 
         // The loaders have no cancellation, so a promise can settle after the user
         // has already navigated on. Guard every callback behind `cancelled` (flipped
@@ -96,7 +98,7 @@ export function useResourceFromRoute({
                     // Interfaces are deep-linked both by numeric id and by customId (the namespace
                     // browse page prefers the customId when one exists), so match either.
                     const match = interfaces.find(
-                        (i) => i.id === Number(params.id) || i.customId === params.id
+                        (i) => i.id === Number(id) || i.customId === id
                     );
                     if (match) {
                         onInterfaceLoadRef.current({
@@ -119,10 +121,10 @@ export function useResourceFromRoute({
                     // Controls are deep-linked both by numeric id (mobile drill-down) and by
                     // name slug (global/Explorer search -> /controls/<name>/detail), so match either.
                     const match =
-                        controls.find((c) => String(c.id) === params.id) ??
-                        controls.find((c) => c.name === params.id);
+                        controls.find((c) => String(c.id) === id) ??
+                        controls.find((c) => c.name === id);
                     if (!match) {
-                        reportError(new Error(`Control ${params.id} not found in domain ${namespace}`));
+                        reportError(new Error(`Control ${id} not found in domain ${namespace}`));
                         return;
                     }
                     onControlLoadRef.current({
@@ -137,14 +139,14 @@ export function useResourceFromRoute({
             return cleanup;
         }
 
-        if (isSlug(params.id)) {
-            loadResourceForId(params.version, uiType, namespace, params.id, calmService, emitData, reportError);
+        if (isSlug(id)) {
+            loadResourceForId(version, uiType, namespace, id, calmService, emitData, reportError);
         } else {
             loadResource({
-                version: params.version,
+                version,
                 type: uiType,
                 namespace,
-                resourceID: params.id,
+                resourceID: id,
                 calmService,
                 onDataLoad: emitData,
                 onAdrLoad: emitAdr,
@@ -153,5 +155,5 @@ export function useResourceFromRoute({
             });
         }
         return cleanup;
-    }, [params, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad, onLoadError]);
+    }, [resourceKey, namespace, type, id, version, calmService, adrService, interfaceService, controlService, onDataLoad, onAdrLoad, onLoadError]);
 }

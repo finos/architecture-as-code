@@ -8,7 +8,7 @@ block sites that accept free-text input can allow-list it separately from the do
 
 - **Build**: Vite 8 + `@vitejs/plugin-react`
 - **Framework**: React 19
-- **Testing**: Vitest + jsdom + React Testing Library
+- **Testing**: Vitest + jsdom + React Testing Library; Playwright for layout (`e2e/`)
 - **Engine**: `@finos/calm-shared/browser`
 - **Diagram**: `reactflow` + `@dagrejs/dagre`
 
@@ -25,6 +25,7 @@ editor buffer rather than schema-valid documents.
 npm run calm-lab:run                  # Dev server
 npm run build:calm-lab                # models → widgets → shared → lab
 npm test --workspace calm-lab         # Unit tests
+npm run test:e2e --workspace calm-lab # Browser layout tests (Playwright) — build first
 npm run lint --workspace calm-lab     # ESLint
 npm run typecheck --workspace calm-lab  # tsc --noEmit (CI runs this after lint)
 ```
@@ -52,7 +53,7 @@ shim here.
 | Path | What it is |
 | --- | --- |
 | `src/engine.ts` | `validateArchitecture`, `validateOutcome`, `generateArchitecture` on `@finos/calm-shared/browser` |
-| `src/schemas.ts` | The CALM meta-schemas, imported from `@finos/calm-schema` and `calm/draft` and keyed by `$id` |
+| `src/schemas.ts` | The CALM meta-schemas, imported from `@finos/calm-schema` and keyed by `$id` |
 | `src/shell.ts` | The terminal's command interpreter; dispatches `calm` subcommands to `src/cli/` |
 | `src/cli/` | CLI-compatible `calm validate`/`calm generate`/`calm diff`: argument parsing, output and error text |
 | `src/lab/**` | The lab UI, moved from `docs/src/components/Lab` |
@@ -64,7 +65,7 @@ shim here.
 `src/engine.ts` holds one memoised `SchemaDirectory` for the session, built over
 `buildBrowserDocumentLoader` with `allowRemote: false`. `src/schemas.ts` bundles every release
 that the root `package.json` pins (`@finos/calm-schema` and each `calm-schema-<major.minor>`
-alias, found by `import.meta.glob`), and the draft schemas from `calm/draft`. A command with `-u`
+alias, found by `import.meta.glob`). A command with `-u`
 gets its own `SchemaDirectory` (`schemaDirectoryWith`): the mapped workspace files first
 (`src/cli/files.ts`), then the bundled schemas. Mapped paths resolve against the mapping file's
 directory, as in the CLI.
@@ -118,6 +119,9 @@ Follow "Write a lesson" in `README.md`. The rules an agent is most likely to bre
   imported from `src/lessons/chain.ts` (importing it from `index.ts` creates a circular import back
   through the registry). Never copy the previous lesson's JSON.
 - Never rename a released lesson id: it is the URL and the storage key.
+- Write CALM release URLs with `CALM_META_SCHEMA_BASE_URL` and the release number with
+  `CALM_SCHEMA_RELEASE`, both from `src/schemas.ts`, never a literal release. The invariants spec
+  fails on any other release.
 
 ## The diagram renders untrusted input
 

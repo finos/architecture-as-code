@@ -12,9 +12,9 @@
  * (e.g. interface-level endpoint refs on connects relationships) are
  * eliminated by depending on calm-models directly.
  *
- * Calm-studio-specific extensions (decorators, evidence) stay local because
- * calm-models does not define them yet. Variant accessor helpers live in
- * helpers.ts.
+ * The `decorators` extension on the architecture and the types that
+ * calm-models does not define yet (evidence) stay local. Variant accessor
+ * helpers live in helpers.ts.
  */
 
 export type {
@@ -38,10 +38,12 @@ export type {
   CalmFlowSchema as CalmFlow,
   CalmFlowTransitionSchema as CalmTransition,
   CalmFlowTransitionDirectionSchema,
+  CalmDecoratorSchema as CalmDecorator,
 } from '@finos/calm-models/types';
 
 import type {
   CalmArchitectureSchema,
+  CalmDecoratorSchema as CalmDecorator,
   CalmNodeSchema,
   CalmRelationshipSchema,
 } from '@finos/calm-models/types';
@@ -70,20 +72,6 @@ export type CalmRelationshipVariant =
 // ─── CalmStudio-only extensions (not in calm-models) ────────────────────────
 
 /**
- * A CALM 1.2 decorator — architecture-wide overlay for cross-cutting concerns
- * such as AIGF governance summaries, regulatory mappings, threat models, or
- * security posture. Not yet in @finos/calm-models; lives locally until
- * upstreamed.
- */
-export interface CalmDecorator {
-  'unique-id': string;
-  type: string;
-  target: string[];
-  'applies-to': string[];
-  data: Record<string, unknown>;
-}
-
-/**
  * CalmStudio architecture model: the canonical CALM 1.2 core schema with
  * two studio-specific tightenings:
  *
@@ -95,8 +83,8 @@ export interface CalmDecorator {
  *     removes a flood of `arch.nodes is possibly undefined` errors.
  *
  *   - `decorators?: CalmDecorator[]` extension used by the AIGF
- *     governance overlay and the threat-model overlay (#2551).
- *     `@finos/calm-models` does not model decorators yet.
+ *     governance overlay and the threat-model overlay (#2551). The CALM
+ *     core schema has no `decorators` property.
  */
 export type CalmArchitecture = Omit<
   CalmArchitectureSchema,

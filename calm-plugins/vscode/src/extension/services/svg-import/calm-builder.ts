@@ -1,5 +1,6 @@
 import type { ParsedSvgGraph, ImportResult, SvgNode } from './types';
 import { mapShapeToNodeType } from './shape-mapper';
+import { CALM_META_SCHEMA_BASE_URL } from '../../../core/calm-schema-release';
 
 export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
     const warnings: string[] = [];
@@ -135,7 +136,7 @@ export function buildCalmJson(graph: ParsedSvgGraph): ImportResult {
     }
 
     const calmDoc = {
-        $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
+        $schema: `${CALM_META_SCHEMA_BASE_URL}/calm.json`,
         nodes,
         relationships,
         metadata: { _layout: layout },

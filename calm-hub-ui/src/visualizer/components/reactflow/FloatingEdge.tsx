@@ -1,9 +1,19 @@
 import { memo, useState, useCallback } from 'react';
-import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore } from 'reactflow';
-import { getEdgeParams } from './utils/floatingEdges.js';
+import { EdgeProps, getBezierPath, getSmoothStepPath, getStraightPath, EdgeLabelRenderer, useStore, type Node } from 'reactflow';
+import { getEdgeParams, sameNodeGeometry } from './utils/floatingEdges.js';
 import { THEME } from './theme.js';
 import { EdgeBadge, EdgeTooltip, getBadgeStyle } from './edge-components/index.js';
 import type { EdgeData } from '../../contracts/contracts.js';
+import { usePresentationMode, type PresentationModeStore } from '../../../theme/usePresentationMode.js';
+import { calloutRects, calloutShift, coveredNodeTop } from './utils/labelPlacement.js';
+import { useElementEvaluation } from '../../context/ControlEvaluationContext.js';
+import { useDecisionOverlay } from '../../context/DecisionOverlayContext.js';
+import { useElementSize } from './hooks/useElementSize.js';
+
+interface FloatingEdgeProps extends EdgeProps<EdgeData> {
+    /** Injected for tests; defaults to the app-wide store. */
+    presentationStore?: PresentationModeStore;
+}
 
 function FloatingEdgeComponent({
     id,
@@ -13,42 +23,59 @@ function FloatingEdgeComponent({
     markerEnd,
     markerStart,
     data,
-}: EdgeProps<EdgeData>) {
+    presentationStore,
+}: FloatingEdgeProps) {
     const [isHovered, setIsHovered] = useState(false);
-    const routing = data?.metadata?.routing;
+    const direction = data?.direction;
+    const evaluation = useElementEvaluation(data?.['unique-id']);
+    const notMet = evaluation?.status === 'not-met';
 
-    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]));
-    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]));
+    // reactflow gives every node a new object on each node change, for example the z-index change on a hover. Only
+    // the geometry is compared, so such a change does not render every edge again.
+    const sourceNode = useStore(useCallback((store) => store.nodeInternals.get(source), [source]), sameNodeGeometry);
+    const targetNode = useStore(useCallback((store) => store.nodeInternals.get(target), [target]), sameNodeGeometry);
+    const { presenting } = usePresentationMode(presentationStore);
+    const path = sourceNode && targetNode
+        ? getFloatingEdgePath(sourceNode, targetNode, direction, data?.metadata?.routing)
+        : undefined;
 
-    if (!sourceNode || !targetNode) {
+    // The larger presentation label would hide a node it falls on, for example when the edge goes behind that node,
+    // so the label moves to just above that node. The hit test is in the selector: it gives a number, which a hover
+    // does not change.
+    const hitX = presenting ? path?.labelX : undefined;
+    const hitY = presenting ? path?.labelY : undefined;
+    const coveredTop = useStore(useCallback(
+        (store) => (hitX === undefined || hitY === undefined
+            ? undefined
+            : coveredNodeTop(store.nodeInternals.values(), hitX, hitY, [source, target])),
+        [hitX, hitY, source, target],
+    ));
+
+    // In presentation mode the decision callouts below nodes are large enough to cover an edge label, which then moves
+    // down to clear them. A label already moved above a node it would cover stays there. Like the hit test, the shift
+    // is calculated in the selector from the label's own position, so it changes only when a node or a callout does.
+    const { showDecisions, calloutSizes } = useDecisionOverlay();
+    const shiftForCallouts = presenting && showDecisions && coveredTop === undefined;
+    const [labelElement, setLabelElement] = useState<HTMLDivElement | null>(null);
+    const labelSize = useElementSize(labelElement);
+    const labelShift = useStore(useCallback(
+        (store) => (!shiftForCallouts || hitX === undefined || hitY === undefined || !labelSize
+            ? 0
+            : calloutShift(
+                { x: hitX - labelSize.width / 2, y: hitY - labelSize.height / 2, ...labelSize },
+                calloutRects(store.nodeInternals.values(), calloutSizes),
+            )),
+        [shiftForCallouts, hitX, hitY, labelSize, calloutSizes],
+    ));
+
+    if (!path) {
         return null;
     }
 
-    // Every routing attaches at the node border nearest the other node. A native handle
-    // position is fixed per handle, so it cannot do that.
-    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
-
-    // Calculate perpendicular offset for bidirectional edges
-    const direction = data?.direction;
-    const offset = direction ? 20 : 0;
-
-    const { adjustedSourceX, adjustedSourceY, adjustedTargetX, adjustedTargetY } = calculateOffsetPositions(
-        sx, sy, tx, ty, offset, direction
-    );
-
-    const pathParams = {
-        sourceX: adjustedSourceX,
-        sourceY: adjustedSourceY,
-        sourcePosition: sourcePos,
-        targetX: adjustedTargetX,
-        targetY: adjustedTargetY,
-        targetPosition: targetPos,
-    };
-
-    const [edgePath, labelX, labelY] =
-        routing === 'straight' ? getStraightPath(pathParams) :
-        routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
-        getBezierPath(pathParams);
+    const { edgePath, labelX, labelY } = path;
+    const labelTransform = coveredTop === undefined
+        ? `translate(-50%, -50%) translate(${labelX}px,${labelY + labelShift}px)`
+        : `translate(-50%, -100%) translate(${labelX}px,${coveredTop - 8}px)`;
 
     // Extract edge data
     const description = data?.description || '';
@@ -71,36 +98,80 @@ function FloatingEdgeComponent({
     const hasFlowInfo = flowTransitions.length > 0;
     const hasAIGF = controlsApplied.length > 0 || mitigations.length > 0 || risks.length > 0;
     const badgeStyle = getBadgeStyle(hasFlowInfo);
-    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF;
+    const hasIndicator = Boolean(edgeLabel) || hasFlowInfo || hasAIGF || notMet;
+    const pathStyle = notMet ? { ...style, stroke: THEME.colors.error, strokeWidth: 3.5 } : style;
+    // A not-met relationship's arrowheads turn red with it. The shared markers are coloured per edge type, so this
+    // edge draws its own, with an id unique to the edge, and points only the ends that already had one at it.
+    const notMetMarkerId = `control-evaluation-arrow-${id}`;
+    const notMetMarker = `url(#${notMetMarkerId})`;
+    // ReactFlow passes an end with no marker as an empty reference, url('#'), which is truthy but draws nothing.
+    const endMarker = referencedMarker(markerEnd);
+    const startMarker = referencedMarker(markerStart);
+    const pathMarkerEnd = notMet && endMarker ? notMetMarker : endMarker;
+    const pathMarkerStart = notMet && startMarker ? notMetMarker : startMarker;
+    // The decision overlay says what a not-met relationship requires, beside its badge.
+    const requirement = showDecisions && notMet
+        ? evaluation?.latest.find((d) => d.data.status === 'not-met' && d.data.findings?.length)?.data.findings?.[0]?.description
+        : undefined;
 
     return (
         <>
+            {notMet && (endMarker || startMarker) && (
+                <defs>
+                    {/* ReactFlow's ArrowClosed geometry, sized in user space to match the 25-wide marker on a
+                        2.5px edge, since this edge is drawn thicker. */}
+                    <marker
+                        id={notMetMarkerId}
+                        className="react-flow__arrowhead"
+                        viewBox="-10 -10 20 20"
+                        refX="0"
+                        refY="0"
+                        markerWidth="62.5"
+                        markerHeight="62.5"
+                        markerUnits="userSpaceOnUse"
+                        orient="auto-start-reverse"
+                    >
+                        <polyline
+                            points="-5,-4 0,0 -5,4 -5,-4"
+                            fill={THEME.colors.error}
+                            stroke={THEME.colors.error}
+                            strokeWidth="1"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </marker>
+                </defs>
+            )}
             <path
                 id={id}
-                style={style}
+                style={pathStyle}
                 className="react-flow__edge-path"
                 d={edgePath}
-                markerEnd={markerEnd}
-                markerStart={markerStart}
+                markerEnd={pathMarkerEnd}
+                markerStart={pathMarkerStart}
             />
             {isFlowActive && (
                 <path
                     d={edgePath}
                     className="flow-dash-overlay"
-                    markerEnd={markerEnd}
+                    markerEnd={pathMarkerEnd}
                 />
             )}
             {hasIndicator && (
                 <EdgeLabelRenderer>
                     <div
+                        // Held only while it can move, as holding it renders the edge again.
+                        ref={shiftForCallouts ? setLabelElement : undefined}
                         style={{
                             position: 'absolute',
-                            transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+                            transform: labelTransform,
                             pointerEvents: 'all',
                             zIndex: 1000,
                             opacity: flowOpacity,
                             transition: 'opacity 0.4s ease',
                             display: 'flex',
+                            // Presentation mode stacks the badges and the label: together they are too wide for one line.
+                            flexDirection: presenting ? 'column' : undefined,
                             alignItems: 'center',
                             gap: '4px',
                         }}
@@ -114,21 +185,56 @@ function FloatingEdgeComponent({
                                 badgeStyle={badgeStyle}
                             />
                         )}
+                        {notMet && (
+                            <span
+                                data-testid="edge-evaluation-badge"
+                                style={{
+                                    fontSize: presenting ? '18px' : '11px',
+                                    fontWeight: 600,
+                                    padding: presenting ? '3px 8px' : '2px 4px',
+                                    borderRadius: '4px',
+                                    background: THEME.colors.card,
+                                    border: `1px solid ${THEME.colors.error}`,
+                                    color: THEME.colors.errorText,
+                                }}
+                            >
+                                <span aria-hidden="true">✗</span> Not met
+                            </span>
+                        )}
+                        {requirement && (
+                            <span
+                                data-testid="edge-decision-finding"
+                                style={{
+                                    fontSize: presenting ? '16px' : '11px',
+                                    fontWeight: 600,
+                                    padding: presenting ? '3px 8px' : '2px 4px',
+                                    borderRadius: '4px',
+                                    background: THEME.colors.card,
+                                    border: `1px solid ${THEME.colors.error}`,
+                                    color: THEME.colors.foreground,
+                                    maxWidth: presenting ? '220px' : '180px',
+                                    textAlign: 'center',
+                                }}
+                            >
+                                Requires: {requirement}
+                            </span>
+                        )}
                         {edgeLabel && (
                             <span
                                 style={{
-                                    display: 'inline-block',
-                                    fontSize: '10px',
+                                    fontSize: presenting ? '16px' : '10px',
                                     lineHeight: 1.25,
-                                    padding: '2px 4px',
+                                    padding: presenting ? '3px 8px' : '2px 4px',
                                     borderRadius: '4px',
                                     background: THEME.colors.card,
                                     border: `1px solid ${THEME.colors.border}`,
                                     color: THEME.colors.muted,
-                                    maxWidth: '160px',
+                                    maxWidth: presenting ? '220px' : '160px',
                                     overflow: 'hidden',
                                     textOverflow: 'ellipsis',
-                                    whiteSpace: 'nowrap',
+                                    ...(presenting
+                                        ? { whiteSpace: 'normal', textAlign: 'center', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }
+                                        : { whiteSpace: 'nowrap', display: 'inline-block' }),
                                 }}
                             >
                                 {edgeLabel}
@@ -157,6 +263,51 @@ function FloatingEdgeComponent({
 }
 
 export const FloatingEdge = memo(FloatingEdgeComponent);
+
+function getFloatingEdgePath(
+    sourceNode: Node,
+    targetNode: Node,
+    direction: EdgeData['direction'],
+    routing: NonNullable<EdgeData['metadata']>['routing'],
+) {
+    // Every routing attaches at the node border nearest the other node. A native handle
+    // position is fixed per handle, so it cannot do that.
+    const { sx, sy, tx, ty, sourcePos, targetPos } = getEdgeParams(sourceNode, targetNode);
+
+    // Calculate perpendicular offset for bidirectional edges
+    const offset = direction ? 20 : 0;
+
+    const { adjustedSourceX, adjustedSourceY, adjustedTargetX, adjustedTargetY } = calculateOffsetPositions(
+        sx, sy, tx, ty, offset, direction
+    );
+
+    const pathParams = {
+        sourceX: adjustedSourceX,
+        sourceY: adjustedSourceY,
+        sourcePosition: sourcePos,
+        targetX: adjustedTargetX,
+        targetY: adjustedTargetY,
+        targetPosition: targetPos,
+    };
+
+    const [edgePath, labelX, labelY] =
+        routing === 'straight' ? getStraightPath(pathParams) :
+        routing === 'smoothstep' ? getSmoothStepPath(pathParams) :
+        getBezierPath(pathParams);
+
+    return { edgePath, labelX, labelY };
+}
+
+/**
+ * The marker reference for one end of the edge, or undefined when that end has none: ReactFlow
+ * hands an unset marker to the edge as url('#').
+ */
+function referencedMarker(marker: string | undefined): string | undefined {
+    if (!marker || /^url\(\s*['"]?#['"]?\s*\)$/.test(marker)) {
+        return undefined;
+    }
+    return marker;
+}
 
 /**
  * Calculate offset positions for bidirectional edges

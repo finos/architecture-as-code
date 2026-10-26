@@ -10,7 +10,7 @@ sidebar_position: 7
 Timelines were introduced in **CALM schema version 1.2**. To use timelines, include the following schema reference in your timeline document:
 
 ```json
-"$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json"
+"$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json"
 ```
 :::
 
@@ -79,7 +79,7 @@ Here's a complete example of a timeline tracking the evolution of a system:
 
 ```json
 {
-  "$schema": "https://calm.finos.org/release/1.2/meta/calm-timeline.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/calm-timeline.json",
   "current-moment": "v3-microservices",
   "moments": [
     {

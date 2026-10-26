@@ -81,6 +81,10 @@ export const colors = {
         warning: '#ca8a04', // yellow-600
         error: '#dc2626', // red-600
         info: '#0284c7', // sky-600
+        /** `error` in a text or icon role. See the header note on contrast. */
+        errorText: 'var(--calm-status-error-text)',
+        /** `success` in a text or icon role. See the header note on contrast. */
+        successText: 'var(--calm-status-success-text)',
     },
 
     // ADR (Architecture Decision Record) status colors

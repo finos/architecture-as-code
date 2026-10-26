@@ -2,12 +2,13 @@ import type { Lesson } from '../types';
 import { composedOf, connectsBetween, interactsWith, validatedEditorFile } from '../checks';
 import { BEGINNER_02 } from '../beginner-02/lesson';
 import { endFiles } from '../chain';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const EDITOR_FILE = BEGINNER_02.editorFile;
 
 // Paste-safe hints: each is the complete target file, building on the previous step.
 const STEP_1_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "payment-service",
@@ -37,7 +38,7 @@ const STEP_1_TARGET_FILE = `{
 `;
 
 const STEP_2_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "payment-service",
@@ -82,7 +83,7 @@ const STEP_2_TARGET_FILE = `{
 `;
 
 const STEP_3_TARGET_FILE = `{
-    "$schema": "https://calm.finos.org/release/1.2/meta/calm.json",
+    "$schema": "${CALM_META_SCHEMA_BASE_URL}/calm.json",
     "nodes": [
         {
             "unique-id": "payment-service",

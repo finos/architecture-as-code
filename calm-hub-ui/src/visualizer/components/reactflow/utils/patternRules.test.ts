@@ -3,7 +3,7 @@ import { extractPatternRules, hasPatternRules, resolveStandardRef } from './patt
 
 const GOVERNED_NODE = 'https://hub.calm.finos.org/calm/namespaces/finos.agentic-sdlc/standards/governed-node/versions/1.0.0';
 
-// The parts of calm-hub/mongo/patterns/finos.agentic-sdlc/governed-service.pattern.json that the rules read.
+// The parts of a governed-service pattern that the rules read.
 const governedServicePattern = {
     $schema: 'https://calm.finos.org/release/1.2/meta/calm.json',
     title: 'Governed service pattern',
@@ -61,7 +61,7 @@ describe('extractPatternRules', () => {
     it('ignores CALM meta-schema and local $refs', () => {
         const rules = extractPatternRules({
             properties: {
-                nodes: { items: { allOf: [{ $ref: 'https://calm.finos.org/draft/2025-03/meta/core.json#/defs/node' }, { $ref: '#/$defs/x' }] } },
+                nodes: { items: { allOf: [{ $ref: 'https://calm.finos.org/draft/2026-03/meta/core.json#/defs/node' }, { $ref: '#/$defs/x' }] } },
                 relationships: { items: { $ref: 'https://calm.finos.org/release/1.2/meta/core.json' } },
             },
         });

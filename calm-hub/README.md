@@ -34,7 +34,7 @@ npm ci && npm run calm-hub:copy-schemas
 A version of CALM Hub will be up and running on: [http://localhost:8080](http://localhost:8080)
 The API documentation can be found at: [http://localhost:8080/q/swagger-ui/#/](http://localhost:8080/q/swagger-ui/#/)
 
-> **Note:** The `jvm` and `native` profiles start CALM Hub with the `no-auth` Quarkus profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile. The `readonly-static` and `readonly-native` profiles use the `standalone` Quarkus profile (NitriteDB baked into the image) and reject all mutating HTTP verbs with 405.
+> **Note:** The `jvm` and `native` profiles start CALM Hub with the `no-auth` Quarkus profile for local convenience. The default profile is **secure** (see [Auth Profiles](#auth-profiles) below) and rejects all requests with 401 unless you explicitly select an auth profile. The `readonly-static` and `readonly-native` profiles use the `standalone` Quarkus profile (NitriteDB baked into the image) and reject all mutating HTTP verbs with 405. They serve the `$id` of each name-based document under `https://hub.calm.finos.org`. To use a different base, set `CALM_HUB_BASE_URL`.
 
 ## Working with the project
 

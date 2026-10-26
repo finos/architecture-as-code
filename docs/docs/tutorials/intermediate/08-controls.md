@@ -45,7 +45,7 @@ Controls can be applied at multiple levels:
 - **Relationship level:** Apply to specific connections between components
 - **Flow level:** Apply to business processes and data flows
 
-The examples below use CALM's published [control requirement schema](https://calm.finos.org/release/1.2/meta/control-requirement.json). It requires `control-id`, `name`, and `description`. The settings and targets below are illustrative. Validation checks the documented configuration, not whether the running system meets the requirement. Use a more specific schema when you need to constrain settings such as encryption algorithms or latency limits.
+The examples below use CALM's published [control requirement schema](https://calm.finos.org/release/1.3/meta/control-requirement.json). It requires `control-id`, `name`, and `description`. The settings and targets below are illustrative. Validation checks the documented configuration, not whether the running system meets the requirement. Use a more specific schema when you need to constrain settings such as encryption algorithms or latency limits.
 
 ### 2. Add an Architecture-Level Security Control
 
@@ -56,7 +56,7 @@ Create `controls/tls-config.json` in your tutorial project with this content:
 ```json title="controls/tls-config.json"
 {
   "$id": "controls/tls-config.json",
-  "$schema": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+  "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
   "control-id": "SEC-002",
   "name": "TLS minimum version",
   "description": "All external connections use TLS 1.3 or later"
@@ -72,9 +72,9 @@ Add a controls section at the top level of architectures/ecommerce-platform.json
 Add a "security" control with:
 - description: "Data encryption and secure communication requirements"
 - requirements array with two items:
-  1. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  1. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config (inline): { "control-id": "SEC-001", "name": "Encryption at rest", "description": "All data stores use AES-256 encryption at rest" }
-  2. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  2. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config-url: "controls/tls-config.json"
 
 Place it after the metadata section and before nodes.
@@ -89,9 +89,9 @@ Add a "performance" control at the architecture level of architectures/ecommerce
 Add with:
 - description: "System-wide performance and scalability requirements"
 - requirements array with two items:
-  1. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  1. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config (inline): { "control-id": "PERF-001", "name": "Response time", "description": "Response latency is at most 200 ms at p99 and 100 ms at p95" }
-  2. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  2. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config (inline): { "control-id": "PERF-002", "name": "Availability", "description": "The platform targets 99.9% availability" }
 
 Place it alongside the security control in the controls section.
@@ -108,7 +108,7 @@ Add a controls section to the payment-service node in architectures/ecommerce-pl
 Add a "compliance" control with:
 - description: "PCI-DSS compliance for payment processing"
 - requirements array with one item:
-  - requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  - requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
     config (inline): { "control-id": "COMP-001", "name": "Payment compliance", "description": "Payment processing must meet PCI-DSS v4.0 requirements" }
 ```
 
@@ -123,9 +123,9 @@ Add a controls section to the api-gateway node in architectures/ecommerce-platfo
 Add a "performance" control with:
 - description: "API Gateway rate limiting and caching requirements"
 - requirements array with two items:
-  1. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  1. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config (inline): { "control-id": "PERF-003", "name": "Rate limiting", "description": "Limit each client to 100 requests per second" }
-  2. requirement-url: "https://calm.finos.org/release/1.2/meta/control-requirement.json"
+  2. requirement-url: "https://calm.finos.org/release/1.3/meta/control-requirement.json"
      config (inline): { "control-id": "PERF-004", "name": "Caching", "description": "Use a default TTL of 300 seconds and private cache control" }
 ```
 
@@ -156,11 +156,11 @@ Now is a good time to use git to snapshot your progress. Stage your changes and 
 {
   "requirements": [
     {
-      "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+      "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "config": { "control-id": "SEC-001", "name": "Encryption at rest", "description": "All data stores use AES-256 encryption at rest" }
     },
     {
-      "requirement-url": "https://calm.finos.org/release/1.2/meta/control-requirement.json",
+      "requirement-url": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
       "config-url": "controls/tls-config.json"
     }
   ]
@@ -181,7 +181,7 @@ Controls can be placed at four levels:
 
 ## Resources
 
-- [CALM Controls Schema](https://github.com/finos/calm-schema/blob/v1.2/schema/control.json)
+- [CALM Controls Schema](https://github.com/finos/calm-schema/blob/v1.3/schema/control.json)
 - [PCI-DSS Standards](https://www.pcisecuritystandards.org/)
 
 ## Next Steps

@@ -5,12 +5,13 @@ import { endFiles } from '../chain';
 import { startReplay } from '../replay';
 import type { CommandOutcome } from '../../cli/outcome';
 import { hintContent, type LessonState } from '../types';
+import { CALM_META_SCHEMA_BASE_URL } from '../../schemas';
 
 const [COMPLIANT, MAPPING, BASE] = INTERMEDIATE_19.editableFiles!;
 const ECOMMERCE = '/workspace/architectures/ecommerce-platform.json';
 
-const NODE_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/node';
-const RELATIONSHIP_REF = 'https://calm.finos.org/release/1.2/meta/core.json#/defs/relationship';
+const NODE_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/node`;
+const RELATIONSHIP_REF = `${CALM_META_SCHEMA_BASE_URL}/core.json#/defs/relationship`;
 
 /** The learner's own standards: other `$id`s and other required property names than the hint. */
 const MY_NODE_ID = 'https://standards.acme.test/node.json';

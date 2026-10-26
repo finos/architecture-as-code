@@ -8,6 +8,7 @@ import ErrorBoundary from '../ErrorBoundary';
 import {createVfs, type Vfs} from './vfs';
 import {clearProgress, loadProgress, loadUiPrefs, saveProgress, saveUiPrefs, workspaceKey} from './storage';
 import {validateArchitecture, CLI_VERSION, type LabValidation} from '../engine';
+import {CALM_SCHEMA_RELEASE} from '../schemas';
 import {completeCommand, runCommand, type Line} from '../shell';
 import type {CommandEvent, CommandOutcome} from '../cli/outcome';
 import {freshOutcomes} from '../lessons/checks';
@@ -734,7 +735,7 @@ export default function Lab({lesson}: LabProps) {
                 </div>
 
                 <div className={styles.statusBar}>
-                    <span>CALM 1.2 · CALM CLI {CLI_VERSION}</span>
+                    <span>CALM {CALM_SCHEMA_RELEASE} · CALM CLI {CLI_VERSION}</span>
                     {!validation ? (
                         <span>checking…</span>
                     ) : validation.ok ? (
