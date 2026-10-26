@@ -10,7 +10,6 @@ on:
         paths:
             - 'calm-hub/**'
             - '!calm-hub/ec2/**'
-            - 'calm/**'
             - 'package.json'
             - 'scripts/copy-calm-schemas.mjs'
             - '.github/workflows/docker-publish-calm-hub-readonly.yml'
