@@ -511,7 +511,7 @@ public class TestDecoratorResourceShould {
 
     private static final String VALID_DECORATOR_JSON = """
             {
-                "$schema": "https://calm.finos.org/draft/2026-03/meta/decorators.json",
+                "$schema": "https://calm.finos.org/standards/deployment/1.0/deployment.decorator.standard.json",
                 "unique-id": "test-decorator-1",
                 "type": "deployment",
                 "target": ["/api/calm/namespaces/finos/architectures/1/versions/1-0-0"],

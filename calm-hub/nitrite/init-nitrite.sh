@@ -13,7 +13,6 @@ CALM_HUB_URL="${CALM_HUB_URL:-http://localhost:8080}"
 # CALM_HUB_BASE_URL or passed --base-url. resolve_calm_hub_base_url runs after
 # argument parsing. The value must equal the server's calm.hub.base-url, which
 # is not necessarily the URL this script uses to reach the hub.
-CALM_SCHEMA_BASE_PATH="${CALM_SCHEMA_BASE_PATH:-}"
 CALM_RELEASE_SCHEMA_PATH="${CALM_RELEASE_SCHEMA_PATH:-}"
 CALM_CONTROLS_BASE_PATH="${CALM_CONTROLS_BASE_PATH:-}"
 CALM_INTERFACES_BASE_PATH="${CALM_INTERFACES_BASE_PATH:-}"
@@ -89,7 +88,7 @@ create_namespaces() {
     done
 }
 
-# Function to load schemas from a directory (release or draft)
+# Function to load schemas from a directory
 # Usage: load_schemas_from_dir <base_dir> <prefix>
 # e.g. load_schemas_from_dir /calm-schemas/release release
 load_schemas_from_dir() {
@@ -145,23 +144,18 @@ load_schemas_from_dir() {
     done
 }
 
-# Resolve the schema paths once (falling back to the directories beside this
-# script when unset) so every schema-reading function — create_core_schemas —
-# sees the same paths.  Without this a bare
-# `bash init-nitrite.sh` (no env var) leaves the vars empty, which causes those
-# functions to build absolute paths from '/' that don't exist and silently
-# [WARN]-skip content.  seed-readonly.sh always exports both paths, so the
-# Docker build masks the issue; this makes the bare run equally safe.
+# Resolve the schema path once (falling back to the directory beside this
+# script when unset) so create_core_schemas sees the same path.  Without this a
+# bare `bash init-nitrite.sh` (no env var) leaves the var empty, which causes
+# the function to build absolute paths from '/' that don't exist.
+# seed-readonly.sh always exports the path, so the Docker build masks the
+# issue; this makes the bare run equally safe.
 #
 # The released meta-schemas come from the @finos/calm-schema npm packages, which
 # `./mvnw package` copies to calm-hub/target/calm-schemas/release (see pom.xml).
-# calm/ in the repository holds only the drafts.
-resolve_schema_base_path() {
+resolve_release_schema_path() {
     local script_dir
     script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-    if [[ -z "$CALM_SCHEMA_BASE_PATH" ]]; then
-        CALM_SCHEMA_BASE_PATH=$(realpath "$script_dir/../../calm" 2>/dev/null || echo "")
-    fi
     if [[ -z "$CALM_RELEASE_SCHEMA_PATH" ]]; then
         CALM_RELEASE_SCHEMA_PATH=$(realpath "$script_dir/../target/calm-schemas/release" 2>/dev/null || echo "")
     fi
@@ -193,15 +187,9 @@ create_core_schemas() {
         print_error "Released CALM schemas not found. Run './mvnw package' in calm-hub (or 'npm run calm-hub:copy-schemas' at the repository root), or set CALM_RELEASE_SCHEMA_PATH."
         return 1
     fi
-    if [[ -z "$CALM_SCHEMA_BASE_PATH" || ! -d "$CALM_SCHEMA_BASE_PATH" ]]; then
-        print_error "CALM schema base path not found. Set CALM_SCHEMA_BASE_PATH to the calm/ directory."
-        return 1
-    fi
 
     print_status "Loading released schemas from: $CALM_RELEASE_SCHEMA_PATH"
     load_schemas_from_dir "${CALM_RELEASE_SCHEMA_PATH}" "release"
-    print_status "Loading drafts from: $CALM_SCHEMA_BASE_PATH"
-    load_schemas_from_dir "${CALM_SCHEMA_BASE_PATH}/draft" "draft"
 }
 
 # Function to POST a CALM document using the request envelope expected by the API.
@@ -6318,7 +6306,7 @@ main() {
     check_calmhub_status
 
     # Initialize data in order
-    resolve_schema_base_path
+    resolve_release_schema_path
     create_namespaces
     create_core_schemas
     create_domains_and_controls
@@ -6352,7 +6340,6 @@ show_help() {
     echo "  -b, --base-url URL       Set the base URL written into name-based document \$id"
     echo "                           values. Must equal the server's calm.hub.base-url"
     echo "                           (default: the URL from -u or CALM_HUB_URL)."
-    echo "  -s, --schema-path PATH   Set the calm/ base path for the draft schemas"
     echo "  -r, --release-schema-path PATH Set the path to the released schemas (release/<version>/meta)"
     echo "  -i, --interfaces-path PATH Set the base path for namespace interfaces"
     echo "  -c, --controls-path PATH Set the base path for domain control requirements"
@@ -6364,8 +6351,6 @@ show_help() {
     echo "  CALM_HUB_BASE_URL       Base URL for name-based document \$id values. Must equal"
     echo "                          the server's calm.hub.base-url. When unset, defaults to"
     echo "                          CALM_HUB_URL after -u/--url is applied."
-    echo "  CALM_SCHEMA_BASE_PATH   Path to the calm/ directory containing the draft/ schemas"
-    echo "                          (default: auto-detected relative to this script)"
     echo "  CALM_RELEASE_SCHEMA_PATH Path to the released schemas, one <version>/meta directory per release"
     echo "                          (default: ../target/calm-schemas/release relative to this script,"
     echo "                          which './mvnw package' copies from the @finos/calm-schema npm packages)"
@@ -6405,10 +6390,6 @@ parse_args() {
                 ;;
             -b|--base-url)
                 CALM_HUB_BASE_URL="$2"
-                shift 2
-                ;;
-            -s|--schema-path)
-                CALM_SCHEMA_BASE_PATH="$2"
                 shift 2
                 ;;
             -r|--release-schema-path)

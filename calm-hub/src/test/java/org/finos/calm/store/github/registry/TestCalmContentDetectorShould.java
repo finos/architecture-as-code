@@ -48,14 +48,14 @@ class TestCalmContentDetectorShould {
 
     @Test
     void detect_timeline_from_schema_url() {
-        String json = "{\"$schema\": \"https://calm.finos.org/draft/2026-03/meta/calm-timeline.json\"}";
+        String json = "{\"$schema\": \"https://calm.finos.org/release/1.3/meta/calm-timeline.json\"}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("any/thing.json"));
         assertThat(type, equalTo(Optional.of(RegistryResourceType.TIMELINE)));
     }
 
     @Test
     void detect_flow_from_schema_url() {
-        String json = "{\"$schema\": \"https://calm.finos.org/draft/2026-03/meta/flow.json\"}";
+        String json = "{\"$schema\": \"https://calm.finos.org/release/1.3/meta/flow.json\"}";
         Optional<RegistryResourceType> type = detector.detect(json, Path.of("flows/checkout.json"));
         assertThat(type, equalTo(Optional.of(RegistryResourceType.FLOW)));
     }
