@@ -32,6 +32,8 @@
 #   GET    /calm/namespaces/finos.fluxnova/architectures/fluxnova-platform/versions/1.0.0 -> 200 (slug mapping) + body contains "$id":"https://hub.calm.finos.org/..."
 #   GET    /api/calm/domains/finos-sdlc-common-controls/controls -> 200 + body contains "sdlc-prev-001-code-review"
 #   GET    /calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 -> 200 + body contains "$id":"https://hub.calm.finos.org/..."
+#   GET    /calm/schemas                                    -> 200 + body contains "release/1.3"
+#   GET    /calm/schemas/release%2F1.3/meta/calm.json       -> 200 + body contains "$id":"https://calm.finos.org/release/1.3/meta/calm.json"
 #   Conference Signup Pattern: versions list contains "1.0.0" and "2.0.0" (uses jq)
 #   GET    /calm/search?q=conference                        -> 200 + body contains "architectures","Conference Signup Pattern"
 #   POST   /api/calm/namespaces                             -> 405  (blocked by ReadOnlyRequestFilter)
@@ -202,6 +204,12 @@ if [[ "${MODE}" == "readonly" ]]; then
     assert_body_contains_all GET /api/calm/domains/finos-sdlc-common-controls/controls '"sdlc-prev-001-code-review"'
     assert_body_contains_all GET /calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0 \
         '"$id":"https://hub.calm.finos.org/calm/namespaces/finos.sdlc-common-controls/standards/sdlc-control-requirement/versions/1.0.0"'
+
+    # Released meta-schemas. They hold Boolean and BigDecimal values, which the native
+    # read path deserializes only when serialization-config.json registers them.
+    assert_body_contains_all GET /calm/schemas '"release/1.3"'
+    assert_body_contains_all GET /calm/schemas/release%2F1.3/meta/calm.json \
+        '"$id":"https://calm.finos.org/release/1.3/meta/calm.json"'
 
     # Conference Signup Pattern must have both v1.0.0 (always seeded) and v2.0.0
     # (only seeds when post_pattern_version sends the correct {name,patternJson} envelope).

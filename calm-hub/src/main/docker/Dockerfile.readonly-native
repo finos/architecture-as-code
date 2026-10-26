@@ -20,7 +20,7 @@
 #                     read-only runtime image needs.  The resulting calmSchemas.db
 #                     is architecture-neutral (pure-Java H2 MVStore format).
 #
-#   Stage 2 (final) — ubi9/ubi-minimal (no JDK); copies only the native runner and
+#   Stage 2 (final) — distroless/cc-debian12 (no JDK, no shell); copies only the native runner and
 #                     the seeded .db.
 #
 # Prerequisites (handled by build-readonly-native-image.sh):
