@@ -13,13 +13,15 @@ interface StandardNode {
     description?: string;
     namespace?: string;
     sha?: string;
+    hubId?: number;
 }
 
 interface NodePaletteProps {
     standardNodes: StandardNode[];
+    hubLoading?: boolean;
 }
 
-export function NodePalette({ standardNodes }: NodePaletteProps) {
+export function NodePalette({ standardNodes, hubLoading }: NodePaletteProps) {
     const [searchQuery, setSearchQuery] = useState('');
     const [collapsed, setCollapsed] = useState<Record<string, boolean>>({ containers: true, infra: true, hub: false });
 
@@ -44,6 +46,17 @@ export function NodePalette({ standardNodes }: NodePaletteProps) {
     const isSearching = lowerQuery.length > 0;
 
     const infraNodes = useMemo(() => standardNodes.filter((n) => n.behaviour === 'create-node' && !n.namespace), [standardNodes]);
+    const hubNodes = useMemo(() => standardNodes.filter((n) => !!n.namespace), [standardNodes]);
+
+    const hubByNamespace = useMemo(() => {
+        const map = new Map<string, StandardNode[]>();
+        for (const node of hubNodes) {
+            const ns = node.namespace!;
+            if (!map.has(ns)) map.set(ns, []);
+            map.get(ns)!.push(node);
+        }
+        return [...map.entries()].map(([name, items]) => ({ name, items })).sort((a, b) => a.name.localeCompare(b.name));
+    }, [hubNodes]);
 
     function matchesSearch(name: string, description?: string): boolean {
         if (!isSearching) return true;
@@ -72,6 +85,11 @@ export function NodePalette({ standardNodes }: NodePaletteProps) {
             nodes: p.nodes.filter((n: NodeTypeEntry) => matchesSearch(n.label, n.description)),
         })).filter((p: PackDefinition) => p.nodes.length > 0),
         [packs, lowerQuery] // eslint-disable-line
+    );
+
+    const filteredHub = useMemo(() =>
+        hubByNamespace.map((g) => ({ ...g, items: g.items.filter((n) => matchesSearch(n.name, n.description)) })).filter((g) => g.items.length > 0),
+        [hubByNamespace, lowerQuery] // eslint-disable-line
     );
 
     const toggleSection = (key: string) => setCollapsed((c) => ({ ...c, [key]: !c[key] }));
@@ -140,6 +158,27 @@ export function NodePalette({ standardNodes }: NodePaletteProps) {
                 </Section>
             )}
 
+            {/* Hub Loading */}
+            {hubLoading && (
+                <div style={{ padding: '6px 12px', fontSize: '11px', color: theme.green, display: 'flex', alignItems: 'center', gap: '6px', borderBottom: '1px solid var(--calm-border)' }}>
+                    <span style={{ display: 'inline-block', width: '10px', height: '10px', border: `2px solid ${theme.green}`, borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite', flexShrink: 0 }} />
+                    Loading Standard Nodes from Hub...
+                </div>
+            )}
+
+            {/* Hub Namespaces */}
+            {filteredHub.length > 0 && (
+                <Section title={`HUB (${hubNodes.length})`} collapsed={!isSearching && collapsed.hub} onToggle={() => toggleSection('hub')} badge="Hub">
+                    {filteredHub.map((group) => (
+                        <CollapsibleSub key={group.name} label={`${humanizeNs(group.name)} — Standard Nodes (${group.items.length})`} color={theme.green}>
+                            {group.items.map((node) => (
+                                <PaletteItem key={`${node.namespace}:${node.id}`} icon="" iconHtml={hubBlockIcon} label={node.name} onDragStart={(e) => onDragStart(e, node)} title={`[${node.namespace}] ${node.name}`} />
+                            ))}
+                        </CollapsibleSub>
+                    ))}
+                </Section>
+            )}
+
             {/* Extension Packs */}
             {filteredPacks.map((pack) => (
                 <Section
@@ -203,6 +242,25 @@ function PaletteItem({ icon, iconHtml, label, onDragStart, title }: { icon?: str
                 {iconHtml ? <span dangerouslySetInnerHTML={{ __html: iconHtml }} /> : <span style={{ fontSize: '14px' }}>{icon}</span>}
             </span>
             <span style={{ fontSize: '12px', fontWeight: 500, color: 'var(--calm-fg)' }}>{label}</span>
+        </div>
+    );
+}
+
+const hubBlockIcon = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>`;
+
+function humanizeNs(slug: string): string {
+    return slug.replace(/[-_]/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function CollapsibleSub({ label, color, children }: { label: string; color: string; children: React.ReactNode }) {
+    const [open, setOpen] = React.useState(true);
+    return (
+        <div>
+            <button onClick={() => setOpen(!open)} style={{ ...subgroupStyle, fontSize: '10px', paddingLeft: '16px', color, cursor: 'pointer', background: 'none', border: 'none', width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '8px', transition: 'transform 0.15s', transform: open ? 'none' : 'rotate(-90deg)' }}>▾</span>
+                {label}
+            </button>
+            {open && children}
         </div>
     );
 }

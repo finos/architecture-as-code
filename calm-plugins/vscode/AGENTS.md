@@ -25,7 +25,7 @@ src/
 │   ├── stores/                   # Zustand canvas state and sync bridge
 │   ├── transforms/               # CALM parsing and editor transformations
 │   ├── canvas/                   # ReactFlow node and edge components
-│   ├── panels/                   # Palette, properties, assets, templates
+│   ├── panels/                   # Palette, properties, assets, controls
 │   └── utils/                    # Webview validation and helpers
 ├── core/                         # CALM types, helpers, bundled schemas
 ├── packs/                        # Palette pack definitions and registry
@@ -54,7 +54,7 @@ Do not add guidance for removed preview tabs or settings such as `calm.urlMappin
 - `SyncCoordinator` suppresses the echo of a canvas write to prevent a sync loop.
   File watchers and save events send file changes back to the canvas.
 - `WorkspaceAssetService` scans workspace roots and `calm.externalAssetsPath`
-  for building blocks, patterns, templates, standards, and guidelines.
+  for standard nodes, patterns, and controls.
 - Webview validation uses `src/webview/utils/validation.ts` and the schema and
   semantic checks in `src/core/validation.ts`. Results appear in the canvas.
 - SVG export starts in `App.tsx` and is saved by `DiagramExportService`.

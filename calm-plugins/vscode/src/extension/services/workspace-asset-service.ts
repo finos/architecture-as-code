@@ -9,10 +9,12 @@ export interface StandardNodeDef {
     controls: Record<string, unknown>;
     category?: string;
     nodeType?: string;
-    /** Hub namespace — present when this block was fetched from a remote CalmHub. */
+    /** Hub namespace — present when this node was fetched from a remote CalmHub. */
     namespace?: string;
-    /** Content-addressable SHA — present when this block was fetched from a remote CalmHub. */
+    /** Latest version string — present when this node was fetched from a remote CalmHub. */
     sha?: string;
+    /** Hub numeric resource ID — used for API calls that require integer IDs. */
+    hubId?: number;
 }
 
 /** A locally-authored standalone control requirement discovered under `controls/`. */
@@ -39,6 +41,7 @@ export interface PatternEntry {
     description: string;
     category: string;
     schema: unknown;
+    sha?: string;
 }
 
 export class WorkspaceAssetService {
@@ -65,7 +68,7 @@ export class WorkspaceAssetService {
     }
 
     async scanAll(): Promise<void> {
-        // Controls must be scanned before building blocks so that
+        // Controls must be scanned before standard nodes so that
         // control-ref resolution can use the scanned local controls.
         await this.scanControls();
         await Promise.all([

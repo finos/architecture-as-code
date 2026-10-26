@@ -246,11 +246,11 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void index_a_markdown_file_under_building_blocks_as_a_standard() throws IOException {
-        // building-blocks/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052).
-        Path bbDir = tempDir.resolve("building-blocks");
+    void index_a_markdown_file_under_standard_nodes_as_a_standard() throws IOException {
+        // standard-nodes/ is aliased to STANDARD (Office Hours, 2026-09-10, #3052).
+        Path bbDir = tempDir.resolve("standard-nodes");
         Files.createDirectories(bbDir);
-        Files.writeString(bbDir.resolve("auth-block.md"), "# Auth Block\n\nDescribes the auth building block.");
+        Files.writeString(bbDir.resolve("auth-block.md"), "# Auth Block\n\nDescribes the auth standard node.");
 
         registryService.rebuild(Map.of("finos", tempDir));
 
@@ -260,16 +260,16 @@ class TestResourceRegistryShould {
     }
 
     @Test
-    void merge_building_blocks_and_standards_entries_into_one_listing() throws IOException {
+    void merge_standard_nodes_and_standards_entries_into_one_listing() throws IOException {
         Path stdDir = tempDir.resolve("standards");
         Files.createDirectories(stdDir);
         Files.writeString(stdDir.resolve("api-design.json"),
                 "{\"unique-id\": \"api-design\", \"title\": \"API Design Standard\"}");
 
-        Path bbDir = tempDir.resolve("building-blocks");
+        Path bbDir = tempDir.resolve("standard-nodes");
         Files.createDirectories(bbDir);
         Files.writeString(bbDir.resolve("auth-block.json"),
-                "{\"unique-id\": \"auth-block\", \"title\": \"Auth Building Block\"}");
+                "{\"unique-id\": \"auth-block\", \"title\": \"Auth Standard Node\"}");
 
         registryService.rebuild(Map.of("finos", tempDir));
 

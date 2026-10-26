@@ -30,7 +30,7 @@ import static org.hamcrest.Matchers.not;
  * verify because they depend on real clone/registry wiring:
  *
  * <ul>
- *   <li>a {@code building-blocks/} file classifies as a {@code Standard}, not a dropped or
+ *   <li>a {@code standard-nodes/} file classifies as a {@code Standard}, not a dropped or
  *       separately-typed concept (Phase 1)</li>
  *   <li>a version list never contains the literal {@code "latest"} - it's either a real SHA
  *       or the clone's current HEAD SHA (Phase 3/5)</li>
@@ -79,7 +79,7 @@ class GitHubReworkBehaviorIntegration {
 
     @Test
     @TestSecurity(user = "alice", roles = "group1")
-    void classify_a_building_blocks_file_as_a_standard() {
+    void classify_a_standard_nodes_file_as_a_standard() {
         given()
                 .when().get("/api/calm/namespaces/finos/standards")
                 .then()

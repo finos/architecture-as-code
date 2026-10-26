@@ -32,11 +32,23 @@ type DrillResultCallback = (
     readonly?: boolean,
     solution?: unknown
 ) => void;
-
+type DefinitionResolvedCallback = (
+    nodeId: string,
+    controls: Record<string, unknown>
+) => void;
+type DefinitionResolutionFailedCallback = (
+    nodeId: string,
+    error: string
+) => void;
 let modelUpdateCallback: ModelUpdateCallback | undefined;
 let patternsLoadedCallback: PatternsLoadedCallback | undefined;
 let standardNodesLoadedCallback: StandardNodesLoadedCallback | undefined;
 let drillResultCallback: DrillResultCallback | undefined;
+let definitionResolvedCallback: DefinitionResolvedCallback | undefined;
+let definitionResolutionFailedCallback: DefinitionResolutionFailedCallback | undefined;
+
+type HubLoadingCallback = (loading: boolean) => void;
+let hubLoadingCallback: HubLoadingCallback | undefined;
 
 type ControlsChangedCallback = () => void;
 let controlsChangedCallback: ControlsChangedCallback | undefined;
@@ -89,6 +101,19 @@ export function setStandardNodesLoadedCallback(
 export function setDrillResultCallback(cb: DrillResultCallback): void {
     drillResultCallback = cb;
 }
+export function setDefinitionResolvedCallback(
+    cb: DefinitionResolvedCallback
+): void {
+    definitionResolvedCallback = cb;
+}
+export function setDefinitionResolutionFailedCallback(
+    cb: DefinitionResolutionFailedCallback
+): void {
+    definitionResolutionFailedCallback = cb;
+}
+export function setHubLoadingCallback(cb: HubLoadingCallback): void {
+    hubLoadingCallback = cb;
+}
 
 export function setControlsChangedCallback(cb: ControlsChangedCallback): void {
     controlsChangedCallback = cb;
@@ -106,6 +131,9 @@ export function initBridge(): void {
                 case 'patternsLoaded':
                     patternsLoadedCallback?.(msg.patterns);
                     break;
+                case 'hubLoading':
+                    hubLoadingCallback?.(msg.loading);
+                    break;
                 case 'standardNodesLoaded':
                     standardNodesLoadedCallback?.(msg.nodes);
                     break;
@@ -117,6 +145,12 @@ export function initBridge(): void {
                         msg.readonly,
                         msg.solution
                     );
+                    break;
+                case 'definitionResolved':
+                    definitionResolvedCallback?.(msg.nodeId, msg.controls);
+                    break;
+                case 'definitionResolutionFailed':
+                    definitionResolutionFailedCallback?.(msg.nodeId, msg.error);
                     break;
                 case 'controlsChanged':
                     controlsChangedCallback?.();
