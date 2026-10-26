@@ -9,12 +9,16 @@
         "This classic serialization-config.json is referenced explicitly from",
         "native-image.properties via -H:SerializationConfigurationResources because the",
         "unified reachability-metadata.json format is not auto-applied by Mandrel 25.",
-        "The class list is the full object-graph closure captured with the native-image",
-        "tracing agent while seeding and reading every CALM collection."
+        "The class list was captured with the native-image tracing agent while seeding",
+        "and reading the CALM collections. It missed Boolean, BigDecimal and BigInteger,",
+        "which the stored meta-schemas hold, so the read-only smoke test reads the schemas."
     ],
     "types": [
         {
             "name": "byte[]"
+        },
+        {
+            "name": "java.lang.Boolean"
         },
         {
             "name": "java.lang.Integer"
@@ -27,6 +31,12 @@
         },
         {
             "name": "java.lang.String"
+        },
+        {
+            "name": "java.math.BigDecimal"
+        },
+        {
+            "name": "java.math.BigInteger"
         },
         {
             "name": "java.util.ArrayList"
