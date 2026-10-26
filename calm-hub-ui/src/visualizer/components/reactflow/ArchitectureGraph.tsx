@@ -107,6 +107,15 @@ function readDecisionsShown(storage: Storage | undefined): boolean | undefined {
     }
 }
 
+function writeDecisionsShown(storage: Storage | undefined, on: boolean | undefined) {
+    try {
+        if (on === undefined) storage?.removeItem(DECISIONS_SHOWN_KEY);
+        else storage?.setItem(DECISIONS_SHOWN_KEY, on ? '1' : '0');
+    } catch {
+        /* ignore unavailable storage */
+    }
+}
+
 export function ArchitectureGraph({
     jsonData,
     onNodeClick,
@@ -194,14 +203,12 @@ export function ArchitectureGraph({
 
     // The decision overlay draws each element's latest decision on the diagram. It follows presentation mode until it
     // is switched on its own, and switching presentation mode hands it back.
-    const [decisionsShown, setDecisionsShownState] = useState<boolean | undefined>(() => readDecisionsShown(storage));
+    // A `present` query in the link hands the overlay back to presentation mode.
+    const [decisionsShown, setDecisionsShownState] = useState<boolean | undefined>(() =>
+        presentParam() === undefined ? readDecisionsShown(storage) : undefined
+    );
     const setDecisionsShown = useCallback((on: boolean | undefined) => {
-        try {
-            if (on === undefined) storage?.removeItem(DECISIONS_SHOWN_KEY);
-            else storage?.setItem(DECISIONS_SHOWN_KEY, on ? '1' : '0');
-        } catch {
-            /* ignore unavailable storage */
-        }
+        writeDecisionsShown(storage, on);
         setDecisionsShownState(on);
     }, [storage]);
     const showDecisions = decisionsShown ?? presenting;
@@ -209,8 +216,10 @@ export function ArchitectureGraph({
         setPresenting(on);
         setDecisionsShown(undefined);
     };
-    // Set with the parsed graph, not derived from node state, which changes on every drag.
-    const [subjectLabels, setSubjectLabels] = useState<Map<string, string>>(() => new Map());
+    // Parsed during render, as in PatternGraph. Labels come from the parsed graph, not from
+    // node state, which changes on every drag.
+    const parsed = useMemo(() => parseCALMData(jsonData, onNodeClick), [jsonData, onNodeClick]);
+    const subjectLabels = useMemo(() => subjectLabelsFor(parsed.nodes, parsed.edges), [parsed]);
     const { calloutSizes, reportCalloutSize, currentCalloutSizes } = useCalloutSizes();
     const decisionOverlay = useMemo(
         () => ({ showDecisions, subjectLabels, calloutSizes, reportCalloutSize }),
@@ -221,8 +230,8 @@ export function ArchitectureGraph({
         const param = presentParam();
         if (param === undefined) return;
         setPresenting(param);
-        setDecisionsShown(undefined);
-    }, [setPresenting, setDecisionsShown]);
+        writeDecisionsShown(storage, undefined);
+    }, [setPresenting, storage]);
 
     const {
         onNodesChange,
@@ -252,7 +261,7 @@ export function ArchitectureGraph({
     useEffect(() => {
         if (awaitingDefaultLayout) return;
 
-        const { nodes: parsedNodes, edges: parsedEdges } = parseCALMData(jsonData, onNodeClick);
+        const { nodes: parsedNodes, edges: parsedEdges } = parsed;
         sourceNodesRef.current = parsedNodes;
 
         // Precedence: a provided default layout (from document _layout or
@@ -266,7 +275,6 @@ export function ArchitectureGraph({
 
         setNodes(positionedNodes);
         setEdges(parsedEdges);
-        setSubjectLabels(subjectLabelsFor(parsedNodes, parsedEdges));
         setAvailableNodeTypes(getUniqueNodeTypes(parsedNodes));
         reportPositions(toStoredPositions(positionedNodes));
         // layoutEpoch has no direct use in the body — it exists purely as a
@@ -275,11 +283,10 @@ export function ArchitectureGraph({
         // real dependency that happens to be identity-stable (see its definition
         // above), so a fresh onPositionsChange from the caller never re-runs this.
     }, [
-        jsonData,
+        parsed,
         setNodes,
         setEdges,
         setAvailableNodeTypes,
-        onNodeClick,
         viewportKey,
         defaultLayout,
         layoutEpoch,

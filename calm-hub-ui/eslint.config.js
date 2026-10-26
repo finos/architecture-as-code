@@ -19,9 +19,6 @@ export default tseslint.config(
         },
         rules: {
             ...reactHooks.configs.recommended.rules,
-            // React Compiler rules from eslint-plugin-react-hooks 7. Existing code does not conform yet.
-            'react-hooks/refs': 'off',
-            'react-hooks/set-state-in-effect': 'off',
             'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
         },
     }

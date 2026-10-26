@@ -45,25 +45,24 @@ export function useFlowPlayback(
     const stopPlaying = useCallback(() => setPlaying(false), []);
 
     // Reset when the upstream dependency changes, for example flowJson.
-    useEffect(() => {
+    const [prevResetDep, setPrevResetDep] = useState(resetDep);
+    if (resetDep !== prevResetDep) {
+        setPrevResetDep(resetDep);
         setStep(IDLE_STEP);
         setPlaying(false);
-    }, [resetDep]);
+    }
 
-    // This effect runs again when `speed` changes, so a new speed applies during
-    // playback and not only at the next play.
+    // One timer per step. A new speed applies from the next tick, and playback stops
+    // when it moves into the completed step (maxStep + 1).
     useEffect(() => {
         if (!playing) return;
-        const timer = setInterval(() => {
-            setStep(prev => (prev > maxStep ? prev : prev + 1));
+        const timer = setTimeout(() => {
+            const next = Math.min(step + 1, maxStep + 1);
+            setStep(next);
+            if (next > maxStep) setPlaying(false);
         }, baseIntervalMs / speed);
-        return () => clearInterval(timer);
-    }, [playing, speed, maxStep, baseIntervalMs]);
-
-    // Stop when playback moves into the completed step (maxStep + 1).
-    useEffect(() => {
-        if (playing && step > maxStep) setPlaying(false);
-    }, [playing, step, maxStep]);
+        return () => clearTimeout(timer);
+    }, [playing, step, speed, maxStep, baseIntervalMs]);
 
     const togglePlay = useCallback(() => {
         if (playing) {

@@ -26,16 +26,22 @@ export function NamespacesPanel({ calmService }: NamespacesPanelProps) {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    const request = useCallback(
+        () =>
+            svc.fetchNamespaceDetails()
+                .then(setNamespaces)
+                .catch(() => setLoadError('Failed to load namespaces.'))
+                .finally(() => setLoading(false)),
+        [svc]
+    );
+
+    useEffect(() => { request(); }, [request]);
+
     const load = useCallback(() => {
         setLoading(true);
         setLoadError(null);
-        return svc.fetchNamespaceDetails()
-            .then(setNamespaces)
-            .catch(() => setLoadError('Failed to load namespaces.'))
-            .finally(() => setLoading(false));
-    }, [svc]);
-
-    useEffect(() => { load(); }, [load]);
+        return request();
+    }, [request]);
 
     const {
         pending: pendingDelete,

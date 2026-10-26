@@ -101,4 +101,17 @@ describe('useNamespaceItems', () => {
             customId: 'my-interface',
         });
     });
+
+    it('reports loading with no groups while a new namespace loads', async () => {
+        const { result, rerender } = renderHook(({ namespace }) => useNamespaceItems(namespace), {
+            initialProps: { namespace: 'finos' },
+        });
+        await waitFor(() => expect(result.current.loading).toBe(false));
+        expect(result.current.groups).not.toHaveLength(0);
+
+        rerender({ namespace: 'other' });
+        expect(result.current.loading).toBe(true);
+        expect(result.current.groups).toEqual([]);
+        await waitFor(() => expect(result.current.loading).toBe(false));
+    });
 });

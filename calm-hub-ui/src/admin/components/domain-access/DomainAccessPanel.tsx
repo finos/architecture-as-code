@@ -17,16 +17,20 @@ export function DomainAccessPanel({ domain, service }: DomainAccessPanelProps) {
     const [pendingRevoke, setPendingRevoke] = useState<UserAccess | null>(null);
     const [revoking, setRevoking] = useState(false);
 
-    const fetchGrants = useCallback(() => {
-        setLoading(true);
-        setFetchError(null);
+    const requestGrants = useCallback(() => {
         svc.getDomainUserAccess(domain)
             .then((g) => setGrants([...g].sort((a, b) => a.username.localeCompare(b.username))))
             .catch(() => setFetchError('Failed to load access grants.'))
             .finally(() => setLoading(false));
     }, [svc, domain]);
 
-    useEffect(() => { fetchGrants(); }, [fetchGrants]);
+    useEffect(() => { requestGrants(); }, [requestGrants]);
+
+    function fetchGrants() {
+        setLoading(true);
+        setFetchError(null);
+        requestGrants();
+    }
 
     function handleRequestRevoke(grant: UserAccess) {
         setPendingRevoke(grant);

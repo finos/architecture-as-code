@@ -89,20 +89,12 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
     const urlType = SUPPORTED_TYPES[calmType];
     const isSupportedType = urlType !== undefined;
 
-    const [resolvedId, setResolvedId] = useState<number | undefined>(() =>
-        isSupportedType && !isSlug(id) ? Number(id) : undefined
-    );
-    // Tracks slug→numeric resolution specifically, so a slug that fails to
-    // resolve can settle `defaultLayout` to `null` (no default, save disabled)
-    // instead of leaving the graph waiting on a fetch that will never start —
-    // `resolvedId === undefined` alone can't distinguish "still resolving"
-    // from "resolution finished but found no match".
-    const [resolvingId, setResolvingId] = useState<boolean>(() => isSupportedType && isSlug(id));
-    const [defaultLayout, setDefaultLayout] = useState<StoredNodePosition[] | null | undefined>(
-        isSupportedType ? undefined : null
-    );
-    const [layoutEpoch, setLayoutEpoch] = useState(0);
+    // Async results are kept with the key they were fetched for, so a result for a
+    // previous route is ignored and the loading states can be derived during render.
+    const resolutionKey = `${namespace}|${calmType}|${id}`;
+    const [resolution, setResolution] = useState<{ key: string; numericId: number | undefined } | null>(null);
     const [saving, setSaving] = useState(false);
+    const [layoutEpoch, setLayoutEpoch] = useState(0);
     const [saveError, setSaveError] = useState<string | null>(null);
 
     // Extract layout from architecture document metadata._layout if present.
@@ -115,38 +107,39 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
         return layoutMapToStoredPositions(layoutData as LayoutMap);
     }, [isSupportedType, architectureData]);
 
+    const needsResolution = isSupportedType && isSlug(id);
+    // Tracks slug→numeric resolution specifically, so a slug that fails to
+    // resolve can settle `defaultLayout` to `null` (no default, save disabled)
+    // instead of leaving the graph waiting on a fetch that will never start —
+    // `resolvedId === undefined` alone can't distinguish "still resolving"
+    // from "resolution finished but found no match".
+    const resolvingId = needsResolution && resolution?.key !== resolutionKey;
+    const resolvedId = !isSupportedType
+        ? undefined
+        : !needsResolution
+          ? Number(id)
+          : resolution?.key === resolutionKey
+            ? resolution.numericId
+            : undefined;
+
     // Resolve a slug id to its numeric id once per (namespace, id, calmType).
     useEffect(() => {
-        if (!isSupportedType) {
-            setResolvedId(undefined);
-            setResolvingId(false);
-            return;
-        }
-        if (!isSlug(id)) {
-            setResolvedId(Number(id));
-            setResolvingId(false);
-            return;
-        }
+        if (!needsResolution) return;
         let cancelled = false;
-        setResolvedId(undefined);
-        setResolvingId(true);
         calmService
             .fetchMappings(namespace, calmType)
             .then((mappings) => {
                 if (cancelled) return;
                 const match = mappings.find((m) => m.customId === id);
-                setResolvedId(match ? match.numericId : undefined);
-                setResolvingId(false);
+                setResolution({ key: resolutionKey, numericId: match?.numericId });
             })
             .catch(() => {
-                if (cancelled) return;
-                setResolvedId(undefined);
-                setResolvingId(false);
+                if (!cancelled) setResolution({ key: resolutionKey, numericId: undefined });
             });
         return () => {
             cancelled = true;
         };
-    }, [calmService, namespace, id, calmType, isSupportedType]);
+    }, [calmService, namespace, id, calmType, needsResolution, resolutionKey]);
 
     // undefined only while genuinely inapplicable (an unsupported type) or
     // still resolving; once resolution for a supported type has settled
@@ -161,13 +154,14 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
               : undefined;
 
     // Layout source selection — user can toggle between document and server layouts.
-    const [layoutSource, setLayoutSourceState] = useState<LayoutSource>('auto');
-
-    useEffect(() => {
-        const saved = loadPreferredSource(viewportKey);
-        if (saved) setLayoutSourceState(saved);
-        else setLayoutSourceState('auto');
-    }, [viewportKey]);
+    const [layoutSource, setLayoutSourceState] = useState<LayoutSource>(
+        () => loadPreferredSource(viewportKey) ?? 'auto'
+    );
+    const [layoutSourceKey, setLayoutSourceKey] = useState(viewportKey);
+    if (layoutSourceKey !== viewportKey) {
+        setLayoutSourceKey(viewportKey);
+        setLayoutSourceState(loadPreferredSource(viewportKey) ?? 'auto');
+    }
 
     const setLayoutSource = useCallback((source: LayoutSource) => {
         setLayoutSourceState(source);
@@ -176,39 +170,43 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
         setLayoutEpoch((epoch) => epoch + 1);
     }, [viewportKey]);
 
-    // Fetch the server default once the id is settled (resolved to a number,
-    // or resolution finished without a match).
+    const serverLayoutKey = resolvedId !== undefined ? `${namespace}|${urlType}|${resolvedId}` : null;
+    const [fetchedLayout, setFetchedLayout] = useState<{ key: string; layout: StoredNodePosition[] | null } | null>(null);
+
+    // The server-side layout fetched from the API.
+    const serverLayout: StoredNodePosition[] | null | undefined = !isSupportedType
+        ? null
+        : resolvingId
+          ? undefined
+          : serverLayoutKey === null
+            ? // Resolution finished but the slug didn't match anything — nothing
+              // to fetch, and nothing to wait on. Never a silent stuck loading
+              // state: settle to "no default" so Save disables with a reason.
+              null
+            : fetchedLayout?.key === serverLayoutKey
+              ? fetchedLayout.layout
+              : undefined;
+
+    // Fetch the server default once the id is settled to a number.
     useEffect(() => {
-        if (!isSupportedType) {
-            setDefaultLayout(null);
-            return;
-        }
-        if (resolvingId) {
-            setDefaultLayout(undefined);
-            return;
-        }
-        if (resolvedId === undefined) {
-            // Resolution finished but the slug didn't match anything — nothing
-            // to fetch, and nothing to wait on. Never a silent stuck loading
-            // state: settle to "no default" so Save disables with a reason.
-            setDefaultLayout(null);
-            return;
-        }
+        if (serverLayoutKey === null || resolvedId === undefined || urlType === undefined) return;
         let cancelled = false;
-        setDefaultLayout(undefined);
         layoutService
             .getDefaultLayout(namespace, resolvedId, urlType)
             .then((layout) => {
                 if (cancelled) return;
-                setDefaultLayout(layout ? apiResponseToStoredPositions(layout as unknown as Record<string, unknown>) : null);
+                setFetchedLayout({
+                    key: serverLayoutKey,
+                    layout: layout ? apiResponseToStoredPositions(layout as unknown as Record<string, unknown>) : null,
+                });
             })
             .catch(() => {
-                if (!cancelled) setDefaultLayout(null);
+                if (!cancelled) setFetchedLayout({ key: serverLayoutKey, layout: null });
             });
         return () => {
             cancelled = true;
         };
-    }, [layoutService, namespace, resolvedId, isSupportedType, resolvingId, urlType]);
+    }, [layoutService, namespace, resolvedId, urlType, serverLayoutKey]);
 
     const save = useCallback(
         async (positions: StoredNodePosition[]) => {
@@ -222,7 +220,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
                 };
                 await layoutService.saveDefaultLayout(namespace, resolvedId, layout, urlType);
                 if (viewportKey) clearStoredNodePositions(viewportKey);
-                setDefaultLayout(positions);
+                if (serverLayoutKey !== null) setFetchedLayout({ key: serverLayoutKey, layout: positions });
                 setLayoutSourceState('server');
                 savePreferredSource(viewportKey, 'server');
                 setLayoutEpoch((epoch) => epoch + 1);
@@ -233,7 +231,7 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
                 setSaving(false);
             }
         },
-        [resolvedId, urlType, namespace, layoutService, viewportKey]
+        [resolvedId, urlType, namespace, layoutService, viewportKey, serverLayoutKey]
     );
 
     const reset = useCallback(() => {
@@ -243,9 +241,6 @@ export function useDefaultLayout(namespace: string, id: string, calmType: string
     }, [viewportKey]);
 
     const canSave = resolvedId !== undefined;
-
-    // The server-side layout fetched from the API.
-    const serverLayout = defaultLayout;
 
     const hasBothSources = documentLayout != null && serverLayout != null;
 

@@ -49,17 +49,16 @@ export function useNamespaceTree({ namespaceCounts, needle, activeNamespace, sto
     const [collapsed, setCollapsed] = useState<Set<string>>(() => readCollapsed(storage));
 
     // Reveal-on-navigate: reopen any ancestor of the newly active namespace.
-    useEffect(() => {
-        if (!activeNamespace) return;
-        const ancestors = ancestorPathsOf(activeNamespace);
-        if (ancestors.length === 0) return;
-        setCollapsed((prev) => {
-            if (!ancestors.some((a) => prev.has(a))) return prev;
-            const next = new Set(prev);
+    const [revealedFor, setRevealedFor] = useState<string | undefined>(undefined);
+    if (activeNamespace !== revealedFor) {
+        setRevealedFor(activeNamespace);
+        const ancestors = activeNamespace ? ancestorPathsOf(activeNamespace) : [];
+        if (ancestors.some((a) => collapsed.has(a))) {
+            const next = new Set(collapsed);
             ancestors.forEach((a) => next.delete(a));
-            return next;
-        });
-    }, [activeNamespace]);
+            setCollapsed(next);
+        }
+    }
 
     useEffect(() => {
         try {

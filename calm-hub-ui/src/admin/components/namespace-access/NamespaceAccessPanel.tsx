@@ -17,16 +17,20 @@ export function NamespaceAccessPanel({ namespace, service }: NamespaceAccessPane
     const [pendingRevoke, setPendingRevoke] = useState<UserAccess | null>(null);
     const [revoking, setRevoking] = useState(false);
 
-    const fetchGrants = useCallback(() => {
-        setLoading(true);
-        setFetchError(null);
+    const requestGrants = useCallback(() => {
         svc.getNamespaceUserAccess(namespace)
             .then((g) => setGrants([...g].sort((a, b) => a.username.localeCompare(b.username))))
             .catch(() => setFetchError('Failed to load access grants.'))
             .finally(() => setLoading(false));
     }, [svc, namespace]);
 
-    useEffect(() => { fetchGrants(); }, [fetchGrants]);
+    useEffect(() => { requestGrants(); }, [requestGrants]);
+
+    function fetchGrants() {
+        setLoading(true);
+        setFetchError(null);
+        requestGrants();
+    }
 
     function handleRequestRevoke(grant: UserAccess) {
         setPendingRevoke(grant);

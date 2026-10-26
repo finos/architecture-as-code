@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ControlDetailSection } from './ControlDetailSection.js';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -189,6 +189,17 @@ describe('ControlDetailSection', () => {
             expect(screen.getByRole('tab', { name: 'Configuration' })).toHaveClass('tab-active');
             expect(screen.getByTestId('readable-json-view')).toHaveTextContent(JSON.stringify(configJson));
         });
+
+        it('returns to the Requirement tab when the control changes', async () => {
+            setupMocks();
+            const user = userEvent.setup();
+            const { rerender } = render(<ControlDetailSection controlData={controlData} />);
+
+            await user.click(await screen.findByRole('tab', { name: 'Configuration' }));
+            rerender(<ControlDetailSection controlData={{ ...controlData, controlId: 2 }} />);
+
+            expect(await screen.findByRole('tab', { name: 'Requirement' })).toHaveClass('tab-active');
+        });
     });
 
     // ──────────────────────────────────────────────────
@@ -371,6 +382,40 @@ describe('ControlDetailSection', () => {
                 expect(mockFetchConfigurationsForControl).toHaveBeenCalledTimes(2);
                 expect(mockFetchConfigurationsForControl).toHaveBeenLastCalledWith('compliance', 2);
             });
+        });
+
+        it('ignores a late requirement response for the previous control', async () => {
+            setupMocks();
+            let resolveFirst: (value: object) => void = () => undefined;
+            mockFetchRequirementForVersion.mockImplementation((domain: string) =>
+                domain === 'security'
+                    ? new Promise((resolve) => { resolveFirst = resolve; })
+                    : Promise.resolve({ control: 'second' })
+            );
+            const { rerender } = render(<ControlDetailSection controlData={controlData} />);
+            await waitFor(() => expect(mockFetchRequirementForVersion).toHaveBeenCalledWith('security', 1, '0.1.0'));
+
+            rerender(<ControlDetailSection controlData={{ ...controlData, domain: 'compliance', controlId: 2 }} />);
+            await waitFor(() => {
+                expect(screen.getAllByTestId('readable-json-view')[0]).toHaveTextContent('second');
+            });
+
+            await act(async () => resolveFirst({ control: 'first' }));
+            expect(screen.getAllByTestId('readable-json-view')[0]).toHaveTextContent('second');
+        });
+
+        it('keeps the selected configuration version when the user picks another', async () => {
+            setupMocks({ cfgVersions: ['1.0.0', '2.0.0'] });
+            const user = userEvent.setup();
+            render(<ControlDetailSection controlData={controlData} />);
+
+            const picker = await screen.findByRole('combobox', { name: 'Configuration version' });
+            await user.selectOptions(picker, '1.0.0');
+
+            await waitFor(() => {
+                expect(mockFetchConfigurationForVersion).toHaveBeenLastCalledWith('security', 1, 10, '1.0.0');
+            });
+            expect(picker).toHaveValue('1.0.0');
         });
     });
 });

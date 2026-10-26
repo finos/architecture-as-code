@@ -1,18 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ViewToggle } from './ViewToggle.js';
 import { OptionSelect } from './OptionSelect.js';
 import { ReadableControlDoc } from './ReadableControlDoc.js';
 import { ControlSectionColumn } from './ControlSectionColumn.js';
-import {
-    ControlConfigDetail,
-    ControlConfigurationDoc,
-    ControlData,
-    ControlRequirementDoc,
-} from '../../../model/control.js';
+import { ControlConfigurationDoc, ControlData, ControlRequirementDoc } from '../../../model/control.js';
 import { JsonRenderer } from '../json-renderer/JsonRenderer.js';
 import { ControlService } from '../../../service/control-service.js';
-import { sortVersionsDescending } from '../../../model/version.js';
 import { useIsMobile } from '../../../hooks/useMediaQuery.js';
+import { useControlDocuments } from './useControlDocuments.js';
 
 export type ViewMode = 'readable' | 'raw';
 type ActivePanel = 'requirement' | 'configuration';
@@ -37,149 +32,30 @@ export function ControlDetailSection({ controlData, viewMode }: ControlDetailSec
     const controlService = useMemo(() => new ControlService(), []);
     const isMobile = useIsMobile();
 
-    // Requirement state
-    const [requirementVersions, setRequirementVersions] = useState<string[]>([]);
-    const [selectedReqVersion, setSelectedReqVersion] = useState<string>('');
-    const [requirementJson, setRequirementJson] = useState<ControlRequirementDoc | undefined>();
-
-    // Configuration state
-    const [configs, setConfigs] = useState<ControlConfigDetail[]>([]);
-    const [selectedConfigId, setSelectedConfigId] = useState<number | null>(null);
-    const [configVersions, setConfigVersions] = useState<string[]>([]);
-    const [selectedConfigVersion, setSelectedConfigVersion] = useState<string>('');
-    const [configJson, setConfigJson] = useState<ControlConfigurationDoc | undefined>();
+    const {
+        controlKey,
+        requirementVersions,
+        selectedReqVersion,
+        requirementJson,
+        configs,
+        selectedConfigId,
+        configVersions,
+        selectedConfigVersion,
+        configJson,
+        selectReqVersion: handleReqVersionClick,
+        selectConfig: handleConfigClick,
+        selectConfigVersion: handleConfigVersionClick,
+    } = useControlDocuments(controlService, controlData);
 
     // Each section keeps its own readable/raw choice (used only when uncontrolled).
     const [reqViewMode, setReqViewMode] = useState<ViewMode>('readable');
     const [cfgViewMode, setCfgViewMode] = useState<ViewMode>('readable');
 
-    // Mobile only: which of the two sections the tab bar is showing.
-    const [activePanel, setActivePanel] = useState<ActivePanel>('requirement');
-
-    // Bumped whenever the control changes; async responses that resolve after a
-    // switch are ignored so a slow request for the previous control can never
-    // populate the panel (and its rejection is swallowed rather than left
-    // unhandled).
-    const loadGen = useRef(0);
-
-    const handleReqVersionClick = useCallback((version: string) => {
-        const gen = loadGen.current;
-        setSelectedReqVersion(version);
-        controlService.fetchRequirementForVersion(
-            controlData.domain,
-            controlData.controlId,
-            version
-        )
-            .then((doc) => { if (loadGen.current === gen) setRequirementJson(doc); })
-            .catch((error) => {
-                if (loadGen.current !== gen) return;
-                console.error('%s', 'Failed to load control requirement:', error);
-                setRequirementJson(undefined);
-            });
-    }, [controlService, controlData.domain, controlData.controlId]);
-
-    const handleConfigClick = useCallback((configId: number) => {
-        const gen = loadGen.current;
-        setSelectedConfigId(configId);
-        setSelectedConfigVersion('');
-        setConfigJson(undefined);
-        // Clear the previous config's versions first, otherwise the auto-select
-        // effect fires against the new config with a version string it may not
-        // have (a 404), before this config's own versions load.
-        setConfigVersions([]);
-        controlService.fetchConfigurationVersions(
-            controlData.domain,
-            controlData.controlId,
-            configId,
-        )
-            .then((versions) => {
-                if (loadGen.current === gen) setConfigVersions(sortVersionsDescending(versions));
-            })
-            .catch((error) => {
-                if (loadGen.current !== gen) return;
-                console.error('%s', 'Failed to load configuration versions:', error);
-                setConfigVersions([]);
-            });
-    }, [controlService, controlData.domain, controlData.controlId]);
-
-    const handleConfigVersionClick = useCallback((version: string) => {
-        if (selectedConfigId === null) return;
-        const gen = loadGen.current;
-        setSelectedConfigVersion(version);
-        controlService.fetchConfigurationForVersion(
-            controlData.domain,
-            controlData.controlId,
-            selectedConfigId,
-            version
-        )
-            .then((doc) => { if (loadGen.current === gen) setConfigJson(doc); })
-            .catch((error) => {
-                if (loadGen.current !== gen) return;
-                console.error('%s', 'Failed to load configuration:', error);
-                setConfigJson(undefined);
-            });
-    }, [controlService, controlData.domain, controlData.controlId, selectedConfigId]);
-
-    // When the control changes, load requirement versions and configurations
-    useEffect(() => {
-        const gen = ++loadGen.current;
-        setRequirementVersions([]);
-        setSelectedReqVersion('');
-        setRequirementJson(undefined);
-        setConfigs([]);
-        setSelectedConfigId(null);
-        setConfigVersions([]);
-        setSelectedConfigVersion('');
-        setConfigJson(undefined);
-        setActivePanel('requirement');
-
-        controlService.fetchRequirementVersions(
-            controlData.domain,
-            controlData.controlId,
-        )
-            .then((versions) => {
-                if (loadGen.current === gen) setRequirementVersions(sortVersionsDescending(versions));
-            })
-            .catch((error) => {
-                if (loadGen.current !== gen) return;
-                console.error('%s', 'Failed to load requirement versions:', error);
-                setRequirementVersions([]);
-            });
-        controlService.fetchConfigurationsForControl(
-            controlData.domain,
-            controlData.controlId,
-        )
-            .then((list) => { if (loadGen.current === gen) setConfigs(list); })
-            .catch((error) => {
-                if (loadGen.current !== gen) return;
-                console.error('%s', 'Failed to load configurations:', error);
-                setConfigs([]);
-            });
-    }, [controlService, controlData.domain, controlData.controlId]);
-
-    // Auto-select the latest requirement version when versions load
-    // (requirementVersions is sorted newest-first, so [0] is the latest).
-    useEffect(() => {
-        if (requirementVersions.length > 0 && !selectedReqVersion) {
-            handleReqVersionClick(requirementVersions[0]);
-        }
-    }, [requirementVersions, selectedReqVersion, handleReqVersionClick]);
-
-    // Auto-select a default configuration (the first the API returns) whenever
-    // the control has any, so a config is shown without an extra click.
-    useEffect(() => {
-        if (configs.length > 0 && selectedConfigId === null) {
-            handleConfigClick(configs[0].id);
-        }
-    }, [configs, selectedConfigId, handleConfigClick]);
-
-    // Auto-select the latest configuration version (configVersions is sorted
-    // newest-first).
-    useEffect(() => {
-        if (configVersions.length > 0 && !selectedConfigVersion) {
-            handleConfigVersionClick(configVersions[0]);
-        }
-    }, [configVersions, selectedConfigVersion, handleConfigVersionClick]);
+    // Mobile only: which of the two sections the tab bar is showing. A new control
+    // opens on the requirement.
+    const [chosenPanel, setChosenPanel] = useState<{ key: string; panel: ActivePanel } | null>(null);
+    const activePanel = chosenPanel?.key === controlKey ? chosenPanel.panel : 'requirement';
+    const setActivePanel = (panel: ActivePanel) => setChosenPanel({ key: controlKey, panel });
 
     const reqVersionOptions = requirementVersions.map((v) => ({ value: v, label: v }));
     const configOptions = configs.map((c) => ({

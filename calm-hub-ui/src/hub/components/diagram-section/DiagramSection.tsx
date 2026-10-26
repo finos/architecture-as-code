@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { IoChevronBackOutline, IoConstructOutline, IoGridOutline, IoEyeOutline, IoCodeOutline, IoRocketOutline, IoTimeOutline, IoCloseOutline, IoCheckmarkOutline, IoGitNetworkOutline } from 'react-icons/io5';
@@ -13,7 +13,7 @@ import { SearchBar } from '../../../visualizer/components/reactflow/SearchBar.js
 import { NodeSearchProvider, type NodeSearchState } from '../../../visualizer/components/reactflow/node-search-context.js';
 import { CompareView } from './compare/CompareView.js';
 import { diffArchitectures, diffPatterns, type NodesAndRelationshipsDiffResult } from '@finos/calm-models/diff';
-import type { CalmArchitectureSchema } from '@finos/calm-models/types';
+import type { CalmArchitectureSchema, CalmTimelineSchema } from '@finos/calm-models/types';
 import type { DiffSource } from '../../../diff/model/diff-ui-types.js';
 import { TimelineBar, type TimelineMoment } from './timeline/TimelineBar.js';
 import { MobileTimeline } from './timeline/MobileTimeline.js';
@@ -58,6 +58,13 @@ const iconMap = {
 
 type DiagramTabType = 'diagram' | 'json' | 'deployments' | 'used-by';
 
+const NO_DECORATORS: DeploymentDecorator[] = [];
+const NO_MOMENTS: TimelineMoment[] = [];
+
+const subscribeToNothing = () => () => {};
+const getNavbarSlot = () => document.getElementById('navbar-actions');
+const getNoNavbarSlot = () => null;
+
 export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumbs, onDisplayNameChange }: DiagramSectionProps) {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -68,11 +75,9 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const [showTimeline, setShowTimeline] = useState(false);
     const [showViewMenu, setShowViewMenu] = useState(false);
     // The view-options menu trigger lives in the navbar (top nav), not floating
-    // over the canvas; resolve the navbar slot after mount.
-    const [navbarSlot, setNavbarSlot] = useState<HTMLElement | null>(null);
-    useLayoutEffect(() => {
-        setNavbarSlot(document.getElementById('navbar-actions'));
-    }, []);
+    // over the canvas. useSyncExternalStore reads the slot again after mount, so a
+    // navbar that mounts in the same commit is still found.
+    const navbarSlot = useSyncExternalStore(subscribeToNothing, getNavbarSlot, getNoNavbarSlot);
     // Node ("component") search state, surfaced inside the mobile view menu and
     // applied to the graph via NodeSearchProvider.
     const [nodeSearchTerm, setNodeSearchTerm] = useState('');
@@ -104,6 +109,17 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     const latestPositionsRef = useRef<StoredNodePosition[] | null>(null);
     // Whether the current diagram has an unsaved local drag to reset away from.
     const [hasScratchLayout, setHasScratchLayout] = useState(false);
+    // Also re-derived when viewportKey/layoutEpoch change (navigating to a new
+    // diagram, or a save/reset bump) so the button reflects reality immediately
+    // rather than waiting on the graph's own apply to report back through
+    // handlePositionsChange below.
+    const scratchCheckKey = `${defaultLayoutState.viewportKey}|${defaultLayoutState.layoutEpoch}`;
+    const [scratchCheckedFor, setScratchCheckedFor] = useState<string | null>(null);
+    if (scratchCheckedFor !== scratchCheckKey) {
+        setScratchCheckedFor(scratchCheckKey);
+        const key = defaultLayoutState.viewportKey;
+        setHasScratchLayout(!!key && !!loadStoredNodePositions(key));
+    }
     const handlePositionsChange = useCallback(
         (positions: StoredNodePosition[]) => {
             latestPositionsRef.current = positions;
@@ -112,40 +128,73 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             // changed. Re-check localStorage directly (the source of truth,
             // and cheap) rather than assuming — this keeps the Reset button's
             // enabled state accurate after a drag, instead of only refreshing
-            // it when viewportKey/layoutEpoch change (see effect below).
+            // it when viewportKey/layoutEpoch change (see above).
             const key = defaultLayoutState.viewportKey;
             setHasScratchLayout(!!key && !!loadStoredNodePositions(key));
         },
         [defaultLayoutState.viewportKey]
     );
-    const [decorators, setDecorators] = useState<DeploymentDecorator[]>([]);
+    const isArchitecture = data.calmType === 'Architectures';
+    const resourceKey = `${data.calmType}|${data.name}|${data.id}`;
+    // Fetched results are kept with the key they were fetched for, so a result for
+    // another resource, version or comparison is never shown.
+    const [loadedDecorators, setLoadedDecorators] = useState<{ source: Data; values: DeploymentDecorator[] } | null>(null);
+    const decorators =
+        isArchitecture && loadedDecorators?.source === data ? loadedDecorators.values : NO_DECORATORS;
     const [compareFrom, setCompareFrom] = useState<string | null>(null);
     const [compareTo, setCompareTo] = useState<string | null>(null);
     const comparing = compareFrom !== null && compareTo !== null;
     const [versions, setVersions] = useState<string[]>([]);
-    const [moments, setMoments] = useState<TimelineMoment[]>([]);
+    // `doc` is null when the timeline could not be loaded.
+    const [loadedTimeline, setLoadedTimeline] = useState<{ key: string; doc: CalmTimelineSchema | null } | null>(null);
+    const timelineResult = isArchitecture && loadedTimeline?.key === resourceKey ? loadedTimeline : null;
+    const timelineDoc = timelineResult?.doc ?? null;
+    const timelineMoments = useMemo(() => (timelineDoc ? momentsFromTimeline(timelineDoc) : null), [timelineDoc]);
+    const versionMoments = useMemo(() => momentsFromVersions(versions), [versions]);
+    // Architectures use the (explicit or implied) timeline document, and fall back to
+    // the version list so the bar still navigates. Patterns build moments straight from
+    // the version list (reversed to chronological, oldest-first) order.
+    const moments: TimelineMoment[] = !isArchitecture
+        ? versionMoments
+        : timelineResult === null
+          ? NO_MOMENTS
+          : (timelineMoments ?? versionMoments);
     /**
      * The timeline document's `current-moment` field — used for the NOW badge.
      * Undefined when there is no timeline doc (patterns) or when the projection
      * is implied and so the "current" moment isn't a real authored point.
      */
-    const [timelineCurrentMomentId, setTimelineCurrentMomentId] = useState<string | undefined>(undefined);
+    const timelineCurrentMomentId = timelineDoc ? currentMomentIdFromTimeline(timelineDoc) : undefined;
     /** True for stored / authored (explicit) timelines, false for implied projections. */
-    const [timelineIsExplicit, setTimelineIsExplicit] = useState<boolean>(false);
-    const [displayName, setDisplayName] = useState<string | undefined>(undefined);
+    const timelineIsExplicit = timelineDoc ? isExplicitTimeline(timelineDoc) : false;
+    const [loadedSummary, setLoadedSummary] = useState<{
+        key: string;
+        displayName: string | undefined;
+        patternName: string | undefined;
+    } | null>(null);
+    const summary = loadedSummary?.key === resourceKey ? loadedSummary : null;
+    const displayName = summary?.displayName;
     // The pattern's name on the name-based API, which the implementations lookup needs.
-    const [patternName, setPatternName] = useState<string | undefined>(undefined);
+    const patternName = summary?.patternName;
     /** Compare-mode data shared by CompareView (graphs) and TimelineBar (summary). */
-    const [compareSourceA, setCompareSourceA] = useState<DiffSource | null>(null);
-    const [compareSourceB, setCompareSourceB] = useState<DiffSource | null>(null);
-    const [diffResult, setDiffResult] = useState<NodesAndRelationshipsDiffResult | null>(null);
-    const [compareError, setCompareError] = useState<string | null>(null);
+    const compareKey = `${resourceKey}|${compareFrom}|${compareTo}`;
+    const [loadedComparison, setLoadedComparison] = useState<{
+        key: string;
+        sourceA: DiffSource | null;
+        sourceB: DiffSource | null;
+        diffResult: NodesAndRelationshipsDiffResult | null;
+        error: string | null;
+    } | null>(null);
+    const comparison = comparing && loadedComparison?.key === compareKey ? loadedComparison : null;
+    const compareSourceA = comparison?.sourceA ?? null;
+    const compareSourceB = comparison?.sourceB ?? null;
+    const diffResult = comparison?.diffResult ?? null;
+    const compareError = comparison?.error ?? null;
 
     const setActiveTab = (tab: DiagramTabType) => {
         setSearchParams({ tab }, { replace: true, state: location.state });
     };
 
-    const isArchitecture = data.calmType === 'Architectures';
     const urlType = isArchitecture ? 'architectures' : 'patterns';
     const typeLabel = isArchitecture ? 'Architecture' : 'Pattern';
 
@@ -162,15 +211,6 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // backend resource is the real gate.
     const { canWriteNamespace } = useUserAccess();
     const canSaveLayout = defaultLayoutState.canSave && canWriteNamespace(data.name);
-
-    // Also re-derive on viewportKey/layoutEpoch changes directly (navigating to
-    // a new diagram, or a save/reset bump) so the button reflects reality
-    // immediately rather than waiting on the graph's own apply effect to
-    // report back through handlePositionsChange above.
-    useEffect(() => {
-        const key = defaultLayoutState.viewportKey;
-        setHasScratchLayout(!!key && !!loadStoredNodePositions(key));
-    }, [defaultLayoutState.viewportKey, defaultLayoutState.layoutEpoch]);
 
     const handleSaveLayout = useCallback(() => {
         const positions = latestPositionsRef.current;
@@ -213,15 +253,8 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     // both the CompareView (graphs) and the TimelineBar (inline diff summary)
     // share the same result.
     useEffect(() => {
-        if (!compareFrom || !compareTo) {
-            setCompareSourceA(null);
-            setCompareSourceB(null);
-            setDiffResult(null);
-            setCompareError(null);
-            return;
-        }
+        if (!compareFrom || !compareTo) return;
         let cancelled = false;
-        setCompareError(null);
         Promise.all([
             fetchVersionData(calmService, data.name, data.calmType, data.id, compareFrom),
             fetchVersionData(calmService, data.name, data.calmType, data.id, compareTo),
@@ -230,26 +263,37 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
                 if (cancelled) return;
                 const aData = (a.data ?? null) as DiffSource | null;
                 const bData = (b.data ?? null) as DiffSource | null;
-                setCompareSourceA(aData);
-                setCompareSourceB(bData);
-                setDiffResult(
-                    aData && bData
-                        ? data.calmType === 'Patterns'
-                            ? diffPatterns(aData, bData)
-                            : diffArchitectures(
-                                  aData as CalmArchitectureSchema,
-                                  bData as CalmArchitectureSchema
-                              )
-                        : null
-                );
+                setLoadedComparison({
+                    key: compareKey,
+                    sourceA: aData,
+                    sourceB: bData,
+                    diffResult:
+                        aData && bData
+                            ? data.calmType === 'Patterns'
+                                ? diffPatterns(aData, bData)
+                                : diffArchitectures(
+                                      aData as CalmArchitectureSchema,
+                                      bData as CalmArchitectureSchema
+                                  )
+                            : null,
+                    error: null,
+                });
             })
             .catch(() => {
-                if (!cancelled) setCompareError('Failed to load versions to compare');
+                if (!cancelled) {
+                    setLoadedComparison({
+                        key: compareKey,
+                        sourceA: null,
+                        sourceB: null,
+                        diffResult: null,
+                        error: 'Failed to load versions to compare',
+                    });
+                }
             });
         return () => {
             cancelled = true;
         };
-    }, [calmService, data.name, data.calmType, data.id, compareFrom, compareTo]);
+    }, [calmService, data.name, data.calmType, data.id, compareFrom, compareTo, compareKey]);
 
     /** Diff the selected and previous version of this resource for the WHAT CHANGED block. */
     const loadChangesForVersion = useCallback(
@@ -264,17 +308,17 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
     );
 
     // Reset compare state when the underlying resource changes.
-    useEffect(() => {
+    const [compareResourceKey, setCompareResourceKey] = useState(resourceKey);
+    if (compareResourceKey !== resourceKey) {
+        setCompareResourceKey(resourceKey);
         setCompareFrom(null);
         setCompareTo(null);
-    }, [data.name, data.id, data.calmType]);
+    }
 
     // Resolve the resource's human-readable name for the breadcrumb (the route
     // carries only the id, which is often numeric).
     useEffect(() => {
         let cancelled = false;
-        setDisplayName(undefined);
-        setPatternName(undefined);
         const summaries = isArchitecture
             ? calmService.fetchArchitectureSummaries(data.name)
             : calmService.fetchPatternSummaries(data.name);
@@ -282,20 +326,23 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
             .then((list) => {
                 if (cancelled) return;
                 const match = list.find((s) => String(s.id) === data.id || s.customId === data.id);
-                setDisplayName(match?.name);
-                setPatternName(isArchitecture ? undefined : match?.customId);
+                setLoadedSummary({
+                    key: resourceKey,
+                    displayName: match?.name,
+                    patternName: isArchitecture ? undefined : match?.customId,
+                });
                 onDisplayNameChange?.(match?.name);
             })
             .catch(() => {
                 if (!cancelled) {
-                    setDisplayName(undefined);
+                    setLoadedSummary({ key: resourceKey, displayName: undefined, patternName: undefined });
                     onDisplayNameChange?.(undefined);
                 }
             });
         return () => {
             cancelled = true;
         };
-    }, [calmService, data.name, data.id, isArchitecture, onDisplayNameChange]);
+    }, [calmService, data.name, data.id, isArchitecture, onDisplayNameChange, resourceKey]);
 
     useEffect(() => {
         let cancelled = false;
@@ -311,49 +358,29 @@ export function DiagramSection({ data, onItemSelect, hasDetailsPanel, breadcrumb
         };
     }, [calmService, data.name, data.calmType, data.id]);
 
-    // Build the timeline-bar moments. Architectures use the (explicit or
-    // implied) timeline document; patterns build moments straight from the
-    // version list (reversed to chronological, oldest-first) order.
     useEffect(() => {
-        if (!isArchitecture) {
-            // Patterns: implied timeline built from the version list — no NOW badge.
-            setMoments(momentsFromVersions(versions));
-            setTimelineCurrentMomentId(undefined);
-            setTimelineIsExplicit(false);
-            return;
-        }
+        if (!isArchitecture) return;
         let cancelled = false;
         calmService
             .fetchArchitectureTimeline(data.name, data.id)
+            .catch((): null => null)
             .then((doc) => {
-                if (cancelled) return;
-                setMoments(momentsFromTimeline(doc));
-                setTimelineCurrentMomentId(currentMomentIdFromTimeline(doc));
-                setTimelineIsExplicit(isExplicitTimeline(doc));
-            })
-            .catch(() => {
-                // Fall back to the version list so the bar still navigates.
-                if (cancelled) return;
-                setMoments(momentsFromVersions(versions));
-                setTimelineCurrentMomentId(undefined);
-                setTimelineIsExplicit(false);
+                if (!cancelled) setLoadedTimeline({ key: resourceKey, doc });
             });
         return () => {
             cancelled = true;
         };
-    }, [isArchitecture, calmService, data.name, data.id, versions]);
+    }, [isArchitecture, calmService, data.name, data.id, resourceKey]);
 
     useEffect(() => {
-        if (!isArchitecture) {
-            setDecorators([]);
-            return;
-        }
+        if (!isArchitecture) return;
         let cancelled = false;
 
         calmService
             .fetchDeploymentDecoratorsForArchitecture(data.name, data.id, data.version)
-            .then((values) => { if (!cancelled) setDecorators(values as DeploymentDecorator[]); })
-            .catch(() => { if (!cancelled) setDecorators([]); });
+            .then((values) => values as DeploymentDecorator[])
+            .catch((): DeploymentDecorator[] => [])
+            .then((values) => { if (!cancelled) setLoadedDecorators({ source: data, values }); });
 
         return () => { cancelled = true; };
     }, [data, isArchitecture, calmService]);

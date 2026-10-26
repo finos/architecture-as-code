@@ -30,25 +30,27 @@ export function usePatternImplementations(
 ): ImplementationsState {
     const key = `${namespace}/${patternName}/${version}`;
     const [lookup, setLookup] = useState<{ key: string; state: ImplementationsState }>({ key, state: IDLE });
-    if (lookup.key !== key) {
-        setLookup({ key, state: IDLE });
-    } else if (!requested && lookup.state.status === 'error') {
-        setLookup({ key, state: IDLE });
+    let current = lookup;
+    if (lookup.key !== key || (!requested && lookup.state.status === 'error')) {
+        current = { key, state: IDLE };
     }
-    const start = requested && patternName !== undefined && lookup.key === key && lookup.state === IDLE;
+    if (requested && patternName !== undefined && current.state === IDLE) {
+        current = { key, state: LOADING };
+    }
+    if (current !== lookup) setLookup(current);
+    const loading = current.state === LOADING;
 
     useEffect(() => {
-        if (!start || patternName === undefined) return;
-        setLookup({ key, state: LOADING });
+        if (!loading || patternName === undefined) return;
         service
             .fetchImplementations(namespace, patternName, version)
             .then((implementations): ImplementationsState =>
                 implementations ? { status: 'loaded', implementations } : { status: 'unavailable' }
             )
             .catch((): ImplementationsState => ({ status: 'error' }))
-            .then((state) => setLookup((current) => (current.key === key ? { key, state } : current)));
-    }, [start, service, namespace, patternName, version, key]);
+            .then((state) => setLookup((latest) => (latest.key === key ? { key, state } : latest)));
+    }, [loading, service, namespace, patternName, version, key]);
 
     if (patternName === undefined) return { status: 'unavailable' };
-    return start ? LOADING : lookup.state;
+    return current.state;
 }

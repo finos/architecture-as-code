@@ -147,6 +147,24 @@ describe('DomainsPanel', () => {
             expect(await screen.findByText('retail')).toBeInTheDocument();
         });
 
+        it('clears an earlier load error when the list refreshes', async () => {
+            const svc = new CalmService();
+            vi.spyOn(svc, 'fetchDomains')
+                .mockRejectedValueOnce(new Error('fail'))
+                .mockResolvedValueOnce(['retail']);
+            vi.spyOn(svc, 'createDomain').mockResolvedValue();
+            renderPanel(svc);
+            await screen.findByText(/failed to load domains/i);
+
+            fireEvent.change(screen.getByLabelText('Domain name'), {
+                target: { value: 'retail' },
+            });
+            fireEvent.click(screen.getByRole('button', { name: /create/i }));
+
+            expect(await screen.findByText('retail')).toBeInTheDocument();
+            expect(screen.queryByText(/failed to load domains/i)).not.toBeInTheDocument();
+        });
+
         it('shows the specific server error message when creation fails', async () => {
             const svc = mockService([], 'fail');
             renderPanel(svc);

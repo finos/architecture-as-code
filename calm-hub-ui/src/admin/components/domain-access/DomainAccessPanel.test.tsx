@@ -143,5 +143,20 @@ describe('DomainAccessPanel', () => {
             );
             expect(svc.getDomainUserAccess).toHaveBeenCalledTimes(2);
         });
+
+        it('clears an earlier fetch error when the list refreshes', async () => {
+            const svc = mockSvc();
+            vi.mocked(svc.getDomainUserAccess).mockRejectedValueOnce(new Error('fail'));
+            render(<DomainAccessPanel domain="retail" service={svc} />);
+            await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent(/failed to load/i));
+
+            fireEvent.change(screen.getByRole('textbox', { name: /username/i }), {
+                target: { value: 'carol' },
+            });
+            fireEvent.click(screen.getByRole('button', { name: /grant access/i }));
+
+            expect(await screen.findByText('alice')).toBeInTheDocument();
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
     });
 });

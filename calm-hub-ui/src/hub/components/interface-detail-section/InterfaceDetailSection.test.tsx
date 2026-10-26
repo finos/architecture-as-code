@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { InterfaceDetailSection } from './InterfaceDetailSection.js';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -229,6 +229,25 @@ describe('InterfaceDetailSection', () => {
             await waitFor(() => {
                 expect(mockFetchInterfaceVersions).toHaveBeenCalledWith('org.finos', 2);
             });
+        });
+
+        it('shows the JSON of the selected version when an earlier request settles late', async () => {
+            mockFetchInterfaceVersions.mockResolvedValue(['1.0.0', '2.0.0']);
+            let resolveFirst: (value: object) => void = () => undefined;
+            mockFetchInterfaceForVersion.mockImplementation((_ns: string, _id: number, version: string) =>
+                version === '1.0.0'
+                    ? new Promise((resolve) => { resolveFirst = resolve; })
+                    : Promise.resolve({ version: 'second' })
+            );
+            render(<InterfaceDetailSection interfaceData={interfaceData} />);
+
+            await userEvent.click(await screen.findByRole('tab', { name: '2.0.0' }));
+            await waitFor(() => {
+                expect(screen.getByTestId('readable-json-view')).toHaveTextContent('second');
+            });
+
+            await act(async () => resolveFirst({ version: 'first' }));
+            expect(screen.getByTestId('readable-json-view')).toHaveTextContent('second');
         });
     });
 });

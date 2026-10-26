@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomainPage } from './DomainPage.js';
@@ -70,5 +70,24 @@ describe('DomainPage', () => {
         fetchControlsForDomain.mockResolvedValue([]);
         renderPage(0);
         expect(await screen.findByText('No controls in this domain yet.')).toBeInTheDocument();
+    });
+
+    it('clears the old controls and then lists the new ones when the domain changes', async () => {
+        const { rerender } = renderPage(2, 'security');
+        expect(await screen.findByText('Encryption')).toBeInTheDocument();
+
+        let resolveNext: (value: unknown) => void = () => undefined;
+        fetchControlsForDomain.mockReturnValueOnce(new Promise((resolve) => { resolveNext = resolve; }));
+        rerender(
+            <MemoryRouter>
+                <DomainPage domain="privacy" controlCount={1} />
+                <LocationProbe />
+            </MemoryRouter>
+        );
+        expect(screen.queryByText('Encryption')).not.toBeInTheDocument();
+
+        await act(async () => resolveNext([{ id: 9, name: 'Data Retention', description: 'Keep data briefly' }]));
+        expect(screen.getByText('Data Retention')).toBeInTheDocument();
+        expect(fetchControlsForDomain).toHaveBeenLastCalledWith('privacy');
     });
 });

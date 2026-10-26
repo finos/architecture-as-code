@@ -20,16 +20,22 @@ export function DomainsPanel({ calmService }: DomainsPanelProps) {
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
+    const request = useCallback(
+        () =>
+            svc.fetchDomains()
+                .then(setDomains)
+                .catch(() => setLoadError('Failed to load domains.'))
+                .finally(() => setLoading(false)),
+        [svc]
+    );
+
+    useEffect(() => { request(); }, [request]);
+
     const load = useCallback(() => {
         setLoading(true);
         setLoadError(null);
-        return svc.fetchDomains()
-            .then(setDomains)
-            .catch(() => setLoadError('Failed to load domains.'))
-            .finally(() => setLoading(false));
-    }, [svc]);
-
-    useEffect(() => { load(); }, [load]);
+        return request();
+    }, [request]);
 
     const {
         pending: pendingDelete,

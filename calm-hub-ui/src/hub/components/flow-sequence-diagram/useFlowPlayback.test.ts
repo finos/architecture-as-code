@@ -118,6 +118,22 @@ describe('useFlowPlayback', () => {
         expect(result.current.step).toBe(-1);
     });
 
+    it('stops playback when resetDep changes mid-play', () => {
+        let dep = 'a';
+        const { result, rerender } = renderHook(() =>
+            useFlowPlayback({ maxStep: 3, baseIntervalMs: 1000 }, dep)
+        );
+        act(() => result.current.togglePlay());
+        act(() => { vi.advanceTimersByTime(1000); });
+        expect(result.current.step).toBe(0);
+
+        dep = 'b';
+        rerender();
+        act(() => { vi.advanceTimersByTime(3000); });
+        expect(result.current.step).toBe(-1);
+        expect(result.current.playing).toBe(false);
+    });
+
     it('speed 2 uses half the base interval', () => {
         const { result } = renderHook(() => useFlowPlayback({ maxStep: 2, baseIntervalMs: 1000 }));
         act(() => result.current.setSpeed(2));
