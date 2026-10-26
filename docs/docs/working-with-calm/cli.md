@@ -18,7 +18,7 @@ The CALM CLI allows you to interact with CALM's schema, enabling you to generate
 
 Before installing CALM, ensure that you have the following prerequisites installed on your system:
 
-- **Node.js**: CALM CLI requires Node.js (Node 22 or later is recommended). You can download and install Node.js from [nodejs.org](https://nodejs.org/).
+- **Node.js**: CALM CLI requires Node.js 22.13 or later. You can download and install Node.js from [nodejs.org](https://nodejs.org/).
 - **NPM**: The Node Package Manager (NPM) is typically included with Node.js, and it’s used to install the CLI.
 
 ### Installing the CALM CLI
