@@ -33,7 +33,7 @@ npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
-npm run copy-calm-schema         # Copy CALM meta schemas from npm and ../calm/
+npm run copy-calm-schema         # Copy CALM meta schemas from npm
 npm run copy-docify-templates    # Copy docify templates from ../shared/
 npm run copy-widgets             # Copy widget files from ../calm-widgets/
 npm run copy-ai-tools            # Copy AI agent files from ../calm-ai/

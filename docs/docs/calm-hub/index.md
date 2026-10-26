@@ -92,7 +92,7 @@ The read-only images use a **two-stage Docker build** to pre-seed the embedded N
 ```
 Stage 1 — seed (JVM, writable)
   FROM ubi9/openjdk-21
-  COPY quarkus-app/ and calm/ schemas + controls/
+  COPY quarkus-app/ + released meta-schemas (npm copy) + controls/ + interfaces/
   RUN boot Quarkus in standalone (writable) mode
       → init script POSTs all schemas and controls into NitriteDB
       → graceful SIGTERM flushes and commits the database
