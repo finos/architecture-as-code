@@ -70,9 +70,11 @@ Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
 * **vscode:** add navigable timeline in TreeView ([619ed17](https://github.com/finos/architecture-as-code/commit/619ed17983ae8aa64c876116dc73ac659480f050))
 * **vscode:** add support for timeline validation ([5e14f30](https://github.com/finos/architecture-as-code/commit/5e14f30069fecc3ba06d65248ef0ddfd33a065a4))
+* **widgets,vscode:** choice of elk and dagre layout engines for block-architecture visualisation ([#2117](https://github.com/finos/architecture-as-code/issues/2117)) ([049de6f](https://github.com/finos/architecture-as-code/commit/049de6fe13bc17f3eb303a74e8d38dabc72ee1de))
 
 ### 🐛 Bug Fixes
 
+* **shared,vscode:** correct signature of validate method ([f372336](https://github.com/finos/architecture-as-code/commit/f3723368469bbedaf7a40c240f7700e5ee131c59))
 * **shared:** make tests applicable to all schema versions ([e34e4a3](https://github.com/finos/architecture-as-code/commit/e34e4a3ecdc54ab74c1a92ee8993c5c11d70b0c5))
 * **vscode:** address copilot review feedback for timeline feature ([a78174e](https://github.com/finos/architecture-as-code/commit/a78174e87c94436c0e7ce2d70a49d2987ca13ff5))
 * **vscode:** correct focusing for all  relationship types and increase test coverage ([#2113](https://github.com/finos/architecture-as-code/issues/2113)) ([65be0a1](https://github.com/finos/architecture-as-code/commit/65be0a1d3f61c5672301cebfcbe88343c0b64972))

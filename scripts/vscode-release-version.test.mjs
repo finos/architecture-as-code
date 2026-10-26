@@ -90,6 +90,12 @@ describe('planRelease', () => {
         assert.deepEqual(planRelease(repo), { current: '0.9.0', next: '0.9.1', level: 'minor' });
     });
 
+    it('reads a ! in the header as a breaking change', () => {
+        git('tag', '-a', 'vscode-v1.2.0', '-m', '1.2.0');
+        commit(`${EXTENSION_PATH}/src/a.ts`, 'feat(vscode)!: remove an old setting');
+        assert.deepEqual(planRelease(repo), { current: '1.2.0', next: '2.0.0', level: 'major' });
+    });
+
     it('does not release for changes outside the extension', () => {
         git('tag', '-a', 'vscode-v0.9.0', '-m', '0.9.0');
         commit('cli/src/a.ts', 'feat(cli): add a feature');

@@ -52,11 +52,6 @@ export function listReleases(git, packageVersion, today) {
             return { version, ref, date: git('log', '-1', '--format=%cs', `${ref}^{commit}`) };
         });
     if (packageVersion && !tagged.some(release => release.version === packageVersion)) {
-        const since = tagged.at(-1)?.ref;
-        const merges = lines(git('log', '--first-parent', '--merges', '--format=%s', since ? `${since}..HEAD` : 'HEAD'));
-        if (merges.some(subject => !parserOpts.mergePattern.test(subject))) {
-            throw new Error('This branch merges main. Rebase it on main, then run this again.');
-        }
         tagged.push({ version: packageVersion, ref: 'HEAD', date: today });
     }
     return tagged;
@@ -64,7 +59,8 @@ export function listReleases(git, packageVersion, today) {
 
 /** The commits of one release that changed the extension. */
 export function releaseCommits(git, from, to) {
-    const parser = new CommitParser(parserOpts);
+    // The preset's parser options read a `!` in the header as a breaking change.
+    const parser = new CommitParser({ ...createPreset().parser, ...parserOpts });
     return listedCommits(git, from ? `${from}..${to}` : to, [EXTENSION_PATH])
         .map(hash => ({ ...parser.parse(git('log', '-1', '--format=%B', hash)), hash }));
 }

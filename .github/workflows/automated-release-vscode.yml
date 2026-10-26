@@ -85,6 +85,7 @@ jobs:
           FORCE_RELEASE: ${{ github.event.inputs.force-release }}
           FORCE_RELEASE_TYPE: ${{ github.event.inputs.release-type }}
         run: |
+          set -o pipefail
           if [ "$FORCE_RELEASE" = "true" ]; then
             node scripts/vscode-release-version.mjs --force "$FORCE_RELEASE_TYPE" | tee -a "$GITHUB_OUTPUT"
           else
