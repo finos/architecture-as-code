@@ -59,23 +59,20 @@ jobs:
       - name: Check for existing changelog/version PRs
         run: |
           echo "Checking for open PRs with changelog & version updates..."
-          
-          # Search for open PRs with the specific title pattern
+
+          # Match the release branch, not the title: --search is a full-text search, so it also matches unrelated PRs.
           PR_LIST=$(gh pr list \
             --state open \
-            --search "ci(cli): update changelog & versions for v" \
-            --json title,number,headRefName 2>/dev/null || echo "[]")
-          
-          echo "PR search result: $PR_LIST"
-          
-          if [ "$PR_LIST" != "[]" ] && [ "$PR_LIST" != "" ]; then
+            --label automated-release \
+            --json title,number,headRefName \
+            --jq '[.[] | select(.headRefName | startswith("release/cli-v"))]')
+
+          echo "Open CLI release PRs: $PR_LIST"
+
+          if [ "$PR_LIST" != "[]" ]; then
             echo "❌ Found existing changelog/version PR(s):"
-            
-            # Parse JSON without jq dependency - extract key fields manually
-            echo "$PR_LIST" | grep -o '"number":[0-9]*' | sed 's/"number":/PR #/' || echo "  - Found matching PR(s)"
-            echo "$PR_LIST" | grep -o '"title":"[^"]*"' | sed 's/"title":"//;s/"$//' | sed 's/^/  Title: /' || true
-            echo "$PR_LIST" | grep -o '"headRefName":"[^"]*"' | sed 's/"headRefName":"//;s/"$//' | sed 's/^/  Branch: /' || true
-            
+            echo "$PR_LIST" | jq -r '.[] | "  PR #\(.number): \(.title) (\(.headRefName))"'
+
             echo ""
             echo "Please merge or close the existing changelog/version PR before running a new release."
             echo "This prevents conflicts between multiple version updates."
