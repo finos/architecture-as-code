@@ -187,6 +187,19 @@ describe('setupWorkspaceCommands', () => {
     const CONFORMANT_ID = 'https://calmhub.example.com/calm/namespaces/ns/architectures/my-arch/versions/1.0.0';
 
     describe('workspace add', () => {
+        it('describes the actual --id default behavior in help text', () => {
+            const add = program.commands.find(command => command.name() === 'workspace')!.commands
+                .find(command => command.name() === 'add')!;
+            const idOption = add.options.find(option => option.flags.includes('--id'));
+            expect(idOption?.description).toBe(
+                'Document ID to register for this file (defaults to document title or flow name, else prompts)'
+            );
+            const normalizedHelp = add.helpInformation().replace(/\s+/g, ' ');
+            expect(normalizedHelp).toContain(
+                'Document ID to register for this file (defaults to document title or flow name, else prompts)'
+            );
+            expect(normalizedHelp).not.toContain('filename without extension');
+        });
         it('derives narrative Commander choices from the canonical list', () => {
             const add = program.commands.find(command => command.name() === 'workspace')!.commands
                 .find(command => command.name() === 'add')!;

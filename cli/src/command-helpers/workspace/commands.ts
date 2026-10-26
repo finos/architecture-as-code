@@ -226,7 +226,7 @@ export function setupWorkspaceCommands(program: Command) {
         .command('add')
         .description('Add a file to the current CALM workspace bundle. By default, this creates a reference to the file at its current location.')
         .argument('<file>', 'Path to the file to add to the bundle')
-        .option('--id <id>', 'Document ID to register for this file (defaults to filename without extension)')
+        .option('--id <id>', 'Document ID to register for this file (defaults to document title or flow name, else prompts)')
         .option('--copy', 'Copy the file into the bundle instead of referencing it from its current location.')
         .addOption(new Option('--type <type>', 'Document type').choices([...CALM_DOCUMENT_TYPES_LIST, ...CALM_NARRATIVE_DOCUMENT_TYPES_LIST]))
         .option('--namespace <namespace>', 'CalmHub namespace to associate with this file')
