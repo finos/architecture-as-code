@@ -107,7 +107,6 @@ Note: `copy-calm-schema` only bundles meta schemas into `dist/calm/` (see Schema
 
 ### Schema Handling
 - Released CALM schemas come from the `@finos/calm-schema` npm package. The root `package.json` pins each released version by alias (`calm-schema-1.0`, `calm-schema-1.1`, ...) and the latest version as `@finos/calm-schema`
-- Drafts live in `../calm/draft/`
 - Default schema directory: the bundled `dist/calm` (`CALM_META_SCHEMA_DIRECTORY` in `shared`)
 - CLI accepts `-s, --schema-directory` to override
 - Schemas are copied during build, not at runtime
