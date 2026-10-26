@@ -709,7 +709,7 @@ function CanvasApp() {
             }
 
             const id = `${standardNode.nodeType}-${Date.now()}`;
-            const curieType = 'standards';
+            const hasCustomId = standardNode.id && /[a-zA-Z]/.test(standardNode.id);
             const newNode: Node = {
                 id,
                 type: resolveFlowNodeType(standardNode.nodeType),
@@ -722,7 +722,7 @@ function CanvasApp() {
                         description: standardNode.description ?? '',
                         interfaces: [],
                         controls: controlsCopy,
-                        ...(standardNode.sha ? { 'definition-id': `${standardNode.namespace}:${curieType}:${standardNode.id}@${standardNode.sha}` } : {}),
+                        ...(hasCustomId && standardNode.sha ? { 'definition-id': `${standardNode.namespace}:standards:${standardNode.id}@${standardNode.sha}` } : {}),
                     }
                     : {
                         label: standardNode.name,

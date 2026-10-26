@@ -152,8 +152,10 @@ export class CanvasPanel {
         });
 
         await this.hubReadyPromise;
-        this.hubRefreshing = false;
-        this.postMessage({ type: 'hubLoading', loading: false });
+        if (this.hubAssetService === service) {
+            this.hubRefreshing = false;
+            this.postMessage({ type: 'hubLoading', loading: false });
+        }
     }
 
     reveal(document: vscode.TextDocument): void {

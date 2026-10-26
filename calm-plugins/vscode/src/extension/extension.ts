@@ -260,6 +260,7 @@ async function disconnectFromHub(): Promise<void> {
     hubAuthService = undefined;
     hubStatusBar?.setState('disconnected');
     void canvasPanel?.setHubConnection(undefined);
+    await vscode.workspace.getConfiguration('calm.hub').update('url', undefined, vscode.ConfigurationTarget.Global);
     outputChannel.appendLine('[INFO] Disconnected from CalmHub');
 }
 

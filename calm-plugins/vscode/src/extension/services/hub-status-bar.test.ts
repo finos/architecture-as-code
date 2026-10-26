@@ -58,7 +58,7 @@ describe('HubStatusBar', () => {
         it('updates to connected state with namespace count', () => {
             statusBar.setState('connected', 5);
             expect(statusBar.state).toBe('connected');
-            expect(mockItem.text).toBe('$(cloud) CALM Hub (0/5)');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (5)');
             expect(mockItem.backgroundColor).toBeUndefined();
         });
 
@@ -73,19 +73,19 @@ describe('HubStatusBar', () => {
 
         it('preserves namespace count when not provided', () => {
             statusBar.setState('connected', 3);
-            expect(mockItem.text).toBe('$(cloud) CALM Hub (0/3)');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (3)');
 
             statusBar.setState('error');
             statusBar.setState('connected');
-            expect(mockItem.text).toBe('$(cloud) CALM Hub (0/3)');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (3)');
         });
 
         it('updates namespace count when provided', () => {
             statusBar.setState('connected', 2);
-            expect(mockItem.text).toBe('$(cloud) CALM Hub (0/2)');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (2)');
 
             statusBar.setState('connected', 7);
-            expect(mockItem.text).toBe('$(cloud) CALM Hub (0/7)');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (7)');
         });
 
         it('shows selected vs available with setAvailableAndSelected', () => {

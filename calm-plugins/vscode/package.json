@@ -129,7 +129,7 @@
         "calm.hub.selectedNamespaces": {
           "type": "array",
           "items": { "type": "string" },
-          "description": "Selected Hub namespaces to show in the palette (not set = show all)"
+          "description": "Selected Hub namespaces to show in the palette. Empty or not set shows all namespaces."
         }
       }
     }

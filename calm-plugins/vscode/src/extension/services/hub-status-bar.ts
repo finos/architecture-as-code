@@ -6,7 +6,6 @@ export class HubStatusBar {
     private statusBarItem: vscode.StatusBarItem;
     private _state: ConnectionState = 'disconnected';
     private namespaceCount = 0;
-    private updatesCount = 0;
     private hubUrl: string | undefined;
     private availableNamespaces: string[] = [];
     private selectedNamespaces: string[] = [];
@@ -62,10 +61,8 @@ export class HubStatusBar {
             case 'connected': {
                 const selCount = this.selectedNamespaces.length;
                 const availCount = this.availableNamespaces.length || this.namespaceCount;
-                const countLabel = `${selCount}/${availCount}`;
-                this.statusBarItem.text = this.updatesCount > 0
-                    ? `$(cloud) CALM Hub (${countLabel}) · ${this.updatesCount} updates`
-                    : `$(cloud) CALM Hub (${countLabel})`;
+                const countLabel = selCount > 0 ? `${selCount}/${availCount}` : `${availCount}`;
+                this.statusBarItem.text = `$(cloud) CALM Hub (${countLabel})`;
 
                 const nsList = this.availableNamespaces.map((ns) =>
                     this.selectedNamespaces.includes(ns) ? `  ✓ ${ns}` : `  ○ ${ns}`
@@ -73,7 +70,6 @@ export class HubStatusBar {
                 this.statusBarItem.tooltip = (this.hubUrl ? `${this.hubUrl}\n\n` : '') +
                     `Namespaces (${selCount} selected / ${availCount} available):\n` +
                     nsList +
-                    (this.updatesCount > 0 ? `\n\n${this.updatesCount} update(s) available` : '') +
                     '\n\nClick to manage';
                 this.statusBarItem.backgroundColor = undefined;
                 break;

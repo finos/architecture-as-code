@@ -171,6 +171,30 @@ describe('HubAssetService', () => {
             expect(blocks[0].namespace).toBe('ns1');
             expect(blocks[1].namespace).toBe('ns2');
         });
+
+        it('filters to selected namespaces only', async () => {
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([
+                { name: 'ns1' },
+                { name: 'ns2' },
+            ]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (ns: string, type: string) => {
+                    if (type === 'standards') {
+                        return Promise.resolve([
+                            { uniqueId: `${ns}-block`, name: `${ns} Block`, numericId: 1 },
+                        ]);
+                    }
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['v1']);
+
+            await service.refresh();
+
+            const filtered = service.getAllStandardNodes(["ns1"]);
+            expect(filtered).toHaveLength(1);
+            expect(filtered[0].namespace).toBe('ns1');
+        });
     });
 
     describe('getAllPatterns', () => {
@@ -350,6 +374,52 @@ describe('HubAssetService', () => {
             const controls = namespaces[0].standardNodes[0].controls as Record<string, any>;
             expect(controls.ctrl.requirements[0]['requirement-url']).toBe('domain:controls:x@v1');
             expect((mockClient as any).resolveControlId).not.toHaveBeenCalled();
+        });
+    });
+
+    describe('deltaRefresh', () => {
+        it('returns changed: false when cached SHAs match live versions', async () => {
+            service.loadFromCache([{
+                name: 'ns1',
+                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                patterns: [],
+            }]);
+
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1']);
+
+            const { changed } = await service.deltaRefresh();
+            expect(changed).toBe(false);
+        });
+
+        it('returns changed: true when a standard has a new version', async () => {
+            service.loadFromCache([{
+                name: 'ns1',
+                standardNodes: [{ id: 'svc', name: 'Svc', behaviour: 'create-node', controls: {}, nodeType: 'service', namespace: 'ns1', sha: 'sha1', hubId: 1 }],
+                patterns: [],
+            }]);
+
+            (mockClient.getNamespaces as ReturnType<typeof vi.fn>).mockResolvedValue([{ name: 'ns1' }]);
+            (mockClient.getResources as ReturnType<typeof vi.fn>).mockImplementation(
+                (_ns: string, type: string) => {
+                    if (type === 'standards') return Promise.resolve([{ uniqueId: 'svc', name: 'Svc', numericId: 1 }]);
+                    return Promise.resolve([]);
+                }
+            );
+            (mockClient.getVersions as ReturnType<typeof vi.fn>).mockResolvedValue(['sha1', 'sha2']);
+            (mockClient.getResourceAtVersion as ReturnType<typeof vi.fn>).mockResolvedValue({
+                nodes: [{ 'node-type': 'service', name: 'Svc Updated' }],
+            });
+
+            const { changed } = await service.deltaRefresh();
+            expect(changed).toBe(true);
+            expect(service.getNamespaces()[0].standardNodes[0].sha).toBe('sha2');
         });
     });
 });
