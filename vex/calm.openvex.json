@@ -3,8 +3,8 @@
   "@id": "https://github.com/finos/architecture-as-code/blob/main/vex/calm.openvex.json",
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
-  "timestamp": "2026-10-26T00:00:00Z",
-  "version": 14,
+  "timestamp": "2026-10-27T00:00:00Z",
+  "version": 15,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -69,6 +69,25 @@
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_present",
       "impact_statement": "zip comes in only through tauri-plugin-updater, which depends on it only for Windows builds, to unpack update archives after it verifies their signature. The flaw is in the step that applies Unix permissions during extraction, and zip compiles that step only for Unix targets. The Linux and macOS builds do not include zip, and the Windows build does not include the vulnerable code. The fix (zip 9) needs a tauri-plugin-updater release that moves to it: 2.14.0 and 3.0.0-alpha.3 still require zip ^4."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-qwgh-2vcv-g2f7"
+      },
+      "products": [
+        {
+          "@id": "pkg:github/finos/architecture-as-code#calm-studio/apps/studio/src-tauri",
+          "subcomponents": [
+            {
+              "@id": "pkg:cargo/block-buffer@0.10.4"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_present",
+      "impact_statement": "block-buffer comes in only through sha2 0.10, which tauri-codegen and wry use. The flaw is that a caught panic can leave an invalid cursor in the buffer block, which then permits out-of-bounds access. block-buffer 0.11.0-pre and later keep the cursor inside the block. Version 0.10.4 keeps it in a separate field that a panic does not change, so it does not include the vulnerable code, although the advisory range (< 0.12.1) includes it. The fix (block-buffer 0.12.1) needs digest 0.11, and tauri-codegen 2.7.4 and wry 0.57.1 still require sha2 ^0.10."
     },
     {
       "vulnerability": {
@@ -252,5 +271,5 @@
       "impact_statement": "@sveltejs/kit 2.70.2 is used only by the CALM Studio app, a single-page app built with adapter-static. The flaw is an open redirect in enhanced form actions (use:enhance) on routes that accept paths that begin with //. CALM Studio has only the root route, no form actions and no use:enhance. The fix is only in kit 3, which needs TypeScript 6."
     }
   ],
-  "last_updated": "2026-10-26T00:00:00Z"
+  "last_updated": "2026-10-27T00:00:00Z"
 }
