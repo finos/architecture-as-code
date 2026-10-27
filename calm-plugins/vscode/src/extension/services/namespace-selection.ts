@@ -1,8 +1,10 @@
 /**
- * CALM Hub treats an empty namespace selection as "every namespace". VS Code also
- * reports an unset string array as `[]`, so `undefined`, `null` and `[]` all mean
- * the same thing. The canvas panel and the status bar both resolve the selection
- * through this function so the rule lives in one place (#3493).
+ * Resolve the `calm.hub.selectedNamespaces` setting against the namespaces the
+ * Hub lists.
+ *
+ * CALM Hub has no namespace selection of its own: the filter is this plugin's
+ * setting. VS Code reports an unset string array as `[]`, so `undefined`, `null`
+ * and `[]` all mean "every namespace".
  */
 export function resolveSelectedNamespaces(
     available: readonly string[],
