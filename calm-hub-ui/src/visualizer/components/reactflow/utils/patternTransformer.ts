@@ -76,6 +76,9 @@ function readSchemaValue(obj: SchemaObject | undefined, key: string): string | u
     return undefined;
 }
 
+// These generic definitions do not name an interface type. From CALM 1.3, an interface can refer only to them.
+const GENERIC_INTERFACE_DEFINITIONS = new Set(['interface-type', 'interface-definition']);
+
 /**
  * Extracts interfaces from a pattern node's schema item.
  * Reads prefixItems and extracts unique-id and $ref type for each interface.
@@ -91,7 +94,8 @@ function extractInterfaces(item: SchemaObject): SchemaObject[] | undefined {
         const uniqueId = iface['properties']?.['unique-id']?.['const'];
         const ref = iface['$ref'] as string | undefined;
         // Extract the interface type from the $ref (e.g., "url-interface" from ".../defs/url-interface")
-        const interfaceType = ref?.split('/').pop();
+        const definition = ref?.split('/').pop();
+        const interfaceType = definition && !GENERIC_INTERFACE_DEFINITIONS.has(definition) ? definition : undefined;
         return {
             'unique-id': uniqueId || '',
             ...(interfaceType && { type: interfaceType }),
