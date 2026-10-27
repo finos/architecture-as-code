@@ -41,8 +41,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
         <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-        <quarkus.platform.version>3.40.1</quarkus.platform.version>
+        <quarkus.platform.version>3.40.1.1</quarkus.platform.version>
         <jackson.version>2.22.3</jackson.version>
+        <guava.version>33.7.2-jre</guava.version>
         <jacoco.version>0.8.15</jacoco.version>
     </properties>
 
@@ -66,6 +67,13 @@
                 <version>${jackson.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- Ahead of the Quarkus BOM so its patched Guava wins (GHSA-xxph-c9ww-hj94).
+                 Remove when the Quarkus BOM manages Guava 33.7.2 or later. -->
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
