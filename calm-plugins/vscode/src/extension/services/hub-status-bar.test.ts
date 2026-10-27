@@ -96,6 +96,15 @@ describe('HubStatusBar', () => {
             expect(mockItem.tooltip).toContain('○ ns2');
             expect(mockItem.tooltip).toContain('✓ ns3');
         });
+
+        it('marks every namespace as selected when the selection is empty', () => {
+            statusBar.setState('connected', 2);
+            statusBar.setAvailableAndSelected(['alpha', 'beta'], []);
+            expect(mockItem.text).toBe('$(cloud) CALM Hub (2)');
+            expect(mockItem.tooltip).toContain('Namespaces (2 selected / 2 available)');
+            expect(mockItem.tooltip).toContain('✓ alpha');
+            expect(mockItem.tooltip).toContain('✓ beta');
+        });
     });
 
     describe('clearHubUrl', () => {

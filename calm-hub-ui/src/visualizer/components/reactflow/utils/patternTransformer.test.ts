@@ -289,6 +289,35 @@ describe('parsePatternData', () => {
         expect(node?.data.interfaces[1].type).toBe('port-interface');
     });
 
+    it('does not use a generic interface definition as the interface type', () => {
+        const pattern = makePattern([
+            schemaNode('svc-1', 'Service', 'service', {
+                interfaces: {
+                    prefixItems: [
+                        {
+                            $ref: 'https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-type',
+                            properties: {
+                                'unique-id': { const: 'svc-1-host-port' },
+                            },
+                        },
+                        {
+                            $ref: 'https://calm.finos.org/release/1.3/meta/interface.json#/defs/interface-definition',
+                            properties: {
+                                'unique-id': { const: 'svc-1-definition' },
+                            },
+                        },
+                    ],
+                },
+            }),
+        ]);
+        const result = parsePatternData(pattern);
+        const node = result.nodes.find((n) => n.id === 'svc-1');
+        expect(node?.data.interfaces).toEqual([
+            { 'unique-id': 'svc-1-host-port' },
+            { 'unique-id': 'svc-1-definition' },
+        ]);
+    });
+
     it('extracts controls from pattern schema', () => {
         const pattern = makePattern(
             [

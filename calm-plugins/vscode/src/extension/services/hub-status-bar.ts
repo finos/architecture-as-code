@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { resolveSelectedNamespaces } from './namespace-selection';
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -74,11 +75,13 @@ export class HubStatusBar {
                 const countLabel = selCount > 0 ? `${selCount}/${availCount}` : `${availCount}`;
                 this.statusBarItem.text = `$(cloud) CALM Hub (${countLabel})`;
 
+                // An empty selection means "all namespaces", so the tooltip resolves it (#3493).
+                const selected = resolveSelectedNamespaces(this.availableNamespaces, this.selectedNamespaces);
                 const nsList = this.availableNamespaces.map((ns) =>
-                    this.selectedNamespaces.includes(ns) ? `  ✓ ${ns}` : `  ○ ${ns}`
+                    selected.includes(ns) ? `  ✓ ${ns}` : `  ○ ${ns}`
                 ).join('\n');
                 this.statusBarItem.tooltip = (this.hubUrl ? `${this.hubUrl}\n\n` : '') +
-                    `Namespaces (${selCount} selected / ${availCount} available):\n` +
+                    `Namespaces (${selected.length} selected / ${availCount} available):\n` +
                     nsList +
                     '\n\nClick to manage';
                 this.statusBarItem.backgroundColor = undefined;

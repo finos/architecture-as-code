@@ -8,6 +8,7 @@ import { DiagramExportService } from '../services/diagram-export-service';
 import { HubClient, describeHubError } from '../services/hub-client';
 import { HubAssetService, type HubNamespace } from '../services/hub-asset-service';
 import { ControlAssetService, LOCAL_DOMAIN } from '../services/control-asset-service';
+import { resolveSelectedNamespaces } from '../services/namespace-selection';
 import { ShaCacheService } from '../services/sha-cache-service';
 import { SvgImportService } from '../services/svg-import';
 import {
@@ -346,10 +347,7 @@ export class CanvasPanel {
 
         const allNs = this.hubAssetService?.getNamespaces().map(ns => ns.name) ?? [];
         const userSelection = vscode.workspace.getConfiguration('calm.hub').get<string[]>('selectedNamespaces');
-        // VS Code defaults unset arrays to []. Treat null/undefined/[] as "show all".
-        const selectedNs = (userSelection && userSelection.length > 0)
-            ? allNs.filter(ns => userSelection.includes(ns))
-            : allNs;
+        const selectedNs = resolveSelectedNamespaces(allNs, userSelection);
         const hubBlocks = this.hubAssetService?.getAllStandardNodes(selectedNs) ?? [];
         const hubPatterns = this.hubAssetService?.getAllPatterns(selectedNs) ?? [];
 
