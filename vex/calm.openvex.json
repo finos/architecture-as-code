@@ -4,7 +4,7 @@
   "author": "Architecture as Code (CALM) Maintainers",
   "role": "Project maintainers",
   "timestamp": "2026-10-27T00:00:00Z",
-  "version": 15,
+  "version": 16,
   "tooling": "Maintained by hand alongside osv-scanner.toml",
   "statements": [
     {
@@ -180,7 +180,7 @@
       "status": "not_affected",
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
@@ -202,7 +202,73 @@
       "status": "not_affected",
       "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
       "justification": "vulnerable_code_not_in_execute_path",
-      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1."
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-2m5v-pch6-74hx",
+        "aliases": [
+          "CVE-2026-109383"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.29.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-9fm3-97px-rjf6",
+        "aliases": [
+          "CVE-2026-109932"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.29.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
+    },
+    {
+      "vulnerability": {
+        "name": "GHSA-qrxm-fqhp-jwvm",
+        "aliases": [
+          "CVE-2026-87018"
+        ]
+      },
+      "products": [
+        {
+          "@id": "pkg:npm/%40finos/calm-cli",
+          "subcomponents": [
+            {
+              "@id": "pkg:npm/undici@6.29.0"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "status_notes": "Review again by 2026-12-31, when the suppression in osv-scanner.toml expires.",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm is pulled in only by @semantic-release/npm for the CLI release job, which runs npm version and npm publish and never runs node-gyp. It is not part of the published @finos/calm-cli package. npm overrides cannot change a bundled dependency, and no npm 11.x release bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix."
     },
     {
       "vulnerability": {
