@@ -575,6 +575,22 @@ describe('CLI Integration Tests', () => {
         expect(parsedOutput).toEqual(expectedOutput);
     });
 
+    test('validate command loads the 2026-03 draft from the bundled schemas', async () => {
+        const architecture = path.join(tempDir, 'draft-2026-03.arch.json');
+        fs.writeFileSync(architecture, JSON.stringify({
+            $schema: 'https://calm.finos.org/draft/2026-03/meta/calm.json',
+            nodes: [],
+            relationships: [],
+        }));
+
+        // calm.finos.org is not an allowed host, so the CLI cannot fetch the draft.
+        const { stdout } = await cli.run(['validate', '-a', architecture], {
+            env: { CALM_ALLOWED_REMOTE_HOSTS: 'remote-loading-disabled.invalid' },
+        });
+
+        expect(JSON.parse(stdout)).toHaveProperty('hasErrors', false);
+    });
+
     test('validate command validates a timeline only', async () => {
         const apiGatewayTimelinePath = path.join(__dirname, '../test_fixtures/api-gateway/api-gateway-timeline.json');
         const targetOutputFile = path.join(tempDir, 'validate-timeline-output2.json');

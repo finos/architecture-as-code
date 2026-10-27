@@ -1,0 +1,27 @@
+{
+    "$schema": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
+    "unique-id": "k8s-deployment-example",
+    "type": "deployment",
+    "target": [
+        "example-architecture.json"
+    ],
+    "target-type": [
+        "architecture"
+    ],
+    "applies-to": [
+        "api-gateway",
+        "auth-service"
+    ],
+    "data": {
+        "start-time": "2026-02-23T14:30:00Z",
+        "end-time": "2026-02-23T14:42:15Z",
+        "status": "completed",
+        "deployment-details": "https://grafana.example.com/d/platform-services",
+        "notes": "Rolling update with new authentication features",
+        "kubernetes": {
+            "helm-chart-version": "2.1.0",
+            "cluster": "prod-eu-west-01",
+            "namespace": "platform"
+        }
+    }
+}

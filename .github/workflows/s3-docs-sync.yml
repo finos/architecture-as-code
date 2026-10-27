@@ -7,7 +7,7 @@ on:
     workflow_dispatch: {}
     push:
         branches: ['main']
-        paths: ['docs/**', '.github/workflows/s3-docs-sync.yml']
+        paths: ['docs/**']
 
 jobs:
     sync-to-s3:
@@ -43,10 +43,9 @@ jobs:
                   aws-secret-access-key: ${{ secrets.AWS_S3_SECRET_ACCESS_KEY }}
                   aws-region: us-east-1
 
-            # draft/2025-03 stays because OpenRewrite's rewrite-prethink declares it: #3507.
             - name: Sync docs to S3
               run: |
-                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "advent/*" --exclude "draft/2025-03/*" --exclude "interfaces/*" --exclude "release/*" --exclude "samples/*" --exclude "standards/*" --exclude "video/*" --exclude "workshop/*"
+                  aws s3 sync build s3://calm.finos.org/ --delete --include "*" --exclude "advent/*" --exclude "draft/*" --exclude "interfaces/*" --exclude "release/*" --exclude "samples/*" --exclude "standards/*" --exclude "video/*" --exclude "workshop/*"
               working-directory: "docs"
 
             - name: Invalidate CloudFront cache
