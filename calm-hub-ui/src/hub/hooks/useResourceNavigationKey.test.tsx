@@ -1,5 +1,5 @@
-import { act, render } from '@testing-library/react';
-import { MemoryRouter, useLocation, useNavigate, type NavigateFunction } from 'react-router-dom';
+import { act, render, renderHook } from '@testing-library/react';
+import { MemoryRouter, useLocation, useNavigate, type Location, type NavigateFunction } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { useResourceNavigationKey } from './useResourceNavigationKey.js';
 
@@ -57,5 +57,37 @@ describe('useResourceNavigationKey', () => {
         go('/domain/security');
 
         expect(last()).not.toBe(first);
+    });
+    
+    describe('for a location without history state', () => {
+        const at = (pathname: string, search = ''): Location => ({
+            key: 'default',
+            pathname,
+            search,
+            hash: '',
+            state: null,
+        });
+        const renderAt = (location: Location) =>
+            renderHook(({ location }) => useResourceNavigationKey(location, false), {
+                initialProps: { location },
+            });
+
+        it('changes the key when the path changes', () => {
+            const { result, rerender } = renderAt(at('/finos.calm/interfaces/2/detail'));
+            const first = result.current;
+
+            rerender({ location: at('/namespace/finos.traderx') });
+
+            expect(result.current).not.toBe(first);
+        });
+
+        it('keeps the key when only the query changes', () => {
+            const { result, rerender } = renderAt(at('/finos/patterns/api-gateway/1.0.0'));
+            const first = result.current;
+
+            rerender({ location: at('/finos/patterns/api-gateway/1.0.0', '?tab=json') });
+
+            expect(result.current).toBe(first);
+        });
     });
 });
