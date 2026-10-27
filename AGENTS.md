@@ -32,7 +32,7 @@ This is the **FINOS Architecture as Code** monorepo. It holds the tools for the 
 | Repository | Owns | Send here |
 |---|---|---|
 | [architecture-as-code](https://github.com/finos/architecture-as-code) | This repository: the tools, the docs site and CALM Lab. The tools get the schema from the `@finos/calm-schema` npm package (see [CALM Schema Updates](#calm-schema-updates)) | Tool changes, the documentation site, examples that the tools use |
-| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only CALM's own architecture |
+| [calm-schema](https://github.com/finos/calm-schema) | The CALM Meta Schema, its tests and `CHANGELOG.md`, the interface definitions. Published to npm and to `calm.finos.org` | Schema changes, schema releases, interface definitions. Do not change a schema here: `calm/` holds only CALM's own architecture and the 2026-03 draft, which [#3533](https://github.com/finos/architecture-as-code/issues/3533) deletes |
 | [calm-governance](https://github.com/finos/calm-governance) | Project-wide governance, the Maintainer roster, contribution guidelines, the Code of Conduct. No code | Governance and roster changes |
 
 Clone the three repositories side by side, with the same parent directory. Start the agent here and
@@ -46,7 +46,7 @@ against `finos/<repo>`.
 
 ```
 architecture-as-code/
-├── calm/                      # CALM's own architecture
+├── calm/                      # CALM's own architecture and the 2026-03 schema draft
 ├── cli/                       # TypeScript CLI (@finos/calm-cli)
 ├── calm-hub/                  # Java/Quarkus REST API backend
 ├── calm-hub-ui/               # React frontend for CALM Hub
