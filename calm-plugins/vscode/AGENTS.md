@@ -37,8 +37,7 @@ src/
 `package.json` is the source of truth for the public surface:
 
 - Command: `calm.openCanvas` (**CALM: View in CALM Canvas**).
-- Supported document suffixes: `.calm.json`, `.architecture.json`,
-  `.template.json`, `.solution.json`, `.standard.json`, `.guideline.json`.
+- Supported document suffixes: `.calm.json`, `.architecture.json`.
 - Settings: `calm.externalAssetsPath`, `calm.packs.enabled`,
   `calm.packs.excludeNodes`.
 

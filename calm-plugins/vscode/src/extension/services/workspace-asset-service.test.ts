@@ -237,3 +237,22 @@ describe('WorkspaceAssetService.scanControls', () => {
         expect(controls[0].filePath).toBe('/ws/controls/dup.requirement.json');
     });
 });
+
+describe('WorkspaceAssetService.stem', () => {
+    const svc = new WorkspaceAssetService('/ws');
+    const stem = (filePath: string): string =>
+        (svc as any).stem(vscode.Uri.file(filePath));
+
+    it('strips .calm.json and .architecture.json suffixes', () => {
+        expect(stem('/ws/standard-nodes/payment-service.calm.json')).toBe('payment-service');
+        expect(stem('/ws/standard-nodes/checkout.architecture.json')).toBe('checkout');
+    });
+
+    it('does not strip removed legacy suffixes or .md', () => {
+        expect(stem('/ws/standard-nodes/legacy.template.json')).toBe('legacy.template.json');
+        expect(stem('/ws/standard-nodes/legacy.solution.json')).toBe('legacy.solution.json');
+        expect(stem('/ws/standard-nodes/legacy.standard.json')).toBe('legacy.standard.json');
+        expect(stem('/ws/standard-nodes/legacy.guideline.json')).toBe('legacy.guideline.json');
+        expect(stem('/ws/standard-nodes/readme.md')).toBe('readme.md');
+    });
+});
