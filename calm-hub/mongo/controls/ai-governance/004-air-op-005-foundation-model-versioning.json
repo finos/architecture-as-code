@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-OP-005",
+      "control-id": "AIR-OP-005",
       "name": "Foundation Model Versioning",
       "category": "Operational",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-5_foundation-model-versioning.html",
-      "summary": "Foundation model instability refers to unpredictable changes in model behavior over time due to external factors like version updates, system prompt modifications, or provider changes. Such variability can undermine testing, reliability, and trust when no version control or change notification mechanisms are in place.",
+      "description": "Foundation model instability refers to unpredictable changes in model behavior over time due to external factors like version updates, system prompt modifications, or provider changes. Such variability can undermine testing, reliability, and trust when no version control or change notification mechanisms are in place.",
       "requirements": [
         "Pin foundation model versions in production deployments; only upgrade after explicit testing and sign-off.",
         "Maintain a model version registry documenting deployed versions, change dates, and test results.",

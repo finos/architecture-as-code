@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-SEC-010",
+      "control-id": "AIR-SEC-010",
       "name": "Prompt Injection",
       "category": "Security",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-10_prompt-injection.html",
-      "summary": "Prompt injection attacks manipulate AI systems by embedding malicious instructions in user inputs or retrieved content, causing the model to bypass safety guardrails, leak sensitive information, or perform unauthorised actions.",
+      "description": "Prompt injection attacks manipulate AI systems by embedding malicious instructions in user inputs or retrieved content, causing the model to bypass safety guardrails, leak sensitive information, or perform unauthorised actions.",
       "requirements": [
         "Implement AI firewall solutions to detect and block prompt injection patterns in user inputs.",
         "Sanitise and validate all external content (retrieved documents, tool outputs, user inputs) before inclusion in LLM prompts.",

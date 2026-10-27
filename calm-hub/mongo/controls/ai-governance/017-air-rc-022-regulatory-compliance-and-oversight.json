@@ -5,12 +5,12 @@
   "requirement": {
     "1-0-0": {
       "$schema": "https://calm.finos.org/release/1.3/meta/control-requirement.json",
-      "id": "AIR-RC-022",
+      "control-id": "AIR-RC-022",
       "name": "Regulatory Compliance and Oversight",
       "category": "Regulatory and Compliance",
       "source": "FINOS AI Governance Framework v2",
       "url": "https://air-governance-framework.finos.org/risks/ri-22_regulatory-compliance-and-oversight.html",
-      "summary": "AI systems in financial services must comply with an evolving and complex regulatory landscape. Failure to maintain adequate oversight, documentation, and controls can expose firms to regulatory sanctions, enforcement actions, and reputational damage.",
+      "description": "AI systems in financial services must comply with an evolving and complex regulatory landscape. Failure to maintain adequate oversight, documentation, and controls can expose firms to regulatory sanctions, enforcement actions, and reputational damage.",
       "requirements": [
         "Maintain an AI system inventory documenting all deployed models, their use cases, risk classifications, and regulatory obligations.",
         "Map each AI system to applicable regulatory frameworks (EU AI Act, SR 11-7, GDPR, FCA guidance, etc.) and evidence compliance.",
