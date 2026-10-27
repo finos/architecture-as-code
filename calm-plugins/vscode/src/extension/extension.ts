@@ -139,6 +139,40 @@ export function activate(context: vscode.ExtensionContext): void {
     }
 }
 
+export type HubMenuAction =
+    | 'namespaces'
+    | 'refresh'
+    | 'change'
+    | 'disconnect'
+    | 'retry'
+    | 'clearUrl';
+
+export interface HubMenuItem {
+    label: string;
+    action: HubMenuAction;
+}
+
+/**
+ * Items of the CALM Hub status bar menu. A plain disconnect keeps the saved URL,
+ * so "Disconnect" stays in the connected state and the tooltip's "Click to
+ * reconnect" works; only the failed state offers "Clear URL" (#3494).
+ */
+export function hubMenuItems(state: 'connected' | 'error'): HubMenuItem[] {
+    if (state === 'connected') {
+        return [
+            { label: '$(list-selection) Select Namespaces', action: 'namespaces' },
+            { label: '$(sync) Refresh from Hub', action: 'refresh' },
+            { label: '$(pencil) Change Hub URL', action: 'change' },
+            { label: '$(sign-out) Disconnect', action: 'disconnect' },
+        ];
+    }
+    return [
+        { label: '$(pencil) Change Hub URL', action: 'change' },
+        { label: '$(debug-restart) Retry Connection', action: 'retry' },
+        { label: '$(sign-out) Clear URL', action: 'clearUrl' },
+    ];
+}
+
 async function connectToHub(
     context: vscode.ExtensionContext
 ): Promise<void> {
@@ -147,18 +181,9 @@ async function connectToHub(
         .get<string>('url');
 
     if (url && (hubStatusBar?.state === 'connected' || hubStatusBar?.state === 'error')) {
-        const items = hubStatusBar?.state === 'connected'
-            ? [
-                { label: '$(list-selection) Select Namespaces', action: 'namespaces' },
-                { label: '$(sync) Refresh from Hub', action: 'refresh' },
-                { label: '$(pencil) Change Hub URL', action: 'change' },
-                { label: '$(sign-out) Disconnect', action: 'disconnect' },
-            ]
-            : [
-                { label: '$(pencil) Change Hub URL', action: 'change' },
-                { label: '$(debug-restart) Retry Connection', action: 'retry' },
-                { label: '$(sign-out) Clear URL', action: 'disconnect' },
-            ];
+        const items = hubMenuItems(
+            hubStatusBar?.state === 'connected' ? 'connected' : 'error'
+        );
 
         const choice = await vscode.window.showQuickPick(items, {
             placeHolder: hubStatusBar?.state === 'connected'
@@ -167,6 +192,10 @@ async function connectToHub(
         });
         if (!choice) return;
         if (choice.action === 'disconnect') { await disconnectFromHub(); return; }
+        if (choice.action === 'clearUrl') {
+            await disconnectFromHub({ clearUrl: true });
+            return;
+        }
         if (choice.action === 'namespaces') { await selectNamespaces(); return; }
         if (choice.action === 'refresh' || choice.action === 'retry') {
             // Fall through to reconnect with existing URL
@@ -252,7 +281,18 @@ async function connectToHub(
     }
 }
 
-async function disconnectFromHub(): Promise<void> {
+export interface DisconnectOptions {
+    /**
+     * Also forget the saved `calm.hub.url`. Only the error menu's "Clear URL"
+     * asks for this; a plain disconnect keeps the URL so the status bar's
+     * "Click to reconnect" works (#3494).
+     */
+    clearUrl?: boolean;
+}
+
+export async function disconnectFromHub(
+    options: DisconnectOptions = {}
+): Promise<void> {
     if (hubAuthService) {
         await hubAuthService.signOut();
     }
@@ -260,8 +300,16 @@ async function disconnectFromHub(): Promise<void> {
     hubAuthService = undefined;
     hubStatusBar?.setState('disconnected');
     void canvasPanel?.setHubConnection(undefined);
-    await vscode.workspace.getConfiguration('calm.hub').update('url', undefined, vscode.ConfigurationTarget.Global);
-    outputChannel.appendLine('[INFO] Disconnected from CalmHub');
+    if (options.clearUrl) {
+        await vscode.workspace
+            .getConfiguration('calm.hub')
+            .update('url', undefined, vscode.ConfigurationTarget.Global);
+    }
+    outputChannel.appendLine(
+        options.clearUrl
+            ? '[INFO] Disconnected from CalmHub and cleared the saved URL'
+            : '[INFO] Disconnected from CalmHub'
+    );
 }
 
 async function refreshFromHub(): Promise<void> {
