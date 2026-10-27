@@ -157,7 +157,7 @@ async function connectToHub(
             : [
                 { label: '$(pencil) Change Hub URL', action: 'change' },
                 { label: '$(debug-restart) Retry Connection', action: 'retry' },
-                { label: '$(sign-out) Clear URL', action: 'disconnect' },
+                { label: '$(sign-out) Clear URL', action: 'clearUrl' },
             ];
 
         const choice = await vscode.window.showQuickPick(items, {
@@ -167,6 +167,7 @@ async function connectToHub(
         });
         if (!choice) return;
         if (choice.action === 'disconnect') { await disconnectFromHub(); return; }
+        if (choice.action === 'clearUrl') { await disconnectFromHub({ clearUrl: true }); return; }
         if (choice.action === 'namespaces') { await selectNamespaces(); return; }
         if (choice.action === 'refresh' || choice.action === 'retry') {
             // Fall through to reconnect with existing URL
@@ -252,15 +253,24 @@ async function connectToHub(
     }
 }
 
-async function disconnectFromHub(): Promise<void> {
+export interface DisconnectOptions {
+    clearUrl?: boolean;
+}
+
+export async function disconnectFromHub(options: DisconnectOptions = {}): Promise<void> {
     if (hubAuthService) {
         await hubAuthService.signOut();
     }
     hubClient = undefined;
     hubAuthService = undefined;
+    if (options.clearUrl) {
+        hubStatusBar?.clearHubUrl();
+    }
     hubStatusBar?.setState('disconnected');
     void canvasPanel?.setHubConnection(undefined);
-    await vscode.workspace.getConfiguration('calm.hub').update('url', undefined, vscode.ConfigurationTarget.Global);
+    if (options.clearUrl) {
+        await vscode.workspace.getConfiguration('calm.hub').update('url', undefined, vscode.ConfigurationTarget.Global);
+    }
     outputChannel.appendLine('[INFO] Disconnected from CalmHub');
 }
 

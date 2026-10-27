@@ -35,6 +35,11 @@ export class HubStatusBar {
         this.update();
     }
 
+    clearHubUrl(): void {
+        this.hubUrl = undefined;
+        this.update();
+    }
+
     setAvailableAndSelected(available: string[], selected: string[]): void {
         this.availableNamespaces = available;
         this.selectedNamespaces = selected;

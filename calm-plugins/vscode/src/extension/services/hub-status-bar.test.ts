@@ -88,6 +88,20 @@ describe('HubStatusBar', () => {
             expect(mockItem.text).toBe('$(cloud) CALM Hub (7)');
         });
 
+        it('forgets a cached URL only when it is cleared', () => {
+            statusBar.setState('connecting', undefined, 'https://calmhub.example.com');
+            statusBar.setState('error');
+            statusBar.setState('disconnected');
+
+            expect(mockItem.tooltip).toBe(
+                'Disconnected from https://calmhub.example.com\nClick to reconnect'
+            );
+
+            statusBar.clearHubUrl();
+
+            expect(mockItem.tooltip).toBe('Click to connect to CalmHub');
+        });
+
         it('shows selected vs available with setAvailableAndSelected', () => {
             statusBar.setState('connected', 3);
             statusBar.setAvailableAndSelected(['ns1', 'ns2', 'ns3'], ['ns1', 'ns3']);
