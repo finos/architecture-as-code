@@ -35,6 +35,16 @@ export class HubStatusBar {
         this.update();
     }
 
+    /**
+     * Forget the Hub URL. Called when the saved `calm.hub.url` is cleared, so
+     * the tooltip offers to connect instead of reconnecting to a URL that no
+     * longer exists (#3523). A plain disconnect keeps the URL (#3494).
+     */
+    clearHubUrl(): void {
+        this.hubUrl = undefined;
+        this.update();
+    }
+
     setAvailableAndSelected(available: string[], selected: string[]): void {
         this.availableNamespaces = available;
         this.selectedNamespaces = selected;
