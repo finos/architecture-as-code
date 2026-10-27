@@ -173,3 +173,24 @@ describe('Navbar UI config', () => {
         expect(screen.getByRole('link', { name: 'Support' })).toHaveAttribute('href', 'https://support.example.com');
     });
 });
+
+// jsdom does no layout, so these guard the classes that set it (#3505).
+describe('Navbar layout', () => {
+    it('keeps the logo in the flex flow below lg, so page actions cannot cover it', () => {
+        renderNavbar(makeState({}));
+        const center = screen.getByRole('link', { name: 'CALM Hub home' }).parentElement;
+
+        expect(center).not.toHaveClass('absolute');
+        expect(center).toHaveClass('lg:absolute', 'max-lg:shrink', 'min-w-0');
+        expect(screen.getByAltText('CALM Logo')).toHaveClass('object-contain');
+    });
+
+    it('stops the side groups shrinking under their content below lg', () => {
+        const { container } = renderNavbar(makeState({}));
+
+        for (const side of [container.querySelector('.navbar-start'), container.querySelector('.navbar-end')]) {
+            expect(side).toHaveClass('max-lg:w-auto', 'max-lg:flex-1', 'lg:min-w-0');
+            expect(side).not.toHaveClass('min-w-0');
+        }
+    });
+});
