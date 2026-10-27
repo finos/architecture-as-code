@@ -1,0 +1,49 @@
+{
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://calm.finos.org/draft/2026-03/standards/deployment/kubernetes.decorator.standard.json",
+    "title": "CALM Kubernetes Deployment Decorator Standard",
+    "description": "Kubernetes-specific deployment decorator standard. Extends the base deployment decorator with Kubernetes cluster, namespace, and Helm chart information.",
+    "allOf": [
+        {
+            "$ref": "https://calm.finos.org/draft/2026-03/standards/deployment/deployment.decorator.standard.json"
+        },
+        {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "object",
+                    "properties": {
+                        "kubernetes": {
+                            "type": "object",
+                            "description": "Kubernetes-specific deployment information",
+                            "properties": {
+                                "helm-chart-version": {
+                                    "type": "string",
+                                    "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$",
+                                    "description": "Helm chart semantic version in format 'major.minor.patch'"
+                                },
+                                "cluster": {
+                                    "type": "string",
+                                    "description": "Kubernetes cluster identifier or name"
+                                },
+                                "namespace": {
+                                    "type": "string",
+                                    "description": "Kubernetes namespace where the resource is deployed",
+                                    "pattern": "^[a-z0-9]([-a-z0-9]*[a-z0-9])?$"
+                                }
+                            },
+                            "required": [
+                                "cluster",
+                                "namespace"
+                            ],
+                            "additionalProperties": false
+                        }
+                    },
+                    "required": [
+                        "kubernetes"
+                    ]
+                }
+            }
+        }
+    ]
+}

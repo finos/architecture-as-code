@@ -33,7 +33,7 @@ npm run link:cli       # Link CLI globally for testing
 calm --help            # Test globally linked CLI
 
 # Build steps (executed by npm run build)
-npm run copy-calm-schema         # Copy CALM meta schemas from npm
+npm run copy-calm-schema         # Copy CALM meta schemas from npm and ../calm/
 npm run copy-docify-templates    # Copy docify templates from ../shared/
 npm run copy-widgets             # Copy widget files from ../calm-widgets/
 npm run copy-ai-tools            # Copy AI agent files from ../calm-ai/
@@ -107,6 +107,7 @@ Note: `copy-calm-schema` only bundles meta schemas into `dist/calm/` (see Schema
 
 ### Schema Handling
 - Released CALM schemas come from the `@finos/calm-schema` npm package. The root `package.json` pins each released version by alias (`calm-schema-1.0`, `calm-schema-1.1`, ...) and the latest version as `@finos/calm-schema`
+- Drafts live in `../calm/draft/`
 - Default schema directory: the bundled `dist/calm` (`CALM_META_SCHEMA_DIRECTORY` in `shared`)
 - CLI accepts `-s, --schema-directory` to override
 - Schemas are copied during build, not at runtime
