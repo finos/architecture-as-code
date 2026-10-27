@@ -107,6 +107,39 @@ describe('HubStatusBar', () => {
         });
     });
 
+    describe('clearHubUrl', () => {
+        it('keeps the URL on a plain disconnect so the tooltip offers to reconnect', () => {
+            statusBar.setState('error', undefined, 'https://calmhub.example.com');
+            expect(mockItem.tooltip).toBe(
+                'Failed to connect to https://calmhub.example.com\nClick to retry'
+            );
+
+            statusBar.setState('disconnected');
+            expect(mockItem.tooltip).toBe(
+                'Disconnected from https://calmhub.example.com\nClick to reconnect'
+            );
+        });
+
+        it('forgets the URL so the tooltip offers to connect', () => {
+            statusBar.setState('error', undefined, 'https://calmhub.example.com');
+            statusBar.setState('disconnected');
+
+            statusBar.clearHubUrl();
+
+            expect(statusBar.state).toBe('disconnected');
+            expect(mockItem.text).toBe('$(cloud) CALM Hub');
+            expect(mockItem.tooltip).toBe('Click to connect to CalmHub');
+        });
+
+        it('does not bring the URL back on the next state change', () => {
+            statusBar.setState('error', undefined, 'https://calmhub.example.com');
+            statusBar.clearHubUrl();
+
+            statusBar.setState('connecting');
+            expect(mockItem.tooltip).toBe('Connecting...');
+        });
+    });
+
     describe('dispose', () => {
         it('disposes the underlying status bar item', () => {
             statusBar.dispose();

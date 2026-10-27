@@ -304,6 +304,7 @@ export async function disconnectFromHub(
         await vscode.workspace
             .getConfiguration('calm.hub')
             .update('url', undefined, vscode.ConfigurationTarget.Global);
+        hubStatusBar?.clearHubUrl();
     }
     outputChannel.appendLine(
         options.clearUrl
