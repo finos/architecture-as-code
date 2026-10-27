@@ -189,7 +189,7 @@ describe('Navbar layout', () => {
         const { container } = renderNavbar(makeState({}));
 
         for (const side of [container.querySelector('.navbar-start'), container.querySelector('.navbar-end')]) {
-            expect(side).toHaveClass('max-lg:flex-1', 'lg:min-w-0');
+            expect(side).toHaveClass('max-lg:w-auto', 'max-lg:flex-1', 'lg:min-w-0');
             expect(side).not.toHaveClass('min-w-0');
         }
     });
