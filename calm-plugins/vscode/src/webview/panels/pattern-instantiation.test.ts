@@ -222,32 +222,28 @@ describe('instantiateFromPattern', () => {
             expect(arch.nodes[0].controls['Resiliency Tier'].requirements[0]['requirement-url']).toBe('platform:controls:resiliency-tier');
         });
 
-        it('seeds base constants into copied control configs', () => {
+        it('does not seed config — enrichment handles that', () => {
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
                 [hubStdNode],
             );
 
-            const config = arch.nodes[0].controls['Resiliency Tier'].requirements[0].config;
-            expect(config).toEqual({
-                'control-id': 'Resiliency Tier',
-                name: 'Resiliency Tier',
-                description: 'Recovery time commitments',
-            });
+            const req = arch.nodes[0].controls['Resiliency Tier'].requirements[0];
+            expect(req.config).toBeUndefined();
         });
 
-        it('sets metadata.source-standard-node for a local standard node', () => {
+        it('removes definition-id and sets metadata for a local standard node', () => {
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('db', 'database')] } } },
                 [localStdNode],
             );
 
-            expect(arch.nodes[0]['definition-id']).toBe('database');
+            expect(arch.nodes[0]['definition-id']).toBeUndefined();
             expect(arch.nodes[0].metadata).toEqual({ 'source-standard-node': 'database' });
             expect(arch.nodes[0].controls).toHaveProperty('Data Classification');
         });
 
-        it('matches a CURIE definition-id to a standard node by bare id', () => {
+        it('matches a CURIE definition-id using namespace and id', () => {
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:standards:service')] } } },
                 [hubStdNode],
@@ -257,13 +253,34 @@ describe('instantiateFromPattern', () => {
             expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
         });
 
-        it('matches a versioned CURIE definition-id', () => {
+        it('does not match a CURIE from a different namespace', () => {
             const arch = instantiateFromPattern(
-                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:standards:service@old123')] } } },
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'TeamB:standards:service')] } } },
                 [hubStdNode],
             );
 
-            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+            expect(arch.nodes[0]['definition-id']).toBe('TeamB:standards:service');
+            expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('does not match a CURIE with a non-standards type', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:controls:service')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:controls:service');
+            expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('preserves a pinned version and skips resolution', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:standards:service@v1')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@v1');
+            expect(arch.nodes[0].controls).toBeUndefined();
         });
 
         it('leaves a node unchanged when no standard node matches', () => {
@@ -283,6 +300,28 @@ describe('instantiateFromPattern', () => {
 
             expect(arch.nodes[0]['definition-id']).toBe('service');
             expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('skips standard nodes with apply-controls-on-drop behaviour', () => {
+            const applyNode: StandardNodeDef = { ...hubStdNode, behaviour: 'apply-controls-on-drop' };
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [applyNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('service');
+            expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('skips Hub standard nodes with numeric-only ids', () => {
+            const numericNode: StandardNodeDef = { ...hubStdNode, id: '42' };
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', '42')] } } },
+                [numericNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBeUndefined();
+            expect(arch.nodes[0].metadata).toEqual({ 'source-standard-node': '42' });
         });
 
         it('merges pattern-level controls on top of standard node controls', () => {
@@ -323,7 +362,7 @@ describe('instantiateFromPattern', () => {
             expect(arch.nodes[0]['node-type']).toBe('service');
         });
 
-        it('prefers a Hub-sourced standard node over a local one with the same id', () => {
+        it('prefers a Hub-sourced standard node over a local one with the same bare id', () => {
             const localDup: StandardNodeDef = { ...localStdNode, id: 'service', controls: { 'Local Only': { description: 'local' } } };
             const arch = instantiateFromPattern(
                 { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
@@ -362,7 +401,7 @@ describe('instantiateFromPattern', () => {
 
             expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
             expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
-            expect(arch.nodes[1]['definition-id']).toBe('database');
+            expect(arch.nodes[1]['definition-id']).toBeUndefined();
             expect(arch.nodes[1].controls).toHaveProperty('Data Classification');
         });
     });

@@ -94,52 +94,45 @@ function resolveStandardNode(node: any, standardNodes: StandardNodeDef[]): void 
     const defId = node['definition-id'];
     if (!defId || typeof defId !== 'string') return;
 
-    const match = findStandardNode(defId, standardNodes);
-    if (!match) return;
+    // If the pattern pins a version, let loadArchitecture → resolveDefinitionId handle it
+    if (defId.includes('@')) return;
 
+    const match = findStandardNode(defId, standardNodes);
+    if (!match || match.behaviour !== 'create-node') return;
+
+    // Deep-copy controls; enrichment seeds the correct identity constants
     const stdControls = JSON.parse(JSON.stringify(match.controls ?? {}));
 
-    for (const [key, ctrl] of Object.entries(stdControls) as [string, any][]) {
-        const req = ctrl?.requirements?.[0];
-        if (req?.['requirement-url']) {
-            req.config = {
-                ...(req.config ?? {}),
-                'control-id': key,
-                name: key,
-                description: ctrl?.description ?? '',
-            };
-        }
-    }
-
-    // Pattern-level controls override standard node controls
     const patternControls = node.controls;
     if (patternControls && typeof patternControls === 'object') {
         Object.assign(stdControls, patternControls);
     }
     node.controls = stdControls;
 
-    if (match.namespace && match.sha) {
+    const isHubSourced = !!match.namespace;
+    const hasCustomId = !!match.id && /[a-zA-Z]/.test(match.id);
+
+    if (isHubSourced && hasCustomId && match.sha) {
         node['definition-id'] = `${match.namespace}:standards:${match.id}@${match.sha}`;
     } else {
+        delete node['definition-id'];
         if (!node.metadata) node.metadata = {};
         node.metadata['source-standard-node'] = match.id;
     }
 }
 
 function findStandardNode(defId: string, standardNodes: StandardNodeDef[]): StandardNodeDef | undefined {
-    const exactMatches = standardNodes.filter((n) => n.id === defId);
-    if (exactMatches.length > 0) {
-        return exactMatches.find((n) => !!n.namespace) ?? exactMatches[0];
+    // Bare id (no colon): exact match
+    if (!defId.includes(':')) {
+        const matches = standardNodes.filter((n) => n.id === defId);
+        if (matches.length === 0) return undefined;
+        return matches.find((n) => !!n.namespace) ?? matches[0];
     }
 
-    if (defId.includes(':')) {
-        let bareId = defId.split(':').pop()!;
-        if (bareId.includes('@')) bareId = bareId.split('@')[0];
-        const matches = standardNodes.filter((n) => n.id === bareId);
-        if (matches.length > 0) {
-            return matches.find((n) => !!n.namespace) ?? matches[0];
-        }
-    }
-
-    return undefined;
+    // CURIE: parse {namespace}:standards:{id} and match both namespace and id
+    const parts = defId.split(':');
+    if (parts.length < 3 || parts[1] !== 'standards') return undefined;
+    const ns = parts[0];
+    const id = parts[2];
+    return standardNodes.find((n) => n.id === id && n.namespace === ns);
 }
