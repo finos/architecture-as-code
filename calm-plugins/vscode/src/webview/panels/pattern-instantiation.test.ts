@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { StandardNodeDef } from '../../extension/services/workspace-asset-service';
 import { instantiateFromPattern } from './pattern-instantiation';
 
 const node = (id: string) => ({
@@ -168,6 +169,201 @@ describe('instantiateFromPattern', () => {
             });
 
             expect(ids(arch.nodes)).toEqual(['gateway']);
+        });
+    });
+
+    describe('standard node resolution via definition-id', () => {
+        const hubStdNode: StandardNodeDef = {
+            id: 'service',
+            name: 'Service',
+            behaviour: 'create-node',
+            controls: {
+                'Resiliency Tier': {
+                    description: 'Recovery time commitments',
+                    requirements: [{ 'requirement-url': 'platform:controls:resiliency-tier' }],
+                },
+            },
+            nodeType: 'service',
+            namespace: 'OSS-NY-Demo',
+            sha: 'ecab061',
+        };
+
+        const localStdNode: StandardNodeDef = {
+            id: 'database',
+            name: 'Database',
+            behaviour: 'create-node',
+            controls: {
+                'Data Classification': {
+                    description: 'Highest data classification',
+                    requirements: [{ 'requirement-url': 'controls/security/data-classification.json' }],
+                },
+            },
+            nodeType: 'database',
+        };
+
+        const nodeWithDefId = (id: string, defId: string) => ({
+            type: 'object',
+            properties: {
+                'unique-id': { const: id },
+                'node-type': { const: 'service' },
+                name: { const: id },
+                'definition-id': { const: defId },
+            },
+        });
+
+        it('copies controls from a Hub standard node and upgrades definition-id to a versioned CURIE', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+            expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
+            expect(arch.nodes[0].controls['Resiliency Tier'].requirements[0]['requirement-url']).toBe('platform:controls:resiliency-tier');
+        });
+
+        it('seeds base constants into copied control configs', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [hubStdNode],
+            );
+
+            const config = arch.nodes[0].controls['Resiliency Tier'].requirements[0].config;
+            expect(config).toEqual({
+                'control-id': 'Resiliency Tier',
+                name: 'Resiliency Tier',
+                description: 'Recovery time commitments',
+            });
+        });
+
+        it('sets metadata.source-standard-node for a local standard node', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('db', 'database')] } } },
+                [localStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('database');
+            expect(arch.nodes[0].metadata).toEqual({ 'source-standard-node': 'database' });
+            expect(arch.nodes[0].controls).toHaveProperty('Data Classification');
+        });
+
+        it('matches a CURIE definition-id to a standard node by bare id', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:standards:service')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+            expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
+        });
+
+        it('matches a versioned CURIE definition-id', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'OSS-NY-Demo:standards:service@old123')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+        });
+
+        it('leaves a node unchanged when no standard node matches', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'unknown-type')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('unknown-type');
+            expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('works without standardNodes (backward compatible)', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('service');
+            expect(arch.nodes[0].controls).toBeUndefined();
+        });
+
+        it('merges pattern-level controls on top of standard node controls', () => {
+            const nodeSchema = {
+                type: 'object',
+                properties: {
+                    'unique-id': { const: 'gw' },
+                    'node-type': { const: 'service' },
+                    name: { const: 'Gateway' },
+                    'definition-id': { const: 'service' },
+                    controls: {
+                        const: {
+                            'Custom Control': {
+                                description: 'Pattern-specific',
+                                requirements: [{ 'requirement-url': 'custom:controls:thing' }],
+                            },
+                        },
+                    },
+                },
+            };
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeSchema] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
+            expect(arch.nodes[0].controls).toHaveProperty('Custom Control');
+            expect(arch.nodes[0].controls['Custom Control'].description).toBe('Pattern-specific');
+        });
+
+        it('pattern const values for name take precedence over standard node name', () => {
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [hubStdNode],
+            );
+
+            expect(arch.nodes[0].name).toBe('gw');
+            expect(arch.nodes[0]['node-type']).toBe('service');
+        });
+
+        it('prefers a Hub-sourced standard node over a local one with the same id', () => {
+            const localDup: StandardNodeDef = { ...localStdNode, id: 'service', controls: { 'Local Only': { description: 'local' } } };
+            const arch = instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [localDup, hubStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+            expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
+            expect(arch.nodes[0].controls).not.toHaveProperty('Local Only');
+        });
+
+        it('does not mutate the original standard node controls', () => {
+            const controlsBefore = JSON.stringify(hubStdNode.controls);
+            instantiateFromPattern(
+                { properties: { nodes: { prefixItems: [nodeWithDefId('gw', 'service')] } } },
+                [hubStdNode],
+            );
+
+            expect(JSON.stringify(hubStdNode.controls)).toBe(controlsBefore);
+        });
+
+        it('resolves standard nodes for multiple nodes independently', () => {
+            const arch = instantiateFromPattern(
+                {
+                    properties: {
+                        nodes: {
+                            prefixItems: [
+                                nodeWithDefId('gw', 'service'),
+                                nodeWithDefId('db', 'database'),
+                            ],
+                        },
+                    },
+                },
+                [hubStdNode, localStdNode],
+            );
+
+            expect(arch.nodes[0]['definition-id']).toBe('OSS-NY-Demo:standards:service@ecab061');
+            expect(arch.nodes[0].controls).toHaveProperty('Resiliency Tier');
+            expect(arch.nodes[1]['definition-id']).toBe('database');
+            expect(arch.nodes[1].controls).toHaveProperty('Data Classification');
         });
     });
 });
