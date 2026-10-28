@@ -245,7 +245,7 @@ export class WorkspaceAssetService {
 
     private stem(uri: vscode.Uri): string {
         const base = path.basename(uri.fsPath);
-        return base.replace(/\.(calm|architecture|template|solution|standard|guideline)\.json$/, '').replace(/\.md$/, '');
+        return base.replace(/\.(calm|architecture)\.json$/, '');
     }
 
     private extractCategory(uri: vscode.Uri, baseFolder: string): string {
