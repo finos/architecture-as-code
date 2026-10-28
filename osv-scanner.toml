@@ -27,6 +27,13 @@ id = "RUSTSEC-2026-0369"
 ignoreUntil = 2026-12-31
 reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows; the vulnerable Unix permission code is not compiled there, and Linux and macOS builds do not include zip. Remove when tauri-plugin-updater moves to zip >= 9.0.0."
 
+# The parser differential needs one archive to be read by both ZipArchive and
+# ZipStreamReader. tauri-plugin-updater uses only ZipArchive, after it verifies the signature.
+[[IgnoredVulns]]
+id = "GHSA-m665-v7pm-7grj"
+ignoreUntil = 2026-12-31
+reason = "zip 4.6.1 is used by tauri-plugin-updater only on Windows, which reads signed update archives only with ZipArchive. The differential needs a second read with ZipStreamReader, which CALM Studio never does. Remove when tauri-plugin-updater moves to zip >= 9.0.5."
+
 # block-buffer 0.10.4 comes in through sha2 0.10 (tauri-codegen and wry) for the CALM Studio
 # desktop app. The flaw is in the cursor that 0.11.0-pre and later keep inside the buffer
 # block. 0.10 keeps the cursor in a separate field, so the advisory range (< 0.12.1) is too
@@ -68,7 +75,7 @@ reason = "ip-address 10.7.2 is bundled in npm under @semantic-release/npm, used 
 # undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm comes in only through
 # @semantic-release/npm for the CLI release job, which runs npm version and npm publish but
 # never node-gyp. npm overrides cannot change a bundled dependency, and no npm 11.x release
-# bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1.
+# bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix.
 [[IgnoredVulns]]
 id = "GHSA-4qv8-2p9j-2685"
 ignoreUntil = 2026-12-31
@@ -76,6 +83,21 @@ reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic
 
 [[IgnoredVulns]]
 id = "GHSA-xjj6-f33q-929c"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-2m5v-pch6-74hx"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-9fm3-97px-rjf6"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-qrxm-fqhp-jwvm"
 ignoreUntil = 2026-12-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
@@ -102,3 +124,22 @@ reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app wi
 id = "GHSA-pfhg-q3qv-9q6r"
 ignoreUntil = 2026-12-31
 reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."
+
+# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (CALM Studio app and
+# @calmstudio/diagram) and @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
+# build-time only. vite-plugin-svelte merges our own Svelte and Vite config with it, and
+# plugin-svgo declares it but never imports it. No patched release exists, and the latest
+# vite-plugin-svelte still depends on it.
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2026-12-31
+reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."
+
+# opentelemetry-api 1.62.0 comes in through the Quarkus BOM for CALM Hub. The quadratic
+# tracestate parsing runs only when the OpenTelemetry SDK is on. CALM Hub turns it off by
+# default (CALM_OTEL_DISABLED=true), and then Quarkus does not extract inbound trace context.
+# The fix (1.67.0) cannot be overridden: Quarkus 3.40 does not start with OpenTelemetry 1.67.
+[[IgnoredVulns]]
+id = "GHSA-ccrj-gw8r-854m"
+ignoreUntil = 2026-11-30
+reason = "CALM Hub turns off the OpenTelemetry SDK by default, and Quarkus then does not parse inbound tracestate headers. Deployments that set CALM_OTEL_DISABLED=false are exposed until Quarkus manages OpenTelemetry >= 1.67.0. Remove when the Quarkus BOM moves to it."

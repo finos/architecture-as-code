@@ -5,6 +5,18 @@ All notable changes to the CALM CLI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.67.0](https://github.com/finos/architecture-as-code/compare/cli-v1.66.0...cli-v1.67.0) (2026-10-28)
+
+### 🚀 Features
+
+* remove the 2026-03 draft ([#3496](https://github.com/finos/architecture-as-code/issues/3496)) ([732edbf](https://github.com/finos/architecture-as-code/commit/732edbf02e193618bf0c22d95db2c016f255c1bd))
+
+### 🐛 Bug Fixes
+
+* restore the 2026-03 draft in the CLI and on calm.finos.org ([#3534](https://github.com/finos/architecture-as-code/issues/3534)) ([e08304a](https://github.com/finos/architecture-as-code/commit/e08304a81661ddca9efb7ec5ce78502604b936c8))
+* update ajv-formats to v3; date-time and time now require a time zone (use iso-date-time or iso-time to make it optional) ([#3481](https://github.com/finos/architecture-as-code/issues/3481)) ([4a3582c](https://github.com/finos/architecture-as-code/commit/4a3582cdefa6878f1516e05f253aba03c91fb9dd))
+* update calm workspace add --id help text to match default behavior ([#3491](https://github.com/finos/architecture-as-code/issues/3491)) ([a42aa64](https://github.com/finos/architecture-as-code/commit/a42aa643f289fe4706d079e8c3fecfe4764ffb54))
+
 ## [1.66.0](https://github.com/finos/architecture-as-code/compare/cli-v1.65.0...cli-v1.66.0) (2026-10-26)
 
 ### 🚀 Features

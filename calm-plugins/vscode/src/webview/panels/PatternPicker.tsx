@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import type { StandardNodeDef } from '../../extension/services/workspace-asset-service';
+import { useCanvasStore } from '../stores/canvas-store';
 import { instantiateFromPattern } from './pattern-instantiation';
 
 interface PatternEntry { id: string; name: string; description: string; category: string; schema: unknown }
@@ -28,7 +30,8 @@ export function PatternPicker({ visible, mode, patterns, onApply, onClose }: Pat
     }
 
     const handleApply = (entry: PatternEntry) => {
-        const arch = instantiateFromPattern(entry.schema);
+        const standardNodes = useCanvasStore.getState().standardNodes as StandardNodeDef[];
+        const arch = instantiateFromPattern(entry.schema, standardNodes);
         onApply(arch, entry.id);
         onClose();
     };

@@ -12,16 +12,12 @@ let hubStatusBar: HubStatusBar | undefined;
 let hubClient: HubClient | undefined;
 let hubAuthService: HubAuthService | undefined;
 
-const CALM_FILE_SUFFIXES = [
+export const CALM_FILE_SUFFIXES = [
     '.calm.json',
     '.architecture.json',
-    '.template.json',
-    '.solution.json',
-    '.standard.json',
-    '.guideline.json',
 ];
 
-function isCalmFile(fsPath: string): boolean {
+export function isCalmFile(fsPath: string): boolean {
     return CALM_FILE_SUFFIXES.some((suffix) => fsPath.endsWith(suffix));
 }
 
@@ -93,10 +89,6 @@ export function activate(context: vscode.ExtensionContext): void {
     const calmSelector: vscode.DocumentSelector = [
         { pattern: '**/*.calm.json' },
         { pattern: '**/*.architecture.json' },
-        { pattern: '**/*.template.json' },
-        { pattern: '**/*.solution.json' },
-        { pattern: '**/*.standard.json' },
-        { pattern: '**/*.guideline.json' },
     ];
     context.subscriptions.push(
         vscode.languages.registerCodeLensProvider(

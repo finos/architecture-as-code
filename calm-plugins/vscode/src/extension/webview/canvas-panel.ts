@@ -1051,7 +1051,7 @@ export class CanvasPanel {
     private registerFileWatcher(_document: vscode.TextDocument): void {
         this.fileWatcher?.dispose();
         this.fileWatcher = vscode.workspace.createFileSystemWatcher(
-            '**/*.{calm.json,architecture.json,solution.json,pattern.json,template.json}'
+            '**/*.{calm.json,architecture.json,pattern.json}'
         );
         this.fileWatcher.onDidChange(
             (uri) => void this.pushFileToWebview(uri),
