@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 Odd minor versions (e.g. 0.9.x) are published as pre-releases.
 
+## [0.9.3](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.2...vscode-v0.9.3) (2026-10-28)
+
+### 🚀 Features
+
+* **vscode:** resolve standard nodes during pattern instantiation ([#3536](https://github.com/finos/architecture-as-code/issues/3536)) ([2e80ecb](https://github.com/finos/architecture-as-code/commit/2e80ecb681687b9ed090c2a9f4679b7f77b0f714)), closes [#3535](https://github.com/finos/architecture-as-code/issues/3535)
+
+### 🐛 Bug Fixes
+
+* **vscode:** forget the Hub URL in the status bar when it is cleared ([#3530](https://github.com/finos/architecture-as-code/issues/3530)) ([418e3d8](https://github.com/finos/architecture-as-code/commit/418e3d8e0d45422238bc5d4d8048bcc4bdfb7dc0))
+* **vscode:** keep the saved Hub URL when you disconnect ([#3516](https://github.com/finos/architecture-as-code/issues/3516)) ([64b3b5d](https://github.com/finos/architecture-as-code/commit/64b3b5d35986b5c785d0ebeb74aeeb5cdaed1b65))
+* **vscode:** remove legacy template, solution, standard, and guideline file suffixes ([#3553](https://github.com/finos/architecture-as-code/issues/3553)) ([4c6bab1](https://github.com/finos/architecture-as-code/commit/4c6bab16bd6d25ead7407ca188af8d0cdcaad283))
+* **vscode:** show every namespace as selected when the selection is empty ([#3521](https://github.com/finos/architecture-as-code/issues/3521)) ([d204dbe](https://github.com/finos/architecture-as-code/commit/d204dbe3e6cd7ef2a3330caee5ddd2856dea4d22))
+
 ## [0.9.2](https://github.com/finos/architecture-as-code/compare/vscode-v0.9.1...vscode-v0.9.2) (2026-10-26)
 
 ### ♻️ Code Refactoring
