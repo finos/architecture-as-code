@@ -1,6 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as vscode from 'vscode';
-import { activate, disconnectFromHub, hubMenuItems } from './extension';
+import {
+    activate,
+    CALM_FILE_SUFFIXES,
+    disconnectFromHub,
+    hubMenuItems,
+    isCalmFile,
+} from './extension';
 
 interface ConfigUpdate {
     section: string;
@@ -147,5 +153,21 @@ describe('the Clear URL menu item', () => {
         expect(configUpdates).toEqual([
             { section: 'calm.hub', key: 'url', value: undefined },
         ]);
+    });
+});
+
+describe('CALM_FILE_SUFFIXES and isCalmFile', () => {
+    it('supports only .calm.json and .architecture.json suffixes', () => {
+        expect(CALM_FILE_SUFFIXES).toEqual(['.calm.json', '.architecture.json']);
+        expect(isCalmFile('/workspace/my-service.calm.json')).toBe(true);
+        expect(isCalmFile('/workspace/my-system.architecture.json')).toBe(true);
+    });
+
+    it('rejects legacy suffixes (.template.json, .solution.json, .standard.json, .guideline.json)', () => {
+        expect(isCalmFile('/workspace/legacy.template.json')).toBe(false);
+        expect(isCalmFile('/workspace/legacy.solution.json')).toBe(false);
+        expect(isCalmFile('/workspace/legacy.standard.json')).toBe(false);
+        expect(isCalmFile('/workspace/legacy.guideline.json')).toBe(false);
+        expect(isCalmFile('/workspace/pattern.pattern.json')).toBe(false);
     });
 });

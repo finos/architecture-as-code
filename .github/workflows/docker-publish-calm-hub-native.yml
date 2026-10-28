@@ -109,7 +109,8 @@ jobs:
             - name: Smoke test
               run: |
                   docker network create smoke-net
-                  docker run -d --name mongo --network smoke-net mongo:8
+                  # Disables tcmalloc per-CPU caches so MongoDB starts on 6.19+ kernels (SERVER-121912)
+                  docker run -d --name mongo --network smoke-net -e GLIBC_TUNABLES=glibc.pthread.rseq=1 mongo:8
                   docker run -d --name calmhub --network smoke-net \
                     -p 8080:8080 \
                     -e QUARKUS_MONGODB_CONNECTION_STRING=mongodb://mongo:27017 \
