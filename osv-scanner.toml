@@ -68,7 +68,7 @@ reason = "ip-address 10.7.2 is bundled in npm under @semantic-release/npm, used 
 # undici 6.29.0 is bundled inside npm 11.21.1, under node-gyp. npm comes in only through
 # @semantic-release/npm for the CLI release job, which runs npm version and npm publish but
 # never node-gyp. npm overrides cannot change a bundled dependency, and no npm 11.x release
-# bundles the fix (6.29.1) yet. The other undici copies in the lockfile are 6.29.1 and 7.30.1.
+# bundles the fix (6.29.1) yet. The other undici copy in the lockfile is 7.30.1, which has the fix.
 [[IgnoredVulns]]
 id = "GHSA-4qv8-2p9j-2685"
 ignoreUntil = 2026-12-31
@@ -76,6 +76,21 @@ reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic
 
 [[IgnoredVulns]]
 id = "GHSA-xjj6-f33q-929c"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-2m5v-pch6-74hx"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-9fm3-97px-rjf6"
+ignoreUntil = 2026-12-31
+reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
+
+[[IgnoredVulns]]
+id = "GHSA-qrxm-fqhp-jwvm"
 ignoreUntil = 2026-12-31
 reason = "undici 6.29.0 is bundled in npm under node-gyp, pulled in by @semantic-release/npm for the CLI release job only, which never runs node-gyp. Not shipped. Remove when an npm release bundles undici >= 6.29.1."
 
@@ -102,3 +117,13 @@ reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app wi
 id = "GHSA-pfhg-q3qv-9q6r"
 ignoreUntil = 2026-12-31
 reason = "@sveltejs/kit 2.70.2 is used only by CALM Studio, a single-page app with only the root route, no form actions and no use:enhance, so the enhanced form redirect cannot occur. Remove when CALM Studio is retired or moves to kit 3."
+
+# deepmerge 4.3.1 comes in through @sveltejs/vite-plugin-svelte (CALM Studio app and
+# @calmstudio/diagram) and @svgr/plugin-svgo (Docusaurus preset-classic in docs). Both are
+# build-time only. vite-plugin-svelte merges our own Svelte and Vite config with it, and
+# plugin-svgo declares it but never imports it. No patched release exists, and the latest
+# vite-plugin-svelte still depends on it.
+[[IgnoredVulns]]
+id = "GHSA-gcqx-w48m-w2h4"
+ignoreUntil = 2026-12-31
+reason = "deepmerge 4.3.1 runs only at build time: vite-plugin-svelte merges project-owned Svelte and Vite config, and @svgr/plugin-svgo never imports it. No untrusted object reaches mergeObject(). Remove when a patched release is available."

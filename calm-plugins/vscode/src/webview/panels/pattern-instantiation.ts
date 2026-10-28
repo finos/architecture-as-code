@@ -1,4 +1,6 @@
-export function instantiateFromPattern(schema: unknown): any {
+import type { StandardNodeDef } from '../../extension/services/workspace-asset-service';
+
+export function instantiateFromPattern(schema: unknown, standardNodes?: StandardNodeDef[]): any {
     const p = schema as any;
 
     const nodes = (p?.properties?.nodes?.prefixItems ?? [])
@@ -10,6 +12,12 @@ export function instantiateFromPattern(schema: unknown): any {
             if (!n['name']) n['name'] = '[[PLACEHOLDER]]';
             return n;
         });
+
+    if (standardNodes?.length) {
+        for (const node of nodes) {
+            resolveStandardNode(node, standardNodes);
+        }
+    }
 
     const built = new Set<string>(nodes.map((n: any) => n['unique-id']));
     const relationships = (p?.properties?.relationships?.prefixItems ?? [])
@@ -80,4 +88,51 @@ function extractValue(schema: any): unknown {
     if (schema.type === 'array') return [];
     if (schema.type === 'object') return {};
     return '[[PLACEHOLDER]]';
+}
+
+function resolveStandardNode(node: any, standardNodes: StandardNodeDef[]): void {
+    const defId = node['definition-id'];
+    if (!defId || typeof defId !== 'string') return;
+
+    // If the pattern pins a version, let loadArchitecture → resolveDefinitionId handle it
+    if (defId.includes('@')) return;
+
+    const match = findStandardNode(defId, standardNodes);
+    if (!match || match.behaviour !== 'create-node') return;
+
+    // Deep-copy controls; enrichment seeds the correct identity constants
+    const stdControls = JSON.parse(JSON.stringify(match.controls ?? {}));
+
+    const patternControls = node.controls;
+    if (patternControls && typeof patternControls === 'object') {
+        Object.assign(stdControls, patternControls);
+    }
+    node.controls = stdControls;
+
+    const isHubSourced = !!match.namespace;
+    const hasCustomId = !!match.id && /[a-zA-Z]/.test(match.id);
+
+    if (isHubSourced && hasCustomId && match.sha) {
+        node['definition-id'] = `${match.namespace}:standards:${match.id}@${match.sha}`;
+    } else {
+        delete node['definition-id'];
+        if (!node.metadata) node.metadata = {};
+        node.metadata['source-standard-node'] = match.id;
+    }
+}
+
+function findStandardNode(defId: string, standardNodes: StandardNodeDef[]): StandardNodeDef | undefined {
+    // Bare id (no colon): exact match
+    if (!defId.includes(':')) {
+        const matches = standardNodes.filter((n) => n.id === defId);
+        if (matches.length === 0) return undefined;
+        return matches.find((n) => !!n.namespace) ?? matches[0];
+    }
+
+    // CURIE: parse {namespace}:standards:{id} and match both namespace and id
+    const parts = defId.split(':');
+    if (parts.length < 3 || parts[1] !== 'standards') return undefined;
+    const ns = parts[0];
+    const id = parts[2];
+    return standardNodes.find((n) => n.id === id && n.namespace === ns);
 }
