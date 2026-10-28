@@ -3,6 +3,9 @@
 services:
   mongodb:
     image: mongo:8
+    # Disables tcmalloc per-CPU caches so MongoDB starts on 6.19+ kernels (SERVER-121912)
+    environment:
+      - GLIBC_TUNABLES=glibc.pthread.rseq=1
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 2s
